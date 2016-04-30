@@ -2713,15 +2713,11 @@ do_accept (void *cls)
   struct GNUNET_NETWORK_Handle *lsock = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   if (lsock == lsock4)
     ltask4 = NULL;
   else
     ltask6 = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   if (lsock == lsock4)
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
@@ -3126,8 +3122,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			       "gns-proxy",
 			       &identity_master_cb,
 			       NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 

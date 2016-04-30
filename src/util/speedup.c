@@ -41,18 +41,16 @@ static void
 do_speedup (void *cls)
 {
   static long long current_offset;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   speedup_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   current_offset += delta.rel_value_us;
   GNUNET_TIME_set_offset (current_offset);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Speeding up execution time by %s\n",
        GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
-  speedup_task = GNUNET_SCHEDULER_add_delayed (interval, &do_speedup, NULL);
+  speedup_task = GNUNET_SCHEDULER_add_delayed (interval,
+					       &do_speedup,
+					       NULL);
 }
 
 
@@ -65,16 +63,22 @@ do_speedup (void *cls)
 int
 GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_assert (NULL == speedup_task);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "testing",
-                                           "SPEEDUP_INTERVAL", &interval))
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "testing",
+                                           "SPEEDUP_INTERVAL",
+					   &interval))
     return GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "testing",
-                                           "SPEEDUP_DELTA", &delta))
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "testing",
+                                           "SPEEDUP_DELTA",
+					   &delta))
     return GNUNET_SYSERR;
 
-  if ((0 == interval.rel_value_us) || (0 == delta.rel_value_us))
+  if ( (0 == interval.rel_value_us) ||
+       (0 == delta.rel_value_us) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Speed up disabled\n");
@@ -87,7 +91,8 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
        "Speed up executed every %s\n",
        GNUNET_STRINGS_relative_time_to_string (interval, GNUNET_NO));
   speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
-                                                         &do_speedup, NULL);
+                                                         &do_speedup,
+							 NULL);
   return GNUNET_OK;
 }
 
@@ -108,7 +113,5 @@ GNUNET_SPEEDUP_stop_ ()
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Stopped execution speed up\n");
 }
-
-
 
 /* end of speedup.c */

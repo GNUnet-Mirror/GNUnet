@@ -94,7 +94,8 @@ reconnect (void *cls);
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+message_handler (void *cls,
+		 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NSE_Handle *h = cls;
   const struct GNUNET_NSE_ClientMessage *client_msg;
@@ -150,7 +151,8 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
        GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
 					       GNUNET_YES));
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
+      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+				    &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 

@@ -86,9 +86,10 @@ do_shutdown (void *cls)
 static void
 do_abort (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = NULL;
-  (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Test timed out -- Aborting\n");
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -119,8 +120,7 @@ test_master (void *cls,
       return;                   /* abort already scheduled */
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = NULL;
-    (void) GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         &do_shutdown, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
     return;
   }
   GNUNET_assert (NULL != peers[0]);
@@ -168,7 +168,9 @@ controller_event_cb (void *cls,
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
@@ -176,11 +178,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
-  GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
-                      NULL, &test_master, NULL);
+  GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask,
+		      &controller_event_cb, NULL,
+		      &test_master, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
+                                    (GNUNET_TIME_UNIT_SECONDS, 300),
+				    &do_abort,
                                     NULL);
 }
 

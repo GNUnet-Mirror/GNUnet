@@ -163,13 +163,9 @@ terminate_task (void *cls)
 static void
 terminate_task_error (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   err_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testcase failed!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Testcase failed!\n");
   terminate_peer (&p1);
   terminate_peer (&p2);
   //GNUNET_break (0);
@@ -301,7 +297,6 @@ measurement_stop (void *cls)
 */
   GNUNET_SCHEDULER_cancel (err_task);
   err_task = GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
-
 }
 
 
@@ -357,7 +352,6 @@ transmit_ready (void *cls, size_t size, void *buf)
 }
 
 
-
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
@@ -375,8 +369,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) for transmission to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
-    if (err_task != NULL)
-      GNUNET_SCHEDULER_cancel (err_task);
+    GNUNET_SCHEDULER_cancel (err_task);
     err_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
     start_time = GNUNET_TIME_absolute_get ();

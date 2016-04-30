@@ -351,11 +351,7 @@ run_continuation (void *cls)
   static struct GNUNET_HashCode key;
   static char data[65536];
   char gstr[128];
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    crc->phase = RP_ERROR;
   ok = (int) crc->phase;
   switch (crc->phase)
   {

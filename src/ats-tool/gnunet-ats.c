@@ -363,7 +363,7 @@ transport_addr_to_str_cb (void *cls,
       /* All messages received and no resolutions pending*/
       if (shutdown_task != NULL)
         GNUNET_SCHEDULER_cancel (shutdown_task);
-      shutdown_task = GNUNET_SCHEDULER_add_now (end, NULL);
+      shutdown_task = GNUNET_SCHEDULER_add_now (&end, NULL);
     }
     return;
   }
@@ -604,7 +604,7 @@ ats_perf_cb (void *cls,
       /* All messages received and no resolutions pending*/
       if (shutdown_task != NULL)
         GNUNET_SCHEDULER_cancel (shutdown_task);
-      shutdown_task = GNUNET_SCHEDULER_add_now (end, NULL);
+      shutdown_task = GNUNET_SCHEDULER_add_now (&end, NULL);
     }
     return;
   }
@@ -807,9 +807,8 @@ run (void *cls,
       shutdown_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  &end,
-                                                  NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_shutdown (&end,
+						   NULL);
     return;
   }
   if (opt_list_used)
@@ -834,9 +833,8 @@ run (void *cls,
       shutdown_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &end,
-                                             NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_shutdown (&end,
+						   NULL);
     return;
   }
   if (opt_monitor)
@@ -844,13 +842,15 @@ run (void *cls,
     ph = GNUNET_ATS_performance_init (cfg,
                                       &ats_perf_mon_cb,
                                       NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_shutdown (&end,
+						   NULL);
     if (NULL == ph)
+    {
       FPRINTF (stderr,
                "%s",
                _("Cannot connect to ATS service, exiting...\n"));
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  &end,
-                                                  NULL);
+      GNUNET_SCHEDULER_shutdown ();
+    }
     return;
   }
   if (opt_set_pref)

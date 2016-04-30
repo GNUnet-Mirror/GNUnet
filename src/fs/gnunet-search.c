@@ -55,6 +55,9 @@ static int verbose;
 
 static int local_only;
 
+static struct GNUNET_SCHEDULER_Task *tt;
+
+
 /**
  * Type of a function that libextractor calls for each
  * meta data item found.
@@ -220,6 +223,14 @@ shutdown_task (void *cls)
 }
 
 
+static void
+timeout_task (void *cls)
+{
+  tt = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -272,10 +283,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   if (0 != timeout.rel_value_us)
-    GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
-  else
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                  NULL);
+    tt = GNUNET_SCHEDULER_add_delayed (timeout,
+				       &timeout_task,
+				       NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

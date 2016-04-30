@@ -1192,11 +1192,10 @@ connection_maintain (struct CadetConnection *c, int fwd)
  *
  * @param c Connection to keep alive.
  * @param fwd Direction.
- * @param shutdown Are we shutting down? (Don't send traffic)
- *                 Non-zero value for true, not necessarily GNUNET_YES.
  */
 static void
-connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
+connection_keepalive (struct CadetConnection *c,
+		      int fwd)
 {
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1207,10 +1206,6 @@ connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
     c->fwd_maintenance_task = NULL;
   else
     c->bck_maintenance_task = NULL;
-
-  if (GNUNET_NO != shutdown)
-    return;
-
   connection_maintain (c, fwd);
   GCC_check_connections ();
   /* Next execution will be scheduled by message_sent or _maintain*/
@@ -1225,13 +1220,11 @@ connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
 static void
 connection_fwd_keepalive (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
+  struct CadetConnection *c = cls;
 
   GCC_check_connections ();
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  connection_keepalive ((struct CadetConnection *) cls,
-                        GNUNET_YES,
-                        tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
+  connection_keepalive (c,
+                        GNUNET_YES);
   GCC_check_connections ();
 }
 
@@ -1244,13 +1237,11 @@ connection_fwd_keepalive (void *cls)
 static void
 connection_bck_keepalive (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
+  struct CadetConnection *c = cls;
 
   GCC_check_connections ();
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  connection_keepalive ((struct CadetConnection *) cls,
-                        GNUNET_NO,
-                        tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
+  connection_keepalive (c,
+                        GNUNET_NO);
   GCC_check_connections ();
 }
 
@@ -1461,16 +1452,9 @@ connection_poll (void *cls)
   struct GNUNET_CADET_Poll msg;
   struct CadetConnection *c;
   int fwd;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   fc->poll_task = NULL;
   GCC_check_connections ();
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    return;
-  }
-
   c = fc->c;
   fwd = fc == &c->fwd_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Polling connection %s %s\n",
@@ -1592,12 +1576,8 @@ static void
 connection_fwd_timeout (void *cls)
 {
   struct CadetConnection *c = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->fwd_maintenance_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GCC_check_connections ();
   connection_timeout (c, GNUNET_YES);
   GCC_check_connections ();
@@ -1614,12 +1594,8 @@ static void
 connection_bck_timeout (void *cls)
 {
   struct CadetConnection *c = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->bck_maintenance_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GCC_check_connections ();
   connection_timeout (c, GNUNET_NO);
   GCC_check_connections ();
@@ -1767,13 +1743,8 @@ static void
 check_duplicates (void *cls)
 {
   struct CadetConnection *c = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->check_duplicates_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   if (GNUNET_YES == does_connection_exist (c))
   {
     GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
@@ -1781,7 +1752,6 @@ check_duplicates (void *cls)
     GCC_destroy (c);
   }
 }
-
 
 
 /**
@@ -1797,13 +1767,11 @@ schedule_check_duplicates (struct CadetConnection *c)
 
   if (NULL != c->check_duplicates_task)
     return;
-
   delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 5);
   c->check_duplicates_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                            &check_duplicates,
                                                            c);
 }
-
 
 
 /**
@@ -1903,7 +1871,8 @@ unregister_neighbors (struct CadetConnection *c)
  * @param disconnected Peer that disconnected.
  */
 static void
-invalidate_paths (struct CadetConnection *c, struct CadetPeer *disconnected)
+invalidate_paths (struct CadetConnection *c,
+		  struct CadetPeer *disconnected)
 {
   struct CadetPeer *peer;
   unsigned int i;

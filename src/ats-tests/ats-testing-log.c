@@ -804,13 +804,9 @@ static void
 collect_log_task (void *cls)
 {
   struct LoggingHandle *l = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   l->log_task = NULL;
   GNUNET_ATS_TEST_logging_now (l);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
   l->log_task = GNUNET_SCHEDULER_add_delayed (l->frequency,
                                               &collect_log_task,
                                               l);
@@ -829,8 +825,10 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
     return;
 
   if (NULL != l->log_task)
+  {
     GNUNET_SCHEDULER_cancel (l->log_task);
-  l->log_task = NULL;
+    l->log_task = NULL;
+  }
   l->running = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,

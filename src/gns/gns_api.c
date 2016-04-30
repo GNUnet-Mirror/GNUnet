@@ -239,9 +239,10 @@ force_reconnect (struct GNUNET_GNS_Handle *handle)
 				 p);
   }
   handle->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (handle->reconnect_backoff);
-  handle->reconnect_task = GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
-                                                    &reconnect_task,
-                                                    handle);
+  handle->reconnect_task
+    = GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
+				    &reconnect_task,
+				    handle);
 }
 
 

@@ -105,13 +105,12 @@ static struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 /**
  * Timeout task
  */
-static struct GNUNET_SCHEDULER_Task * timeout_task;
-
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Update task
  */
-static struct GNUNET_SCHEDULER_Task * update_task;
+static struct GNUNET_SCHEDULER_Task *update_task;
 
 /**
  * Timeout for next update pass
@@ -494,8 +493,10 @@ handle_token_update (void *cls)
   scopes = NULL;
 }
 
+
 static void
 update_identities(void *cls);
+
 
 /**
  *
@@ -504,7 +505,7 @@ update_identities(void *cls);
  * @param cls NULL
  * @param key the key
  * @param value the json_t attribute value
- * @return GNUNET_YES
+ * @return #GNUNET_YES
  */
 static int
 clear_ego_attrs (void *cls,
@@ -530,6 +531,7 @@ clear_ego_attrs (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  *
  * Update all ID_TOKEN records for an identity and store them
@@ -539,7 +541,6 @@ clear_ego_attrs (void *cls,
  * @param lbl the name of the record
  * @param rd_count number of records
  * @param rd record data
- *
  */
 static void
 token_collect (void *cls,
@@ -579,7 +580,9 @@ token_collect (void *cls,
   {
     token_metadata_record = &rd[0];
     token_record = &rd[1];
-  } else {
+  }
+  else
+  {
     token_record = &rd[0];
     token_metadata_record = &rd[1];
   }
@@ -607,7 +610,8 @@ token_collect (void *cls,
   label = GNUNET_strdup (lbl);
   rd_exp = token_record->expiration_time;
 
-  GNUNET_SCHEDULER_add_now (&handle_token_update, ego_entry);
+  GNUNET_SCHEDULER_add_now (&handle_token_update,
+			    ego_entry);
 }
 
 
@@ -642,7 +646,8 @@ attribute_collect (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 ">>> Updating Attributes finished\n");
     ego_entry->attributes_dirty = GNUNET_NO;
-    update_task = GNUNET_SCHEDULER_add_now (&update_identities, ego_entry);
+    update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+					    ego_entry);
     return;
   }
 
@@ -752,7 +757,6 @@ update_identities(void *cls)
 }
 
 
-
 /**
  * Function called initially to start update task
  */
@@ -761,8 +765,10 @@ init_cont ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, ">>> Starting Service\n");
   //Initially iterate all itenties and refresh all tokens
-  update_task = GNUNET_SCHEDULER_add_now (&update_identities, ego_head);
+  update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+					  ego_head);
 }
+
 
 /**
  * Initial ego collection function.
@@ -934,6 +940,7 @@ store_token_issue_cont (void *cls,
   struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
   char *ticket_str;
   char *token_str;
+  
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
@@ -964,7 +971,9 @@ store_token_issue_cont (void *cls,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  irm = create_issue_result_message (handle->label, ticket_str, token_str);
+  irm = create_issue_result_message (handle->label,
+				     ticket_str,
+				     token_str);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &irm->header,
@@ -1528,19 +1537,16 @@ run (void *cls,
     token_expiration_interval = DEFAULT_TOKEN_EXPIRATION_INTERVAL;
   }
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 
 /**
- *
  * The main function
  *
  * @param argc number of arguments from the cli
  * @param argv command line arguments
  * @return 0 ok, 1 on error
- *
  */
 int
 main (int argc, char *const *argv)
@@ -1551,4 +1557,4 @@ main (int argc, char *const *argv)
                                &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-rest-server.c */
+/* end of gnunet-service-identity-provider.c */

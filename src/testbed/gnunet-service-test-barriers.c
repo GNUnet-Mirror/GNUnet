@@ -39,7 +39,9 @@
 /**
  * Our barrier wait handle
  */
-struct GNUNET_TESTBED_BarrierWaitHandle *wh;
+static struct GNUNET_TESTBED_BarrierWaitHandle *wh;
+
+static struct GNUNET_SCHEDULER_Task *tt;
 
 
 /**
@@ -51,8 +53,15 @@ static void
 do_shutdown (void *cls)
 {
   if (NULL != wh)
+  {
     GNUNET_TESTBED_barrier_wait_cancel (wh);
-  wh = NULL;
+    wh = NULL;
+  }
+  if (NULL != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
 }
 
 
@@ -63,8 +72,8 @@ do_shutdown (void *cls)
  *
  * @param cls NULL
  * @param name the barrier name
- * @param status GNUNET_SYSERR in case of error while waiting for the barrier;
- *   GNUNET_OK if the barrier is crossed
+ * @param status #GNUNET_SYSERR in case of error while waiting for the barrier;
+ *   #GNUNET_OK if the barrier is crossed
  */
 static void
 barrier_wait_cb (void *cls, const char *name, int status)
@@ -84,12 +93,10 @@ barrier_wait_cb (void *cls, const char *name, int status)
 static void
 do_wait (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-  wh = GNUNET_TESTBED_barrier_wait (TEST_BARRIER_NAME, &barrier_wait_cb, NULL);
+  tt = NULL;
+  wh = GNUNET_TESTBED_barrier_wait (TEST_BARRIER_NAME,
+				    &barrier_wait_cb,
+				    NULL);
   GNUNET_break (NULL != wh);
 }
 
@@ -103,17 +110,18 @@ do_wait (void *cls)
  * @param config the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   unsigned int rsec;
 
   rsec = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 10);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, rsec),
-                                &do_wait, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+				     (GNUNET_TIME_UNIT_SECONDS, rsec),
+				     &do_wait, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 
@@ -121,7 +129,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 /**
  * Main
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END

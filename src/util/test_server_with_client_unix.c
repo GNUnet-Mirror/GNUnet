@@ -50,16 +50,18 @@ send_done (void *cls)
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
+recv_cb (void *cls,
+	 struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   switch (ok)
   {
   case 2:
     ok++;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_MILLISECONDS, 50),
-                                  &send_done, argclient);
+    (void) GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+					 (GNUNET_TIME_UNIT_MILLISECONDS, 50),
+					 &send_done,
+					 argclient);
     break;
   case 4:
     ok++;
@@ -91,13 +93,14 @@ clean_up (void *cls)
  * @param client identification of the client
  */
 static void
-notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+notify_disconnect (void *cls,
+		   struct GNUNET_SERVER_Client *client)
 {
   if (client == NULL)
     return;
   GNUNET_assert (ok == 5);
   ok = 0;
-  GNUNET_SCHEDULER_add_now (&clean_up, NULL);
+  (void) GNUNET_SCHEDULER_add_now (&clean_up, NULL);
 }
 
 

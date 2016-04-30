@@ -56,11 +56,6 @@ static unsigned long child_exit_code;
 static enum GNUNET_OS_ProcessStatusType child_status;
 
 /**
- * The shutdown task
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
-
-/**
  * Task to kill the child
  */
 static struct GNUNET_SCHEDULER_Task * terminate_task_id;
@@ -76,7 +71,6 @@ static struct GNUNET_SCHEDULER_Task * child_death_task_id;
 static void
 shutdown_task (void *cls)
 {
-  shutdown_task_id = NULL;
   if (0 != child_exit_code)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Child exited with error code: %lu\n",
@@ -102,8 +96,7 @@ terminate_task (void *cls)
 
   GNUNET_assert (NULL != child);
   terminate_task_id =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &terminate_task, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&terminate_task, NULL);
   if (0 != hard_kill)
   {
     switch (hard_kill)
@@ -159,7 +152,7 @@ child_death_task (void *cls)
                                                         &child_exit_code));
   GNUNET_OS_process_destroy (child);
   child = NULL;
-  shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -253,13 +246,12 @@ run (void *cls)
   {
     GNUNET_break (0);
     ret = GNUNET_SYSERR;
-    shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   ret = GNUNET_OK;
   terminate_task_id =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &terminate_task, NULL);
+      GNUNET_SCHEDULER_add_shutdown (&terminate_task, NULL);
   child_death_task_id =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				    GNUNET_DISK_pipe_handle (sigpipe,

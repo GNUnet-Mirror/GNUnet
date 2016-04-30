@@ -461,9 +461,21 @@ do_shutdown (void *cls)
     a_ctx = NULL;
   }
   //FIXME: Should we collect stats only for put/get not for other messages.
-  if(NULL != bandwidth_stats_op)
+  if (NULL != bandwidth_stats_op)
+  {
     GNUNET_TESTBED_operation_done (bandwidth_stats_op);
-  bandwidth_stats_op = NULL;
+    bandwidth_stats_op = NULL;
+  }
+  if (NULL != successor_stats_op)
+  {
+    GNUNET_TESTBED_operation_done (successor_stats_op);
+    successor_stats_op = NULL;
+  }
+  if (NULL != successor_stats_task)
+  {
+    GNUNET_SCHEDULER_cancel (successor_stats_task);
+    successor_stats_task = NULL;
+  }
   GNUNET_free_non_null (a_ac);
 }
 
@@ -687,11 +699,7 @@ teardown_dht_connection (void *cls)
 {
   struct Context *ctx = cls;
   struct GNUNET_TESTBED_Operation *op;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   GNUNET_assert (NULL != ctx);
   GNUNET_assert (NULL != (op = ctx->op));
   ctx->op = NULL;
@@ -1070,7 +1078,7 @@ successor_stats_cont (void *cls,
   successor_stats_op = NULL;
   if (0 == max_searches)
   {
-    start_func();
+    start_func ();
     return;
   }
 
@@ -1108,39 +1116,27 @@ successor_stats_cont (void *cls,
                                                                  GNUNET_NO);
   if ((start_val == val) && (count == num_peers))
   {
-    DEBUG("CIRCLE COMPLETED after %u tries", tries);
+    DEBUG ("CIRCLE COMPLETED after %u tries", tries);
     if(NULL == successor_stats_task)
     {
       start_func();
     }
     return;
   }
-  else
+  if (max_searches == ++tries)
   {
-    if (max_searches == ++tries)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
-                  " circle formation.  Exiting\n",
-                  max_searches,tries);
-      if (NULL != successor_stats_task)
-      {
-        successor_stats_task = NULL;
-      }
-      if(NULL == successor_stats_task)
-      {
-        start_func();
-      }
-
-      return;
-    }
-    else
-    {
-      flag = 0;
-      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats,
-                                                           &collect_stats, cls);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
+		" circle formation.  Exiting\n",
+		max_searches,tries);
+    start_func();
+    return;
   }
+  flag = 0;
+  successor_stats_task
+    = GNUNET_SCHEDULER_add_delayed (delay_stats,
+				    &collect_stats,
+				    cls);
 }
 
 
@@ -1214,26 +1210,21 @@ successor_stats_iterator (void *cls,
 static void
 collect_stats (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
+  successor_stats_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Start collecting statistics...\n");
   GNUNET_assert(NULL != testbed_handles);
 
   if (0 != max_searches)
-  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers,
-                                                                    GNUNET_NO);
-  successor_stats_op =
-          GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
-                                         "dht", NULL,
-                                          successor_stats_iterator,
-                                          successor_stats_cont, cls);
-
-  GNUNET_assert(NULL != successor_stats_op);
+    successor_peer_hashmap
+      = GNUNET_CONTAINER_multihashmap_create (num_peers,
+					      GNUNET_NO);
+  successor_stats_op
+    = GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
+				     "dht", NULL,
+				     successor_stats_iterator,
+				     successor_stats_cont, cls);
+  GNUNET_assert (NULL != successor_stats_op);
 }
 
 
@@ -1265,9 +1256,10 @@ service_started (void *cls,
      collect_stat_cls->service_connect_ctx = cls;
      collect_stat_cls->op = op;
 
-     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats,
-                                                          &collect_stats,
-                                                          collect_stat_cls);
+     successor_stats_task
+       = GNUNET_SCHEDULER_add_delayed (delay_stats,
+				       &collect_stats,
+				       collect_stat_cls);
   }
 }
 
@@ -1393,7 +1385,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (0 == num_peers)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Exiting as the number of peers is %u\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Exiting as the number of peers is %u\n"),
                 num_peers);
     return;
   }
@@ -1401,8 +1394,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask, NULL,
                       NULL, &test_run, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
 }
 
 

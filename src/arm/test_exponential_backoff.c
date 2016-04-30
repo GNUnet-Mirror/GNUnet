@@ -90,7 +90,7 @@ struct ShutdownContext
   /**
    * Task set up to cancel the shutdown request on timeout.
    */
-  struct GNUNET_SCHEDULER_Task * cancel_task;
+  struct GNUNET_SCHEDULER_Task *cancel_task;
 
   /**
    * Task to call once shutdown complete
@@ -235,7 +235,7 @@ shutdown_cont (void *cls, int reason)
   {
     /* Re-try shutdown */
     LOG ("do-nothing didn't die, trying again\n");
-    GNUNET_SCHEDULER_add_now (kill_task, NULL);
+    GNUNET_SCHEDULER_add_now (&kill_task, NULL);
     return;
   }
   startedWaitingAt = GNUNET_TIME_absolute_get ();
@@ -290,12 +290,15 @@ trigger_disconnect (void *cls)
 
 
 static void
-arm_stop_cb (void *cls, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_stop_cb (void *cls,
+	     enum GNUNET_ARM_RequestStatus status,
+	     const char *servicename,
+	     enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STOPPED);
   LOG ("ARM service stopped\n");
-  GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
+  GNUNET_SCHEDULER_add_now (&trigger_disconnect, NULL);
 }
 
 
@@ -318,7 +321,8 @@ srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status
     LOG ("do-nothing is starting\n");
     phase++;
     ok = 1;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				  &kill_task, NULL);
   }
   else if ((phase == 2) && (strcasecmp (SERVICE, service) == 0))
   {
@@ -328,7 +332,7 @@ srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status
     if (status == GNUNET_ARM_SERVICE_STARTING)
     {
       LOG ("do-nothing is starting\n");
-      GNUNET_SCHEDULER_add_now (kill_task, &ok);
+      GNUNET_SCHEDULER_add_now (&kill_task, &ok);
     }
     else if ((status == GNUNET_ARM_SERVICE_STOPPED) && (trialCount == 14))
     {

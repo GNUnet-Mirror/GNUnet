@@ -988,8 +988,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   id_op = GNUNET_IDENTITY_get (identity, "fcfsd",
 			       &identity_cb, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 

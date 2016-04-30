@@ -29,15 +29,15 @@
 /**
  * Has the test been successful?
  */
-int result;
+static int result;
 
-unsigned int num_received;
+static unsigned int num_received;
 
-struct GNUNET_CORE_Handle *core;
+static struct GNUNET_CORE_Handle *core;
 
-struct GNUNET_MQ_Handle *mq;
+static struct GNUNET_MQ_Handle *mq;
 
-struct GNUNET_PeerIdentity myself;
+static struct GNUNET_PeerIdentity myself;
 
 
 static void
@@ -55,15 +55,19 @@ init_cb (void *cls,
 
 
 static void
-connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_cb (void *cls,
+	    const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Connected to peer %s.\n",
               GNUNET_i2s (peer));
   if (0 == memcmp (peer, &myself, sizeof (struct GNUNET_PeerIdentity)))
   {
     unsigned int i;
     struct GNUNET_MQ_Envelope *ev;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Queueing messages.\n");
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Queueing messages.\n");
     for (i = 0; i < NUM_MSG; i++)
     {
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_TEST);
@@ -78,7 +82,9 @@ handle_test (void *cls,
              const struct GNUNET_PeerIdentity *other,
              const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got test message %d\n", num_received);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got test message %d\n",
+	      num_received);
   num_received++;
   if (NUM_MSG == num_received)
   {
@@ -98,7 +104,8 @@ handle_test (void *cls,
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Shutting down\n");
   GNUNET_MQ_destroy (mq);
   GNUNET_CORE_disconnect (core);
 }
@@ -129,8 +136,9 @@ run (void *cls,
     GNUNET_assert (0);
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
+
 
 int
 main (int argc, char *argv1[])

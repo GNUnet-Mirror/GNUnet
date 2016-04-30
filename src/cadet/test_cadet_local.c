@@ -42,9 +42,9 @@ static int result = GNUNET_OK;
 
 static int got_data = GNUNET_NO;
 
-static struct GNUNET_SCHEDULER_Task * abort_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
 
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *connect_task;
 
 static struct GNUNET_CADET_TransmitHandle *mth;
 
@@ -68,20 +68,29 @@ do_shutdown (void *cls)
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = NULL;
+  }
+  if (NULL != connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
   }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
+    ch = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
   if (NULL != cadet_peer_1)
   {
     GNUNET_CADET_disconnect (cadet_peer_1);
+    cadet_peer_1 = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
   if (NULL != cadet_peer_2)
   {
     GNUNET_CADET_disconnect (cadet_peer_2);
+    cadet_peer_2 = NULL;
   }
 }
 
@@ -95,12 +104,7 @@ do_abort (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
   abort_task = NULL;
-  if (NULL != shutdown_task)
-  {
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = NULL;
-  }
-  do_shutdown (cls);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -120,14 +124,10 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Data callback! Shutting down.\n");
   got_data = GNUNET_YES;
-  if (NULL != shutdown_task)
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                  &do_shutdown,
-                                  NULL);
+  GNUNET_SCHEDULER_shutdown ();
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
@@ -254,12 +254,8 @@ static void
 do_connect (void *cls)
 {
   struct GNUNET_PeerIdentity id;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-
+  connect_task = NULL;
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, 1,
@@ -286,9 +282,11 @@ run (void *cls,
   static uint32_t ports[] = {1, 0};
 
   me = peer;
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 15), &do_abort,
+                                    (GNUNET_TIME_UNIT_SECONDS, 15),
+				    &do_abort,
                                     NULL);
   cadet_peer_1 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 1L,       /* cls */
@@ -305,13 +303,11 @@ run (void *cls,
                                      ports);     /* ports offered */
   if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to cadet :(\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Couldn't connect to cadet :(\n");
     result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO CADET :D\n");
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
                                   GNUNET_TIME_UNIT_SECONDS,

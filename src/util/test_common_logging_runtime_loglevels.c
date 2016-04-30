@@ -234,7 +234,8 @@ read_call (void *cls)
     FPRINTF (stderr, "got %d bytes, reading more\n", rd);
 #endif
     read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						stdout_read_handle, &read_call,
+						stdout_read_handle,
+						&read_call,
 						(void*) stdout_read_handle);
     return;
   }
@@ -411,7 +412,8 @@ runone ()
 
   die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 10), &end_task,
+                                    (GNUNET_TIME_UNIT_SECONDS, 10),
+				    &end_task,
                                     NULL);
 
   bytes = 0;
@@ -419,7 +421,8 @@ runone ()
   memset (&buf, 0, sizeof (buf));
 
   read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-					      stdout_read_handle, &read_call,
+					      stdout_read_handle,
+					      &read_call,
 					      (void*) stdout_read_handle);
 }
 

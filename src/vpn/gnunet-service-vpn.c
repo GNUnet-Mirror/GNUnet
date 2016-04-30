@@ -3099,9 +3099,8 @@ run (void *cls,
 				       &message_token, NULL, NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup,
+				 NULL);
 }
 
 

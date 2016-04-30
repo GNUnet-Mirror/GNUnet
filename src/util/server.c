@@ -400,12 +400,6 @@ process_listen_socket (void *cls)
 
   server->listen_task = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    /* ignore shutdown, someone else will take care of it! */
-    GNUNET_SERVER_resume (server);
-    return;
-  }
   for (i = 0; NULL != server->listen_sockets[i]; i++)
   {
     if (GNUNET_NETWORK_fdset_isset (tc->read_ready,
@@ -437,7 +431,8 @@ process_listen_socket (void *cls)
  * @return NULL on error, otherwise the listen socket
  */
 static struct GNUNET_NETWORK_Handle *
-open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
+open_listen_socket (const struct sockaddr *server_addr,
+		    socklen_t socklen)
 {
   struct GNUNET_NETWORK_Handle *sock;
   uint16_t port;
@@ -683,7 +678,7 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
     if (GNUNET_NO == client->is_monitor)
       return; /* not done yet */
   server->in_soft_shutdown = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_add_now (&do_destroy, server);
+  (void) GNUNET_SCHEDULER_add_now (&do_destroy, server);
 }
 
 
@@ -720,8 +715,8 @@ GNUNET_SERVER_resume (struct GNUNET_SERVER_Handle *server)
     return; /* nothing to do, no listen sockets! */
   if (NULL == server->listen_sockets[1])
   {
-    /* simplified method: no fd set needed; this is then much simpler and
-       much more efficient */
+    /* simplified method: no fd set needed; this is then much simpler
+       and much more efficient */
     server->listen_task =
       GNUNET_SCHEDULER_add_read_net_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
 						   GNUNET_SCHEDULER_PRIORITY_HIGH,
@@ -890,18 +885,16 @@ static void
 warn_no_receive_done (void *cls)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_break (0 != client->warn_type); /* type should never be 0 here, as we don't use 0 */
   client->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &warn_no_receive_done, client);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Processing code for message of type %u did not call `GNUNET_SERVER_receive_done' after %s\n"),
-         (unsigned int) client->warn_type,
-         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (client->warn_start), GNUNET_YES));
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       _("Processing code for message of type %u did not call `GNUNET_SERVER_receive_done' after %s\n"),
+       (unsigned int) client->warn_type,
+       GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (client->warn_start),
+					       GNUNET_YES));
 }
 
 
@@ -987,7 +980,8 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
             sender->warn_start = GNUNET_TIME_absolute_get ();
             sender->warn_task =
                 GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                              &warn_no_receive_done, sender);
+                                              &warn_no_receive_done,
+					      sender);
             sender->warn_type = type;
           }
           sender->suspended++;

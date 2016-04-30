@@ -58,10 +58,6 @@ static unsigned int num_hosts;
  */
 static int status;
 
-/**
- * Shutdown task identifier
- */
-struct GNUNET_SCHEDULER_Task * shutdown_id;
 
 /**
  * The shutdown task
@@ -159,8 +155,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   }
   status = GNUNET_YES;
-  shutdown_id =
-      GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (0), &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 

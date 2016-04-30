@@ -632,9 +632,10 @@ options_cont (struct RestConnectionDataHandle *con_handle,
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            MHD_HTTP_METHOD_GET);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  handle->proc (handle->proc_cls,
+		resp,
+		MHD_HTTP_OK);
   cleanup_handle (handle);
-  return;
 }
 
 
@@ -669,7 +670,6 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
   if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle, handlers, handle))
     GNUNET_SCHEDULER_add_now (&do_error, handle);
 }
-
 
 
 /**

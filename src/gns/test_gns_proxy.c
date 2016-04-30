@@ -245,6 +245,7 @@ curl_main ()
 					      NULL);
 }
 
+
 static void
 start_curl (void *cls)
 {
@@ -289,23 +290,25 @@ disco_ns (void* cls)
  *                specified target peer; NULL on error
  */
 static void
-commence_testing (void *cls, int32_t success, const char *emsg)
+commence_testing (void *cls,
+		  int32_t success,
+		  const char *emsg)
 {
   GNUNET_SCHEDULER_add_now (&disco_ns, NULL);
 
-  if ((emsg != NULL) && (GNUNET_YES != success))
+  if ( (emsg != NULL) && (GNUNET_YES != success) )
   {
     fprintf (stderr,
-	     "NS failed to create record %s\n", emsg);
+	     "NS failed to create record %s\n",
+	     emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1), start_curl, NULL);
-
+  curl_task_id =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, 
+				  &start_curl, NULL);
 }
-
-
 
 
 /**

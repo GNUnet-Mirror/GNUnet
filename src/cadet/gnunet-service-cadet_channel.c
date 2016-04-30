@@ -730,13 +730,8 @@ channel_retransmit_message (void *cls)
   struct CadetChannel *ch;
   struct GNUNET_CADET_Data *payload;
   int fwd;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rel->retry_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   ch = rel->ch;
   copy = rel->head_sent;
   if (NULL == copy)
@@ -765,15 +760,11 @@ static void
 channel_recreate (void *cls)
 {
   struct CadetChannelReliability *rel = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rel->retry_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RE-CREATE\n");
-  GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+			    "# data retransmitted", 1, GNUNET_NO);
 
   if (rel == rel->ch->root_rel)
   {
@@ -787,7 +778,6 @@ channel_recreate (void *cls)
   {
     GNUNET_break (0);
   }
-
 }
 
 

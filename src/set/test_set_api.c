@@ -44,6 +44,8 @@ static unsigned int iter_count;
 
 static int ret;
 
+static struct GNUNET_SCHEDULER_Task *tt;
+
 
 static void
 result_cb_set1 (void *cls,
@@ -61,6 +63,8 @@ result_cb_set1 (void *cls,
     fprintf (stderr,
              "set 1: received failure status!\n");
     ret = 1;
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_SET_STATUS_DONE:
@@ -69,7 +73,11 @@ result_cb_set1 (void *cls,
     GNUNET_SET_destroy (set1);
     set1 = NULL;
     if (NULL == set2)
+    {
+      GNUNET_SCHEDULER_cancel (tt);
+      tt = NULL;
       GNUNET_SCHEDULER_shutdown ();
+    }
     break;
   default:
     GNUNET_assert (0);
@@ -100,7 +108,11 @@ result_cb_set2 (void *cls,
     GNUNET_SET_destroy (set2);
     set2 = NULL;
     if (NULL == set1)
+    {
+      GNUNET_SCHEDULER_cancel (tt);
+      tt = NULL;
       GNUNET_SCHEDULER_shutdown ();
+    }
     break;
   default:
     GNUNET_assert (0);
@@ -250,11 +262,7 @@ test_iter ()
 static void
 timeout_fail (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  tt = NULL;
   GNUNET_SCHEDULER_shutdown ();
   ret = 1;
 }
@@ -276,8 +284,8 @@ run (void *cls,
 
   struct GNUNET_SET_OperationHandle *my_oh;
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                &timeout_fail, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				     &timeout_fail, NULL);
 
   config = cfg;
   GNUNET_CRYPTO_get_peer_identity (cfg, &local_id);

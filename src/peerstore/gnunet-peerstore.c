@@ -60,16 +60,15 @@ shutdown_task (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
-  peerstore_handle = NULL;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
   GNUNET_assert (NULL != peerstore_handle);
-
   ret = 0;
 }
 

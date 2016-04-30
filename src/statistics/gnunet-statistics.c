@@ -180,7 +180,6 @@ shutdown_task (void *cls)
  * Main task that does the actual work.
  *
  * @param cls closure with our configuration
- * @param tc schedueler context
  */
 static void
 main_task (void *cls)
@@ -221,7 +220,8 @@ main_task (void *cls)
   if (GNUNET_NO == watch)
   {
     if (NULL ==
-      GNUNET_STATISTICS_get (h, subsystem, name, GET_TIMEOUT, &cleanup,
+      GNUNET_STATISTICS_get (h, subsystem, name, GET_TIMEOUT,
+			     &cleanup,
                              &printer, h))
     cleanup (h, GNUNET_SYSERR);
   }
@@ -235,15 +235,15 @@ main_task (void *cls)
       ret = 1;
       return;
     }
-    if (GNUNET_OK != GNUNET_STATISTICS_watch (h, subsystem, name, &printer, h))
+    if (GNUNET_OK != GNUNET_STATISTICS_watch (h, subsystem, name,
+					      &printer, h))
     {
       fprintf (stderr, _("Failed to initialize watch routine\n"));
       GNUNET_SCHEDULER_add_now (&shutdown_task, h);
       return;
     }
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, h);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, h);
 }
 
 

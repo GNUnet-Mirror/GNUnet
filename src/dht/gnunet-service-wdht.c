@@ -102,9 +102,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     shutdown_task (NULL);
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

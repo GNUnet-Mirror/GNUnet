@@ -1249,8 +1249,8 @@ run (void *cls,
   handle_cmd_task =
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,
 					&handle_command, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
-				NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_stop_task,
+				 NULL);
 }
 
 

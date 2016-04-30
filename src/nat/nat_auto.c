@@ -273,7 +273,9 @@ do_udp_read (void *cls)
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                    lsock4)))
   {
-    rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
+    rlen = GNUNET_NETWORK_socket_recv (lsock4,
+				       reply_buf,
+				       sizeof (reply_buf));
 
     //Lets handle the packet
     memset(&answer, 0, sizeof(struct sockaddr_in));
@@ -288,7 +290,8 @@ do_udp_read (void *cls)
     }
     else
     {
-      if (GNUNET_OK == GNUNET_NAT_stun_handle_packet (reply_buf, rlen, &answer))
+      if (GNUNET_OK ==
+	  GNUNET_NAT_stun_handle_packet (reply_buf, rlen, &answer))
       {
         //Process the answer
         process_stun_reply (&answer, ah);
@@ -310,9 +313,6 @@ do_udp_read (void *cls)
 
     next_phase (ah);
   }
-
-
-
 }
 
 
@@ -352,10 +352,9 @@ bind_v4 ()
 }
 
 
-
-
-static void request_callback (void *cls,
-                              enum GNUNET_NAT_StatusCode result)
+static void
+request_callback (void *cls,
+		  enum GNUNET_NAT_StatusCode result)
 {
   // struct GNUNET_NAT_AutoHandle *ah = cls;
 
@@ -363,10 +362,7 @@ static void request_callback (void *cls,
   stop_stun ();
 
   // next_phase (ah); FIXME this always will be NULL, as called in test_stun()
-};
-
-
-
+}
 
 
 /**
@@ -518,17 +514,20 @@ test_stun (struct GNUNET_NAT_AutoHandle *ah)
   {
     //Lets call our function now when it accepts
     ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
-                                            lsock4, &do_udp_read, ah);
-
+                                            lsock4,
+					    &do_udp_read,
+					    ah);
   }
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "STUN service listens on port %u\n",
               port);
-  if (GNUNET_NO == GNUNET_NAT_stun_make_request (stun_server, stun_port,
-                                                 lsock4, &request_callback,
-                                                 NULL))
+  if (GNUNET_NO ==
+      GNUNET_NAT_stun_make_request (stun_server, stun_port,
+				    lsock4,
+				    &request_callback,
+				    NULL))
   {
     /*An error happened*/
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STUN error, stopping\n");
@@ -536,7 +535,6 @@ test_stun (struct GNUNET_NAT_AutoHandle *ah)
     next_phase (ah);
   }
 }
-
 
 
 /**
@@ -550,16 +548,16 @@ test_stun (struct GNUNET_NAT_AutoHandle *ah)
  * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
  * @param netmask the network mask (can be NULL for unknown or unassigned))
  * @param addrlen length of the @a addr and @a broadcast_addr
- * @return GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
 static int
 process_if (void *cls,
-      const char *name,
-      int isDefault,
-      const struct sockaddr *addr,
-      const struct sockaddr *broadcast_addr,
-      const struct sockaddr *netmask,
-      socklen_t addrlen)
+	    const char *name,
+	    int isDefault,
+	    const struct sockaddr *addr,
+	    const struct sockaddr *broadcast_addr,
+	    const struct sockaddr *netmask,
+	    socklen_t addrlen)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   const struct sockaddr_in *in;
@@ -640,10 +638,8 @@ test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
 {
-
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_NAT_TestMessage msg;
-
 
   if (ah->stun_ip)
   {
@@ -676,9 +672,10 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
     {
       GNUNET_SCHEDULER_cancel (ltask4);
       ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
-                                              lsock4, &do_udp_read, ah);
+                                              lsock4,
+					      &do_udp_read,
+					      ah);
     }
-
   }
   else
   {
@@ -686,11 +683,7 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
          "We don't have a STUN IP");
     next_phase(ah);
   }
-
-
 }
-
-
 
 
 /**
@@ -772,7 +765,6 @@ err:
     ah->task = GNUNET_SCHEDULER_add_now (&reversal_test, ah);
   else
     next_phase (ah);
-
 }
 
 
@@ -784,8 +776,6 @@ err:
 static void
 test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 {
-
-
   char *tmp;
   char *helper;
 
@@ -802,7 +792,8 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we are not behind NAT\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("test_icmp_server not possible, as we are not behind NAT\n"));
   }
   else
     goto err;
@@ -810,14 +801,14 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
   if (GNUNET_YES ==
       GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42")){
           // none of these parameters are actually used in privilege testing mode
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("No working gnunet-helper-nat-server found\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("No working gnunet-helper-nat-server found\n"));
   }
 err:
   GNUNET_free_non_null (tmp);
   GNUNET_free (helper);
 
   next_phase (ah);
-
 }
 
 
@@ -940,11 +931,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
     GNUNET_CONFIGURATION_destroy (diff);
     GNUNET_NAT_autoconfig_cancel (ah);
     return;
-
   }
-
-
-
 }
 
 

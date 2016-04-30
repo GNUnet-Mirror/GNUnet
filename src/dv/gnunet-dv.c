@@ -145,8 +145,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 				  &change_cb,
 				  &disconnect_cb,
 				  &message_cb);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

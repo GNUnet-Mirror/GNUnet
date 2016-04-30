@@ -210,27 +210,27 @@ static struct GNUNET_TIME_Relative hostlist_delay;
 /**
  * ID of the task, checking if hostlist download should take plate
  */
-static struct GNUNET_SCHEDULER_Task * ti_check_download;
+static struct GNUNET_SCHEDULER_Task *ti_check_download;
 
 /**
  * ID of the task downloading the hostlist
  */
-static struct GNUNET_SCHEDULER_Task * ti_download;
+static struct GNUNET_SCHEDULER_Task *ti_download;
 
 /**
  * ID of the task saving the hostlsit in a regular intervall
  */
-static struct GNUNET_SCHEDULER_Task * ti_saving_task;
+static struct GNUNET_SCHEDULER_Task *ti_saving_task;
 
 /**
  * ID of the task called to initiate a download
  */
-static struct GNUNET_SCHEDULER_Task * ti_download_dispatcher_task;
+static struct GNUNET_SCHEDULER_Task *ti_download_dispatcher_task;
 
 /**
  * ID of the task controlling the locking between two hostlist tests
  */
-static struct GNUNET_SCHEDULER_Task * ti_testing_intervall_task;
+static struct GNUNET_SCHEDULER_Task *ti_testing_intervall_task;
 
 /**
  * At what time MUST the current hostlist request be done?
@@ -719,8 +719,9 @@ clean_up ()
 {
   CURLMcode mret;
 
-  if ((stat_testing_hostlist == GNUNET_YES) &&
-      (GNUNET_NO == stat_download_successful) && (NULL != hostlist_to_test))
+  if ( (stat_testing_hostlist == GNUNET_YES) &&
+       (GNUNET_NO == stat_download_successful) &&
+       (NULL != hostlist_to_test) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
@@ -738,7 +739,7 @@ clean_up ()
     hostlist_to_test = NULL;
   }
 
-  if (multi != NULL)
+  if (NULL != multi)
   {
     mret = curl_multi_remove_handle (multi, curl);
     if (mret != CURLM_OK)
@@ -754,7 +755,7 @@ clean_up ()
                   curl_multi_strerror (mret));
     multi = NULL;
   }
-  if (curl != NULL)
+  if (NULL != curl)
   {
     curl_easy_cleanup (curl);
     curl = NULL;
@@ -847,19 +848,8 @@ task_download (void *cls)
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   ti_download = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Shutdown requested while trying to download hostlist from `%s'\n",
-                current_url);
-    update_hostlist ();
-    clean_up ();
-    return;
-  }
   if (0 == GNUNET_TIME_absolute_get_remaining (end_time).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1047,12 +1037,7 @@ download_hostlist ()
 static void
 task_download_dispatcher (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   ti_download_dispatcher_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download is initiated...\n");
   if (GNUNET_NO == stat_download_in_progress)
   {
@@ -1080,12 +1065,8 @@ task_check (void *cls)
 {
   static int once;
   struct GNUNET_TIME_Relative delay;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   ti_check_download = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   if (stats == NULL)
   {
     curl_global_cleanup ();
@@ -1120,7 +1101,8 @@ task_check (void *cls)
               _("Have %u/%u connections.  Will consider downloading hostlist in %s\n"),
               stat_connection_count, MIN_CONNECTIONS,
               GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-  ti_check_download = GNUNET_SCHEDULER_add_delayed (delay, &task_check, NULL);
+  ti_check_download = GNUNET_SCHEDULER_add_delayed (delay,
+						    &task_check, NULL);
 }
 
 
@@ -1132,12 +1114,7 @@ task_check (void *cls)
 static void
 task_testing_intervall_reset (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   ti_testing_intervall_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   stat_testing_allowed = GNUNET_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testing new hostlist advertisements is allowed again\n");
@@ -1152,19 +1129,15 @@ task_testing_intervall_reset (void *cls)
 static void
 task_hostlist_saving (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   ti_saving_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   save_hostlist_file (GNUNET_NO);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlists will be saved to file again in %s\n",
 	      GNUNET_STRINGS_relative_time_to_string(SAVING_INTERVAL, GNUNET_YES));
   ti_saving_task =
-      GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL, &task_hostlist_saving,
+      GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL,
+				    &task_hostlist_saving,
                                     NULL);
 }
 
@@ -1684,7 +1657,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist client shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Hostlist client shutdown\n");
   if (NULL != sget)
   {
     GNUNET_STATISTICS_get_cancel (sget);
@@ -1693,28 +1667,29 @@ GNUNET_HOSTLIST_client_stop ()
   stats = NULL;
   if (GNUNET_YES == stat_learning)
     save_hostlist_file (GNUNET_YES);
-  if (ti_saving_task != NULL)
+  if (NULL != ti_saving_task)
   {
     GNUNET_SCHEDULER_cancel (ti_saving_task);
     ti_saving_task = NULL;
   }
-
-  if (ti_download_dispatcher_task != NULL)
+  if (NULL != ti_download_dispatcher_task)
     {
     GNUNET_SCHEDULER_cancel (ti_download_dispatcher_task);
     ti_download_dispatcher_task = NULL;
   }
-  if (ti_testing_intervall_task != NULL)
+  if (NULL != ti_testing_intervall_task)
   {
     GNUNET_SCHEDULER_cancel (ti_testing_intervall_task);
     ti_testing_intervall_task = NULL;
   }
-  if (ti_download != NULL)
+  if (NULL != ti_download)
   {
     GNUNET_SCHEDULER_cancel (ti_download);
     ti_download = NULL;
+    update_hostlist ();
+    clean_up ();
   }
-  if (ti_check_download != NULL)
+  if (NULL != ti_check_download)
   {
     GNUNET_SCHEDULER_cancel (ti_check_download);
     ti_check_download = NULL;

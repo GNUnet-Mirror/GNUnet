@@ -90,10 +90,14 @@ struct Entry
  * Main request handler.
  */
 static int
-access_handler_callback (void *cls, struct MHD_Connection *connection,
-                         const char *url, const char *method,
-                         const char *version, const char *upload_data,
-                         size_t * upload_data_size, void **con_cls)
+access_handler_callback (void *cls,
+			 struct MHD_Connection *connection,
+                         const char *url,
+			 const char *method,
+                         const char *version,
+			 const char *upload_data,
+                         size_t * upload_data_size,
+			 void **con_cls)
 {
   static int dummy;
   static const struct Entry map[] = {
@@ -290,12 +294,8 @@ static void
 run_daemon (void *cls)
 {
   struct MHD_Daemon *daemon_handle = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   http_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   http_task = prepare_daemon (daemon_handle);
 }
@@ -499,9 +499,8 @@ run (void *cls,
   if (GNUNET_OK !=
       server_start ())
     return;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &server_stop,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&server_stop,
+				 NULL);
 }
 
 

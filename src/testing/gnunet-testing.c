@@ -76,7 +76,7 @@ static char *tmpfilename;
 /**
  * Task identifier of the task that waits for stdin.
  */
-static struct GNUNET_SCHEDULER_Task * tid;
+static struct GNUNET_SCHEDULER_Task *tid;
 
 /**
  * Peer started for '-r'.
@@ -228,13 +228,8 @@ static void
 stdin_cb (void *cls)
 {
   int c;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   tid = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-  GNUNET_assert (0 != (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason));
   c = getchar ();
   switch (c)
   {
@@ -258,7 +253,8 @@ stdin_cb (void *cls)
     fprintf (stderr, _("Unknown command, use 'q' to quit or 'r' to restart peer\n"));
     break;
   }
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					fh,
                                         &stdin_cb, NULL);
 }
 
@@ -291,9 +287,10 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   printf("ok\n%s\n", tmpfilename);
   fflush(stdout);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
   fh = GNUNET_DISK_get_handle_from_native (stdin);
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					fh,
                                         &stdin_cb, NULL);
 }
 

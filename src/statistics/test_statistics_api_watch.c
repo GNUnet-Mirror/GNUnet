@@ -55,7 +55,10 @@ normal_shutdown (void *cls)
 
 
 static int
-watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
+watch_1 (void *cls,
+	 const char *subsystem,
+	 const char *name,
+	 uint64_t value,
          int is_persistent)
 {
   GNUNET_assert (value == 42);
@@ -71,7 +74,10 @@ watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
 
 
 static int
-watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
+watch_2 (void *cls,
+	 const char *subsystem,
+	 const char *name,
+	 uint64_t value,
          int is_persistent)
 {
   GNUNET_assert (value == 43);
@@ -87,7 +93,9 @@ watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("dummy", cfg);
@@ -101,7 +109,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_STATISTICS_set (h2, "test-1", 42, GNUNET_NO);
   GNUNET_STATISTICS_set (h2, "test-2", 43, GNUNET_NO);
   shutdown_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &force_shutdown,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+				    &force_shutdown,
                                     NULL);
 }
 

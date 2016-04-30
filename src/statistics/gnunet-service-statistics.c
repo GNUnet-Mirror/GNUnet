@@ -1053,9 +1053,8 @@ run (void *cls,
                                    &handle_client_disconnect,
                                    NULL);
   load (server);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

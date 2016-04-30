@@ -297,11 +297,6 @@ test_iter ()
 static void
 timeout_fail (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_SCHEDULER_shutdown ();
   ret = 1;
 }

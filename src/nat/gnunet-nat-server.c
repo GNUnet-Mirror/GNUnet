@@ -294,8 +294,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SERVER_create (NULL, NULL, (struct sockaddr * const *) sa, slen,
                             GNUNET_TIME_UNIT_SECONDS, GNUNET_YES);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

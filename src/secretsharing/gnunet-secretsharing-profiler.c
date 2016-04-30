@@ -530,8 +530,7 @@ test_master (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test master\n");
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &handle_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&handle_shutdown, NULL);
 
   peers = started_peers;
 

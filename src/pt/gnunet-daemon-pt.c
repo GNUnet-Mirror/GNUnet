@@ -228,7 +228,7 @@ struct RequestContext
   /**
    * Task used to abort this operation with timeout.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * Length of the request message that follows this struct.
@@ -1244,7 +1244,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup, cls);
   if (ipv4_pt || ipv6_pt)
   {
     dns_post_handle

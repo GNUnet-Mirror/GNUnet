@@ -68,8 +68,7 @@ run (void *cls,
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute deadline;
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                handle_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&handle_shutdown, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing secretsharing api\n");
 

@@ -117,7 +117,11 @@ shutdown_task (void *cls)
     REGEX_INTERNAL_announce_cancel (announce_handle);
     announce_handle = NULL;
   }
-
+  if (NULL != reannounce_task)
+  {
+    GNUNET_free (GNUNET_SCHEDULER_cancel (reannounce_task));
+    reannounce_task = NULL;
+  }
   if (NULL != dht_handle)
   {
     GNUNET_DHT_disconnect (dht_handle);
@@ -142,16 +146,8 @@ reannounce_regex (void *cls)
 {
   char *regex = cls;
   struct GNUNET_TIME_Relative random_delay;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   reannounce_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_free (regex);
-    return;
-  }
-
   if (0 == rounds--)
   {
     global_ret = 0;
@@ -195,7 +191,7 @@ reannounce_regex (void *cls)
  * @param regex regular expression to announce on this peer's cadet.
  */
 static void
-announce_regex (const char * regex)
+announce_regex (const char *regex)
 {
   char *copy;
 
@@ -210,7 +206,8 @@ announce_regex (const char * regex)
               policy_filename);
   GNUNET_assert (NULL == reannounce_task);
   copy = GNUNET_strdup (regex);
-  reannounce_task = GNUNET_SCHEDULER_add_now (reannounce_regex, (void *) copy);
+  reannounce_task = GNUNET_SCHEDULER_add_now (&reannounce_regex,
+					      (void *) copy);
 }
 
 
@@ -347,14 +344,17 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   REGEX_TEST_free_from_file (components);
 
   /* Announcing regexes from policy_filename */
-  GNUNET_asprintf (&rx_with_pfx, "%s(%s)(0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f)*", regex_prefix, regex);
+  GNUNET_asprintf (&rx_with_pfx,
+		   "%s(%s)(0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f)*",
+		   regex_prefix,
+		   regex);
   announce_regex (rx_with_pfx);
   GNUNET_free (regex);
   GNUNET_free (rx_with_pfx);
 
   /* Scheduled the task to clean up when shutdown is called */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

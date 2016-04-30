@@ -578,7 +578,7 @@ receive_helper (void *cls,
 /**
  * Continuation to call the receive callback.
  *
- * @param cls  our handle to the client connection
+ * @param cls our handle to the client connection
  */
 static void
 receive_task (void *cls)
@@ -611,7 +611,8 @@ receive_task (void *cls)
   GNUNET_assert (GNUNET_YES == client->msg_complete);
   GNUNET_assert (client->received_pos >= msize);
   memcpy (msg, cmsg, msize);
-  memmove (client->received_buf, &client->received_buf[msize],
+  memmove (client->received_buf,
+	   &client->received_buf[msize],
            client->received_pos - msize);
   client->received_pos -= msize;
   client->msg_complete = GNUNET_NO;
@@ -655,7 +656,8 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
        (GNUNET_SYSERR == client->in_receive) )
   {
     GNUNET_assert (NULL == client->receive_task);
-    client->receive_task = GNUNET_SCHEDULER_add_now (&receive_task, client);
+    client->receive_task = GNUNET_SCHEDULER_add_now (&receive_task,
+						     client);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -703,7 +705,7 @@ struct GNUNET_CLIENT_TestHandle
   /**
    * ID of task used for asynchronous operations.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Final result to report back (once known).
@@ -1081,19 +1083,9 @@ static void
 client_delayed_retry (void *cls)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_TIME_Relative delay;
 
   th->reconnect_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    /* give up, was shutdown */
-    th->client->th = NULL;
-    th->notify (th->notify_cls, 0, NULL);
-    GNUNET_free (th);
-    return;
-  }
   th->client->connection =
     do_connect (th->client->service_name,
 		th->client->cfg,
@@ -1112,13 +1104,16 @@ client_delayed_retry (void *cls)
     GNUNET_assert (NULL == th->th);
     GNUNET_assert (NULL == th->reconnect_task);
     th->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
+        GNUNET_SCHEDULER_add_delayed (delay,
+				      &client_delayed_retry,
+				      th);
     return;
   }
   th->th =
       GNUNET_CONNECTION_notify_transmit_ready (th->client->connection, th->size,
                                                GNUNET_TIME_absolute_get_remaining
-                                               (th->timeout), &client_notify,
+                                               (th->timeout),
+					       &client_notify,
                                                th);
   if (NULL == th->th)
   {
@@ -1149,22 +1144,18 @@ client_notify (void *cls,
   struct GNUNET_CLIENT_Connection *client = th->client;
   size_t ret;
   struct GNUNET_TIME_Relative delay;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "client_notify is running\n");
   th->th = NULL;
   client->th = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
   if (NULL == buf)
   {
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
     delay.rel_value_us /= 2;
     if ( (GNUNET_YES != th->auto_retry) ||
          (0 == --th->attempts_left) ||
-         (delay.rel_value_us < 1)||
-         (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
+         (delay.rel_value_us < 1) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Transmission failed %u times, giving up.\n",
@@ -1198,7 +1189,9 @@ client_notify (void *cls,
     GNUNET_assert (NULL == th->reconnect_task);
     GNUNET_assert (NULL == th->th);
     th->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
+        GNUNET_SCHEDULER_add_delayed (delay,
+				      &client_delayed_retry,
+				      th);
     return 0;
   }
   GNUNET_assert (size >= th->size);

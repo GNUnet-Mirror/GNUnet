@@ -301,6 +301,7 @@ do_abort (void *cls)
   do_shutdown (cls);
 }
 
+
 static void
 abort_test ()
 {
@@ -842,10 +843,11 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
  * @param cls NULL
  * @param host the host whose status is being reported; will be NULL if the host
  *          given to GNUNET_TESTBED_is_host_habitable() is NULL
- * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
+ * @param status #GNUNET_YES if it is habitable; #GNUNET_NO if not
  */
 static void
-host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
+host_habitable_cb (void *cls,
+		   const struct GNUNET_TESTBED_Host *_host,
                    int status)
 {
   hc_handle = NULL;
@@ -857,7 +859,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
                    "Skipping test\n");
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = NULL;
-    (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     result = SKIP;
     return;
   }

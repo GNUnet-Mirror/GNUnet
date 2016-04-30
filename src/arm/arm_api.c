@@ -241,7 +241,9 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   h->currently_down = GNUNET_YES;
   GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_arm_task, h);
+      GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+				    &reconnect_arm_task,
+				    h);
   /* Don't clear pending messages on disconnection, deliver them later
   clear_pending_messages (h, GNUNET_ARM_REQUEST_DISCONNECTED);
   GNUNET_assert (NULL == h->control_pending_head);
@@ -635,7 +637,8 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
  */
 struct GNUNET_ARM_Handle *
 GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    GNUNET_ARM_ConnectionStatusCallback conn_status, void *cls)
+                    GNUNET_ARM_ConnectionStatusCallback conn_status,
+		    void *cls)
 {
   struct GNUNET_ARM_Handle *h;
 
@@ -942,7 +945,8 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
                                     h->control_pending_tail, cm);
   cm->timeout_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (cm->timeout), &control_message_timeout, cm);
+                                    (cm->timeout),
+				    &control_message_timeout, cm);
   trigger_next_request (h, GNUNET_NO);
 }
 
@@ -1106,7 +1110,8 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
                                     h->control_pending_tail, cm);
   cm->timeout_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (cm->timeout), &control_message_timeout, cm);
+                                    (cm->timeout),
+				    &control_message_timeout, cm);
   trigger_next_request (h, GNUNET_NO);
 }
 

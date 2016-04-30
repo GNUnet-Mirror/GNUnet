@@ -242,7 +242,9 @@ process_adv_sent_done (void *cls, int success)
 
 
 static int
-process_adv_sent (void *cls, const char *subsystem, const char *name,
+process_adv_sent (void *cls,
+		  const char *subsystem,
+		  const char *name,
                   uint64_t value, int is_persistent)
 {
   if ((value >= 1) && (adv_sent == GNUNET_NO))
@@ -267,13 +269,10 @@ static void
 check_statistics (void *cls)
 {
   char *stat;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   check_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  GNUNET_asprintf (&stat, gettext_noop ("# advertised URI `%s' downloaded"),
+  GNUNET_asprintf (&stat,
+		   gettext_noop ("# advertised URI `%s' downloaded"),
                    current_adv_uri);
   if (NULL != learn_peer.stats)
   {
@@ -313,7 +312,8 @@ check_statistics (void *cls)
  * Core handler for p2p hostlist advertisements
  */
 static int
-ad_arrive_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
+ad_arrive_handler (void *cls,
+		   const struct GNUNET_PeerIdentity *peer,
                    const struct GNUNET_MessageHeader *message)
 {
   char *hostname;

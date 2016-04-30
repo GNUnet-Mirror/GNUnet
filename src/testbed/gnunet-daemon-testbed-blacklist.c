@@ -67,37 +67,12 @@ static struct GNUNET_PeerIdentity *ilist;
  * The blacklist handle we obtain from transport when we register ourselves for
  * access control
  */
-struct GNUNET_TRANSPORT_Blacklist *bh;
-
-/**
- * Task for shutdown
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_TRANSPORT_Blacklist *bh;
 
 /**
  * Are we allowing or denying access from peers
  */
 static int mode;
-
-
-/**
- * @ingroup hashmap
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
- */
-static int
-iterator (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
-{
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (map, key,
-                                                                     value));
-  return GNUNET_YES;
-}
 
 
 /**
@@ -108,9 +83,6 @@ cleanup_map ()
 {
   if (NULL != map)
   {
-    GNUNET_assert (GNUNET_SYSERR != GNUNET_CONTAINER_multipeermap_iterate (map,
-                                                                           &iterator,
-                                                                           NULL));
     GNUNET_CONTAINER_multipeermap_destroy (map);
     map = NULL;
   }
@@ -161,14 +133,16 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
  * @param cfg the configuration for connecting to the peer's transport service
  */
 static void
-setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
+setup_ac (const char *fname,
+	  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   uint64_t fsize;
   unsigned int npeers;
   unsigned int cnt;
 
-  GNUNET_assert (GNUNET_OK != GNUNET_DISK_file_size (fname, &fsize, GNUNET_NO,
-                                                     GNUNET_YES));
+  GNUNET_assert (GNUNET_OK !=
+		 GNUNET_DISK_file_size (fname, &fsize, GNUNET_NO,
+					GNUNET_YES));
   if (0 != (fsize % sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
@@ -183,17 +157,17 @@ setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
   for (cnt = 0; cnt < npeers; cnt++)
   {
-    if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_put (map, &ilist[cnt],
-                                                            &ilist[cnt],
-                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    if (GNUNET_SYSERR ==
+	GNUNET_CONTAINER_multipeermap_put (map, &ilist[cnt],
+					   &ilist[cnt],
+					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       cleanup_map ();
       GNUNET_free (ilist);
       return;
     }
   }
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   bh = GNUNET_TRANSPORT_blacklist (cfg, &check_access, NULL);
 }
 
@@ -207,15 +181,18 @@ setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *shome;
   char *fname;
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "PATHS",
-                                                            "GNUNET_HOME",
-                                                            &shome))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (c, "PATHS",
+					       "GNUNET_HOME",
+					       &shome))
   {
     GNUNET_break (0);
     return;
@@ -260,13 +237,15 @@ main (int argc, char *const *argv)
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-testbed-blacklist",
-                           _
-                           ("Daemon to restrict incoming transport layer connections during testbed deployments"),
+       GNUNET_PROGRAM_run (argc, argv,
+			   "gnunet-daemon-testbed-blacklist",
+                           _("Daemon to restrict incoming transport layer connections during testbed deployments"),
                            options, &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;

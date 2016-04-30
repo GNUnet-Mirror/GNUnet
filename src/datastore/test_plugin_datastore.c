@@ -267,14 +267,7 @@ test (void *cls)
 {
   struct CpsRunContext *crc = cls;
   struct GNUNET_HashCode key;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test aborted.\n");
-    crc->phase = RP_ERROR;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)

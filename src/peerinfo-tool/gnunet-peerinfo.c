@@ -757,9 +757,8 @@ testservice_task (void *cls,
   {
     tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

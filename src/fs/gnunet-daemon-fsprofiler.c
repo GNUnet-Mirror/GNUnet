@@ -500,12 +500,8 @@ start_publish (void *cls)
 {
   struct Pattern *p = cls;
   struct GNUNET_FS_FileInformation *fi;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   p->task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   fi = make_file (p->x, p->y, p);
   p->start_time = GNUNET_TIME_absolute_get ();
   p->ctx = GNUNET_FS_publish_start (fs_handle,
@@ -525,12 +521,8 @@ start_download (void *cls)
 {
   struct Pattern *p = cls;
   struct GNUNET_FS_Uri *keywords;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   p->task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   keywords = make_keywords (p->x);
   p->start_time = GNUNET_TIME_absolute_get ();
   p->sctx = GNUNET_FS_search_start (fs_handle, keywords,
@@ -558,8 +550,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   cfg = cfg_;
   /* Scheduled the task to clean up when shutdown is called */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,

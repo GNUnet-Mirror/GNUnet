@@ -95,11 +95,6 @@ static int disable_extractor;
 static int do_disable_creation_time;
 
 /**
- * Handle for the 'shutdown' task.
- */
-static struct GNUNET_SCHEDULER_Task *kill_task;
-
-/**
  * Handle for the main task that does scanning and working.
  */
 static struct GNUNET_SCHEDULER_Task *run_task;
@@ -321,7 +316,6 @@ save_state ()
 static void
 do_stop_task (void *cls)
 {
-  kill_task = NULL;
   do_shutdown = GNUNET_YES;
   if (NULL != publish_proc)
   {
@@ -729,10 +723,8 @@ run (void *cls,
   run_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 						 &scan,
 						 NULL);
-  kill_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				    &do_stop_task,
-                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_stop_task,
+				 NULL);
 }
 
 

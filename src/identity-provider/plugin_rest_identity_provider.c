@@ -248,7 +248,7 @@ struct RequestHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * The plugin result processor
@@ -321,9 +321,9 @@ cleanup_handle (struct RequestHandle *handle)
 
 
 /**
- * Task run on shutdown.  Cleans up everything.
+ * Task run on error, sends error message.  Cleans up everything.
  *
- * @param cls unused
+ * @param cls the `struct RequestHandle`
  */
 static void
 do_error (void *cls)
@@ -342,6 +342,21 @@ do_error (void *cls)
 }
 
 /**
+ * Task run on timeout, sends error message.  Cleans up everything.
+ *
+ * @param cls the `struct RequestHandle`
+ */
+static void
+do_timeout (void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->timeout_task = NULL;
+  do_error (handle);
+}
+
+
+/**
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
@@ -350,7 +365,8 @@ static void
 do_cleanup_handle_delayed (void *cls)
 {
   struct RequestHandle *handle = cls;
-  cleanup_handle(handle);
+
+  cleanup_handle (handle);
 }
 
 
@@ -406,9 +422,8 @@ token_creat_cont (void *cls,
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   GNUNET_SCHEDULER_add_now (&do_cleanup_handle_delayed, handle);
-
-
 }
+
 
 /**
  * Continueationf for token issue request
@@ -459,7 +474,8 @@ issue_token_cont (struct RestConnectionDataHandle *con,
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Issuer not found\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Issuer not found\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -468,7 +484,9 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   if (NULL == ego_val)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Ego invalid: %s\n", ego_val);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Ego invalid: %s\n",
+		ego_val);
     return;
   }
   for (ego_entry = handle->ego_head;
@@ -480,13 +498,18 @@ issue_token_cont (struct RestConnectionDataHandle *con,
     egoname = ego_entry->identifier;
     break;
   }
-  if (NULL == egoname || NULL == ego_entry)
+  if ( (NULL == egoname) ||
+       (NULL == ego_entry) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Ego not found: %s\n", ego_val);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Ego not found: %s\n",
+		ego_val);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego to issue token for: %s\n", egoname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Ego to issue token for: %s\n",
+	      egoname);
 
 
   //Meta info
@@ -516,13 +539,16 @@ issue_token_cont (struct RestConnectionDataHandle *con,
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Audience missing!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Audience missing!\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   audience = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                 &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Audience to issue token for: %s\n", audience);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Audience to issue token for: %s\n",
+	      audience);
 
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
@@ -547,7 +573,9 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   }
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                  &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request nonce: %s\n", nonce_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Request nonce: %s\n",
+	      nonce_str);
   sscanf (nonce_str, "%"SCNu64, &nonce);
 
   //Get expiration for token from URL parameter
@@ -1048,10 +1076,8 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
                                                      handle);
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                  &do_error,
+                                  &do_timeout,
                                   handle);
-
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connected\n");
 }

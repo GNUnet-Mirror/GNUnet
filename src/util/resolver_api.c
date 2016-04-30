@@ -118,7 +118,7 @@ struct GNUNET_RESOLVER_RequestHandle
   GNUNET_RESOLVER_HostnameCallback name_callback;
 
   /**
-   * Closure for the respective "callback".
+   * Closure for the callbacks.
    */
   void *cls;
 
@@ -131,7 +131,7 @@ struct GNUNET_RESOLVER_RequestHandle
    * Task handle for making reply callbacks in numeric lookups
    * asynchronous, and for timeout handling.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Desired address family.
@@ -638,6 +638,7 @@ loopback_resolution (void *cls)
     rh->addr_callback (rh->cls,
                        (const struct sockaddr *) &v4,
                        sizeof (v4));
+
     break;
   default:
     GNUNET_break (0);
@@ -683,7 +684,7 @@ process_requests ()
     /* nothing to do, release socket really soon if there is nothing
      * else happening... */
     s_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                       &shutdown_task,
                                       NULL);
     return;
@@ -727,14 +728,9 @@ process_requests ()
 static void
 reconnect_task (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to DNS service\n");
   client = GNUNET_CLIENT_connect ("resolver",
@@ -774,7 +770,9 @@ reconnect ()
       break;
     case GNUNET_SYSERR:
       /* request was cancelled, remove entirely */
-      GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
+      GNUNET_CONTAINER_DLL_remove (req_head,
+				   req_tail,
+				   rh);
       GNUNET_free (rh);
       break;
     default:

@@ -161,6 +161,16 @@ static struct NotificationContext *nc_head;
  */
 static struct NotificationContext *nc_tail;
 
+/**
+ * Handle for task to run #cron_clean_data_hosts()
+ */
+static struct GNUNET_SCHEDULER_Task *cron_clean;
+
+/**
+ * Handle for task to run #cron_scan_directory_hosts()
+ */
+static struct GNUNET_SCHEDULER_Task *cron_scan;
+
 
 /**
  * Notify all clients in the notify list about the
@@ -657,16 +667,14 @@ cron_scan_directory_data_hosts (void *cls)
 {
   static unsigned int retries;
   struct DirScanContext dsc;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  if (GNUNET_SYSERR == GNUNET_DISK_directory_create (networkIdDirectory))
+  cron_scan = NULL;
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_create (networkIdDirectory))
   {
-    GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
-						GNUNET_SCHEDULER_PRIORITY_IDLE,
-						&cron_scan_directory_data_hosts, NULL);
+    cron_scan = GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
+							    GNUNET_SCHEDULER_PRIORITY_IDLE,
+							    &cron_scan_directory_data_hosts, NULL);
     return;
   }
   dsc.matched = 0;
@@ -680,10 +688,10 @@ cron_scan_directory_data_hosts (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                 _("Still no peers found in `%s'!\n"),
                 networkIdDirectory);
-  GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
-					      GNUNET_SCHEDULER_PRIORITY_IDLE,
-					      &cron_scan_directory_data_hosts,
-					      NULL);
+  cron_scan = GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
+							  GNUNET_SCHEDULER_PRIORITY_IDLE,
+							  &cron_scan_directory_data_hosts,
+							  NULL);
 }
 
 
@@ -1046,11 +1054,8 @@ static void
 cron_clean_data_hosts (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  cron_clean = NULL;
   now = GNUNET_TIME_absolute_get ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
               _("Cleaning up directory `%s'\n"),
@@ -1058,9 +1063,9 @@ cron_clean_data_hosts (void *cls)
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &discard_hosts_helper,
                               &now);
-  GNUNET_SCHEDULER_add_delayed (DATA_HOST_CLEAN_FREQ,
-                                &cron_clean_data_hosts,
-                                NULL);
+  cron_clean = GNUNET_SCHEDULER_add_delayed (DATA_HOST_CLEAN_FREQ,
+					     &cron_clean_data_hosts,
+					     NULL);
 }
 
 
@@ -1302,6 +1307,16 @@ shutdown_task (void *cls)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
+  if (NULL != cron_clean)
+  {
+    GNUNET_SCHEDULER_cancel (cron_clean);
+    cron_clean = NULL;
+  }
+  if (NULL != cron_scan)
+  {
+    GNUNET_SCHEDULER_cancel (cron_scan);
+    cron_scan = NULL;
+  }
 }
 
 
@@ -1342,9 +1357,8 @@ run (void *cls,
                                                        "USE_INCLUDED_HELLOS");
   if (GNUNET_SYSERR == use_included)
     use_included = GNUNET_NO;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   if (GNUNET_YES != noio)
   {
     GNUNET_assert (GNUNET_OK ==
@@ -1358,11 +1372,13 @@ run (void *cls,
       return;
     }
 
-    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_scan_directory_data_hosts, NULL);
+    cron_scan = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+						    &cron_scan_directory_data_hosts,
+						    NULL);
 
-    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_clean_data_hosts, NULL);
+    cron_clean = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+						     &cron_clean_data_hosts,
+						     NULL);
     if (GNUNET_YES == use_included)
     {
       ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);

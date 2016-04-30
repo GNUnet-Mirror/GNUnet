@@ -149,7 +149,6 @@ excess_trigger (void *cls)
   struct GNUNET_BANDWIDTH_Tracker *av = cls;
 
   av->excess_task = NULL;
-
   if (NULL != av->excess_cb)
     av->excess_cb (av->excess_cb_cls);
 }

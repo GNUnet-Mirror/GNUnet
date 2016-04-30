@@ -215,12 +215,8 @@ static void
 gather_dht_put_blocks (void *cls)
 {
   struct PutOperator *po = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   po->dht_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   po->dht_qe =
       GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, po->current_offset++, 0,
                                            UINT_MAX,

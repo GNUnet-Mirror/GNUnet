@@ -130,12 +130,6 @@ static struct MessageQueue *mq_tail;
 
 
 /**
- * The shutdown task handle
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
-
-
-/**
  * Function called to notify a client about the connection begin ready to queue
  * more data.  "buf" will be NULL and "size" zero if the connection was closed
  * for writing in the meantime.
@@ -480,7 +474,8 @@ parse_shared_services (char *ss_str, struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param message the actual message
  */
 static void
-handle_init (void *cls, struct GNUNET_SERVER_Client *client,
+handle_init (void *cls,
+	     struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_InitMessage *msg;
@@ -553,14 +548,15 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
  *
  * @param cls NULL
  * @param client identification of the client
  * @param message the actual message
  */
 static void
-handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
+handle_add_host (void *cls,
+		 struct GNUNET_SERVER_Client *client,
                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_Host *host;
@@ -669,14 +665,15 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG messages
  *
  * @param cls NULL
  * @param client identification of the client
  * @param message the actual message
  */
 static void
-handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
+handle_slave_get_config (void *cls,
+			 struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
@@ -781,7 +778,6 @@ shutdown_task (void *cls)
   struct MessageQueue *mq_entry;
   uint32_t id;
 
-  shutdown_task_id = NULL;
   LOG_DEBUG ("Shutting down testbed service\n");
   /* cleanup any remaining forwarded operations */
   GST_clear_fopcq ();
@@ -939,10 +935,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
-  shutdown_task_id =
-      GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                                  &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
   GST_stats_init (GST_config);
   GST_barriers_init (GST_config);
@@ -955,9 +948,10 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
-  //sleep (15);                 /* Debugging */
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "testbed", GNUNET_SERVICE_OPTION_NONE,
+          GNUNET_SERVICE_run (argc, argv,
+			      "testbed",
+			      GNUNET_SERVICE_OPTION_NONE,
                               &testbed_run, NULL)) ? 0 : 1;
 }
 

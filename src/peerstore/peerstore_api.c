@@ -213,7 +213,7 @@ struct GNUNET_PEERSTORE_IterateContext
    * Task identifier for the function called
    * on iterate request timeout
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
 };
 
@@ -340,7 +340,9 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-rewatch_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+rewatch_it (void *cls,
+	    const struct GNUNET_HashCode *key,
+	    void *value)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_WatchContext *wc = value;

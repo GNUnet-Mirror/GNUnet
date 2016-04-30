@@ -1196,15 +1196,8 @@ static void
 reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->reconnect_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    /* shutdown, just give up */
-    return;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to transport service.\n");
   GNUNET_assert (NULL == h->client);

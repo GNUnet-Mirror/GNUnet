@@ -175,9 +175,15 @@ static void
 do_shutdown (void *cls)
 {
   if (NULL != t4)
+  {
     GNUNET_SCHEDULER_cancel (t4);
+    t4 = NULL;
+  }
   if (NULL != t6)
+  {
     GNUNET_SCHEDULER_cancel (t6);
+    t6 = NULL;
+  }
   if (NULL != listen_socket4)
   {
     GNUNET_NETWORK_socket_close (listen_socket4);
@@ -607,57 +613,57 @@ run_dnsd ()
 						 SOCK_DGRAM,
 						 IPPROTO_UDP);
   if (NULL != listen_socket4)
-    {
-      struct sockaddr_in v4;
-
-      memset (&v4, 0, sizeof (v4));
-      v4.sin_family = AF_INET;
+  {
+    struct sockaddr_in v4;
+    
+    memset (&v4, 0, sizeof (v4));
+    v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      v4.sin_len = sizeof (v4);
+    v4.sin_len = sizeof (v4);
 #endif
-      v4.sin_port = htons (listen_port);
-      if (GNUNET_OK !=
-	  GNUNET_NETWORK_socket_bind (listen_socket4,
-				      (struct sockaddr *) &v4,
-				      sizeof (v4)))
-	{
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  GNUNET_NETWORK_socket_close (listen_socket4);
-	  listen_socket4 = NULL;
-	}
+    v4.sin_port = htons (listen_port);
+    if (GNUNET_OK !=
+	GNUNET_NETWORK_socket_bind (listen_socket4,
+				    (struct sockaddr *) &v4,
+				    sizeof (v4)))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+      GNUNET_NETWORK_socket_close (listen_socket4);
+      listen_socket4 = NULL;
     }
+  }
   listen_socket6 = GNUNET_NETWORK_socket_create (PF_INET6,
 						SOCK_DGRAM,
 						IPPROTO_UDP);
   if (NULL != listen_socket6)
-    {
-      struct sockaddr_in6 v6;
-
-      memset (&v6, 0, sizeof (v6));
-      v6.sin6_family = AF_INET6;
+  {
+    struct sockaddr_in6 v6;
+    
+    memset (&v6, 0, sizeof (v6));
+    v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      v6.sin6_len = sizeof (v6);
+    v6.sin6_len = sizeof (v6);
 #endif
-      v6.sin6_port = htons (listen_port);
-      if (GNUNET_OK !=
-	  GNUNET_NETWORK_socket_bind (listen_socket6,
-				      (struct sockaddr *) &v6,
-				      sizeof (v6)))
-	{
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-	  GNUNET_NETWORK_socket_close (listen_socket6);
-	  listen_socket6 = NULL;
-	}
+    v6.sin6_port = htons (listen_port);
+    if (GNUNET_OK !=
+	GNUNET_NETWORK_socket_bind (listen_socket6,
+				    (struct sockaddr *) &v6,
+				    sizeof (v6)))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+      GNUNET_NETWORK_socket_close (listen_socket6);
+      listen_socket6 = NULL;
     }
+  }
   if ( (NULL == listen_socket4) &&
        (NULL == listen_socket6) )
-    {
-      GNUNET_GNS_disconnect (gns);
-      gns = NULL;
-      GNUNET_DNSSTUB_stop (dns_stub);
-      dns_stub = NULL;
-      return;
-    }
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+    GNUNET_DNSSTUB_stop (dns_stub);
+    dns_stub = NULL;
+    return;
+  }
   if (NULL != listen_socket4)
     t4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					listen_socket4,
@@ -668,7 +674,6 @@ run_dnsd ()
 					listen_socket6,
 					&read_dns6,
 					listen_socket6);
-
 }
 
 
@@ -719,7 +724,9 @@ identity_cb (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
@@ -730,8 +737,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                 _("No DNS server specified!\n"));
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   if (NULL == gns_zone_str)
     {
       identity = GNUNET_IDENTITY_connect (cfg,
@@ -745,8 +751,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ( (NULL == gns_zone_str) ||
        (GNUNET_OK !=
 	GNUNET_CRYPTO_ecdsa_public_key_from_string (gns_zone_str,
-						  strlen (gns_zone_str),
-						  &my_zone)) )
+						    strlen (gns_zone_str),
+						    &my_zone)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No valid GNS zone specified!\n"));

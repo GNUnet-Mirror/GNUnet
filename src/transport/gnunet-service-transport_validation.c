@@ -873,7 +873,6 @@ add_valid_address (void *cls,
   validation_entry_changed (ve,
                             GNUNET_TRANSPORT_VS_UPDATE);
   memset (&prop, 0, sizeof (prop));
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
   prop.scope = ve->network;
   prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
   if (GNUNET_YES != ve->known_to_ats)

@@ -3516,13 +3516,11 @@ udp_plugin_select_v4 (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
+  
   plugin->select_task_v4 = NULL;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   if (NULL == plugin->sockv4)
     return;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                    plugin->sockv4)))
@@ -3547,12 +3545,10 @@ udp_plugin_select_v6 (void *cls)
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
   plugin->select_task_v6 = NULL;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   if (NULL == plugin->sockv6)
     return;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                     plugin->sockv6)) )

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C)
+     Copyright (C) 2013-2015 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -149,16 +149,14 @@ static struct RPS_Sampler *prot_sampler;
  */
 static struct RPS_Sampler *client_sampler;
 
-
 /**
  * Name to log view to
  */
 static char *file_name_view_log;
 
-
 /**
- * The size of sampler we need to be able to satisfy the client's need of
- * random peers.
+ * The size of sampler we need to be able to satisfy the client's need
+ * of random peers.
  */
 static unsigned int sampler_size_client_need;
 
@@ -169,7 +167,6 @@ static unsigned int sampler_size_client_need;
  * This is one minimum size the sampler grows to.
  */
 static unsigned int sampler_size_est_need;
-
 
 /**
  * Percentage of total peer number in the view
@@ -184,12 +181,6 @@ static float alpha;
 static float beta;
 
 /**
- * The percentage gamma of history updates.
- * Simply 1 - alpha - beta
- */
-
-
-/**
  * Identifier for the main task that runs periodically.
  */
 static struct GNUNET_SCHEDULER_Task *do_round_task;
@@ -198,8 +189,6 @@ static struct GNUNET_SCHEDULER_Task *do_round_task;
  * Time inverval the do_round task runs in.
  */
 static struct GNUNET_TIME_Relative round_interval;
-
-
 
 /**
  * List to store peers received through pushes temporary.
@@ -210,7 +199,6 @@ static struct CustomPeerMap *push_map;
  * List to store peers received through pulls temporary.
  */
 static struct CustomPeerMap *pull_map;
-
 
 /**
  * Handler to NSE.
@@ -230,8 +218,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
 /**
  * Handle for cancellation of iteration over peers.
  */
-struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
-
+static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
 
 /**
  * Request counter.
@@ -263,13 +250,12 @@ static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
 /**
  * The prediction of the rate of requests
  */
-static struct GNUNET_TIME_Relative  request_rate;
-
+static struct GNUNET_TIME_Relative request_rate;
 
 /**
  * Number of history update tasks.
  */
-uint32_t num_hist_update_tasks;
+static uint32_t num_hist_update_tasks;
 
 
 #ifdef ENABLE_MALICIOUS
@@ -281,18 +267,18 @@ uint32_t num_hist_update_tasks;
  * 2 Try to partition the network
  * 3 Combined attack
  */
-uint32_t mal_type = 0;
+static uint32_t mal_type;
 
 /**
  * Other malicious peers
  */
-static struct GNUNET_PeerIdentity *mal_peers = NULL;
+static struct GNUNET_PeerIdentity *mal_peers;
 
 /**
  * Hashmap of malicious peers used as set.
  * Used to more efficiently check whether we know that peer.
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *mal_peer_set = NULL;
+static struct GNUNET_CONTAINER_MultiPeerMap *mal_peer_set;
 
 /**
  * Number of other malicious peers
@@ -320,26 +306,25 @@ struct AttackedPeer
 /**
  * If type is 2 this is the DLL of attacked peers
  */
-static struct AttackedPeer *att_peers_head = NULL;
-static struct AttackedPeer *att_peers_tail = NULL;
+static struct AttackedPeer *att_peers_head;
+static struct AttackedPeer *att_peers_tail;
 
 /**
  * This index is used to point to an attacked peer to
  * implement the round-robin-ish way to select attacked peers.
  */
-static struct AttackedPeer *att_peer_index = NULL;
+static struct AttackedPeer *att_peer_index;
 
 /**
  * Hashmap of attacked peers used as set.
  * Used to more efficiently check whether we know that peer.
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *att_peer_set = NULL;
+static struct GNUNET_CONTAINER_MultiPeerMap *att_peer_set;
 
 /**
  * Number of attacked peers
  */
-static uint32_t num_attacked_peers = 0;
-
+static uint32_t num_attacked_peers;
 
 /**
  * If type is 1 this is the attacked peer
@@ -362,10 +347,6 @@ static uint32_t push_limit = 10000;
 ***********************************************************************/
 
 
-
-
-
-
 /***********************************************************************
  * Util functions
 ***********************************************************************/
@@ -374,8 +355,9 @@ static uint32_t push_limit = 10000;
 /**
  * Print peerlist to log.
  */
-void
-print_peer_list (struct GNUNET_PeerIdentity *list, unsigned int len)
+static void
+print_peer_list (struct GNUNET_PeerIdentity *list,
+		 unsigned int len)
 {
   unsigned int i;
 
@@ -395,7 +377,7 @@ print_peer_list (struct GNUNET_PeerIdentity *list, unsigned int len)
 /**
  * Remove peer from list.
  */
-  void
+static void
 rem_from_list (struct GNUNET_PeerIdentity **peer_list,
                unsigned int *list_size,
                const struct GNUNET_PeerIdentity *peer)
@@ -429,9 +411,10 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
 
 /**
  * Sum all time relatives of an array.
-  */
-  struct GNUNET_TIME_Relative
-T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
+ */
+static struct GNUNET_TIME_Relative
+T_relative_sum (const struct GNUNET_TIME_Relative *rel_array,
+		uint32_t arr_size)
 {
   struct GNUNET_TIME_Relative sum;
   uint32_t i;
@@ -448,18 +431,23 @@ T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
 /**
  * Compute the average of given time relatives.
  */
-  struct GNUNET_TIME_Relative
-T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
+static struct GNUNET_TIME_Relative
+T_relative_avg (const struct GNUNET_TIME_Relative *rel_array,
+		uint32_t arr_size)
 {
-  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array, arr_size), arr_size);
+  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array,
+						      arr_size),
+				      arr_size);
 }
 
 
 /**
  * Put random peer from sampler into the view as history update.
  */
-  void
-hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
+static void
+hist_update (void *cls,
+	     struct GNUNET_PeerIdentity *ids,
+	     uint32_t num_peers)
 {
   unsigned int i;
 
@@ -473,7 +461,6 @@ hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
   if (0 < num_hist_update_tasks)
     num_hist_update_tasks--;
 }
-
 
 
 /**
@@ -526,7 +513,7 @@ client_resize_wrapper ()
  *
  * Called every time we receive a request from the client.
  */
-  void
+static void
 est_request_rate()
 {
   struct GNUNET_TIME_Relative max_round_duration;
@@ -647,28 +634,33 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
  *
  * Called once we know a peer is live.
  */
-  void
-insert_in_pull_map (void *cls, const struct GNUNET_PeerIdentity *peer)
+static void
+insert_in_pull_map (void *cls,
+		    const struct GNUNET_PeerIdentity *peer)
 {
   CustomPeerMap_put (pull_map, peer);
 }
+
 
 /**
  * Insert PeerID in #view
  *
  * Called once we know a peer is live.
  */
-  void
-insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
+static void
+insert_in_view (void *cls,
+		const struct GNUNET_PeerIdentity *peer)
 {
   View_put (peer);
 }
 
+
 /**
  * Update sampler with given PeerID.
  */
-  void
-insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
+static void
+insert_in_sampler (void *cls,
+		   const struct GNUNET_PeerIdentity *peer)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updating samplers with peer %s from insert_in_sampler()\n",
@@ -875,6 +867,7 @@ destroy_reply_cls (struct ReplyCls *rep_cls)
   GNUNET_free (rep_cls);
 }
 
+
 static void
 destroy_cli_ctx (struct ClientContext *cli_ctx)
 {
@@ -899,8 +892,9 @@ destroy_cli_ctx (struct ClientContext *cli_ctx)
  * Updates sizes of sampler list and view and adapt those lists
  * accordingly.
  */
-  void
-nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
+static void
+nse_callback (void *cls,
+	      struct GNUNET_TIME_Absolute timestamp,
               double logestimate, double std_dev)
 {
   double estimate;
@@ -933,7 +927,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
  *
  * Sends those to the requesting client.
  */
-void
+static void
 client_respond (void *cls,
                 struct GNUNET_PeerIdentity *peer_ids,
                 uint32_t num_peers)
@@ -1080,7 +1074,7 @@ handle_client_request_cancel (void *cls,
  * @param client identification of the client
  * @param message the actual message
  */
-  static void
+static void
 handle_client_seed (void *cls,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
@@ -1136,7 +1130,7 @@ handle_client_seed (void *cls,
   ////GNUNET_free (peers);
 
   GNUNET_SERVER_receive_done (client,
-			                        GNUNET_OK);
+			      GNUNET_OK);
 }
 
 
@@ -1153,9 +1147,9 @@ handle_client_seed (void *cls,
  */
 static int
 handle_peer_push (void *cls,
-    struct GNUNET_CADET_Channel *channel,
-    void **channel_ctx,
-    const struct GNUNET_MessageHeader *msg)
+		  struct GNUNET_CADET_Channel *channel,
+		  void **channel_ctx,
+		  const struct GNUNET_MessageHeader *msg)
 {
   const struct GNUNET_PeerIdentity *peer;
 
@@ -1165,9 +1159,11 @@ handle_peer_push (void *cls,
     GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PUSH (%s)\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received PUSH (%s)\n",
+       GNUNET_i2s (peer));
 
-  #ifdef ENABLE_MALICIOUS
+#ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 
   tmp_att_peer = GNUNET_new (struct AttackedPeer);
@@ -1220,9 +1216,9 @@ handle_peer_push (void *cls,
  */
 static int
 handle_peer_pull_request (void *cls,
-    struct GNUNET_CADET_Channel *channel,
-    void **channel_ctx,
-    const struct GNUNET_MessageHeader *msg)
+			  struct GNUNET_CADET_Channel *channel,
+			  void **channel_ctx,
+			  const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PeerIdentity *peer;
   const struct GNUNET_PeerIdentity *view_array;
@@ -1272,7 +1268,7 @@ handle_peer_pull_request (void *cls,
  * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
-  static int
+static int
 handle_peer_pull_reply (void *cls,
                         struct GNUNET_CADET_Channel *channel,
                         void **channel_ctx,
@@ -1404,7 +1400,8 @@ handle_peer_pull_reply (void *cls,
  * @param spread the inverse amount of deviation from the mean
  */
 static struct GNUNET_TIME_Relative
-compute_rand_delay (struct GNUNET_TIME_Relative mean, unsigned int spread)
+compute_rand_delay (struct GNUNET_TIME_Relative mean,
+		    unsigned int spread)
 {
   struct GNUNET_TIME_Relative half_interval;
   struct GNUNET_TIME_Relative ret;
@@ -1496,7 +1493,7 @@ do_mal_round (void *cls);
  * @param client The client that sent the message
  * @param msg The message header
  */
-  static void
+static void
 handle_client_act_malicious (void *cls,
                              struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *msg)
@@ -1613,8 +1610,8 @@ handle_client_act_malicious (void *cls,
   {
     GNUNET_break (0);
   }
-
-  GNUNET_SERVER_receive_done (client,	GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+			      GNUNET_OK);
 }
 
 
@@ -1631,7 +1628,8 @@ do_mal_round (void *cls)
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously type %" PRIu32 ".\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Going to execute next round maliciously type %" PRIu32 ".\n",
       mal_type);
   do_round_task = NULL;
   GNUNET_assert (mal_type <= 3);
@@ -1744,7 +1742,8 @@ do_mal_round (void *cls)
   //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round,
   //NULL);
   GNUNET_assert (NULL == do_round_task);
-  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_mal_round, NULL);
+  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round,
+						&do_mal_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
 #endif /* ENABLE_MALICIOUS */
@@ -1758,8 +1757,6 @@ do_mal_round (void *cls)
 static void
 do_round (void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round.\n");
-
   uint32_t i;
   const struct GNUNET_PeerIdentity *view_array;
   unsigned int *permut;
@@ -1770,6 +1767,8 @@ do_round (void *cls)
   struct GNUNET_PeerIdentity peer;
   struct GNUNET_PeerIdentity *update_peer;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Going to execute next round.\n");
   do_round_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing view:\n");
@@ -1967,7 +1966,8 @@ do_round (void *cls)
   time_next_round = compute_rand_delay (round_interval, 2);
 
   /* Schedule next round */
-  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_round, NULL);
+  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round,
+						&do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
 
@@ -2036,9 +2036,8 @@ process_peerinfo_peers (void *cls,
 static void
 shutdown_task (void *cls)
 {
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "RPS is going down\n");
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
 
@@ -2153,9 +2152,8 @@ rps_start (struct GNUNET_SERVER_Handle *server)
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				                        &shutdown_task,
-				                        NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

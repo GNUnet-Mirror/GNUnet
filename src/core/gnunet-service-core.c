@@ -106,9 +106,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   GSC_stats = GNUNET_STATISTICS_create ("core", GSC_cfg);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
   pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);

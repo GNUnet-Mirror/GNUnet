@@ -243,8 +243,10 @@ static void
 schedule_disconnect (void *cls)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
+
   GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO,
-                                    mgr->disconnect_cb, mgr->disconnect_cls);
+                                    mgr->disconnect_cb,
+				    mgr->disconnect_cls);
 }
 
 
@@ -263,9 +265,10 @@ schedule_disconnect (void *cls)
 static size_t
 send_next_message (void *cls, size_t buf_size, void *buf)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_next_message()\n");
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "send_next_message()\n");
   if (NULL == buf)
   {
     /* disconnected */
@@ -282,7 +285,9 @@ send_next_message (void *cls, size_t buf_size, void *buf)
   GNUNET_assert (size <= buf_size);
   memcpy (buf, mqi->msg, size);
 
-  GNUNET_CONTAINER_DLL_remove (mgr->tmit_head, mgr->tmit_tail, mqi);
+  GNUNET_CONTAINER_DLL_remove (mgr->tmit_head,
+			       mgr->tmit_tail,
+			       mqi);
   GNUNET_free (mqi->msg);
   GNUNET_free (mqi);
 
@@ -292,7 +297,7 @@ send_next_message (void *cls, size_t buf_size, void *buf)
   }
   else if (GNUNET_YES == mgr->is_disconnecting)
   {
-    GNUNET_SCHEDULER_add_now (&schedule_disconnect, mgr);
+    (void) GNUNET_SCHEDULER_add_now (&schedule_disconnect, mgr);
     return size;
   }
 
@@ -322,7 +327,8 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
   {
     if (GNUNET_YES == mgr->is_disconnecting)
       GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO,
-                                        mgr->disconnect_cb, mgr->disconnect_cls);
+                                        mgr->disconnect_cb,
+					mgr->disconnect_cls);
     return;
   }
 
@@ -346,14 +352,15 @@ static void
 schedule_reconnect (void *cls)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
+
   mgr->reconnect_task = NULL;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connecting to %s service.\n", mgr->service_name);
+       "Connecting to %s service.\n",
+       mgr->service_name);
   GNUNET_assert (NULL == mgr->client);
-  mgr->client = GNUNET_CLIENT_connect (mgr->service_name, mgr->cfg);
+  mgr->client = GNUNET_CLIENT_connect (mgr->service_name,
+				       mgr->cfg);
   GNUNET_assert (NULL != mgr->client);
-
   transmit_next (mgr);
 }
 
@@ -373,16 +380,17 @@ schedule_reconnect (void *cls)
 struct GNUNET_CLIENT_MANAGER_Connection *
 GNUNET_CLIENT_MANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const char *service_name,
-                               const struct
-                               GNUNET_CLIENT_MANAGER_MessageHandler *handlers)
+                               const struct GNUNET_CLIENT_MANAGER_MessageHandler *handlers)
 {
-  struct GNUNET_CLIENT_MANAGER_Connection *
-    mgr = GNUNET_malloc (sizeof (*mgr));
+  struct GNUNET_CLIENT_MANAGER_Connection *mgr;
+  
+  mgr = GNUNET_new (struct GNUNET_CLIENT_MANAGER_Connection);
   mgr->cfg = cfg;
   mgr->service_name = service_name;
   mgr->handlers = handlers;
   mgr->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
-  mgr->reconnect_task = GNUNET_SCHEDULER_add_now (&schedule_reconnect, mgr);
+  mgr->reconnect_task = GNUNET_SCHEDULER_add_now (&schedule_reconnect,
+						  mgr);
   return mgr;
 }
 
@@ -405,7 +413,9 @@ GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                   GNUNET_ContinuationCallback disconnect_cb,
                                   void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting (%d)\n", transmit_queue);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnecting (%d)\n",
+       transmit_queue);
   mgr->disconnect_cb = disconnect_cb;
   mgr->disconnect_cls = cls;
   if (NULL != mgr->tmit_head)
@@ -424,7 +434,7 @@ GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
       GNUNET_CLIENT_MANAGER_drop_queue (mgr);
     }
   }
-  if (mgr->reconnect_task != NULL)
+  if (NULL != mgr->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (mgr->reconnect_task);
     mgr->reconnect_task = NULL;
@@ -473,7 +483,9 @@ GNUNET_CLIENT_MANAGER_reconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
        "Scheduling task to reconnect to service in %s.\n",
        GNUNET_STRINGS_relative_time_to_string (mgr->reconnect_delay, GNUNET_YES));
   mgr->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed (mgr->reconnect_delay, &schedule_reconnect, mgr);
+    GNUNET_SCHEDULER_add_delayed (mgr->reconnect_delay,
+				  &schedule_reconnect,
+				  mgr);
   mgr->reconnect_delay = GNUNET_TIME_STD_BACKOFF (mgr->reconnect_delay);
 }
 
@@ -491,9 +503,13 @@ void
 GNUNET_CLIENT_MANAGER_transmit (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                 struct GNUNET_MessageHeader *msg)
 {
-  struct MessageQueueItem *mqi = GNUNET_malloc (sizeof (*mqi));
+  struct MessageQueueItem *mqi;
+
+  mqi = GNUNET_new (struct MessageQueueItem);
   mqi->msg = GNUNET_copy_message (msg);
-  GNUNET_CONTAINER_DLL_insert_tail (mgr->tmit_head, mgr->tmit_tail, mqi);
+  GNUNET_CONTAINER_DLL_insert_tail (mgr->tmit_head,
+				    mgr->tmit_tail,
+				    mqi);
   transmit_next (mgr);
 }
 
@@ -511,9 +527,13 @@ void
 GNUNET_CLIENT_MANAGER_transmit_now (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                     struct GNUNET_MessageHeader *msg)
 {
-  struct MessageQueueItem *mqi = GNUNET_malloc (sizeof (*mqi));
+  struct MessageQueueItem *mqi;
+
+  mqi = GNUNET_new (struct MessageQueueItem);
   mqi->msg = GNUNET_copy_message (msg);
-  GNUNET_CONTAINER_DLL_insert (mgr->tmit_head, mgr->tmit_tail, mqi);
+  GNUNET_CONTAINER_DLL_insert (mgr->tmit_head,
+			       mgr->tmit_tail,
+			       mqi);
   transmit_next (mgr);
 }
 
@@ -527,7 +547,10 @@ GNUNET_CLIENT_MANAGER_transmit_now (struct GNUNET_CLIENT_MANAGER_Connection *mgr
 void
 GNUNET_CLIENT_MANAGER_drop_queue (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
 {
-  struct MessageQueueItem *cur, *next = mgr->tmit_head;
+  struct MessageQueueItem *cur;
+  struct MessageQueueItem *next;
+
+  next = mgr->tmit_head;
   while (NULL != next)
   {
     cur = next;
@@ -629,15 +652,14 @@ GNUNET_CLIENT_MANAGER_op_get_next_id (struct GNUNET_CLIENT_MANAGER_Connection *m
  * @return Operation, or NULL if not found.
  */
 static struct OperationListItem *
-op_find (struct GNUNET_CLIENT_MANAGER_Connection *mgr, uint64_t op_id)
+op_find (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+	 uint64_t op_id)
 {
-  struct OperationListItem *op = mgr->op_head;
-  while (NULL != op)
-  {
+  struct OperationListItem *op;
+
+  for (op = mgr->op_head; NULL != op; op = op->next)
     if (op->op_id == op_id)
       return op;
-    op = op->next;
-  }
   return NULL;
 }
 
@@ -691,17 +713,21 @@ GNUNET_CLIENT_MANAGER_op_add (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                               GNUNET_ResultCallback result_cb,
                               void *cls)
 {
+  struct OperationListItem *op;
+
   if (NULL == result_cb)
     return 0;
-
-  struct OperationListItem *op = GNUNET_malloc (sizeof (*op));
+  op = GNUNET_new (struct OperationListItem);
   op->op_id = GNUNET_CLIENT_MANAGER_op_get_next_id (mgr);
   op->result_cb = result_cb;
   op->cls = cls;
-  GNUNET_CONTAINER_DLL_insert_tail (mgr->op_head, mgr->op_tail, op);
-
+  GNUNET_CONTAINER_DLL_insert_tail (mgr->op_head,
+				    mgr->op_tail,
+				    op);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%p Added operation #%" PRIu64 "\n", mgr, op->op_id);
+       "%p Added operation #%" PRIu64 "\n",
+       mgr,
+       op->op_id);
   return op->op_id;
 }
 
@@ -730,8 +756,11 @@ GNUNET_CLIENT_MANAGER_op_add (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
  */
 static int
 op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
-           uint64_t op_id, int64_t result_code,
-           const void *data, uint16_t data_size, uint8_t cancel)
+           uint64_t op_id,
+	   int64_t result_code,
+           const void *data,
+	   uint16_t data_size,
+	   uint8_t cancel)
 {
   if (0 == op_id)
     return GNUNET_NO;
@@ -744,11 +773,15 @@ op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
     return GNUNET_NO;
   }
 
-  GNUNET_CONTAINER_DLL_remove (mgr->op_head, mgr->op_tail, op);
+  GNUNET_CONTAINER_DLL_remove (mgr->op_head,
+			       mgr->op_tail,
+			       op);
 
-  if (GNUNET_YES != cancel && NULL != op->result_cb)
-    op->result_cb (op->cls, result_code, data, data_size);
-
+  if ( (GNUNET_YES != cancel) &&
+       (NULL != op->result_cb) )
+    op->result_cb (op->cls,
+		   result_code, data,
+		   data_size);
   GNUNET_free (op);
   return GNUNET_YES;
 }
@@ -773,8 +806,10 @@ op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
  */
 int
 GNUNET_CLIENT_MANAGER_op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
-                                 uint64_t op_id, int64_t result_code,
-                                 const void *data, uint16_t data_size)
+                                 uint64_t op_id,
+				 int64_t result_code,
+                                 const void *data,
+				 uint16_t data_size)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%p Received result for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
@@ -799,6 +834,8 @@ GNUNET_CLIENT_MANAGER_op_cancel (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                  uint64_t op_id)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%p Cancelling operation #%" PRIu64  "\n", mgr, op_id);
+       "%p Cancelling operation #%" PRIu64  "\n",
+       mgr,
+       op_id);
   return op_result (mgr, op_id, 0, NULL, 0, GNUNET_YES);
 }

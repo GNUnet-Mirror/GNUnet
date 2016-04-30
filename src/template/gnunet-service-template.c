@@ -47,7 +47,8 @@ cleanup_task (void *cls)
  * @param cfg configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -56,8 +57,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
 }
 
 

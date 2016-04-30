@@ -384,9 +384,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   stats = GNUNET_STATISTICS_create ("regex", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);

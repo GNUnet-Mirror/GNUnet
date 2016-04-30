@@ -69,7 +69,8 @@ stop (void *cls)
 {
   struct GNUNET_NAT_Handle *nat = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Stopping NAT and quitting...\n");
   GNUNET_NAT_unregister (nat);
 }
 

@@ -33,10 +33,7 @@
 
 /**
  * @brief Destroy a path after some time has past.
- *
- * If the path is returned from DHT again after a while, try again.
- *
- * Removes the path from the peer (except for direct paths).
+ * Removes the path from the peer (must not be used for direct paths).
  *
  * @param cls Closure (path to destroy).
  */
@@ -45,28 +42,17 @@ path_destroy_delayed (void *cls)
 {
   struct CadetPeerPath *path = cls;
   struct CadetPeer *peer;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
   path->path_delete = NULL;
-
-  /* During shutdown, the peers peermap might not exist anymore. */
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) == 0)
-  {
-    if (2 >= path->length)
-    {
-      /* This is not the place to destroy direct paths, only core_disconnect
-       * should do it and never delay it.
-       */
-      GNUNET_break (0);
-    }
-    peer = GCP_get_short (path->peers[path->length - 1], GNUNET_NO);
-    if (NULL != peer)
-      GCP_remove_path (peer, path);
-  }
-  else
-    path_destroy (path);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Destroy delayed %p (%u)\n",
+       path,
+       path->length);
+  GNUNET_assert (2 < path->length);
+  peer = GCP_get_short (path->peers[path->length - 1],
+			GNUNET_NO);
+  GNUNET_assert (NULL != peer);
+  GCP_remove_path (peer, path);
 }
 
 
@@ -74,7 +60,6 @@ path_destroy_delayed (void *cls)
  * Create a new path
  *
  * @param length How many hops will the path have.
- *
  * @return A newly allocated path with a peer array of the specified length.
  */
 struct CadetPeerPath *
@@ -125,7 +110,9 @@ path_duplicate (const struct CadetPeerPath *path)
   unsigned int i;
 
   aux = path_new (path->length);
-  memcpy (aux->peers, path->peers, path->length * sizeof (GNUNET_PEER_Id));
+  memcpy (aux->peers,
+	  path->peers,
+	  path->length * sizeof (GNUNET_PEER_Id));
   for (i = 0; i < aux->length; i++)
     GNUNET_PEER_change_rc (aux->peers[i], 1);
   return aux;
@@ -167,9 +154,13 @@ path_invalidate (struct CadetPeerPath *p)
   if (NULL != p->path_delete)
     return;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Invalidating path %p (%u)\n", p, p->length);
-  p->path_delete = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                                 &path_destroy_delayed, p);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Invalidating path %p (%u)\n",
+       p,
+       p->length);
+  p->path_delete
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+				    &path_destroy_delayed, p);
 }
 
 
@@ -242,8 +233,8 @@ path_build_from_peer_ids (struct GNUNET_PeerIdentity *peers,
  * @param p1 First path
  * @param p2 Second path
  *
- * @return GNUNET_YES if both paths are equivalent
- *         GNUNET_NO otherwise
+ * @return #GNUNET_YES if both paths are equivalent
+ *         #GNUNET_NO otherwise
  */
 int
 path_equivalent (const struct CadetPeerPath *p1,
@@ -293,7 +284,7 @@ path_is_valid (const struct CadetPeerPath *path)
  *
  * @param p the path to destroy
  *
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 path_destroy (struct CadetPeerPath *p)
@@ -301,7 +292,10 @@ path_destroy (struct CadetPeerPath *p)
   if (NULL == p)
     return GNUNET_OK;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "destroying path %p (%u)\n", p, p->length);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "destroying path %p (%u)\n",
+       p,
+       p->length);
   GNUNET_PEER_decrement_rcs (p->peers, p->length);
   GNUNET_free_non_null (p->peers);
   if (NULL != p->path_delete)
@@ -322,7 +316,8 @@ path_destroy (struct CadetPeerPath *p)
  *         0 if they are identical.
  */
 int
-path_cmp (const struct CadetPeerPath *p1, const struct CadetPeerPath *p2)
+path_cmp (const struct CadetPeerPath *p1,
+	  const struct CadetPeerPath *p2)
 {
   if (p1->length > p2->length)
     return 1;
@@ -330,7 +325,9 @@ path_cmp (const struct CadetPeerPath *p1, const struct CadetPeerPath *p2)
   if (p1->length < p2->length)
     return -1;
 
-  return memcmp (p1->peers, p2->peers, sizeof (GNUNET_PEER_Id) * p1->length);
+  return memcmp (p1->peers,
+		 p2->peers,
+		 sizeof (GNUNET_PEER_Id) * p1->length);
 }
 
 

@@ -639,15 +639,8 @@ collect_log_now (void)
 static void
 collect_log_task (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   log_task = NULL;
-
-  collect_log_now();
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
-
+  collect_log_now ();
   log_task = GNUNET_SCHEDULER_add_delayed (frequency,
                                            &collect_log_task, NULL);
 }
@@ -659,12 +652,14 @@ perf_logging_stop ()
   int c_m;
   struct PeerLoggingTimestep *cur;
 
-  if (GNUNET_YES!= running)
+  if (GNUNET_YES != running)
     return;
 
   if (NULL != log_task)
+  {
     GNUNET_SCHEDULER_cancel (log_task);
-  log_task = NULL;
+    log_task = NULL;
+  }
   collect_log_task (NULL);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,

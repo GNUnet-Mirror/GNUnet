@@ -302,8 +302,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 					create_ego,
 					&create_finished,
 					&create_op);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   test_finished ();
 }
 

@@ -133,6 +133,7 @@ put_continuation (void *cls,
   GNUNET_SCHEDULER_add_now (&test, crc);
 }
 
+
 static void
 do_put (struct CpsRunContext *crc)
 {
@@ -195,9 +196,14 @@ do_put (struct CpsRunContext *crc)
 
 
 static int
-iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+iterate_zeros (void *cls,
+	       const struct GNUNET_HashCode *key,
+	       uint32_t size,
+               const void *data,
+	       enum GNUNET_BLOCK_Type type,
+	       uint32_t priority,
+               uint32_t anonymity,
+	       struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -246,10 +252,15 @@ iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
 
 
 static int
-expiration_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                const void *data, enum GNUNET_BLOCK_Type type,
-                uint32_t priority, uint32_t anonymity,
-                struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+expiration_get (void *cls,
+		const struct GNUNET_HashCode *key,
+		uint32_t size,
+                const void *data,
+		enum GNUNET_BLOCK_Type type,
+                uint32_t priority,
+		uint32_t anonymity,
+                struct GNUNET_TIME_Absolute expiration,
+		uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
@@ -293,10 +304,15 @@ expiration_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
 
 
 static int
-replication_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                 const void *data, enum GNUNET_BLOCK_Type type,
-                 uint32_t priority, uint32_t anonymity,
-                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+replication_get (void *cls,
+		 const struct GNUNET_HashCode *key,
+		 uint32_t size,
+                 const void *data,
+		 enum GNUNET_BLOCK_Type type,
+                 uint32_t priority,
+		 uint32_t anonymity,
+                 struct GNUNET_TIME_Absolute expiration,
+		 uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
@@ -388,14 +404,7 @@ static void
 test (void *cls)
 {
   struct CpsRunContext *crc = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_break (0);
-    crc->phase = RP_ERROR;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)

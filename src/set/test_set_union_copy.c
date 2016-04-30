@@ -42,6 +42,8 @@ static struct GNUNET_SET_Handle *set2;
 
 static const struct GNUNET_CONFIGURATION_Handle *config;
 
+static struct GNUNET_SCHEDULER_Task *tt;
+
 
 static void
 add_element_str (struct GNUNET_SET_Handle *set, char *str)
@@ -77,11 +79,7 @@ remove_element_str (struct GNUNET_SET_Handle *set, char *str)
 static void
 timeout_fail (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  tt = NULL;
   GNUNET_SCHEDULER_shutdown ();
   ret = 1;
 }
@@ -125,8 +123,7 @@ check_count_iter (void *cls,
 }
 
 
-
-void
+static void
 check_count (struct GNUNET_SET_Handle *set,
              char *what,
              unsigned int expected_count,
@@ -145,24 +142,28 @@ check_count (struct GNUNET_SET_Handle *set,
 }
 
 
-void test_done (void *cls)
+static void
+test_done (void *cls)
 {
   if (NULL != set1)
     GNUNET_SET_destroy (set1);
   if (NULL != set2)
     GNUNET_SET_destroy (set2);
-
+  GNUNET_SCHEDULER_cancel (tt);
+  tt = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
 
 
-void check_new_set_count (void *cls)
+static void
+check_new_set_count (void *cls)
 {
   check_count (set2, "new set", 4, &test_done, NULL);
 }
 
 
-void copy_done (void *cls, struct GNUNET_SET_Handle *new_set)
+static void
+copy_done (void *cls, struct GNUNET_SET_Handle *new_set)
 {
   printf ("copy done\n");
   set2 = new_set;
@@ -177,7 +178,8 @@ void copy_done (void *cls, struct GNUNET_SET_Handle *new_set)
 }
 
 
-void test_copy (void *cls)
+static void
+test_copy (void *cls)
 {
   printf ("about to copy\n");
   GNUNET_SET_copy_lazy (set1, copy_done, NULL);
@@ -198,9 +200,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                &timeout_fail,
-                                NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				     &timeout_fail,
+				     NULL);
 
   config = cfg;
   GNUNET_TESTING_peer_get_identity (peer,

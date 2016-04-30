@@ -76,7 +76,8 @@ server_disconnect (void *cls)
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
+recv_cb (void *cls,
+	 struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ok == 2);

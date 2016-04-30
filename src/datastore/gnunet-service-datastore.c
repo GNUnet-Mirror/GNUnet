@@ -391,7 +391,9 @@ static void
 delete_expired (void *cls)
 {
   expired_kill_task = NULL;
-  plugin->api->get_expiration (plugin->api->cls, &expired_processor, NULL);
+  plugin->api->get_expiration (plugin->api->cls,
+			       &expired_processor,
+			       NULL);
 }
 
 
@@ -1819,9 +1821,8 @@ run (void *cls,
   GNUNET_SERVER_disconnect_notify (server,
                                    &cleanup_reservations,
                                    NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleaning_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
+				 NULL);
 }
 
 

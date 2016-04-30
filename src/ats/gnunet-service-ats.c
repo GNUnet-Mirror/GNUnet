@@ -138,9 +138,6 @@ cleanup_task (void *cls)
   GAS_performance_done ();
   GAS_preference_done ();
   GAS_reservations_done ();
-  GNUNET_SERVER_disconnect_notify_cancel (GSA_server,
-                                          &client_disconnect_handler,
-                                          NULL);
   if (NULL != GSA_stats)
   {
     GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
@@ -221,9 +218,8 @@ run (void *cls,
                                    &client_disconnect_handler,
 				   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup_task,
-				NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
 }
 
 

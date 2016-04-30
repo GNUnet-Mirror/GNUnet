@@ -946,11 +946,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_string (cfg, "psycstore", "database",
                                              &database))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "psycstore",
+			       "database");
   }
   else
   {
-    GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_psycstore_%s", database);
+    GNUNET_asprintf (&db_lib_name,
+		     "libgnunet_plugin_psycstore_%s",
+		     database);
     db = GNUNET_PLUGIN_load (db_lib_name, (void *) cfg);
     GNUNET_free (database);
   }
@@ -966,8 +970,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   stats = GNUNET_STATISTICS_create ("psycstore", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

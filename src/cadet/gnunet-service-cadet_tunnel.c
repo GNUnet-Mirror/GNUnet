@@ -1735,16 +1735,8 @@ static void
 finish_kx (void *cls)
 {
   struct CadetTunnel *t = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO, "  shutdown\n");
-    return;
-  }
-
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
 }
@@ -1767,14 +1759,15 @@ destroy_kx_ctx (struct CadetTunnel *t)
 
   if (is_key_null (&t->kx_ctx->e_key_old))
   {
-    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_now (finish_kx, t);
+    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_now (&finish_kx, t);
     return;
   }
 
   delay = GNUNET_TIME_relative_divide (rekey_period, 4);
   delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
 
-  t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
+  t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay,
+							 &finish_kx, t);
 }
 
 
@@ -2103,13 +2096,8 @@ static void
 ax_kx_resend (void *cls)
 {
   struct CadetTunnel *t = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->rekey_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
     /* Should have been canceled on estate change */
@@ -2333,14 +2321,9 @@ static void
 rekey_tunnel (void *cls)
 {
   struct CadetTunnel *t = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->rekey_task = NULL;
   LOG (GNUNET_ERROR_TYPE_INFO, "Re-key Tunnel %s\n", GCT_2s (t));
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-
   GNUNET_assert (NULL != t->kx_ctx);
   struct GNUNET_TIME_Relative duration;
 
@@ -2453,13 +2436,8 @@ global_otr_rekey (void *cls)
 {
   struct GNUNET_TIME_Absolute time;
   long n;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rekey_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-
   GNUNET_free_non_null (otr_ephemeral_key);
   otr_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
 
@@ -2501,7 +2479,8 @@ destroy_iterator (void *cls,
 {
   struct CadetTunnel *t = value;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCT_shutdown destroying tunnel at %p\n", t);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GCT_shutdown destroying tunnel at %p\n", t);
   GCT_destroy (t);
   return GNUNET_YES;
 }
@@ -3472,13 +3451,8 @@ static void
 trim_connections (void *cls)
 {
   struct CadetTunnel *t = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->trim_connections_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   if (GCT_count_connections (t) > 2 * CONNECTIONS_PER_TUNNEL)
   {
     struct CadetTConnection *iter;
@@ -3624,8 +3598,11 @@ GCT_add_channel (struct CadetTunnel *t, struct CadetChannel *ch)
 
   aux = GNUNET_new (struct CadetTChannel);
   aux->ch = ch;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " adding %p to %p\n", aux, t->channel_head);
-  GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " adding %p to %p\n", aux, t->channel_head);
+  GNUNET_CONTAINER_DLL_insert_tail (t->channel_head,
+				    t->channel_tail,
+				    aux);
 
   if (NULL != t->destroy_task)
   {
@@ -3653,7 +3630,9 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch)
     if (aux->ch == ch)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GCCH_2s (ch));
-      GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
+      GNUNET_CONTAINER_DLL_remove (t->channel_head,
+				   t->channel_tail,
+				   aux);
       GNUNET_free (aux);
       return;
     }
@@ -3701,20 +3680,12 @@ delayed_destroy (void *cls)
 {
   struct CadetTunnel *t = cls;
   struct CadetTConnection *iter;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "delayed destroying tunnel %p\n", t);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Not destroying tunnel, due to shutdown. "
-         "Tunnel at %p should have been freed by GCT_shutdown\n", t);
-    return;
-  }
   t->destroy_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "delayed destroying tunnel %p\n",
+       t);
   t->cstate = CADET_TUNNEL_SHUTDOWN;
-
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     GCC_send_destroy (iter->c);
@@ -3800,8 +3771,9 @@ GCT_destroy (struct CadetTunnel *t)
   if (NULL == t)
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GCP_2s (t->peer));
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "destroying tunnel %s\n",
+       GCP_2s (t->peer));
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multipeermap_remove (tunnels,
                                                       GCP_get_id (t->peer), t));
@@ -3850,7 +3822,9 @@ GCT_destroy (struct CadetTunnel *t)
 
   if (NULL != t->destroy_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling dest: %p\n", t->destroy_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "cancelling dest: %p\n",
+	 t->destroy_task);
     GNUNET_SCHEDULER_cancel (t->destroy_task);
     t->destroy_task = NULL;
   }

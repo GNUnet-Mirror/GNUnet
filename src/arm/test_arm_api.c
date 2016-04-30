@@ -157,7 +157,7 @@ arm_conn (void *cls,
       ok = 3;
     else if (ok == 1)
       ok = 0;
-    GNUNET_SCHEDULER_add_now (trigger_disconnect, arm);
+    GNUNET_SCHEDULER_add_now (&trigger_disconnect, arm);
   }
 }
 

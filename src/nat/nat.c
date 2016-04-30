@@ -603,7 +603,8 @@ add_to_address_list (struct GNUNET_NAT_Handle *h,
  */
 static void
 add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
-                        enum LocalAddressSource src, const void *addr,
+                        enum LocalAddressSource src,
+			const void *addr,
                         socklen_t addrlen)
 {
   struct sockaddr_in s4;
@@ -913,10 +914,12 @@ process_interfaces (void *cls,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  if ((h->internal_address == NULL) && (h->server_proc == NULL) &&
-      (h->server_read_task == NULL) &&
-      (GNUNET_YES == isDefault) && ((addr->sa_family == AF_INET) ||
-                                    (addr->sa_family == AF_INET6)))
+  if ( (h->internal_address == NULL) &&
+       (h->server_proc == NULL) &&
+       (h->server_read_task == NULL) &&
+       (GNUNET_YES == isDefault) &&
+       ( (addr->sa_family == AF_INET) ||
+	 (addr->sa_family == AF_INET6) ) )
   {
     /* no internal address configured, but we found a "default"
      * interface, try using that as our 'internal' address */
@@ -938,12 +941,8 @@ static void
 restart_nat_server (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->server_read_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   start_gnunet_nat_server (h);
 }
 
@@ -965,12 +964,8 @@ nat_server_read (void *cls)
   int port;
   const char *port_start;
   struct sockaddr_in sin_addr;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->server_read_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
   memset (mybuf, 0, sizeof (mybuf));
   bytes =
     GNUNET_DISK_file_read (h->server_stdout_handle, mybuf, sizeof (mybuf));
@@ -1036,7 +1031,8 @@ nat_server_read (void *cls)
                         sizeof (sin_addr));
   h->server_read_task =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      h->server_stdout_handle, &nat_server_read,
+                                      h->server_stdout_handle,
+				      &nat_server_read,
                                       h);
 }
 

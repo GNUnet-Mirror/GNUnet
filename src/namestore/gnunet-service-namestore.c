@@ -1689,8 +1689,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_notification,
                                    NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
 }
 
 

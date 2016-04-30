@@ -848,9 +848,8 @@ run (void *cls,
              "My identity is `%4s'\n",
              GNUNET_i2s_full (&GST_my_identity));
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   if (NULL == GST_peerinfo)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,

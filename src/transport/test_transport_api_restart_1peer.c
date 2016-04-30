@@ -260,12 +260,7 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 sendtask (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   send_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
   char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

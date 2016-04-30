@@ -54,7 +54,7 @@ static struct GNUNET_PSYCSTORE_OperationHandle *op;
 /**
  * Handle for task for timeout termination.
  */
-static struct GNUNET_SCHEDULER_Task * end_badly_task;
+static struct GNUNET_SCHEDULER_Task *end_badly_task;
 
 static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
@@ -141,7 +141,7 @@ end_normally (void *cls)
 static void
 end ()
 {
-  if (end_badly_task != NULL)
+  if (NULL != end_badly_task)
   {
     GNUNET_SCHEDULER_cancel (end_badly_task);
     end_badly_task = NULL;

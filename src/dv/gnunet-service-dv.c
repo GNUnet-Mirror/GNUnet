@@ -2229,8 +2229,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 						  MAX_QUEUE_SIZE_PLUGIN);
   stats = GNUNET_STATISTICS_create ("dv", cfg);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

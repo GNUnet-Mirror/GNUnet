@@ -712,12 +712,8 @@ send_find_peer_message (void *cls)
   struct GNUNET_TIME_Relative next_send_time;
   struct BloomConstructorContext bcc;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   find_peer_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
   if (newly_found_peers > bucket_size)
   {
     /* If we are finding many peers already, no need to send out our request right now! */
@@ -2442,6 +2438,7 @@ GDS_NEIGHBOURS_done ()
     find_peer_task = NULL;
   }
 }
+
 
 /**
  * Get the ID of the local node.

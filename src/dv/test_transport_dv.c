@@ -82,8 +82,8 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+						 NULL);
   if (4 != num_peers)
   {
     ok = 1;

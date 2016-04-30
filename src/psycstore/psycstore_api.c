@@ -131,7 +131,7 @@ struct GNUNET_PSYCSTORE_Handle
   /**
    * Task doing exponential back-off trying to reconnect.
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * Time for next connect retry.

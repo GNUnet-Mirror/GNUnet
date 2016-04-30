@@ -191,7 +191,8 @@ age_cover_counters (void *cls)
   GSF_cover_content_count = (GSF_cover_content_count * 15) / 16;
   GSF_cover_query_count = (GSF_cover_query_count * 15) / 16;
   cover_age_task =
-      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
+      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
+				    &age_cover_counters,
                                     NULL);
 }
 
@@ -759,13 +760,14 @@ main_init (struct GNUNET_SERVER_Handle *server,
                                    NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   cover_age_task =
-      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
+      GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
+				    &age_cover_counters,
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   GSF_cadet_start_server ();
   GSF_cadet_start_client ();
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   return GNUNET_OK;
 }
 

@@ -454,8 +454,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   ns = GNUNET_NAMESTORE_connect (cfg);
   sh = GNUNET_IDENTITY_connect (cfg, &get_ego, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

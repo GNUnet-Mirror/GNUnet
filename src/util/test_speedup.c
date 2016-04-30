@@ -53,7 +53,9 @@ run (void *cls)
   fprintf (stderr, "..%u", cycles);
   if (cycles <= 5)
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &run, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				  &run,
+				  NULL);
     return;
   }
   end = GNUNET_TIME_absolute_get();
@@ -66,21 +68,22 @@ run (void *cls)
  *
  */
 static void
-check (void *cls, char *const *args,
+check (void *cls,
+       char *const *args,
        const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *
-       cfg)
+       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   fprintf (stderr, "0");
-  fflush(stdout);
-  GNUNET_SCHEDULER_add_now(&run, NULL);
+  fflush (stdout);
+  GNUNET_SCHEDULER_add_now (&run, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  static char *const argvn[] = { "test-speedup",
+  static char *const argvn[] = {
+    "test-speedup",
     "-c",  "test_speedup_data.conf",
     NULL
   };

@@ -784,7 +784,9 @@ schedule_current_round (void *cls,
   delay =
       get_transmit_delay ((peer_entry->previous_round == GNUNET_NO) ? -1 : 0);
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task_cb, peer_entry);
+      GNUNET_SCHEDULER_add_delayed (delay, 
+				    &transmit_task_cb,
+				    peer_entry);
   return GNUNET_OK;
 }
 
@@ -799,18 +801,15 @@ update_flood_message (void *cls)
 {
   struct GNUNET_TIME_Relative offset;
   unsigned int i;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   flood_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
   if (0 != offset.rel_value_us)
   {
     /* somehow run early, delay more */
     flood_task =
-        GNUNET_SCHEDULER_add_delayed (offset, &update_flood_message, NULL);
+        GNUNET_SCHEDULER_add_delayed (offset,
+				      &update_flood_message, NULL);
     return;
   }
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
@@ -841,7 +840,8 @@ update_flood_message (void *cls)
                                          NULL);
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (next_timestamp), &update_flood_message,
+                                    (next_timestamp),
+				    &update_flood_message,
                                     NULL);
 }
 
@@ -1043,7 +1043,8 @@ update_flood_times (void *cls,
   }
   delay = get_transmit_delay (0);
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &transmit_task_cb, peer_entry);
+      GNUNET_SCHEDULER_add_delayed (delay,
+				    &transmit_task_cb, peer_entry);
   return GNUNET_OK;
 }
 
@@ -1439,7 +1440,8 @@ core_init (void *cls,
   }
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (next_timestamp), &update_flood_message,
+                                    (next_timestamp),
+				    &update_flood_message,
                                     NULL);
 }
 
@@ -1560,8 +1562,8 @@ run (void *cls,
   }
 #endif
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   pk = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;

@@ -76,11 +76,7 @@ static void
 program_main (void *cls)
 {
   struct CommandContext *cc = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   GNUNET_SPEEDUP_start_(cc->cfg);
   GNUNET_RESOLVER_connect (cc->cfg);
   cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);

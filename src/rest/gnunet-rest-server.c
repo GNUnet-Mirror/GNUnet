@@ -61,7 +61,7 @@
 /**
  * The task ID
  */
-static struct GNUNET_SCHEDULER_Task * httpd_task;
+static struct GNUNET_SCHEDULER_Task *httpd_task;
 
 /**
  * The port the service is running on (default 7776)
@@ -396,6 +396,16 @@ kill_httpd ()
     GNUNET_SCHEDULER_cancel (httpd_task);
     httpd_task = NULL;
   }
+  if (NULL != ltask4)
+  {
+    GNUNET_SCHEDULER_cancel (ltask4);
+    ltask4 = NULL;
+  }
+  if (NULL != ltask6)
+  {
+    GNUNET_SCHEDULER_cancel (ltask6);
+    ltask6 = NULL;
+  }
 }
 
 
@@ -498,7 +508,6 @@ static void
 do_accept (void *cls)
 {
   struct GNUNET_NETWORK_Handle *lsock = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_NETWORK_Handle *s;
   int fd;
   const struct sockaddr *addr;
@@ -508,9 +517,6 @@ do_accept (void *cls)
     ltask4 = NULL;
   else
     ltask6 = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   if (lsock == lsock4)
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
@@ -770,8 +776,7 @@ run (void *cls,
                           (void *) cfg,
                           &load_plugin,
                           NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 

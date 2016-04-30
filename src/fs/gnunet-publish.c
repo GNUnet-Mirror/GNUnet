@@ -872,9 +872,8 @@ run (void *cls,
     ret = 1;
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_stop_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_stop_task,
+				 NULL);
   if (NULL != pseudonym)
     identity = GNUNET_IDENTITY_connect (cfg,
 					&identity_cb,

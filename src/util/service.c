@@ -187,7 +187,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Task ID of the shutdown task.
    */
-  struct GNUNET_SCHEDULER_Task * shutdown_task;
+  struct GNUNET_SCHEDULER_Task *shutdown_task;
 
   /**
    * Idle timeout for server.
@@ -1151,11 +1151,7 @@ service_task (void *cls)
 {
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   (void) GNUNET_SPEEDUP_start_ (sctx->cfg);
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
@@ -1191,9 +1187,8 @@ service_task (void *cls)
   {
     /* install a task that will kill the server
      * process if the scheduler ever gets a shutdown signal */
-    sctx->shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                        &shutdown_task,
-							sctx);
+    sctx->shutdown_task = GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+							 sctx);
   }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));

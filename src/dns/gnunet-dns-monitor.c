@@ -339,8 +339,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			flags,
 			&display_request,
 			NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_disconnect, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_disconnect, NULL);
 }
 
 

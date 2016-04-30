@@ -35,7 +35,7 @@
 
 static int ok;
 
-static struct GNUNET_SCHEDULER_Task * timeout_task;
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 struct PeerContext
 {
@@ -100,11 +100,13 @@ timeout_error (void *cls)
  * @param distance in overlay hops, as given by transport plugin
  */
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_connect (void *cls,
+		const struct GNUNET_PeerIdentity *peer)
 {
   if (peer == NULL)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected, shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peers connected, shutting down.\n");
   ok = 0;
   if (timeout_task != NULL)
   {
@@ -116,7 +118,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls,
+	       const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
@@ -170,8 +173,10 @@ waitpid_task (void *cls)
 static void
 stop_arm (struct PeerContext *p)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking ARM to stop core service\n");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &waitpid_task, p);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking ARM to stop core service\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				&waitpid_task, p);
 }
 
 
@@ -187,14 +192,18 @@ shutdown_task (void *cls)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   ok++;
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_error, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+					       &timeout_error,
+					       NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
   setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
 }

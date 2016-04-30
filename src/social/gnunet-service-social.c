@@ -408,8 +408,13 @@ static int
 psyc_transmit_message (struct Place *plc);
 
 
+/**
+ * Clean up place data structures after a client disconnected.
+ *
+ * @param cls the `struct Place` to clean up
+ */
 static void
-cleanup_place (struct Place *plc);
+cleanup_place (void *cls);
 
 
 static struct MessageTransmitQueue *
@@ -426,7 +431,9 @@ place_entry_cleanup (void *cls,
                      const struct GNUNET_HashCode *key,
                      void *value)
 {
-  cleanup_place (value);
+  struct Place *plc = value;
+  
+  cleanup_place (plc);
   return GNUNET_YES;
 }
 
@@ -524,10 +531,14 @@ cleanup_guest (struct Guest *gst)
 
 /**
  * Clean up place data structures after a client disconnected.
+ *
+ * @param cls the `struct Place` to clean up
  */
 static void
-cleanup_place (struct Place *plc)
+cleanup_place (void *cls)
 {
+  struct Place *plc = cls;
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Cleaning up place %s\n",
               plc, GNUNET_h2s (&plc->pub_key_hash));
@@ -538,13 +549,6 @@ cleanup_place (struct Place *plc)
 
   GNUNET_PSYC_slicer_destroy (plc->slicer);
   GNUNET_free (plc);
-}
-
-
-static void
-schedule_cleanup_place (void *cls)
-{
-  cleanup_place (cls);
 }
 
 
@@ -2329,7 +2333,7 @@ psyc_transmit_notify_data (void *cls, uint16_t *data_size, void *data)
     tmit_msg = psyc_transmit_queue_next_msg (plc, tmit_msg);
     plc->is_disconnected = GNUNET_YES;
     GNUNET_SERVER_client_disconnect (tmit_frag->client);
-    GNUNET_SCHEDULER_add_now (&schedule_cleanup_place, plc);
+    GNUNET_SCHEDULER_add_now (&cleanup_place, plc);
     return ret;
   }
   else
@@ -2489,7 +2493,7 @@ psyc_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
     tmit_msg = psyc_transmit_queue_next_msg (plc, tmit_msg);
     plc->is_disconnected = GNUNET_YES;
     GNUNET_SERVER_client_disconnect (tmit_frag->client);
-    GNUNET_SCHEDULER_add_now (&schedule_cleanup_place, plc);
+    GNUNET_SCHEDULER_add_now (&cleanup_place, plc);
   }
   else
   {
@@ -3480,8 +3484,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

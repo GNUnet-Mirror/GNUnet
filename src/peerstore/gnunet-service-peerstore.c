@@ -91,6 +91,11 @@ static struct ClientEntry *client_head;
 static struct ClientEntry *client_tail;
 
 /**
+ * Task run to clean up expired records.
+ */
+static struct GNUNET_SCHEDULER_Task *expire_task;
+
+/**
  * Are we in the process of shutting down the service? #GNUNET_YES / #GNUNET_NO
  */
 static int in_shutdown;
@@ -116,6 +121,11 @@ do_shutdown ()
   {
     GNUNET_CONTAINER_multihashmap_destroy (watchers);
     watchers = NULL;
+  }
+  if (NULL != expire_task)
+  {
+    GNUNET_SCHEDULER_cancel (expire_task);
+    expire_task = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -147,21 +157,18 @@ static void
 cleanup_expired_records (void *cls)
 {
   int ret;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  expire_task = NULL;
   GNUNET_assert (NULL != db);
-  ret =
-      db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
-                          expire_records_continuation, NULL);
+  ret = db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
+			    &expire_records_continuation, NULL);
   if (GNUNET_OK != ret)
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS,
-                                   EXPIRED_RECORDS_CLEANUP_INTERVAL),
-                                  &cleanup_expired_records, NULL);
+    GNUNET_assert (NULL == expire_task);
+    expire_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+						(GNUNET_TIME_UNIT_SECONDS,
+						 EXPIRED_RECORDS_CLEANUP_INTERVAL),
+						&cleanup_expired_records, NULL);
   }
 }
 
@@ -173,14 +180,18 @@ cleanup_expired_records (void *cls)
  * @param success count of records deleted or #GNUNET_SYSERR
  */
 static void
-expire_records_continuation (void *cls, int success)
+expire_records_continuation (void *cls,
+			     int success)
 {
   if (success > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", success);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS,
-                                 EXPIRED_RECORDS_CLEANUP_INTERVAL),
-                                &cleanup_expired_records, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"%d records expired.\n",
+		success);
+  GNUNET_assert (NULL == expire_task);
+  expire_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+					      (GNUNET_TIME_UNIT_SECONDS,
+					       EXPIRED_RECORDS_CLEANUP_INTERVAL),
+					      &cleanup_expired_records, NULL);
 }
 
 
@@ -565,18 +576,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (NULL == db)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not load database backend `%s'\n"), db_lib_name);
+                _("Could not load database backend `%s'\n"),
+		db_lib_name);
     GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   watchers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-  GNUNET_SCHEDULER_add_now (&cleanup_expired_records, NULL);
+  expire_task = GNUNET_SCHEDULER_add_now (&cleanup_expired_records,
+					  NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_connect_notify (server, &handle_client_connect, NULL);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

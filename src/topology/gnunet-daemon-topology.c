@@ -514,13 +514,9 @@ schedule_next_hello (void *cls)
   struct FindAdvHelloContext fah;
   size_t next_want;
   struct GNUNET_TIME_Relative delay;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   pl->hello_delay_task = NULL;
   GNUNET_assert (GNUNET_YES == pl->is_connected);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;                     /* we're out of here */
   if (pl->hello_req != NULL)
     return;                     /* did not finish sending the previous one */
   /* find applicable HELLOs */
@@ -535,7 +531,7 @@ schedule_next_hello (void *cls)
       GNUNET_SCHEDULER_add_delayed (fah.next_adv,
                                     &schedule_next_hello,
                                     pl);
-  if (fah.result == NULL)
+  if (NULL == fah.result)
     return;
   next_want = GNUNET_HELLO_size (fah.result->hello);
   delay = GNUNET_TIME_absolute_get_remaining (pl->next_hello_allowed);
@@ -1241,9 +1237,8 @@ run (void *cls,
                            NULL, GNUNET_NO,
                            NULL, GNUNET_NO,
                            handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleaning_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
+				 NULL);
   if (NULL == transport)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

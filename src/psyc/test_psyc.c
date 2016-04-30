@@ -41,28 +41,28 @@
 /**
  * Return value from 'main'.
  */
-int res;
+static int res;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CORE_Handle *core;
-struct GNUNET_PeerIdentity this_peer;
+static struct GNUNET_CORE_Handle *core;
+static struct GNUNET_PeerIdentity this_peer;
 
 /**
  * Handle for task for timeout termination.
  */
-struct GNUNET_SCHEDULER_Task * end_badly_task;
+static struct GNUNET_SCHEDULER_Task * end_badly_task;
 
-struct GNUNET_PSYC_Master *mst;
-struct GNUNET_PSYC_Slave *slv;
+static struct GNUNET_PSYC_Master *mst;
+static struct GNUNET_PSYC_Slave *slv;
 
-struct GNUNET_PSYC_Channel *mst_chn, *slv_chn;
+static struct GNUNET_PSYC_Channel *mst_chn, *slv_chn;
 
-struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
-struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
 
-struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
-struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
+static struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
 struct TransmitClosure
 {
@@ -79,9 +79,9 @@ struct TransmitClosure
   uint8_t n;
 };
 
-struct TransmitClosure *tmit;
+static struct TransmitClosure *tmit;
 
-uint8_t join_req_count, end_count;
+static uint8_t join_req_count, end_count;
 
 enum
 {
@@ -104,14 +104,15 @@ enum
 } test;
 
 
-void
+static void
 master_transmit ();
 
-void
+static void
 master_history_replay_latest ();
 
 
-void master_stopped (void *cls)
+static void
+master_stopped (void *cls)
 {
   if (NULL != tmit)
   {
@@ -122,7 +123,9 @@ void master_stopped (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-void slave_parted (void *cls)
+
+static void
+slave_parted (void *cls)
 {
   if (NULL != mst)
   {
@@ -133,10 +136,11 @@ void slave_parted (void *cls)
     master_stopped (NULL);
 }
 
+
 /**
  * Clean up all resources used.
  */
-void
+static void
 cleanup ()
 {
   if (NULL != core)
@@ -185,7 +189,7 @@ end_normally (void *cls)
 /**
  * Finish the test case (successfully).
  */
-void
+static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
@@ -200,7 +204,7 @@ end ()
 }
 
 
-void
+static void
 master_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_assert (NULL != msg);
@@ -213,7 +217,7 @@ master_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 }
 
 
-void
+static void
 master_message_part_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg,
                         const struct GNUNET_MessageHeader *pmsg)
 {
@@ -270,7 +274,7 @@ master_message_part_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg,
 }
 
 
-void
+static void
 slave_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_assert (NULL != msg);
@@ -283,7 +287,7 @@ slave_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 }
 
 
-void
+static void
 slave_message_part_cb (void *cls,
                        const struct GNUNET_PSYC_MessageHeader *msg,
                        const struct GNUNET_MessageHeader *pmsg)
@@ -326,7 +330,7 @@ slave_message_part_cb (void *cls,
 }
 
 
-void
+static void
 state_get_var (void *cls, const struct GNUNET_MessageHeader *mod,
                const char *name, const void *value,
                uint32_t value_size, uint32_t full_value_size)
@@ -338,7 +342,7 @@ state_get_var (void *cls, const struct GNUNET_MessageHeader *mod,
 
 /*** Slave state_get_prefix() ***/
 
-void
+static void
 slave_state_get_prefix_result (void *cls, int64_t result,
                                const void *err_msg, uint16_t err_msg_size)
 {
@@ -350,7 +354,7 @@ slave_state_get_prefix_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_state_get_prefix ()
 {
   test = TEST_SLAVE_STATE_GET_PREFIX;
@@ -362,7 +366,7 @@ slave_state_get_prefix ()
 /*** Master state_get_prefix() ***/
 
 
-void
+static void
 master_state_get_prefix_result (void *cls, int64_t result,
                                 const void *err_msg, uint16_t err_msg_size)
 {
@@ -373,7 +377,7 @@ master_state_get_prefix_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 master_state_get_prefix ()
 {
   test = TEST_MASTER_STATE_GET_PREFIX;
@@ -385,7 +389,7 @@ master_state_get_prefix ()
 /*** Slave state_get() ***/
 
 
-void
+static void
 slave_state_get_result (void *cls, int64_t result,
                         const void *err_msg, uint16_t err_msg_size)
 {
@@ -397,7 +401,7 @@ slave_state_get_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_state_get ()
 {
   test = TEST_SLAVE_STATE_GET;
@@ -409,7 +413,7 @@ slave_state_get ()
 /*** Master state_get() ***/
 
 
-void
+static void
 master_state_get_result (void *cls, int64_t result,
                          const void *err_msg, uint16_t err_msg_size)
 {
@@ -421,7 +425,7 @@ master_state_get_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 master_state_get ()
 {
   test = TEST_MASTER_STATE_GET;
@@ -432,7 +436,7 @@ master_state_get ()
 
 /*** Slave history_replay() ***/
 
-void
+static void
 slave_history_replay_result (void *cls, int64_t result,
                              const void *err_msg, uint16_t err_msg_size)
 {
@@ -445,7 +449,7 @@ slave_history_replay_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_history_replay ()
 {
   test = TEST_SLAVE_HISTORY_REPLAY;
@@ -460,7 +464,7 @@ slave_history_replay ()
 /*** Master history_replay() ***/
 
 
-void
+static void
 master_history_replay_result (void *cls, int64_t result,
                               const void *err_msg, uint16_t err_msg_size)
 {
@@ -473,7 +477,7 @@ master_history_replay_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 master_history_replay ()
 {
   test = TEST_MASTER_HISTORY_REPLAY;
@@ -488,7 +492,7 @@ master_history_replay ()
 /*** Slave history_replay_latest() ***/
 
 
-void
+static void
 slave_history_replay_latest_result (void *cls, int64_t result,
                                     const void *err_msg, uint16_t err_msg_size)
 {
@@ -501,7 +505,7 @@ slave_history_replay_latest_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_history_replay_latest ()
 {
   test = TEST_SLAVE_HISTORY_REPLAY_LATEST;
@@ -517,7 +521,7 @@ slave_history_replay_latest ()
 /*** Master history_replay_latest() ***/
 
 
-void
+static void
 master_history_replay_latest_result (void *cls, int64_t result,
                                      const void *err_msg, uint16_t err_msg_size)
 {
@@ -530,7 +534,7 @@ master_history_replay_latest_result (void *cls, int64_t result,
 }
 
 
-void
+static void
 master_history_replay_latest ()
 {
   test = TEST_MASTER_HISTORY_REPLAY_LATEST;
@@ -555,7 +559,7 @@ transmit_resume (void *cls)
 }
 
 
-int
+static int
 tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 {
   struct TransmitClosure *tmit = cls;
@@ -598,7 +602,7 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 }
 
 
-int
+static int
 tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
                  uint32_t *full_value_size)
 {
@@ -678,7 +682,7 @@ static void
 slave_join ();
 
 
-void
+static void
 slave_transmit ()
 {
   test = TEST_SLAVE_TRANSMIT;
@@ -702,7 +706,7 @@ slave_transmit ()
 }
 
 
-void
+static void
 slave_remove_cb (void *cls, int64_t result,
                  const void *err_msg, uint16_t err_msg_size)
 {
@@ -714,7 +718,7 @@ slave_remove_cb (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_remove ()
 {
   test = TEST_SLAVE_REMOVE;
@@ -724,7 +728,7 @@ slave_remove ()
 }
 
 
-void
+static void
 slave_add_cb (void *cls, int64_t result,
               const void *err_msg, uint16_t err_msg_size)
 {
@@ -735,7 +739,7 @@ slave_add_cb (void *cls, int64_t result,
 }
 
 
-void
+static void
 slave_add ()
 {
   test = TEST_SLAVE_ADD;
@@ -744,7 +748,8 @@ slave_add ()
 }
 
 
-void first_slave_parted (void *cls)
+static void
+first_slave_parted (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "First slave parted.\n");
   slave_join (TEST_SLAVE_JOIN_ACCEPT);
@@ -754,7 +759,7 @@ void first_slave_parted (void *cls)
 static void
 schedule_slave_part (void *cls)
 {
-  GNUNET_PSYC_slave_part (slv, GNUNET_NO, first_slave_parted, NULL);
+  GNUNET_PSYC_slave_part (slv, GNUNET_NO, &first_slave_parted, NULL);
 }
 
 
@@ -772,7 +777,7 @@ join_decision_cb (void *cls,
   case TEST_SLAVE_JOIN_REJECT:
     GNUNET_assert (0 == is_admitted);
     GNUNET_assert (1 == join_req_count);
-    GNUNET_SCHEDULER_add_now (schedule_slave_part, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_slave_part, NULL);
     break;
 
   case TEST_SLAVE_JOIN_ACCEPT:
@@ -844,7 +849,7 @@ slave_join (int t)
 }
 
 
-void
+static void
 master_transmit ()
 {
   test = TEST_MASTER_TRANSMIT;
@@ -899,7 +904,7 @@ master_transmit ()
 }
 
 
-void
+static void
 master_start_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -911,7 +916,7 @@ master_start_cb (void *cls, int result, uint64_t max_message_id)
 }
 
 
-void
+static void
 master_start ()
 {
   test = TEST_MASTER_START;
@@ -931,7 +936,7 @@ schedule_master_start (void *cls)
 }
 
 
-void
+static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
   this_peer = *my_identity;
@@ -953,7 +958,7 @@ core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param cfg configuration we use (also to connect to PSYC service)
  * @param peer handle to access more of the peer (not used)
  */
-void
+static void
 #if DEBUG_TEST_PSYC
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)

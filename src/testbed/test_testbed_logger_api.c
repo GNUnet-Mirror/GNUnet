@@ -113,39 +113,39 @@ do_abort (void *cls)
  *
  * @param cls closure
  * @param filename complete filename (absolute path)
+ * @return #GNUNET_OK to continue to iterate,
+ *  #GNUNET_NO to stop iteration with no error,
+ *  #GNUNET_SYSERR to abort iteration with error!
  */
-static void
+static int
 iterator_cb (void *cls,
              const char *filename)
 {
   const char *fn;
   size_t len;
   uint64_t fs;
-  int cancel;
 
-  cancel = GNUNET_NO;
-  if (NULL == filename)
-    return;
   len = strlen (filename);
   if (len < 5)                  /* log file: `pid'.dat */
-    return;
+    return GNUNET_OK;
+
   fn = filename + len;
   if (0 != strcasecmp (".dat", fn - 4))
-    return;
-  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs,
-                                          GNUNET_NO, GNUNET_YES))
-    return;
+    return GNUNET_OK;
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (filename, &fs,
+			     GNUNET_NO, GNUNET_YES))
+    return GNUNET_SYSERR;
   if ((BSIZE * 2) != fs)        /* The file size should be equal to what we
                                    have written */
-    return;
-  cancel = GNUNET_YES;
-  result = GNUNET_OK;
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
 /**
- * Functions of this type are called to notify a successful transmission of the
- * message to the logger service
+ * Functions of this type are called to notify a successful
+ * transmission of the message to the logger service
  *
  * @param cls the closure given to GNUNET_TESTBED_LOGGER_send()
  * @param size the amount of data sent

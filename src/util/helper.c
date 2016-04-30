@@ -142,17 +142,17 @@ struct GNUNET_HELPER_Handle
   /**
    * Task to read from the helper.
    */
-  struct GNUNET_SCHEDULER_Task * read_task;
+  struct GNUNET_SCHEDULER_Task *read_task;
 
   /**
    * Task to read from the helper.
    */
-  struct GNUNET_SCHEDULER_Task * write_task;
+  struct GNUNET_SCHEDULER_Task *write_task;
 
   /**
    * Restart task.
    */
-  struct GNUNET_SCHEDULER_Task * restart_task;
+  struct GNUNET_SCHEDULER_Task *restart_task;
 
   /**
    * Does the helper support the use of a control pipe for signalling?
@@ -319,19 +319,10 @@ static void
 helper_read (void *cls)
 {
   struct GNUNET_HELPER_Handle *h = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
   ssize_t t;
 
   h->read_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    /* try again */
-    h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						   h->fh_from_helper, &helper_read, h);
-    return;
-  }
   t = GNUNET_DISK_file_read (h->fh_from_helper, &buf, sizeof (buf));
   if (t < 0)
   {
@@ -348,9 +339,9 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed(
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-            h->retry_back_off), &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+										   h->retry_back_off),
+						    &restart_task, h);
     return;
   }
   if (0 == t)
@@ -368,9 +359,10 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed(
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-            h->retry_back_off), &restart_task, h);
+    h->restart_task
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+								   h->retry_back_off),
+				     &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -378,9 +370,13 @@ helper_read (void *cls)
 	      (unsigned int) t,
 	      h->binary_name);
   h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						 h->fh_from_helper, &helper_read, h);
+						 h->fh_from_helper,
+						 &helper_read, h);
   if (GNUNET_SYSERR ==
-      GNUNET_SERVER_mst_receive (h->mst, NULL, buf, t, GNUNET_NO, GNUNET_NO))
+      GNUNET_SERVER_mst_receive (h->mst,
+				 NULL,
+				 buf, t,
+				 GNUNET_NO, GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to parse inbound message from helper `%s'\n"),
@@ -393,9 +389,9 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed(
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-            h->retry_back_off), &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+										  h->retry_back_off),
+						    &restart_task, h);
     return;
   }
 }
@@ -416,9 +412,9 @@ start_helper (struct GNUNET_HELPER_Handle *h)
     /* out of file descriptors? try again later... */
     stop_helper (h, GNUNET_NO);
     h->restart_task =
-      GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-              h->retry_back_off), &restart_task, h);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+								  h->retry_back_off),
+				    &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -437,9 +433,9 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   {
     /* failed to start process? try again later... */
     stop_helper (h, GNUNET_NO);
-    h->restart_task = GNUNET_SCHEDULER_add_delayed(
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-            h->retry_back_off), &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+										  h->retry_back_off),
+						    &restart_task, h);
     return;
   }
   GNUNET_DISK_pipe_close_end (h->helper_out, GNUNET_DISK_PIPE_END_WRITE);
@@ -583,22 +579,11 @@ static void
 helper_write (void *cls)
 {
   struct GNUNET_HELPER_Handle *h = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_HELPER_SendHandle *sh;
   const char *buf;
   ssize_t t;
 
   h->write_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    /* try again */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Helper write triggered during shutdown, retrying\n");
-    h->write_task = GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						     h->fh_to_helper, &helper_write, h);
-    return;
-  }
   if (NULL == (sh = h->sh_head))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -626,9 +611,9 @@ helper_write (void *cls)
 		"Stopping and restarting helper task!\n");
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-      h->restart_task = GNUNET_SCHEDULER_add_delayed(
-          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-              h->retry_back_off), &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+										  h->retry_back_off),
+						    &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

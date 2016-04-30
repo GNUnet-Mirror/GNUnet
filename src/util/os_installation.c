@@ -62,7 +62,7 @@ static const struct GNUNET_OS_ProjectData default_pd = {
   .bug_email = "gnunet-developers@gnu.org",
   .homepage = "http://www.gnu.org/s/gnunet/",
   .config_file = "gnunet.conf",
-  .user_config_file = "~/.config/gnunet.conf"
+  .user_config_file = "~/.config/gnunet.conf",
 };
 
 /**

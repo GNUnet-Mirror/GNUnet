@@ -263,7 +263,7 @@ struct GNUNET_TESTBED_RunHandle
   /**
    * Task run upon shutdown interrupts
    */
-  struct GNUNET_SCHEDULER_Task * interrupt_task;
+  struct GNUNET_SCHEDULER_Task *interrupt_task;
 
   /**
    * The event mask for the controller
@@ -620,8 +620,7 @@ interrupt (void *cls)
   unsigned int size;
 
   /* reschedule */
-  rc->interrupt_task = GNUNET_SCHEDULER_add_delayed
-      (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt, rc);
+  rc->interrupt_task = GNUNET_SCHEDULER_add_shutdown (&interrupt, rc);
   rc_cleanup_operations (rc);
   if ( (GNUNET_NO == rc->shutdown) &&
        (NULL != c) &&
@@ -988,7 +987,8 @@ host_registration_completion (void *cls, const char *emsg)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
+  rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts,
+						      rc);
 }
 
 
@@ -1415,10 +1415,11 @@ GNUNET_TESTBED_run (const char *host_filename,
   }
   rc->rcop_map = GNUNET_CONTAINER_multihashmap32_create (256);
   rc->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task, rc);
+    GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task, rc);
+  GNUNET_assert (NULL == rc->interrupt_task);
   rc->interrupt_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt,
-                                    rc);
+    GNUNET_SCHEDULER_add_shutdown (&interrupt,
+				   rc);
   return;
 
 error_cleanup:

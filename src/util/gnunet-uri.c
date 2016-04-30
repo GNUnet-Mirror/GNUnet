@@ -52,6 +52,7 @@ static void
 maint_child_death (void *cls)
 {
   enum GNUNET_OS_ProcessStatusType type;
+
   if ( (GNUNET_OK !=
 	GNUNET_OS_process_status (p, &type, &exit_code)) ||
        (type != GNUNET_OS_PROCESS_EXITED) )
@@ -80,12 +81,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == (uri = args[0]))
   {
-    fprintf (stderr, _("No URI specified on command line\n"));
+    fprintf (stderr,
+	     _("No URI specified on command line\n"));
     return;
   }
   if (0 != strncasecmp ("gnunet://", uri, strlen ("gnunet://")))
   {
-    fprintf (stderr, _("Invalid URI: does not start with `%s'\n"),
+    fprintf (stderr,
+	     _("Invalid URI: does not start with `%s'\n"),
 	     "gnunet://");
     return;
   }

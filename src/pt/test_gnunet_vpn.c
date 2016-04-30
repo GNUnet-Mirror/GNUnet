@@ -354,7 +354,8 @@ mhd_main ()
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct in_addr v4;

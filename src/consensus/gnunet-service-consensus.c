@@ -3231,7 +3231,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   statistics = GNUNET_STATISTICS_create ("consensus", cfg);
   GNUNET_SERVER_add_handlers (server, server_handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   GNUNET_SERVER_disconnect_notify (server, handle_client_disconnect, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus running\n");
 }

@@ -335,6 +335,11 @@ static struct GNUNET_CONTAINER_MultiPeerMap *cp_map;
  */
 static struct GNUNET_PEERSTORE_Handle *peerstore;
 
+/**
+ * Task used to flush respect values to disk.
+ */
+static struct GNUNET_SCHEDULER_Task *fr_task;
+
 
 /**
  * Update the latency information kept for the given peer.
@@ -876,19 +881,11 @@ transmit_delayed_now (void *cls)
 {
   struct GSF_DelayedHandle *dh = cls;
   struct GSF_ConnectedPeer *cp = dh->cp;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_CONTAINER_DLL_remove (cp->delayed_head,
                                cp->delayed_tail,
                                dh);
   cp->delay_queue_size--;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    GNUNET_free (dh->pm);
-    GNUNET_free (dh);
-    return;
-  }
   (void) GSF_peer_transmit_ (cp,
                              GNUNET_NO,
                              UINT32_MAX,
@@ -1977,18 +1974,13 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
 static void
 cron_flush_respect (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  if (NULL == cp_map)
-    return;
+  fr_task = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (cp_map,
-                                         &flush_respect, NULL);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  GNUNET_SCHEDULER_add_delayed_with_priority (RESPECT_FLUSH_FREQ,
-					      GNUNET_SCHEDULER_PRIORITY_HIGH,
-					      &cron_flush_respect, NULL);
+                                         &flush_respect,
+					 NULL);
+  fr_task = GNUNET_SCHEDULER_add_delayed_with_priority (RESPECT_FLUSH_FREQ,
+							GNUNET_SCHEDULER_PRIORITY_HIGH,
+							&cron_flush_respect, NULL);
 }
 
 
@@ -2000,8 +1992,8 @@ GSF_connected_peer_init_ ()
 {
   cp_map = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
   peerstore = GNUNET_PEERSTORE_connect (GSF_cfg);
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                      &cron_flush_respect, NULL);
+  fr_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
+						&cron_flush_respect, NULL);
 }
 
 
@@ -2033,10 +2025,15 @@ GSF_connected_peer_done_ ()
                                          &flush_respect,
                                          NULL);
   GNUNET_CONTAINER_multipeermap_iterate (cp_map,
-                                         &clean_peer, NULL);
+                                         &clean_peer,
+					 NULL);
+  GNUNET_SCHEDULER_cancel (fr_task);
+  fr_task = NULL;
   GNUNET_CONTAINER_multipeermap_destroy (cp_map);
   cp_map = NULL;
-  GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
+  GNUNET_PEERSTORE_disconnect (peerstore,
+			       GNUNET_YES);
+  
 }
 
 

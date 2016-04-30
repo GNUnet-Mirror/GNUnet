@@ -1574,10 +1574,11 @@ run (void *cls,
   }
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_add_handlers (server, server_handlers);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown,
-				NULL);
+  GNUNET_SERVER_disconnect_notify (server,
+				   &handle_client_disconnect,
+				   NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
 }
 
 

@@ -215,14 +215,8 @@ announce_id (void *cls)
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative retry_time;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    announce_id_task = NULL;
-    return;
-  }
+  announce_id_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
   /* TODO
    * - Set data expiration in function of X

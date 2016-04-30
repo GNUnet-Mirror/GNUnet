@@ -163,7 +163,9 @@ allocation_cb (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int dst_af;
@@ -177,8 +179,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_TIME_Absolute etime;
 
   etime = GNUNET_TIME_relative_to_absolute (duration);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_disconnect, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_disconnect, NULL);
   handle = GNUNET_VPN_connect (cfg);
   if (NULL == handle)
     goto error;

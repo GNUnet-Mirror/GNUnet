@@ -43,9 +43,9 @@ static struct GNUNET_CADET_Channel *ch2;
 
 static int result;
 
-static struct GNUNET_SCHEDULER_Task * abort_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
 
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *connect_task;
 
 static unsigned int repetition;
 
@@ -65,10 +65,17 @@ do_shutdown (void *cls)
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = NULL;
+  }
+  if (NULL != connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
   }
   if (NULL != ch1)
   {
     GNUNET_CADET_channel_destroy (ch1);
+    ch1 = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
@@ -93,22 +100,7 @@ do_abort (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
   abort_task = NULL;
-  if (NULL != shutdown_task)
-  {
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = NULL;
-  }
-  do_shutdown (cls);
-}
-
-
-static void
-finish (void)
-{
-  if (NULL != shutdown_task)
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -202,7 +194,7 @@ channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
     ch2 = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "everything fine! finishing!\n");
     result = GNUNET_OK;
-    finish ();
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -253,12 +245,8 @@ do_connect (void *cls)
 {
   struct GNUNET_PeerIdentity id;
   size_t size = sizeof (struct GNUNET_MessageHeader) + DATA_SIZE;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
+  connect_task = NULL;
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch1 = GNUNET_CADET_channel_create (cadet, NULL, &id, 1,
@@ -284,6 +272,7 @@ run (void *cls,
   static uint32_t ports[] = {1, 0};
 
   me = peer;
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 15), &do_abort,
@@ -301,11 +290,10 @@ run (void *cls,
     result = GNUNET_SYSERR;
     return;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO CADET :D\n");
-  }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_connect, NULL);
+  connect_task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				    &do_connect,
+				    NULL);
 }
 
 

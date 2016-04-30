@@ -276,7 +276,7 @@ member_parted (void *cls)
     break;
 
   case TEST_MEMBER_PART:
-    GNUNET_SCHEDULER_add_now (schedule_origin_stop, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_origin_stop, NULL);
     break;
 
   default:
@@ -302,7 +302,7 @@ member_part ()
   test = TEST_MEMBER_PART;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: member_part()\n", test);
-  GNUNET_SCHEDULER_add_now (schedule_member_part, NULL);
+  GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
 }
 
 
@@ -569,7 +569,7 @@ member_recv_join_decision (void *cls,
   {
   case TEST_MEMBER_JOIN_REFUSE:
     GNUNET_assert (0 == relay_count);
-    GNUNET_SCHEDULER_add_now (schedule_member_part, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
     break;
 
   case TEST_MEMBER_JOIN_ADMIT:
@@ -695,7 +695,9 @@ core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  */
 static void
 #if DEBUG_TEST_MULTICAST
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 #else
 run (void *cls,
@@ -704,10 +706,13 @@ run (void *cls,
 #endif
 {
   cfg = c;
-  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-
-  core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+						 &end_badly, NULL);
+  core = GNUNET_CORE_connect (cfg, NULL,
+			      &core_connected, NULL, NULL,
+                              NULL, GNUNET_NO,
+			      NULL, GNUNET_NO,
+			      NULL);
 }
 
 

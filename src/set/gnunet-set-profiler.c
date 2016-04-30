@@ -299,7 +299,7 @@ run (void *cls,
 
   statistics = GNUNET_STATISTICS_create ("set-profiler", cfg);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, handle_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&handle_shutdown, NULL);
 
   info1.id = "a";
   info2.id = "b";

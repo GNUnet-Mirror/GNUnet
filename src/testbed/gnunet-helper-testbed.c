@@ -124,22 +124,17 @@ static struct GNUNET_DISK_PipeHandle *sigpipe;
 /**
  * Task identifier for the read task
  */
-static struct GNUNET_SCHEDULER_Task * read_task_id;
+static struct GNUNET_SCHEDULER_Task *read_task_id;
 
 /**
  * Task identifier for the write task
  */
-static struct GNUNET_SCHEDULER_Task * write_task_id;
+static struct GNUNET_SCHEDULER_Task *write_task_id;
 
 /**
  * Task to kill the child
  */
 static struct GNUNET_SCHEDULER_Task * child_death_task_id;
-
-/**
- * shutdown task id
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 /**
  * Are we done reading messages from stdin?
@@ -161,7 +156,6 @@ static void
 shutdown_task (void *cls)
 {
   LOG_DEBUG ("Shutting down\n");
-  shutdown_task_id = NULL;
   if (NULL != testbed)
   {
     LOG_DEBUG ("Killing testbed\n");
@@ -174,8 +168,12 @@ shutdown_task (void *cls)
   }
   if (NULL != write_task_id)
   {
-    GNUNET_SCHEDULER_cancel (write_task_id);
+    struct WriteContext *wc;
+
+    wc = GNUNET_SCHEDULER_cancel (write_task_id);
     write_task_id = NULL;
+    GNUNET_free (wc->data);
+    GNUNET_free (wc);
   }
   if (NULL != child_death_task_id)
   {
@@ -203,18 +201,6 @@ shutdown_task (void *cls)
 
 
 /**
- * Scheduler shutdown task to be run now.
- */
-static void
-shutdown_now (void)
-{
-  if (NULL != shutdown_task_id)
-    GNUNET_SCHEDULER_cancel (shutdown_task_id);
-  shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-}
-
-
-/**
  * Task to write to the standard out
  *
  * @param cls the WriteContext
@@ -224,23 +210,16 @@ write_task (void *cls)
 {
   struct WriteContext *wc = cls;
   ssize_t bytes_wrote;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_assert (NULL != wc);
   write_task_id = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    GNUNET_free (wc->data);
-    GNUNET_free (wc);
-    return;
-  }
   bytes_wrote =
       GNUNET_DISK_file_write (stdout_fd, wc->data + wc->pos,
                               wc->length - wc->pos);
   if (GNUNET_SYSERR == bytes_wrote)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Cannot reply back configuration\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Cannot reply back configuration\n");
     GNUNET_free (wc->data);
     GNUNET_free (wc);
     return;
@@ -253,7 +232,8 @@ write_task (void *cls)
     return;
   }
   write_task_id =
-      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd,
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				       stdout_fd,
                                        &write_task, wc);
 }
 
@@ -272,18 +252,9 @@ child_death_task (void *cls)
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
   int ret;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task_id = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
-  {
-    child_death_task_id =
-	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-					pr, &child_death_task, NULL);
-    return;
-  }
   /* consume the signal */
   GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
   LOG_DEBUG ("Got SIGCHLD\n");
@@ -302,7 +273,7 @@ child_death_task (void *cls)
     if (0 != PLIBC_KILL (0, GNUNET_TERM_SIG))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "signal");
-      shutdown_now ();          /* Couldn't send the signal, we shutdown frowning */
+      GNUNET_SCHEDULER_shutdown ();   /* Couldn't send the signal, we shutdown frowning */
     }
     return;
   }
@@ -499,7 +470,8 @@ tokenizer_cb (void *cls, void *client,
   reply->config_size = htons ((uint16_t) config_size);
   wc->data = reply;
   write_task_id =
-      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd,
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				       stdout_fd,
                                        &write_task, wc);
   child_death_task_id =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -510,7 +482,7 @@ tokenizer_cb (void *cls, void *client,
 
 error:
   status = GNUNET_SYSERR;
-  shutdown_now ();
+  GNUNET_SCHEDULER_shutdown ();
   return GNUNET_SYSERR;
 }
 
@@ -525,24 +497,20 @@ read_task (void *cls)
 {
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t sread;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   read_task_id = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
   if ((GNUNET_SYSERR == sread) || (0 == sread))
   {
     LOG_DEBUG ("STDIN closed\n");
-    shutdown_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (GNUNET_YES == done_reading)
   {
     /* didn't expect any more data! */
     GNUNET_break_op (0);
-    shutdown_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   LOG_DEBUG ("Read %u bytes\n", sread);
@@ -551,11 +519,12 @@ read_task (void *cls)
                                  GNUNET_NO))
   {
     GNUNET_break (0);
-    shutdown_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   read_task_id =                /* No timeout while reading */
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fd,
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				      stdin_fd,
                                       &read_task, NULL);
 }
 
@@ -569,7 +538,9 @@ read_task (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   LOG_DEBUG ("Starting testbed helper...\n");
@@ -577,11 +548,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
   stdout_fd = GNUNET_DISK_get_handle_from_native (stdout);
   read_task_id =
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fd,
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				      stdin_fd,
                                       &read_task, NULL);
-  shutdown_task_id =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

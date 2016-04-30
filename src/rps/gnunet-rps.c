@@ -46,12 +46,6 @@ static struct GNUNET_PeerIdentity *peer_id;
 
 
 /**
- * Shutdown task
- */
-static struct GNUNET_SCHEDULER_Task *shutdown_task;
-
-
-/**
  * Set an option of type 'struct GNUNET_PeerIdentity *' from the command line.
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
@@ -96,7 +90,6 @@ GNUNET_GETOPT_set_peerid (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 static void
 do_shutdown (void *cls)
 {
-  shutdown_task = NULL;
   if (NULL != req_handle)
     GNUNET_RPS_request_cancel (req_handle);
   GNUNET_RPS_disconnect (rps_handle);
@@ -126,8 +119,7 @@ reply_handle (void *cls,
   }
   ret = 0;
 
-  GNUNET_SCHEDULER_cancel (shutdown_task);
-  GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -156,15 +148,14 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Requesting %u PeerIDs\n", num_peers);
     req_handle = GNUNET_RPS_request_peers (rps_handle, num_peers, reply_handle, NULL);
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-        &do_shutdown, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   }
   else
   { /* Seed PeerID */
     GNUNET_RPS_seed_ids (rps_handle, 1, peer_id);
     FPRINTF (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (peer_id));
     ret = 0;
-    GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
 }
 

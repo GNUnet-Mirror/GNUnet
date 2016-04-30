@@ -655,12 +655,8 @@ sample_load_task (void *cls)
   int ld_disk;
   unsigned int mem_usage;
   unsigned int nproc;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   sample_load_task_id = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   ld_cpu = cpu_get_load ();
   ld_disk = disk_get_load ();
   if ( (-1 == ld_cpu) || (-1 == ld_disk) )

@@ -374,17 +374,17 @@ struct HTTP_Server_Plugin
   /**
    * MHD IPv4 task
    */
-  struct GNUNET_SCHEDULER_Task * server_v4_task;
+  struct GNUNET_SCHEDULER_Task *server_v4_task;
 
   /**
    * MHD IPv6 task
    */
-  struct GNUNET_SCHEDULER_Task * server_v6_task;
+  struct GNUNET_SCHEDULER_Task *server_v6_task;
 
   /**
    * Task calling transport service about external address
    */
-  struct GNUNET_SCHEDULER_Task * notify_ext_task;
+  struct GNUNET_SCHEDULER_Task *notify_ext_task;
 
   /**
    * Notify transport only about external address
@@ -496,12 +496,8 @@ static void
 server_wake_up (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
   s->recv_wakeup_task = NULL;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p: Waking up PUT handle\n",
        s);
@@ -913,12 +909,8 @@ static void
 server_v4_run (void *cls)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->server_v4_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   plugin->server_v4_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
   server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
@@ -935,12 +927,8 @@ static void
 server_v6_run (void *cls)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->server_v6_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   plugin->server_v6_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
   server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
@@ -1869,8 +1857,10 @@ server_access_cb (void *cls,
         GNUNET_assert(s->server_recv->mhd_conn == mhd_connection);
         MHD_suspend_connection (s->server_recv->mhd_conn);
         if (NULL == s->recv_wakeup_task)
-          s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,
-              &server_wake_up, s);
+          s->recv_wakeup_task
+	    = GNUNET_SCHEDULER_add_delayed (delay,
+					    &server_wake_up,
+					    s);
       }
       return MHD_YES;
     }
@@ -2851,18 +2841,12 @@ server_notify_external_hostname (void *cls)
   size_t ext_addr_len;
   unsigned int urlen;
   char *url;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->notify_ext_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  GNUNET_asprintf(&url,
-                  "%s://%s",
-                  plugin->protocol,
-                  plugin->external_hostname);
-
+  GNUNET_asprintf (&url,
+		   "%s://%s",
+		   plugin->protocol,
+		   plugin->external_hostname);
   urlen = strlen (url) + 1;
   ext_addr = GNUNET_malloc (sizeof (struct HttpAddress) + urlen);
   ext_addr->options = htonl (plugin->options);
@@ -2881,13 +2865,23 @@ server_notify_external_hostname (void *cls)
          "Enabling SSL verification for external hostname address `%s'\n",
          plugin->external_hostname);
   plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
-      "https_client", ext_addr, ext_addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE );
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr);
+						    "https_client",
+						    ext_addr,
+						    ext_addr_len,
+						    GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->env->notify_address (plugin->env->cls,
+			       GNUNET_YES,
+			       plugin->ext_addr);
   GNUNET_free (ext_addr);
 #else
   plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
-      "http_client", ext_addr, ext_addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE );
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr);
+						    "http_client",
+						    ext_addr,
+						    ext_addr_len,
+						    GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->env->notify_address (plugin->env->cls,
+			       GNUNET_YES,
+			       plugin->ext_addr);
   GNUNET_free (ext_addr);
 #endif
 }

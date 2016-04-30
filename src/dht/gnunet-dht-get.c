@@ -82,9 +82,14 @@ static unsigned int result_count;
  */
 static int ret;
 
+/**
+ * Task scheduled to handle timeout.
+ */
+static struct GNUNET_SCHEDULER_Task *tt;
+
 
 /**
- * Task run to clean up on timeout.
+ * Task run to clean up on shutdown.
  *
  * @param cls unused
  */
@@ -101,6 +106,24 @@ cleanup_task (void *cls)
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
+  if (NULL != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
+}
+
+
+/**
+ * Task run on timeout. Triggers shutdown.
+ *
+ * @param cls unused
+ */
+static void
+timeout_task (void *cls)
+{
+  tt = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -170,8 +193,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
   if (verbose)
     FPRINTF (stderr, "%s `%s' \n",  _("Issueing DHT GET with key"), GNUNET_h2s_full (&key));
-  GNUNET_SCHEDULER_add_delayed (timeout_request,
-				&cleanup_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (timeout_request,
+				     &timeout_task, NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
                             (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,

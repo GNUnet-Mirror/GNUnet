@@ -224,8 +224,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   do_get ();
 }
 

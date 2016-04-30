@@ -901,9 +901,8 @@ run (void *cls,
   }
   GNUNET_free (fn);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   peers = GNUNET_CONTAINER_multipeermap_create (128,
                                                 GNUNET_YES);
   GNUNET_SERVER_add_handlers (srv, handlers);

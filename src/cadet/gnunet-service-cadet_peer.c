@@ -387,7 +387,6 @@ notify_broken (void *cls,
  * Remove the direct path to the peer.
  *
  * @param peer Peer to remove the direct path from.
- *
  */
 static struct CadetPeerPath *
 pop_direct_path (struct CadetPeer *peer)
@@ -398,7 +397,9 @@ pop_direct_path (struct CadetPeer *peer)
   {
     if (2 >= iter->length)
     {
-      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
+      GNUNET_CONTAINER_DLL_remove (peer->path_head,
+				   peer->path_tail,
+				   iter);
       return iter;
     }
   }
@@ -750,7 +751,8 @@ peer_destroy (struct CadetPeer *peer)
        "destroying peer %s\n",
        GNUNET_i2s (&id));
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, " peer not in peermap!!\n");
@@ -846,12 +848,8 @@ static void
 delayed_search (void *cls)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   peer->search_delayed = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
   GCC_check_connections ();
   GCP_start_search (peer);
   GCC_check_connections ();
@@ -1934,8 +1932,9 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create)
 
 
 /**
- * Retrieve the CadetPeer stucture associated with the peer. Optionally create
- * one and insert it in the appropriate structures if the peer is not known yet.
+ * Retrieve the CadetPeer stucture associated with the
+ * peer. Optionally create one and insert it in the appropriate
+ * structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
  * @param create #GNUNET_YES if a new peer should be created if unknown.
@@ -2223,7 +2222,8 @@ GCP_add_path (struct CadetPeer *peer,
       }
     }
   }
-  GNUNET_CONTAINER_DLL_insert_tail (peer->path_head, peer->path_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (peer->path_head,
+				    peer->path_tail,
                                     path);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  added last\n");
 
@@ -2300,7 +2300,8 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
  * @param path Path to remove. Is always destroyed .
  */
 void
-GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
+GCP_remove_path (struct CadetPeer *peer,
+		 struct CadetPeerPath *path)
 {
   struct CadetPeerPath *iter;
   struct CadetPeerPath *next;
@@ -2309,7 +2310,8 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   GNUNET_assert (myid == path->peers[0]);
   GNUNET_assert (peer->id == path->peers[path->length - 1]);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Removing path %p (%u) from %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Removing path %p (%u) from %s\n",
        path, path->length, GCP_2s (peer));
 
   for (iter = peer->path_head; NULL != iter; iter = next)
@@ -2317,7 +2319,9 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
     next = iter->next;
     if (0 == path_cmp (path, iter))
     {
-      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
+      GNUNET_CONTAINER_DLL_remove (peer->path_head,
+				   peer->path_tail,
+				   iter);
       if (iter != path)
         path_destroy (iter);
     }
@@ -2512,7 +2516,8 @@ GCP_get_tunnel (const struct CadetPeer *peer)
  * @param hello Hello message.
  */
 void
-GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
+GCP_set_hello (struct CadetPeer *peer,
+	       const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_HELLO_Message *old;
   size_t size;

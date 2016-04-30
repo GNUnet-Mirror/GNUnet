@@ -67,21 +67,16 @@ end ()
 static void
 end_badly (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Fail! Stopping peers\n");
   timeout_task = NULL;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   if (NULL != tth)
     GNUNET_TRANSPORT_TESTING_done (tth);
   ret = GNUNET_SYSERR;
 }
+
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -91,12 +86,14 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   connected++;
 }
 
+
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected \n",
               GNUNET_i2s (peer));
 }
+
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,

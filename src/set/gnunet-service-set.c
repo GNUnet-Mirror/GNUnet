@@ -1710,7 +1710,6 @@ handle_client_accept (void *cls,
  * Called to clean up, after a shutdown has been requested.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
 shutdown_task (void *cls)
@@ -1740,7 +1739,6 @@ shutdown_task (void *cls)
  *  - we suggested an operation to our listener,
  *    but did not receive a response in time
  *  - we got the channel from a peer but no #GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
- *  - shutdown (obviously)
  *
  * @param cls channel context
  * @param tc context information (why was this task triggered now)
@@ -1749,13 +1747,9 @@ static void
 incoming_timeout_cb (void *cls)
 {
   struct Operation *incoming = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   incoming->timeout_task = NULL;
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Remote peer's incoming request timed out\n");
   incoming_destroy (incoming);
@@ -1997,8 +1991,7 @@ run (void *cls,
   static const uint32_t cadet_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
 
   configuration = cfg;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   GNUNET_SERVER_disconnect_notify (server,
                                    &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server,

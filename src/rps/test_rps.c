@@ -38,7 +38,7 @@
 /**
  * How many peers do we start?
  */
-uint32_t num_peers;
+static uint32_t num_peers;
 
 /**
  * How long do we run the test?
@@ -256,17 +256,10 @@ static unsigned int num_peers_online;
  */
 static int ok;
 
-
 /**
  * Identifier for the churn task that runs periodically
  */
 static struct GNUNET_SCHEDULER_Task *churn_task;
-
-/**
- * Identifier for the churn task that runs periodically
- */
-static struct GNUNET_SCHEDULER_Task *shutdown_task;
-
 
 /**
  * Called to initialise the given RPSPeer
@@ -362,7 +355,7 @@ static int in_shutdown;
  * Append arguments to file
  */
 static void
-tofile_ (const char *file_name, char *line)
+tofile_ (const char *file_name, const char *line)
 {
   struct GNUNET_DISK_FileHandle *f;
   /* char output_buffer[512]; */
@@ -754,8 +747,7 @@ default_reply_handle (void *cls,
 
   if (0 == evaluate ())
   {
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -1388,7 +1380,7 @@ run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
+  GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 }
 
 

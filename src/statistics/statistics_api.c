@@ -1217,7 +1217,8 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   ai->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
                                                    &run_get_timeout,
                                                    ai);
-  GNUNET_CONTAINER_DLL_insert_tail (handle->action_head, handle->action_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (handle->action_head,
+				    handle->action_tail,
 				    ai);
   schedule_action (handle);
   return ai;

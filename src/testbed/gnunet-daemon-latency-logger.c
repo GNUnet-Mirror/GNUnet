@@ -89,17 +89,12 @@ static struct sqlite3 *db;
 /**
  * Handle to the ATS performance subsystem
  */
-struct GNUNET_ATS_PerformanceHandle *ats;
+static struct GNUNET_ATS_PerformanceHandle *ats;
 
 /**
  * Prepared statement for inserting values into the database table
  */
-struct sqlite3_stmt *stmt_insert;
-
-/**
- * Shutdown task identifier
- */
-struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct sqlite3_stmt *stmt_insert;
 
 
 /**
@@ -136,7 +131,6 @@ free_iterator (void *cls,
 static void
 do_shutdown (void *cls)
 {
-  shutdown_task = NULL;
   GNUNET_ATS_performance_done (ats);
   ats = NULL;
   if (NULL != stmt_insert)
@@ -298,8 +292,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   dbfile = NULL;
   ats = GNUNET_ATS_performance_init (c, &addr_info_cb, NULL);
   map = GNUNET_CONTAINER_multipeermap_create (30, GNUNET_YES);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 

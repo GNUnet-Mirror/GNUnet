@@ -66,7 +66,7 @@ struct GNUNET_PEERINFO_NotifyContext
   /**
    * Tasked used for delayed re-connection attempt.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Include friend only HELLOs in callbacks
@@ -112,7 +112,8 @@ reconnect (void *cls)
   {
     /* ugh */
     nc->task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, nc);
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				      &reconnect, nc);
     return;
   }
   request_notifications (nc);

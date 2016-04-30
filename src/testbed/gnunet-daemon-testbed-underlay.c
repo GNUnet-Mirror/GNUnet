@@ -101,11 +101,6 @@ static struct GNUNET_TRANSPORT_Handle *transport;
  */
 static unsigned int num_hostkeys;
 
-/**
- * Task for shutdown
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
-
 
 /**
  * @ingroup hashmap
@@ -439,12 +434,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_free (wl_entry);
   }
   bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
  close_db:
   GNUNET_break (SQLITE_OK == sqlite3_close (db));
-  return;
 }
 
 

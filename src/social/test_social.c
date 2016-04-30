@@ -267,16 +267,17 @@ end ()
     GNUNET_SCHEDULER_cancel (end_badly_task);
     end_badly_task = NULL;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-				&end_normally, NULL);
+  GNUNET_SCHEDULER_add_now (&end_normally, NULL);
 }
 
 
 static void
 transmit_resume (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission resumed.\n");
   if (NULL != tmit->host_ann)
     GNUNET_SOCIAL_host_announce_resume (tmit->host_ann);
   else
@@ -357,14 +358,14 @@ host_farewell2 (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Nym left the place again.\n");
-  GNUNET_SCHEDULER_add_now (schedule_host_leave, NULL);
+  GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
 
 
 static void
 host_reconnected (void *cls, int result,
-              const struct GNUNET_CRYPTO_EddsaPublicKey *home_pub_key,
-              uint64_t max_message_id)
+		  const struct GNUNET_CRYPTO_EddsaPublicKey *home_pub_key,
+		  uint64_t max_message_id)
 {
   place_pub_key = *home_pub_key;
   GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
@@ -375,7 +376,7 @@ host_reconnected (void *cls, int result,
   is_host_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_guest_reconnected)
   {
-    GNUNET_SCHEDULER_add_now (schedule_guest_leave, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
 
@@ -393,7 +394,7 @@ guest_reconnected (void *cls, int result,
   is_guest_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_host_reconnected)
   {
-    GNUNET_SCHEDULER_add_now (schedule_guest_leave, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
 
@@ -583,8 +584,10 @@ schedule_guest_leave (void *cls)
 
 
 static void
-guest_look_for_result (void *cls, int64_t result_code,
-                      const void *data, uint16_t data_size)
+guest_look_for_result (void *cls,
+		       int64_t result_code,
+		       const void *data,
+		       uint16_t data_size)
 {
   struct ResultClosure *rcls = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1047,7 +1050,7 @@ guest_recv_entry_decision (void *cls,
     break;
 
   case TEST_GUEST_ENTER_BY_NAME:
-    GNUNET_SCHEDULER_add_now (schedule_reconnect, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_reconnect, NULL);
     break;
 
   default:
@@ -1313,7 +1316,8 @@ run (void *cls,
 #endif
 {
   cfg = c;
-  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+						 &end_badly, NULL);
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
                               NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);

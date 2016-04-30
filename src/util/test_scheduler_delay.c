@@ -62,7 +62,8 @@ test_task (void *cls)
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MICROSECONDS, i), &test_task,
+                                (GNUNET_TIME_UNIT_MICROSECONDS, i),
+				&test_task,
                                 NULL);
   i += INCR;
 }
@@ -71,7 +72,9 @@ test_task (void *cls)
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-scheduler-delay", "WARNING", NULL);
+  GNUNET_log_setup ("test-scheduler-delay",
+		    "WARNING",
+		    NULL);
   target = GNUNET_TIME_absolute_get ();
   GNUNET_SCHEDULER_run (&test_task, NULL);
   FPRINTF (stdout,

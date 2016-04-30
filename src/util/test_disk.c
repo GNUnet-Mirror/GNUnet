@@ -28,6 +28,7 @@
 
 #define TESTSTRING "Hello World\0"
 
+
 static int
 testReadWrite ()
 {
@@ -79,6 +80,7 @@ testReadWrite ()
   return 0;
 }
 
+
 static int
 testOpenClose ()
 {
@@ -104,6 +106,7 @@ testOpenClose ()
 
 static int ok;
 
+
 static int
 scan_callback (void *want, const char *filename)
 {
@@ -112,22 +115,46 @@ scan_callback (void *want, const char *filename)
   return GNUNET_OK;
 }
 
+
 static int
 testDirScan ()
 {
   if (GNUNET_OK !=
       GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK !=
       GNUNET_DISK_directory_create ("test" DIR_SEPARATOR_STR "entry_more"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   GNUNET_DISK_directory_scan ("test", &scan_callback,
                               "test" DIR_SEPARATOR_STR "entry");
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (ok < 2)
+  {
+    GNUNET_break (0);
     return 1;
+  }
   return 0;
+}
+
+
+static int
+iter_callback (void *cls,
+	       const char *filename)
+{
+  int *i = cls;
+  
+  (*i)++;
+  return GNUNET_OK;
 }
 
 
@@ -138,15 +165,33 @@ testDirIter ()
 
   i = 0;
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry_many"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry_more"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
+  GNUNET_DISK_directory_scan ("test",
+			      &iter_callback,
+                              &i);
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (i < 3)
+  {
+    GNUNET_break (0);
     return 1;
+  }
   return 0;
 }
 
@@ -183,19 +228,40 @@ static int
 testDirMani ()
 {
   if (GNUNET_OK != GNUNET_DISK_directory_create_for_file ("test/ing"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_NO != GNUNET_DISK_file_test ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_NO != GNUNET_DISK_file_test ("test/ing"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_YES != GNUNET_DISK_directory_test ("test", GNUNET_YES))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
+  {
+    GNUNET_break (0);
     return 1;
+  }
   return 0;
 }
 
@@ -213,9 +279,11 @@ main (int argc, char *argv[])
   failureCount += testCanonicalize ();
   failureCount += testChangeOwner ();
   failureCount += testDirMani ();
-  if (failureCount != 0)
+  if (0 != failureCount)
   {
-    FPRINTF (stderr, "\n%u TESTS FAILED!\n", failureCount);
+    FPRINTF (stderr,
+	     "\n%u TESTS FAILED!\n",
+	     failureCount);
     return -1;
   }
   return 0;

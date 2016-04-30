@@ -127,15 +127,18 @@ address_generator (void *cls, size_t max, void *buf)
   return ret;
 }
 
+
 static void
-process_w_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+process_w_fo (void *cls,
+	      const struct GNUNET_PeerIdentity *peer,
+	      const struct GNUNET_HELLO_Message *hello,
+	      const char *err_msg)
 {
-  if (err_msg != NULL )
+  if (err_msg != NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         _("Error in communication with PEERINFO service\n"));
-    GNUNET_SCHEDULER_add_now (&done, NULL );
+    GNUNET_SCHEDULER_add_now (&done, NULL);
     return;
   }
 
@@ -160,7 +163,7 @@ process_w_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (0 == memcmp (&pid, peer, sizeof(pid)))
     {
       res_cb_w_fo = GNUNET_YES;
-      GNUNET_SCHEDULER_add_now (&done, NULL );
+      GNUNET_SCHEDULER_add_now (&done, NULL);
     }
     return;
   }
@@ -170,11 +173,11 @@ static void
 process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
-  if (err_msg != NULL )
+  if (err_msg != NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         _("Error in communication with PEERINFO service\n"));
-    GNUNET_SCHEDULER_add_now (&done, NULL );
+    GNUNET_SCHEDULER_add_now (&done, NULL);
     return;
   }
 
@@ -204,6 +207,7 @@ process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+
 static void
 add_peer_done (void *cls, const char *emsg)
 {
@@ -215,9 +219,10 @@ add_peer_done (void *cls, const char *emsg)
   {
     GNUNET_break(0);
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL );
+    timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
 }
+
 
 static void
 add_peer ()
@@ -229,23 +234,26 @@ add_peer ()
   memset (&pid, 32, sizeof(pid));
   h2 = GNUNET_HELLO_create (&pid.public_key, &address_generator, &agc,
       GNUNET_YES);
-  GNUNET_PEERINFO_add_peer (h, h2, &add_peer_done, NULL );
+  GNUNET_PEERINFO_add_peer (h, h2, &add_peer_done, NULL);
   GNUNET_free(h2);
 
 }
 
+
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL );
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   mycfg = cfg;
-  pnc_w_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_YES, &process_w_fo, NULL );
-  pnc_wo_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_NO, &process_wo_fo, NULL );
+  pnc_w_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_YES, &process_w_fo, NULL);
+  pnc_wo_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_NO, &process_wo_fo, NULL);
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert(NULL != h);
   add_peer ();
 }
+
 
 int
 main (int argc, char *argv[])
@@ -253,9 +261,10 @@ main (int argc, char *argv[])
   res_cb_w_fo = GNUNET_NO;
   res_cb_wo_fo = GNUNET_NO;
   global_ret = 3;
-  if (0
-      != GNUNET_TESTING_service_run ("test-peerinfo-api-friend-only",
-          "peerinfo", "test_peerinfo_api_data.conf", &run, NULL ))
+  if (0 != GNUNET_TESTING_service_run ("test-peerinfo-api-friend-only",
+				       "peerinfo",
+				       "test_peerinfo_api_data.conf",
+				       &run, NULL))
     return 1;
   return global_ret;
 }

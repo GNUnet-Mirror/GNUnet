@@ -242,6 +242,7 @@ struct RequestHandle
 
 /**
  * Cleanup lookup handle
+ *
  * @param handle Handle to clean up
  */
 static void
@@ -250,6 +251,7 @@ cleanup_handle (struct RequestHandle *handle)
   struct RecordEntry *record_entry;
   struct RecordEntry *record_tmp;
   int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
   if (NULL != handle->resp_object)
@@ -294,6 +296,7 @@ cleanup_handle (struct RequestHandle *handle)
   }
   GNUNET_free (handle);
 }
+
 
 /**
  * Create json representation of a GNSRECORD
@@ -350,9 +353,9 @@ gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
 
 
 /**
- * Task run on shutdown.  Cleans up everything.
+ * Task run on error.  Generates error response and cleans up.
  *
- * @param cls unused
+ * @param cls the request to generate an error response for
  */
 static void
 do_error (void *cls)
@@ -362,6 +365,21 @@ do_error (void *cls)
 
   handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
+}
+
+
+/**
+ * Task run on timeout.
+ *
+ * @param cls the request to time out
+ */
+static void
+do_timeout (void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->timeout_task = NULL;
+  do_error (handle);
 }
 
 
@@ -1138,10 +1156,8 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
                               &testservice_id_task,
                               handle);
   handle->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                                       &do_error,
+                                                       &do_timeout,
                                                        handle);
-
-
 }
 
 /**

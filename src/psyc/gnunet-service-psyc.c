@@ -2007,7 +2007,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
 
   if (NULL != chn->tmit_head)
   {
-    GNUNET_SCHEDULER_add_now (schedule_transmit_message, chn);
+    GNUNET_SCHEDULER_add_now (&schedule_transmit_message, chn);
   }
   else if (GNUNET_YES == chn->is_disconnected
            && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
@@ -2645,8 +2645,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

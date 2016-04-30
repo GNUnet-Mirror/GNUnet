@@ -185,13 +185,8 @@ static void
 timer (void *cls)
 {
   static int percentage;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   timer_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
   percentage += 10;
   time_running =
       GNUNET_TIME_relative_add (time_running,
@@ -212,6 +207,7 @@ timer (void *cls)
                                       &timer, NULL);
   }
 }
+
 
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)

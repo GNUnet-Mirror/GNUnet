@@ -65,49 +65,68 @@ struct GNUNET_OS_Process
  */
 static struct GNUNET_OS_Process current_process;
 
+/**
+ * Handle for the #parent_control_handler() Task.
+ */
+static struct GNUNET_SCHEDULER_Task *pch;
+
+
+/**
+ * This handler is called on shutdown to remove the #pch.
+ *
+ * @param cls the `struct GNUNET_DISK_FileHandle` of the control pipe
+ */
+static void
+shutdown_pch (void *cls)
+{
+  struct GNUNET_DISK_FileHandle *control_pipe = cls;
+    
+  GNUNET_SCHEDULER_cancel (pch);
+  pch = NULL;
+  GNUNET_DISK_file_close (control_pipe);
+  control_pipe = NULL;
+}
+
 
 /**
  * This handler is called when there are control data to be read on the pipe
  *
- * @param cls the 'struct GNUNET_DISK_FileHandle' of the control pipe
+ * @param cls the `struct GNUNET_DISK_FileHandle` of the control pipe
  */
 static void
 parent_control_handler (void *cls)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
   char sig;
   char *pipe_fd;
   ssize_t ret;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "`%s' invoked because of %d\n", __FUNCTION__,
-       tc->reason);
-  if (0 != (tc->reason &
-	    (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT)))
-  {
-    GNUNET_DISK_file_close (control_pipe);
-    control_pipe = NULL;
-    return;
-  }
-  ret = GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig));
+  pch = NULL;
+  ret = GNUNET_DISK_file_read (control_pipe,
+			       &sig,
+			       sizeof (sig));
   if (sizeof (sig) != ret)
   {
     if (-1 == ret)
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing control pipe\n");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+		    "GNUNET_DISK_file_read");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Closing control pipe\n");
     GNUNET_DISK_file_close (control_pipe);
     control_pipe = NULL;
     return;
   }
   pipe_fd = getenv (GNUNET_OS_CONTROL_PIPE);
-  GNUNET_assert ( (NULL == pipe_fd) || (strlen (pipe_fd) <= 0) );
+  GNUNET_assert ( (NULL == pipe_fd) ||
+		  (strlen (pipe_fd) <= 0) );
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got control code %d from parent via pipe %s\n", sig, pipe_fd);
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				  control_pipe, &parent_control_handler,
-				  control_pipe);
+       "Got control code %d from parent via pipe %s\n",
+       sig,
+       pipe_fd);
+  pch = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					control_pipe,
+					&parent_control_handler,
+					control_pipe);
   GNUNET_SIGNAL_raise ((int) sig);
 }
 
@@ -115,7 +134,7 @@ parent_control_handler (void *cls)
 /**
  * Task that connects this process to its parent via pipe;
  * essentially, the parent control handler will read signal numbers
- * from the 'GNUNET_OS_CONTROL_PIPE' (as given in an environment
+ * from the #GNUNET_OS_CONTROL_PIPE (as given in an environment
  * variable) and raise those signals.
  *
  * @param cls closure (unused)
@@ -128,6 +147,12 @@ GNUNET_OS_install_parent_control_handler (void *cls)
   struct GNUNET_DISK_FileHandle *control_pipe;
   uint64_t pipe_fd;
 
+  if (NULL != pch)
+  {
+    /* already done, we've been called twice... */
+    GNUNET_break (0);
+    return;
+  }
   env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
   if ( (NULL == env_buf) || (strlen (env_buf) <= 0) )
   {
@@ -141,7 +166,9 @@ GNUNET_OS_install_parent_control_handler (void *cls)
   pipe_fd = strtoull (env_buf, &env_buf_end, 16);
   if ((0 != errno) || (env_buf == env_buf_end))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "strtoull", env_buf);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+		       "strtoull",
+		       env_buf);
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
@@ -153,7 +180,8 @@ GNUNET_OS_install_parent_control_handler (void *cls)
 #endif
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n", env_buf);
+         "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n",
+	 env_buf);
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
@@ -164,14 +192,21 @@ GNUNET_OS_install_parent_control_handler (void *cls)
 #endif
   if (NULL == control_pipe)
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+		       "open",
+		       env_buf);
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding parent control handler pipe `%s' to the scheduler\n", env_buf);
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe,
-                                  &parent_control_handler, control_pipe);
+       "Adding parent control handler pipe `%s' to the scheduler\n",
+       env_buf);
+  pch = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					control_pipe,
+					&parent_control_handler,
+					control_pipe);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_pch,
+				 control_pipe);
   putenv (GNUNET_OS_CONTROL_PIPE "=");
 }
 
@@ -179,8 +214,8 @@ GNUNET_OS_install_parent_control_handler (void *cls)
 /**
  * Get process structure for current process
  *
- * The pointer it returns points to static memory location and must not be
- * deallocated/closed
+ * The pointer it returns points to static memory location and must
+ * not be deallocated/closed.
  *
  * @return pointer to the process sturcutre for this process
  */
@@ -205,7 +240,8 @@ GNUNET_OS_process_current ()
  * @return 0 on success, -1 on error
  */
 int
-GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
+GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc,
+			int sig)
 {
   int ret;
   char csig;
@@ -213,8 +249,13 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   csig = (char) sig;
   if (NULL != proc->control_pipe)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via pipe\n", sig, proc->pid);
-    ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Sending signal %d to pid: %u via pipe\n",
+	 sig,
+	 proc->pid);
+    ret = GNUNET_DISK_file_write (proc->control_pipe,
+				  &csig,
+				  sizeof (csig));
     if (sizeof (csig) == ret)
       return 0;
   }
@@ -237,14 +278,17 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
       if (0 != GetExitCodeProcess (proc->handle, &exitcode))
         must_kill = (exitcode == STILL_ACTIVE) ? GNUNET_YES : GNUNET_NO;
       if (GNUNET_YES == must_kill)
+      {
         if (0 == SafeTerminateProcess (proc->handle, 0, 0))
         {
           DWORD error_code = GetLastError ();
-          if ((error_code != WAIT_TIMEOUT) && (error_code != ERROR_PROCESS_ABORTED))
+          if ( (error_code != WAIT_TIMEOUT) &&
+	       (error_code != ERROR_PROCESS_ABORTED) )
           {
             LOG ((error_code == ERROR_ACCESS_DENIED) ?
-                GNUNET_ERROR_TYPE_INFO : GNUNET_ERROR_TYPE_WARNING,
-                "SafeTermiateProcess failed with code %lu\n", error_code);
+		 GNUNET_ERROR_TYPE_INFO : GNUNET_ERROR_TYPE_WARNING,
+		 "SafeTermiateProcess failed with code %lu\n",
+		 error_code);
             /* The problem here is that a process that is already dying
              * might cause SafeTerminateProcess to fail with
              * ERROR_ACCESS_DENIED, but the process WILL die eventually.
@@ -263,6 +307,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
             }
           }
         }
+      }
     }
     return 0;
 #else
@@ -277,11 +322,15 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     errno = EINVAL;
     return -1;
 #else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via system call\n", sig, proc->pid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Sending signal %d to pid: %u via system call\n",
+	 sig,
+	 proc->pid);
     return PLIBC_KILL (proc->pid, sig);
 #endif
   }
 }
+
 
 /**
  * Get the pid of the process in question
@@ -298,7 +347,8 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process * proc)
 
 
 /**
- * Cleans up process structure contents (OS-dependent) and deallocates it
+ * Cleans up process structure contents (OS-dependent) and deallocates
+ * it.
  *
  * @param proc pointer to process structure
  */
@@ -314,6 +364,7 @@ GNUNET_OS_process_destroy (struct GNUNET_OS_Process *proc)
   GNUNET_free (proc);
 }
 
+
 #if WINDOWS
 #include "gnunet_signal_lib.h"
 
@@ -323,6 +374,7 @@ extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
  * Make seaspider happy.
  */
 #define DWORD_WINAPI DWORD WINAPI
+
 
 /**
  * @brief Waits for a process to terminate and invokes the SIGCHLD handler
@@ -467,7 +519,9 @@ open_dev_null (int target_fd,
   fd = open ("/dev/null", flags);
   if (-1 == fd)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", "/dev/null");
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "open",
+			      "/dev/null");
     return;
   }
   if (fd == target_fd)
@@ -531,23 +585,30 @@ start_process (int pipe_control,
   int fd_stdin_read;
   int fd_stdin_write;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
+  if (GNUNET_SYSERR ==
+      GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
   if (GNUNET_YES == pipe_control)
   {
     struct GNUNET_DISK_PipeHandle *childpipe;
     int dup_childpipe_read_fd = -1;
 
-    childpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
+    childpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO,
+				  GNUNET_YES, GNUNET_NO);
     if (NULL == childpipe)
       return NULL;
-    childpipe_read = GNUNET_DISK_pipe_detach_end (childpipe, GNUNET_DISK_PIPE_END_READ);
-    childpipe_write = GNUNET_DISK_pipe_detach_end (childpipe, GNUNET_DISK_PIPE_END_WRITE);
+    childpipe_read = GNUNET_DISK_pipe_detach_end (childpipe,
+						  GNUNET_DISK_PIPE_END_READ);
+    childpipe_write = GNUNET_DISK_pipe_detach_end (childpipe,
+						   GNUNET_DISK_PIPE_END_WRITE);
     GNUNET_DISK_pipe_close (childpipe);
-    if ((NULL == childpipe_read) || (NULL == childpipe_write) ||
-        (GNUNET_OK != GNUNET_DISK_internal_file_handle_ (childpipe_read,
-        &childpipe_read_fd, sizeof (int))) ||
-        (-1 == (dup_childpipe_read_fd = dup (childpipe_read_fd))))
+    if ( (NULL == childpipe_read) ||
+	 (NULL == childpipe_write) ||
+	 (GNUNET_OK !=
+	  GNUNET_DISK_internal_file_handle_ (childpipe_read,
+					     &childpipe_read_fd,
+					     sizeof (int))) ||
+	 (-1 == (dup_childpipe_read_fd = dup (childpipe_read_fd))))
     {
       if (NULL != childpipe_read)
         GNUNET_DISK_file_close (childpipe_read);
@@ -1762,17 +1823,19 @@ cmd_read (void *cls)
 
   cmd->rtask = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, cmd->r))
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_handle_isset (tc->read_ready,
+					 cmd->r))
   {
-    /* timeout, shutdown, etc. */
+    /* timeout */
     proc = cmd->proc;
     cmd->proc = NULL;
     proc (cmd->proc_cls, NULL);
     return;
   }
-  ret =
-      GNUNET_DISK_file_read (cmd->r, &cmd->buf[cmd->off],
-                             sizeof (cmd->buf) - cmd->off);
+  ret = GNUNET_DISK_file_read (cmd->r,
+			       &cmd->buf[cmd->off],
+			       sizeof (cmd->buf) - cmd->off);
   if (ret <= 0)
   {
     if ((cmd->off > 0) && (cmd->off < sizeof (cmd->buf)))
@@ -1795,9 +1858,11 @@ cmd_read (void *cls)
     cmd->off -= (end + 1 - cmd->buf);
     end = memchr (cmd->buf, '\n', cmd->off);
   }
-  cmd->rtask =
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
-                                      (cmd->timeout), cmd->r, &cmd_read, cmd);
+  cmd->rtask 
+    = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
+                                      (cmd->timeout),
+				      cmd->r,
+				      &cmd_read, cmd);
 }
 
 
@@ -1824,12 +1889,15 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
   struct GNUNET_DISK_PipeHandle *opipe;
   va_list ap;
 
-  opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES,
+			    GNUNET_NO, GNUNET_YES);
   if (NULL == opipe)
     return NULL;
   va_start (ap, binary);
   /* redirect stdout, don't inherit stderr/stdin */
-  eip = GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL, opipe, NULL, binary, ap);
+  eip = GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL,
+				    opipe, NULL, binary,
+				    ap);
   va_end (ap);
   if (NULL == eip)
   {
@@ -1843,8 +1911,12 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
   cmd->opipe = opipe;
   cmd->proc = proc;
   cmd->proc_cls = proc_cls;
-  cmd->r = GNUNET_DISK_pipe_handle (opipe, GNUNET_DISK_PIPE_END_READ);
-  cmd->rtask = GNUNET_SCHEDULER_add_read_file (timeout, cmd->r, &cmd_read, cmd);
+  cmd->r = GNUNET_DISK_pipe_handle (opipe,
+				    GNUNET_DISK_PIPE_END_READ);
+  cmd->rtask = GNUNET_SCHEDULER_add_read_file (timeout,
+					       cmd->r,
+					       &cmd_read,
+					       cmd);
   return cmd;
 }
 

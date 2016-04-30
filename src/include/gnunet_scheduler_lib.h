@@ -65,8 +65,7 @@ enum GNUNET_SCHEDULER_Reason
   GNUNET_SCHEDULER_REASON_STARTUP = 1,
 
   /**
-   * We are shutting down and are running all shutdown-related tasks
-   * (regardless of timeout, etc.).
+   * We are shutting down and are running all shutdown-related tasks.
    */
   GNUNET_SCHEDULER_REASON_SHUTDOWN = 2,
 
@@ -158,7 +157,7 @@ typedef int
  * tasks have completed.  On systems with signals, receiving a SIGTERM
  * (and other similar signals) will cause #GNUNET_SCHEDULER_shutdown
  * to be run after the active task is complete.  As a result, SIGTERM
- * causes all active tasks to be scheduled with reason
+ * causes all shutdown tasks to be scheduled with reason
  * #GNUNET_SCHEDULER_REASON_SHUTDOWN.  (However, tasks added
  * afterwards will execute normally!).  Note that any particular
  * signal will only shut down one scheduler; applications should
@@ -173,11 +172,10 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
 
 
 /**
- * Request the shutdown of the scheduler.  Marks all currently
- * pending tasks as ready because of shutdown.  This will
- * cause all tasks to run (as soon as possible, respecting
- * priorities and prerequisite tasks).  Note that tasks
- * scheduled AFTER this call may still be delayed arbitrarily.
+ * Request the shutdown of a scheduler.  Marks all tasks 
+ * awaiting shutdown as ready. Note that tasks
+ * scheduled with #GNUNET_SCHEDULER_add_shutdown() AFTER this call
+ * will be delayed until the next shutdown signal.
  */
 void
 GNUNET_SCHEDULER_shutdown (void);
@@ -272,6 +270,21 @@ GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_TaskCallback task,
 
 
 /**
+ * Schedule a new task to be run on shutdown, that is when a CTRL-C
+ * signal is received, or when #GNUNET_SCHEDULER_shutdown() is being
+ * invoked.
+ *
+ * @param task main function of the task
+ * @param task_cls closure of @a task
+ * @return unique task identifier for the job
+ *         only valid until @a task is started!
+ */
+struct GNUNET_SCHEDULER_Task *
+GNUNET_SCHEDULER_add_shutdown (GNUNET_SCHEDULER_TaskCallback task,
+			       void *task_cls);
+
+
+/**
  * Schedule a new task to be run as soon as possible with the
  * (transitive) ignore-shutdown flag either explicitly set or
  * explicitly enabled.  This task (and all tasks created from it,
@@ -296,8 +309,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  * will be scheduled for execution once the delay has expired. It
  * will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param delay when should this operation time out?
  * @param task main function of the task
  * @param task_cls closure of @a task
  * @return unique task identifier for the job
@@ -313,8 +325,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
  * Schedule a new task to be run with a specified delay.  The task
  * will be scheduled for execution once the delay has expired.
  *
- * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param delay when should this operation time out? 
  * @param priority priority to use for the task
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -335,8 +346,7 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.  It will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * * @param delay when should this operation time out?
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -358,8 +368,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * either the delay has expired or the socket operation is ready.  It
  * will be run with the DEFAULT priority.
  *
- * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param delay when should this operation time out?
  * @param priority priority to use for the task
  * @param rfd read file-descriptor
  * @param task main function of the task
@@ -382,8 +391,7 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.  It will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * * @param delay when should this operation time out?
  * @param wfd write file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -404,8 +412,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.
  *
- * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param delay when should this operation time out?
  * @param priority priority of the task
  * @param fd file-descriptor
  * @param on_read whether to poll the file-descriptor for readability
@@ -431,8 +438,7 @@ GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready. It will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * * @param delay when should this operation time out?
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -453,8 +459,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready. It will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * * @param delay when should this operation time out?
  * @param wfd write file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -475,8 +480,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.
  *
- * @param delay when should this operation time out? Use
- *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param delay when should this operation time out? 
  * @param priority priority of the task
  * @param fd file-descriptor
  * @param on_read whether to poll the file-descriptor for readability
@@ -508,13 +512,11 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
  * (prerequisite-run)
  * && (delay-ready
  *     || any-rs-ready
- *     || any-ws-ready
- *     || shutdown-active)
+ *     || any-ws-ready)
  * </code>
  *
  * @param prio how important is this task?
- * @param delay how long should we wait? Use #GNUNET_TIME_UNIT_FOREVER_REL for "forever",
- *        which means that the task will only be run after we receive SIGTERM
+ * @param delay how long should we wait? 
  * @param rs set of file descriptors we want to read (can be NULL)
  * @param ws set of file descriptors we want to write (can be NULL)
  * @param task main function of the task

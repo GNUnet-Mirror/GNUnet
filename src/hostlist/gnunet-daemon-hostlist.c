@@ -299,9 +299,8 @@ run (void *cls,
     GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh,
                                   advertising);
 #endif
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&cleaning_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
+				 NULL);
 
   if (NULL == core)
   {

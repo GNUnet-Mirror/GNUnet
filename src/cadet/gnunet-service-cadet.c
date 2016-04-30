@@ -135,8 +135,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   stats = GNUNET_STATISTICS_create ("cadet", c);
 
   /* Scheduled the task to clean up when shutdown is called */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "reading key\n");
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   GNUNET_assert (NULL != my_private_key);

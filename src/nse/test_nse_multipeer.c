@@ -207,7 +207,8 @@ run (void *cls,
 						      &nse_connect_adapter,
 						      &nse_disconnect_adapter,
 						      &nse_peers[i]);
-  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				&shutdown_task, NULL);
 }
 
 

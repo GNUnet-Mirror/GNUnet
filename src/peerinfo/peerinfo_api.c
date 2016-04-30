@@ -786,7 +786,9 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
       GNUNET_SCHEDULER_add_delayed (timeout, &signal_timeout, ic);
   ac->cont = &iterator_start_receive;
   ac->cont_cls = ic;
-  GNUNET_CONTAINER_DLL_insert_tail (h->ac_head, h->ac_tail, ac);
+  GNUNET_CONTAINER_DLL_insert_tail (h->ac_head,
+				    h->ac_tail,
+				    ac);
   GNUNET_CONTAINER_DLL_insert_tail (h->ic_head,
 				    h->ic_tail,
 				    ic);

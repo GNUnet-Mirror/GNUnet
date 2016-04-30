@@ -121,11 +121,15 @@ read_external_ipv4 (void *cls)
 
   eh->task = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
-  if (GNUNET_YES == GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
+  if (GNUNET_YES ==
+      GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
+  {
     ret =
         GNUNET_DISK_file_read (eh->r, &eh->buf[eh->off],
                                sizeof (eh->buf) - eh->off);
-  else {
+  }
+  else
+  {
     eh->ret = GNUNET_NAT_ERROR_IPC_FAILURE;
     ret = -1;                   /* error reading, timeout, etc. */
   }
@@ -541,7 +545,9 @@ process_map_output (void *cls,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (NULL == mini->refresh_task)
       mini->refresh_task =
-        GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, mini);
+        GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+				      &do_refresh,
+				      mini);
     return;
   }
   /*
@@ -617,7 +623,9 @@ GNUNET_NAT_mini_map_start (uint16_t port,
   ret->is_tcp = is_tcp;
   ret->port = port;
   ret->refresh_task =
-    GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, ret);
+    GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+				  &do_refresh,
+				  ret);
   run_upnpc_r (ret);
   return ret;
 }

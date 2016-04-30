@@ -1006,8 +1006,7 @@ testservice_id_task (void *cls, int result)
     ret = -1;
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, (void *) cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, (void *) cfg);
 
   if (NULL == ego_name)
   {

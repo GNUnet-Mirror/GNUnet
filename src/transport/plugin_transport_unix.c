@@ -1229,11 +1229,9 @@ unix_plugin_select_read (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
+  
   plugin->read_task = NULL;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
     unix_plugin_do_read (plugin);
   plugin->read_task =
@@ -1254,11 +1252,9 @@ unix_plugin_select_write (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
+  
   plugin->write_task = NULL;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY))
     unix_plugin_do_write (plugin);
   if (NULL == plugin->msg_head)

@@ -92,10 +92,7 @@ run (void *cls,
   GNUNET_log_setup ("test_consensus_api",
                     "INFO",
                     NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing consensus api\n");
-
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &on_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&on_shutdown, NULL);
 
   GNUNET_CRYPTO_hash (str, strlen (str), &session_id);
   consensus = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id,
@@ -112,10 +109,7 @@ run (void *cls,
 int
 main (int argc, char **argv)
 {
-  int ret;
-
-  ret = GNUNET_TESTING_peer_run ("test_consensus_api",
-                                 "test_consensus.conf",
-                                 &run, NULL);
-  return ret;
+  return GNUNET_TESTING_peer_run ("test_consensus_api",
+				  "test_consensus.conf",
+				  &run, NULL);
 }

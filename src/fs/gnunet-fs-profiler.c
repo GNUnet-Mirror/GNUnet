@@ -105,7 +105,7 @@ process_stats (void *cls,
 
 
 /**
- * Task run on timeout to terminate.  Triggers printing out
+ * Task run on shutdown to terminate.  Triggers printing out
  * all statistics.
  *
  * @param cls NULL
@@ -113,12 +113,30 @@ process_stats (void *cls,
 static void
 terminate_task (void *cls)
 {
-  terminate_taskid = NULL;
+  if (NULL != terminate_taskid)
+  {
+    GNUNET_SCHEDULER_cancel (terminate_taskid);
+    terminate_taskid = NULL;
+  }
   GNUNET_TESTBED_get_statistics (0, NULL,
                                  NULL, NULL,
 				 &process_stats,
 				 &shutdown_task,
 				 NULL);
+}
+
+
+/**
+ * Task run on timeout to terminate.  Triggers printing out
+ * all statistics.
+ *
+ * @param cls NULL
+ */
+static void
+timeout_task (void *cls)
+{
+  terminate_taskid = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -148,11 +166,10 @@ test_master (void *cls,
 
   if (0 != timeout.rel_value_us)
     terminate_taskid = GNUNET_SCHEDULER_add_delayed (timeout,
-						     &terminate_task, NULL);
-  else
-    terminate_taskid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-						     &terminate_task,
+						     &timeout_task,
 						     NULL);
+   GNUNET_SCHEDULER_add_shutdown (&terminate_task,
+				  NULL);
 }
 
 

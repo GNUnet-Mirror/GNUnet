@@ -74,12 +74,12 @@ static struct GNUNET_PEERINFO_NotifyContext *notify;
 /**
  * Our primary task for IPv4.
  */
-static struct GNUNET_SCHEDULER_Task * hostlist_task_v4;
+static struct GNUNET_SCHEDULER_Task *hostlist_task_v4;
 
 /**
  * Our primary task for IPv6.
  */
-static struct GNUNET_SCHEDULER_Task * hostlist_task_v6;
+static struct GNUNET_SCHEDULER_Task *hostlist_task_v6;
 
 /**
  * Our canonical response.
@@ -632,15 +632,11 @@ static void
 run_daemon (void *cls)
 {
   struct MHD_Daemon *daemon_handle = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   if (daemon_handle == daemon_handle_v4)
     hostlist_task_v4 = NULL;
   else
     hostlist_task_v6 = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == daemon_handle_v4)
     hostlist_task_v4 = prepare_daemon (daemon_handle);
@@ -675,7 +671,9 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   wrs = GNUNET_NETWORK_fdset_create ();
   wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
-  GNUNET_assert (MHD_YES == MHD_get_fdset (daemon_handle, &rs, &ws, &es, &max));
+  GNUNET_assert (MHD_YES ==
+		 MHD_get_fdset (daemon_handle,
+				&rs, &ws, &es, &max));
   haveto = MHD_get_timeout (daemon_handle, &timeout);
   if (haveto == MHD_YES)
     tv.rel_value_us = (uint64_t) timeout * 1000LL;
@@ -683,10 +681,9 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
-  ret =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				   tv, wrs, wws,
-                                   &run_daemon, daemon_handle);
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+				     tv, wrs, wws,
+				     &run_daemon, daemon_handle);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   return ret;

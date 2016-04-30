@@ -607,9 +607,7 @@ operation_timeout (void *cls)
     FPRINTF (stdout,
              _("Failed to connect to `%s'\n"),
              GNUNET_i2s_full (&pid));
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
   }
@@ -633,9 +631,7 @@ operation_timeout (void *cls)
     FPRINTF (stdout,
              "%s",
              _("Failed to list connections, timeout occured\n"));
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
   }
@@ -851,18 +847,13 @@ process_validation_string (void *cls,
   GNUNET_free (vc);
   if ((0 == address_resolutions) && (iterate_validation))
   {
-    if (NULL != end)
-    {
-      GNUNET_SCHEDULER_cancel (end);
-      end = NULL;
-    }
     if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
       op_timeout = NULL;
     }
     ret = 0;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -937,9 +928,7 @@ process_validation_cb (void *cls,
       return;
     }
     vic = NULL;
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   resolve_validation_address (address,
@@ -1364,19 +1353,13 @@ process_peer_string (void *cls,
   GNUNET_free (rc);
   if ((0 == address_resolutions) && (iterate_connections))
   {
-    if (NULL != end)
-    {
-      GNUNET_SCHEDULER_cancel (end);
-      end = NULL;
-    }
     if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
       op_timeout = NULL;
     }
     ret = 0;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task,
-				    NULL);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -1950,10 +1933,9 @@ testservice_task (void *cls,
     GNUNET_break(0);
     return;
   }
-
-  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &shutdown_task,
-                                      NULL);
+  
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

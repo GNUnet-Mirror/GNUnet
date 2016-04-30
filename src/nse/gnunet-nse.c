@@ -143,8 +143,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                      GNUNET_TIME_UNIT_SECONDS,
                                      nse_test_result,
                                      NULL);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+						 NULL);
 }
 
 

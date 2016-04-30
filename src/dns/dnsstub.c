@@ -476,7 +476,7 @@ read_response (void *cls)
   tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
-    /* timeout or shutdown */
+    /* timeout */
     cleanup_rs (rs);
     return;
   }

@@ -3149,7 +3149,6 @@ dummy_task (void *cls)
  * Function scheduled as very last function, cleans up after us
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
 cleanup (void *cls)
@@ -3548,9 +3547,8 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("`%s' must be installed SUID, EXIT will not work\n"),
 		  "gnunet-helper-exit");
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &dummy_task,
-                                    NULL);
+      GNUNET_SCHEDULER_add_shutdown (&dummy_task,
+				     NULL);
       global_ret = 1;
       return;
     }
@@ -3639,9 +3637,8 @@ run (void *cls,
     app_idx++;
   }
   GNUNET_free_non_null (dns_exit);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup,
-                                cls);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup,
+				 NULL);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_CONNECTIONS",

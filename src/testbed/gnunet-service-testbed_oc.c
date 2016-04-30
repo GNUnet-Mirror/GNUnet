@@ -879,13 +879,9 @@ send_hello (void *cls)
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   char *other_peer_str;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   occ->send_hello_task = NULL;
   GNUNET_assert (NULL != occ->timeout_task);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_assert (NULL != occ->hello);
   if (OCC_TYPE_LOCAL != occ->type)
   {

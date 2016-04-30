@@ -25,7 +25,7 @@
 #include "gnunet_util_lib.h"
 
 
-struct GNUNET_DISK_PipeHandle *p;
+static struct GNUNET_DISK_PipeHandle *p;
 
 static const struct GNUNET_DISK_FileHandle *fds[2];
 
@@ -80,7 +80,6 @@ taskLast (void *cls)
 {
   int *ok = cls;
 
-  /* t4 should be ready (albeit with lower priority) */
   GNUNET_assert (8 == *ok);
   (*ok) = 0;
 }
@@ -98,8 +97,8 @@ taskRd (void *cls)
   GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, fds[0]));
   GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
   (*ok) = 8;
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE, &taskLast,
-                                      cls);
+  GNUNET_SCHEDULER_add_shutdown (&taskLast,
+				 cls);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -115,10 +114,14 @@ task4 (void *cls)
   GNUNET_assert (NULL != p);
   fds[0] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_READ);
   fds[1] = GNUNET_DISK_pipe_handle (p, GNUNET_DISK_PIPE_END_WRITE);
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fds[0], &taskRd,
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				  fds[0],
+				  &taskRd,
                                   cls);
-  GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, fds[1],
-                                   &taskWrt, cls);
+  GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				   fds[1],
+                                   &taskWrt,
+				   cls);
 }
 
 
@@ -130,9 +133,12 @@ task1 (void *cls)
   GNUNET_assert (1 == *ok);
   (*ok) = 2;
   GNUNET_SCHEDULER_add_now (&task3, cls);
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI, &task2,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,
+				      &task2,
                                       cls);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &task4, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				&task4,
+				cls);
 }
 
 
@@ -158,7 +164,7 @@ taskShutdown (void *cls)
 
   GNUNET_assert (1 == *ok);
   *ok = 8;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
+  GNUNET_SCHEDULER_add_shutdown (&taskLast, cls);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -186,8 +192,9 @@ taskSig (void *cls)
 
   GNUNET_assert (1 == *ok);
   *ok = 8;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
-  GNUNET_break (0 == PLIBC_KILL (getpid (), GNUNET_TERM_SIG));
+  GNUNET_SCHEDULER_add_shutdown (&taskLast, cls);
+  GNUNET_break (0 == PLIBC_KILL (getpid (),
+				 GNUNET_TERM_SIG));
 }
 
 
@@ -214,8 +221,7 @@ taskCancel (void *cls)
 
   GNUNET_assert (1 == *ok);
   *ok = 0;
-  GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_add_now
-                           (&taskNeverRun, NULL));
+  GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_add_now (&taskNeverRun, NULL));
 }
 
 

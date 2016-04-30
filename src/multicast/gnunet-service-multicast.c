@@ -1837,10 +1837,10 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, server_handlers);
-  GNUNET_SERVER_disconnect_notify (server, &client_notify_disconnect, NULL);
-
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SERVER_disconnect_notify (server,
+				   &client_notify_disconnect, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 
@@ -1852,7 +1852,8 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param cfg configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *srv,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *srv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;

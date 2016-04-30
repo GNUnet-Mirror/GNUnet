@@ -72,22 +72,22 @@ static uint32_t listen_port;
 /**
  * Request echo service
  */
-int echo;
+static int echo;
 
 /**
  * Request a debug dump
  */
-int dump;
+static int dump;
 
 /**
  * Time of last echo request.
  */
-struct GNUNET_TIME_Absolute echo_time;
+static struct GNUNET_TIME_Absolute echo_time;
 
 /**
  * Task for next echo request.
  */
-struct GNUNET_SCHEDULER_Task * echo_task;
+static struct GNUNET_SCHEDULER_Task *echo_task;
 
 /**
  * Peer to connect to.
@@ -102,8 +102,7 @@ static uint32_t target_port;
 /**
  * Data pending in netcat mode.
  */
-size_t data_size;
-
+static size_t data_size;
 
 /**
  * Cadet handle.
@@ -123,8 +122,17 @@ static struct GNUNET_CADET_TransmitHandle *th;
 /**
  * Shutdown task handle.
  */
-struct GNUNET_SCHEDULER_Task * sd;
+static struct GNUNET_SCHEDULER_Task *sd;
 
+/**
+ * Task for reading from stdin.
+ */
+static struct GNUNET_SCHEDULER_Task *rd_task;
+
+/**
+ * Task for main job.
+ */
+static struct GNUNET_SCHEDULER_Task *job;
 
 
 static void
@@ -195,7 +203,8 @@ conn_2s (uint16_t status)
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Shutdown\n");
   if (NULL != th)
   {
     GNUNET_CADET_notify_transmit_ready_cancel (th);
@@ -209,7 +218,22 @@ shutdown_task (void *cls)
   if (NULL != mh)
   {
     GNUNET_CADET_disconnect (mh);
-        mh = NULL;
+    mh = NULL;
+  }
+  if (NULL != rd_task)
+  {
+    GNUNET_SCHEDULER_cancel (rd_task);
+    rd_task = NULL;
+  }
+  if (NULL != echo_task)
+  {
+    GNUNET_SCHEDULER_cancel (echo_task);
+    echo_task = NULL;
+  }
+  if (NULL != job)
+  {
+    GNUNET_SCHEDULER_cancel (job);
+    job = NULL;
   }
 }
 
@@ -227,7 +251,7 @@ shutdown_task (void *cls)
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-size_t
+static size_t
 data_ready (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg;
@@ -271,13 +295,6 @@ static void
 read_stdio (void *cls)
 {
   static char buf[60000];
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    return;
-  }
 
   data_size = read (0, buf, 60000);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stdio read %u bytes\n", data_size);
@@ -305,10 +322,10 @@ listen_stdio (void)
 
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set_native (rs, 0);
-  GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                               GNUNET_TIME_UNIT_FOREVER_REL,
-                               rs, NULL,
-                               &read_stdio, NULL);
+  rd_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 rs, NULL,
+					 &read_stdio, NULL);
   GNUNET_NETWORK_fdset_destroy (rs);
 }
 
@@ -408,12 +425,8 @@ channel_incoming (void *cls,
 static void
 send_echo (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) || NULL == ch)
+  if (NULL == ch)
     return;
-
   GNUNET_assert (NULL == th);
   th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
@@ -432,7 +445,8 @@ request_dump (void *cls)
 {
   GNUNET_CADET_request_dump (mh);
   GNUNET_SCHEDULER_cancel (sd);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				&shutdown_task, NULL);
 }
 
 
@@ -466,7 +480,7 @@ create_channel (void *cls)
   if (GNUNET_NO == echo)
     listen_stdio ();
   else
-    GNUNET_SCHEDULER_add_now (send_echo, NULL);
+    echo_task = GNUNET_SCHEDULER_add_now (&send_echo, NULL);
 }
 
 
@@ -561,8 +575,11 @@ data_callback (void *cls,
  *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
  */
 static void
-peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                int tunnel, unsigned int n_paths, unsigned int best_path)
+peers_callback (void *cls,
+		const struct GNUNET_PeerIdentity *peer,
+                int tunnel,
+		unsigned int n_paths,
+		unsigned int best_path)
 {
   if (NULL == peer)
   {
@@ -589,7 +606,7 @@ peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  *              Each path starts with the local peer.
  *              Each path ends with the destination peer (given in @c peer).
  */
-void
+static void
 peer_callback (void *cls,
                const struct GNUNET_PeerIdentity *peer,
                int tunnel,
@@ -629,7 +646,7 @@ peer_callback (void *cls,
  * @param estate Encryption state.
  * @param cstate Connectivity state.
  */
-void
+static void
 tunnels_callback (void *cls,
                   const struct GNUNET_PeerIdentity *peer,
                   unsigned int channels,
@@ -665,7 +682,7 @@ tunnels_callback (void *cls,
  * @param estate Encryption status.
  * @param cstate Connectivity status.
  */
-void
+static void
 tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
                  unsigned int n_channels,
@@ -691,7 +708,7 @@ tunnel_callback (void *cls,
   }
   if (GNUNET_YES != monitor_mode)
   {
-    GNUNET_SCHEDULER_shutdown();
+    GNUNET_SCHEDULER_shutdown ();
   }
   return;
 }
@@ -705,14 +722,7 @@ tunnel_callback (void *cls,
 static void
 get_peers (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
-    return;
-  }
+  job = NULL;
   GNUNET_CADET_get_peers (mh, &peers_callback, NULL);
 }
 
@@ -727,6 +737,7 @@ show_peer (void *cls)
 {
   struct GNUNET_PeerIdentity pid;
 
+  job = NULL;
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
                                                   strlen (peer_id),
@@ -741,6 +752,7 @@ show_peer (void *cls)
   GNUNET_CADET_get_peer (mh, &pid, peer_callback, NULL);
 }
 
+
 /**
  * Call CADET's meta API, get all tunnels known to a peer.
  *
@@ -749,14 +761,7 @@ show_peer (void *cls)
 static void
 get_tunnels (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
-    return;
-  }
+  job = NULL;
   GNUNET_CADET_get_tunnels (mh, &tunnels_callback, NULL);
 }
 
@@ -779,7 +784,7 @@ show_tunnel (void *cls)
     fprintf (stderr,
              _("Invalid tunnel owner `%s'\n"),
              tunnel_id);
-    GNUNET_SCHEDULER_shutdown();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_CADET_get_tunnel (mh, &pid, tunnel_callback, NULL);
@@ -794,7 +799,8 @@ show_tunnel (void *cls)
 static void
 show_channel (void *cls)
 {
-
+  job = NULL;
+  GNUNET_break (0);
 }
 
 
@@ -806,7 +812,8 @@ show_channel (void *cls)
 static void
 show_connection (void *cls)
 {
-
+  job = NULL;
+  GNUNET_break (0);
 }
 
 
@@ -819,7 +826,9 @@ show_connection (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_CADET_InboundChannelNotificationHandler *newch = NULL;
@@ -871,32 +880,32 @@ run (void *cls, char *const *args, const char *cfgfile,
   else if (NULL != peer_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show peer\n");
-    GNUNET_SCHEDULER_add_now (&show_peer, NULL);
+    job = GNUNET_SCHEDULER_add_now (&show_peer, NULL);
   }
   else if (NULL != tunnel_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show tunnel\n");
-    GNUNET_SCHEDULER_add_now (&show_tunnel, NULL);
+    job = GNUNET_SCHEDULER_add_now (&show_tunnel, NULL);
   }
   else if (NULL != channel_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show channel\n");
-    GNUNET_SCHEDULER_add_now (&show_channel, NULL);
+    job = GNUNET_SCHEDULER_add_now (&show_channel, NULL);
   }
   else if (NULL != conn_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show connection\n");
-    GNUNET_SCHEDULER_add_now (&show_connection, NULL);
+    job = GNUNET_SCHEDULER_add_now (&show_connection, NULL);
   }
   else if (GNUNET_YES == request_peers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all peers\n");
-    GNUNET_SCHEDULER_add_now (&get_peers, NULL);
+    job = GNUNET_SCHEDULER_add_now (&get_peers, NULL);
   }
   else if (GNUNET_YES == request_tunnels)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all tunnels\n");
-    GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
+    job = GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
   }
   else
   {
@@ -913,11 +922,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                             ports);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done\n");
   if (NULL == mh)
-    GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
   else
-    sd = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                       shutdown_task, NULL);
-
+    sd = GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

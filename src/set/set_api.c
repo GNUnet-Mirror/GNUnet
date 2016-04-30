@@ -230,7 +230,7 @@ struct GNUNET_SET_ListenHandle
   /**
    * Task for reconnecting when the listener fails.
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * Operation we listen for.
@@ -891,15 +891,7 @@ listen_connect (void *cls)
   struct GNUNET_SET_ListenHandle *lh = cls;
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Listener not reconnecting due to shutdown\n");
-    return;
-  }
   lh->reconnect_task = NULL;
   GNUNET_assert (NULL == lh->client);
   lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);

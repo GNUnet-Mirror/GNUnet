@@ -142,15 +142,13 @@ static void
 stop_source_peer (void *cls)
 {
   struct DownloadContext *dc = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  /* Do not interact with testbed when shutting down */
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
+  /* FIXME: We should not interact with testbed when shutting down */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Stopping source peer\n");
-  op = GNUNET_TESTBED_peer_stop (NULL, daemons[1], &do_download, dc);
+  op = GNUNET_TESTBED_peer_stop (NULL,
+				 daemons[1],
+				 &do_download, dc);
   GNUNET_assert (NULL != op);
 }
 
@@ -176,7 +174,9 @@ do_wait (void *cls,
   dc->uri = GNUNET_FS_uri_dup (uri);
   if (NULL != fn)
     dc->fn = GNUNET_strdup (fn);
-  (void) GNUNET_SCHEDULER_add_delayed (MIGRATION_DELAY, &stop_source_peer, dc);
+  (void) GNUNET_SCHEDULER_add_delayed (MIGRATION_DELAY,
+				       &stop_source_peer,
+				       dc);
 }
 
 
@@ -196,7 +196,8 @@ do_publish (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
+  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO,
+			  FILESIZE, SEED,
                           VERBOSE, &do_wait, NULL);
 }
 

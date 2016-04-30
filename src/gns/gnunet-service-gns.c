@@ -1010,8 +1010,7 @@ run (void *cls,
                                               &monitor_sync_event,
                                               NULL);
   GNUNET_break (NULL != zmon);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 

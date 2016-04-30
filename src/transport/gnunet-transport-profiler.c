@@ -146,11 +146,6 @@ static struct GNUNET_TRANSPORT_Blacklist *bl_handle;
 static struct GNUNET_PeerIdentity pid;
 
 /**
- * Task scheduled for cleanup / termination of the process.
- */
-static struct GNUNET_SCHEDULER_Task * end;
-
-/**
  * Selected level of verbosity.
  */
 static int verbosity;
@@ -380,9 +375,7 @@ iteration_done ()
   if (it_count == benchmark_iterations)
   {
     benchmark_running = GNUNET_NO;
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   else
@@ -570,9 +563,8 @@ testservice_task (void *cls, int result)
   ats_sh = GNUNET_ATS_connectivity_suggest (ats,
                                             &pid,
                                             1);
-  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &shutdown_task,
-                                      NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

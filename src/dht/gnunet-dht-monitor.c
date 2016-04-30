@@ -71,6 +71,11 @@ static unsigned int result_count;
  */
 static int ret;
 
+/**
+ * Task scheduled to handle timeout.
+ */
+static struct GNUNET_SCHEDULER_Task *tt;
+
 
 /**
  * Stop monitoring request and start shutdown
@@ -92,7 +97,26 @@ cleanup_task (void *cls)
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
+  if (NULL != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
 }
+
+
+/**
+ * We hit a timeout. Stop monitoring request and start shutdown
+ *
+ * @param cls closure (unused)
+ */
+static void
+timeout_task (void *cls)
+{
+  tt = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
 
 
 /**
@@ -107,7 +131,7 @@ cleanup_task (void *cls)
  * @param desired_replication_level Desired replication level.
  * @param key Key of the requested data.
  */
-void
+static void
 get_callback (void *cls,
               enum GNUNET_DHT_RouteOption options,
               enum GNUNET_BLOCK_Type type,
@@ -139,7 +163,7 @@ get_callback (void *cls,
  * @param data Pointer to the result data.
  * @param size Number of bytes in data.
  */
-void
+static void
 get_resp_callback (void *cls,
                    enum GNUNET_BLOCK_Type type,
                    const struct GNUNET_PeerIdentity *get_path,
@@ -177,7 +201,7 @@ get_resp_callback (void *cls,
  * @param data Pointer to the data carried.
  * @param size Number of bytes in data.
  */
-void
+static void
 put_callback (void *cls,
               enum GNUNET_DHT_RouteOption options,
               enum GNUNET_BLOCK_Type type,
@@ -242,7 +266,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr,
 	     "Monitoring for %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (timeout_request, GNUNET_NO));
-  GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (timeout_request,
+				     &timeout_task,
+				     NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				NULL);
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
                                              block_type,
                                              key,

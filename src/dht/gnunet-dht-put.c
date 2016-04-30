@@ -98,6 +98,7 @@ shutdown_task (void *cls)
   }
 }
 
+
 /**
  * Signature of the main function of a task.
  *
@@ -132,6 +133,7 @@ message_sent_cont (void *cls, int success)
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -141,14 +143,15 @@ message_sent_cont (void *cls, int success)
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
 
   cfg = c;
-
   if ((NULL == query_key) || (NULL == data))
   {
     FPRINTF (stderr, "%s",  _("Must provide KEY and DATA for DHT put!\n"));

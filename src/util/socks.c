@@ -328,7 +328,6 @@ register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
  * @param buf where the callee should write the message
  * @return number of bytes written to @a buf
  */
-
 size_t
 transmit_ready (void *cls,
                 size_t size,
@@ -353,29 +352,19 @@ transmit_ready (void *cls,
    * successful operations, including DNS resolution, do not use this.  */
   if (NULL == buf)
   {
-    const struct GNUNET_SCHEDULER_TaskContext *tc;
-
-    tc = GNUNET_SCHEDULER_get_task_context ();
-    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-      return 0;
-    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) {
-      if (0==ih->step)
-      {
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
-        register_sender (ih);
-      }
-      else
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-             "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
-             ih->step);
-        GNUNET_break (0);
-      }
-      return 0;
+    if (0 == ih->step)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
+      register_sender (ih);
     }
-    /* if (reason == 48) register_sender (ih); */
-    /* GNUNET_break(0); */
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+	   "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
+	   ih->step);
+      GNUNET_break (0);
+    }
     return 0;
   }
 

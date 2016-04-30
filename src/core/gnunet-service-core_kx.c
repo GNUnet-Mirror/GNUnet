@@ -745,9 +745,10 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   {
     /* peer with "higher" identity starts a delayed  KX, if the "lower" peer
      * does not start a KX since he sees no reasons to do so  */
-    kx->retry_set_key_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                           &set_key_retry_task,
-                                                           kx);
+    kx->retry_set_key_task
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				      &set_key_retry_task,
+				      kx);
   }
   return kx;
 }

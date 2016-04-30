@@ -108,9 +108,10 @@ rd_decrypt_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Block was decrypted successfully \n");
-
-	GNUNET_SCHEDULER_add_now (&end, NULL);
+  
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
+
 
 static void
 name_lookup_proc (void *cls,
@@ -131,7 +132,7 @@ name_lookup_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namecache returned no block\n"));
-    if (endbadly_task != NULL)
+    if (NULL != endbadly_task)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;

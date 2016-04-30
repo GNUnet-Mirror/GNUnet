@@ -40,7 +40,7 @@ static struct GNUNET_CRYPTO_EddsaPublicKey pub;
 
 static uint64_t proof;
 
-static struct GNUNET_SCHEDULER_Task * proof_task;
+static struct GNUNET_SCHEDULER_Task *proof_task;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -51,15 +51,21 @@ static char *pwfn;
 
 /**
  * Write our current proof to disk.
+ * 
+ * @param cls closure
  */
 static void
-write_proof ()
+shutdown_task (void *cls)
 {
   if (sizeof (proof) !=
-      GNUNET_DISK_fn_write (pwfn, &proof, sizeof (proof),
+      GNUNET_DISK_fn_write (pwfn,
+			    &proof,
+			    sizeof (proof),
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", proof);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "write",
+			      proof);
 }
 
 
@@ -120,15 +126,10 @@ find_proof (void *cls)
   unsigned int i;
   struct GNUNET_TIME_Absolute timestamp;
   struct GNUNET_TIME_Relative elapsed;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    write_proof ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got Proof of Work %llu\n", proof);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got Proof of Work %llu\n",
+	      proof);
   proof_task = NULL;
   memcpy (&buf[sizeof (uint64_t)], &pub,
           sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
@@ -144,7 +145,7 @@ find_proof (void *cls)
       proof = counter;
       FPRINTF (stdout, "Proof of work found: %llu!\n",
                (unsigned long long) proof);
-      write_proof ();
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
     counter++;
@@ -162,16 +163,16 @@ find_proof (void *cls)
                 (unsigned long long) counter);
     /* remember progress every 100 rounds */
     proof = counter;
-    write_proof ();
+    shutdown_task (NULL);
   }
   else
   {
     proof = counter;
   }
   proof_task =
-  GNUNET_SCHEDULER_add_delayed_with_priority (proof_find_delay,
-                                              GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                              &find_proof, NULL);
+    GNUNET_SCHEDULER_add_delayed_with_priority (proof_find_delay,
+						GNUNET_SCHEDULER_PRIORITY_IDLE,
+						&find_proof, NULL);
 }
 
 
@@ -193,17 +194,18 @@ run (void *cls,
   char *pids;
 
   cfg = config;
-
   /* load proof of work */
   if (NULL == pwfn)
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE",
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+						 "NSE",
                                                  "PROOFFILE",
                                                  &pwfn))
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                 "NSE", "PROOFFILE");
+                                 "NSE",
+				 "PROOFFILE");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -219,19 +221,26 @@ run (void *cls,
   /* load private key */
   if (NULL == pkfn)
   {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER",
-                                                              "PRIVATE_KEY",
-                                                              &pkfn))
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_filename (cfg,
+						 "PEER",
+						 "PRIVATE_KEY",
+						 &pkfn))
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                 "PEER", "PRIVATE_KEY");
+                                 "PEER",
+				 "PRIVATE_KEY");
       return;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Private Key file: %s\n", pkfn);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Private Key file: %s\n",
+	      pkfn);
   if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create_from_file (pkfn)))
   {
-    FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), pkfn);
+    FPRINTF (stderr,
+	     _("Loading hostkey from `%s' failed.\n"),
+	     pkfn);
     GNUNET_free (pkfn);
     return;
   }
@@ -248,22 +257,28 @@ run (void *cls,
   if (0 == nse_work_required)
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (cfg, "NSE", "WORKBITS",
+        GNUNET_CONFIGURATION_get_value_number (cfg,
+					       "NSE",
+					       "WORKBITS",
                                                &nse_work_required))
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "NSE", "WORKBITS");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "NSE",
+				 "WORKBITS");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
     if (nse_work_required >= sizeof (struct GNUNET_HashCode) * 8)
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "NSE", "WORKBITS",
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+				 "NSE",
+				 "WORKBITS",
                                 _("Value is too large.\n"));
       GNUNET_SCHEDULER_shutdown ();
       return;
-    } else if (0 == nse_work_required)
+    }
+    else if (0 == nse_work_required)
     {
-      write_proof ();
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -275,8 +290,12 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delay between tries: %s\n",
               GNUNET_STRINGS_relative_time_to_string (proof_find_delay, 1));
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      &find_proof, NULL);
+  proof_task = 
+    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+					&find_proof,
+					NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 
@@ -307,7 +326,8 @@ main (int argc, char *const *argv)
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==

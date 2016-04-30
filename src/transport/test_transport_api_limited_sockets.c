@@ -198,13 +198,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 sendtask (void *cls)
 {
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
-
   send_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
   th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, TIMEOUT,
                                                &notify_ready, &p1);
 }

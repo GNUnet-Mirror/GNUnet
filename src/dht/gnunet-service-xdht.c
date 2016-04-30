@@ -17,14 +17,12 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file dht/gnunet-service-xdht.c
  * @brief GNUnet DHT service
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-
 #include "platform.h"
 #include "gnunet_block_lib.h"
 #include "gnunet_util_lib.h"
@@ -125,9 +123,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     shutdown_task (NULL);
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

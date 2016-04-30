@@ -226,17 +226,17 @@ struct GNUNET_ATS_Session
   /**
    * Session timeout task
    */
-  struct GNUNET_SCHEDULER_Task * put_disconnect_task;
+  struct GNUNET_SCHEDULER_Task *put_disconnect_task;
 
   /**
    * Session timeout task
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * Task to wake up client receive handle when receiving is allowed again
    */
-  struct GNUNET_SCHEDULER_Task * recv_wakeup_task;
+  struct GNUNET_SCHEDULER_Task *recv_wakeup_task;
 
   /**
    * Absolute time when to receive data again.
@@ -1130,12 +1130,8 @@ static void
 client_wake_up (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   s->recv_wakeup_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p/request %p: Waking up GET handle\n",
        s, s->get.easyhandle);
@@ -1301,13 +1297,8 @@ client_run (void *cls)
   CURLMsg *msg;
   int put_request; /* GNUNET_YES if easy handle is put, GNUNET_NO for get */
   int msgs_left;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->client_perform_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   /* While data are available or timeouts occured */
   do
   {
@@ -2379,8 +2370,10 @@ http_client_plugin_update_inbound_delay (void *cls,
   if (s->recv_wakeup_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,
-        &client_wake_up, s);
+    s->recv_wakeup_task
+      = GNUNET_SCHEDULER_add_delayed (delay,
+				      &client_wake_up,
+				      s);
   }
 }
 

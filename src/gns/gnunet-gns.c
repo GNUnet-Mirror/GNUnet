@@ -100,6 +100,11 @@ static struct GNUNET_IDENTITY_Handle *identity;
  */
 static struct GNUNET_IDENTITY_Operation *id_op;
 
+/**
+ * Task scheduled to handle timeout.
+ */
+static struct GNUNET_SCHEDULER_Task *tt;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -134,6 +139,24 @@ do_shutdown (void *cls)
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
   }
+  if (NULL != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
+}
+
+
+/**
+ * Task run on timeout. Triggers shutdown.
+ *
+ * @param cls unused
+ */
+static void
+do_timeout (void *cls)
+{
+  tt = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -376,7 +399,9 @@ identity_master_cb (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
@@ -390,8 +415,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     _("Failed to connect to GNS\n"));
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (timeout,
-				&do_shutdown, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (timeout,
+				     &do_timeout, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   if (NULL != public_key)
   {
     if (GNUNET_OK !=

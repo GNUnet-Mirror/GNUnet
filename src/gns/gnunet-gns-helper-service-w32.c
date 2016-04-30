@@ -827,8 +827,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
-      NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
 
   identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   if (NULL == identity)

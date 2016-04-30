@@ -204,9 +204,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   switch_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					      &switch_to_speaker,
 					      NULL);
-  st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				     &do_shutdown,
-				     NULL);
+  st = GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				      NULL);
   fprintf (stderr,
 	   _("We will now be recording you for %s. After that time, the recording will be played back to you..."),
 	   GNUNET_STRINGS_relative_time_to_string (TIMEOUT, GNUNET_YES));

@@ -257,9 +257,9 @@ cleanup_handle (struct RequestHandle *handle)
 
 
 /**
- * Task run on shutdown.  Cleans up everything.
+ * Task run on errors.  Reports an error and cleans up everything.
  *
- * @param cls unused
+ * @param cls the `struct RequestHandle`
  */
 static void
 do_error (void *cls)
@@ -273,7 +273,9 @@ do_error (void *cls)
                    &handle->emsg);
 
   resp = GNUNET_REST_create_json_response (json_error);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
+  handle->proc (handle->proc_cls,
+		resp,
+		MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
   GNUNET_free (json_error);
 }

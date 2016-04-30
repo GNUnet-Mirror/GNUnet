@@ -17,6 +17,7 @@ libgnunetcurl_la_SOURCES = \
 libgnunetcurl_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
+  -lcurl \
   $(XLIB)
 
 #check_PROGRAMS = \

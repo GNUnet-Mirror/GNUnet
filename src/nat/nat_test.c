@@ -252,7 +252,9 @@ do_read (void *cls)
   tc = GNUNET_SCHEDULER_get_task_context ();
   na->rtask = NULL;
   tst = na->h;
-  GNUNET_CONTAINER_DLL_remove (tst->na_head, tst->na_tail, na);
+  GNUNET_CONTAINER_DLL_remove (tst->na_head,
+			       tst->na_tail,
+			       na);
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, na->sock)) &&
       (sizeof (data) ==
@@ -284,14 +286,10 @@ do_accept (void *cls)
   struct GNUNET_NAT_Test *tst = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct NatActivity *wl;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tst->ltask = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   tst->ltask =
-      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, tst->lsock,
+      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+				     tst->lsock,
                                      &do_accept, tst);
   s = GNUNET_NETWORK_socket_accept (tst->lsock, NULL, NULL);
   if (NULL == s)
@@ -308,7 +306,9 @@ do_accept (void *cls)
     GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                    wl->sock,
                                    &do_read, wl);
-  GNUNET_CONTAINER_DLL_insert (tst->na_head, tst->na_tail, wl);
+  GNUNET_CONTAINER_DLL_insert (tst->na_head,
+			       tst->na_tail,
+			       wl);
 }
 
 
@@ -474,13 +474,15 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_listen (nh->lsock, 5));
       nh->ltask =
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         nh->lsock, &do_accept, nh);
+                                         nh->lsock,
+					 &do_accept, nh);
     }
     else
     {
       nh->ltask =
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         nh->lsock, &do_udp_read, nh);
+                                         nh->lsock,
+					 &do_udp_read, nh);
     }
     LOG (GNUNET_ERROR_TYPE_INFO,
 	 "NAT test listens on port %u (%s)\n",
@@ -508,7 +510,9 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return nh;
     }
   }
-  nh->ttask = GNUNET_SCHEDULER_add_delayed (timeout, &do_timeout, nh);
+  nh->ttask = GNUNET_SCHEDULER_add_delayed (timeout,
+					    &do_timeout,
+					    nh);
   return nh;
 }
 
@@ -528,13 +532,17 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
        "Stopping NAT test\n");
   while (NULL != (cpos = tst->ca_head))
   {
-    GNUNET_CONTAINER_DLL_remove (tst->ca_head, tst->ca_tail, cpos);
+    GNUNET_CONTAINER_DLL_remove (tst->ca_head,
+				 tst->ca_tail,
+				 cpos);
     GNUNET_CLIENT_disconnect (cpos->client);
     GNUNET_free (cpos);
   }
   while (NULL != (pos = tst->na_head))
   {
-    GNUNET_CONTAINER_DLL_remove (tst->na_head, tst->na_tail, pos);
+    GNUNET_CONTAINER_DLL_remove (tst->na_head,
+				 tst->na_tail,
+				 pos);
     GNUNET_SCHEDULER_cancel (pos->rtask);
     GNUNET_NETWORK_socket_close (pos->sock);
     GNUNET_free (pos);

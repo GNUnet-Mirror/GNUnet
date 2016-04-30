@@ -916,8 +916,8 @@ run (void *cls,
   GNUNET_DISK_directory_scan (ego_directory,
 			      &process_ego_file,
 			      NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

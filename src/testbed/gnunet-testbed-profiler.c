@@ -55,12 +55,7 @@ static char *hosts_file;
 /**
  * Abort task identifier
  */
-static struct GNUNET_SCHEDULER_Task * abort_task;
-
-/**
- * Shutdown task identifier
- */
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
 
 /**
  * Global event mask for all testbed events
@@ -111,7 +106,6 @@ static int noninteractive;
 static void
 do_shutdown (void *cls)
 {
-  shutdown_task = NULL;
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -122,7 +116,6 @@ do_shutdown (void *cls)
     GNUNET_CONFIGURATION_destroy (cfg);
     cfg = NULL;
   }
-  GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -134,12 +127,11 @@ do_shutdown (void *cls)
 static void
 do_abort (void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Aborting\n");
   result = GNUNET_SYSERR;
-  if (NULL != shutdown_task)
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -228,12 +220,11 @@ test_run (void *cls,
   result = GNUNET_OK;
   fprintf (stdout, "\n");
   print_overlay_links_summary ();
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   if (noninteractive)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = NULL;
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  &do_shutdown, NULL);
     return;
   }
 #if (!ENABLE_SUPERMUC)
@@ -243,8 +234,7 @@ test_run (void *cls,
 #endif
   fprintf (stdout, "Shutting down. Please wait\n");
   fflush (stdout);
-  shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-  return;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 

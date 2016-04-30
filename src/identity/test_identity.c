@@ -110,8 +110,7 @@ end ()
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-				&end_normally, NULL);
+  GNUNET_SCHEDULER_add_now (&end_normally, NULL);
 }
 
 

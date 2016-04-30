@@ -533,12 +533,8 @@ sampler_get_rand_peer (void *cls)
   struct GetPeerCls *gpc = cls;
   uint32_t r_index;
   struct RPS_Sampler *sampler;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   gpc->get_peer_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   sampler = gpc->req_handle->sampler;
 
   /**;
@@ -588,12 +584,8 @@ sampler_mod_get_rand_peer (void *cls)
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
   struct RPS_Sampler *sampler;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   gpc->get_peer_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   sampler = gpc->req_handle->sampler;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Single peer was requested\n");
@@ -607,7 +599,8 @@ sampler_mod_get_rand_peer (void *cls)
 
   if (EMPTY == s_elem->is_empty)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sampler_mod element empty, rescheduling.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Sampler_mod element empty, rescheduling.\n");
     GNUNET_assert (NULL == gpc->get_peer_task);
     gpc->get_peer_task =
       GNUNET_SCHEDULER_add_delayed (sampler->max_round_interval,
@@ -708,7 +701,8 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                                  req_handle->gpc_tail,
                                  gpc);
     // maybe add a little delay
-    gpc->get_peer_task = GNUNET_SCHEDULER_add_now (sampler->get_peers, gpc);
+    gpc->get_peer_task = GNUNET_SCHEDULER_add_now (sampler->get_peers,
+						   gpc);
   }
   return req_handle;
 }

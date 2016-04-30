@@ -1,20 +1,22 @@
 /*
      This file is part of GNUnet.
      Copyright (C) 2011 GNUnet e.V.
+
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
      by the Free Software Foundation; either version 3, or (at your
      option) any later version.
+
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      General Public License for more details.
+
      You should have received a copy of the GNU General Public License
      along with GNUnet; see the file COPYING.  If not, write to the
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file cadet/cadet_api.c
  * @brief cadet api: client implementation of new cadet service
@@ -702,12 +704,8 @@ static void
 reconnect_cbk (void *cls)
 {
   struct GNUNET_CADET_Handle *h = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->reconnect_task = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   do_reconnect (h);
 }
 
@@ -718,7 +716,7 @@ reconnect_cbk (void *cls)
  *
  * @param h handle to the cadet
  *
- * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
+ * @return #GNUNET_YES in case of sucess, #GNUNET_NO otherwise (service down...)
  */
 static void
 reconnect (struct GNUNET_CADET_Handle *h)
