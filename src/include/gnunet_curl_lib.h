@@ -170,6 +170,46 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
 void
 GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job);
 
+
+/* ******* GNUnet SCHEDULER integration ************ */
+
+
+/**
+ * Closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
+ */
+struct GNUNET_CURL_RescheduleContext;
+
+
+/**
+ * Initialize reschedule context.
+ *
+ * @param ctx context to manage
+ * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
+ */
+struct GNUNET_CURL_RescheduleContext *
+GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx);
+
+/**
+ * Destroy reschedule context.
+ *
+ * @param rc context to destroy
+ */
+void
+GNUNET_CURL_gnunet_rc_destroy (struct GNUNET_CURL_RescheduleContext *rc);
+
+
+/**
+ * Implementation of the #GNUNET_CURL_RescheduleCallback for GNUnet's
+ * scheduler.  Will run the CURL context using GNUnet's scheduler.
+ * Note that you MUST immediately destroy the reschedule context after
+ * calling #GNUNET_CURL_fini().
+ *
+ * @param cls must point to a `struct GNUNET_CURL_RescheduleContext`
+ */
+void
+GNUNET_CURL_gnunet_scheduler_reschedule (void *cls);
+
+
 #endif
 /** @} */  /* end of group */
 

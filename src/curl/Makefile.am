@@ -13,7 +13,8 @@ libgnunetcurl_la_LDFLAGS = \
   -version-info 0:0:0 \
   -no-undefined
 libgnunetcurl_la_SOURCES = \
-  curl.c
+  curl.c \
+  curl_reschedule.c
 libgnunetcurl_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
