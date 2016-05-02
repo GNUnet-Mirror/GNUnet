@@ -21,11 +21,11 @@
 #include "platform.h"
 #include "gnunet_json_lib.h"
 
-#define GNUNET_JSONAPI_JSONAPI_KEY_DATA "data"
+#define GNUNET_JSONAPI_KEY_DATA "data"
 
-#define GNUNET_JSONAPI_JSONAPI_KEY_ID "id"
+#define GNUNET_JSONAPI_KEY_ID "id"
 
-#define GNUNET_JSONAPI_JSONAPI_KEY_TYPE "type"
+#define GNUNET_JSONAPI_KEY_TYPE "type"
 
 struct GNUNET_JSONAPI_Resource
 {
@@ -93,8 +93,8 @@ GNUNET_JSONAPI_resource_new (const char *type, const char *id)
 
   res->res_obj = json_object ();
 
-  json_object_set_new (res->res_obj, GNUNET_JSONAPI_JSONAPI_KEY_ID, json_string (id));
-  json_object_set_new (res->res_obj, GNUNET_JSONAPI_JSONAPI_KEY_TYPE, json_string (type));
+  json_object_set_new (res->res_obj, GNUNET_JSONAPI_KEY_ID, json_string (id));
+  json_object_set_new (res->res_obj, GNUNET_JSONAPI_KEY_TYPE, json_string (type));
 
   return res;
 }
@@ -172,7 +172,7 @@ int
 GNUNET_JSONAPI_resource_check_id (const struct GNUNET_JSONAPI_Resource *resource,
                                        const char* id)
 {
-  return check_resource_attr_str (resource, GNUNET_JSONAPI_JSONAPI_KEY_ID, id);
+  return check_resource_attr_str (resource, GNUNET_JSONAPI_KEY_ID, id);
 }
 
 /**
@@ -184,7 +184,7 @@ GNUNET_JSONAPI_resource_check_id (const struct GNUNET_JSONAPI_Resource *resource
 json_t*
 GNUNET_JSONAPI_resource_get_id (const struct GNUNET_JSONAPI_Resource *resource)
 {
-  return GNUNET_JSONAPI_resource_read_attr (resource, GNUNET_JSONAPI_JSONAPI_KEY_ID);
+  return GNUNET_JSONAPI_resource_read_attr (resource, GNUNET_JSONAPI_KEY_ID);
 }
 
 /**
@@ -198,7 +198,7 @@ int
 GNUNET_JSONAPI_resource_check_type (const struct GNUNET_JSONAPI_Resource *resource,
                                          const char* type)
 {
-  return check_resource_attr_str (resource, GNUNET_JSONAPI_JSONAPI_KEY_TYPE, type);
+  return check_resource_attr_str (resource, GNUNET_JSONAPI_KEY_TYPE, type);
 }
 
 /**
@@ -285,7 +285,7 @@ GNUNET_JSONAPI_object_delete (struct GNUNET_JSONAPI_Object *resp)
  * @return a new JSON API resource or NULL on error.
  */
 struct GNUNET_JSONAPI_Object*
-GNUNET_JSONAPI_jsonapi_object_new ()
+GNUNET_JSONAPI_object_new ()
 {
   struct GNUNET_JSONAPI_Object *result;
 
@@ -320,7 +320,7 @@ add_json_resource (struct GNUNET_JSONAPI_Object *obj,
   const char *type_json;
 
   struct GNUNET_JSON_Specification dspec[] = {
-    GNUNET_JSON_spec_string (GNUNET_JSONAPI_JSONAPI_KEY_TYPE, &type_json),
+    GNUNET_JSON_spec_string (GNUNET_JSONAPI_KEY_TYPE, &type_json),
     GNUNET_JSON_spec_end()
   };
 
@@ -354,7 +354,7 @@ parse_jsonapiobject (void *cls,
   int i;
 
   struct GNUNET_JSON_Specification jsonapispec[] = {
-    GNUNET_JSON_spec_json (GNUNET_JSONAPI_JSONAPI_KEY_DATA, &data_json),
+    GNUNET_JSON_spec_json (GNUNET_JSONAPI_KEY_DATA, &data_json),
     GNUNET_JSON_spec_end()
   };
   if (GNUNET_OK !=
@@ -448,7 +448,7 @@ GNUNET_JSONAPI_data_serialize (const struct GNUNET_JSONAPI_Object *resp,
   {
     json_array_append (res_arr, res->res_obj);
   }
-  json_object_set (root_json, GNUNET_JSONAPI_JSONAPI_KEY_DATA, res_arr);
+  json_object_set (root_json, GNUNET_JSONAPI_KEY_DATA, res_arr);
   *result = json_dumps (root_json, JSON_INDENT(2));
   json_decref (root_json);
   json_decref (res_arr);

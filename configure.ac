@@ -1558,6 +1558,7 @@ src/identity/identity.conf
 src/include/Makefile
 src/integration-tests/Makefile
 src/json/Makefile
+src/jsonapi/Makefile
 src/hostlist/Makefile
 src/multicast/Makefile
 src/multicast/multicast.conf
