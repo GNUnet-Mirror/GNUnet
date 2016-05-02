@@ -629,7 +629,7 @@ ticket_payload_serialize (struct TokenTicketPayload *payload,
                                                           sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
   GNUNET_asprintf (result, 
-                   "{\"nonce\": \""SCNu64"\",\"identity\": \"%s\",\"label\": \"%s\"}",
+                   "{\"nonce\": \"%"SCNu64"\",\"identity\": \"%s\",\"label\": \"%s\"}",
                    payload->nonce, identity_key_str, payload->label);
   GNUNET_free (identity_key_str);
 

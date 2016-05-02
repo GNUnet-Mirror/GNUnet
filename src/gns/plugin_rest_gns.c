@@ -32,6 +32,7 @@
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
 #include <gnunet_rest_lib.h>
+#include <gnunet_jsonapi_lib.h>
 #include <jansson.h>
 
 #define GNUNET_REST_API_NS_GNS "/gns"
@@ -284,16 +285,16 @@ process_lookup_result (void *cls, uint32_t rd_count,
 {
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp;
-  struct JsonApiObject *json_object;
-  struct JsonApiResource *json_resource;
+  struct GNUNET_JSONAPI_Object *json_object;
+  struct GNUNET_JSONAPI_Resource *json_resource;
   uint32_t i;
   char *result;
   json_t *result_array;
   json_t *record_obj;
 
   result_array = json_array();
-  json_object = GNUNET_REST_jsonapi_object_new ();
-  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_GNS_TYPEINFO, handle->name);
+  json_object = GNUNET_JSONAPI_object_new ();
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_GNS_TYPEINFO, handle->name);
   handle->lookup_request = NULL;
   for (i=0; i<rd_count; i++)
   {
@@ -304,14 +305,14 @@ process_lookup_result (void *cls, uint32_t rd_count,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
-  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_GNS_RECORD,
                                          result_array);
-  GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
-  GNUNET_REST_jsonapi_data_serialize (json_object, &result);
+  GNUNET_JSONAPI_object_resource_add (json_object, json_resource);
+  GNUNET_JSONAPI_data_serialize (json_object, &result);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   json_decref (result_array);
-  GNUNET_REST_jsonapi_object_delete (json_object);
+  GNUNET_JSONAPI_object_delete (json_object);
   resp = GNUNET_REST_create_json_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);

@@ -16,6 +16,7 @@ if HAVE_EXPERIMENTAL
   rps \
   $(CONSENSUS) \
   $(SECRETSHARING)
+
 endif
 
 if HAVE_REST
@@ -51,6 +52,9 @@ endif
 
 if HAVE_REST
  REST_DIR = rest
+if HAVE_JSON
+ JSONAPI_DIR = jsonapi
+endif
 endif
 
 if TALER_ONLY
@@ -63,6 +67,7 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   $(JSON_DIR) \
+	$(JSONAPI_DIR) \
   $(REST_DIR) \
   hello \
   tun \
