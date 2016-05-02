@@ -159,6 +159,16 @@ struct GNUNET_CURL_Context
    */
   struct curl_slist *json_header;
 
+  /**
+   * Function we need to call whenever the event loop's
+   * socket set changed.
+   */
+  GNUNET_CURL_RescheduleCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
 };
 
 
@@ -166,10 +176,13 @@ struct GNUNET_CURL_Context
  * Initialise this library.  This function should be called before using any of
  * the following functions.
  *
+ * @param cb function to call when rescheduling is required
+ * @param cb_cls closure for @a cb
  * @return library context
  */
 struct GNUNET_CURL_Context *
-GNUNET_CURL_init ()
+GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb,
+                  void *cb_cls)
 {
   struct GNUNET_CURL_Context *ctx;
   CURLM *multi;
@@ -194,6 +207,8 @@ GNUNET_CURL_init ()
     return NULL;
   }
   ctx = GNUNET_new (struct GNUNET_CURL_Context);
+  ctx->cb = cb;
+  ctx->cb_cls = cb_cls;
   ctx->multi = multi;
   ctx->share = share;
   GNUNET_assert (NULL != (ctx->json_header =
@@ -316,6 +331,7 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
   GNUNET_CONTAINER_DLL_insert (ctx->jobs_head,
                                ctx->jobs_tail,
                                job);
+  ctx->cb (ctx->cb_cls);
   return job;
 }
 

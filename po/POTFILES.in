@@ -429,7 +429,6 @@ src/util/crypto_random.c
 src/util/crypto_rsa.c
 src/util/crypto_symmetric.c
 src/util/disk.c
-src/util/disk_iterator.c
 src/util/getopt.c
 src/util/getopt_helpers.c
 src/util/gnunet-config.c

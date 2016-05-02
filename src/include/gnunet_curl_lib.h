@@ -38,13 +38,28 @@
 
 
 /**
+ * Function called by the context to ask for the event loop to be
+ * rescheduled, that is the application should call
+ * #GNUNET_CURL_get_select_info() as the set of sockets we care about
+ * just changed.
+ *
+ * @param cls closure
+ */
+typedef void
+(*GNUNET_CURL_RescheduleCallback)(void *cls);
+
+
+/**
  * Initialise this library.  This function should be called before using any of
  * the following functions.
  *
+ * @param cb function to call when rescheduling is required
+ * @param cb_cls closure for @a cb
  * @return library context
  */
 struct GNUNET_CURL_Context *
-GNUNET_CURL_init (void);
+GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb,
+                  void *cb_cls);
 
 
 /**
