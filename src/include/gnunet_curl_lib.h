@@ -64,9 +64,7 @@ GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb,
 
 /**
  * Obtain the information for a select() call to wait until
- * #GNUNET_CURL_perform() is ready again.  Note that calling
- * any other TALER_EXCHANGE-API may also imply that the library
- * is again ready for #GNUNET_CURL_perform().
+ * #GNUNET_CURL_perform() is ready again.
  *
  * Basically, a client should use this API to prepare for select(),
  * then block on select(), then call #GNUNET_CURL_perform() and then
@@ -100,7 +98,7 @@ GNUNET_CURL_get_select_info (struct GNUNET_CURL_Context *ctx,
 
 
 /**
- * Run the main event loop for the Taler interaction.
+ * Run the main event loop for the CURL interaction.
  *
  * @param ctx the library context
  */
