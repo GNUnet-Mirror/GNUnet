@@ -204,7 +204,8 @@ GNUNET_CURL_gnunet_rc_destroy (struct GNUNET_CURL_RescheduleContext *rc);
  * Note that you MUST immediately destroy the reschedule context after
  * calling #GNUNET_CURL_fini().
  *
- * @param cls must point to a `struct GNUNET_CURL_RescheduleContext`
+ * @param cls must point to a `struct GNUNET_CURL_RescheduleContext *`
+ *           (pointer to a pointer!)
  */
 void
 GNUNET_CURL_gnunet_scheduler_reschedule (void *cls);

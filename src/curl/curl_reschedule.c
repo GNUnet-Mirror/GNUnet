@@ -75,7 +75,7 @@ GNUNET_CURL_gnunet_rc_destroy (struct GNUNET_CURL_RescheduleContext *rc)
 /**
  * Task that runs the context's event loop with the GNUnet scheduler.
  *
- * @param cls the `struct GNUNET_CURL_RescheduleContext`
+ * @param cls a `struct GNUNET_CURL_RescheduleContext *`
  */
 static void
 context_task (void *cls)
@@ -133,12 +133,13 @@ context_task (void *cls)
  * Note that you MUST immediately destroy the reschedule context after
  * calling #GNUNET_CURL_fini().
  *
- * @param cls must point to a `struct GNUNET_CURL_RescheduleContext`
+ * @param cls must point to a `struct GNUNET_CURL_RescheduleContext *`
+ *           (pointer to a pointer!)
  */
 void
 GNUNET_CURL_gnunet_scheduler_reschedule (void *cls)
 {
-  struct GNUNET_CURL_RescheduleContext *rc = cls;
+  struct GNUNET_CURL_RescheduleContext *rc = *(void**) cls;
 
   if (NULL != rc->task)
     GNUNET_SCHEDULER_cancel (rc->task);
