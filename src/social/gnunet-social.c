@@ -30,6 +30,9 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_social_service.h"
 
+/** shell return code */
+static int ret = 0;
+
 /* operations corresponding to API calls */
 
 /** --host-enter */
@@ -56,6 +59,8 @@ static char *op_history_replay;
 /** --history-replay-latest */
 static char *op_history_replay_latest;
 
+// FIXME: look-at and look-for
+
 /* options */
 
 /** --place */
@@ -68,7 +73,7 @@ static int flag_listen;
 static char *method;
 
 /** --data */
-static char *data;
+static char *data;	// should come from stdin instead, FIXME
 
 /** --prefix */
 static char *prefix;
@@ -95,6 +100,56 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  if (op_host_enter) {
+     FPRINTF (stderr,
+               _("FIXME -C\n"));
+     if (flag_listen) {
+	 FPRINTF (stderr,
+               _("Yes, yes!\n"));
+     }
+     return;
+  }
+  if (NULL == place) {
+     FPRINTF (stderr,
+               _("You did not provide me with a place to talk to.\n"));
+     ret = 1;
+     return;
+  }
+  if (op_guest_enter) {
+     FPRINTF (stderr,
+               _("FIXME -E\n"));
+     if (flag_listen) {
+	 FPRINTF (stderr,
+               _("Yes, yes!\n"));
+     }
+     return;
+  }
+  if (flag_listen) {
+     FPRINTF (stderr,
+               _("The --listen flag is not defined for this operation.\n"));
+     ret = 1;
+     return;
+  }
+  if (op_host_leave) {
+     FPRINTF (stderr,
+               _("FIXME HARDER -D\n"));
+     return;
+  }
+  if (op_guest_leave) {
+     FPRINTF (stderr,
+               _("FIXME HARDER -L\n"));
+     return;
+  }
+  if (op_host_announce) {
+     FPRINTF (stderr,
+               _("FIXME -P\n"));
+     return;
+  }
+  if (op_guest_talk) {
+     FPRINTF (stderr,
+               _("FIXME -T\n"));
+     return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TODO\n");
 }
 
@@ -116,8 +171,8 @@ main (int argc, char *const *argv)
       GNUNET_YES, &GNUNET_GETOPT_set_string, &place},
 
      {'l', "listen", NULL,
-     gettext_noop ("listen for incoming messages"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &flag_listen},
+      gettext_noop ("listen for incoming messages"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &flag_listen},
 
      {'m', "method", "METHOD_NAME",
       gettext_noop ("method name to transmit"),
@@ -132,28 +187,48 @@ main (int argc, char *const *argv)
       GNUNET_YES, &GNUNET_GETOPT_set_string, &prefix},
 
      {'s', "start", NULL,
-     gettext_noop ("start message ID for history replay"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &start},
+      gettext_noop ("start message ID for history replay"),
+      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &start},
 
      {'e', "end", NULL,
-     gettext_noop ("end message ID for history replay"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &end},
+      gettext_noop ("end message ID for history replay"),
+      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &end},
 
      {'n', "limit", NULL,
-     gettext_noop ("number of messages to replay from history"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &limit},
+      gettext_noop ("number of messages to replay from history"),
+      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &limit},
 
      {'C', "host-enter", NULL,
-     gettext_noop ("create a place for nyms to join"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter},
+      gettext_noop ("create a place for nyms to join"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter},
 
-/** --host-leave */
-/** --host-announce */
-/** --guest-enter */
-/** --guest-leave */
-/** --guest-talk */
-/** --history-replay */
-/** --history-replay-latest */
+     {'D', "host-leave", NULL,
+      gettext_noop ("destroy a place we were hosting"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_leave},
+
+     {'P', "host-announce", NULL,
+      gettext_noop ("publish something to a place we are hosting"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_announce},
+
+     {'E', "guest-enter", NULL,
+      gettext_noop ("join somebody else's place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_enter},
+
+     {'L', "guest-leave", NULL,
+      gettext_noop ("leave somebody else's place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_leave},
+
+     {'T', "guest-talk", NULL,
+      gettext_noop ("submit something to somebody's place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_talk},
+
+     {'R', "history-replay", NULL,
+      gettext_noop ("FIXME"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_history_replay},
+
+     {'H', "history-replay-latest", NULL,
+      gettext_noop ("FIXME"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_history_replay_latest},
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -185,7 +260,7 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
 
   if (GNUNET_OK == res)
-    return 0;
+    return ret;
   else
     return 1;
 }
