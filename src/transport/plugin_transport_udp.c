@@ -3139,7 +3139,7 @@ udp_select_read (struct Plugin *plugin,
   if (size != ntohs (msg->size))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "UDP malformed message header from %s\n",
+         "UDP malformed message (size %u) header from %s\n",
          (unsigned int) size,
          GNUNET_a2s (sa,
                      fromlen));
