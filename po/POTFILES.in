@@ -75,6 +75,7 @@ src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
 src/curl/curl.c
+src/curl/curl_reschedule.c
 src/datacache/datacache.c
 src/datacache/plugin_datacache_heap.c
 src/datacache/plugin_datacache_postgres.c
@@ -212,6 +213,7 @@ src/identity-provider/gnunet-service-identity-provider.c
 src/identity-provider/identity_provider_api.c
 src/identity-provider/identity_token.c
 src/identity-provider/plugin_rest_identity_provider.c
+src/jsonapi/jsonapi.c
 src/json/json.c
 src/json/json_generator.c
 src/json/json_helper.c

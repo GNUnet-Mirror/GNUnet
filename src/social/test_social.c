@@ -568,7 +568,7 @@ guest_leave()
 
   struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
   GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
-                       "_message", DATA2ARG ("Leaving."));
+                       "_notice_place_leave", DATA2ARG ("Leaving."));
   GNUNET_SOCIAL_guest_leave (gst, env, &guest_left, NULL);
   GNUNET_PSYC_env_destroy (env);
   gst = NULL;
@@ -943,7 +943,7 @@ guest_talk ()
   tmit.data_count = 3;
 
   tmit.guest_talk
-    = GNUNET_SOCIAL_guest_talk (gst, "_message_guest", tmit.env,
+    = GNUNET_SOCIAL_guest_talk (gst, "_converse_guest", tmit.env,
                                 &notify_data, &tmit,
                                 GNUNET_SOCIAL_TALK_NONE);
 }
@@ -973,7 +973,7 @@ host_announce ()
   tmit.data_count = 4;
 
   tmit.host_ann
-    = GNUNET_SOCIAL_host_announce (hst, "_message_host", tmit.env,
+    = GNUNET_SOCIAL_host_announce (hst, "_converse_host", tmit.env,
                                    &notify_data, &tmit,
                                    GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
@@ -1005,7 +1005,7 @@ host_announce2 ()
   tmit.data_count = 3;
 
   tmit.host_ann
-    = GNUNET_SOCIAL_host_announce (hst, "_message_host_two", tmit.env,
+    = GNUNET_SOCIAL_host_announce (hst, "_converse_host_two", tmit.env,
                                    &notify_data, &tmit,
                                    GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
@@ -1081,7 +1081,7 @@ host_answer_door (void *cls,
   {
   case TEST_HOST_ANSWER_DOOR_REFUSE:
     test = TEST_GUEST_RECV_ENTRY_DCSN_REFUSE;
-    join_resp = GNUNET_PSYC_message_create ("_refuse_nym", env,
+    join_resp = GNUNET_PSYC_message_create ("_notice_place_refuse", env,
                                             DATA2ARG ("Go away!"));
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_NO, join_resp);
     break;
@@ -1089,7 +1089,7 @@ host_answer_door (void *cls,
   case TEST_HOST_ANSWER_DOOR_ADMIT:
     test = TEST_GUEST_RECV_ENTRY_DCSN_ADMIT;
   case TEST_GUEST_ENTER_BY_NAME:
-    join_resp = GNUNET_PSYC_message_create ("_admit_nym", env,
+    join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
                                             DATA2ARG ("Welcome, nym!"));
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, join_resp);
     break;
@@ -1139,7 +1139,7 @@ guest_enter ()
                                    guest_recv_entry_decision, NULL);
   gst_plc = GNUNET_SOCIAL_guest_get_place (gst);
 
-  GNUNET_SOCIAL_place_msg_proc_set (gst_plc, "_message",
+  GNUNET_SOCIAL_place_msg_proc_set (gst_plc, "_converse",
                                     GNUNET_SOCIAL_MSG_PROC_SAVE);
 }
 
@@ -1249,7 +1249,7 @@ host_enter ()
                                   host_answer_door, host_farewell, NULL);
   hst_plc = GNUNET_SOCIAL_host_get_place (hst);
 
-  GNUNET_SOCIAL_place_msg_proc_set (hst_plc, "_message",
+  GNUNET_SOCIAL_place_msg_proc_set (hst_plc, "_converse",
                                     GNUNET_SOCIAL_MSG_PROC_RELAY);
 }
 
