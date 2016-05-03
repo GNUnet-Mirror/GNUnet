@@ -775,8 +775,6 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (peer->connections));
     GNUNET_CONTAINER_multihashmap_destroy (peer->connections);
   }
-  if (NULL != peer->core_transmit)
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
   if (NULL != peer->hello_offer)
   {
     GNUNET_TRANSPORT_offer_hello_cancel (peer->hello_offer);
@@ -791,6 +789,13 @@ peer_destroy (struct CadetPeer *peer)
   {
     GCP_queue_destroy (peer->queue_head, GNUNET_YES, GNUNET_NO, 0);
   }
+  if (NULL != peer->core_transmit)
+  {
+    GNUNET_break (0); /* GCP_queue_destroy should've cancelled it! */
+    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
+    peer->core_transmit = NULL;
+  }
+
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
