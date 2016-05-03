@@ -30,10 +30,17 @@ libgnunetsocial_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
-bin_PROGRAMS =
+bin_PROGRAMS = \
+ gnunet-social
 
 libexec_PROGRAMS = \
  gnunet-service-social
+
+gnunet_social_SOURCES = \
+  gnunet-social.c
+gnunet_social_LDADD = \
+  libgnunetsocial.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_social_SOURCES = \
  gnunet-service-social.c
