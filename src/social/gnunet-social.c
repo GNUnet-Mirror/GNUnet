@@ -62,7 +62,7 @@ static char *op_history_replay_latest;
 static char *place;
 
 /** --listen */
-static int listen;
+static int flag_listen;
 
 /** --method */
 static char *method;
@@ -117,7 +117,7 @@ main (int argc, char *const *argv)
 
      {'l', "listen", NULL,
      gettext_noop ("listen for incoming messages"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &listen},
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &flag_listen},
 
      {'m', "method", "METHOD_NAME",
       gettext_noop ("method name to transmit"),
@@ -125,11 +125,11 @@ main (int argc, char *const *argv)
 
      {'d', "data", "DATA",
       gettext_noop ("message body to transmit"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &method},
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &data},
 
      {'p', "prefix", "METHOD_PREFIX",
       gettext_noop ("method prefix filter for history replay"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &method},
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &prefix},
 
      {'s', "start", NULL,
      gettext_noop ("start message ID for history replay"),
@@ -141,7 +141,19 @@ main (int argc, char *const *argv)
 
      {'n', "limit", NULL,
      gettext_noop ("number of messages to replay from history"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &end},
+     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &limit},
+
+     {'C', "host-enter", NULL,
+     gettext_noop ("create a place for nyms to join"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter},
+
+/** --host-leave */
+/** --host-announce */
+/** --guest-enter */
+/** --guest-leave */
+/** --guest-talk */
+/** --history-replay */
+/** --history-replay-latest */
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -152,7 +164,7 @@ main (int argc, char *const *argv)
   const char *help =
     "enter/leave and send/receive messages in places of the social service";
   const char *usage =
-    "gnunet-social --place <pubkey> --host-enter [--listen]\n"
+    "gnunet-social --host-enter [--listen]\n"
     "gnunet-social --place <pubkey> --host-leave\n"
     "gnunet-social --place <pubkey> --host-announce --method <method_name> --data <message_body>\n"
     "\n"
