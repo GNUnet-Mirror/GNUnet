@@ -36,8 +36,8 @@ struct GNUNET_JSONAPI_Object;
  *
  * @param jsonapi_obj where to store the jsonapi object
  */
-struct GNUNET_JSONAPI_Specification
-GNUNET_JSONAPI_spec_jsonapi (struct GNUNET_JSONAPI_Object **jsonapi_obj);
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_jsonapi (struct GNUNET_JSONAPI_Object **jsonapi_obj);
 
 /**
  * Create a JSON API resource
@@ -122,10 +122,12 @@ GNUNET_JSONAPI_object_new ();
  * Create a JSON API primary data from a string
  *
  * @param data the string of the JSON API data
- * @return a new JSON API resource or NULL on error.
+ * @param Pointer where to store new jsonapi Object.
+ * @return GNUNET_OK on success
  */
-struct GNUNET_JSONAPI_Object*
-GNUNET_JSONAPI_object_parse (const char* data);
+int
+GNUNET_JSONAPI_object_parse (const char* data,
+                             struct GNUNET_JSONAPI_Object** obj);
 
 
 /**

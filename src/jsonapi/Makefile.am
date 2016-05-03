@@ -20,15 +20,15 @@ libgnunetjsonapi_la_LIBADD = \
   -ljansson \
   $(XLIB)
 
-#check_PROGRAMS = \
-#  test_json
+check_PROGRAMS = \
+  test_jsonapi
 
-#TESTS = \
-#  $(check_PROGRAMS)
+TESTS = \
+  $(check_PROGRAMS)
 
-#test_json_SOURCES = \
-#  test_json.c
-#test_json_LDADD = \
-#  libgnunetjson.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  -ljansson
+test_jsonapi_SOURCES = \
+  test_jsonapi.c
+test_jsonapi_LDADD = \
+  libgnunetjsonapi.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -ljansson

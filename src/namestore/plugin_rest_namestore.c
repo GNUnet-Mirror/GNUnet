@@ -744,7 +744,8 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
   }
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  json_obj = GNUNET_JSONAPI_object_parse (term_data);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_object_parse (term_data,
+                                                           &json_obj));
   if (NULL == json_obj)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
