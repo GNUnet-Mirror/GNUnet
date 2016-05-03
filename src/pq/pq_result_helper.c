@@ -416,6 +416,109 @@ GNUNET_PQ_result_spec_rsa_signature (const char *name,
 
 
 /**
+ * Extract data from a Postgres database @a result at row @a row.
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param int row to extract data from
+ * @param fname name (or prefix) of the fields to extract from
+ * @param[in,out] dst_size where to store size of result, may be NULL
+ * @param[out] dst where to store the result
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+ */
+static int
+extract_string (void *cls,
+                PGresult *result,
+                int row,
+                const char *fname,
+                size_t *dst_size,
+                void *dst)
+{
+  char **str = dst;
+  size_t len;
+  const char *res;
+  int fnum;
+
+  *str = NULL;
+  fnum = PQfnumber (result,
+		    fname);
+  if (fnum < 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Field `%s' does not exist in result\n",
+		fname);
+    return GNUNET_SYSERR;
+  }
+  if (PQgetisnull (result,
+		   row,
+		   fnum))
+    return GNUNET_SYSERR;
+
+  /* if a field is null, continue but
+   * remember that we now return a different result */
+  len = PQgetlength (result,
+		     row,
+		     fnum);
+  res = PQgetvalue (result,
+		    row,
+		    fnum);
+  *str = GNUNET_strndup (res,
+                         len);
+  if (NULL == *str)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Field `%s' contains bogus value (fails to decode)\n",
+		fname);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called to clean up memory allocated
+ * by a #GNUNET_PQ_ResultConverter.
+ *
+ * @param cls closure
+ * @param rd result data to clean up
+ */
+static void
+clean_string (void *cls,
+              void *rd)
+{
+  char **str = rd;
+
+  if (NULL != *str)
+  {
+    GNUNET_free (*str);
+    *str = NULL;
+  }
+}
+
+
+/**
+ * 0-terminated string expected.
+ *
+ * @param name name of the field in the table
+ * @param[out] dst where to store the result, allocated
+ * @return array entry for the result specification to use
+ */
+struct GNUNET_PQ_ResultSpec
+GNUNET_PQ_result_spec_string (const char *name,
+                              char **dst)
+{
+  struct GNUNET_PQ_ResultSpec res =
+    { &extract_string,
+      &clean_string,
+      NULL,
+      (void *) dst, 0, (name), NULL };
+  return res;
+}
+
+
+/**
  * Absolute time expected.
  *
  * @param name name of the field in the table

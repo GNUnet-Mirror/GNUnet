@@ -331,6 +331,18 @@ GNUNET_PQ_result_spec_variable_size (const char *name,
 
 
 /**
+ * 0-terminated string expected.
+ *
+ * @param name name of the field in the table
+ * @param[out] dst where to store the result, allocated
+ * @return array entry for the result specification to use
+ */
+struct GNUNET_PQ_ResultSpec
+GNUNET_PQ_result_spec_string (const char *name,
+                              char **dst);
+
+
+/**
  * RSA public key expected.
  *
  * @param name name of the field in the table
