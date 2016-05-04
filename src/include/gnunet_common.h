@@ -386,7 +386,8 @@ GNUNET_get_log_call_status (int caller_level,
  * @param ... arguments for format string
  */
 void
-GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...);
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
+  __attribute__ ((format (printf, 2, 3)));
 
 /* from glib */
 #if defined(__GNUC__) && (__GNUC__ > 2) && defined(__OPTIMIZE__)
