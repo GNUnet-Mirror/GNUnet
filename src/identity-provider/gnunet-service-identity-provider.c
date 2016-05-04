@@ -481,7 +481,6 @@ handle_token_update (void *cls)
                                           token_record,
                                           &store_token_cont,
                                           ego_entry);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, ">>> Updating Token w/ %s\n", new_token);
   token_destroy (new_token);
   token_destroy (token);
   GNUNET_free (new_ecdhe_privkey);
@@ -725,7 +724,7 @@ update_identities(void *cls)
     if (min_rel_exp.rel_value_us < MIN_WAIT_TIME.rel_value_us)
       min_rel_exp = MIN_WAIT_TIME;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                ">>> Finished. Rescheduling in %d\n",
+                ">>> Finished. Rescheduling in %lu\n",
                 min_rel_exp.rel_value_us);
     ns_it = NULL;
     //finished -> reschedule

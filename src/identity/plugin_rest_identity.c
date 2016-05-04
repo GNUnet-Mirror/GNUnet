@@ -302,14 +302,14 @@ get_ego_for_subsys (void *cls,
                     const char *name)
 {
   struct RequestHandle *handle = cls;
-  struct GNUNET_JSONAPI_Object *json_object;
+  struct GNUNET_JSONAPI_Document *json_document;
   struct GNUNET_JSONAPI_Resource *json_resource;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
   json_t *name_json;
   char *result_str;
 
-  json_object = GNUNET_JSONAPI_object_new ();
+  json_document = GNUNET_JSONAPI_document_new ();
 
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
@@ -326,20 +326,20 @@ get_ego_for_subsys (void *cls,
                                            GNUNET_REST_JSONAPI_IDENTITY_NAME,
                                            name_json);
     json_decref (name_json);
-    GNUNET_JSONAPI_object_resource_add (json_object, json_resource);
+    GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
     break;
   }
-  if (0 == GNUNET_JSONAPI_object_resource_count (json_object))
+  if (0 == GNUNET_JSONAPI_document_resource_count (json_document))
   {
-    GNUNET_JSONAPI_object_delete (json_object);
+    GNUNET_JSONAPI_document_delete (json_document);
     handle->emsg = GNUNET_strdup("No identity matches results!");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_JSONAPI_data_serialize (json_object, &result_str);
+  GNUNET_JSONAPI_document_serialize (json_document, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
-  GNUNET_JSONAPI_object_delete (json_object);
+  GNUNET_JSONAPI_document_delete (json_document);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -365,7 +365,7 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Object *json_object;
+  struct GNUNET_JSONAPI_Document *json_document;
   struct GNUNET_JSONAPI_Resource *json_resource;
   json_t *name_str;
 
@@ -415,7 +415,7 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
     }
   }
 
-  json_object = GNUNET_JSONAPI_object_new ();
+  json_document = GNUNET_JSONAPI_document_new ();
 
   //Return all egos
   for (ego_entry = handle->ego_head;
@@ -432,19 +432,19 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
                                            GNUNET_REST_JSONAPI_IDENTITY_NAME,
                                            name_str);
     json_decref (name_str);
-    GNUNET_JSONAPI_object_resource_add (json_object, json_resource);
+    GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
   }
-  if (0 == GNUNET_JSONAPI_object_resource_count (json_object))
+  if (0 == GNUNET_JSONAPI_document_resource_count (json_document))
   {
-    GNUNET_JSONAPI_object_delete (json_object);
+    GNUNET_JSONAPI_document_delete (json_document);
     handle->emsg = GNUNET_strdup ("No identities found!");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_JSONAPI_data_serialize (json_object, &result_str);
+  GNUNET_JSONAPI_document_serialize (json_document, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
-  GNUNET_JSONAPI_object_delete (json_object);
+  GNUNET_JSONAPI_document_delete (json_document);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -489,7 +489,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Object *json_obj;
+  struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   json_t *egoname_json;
   const char* egoname;
@@ -509,24 +509,24 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_object_parse (term_data,
+  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
                                                            &json_obj));
   if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (1 != GNUNET_JSONAPI_object_resource_count (json_obj))
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     handle->emsg = GNUNET_strdup ("Provided resource count invalid");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_res = GNUNET_JSONAPI_object_get_resource (json_obj, 0);
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
   if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
@@ -535,7 +535,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   egoname_json = GNUNET_JSONAPI_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_NAME);
   if (!json_is_string (egoname_json))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     handle->emsg = GNUNET_strdup ("No name provided");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -547,7 +547,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   {
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
-      GNUNET_JSONAPI_object_delete (json_obj);
+      GNUNET_JSONAPI_document_delete (json_obj);
       resp = GNUNET_REST_create_json_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
       cleanup_handle (handle);
@@ -555,7 +555,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
     }
   }
   GNUNET_asprintf (&handle->name, "%s", egoname);
-  GNUNET_JSONAPI_object_delete (json_obj);
+  GNUNET_JSONAPI_document_delete (json_obj);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
                                        &do_finished,
@@ -575,7 +575,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
                const char *url,
                void *cls)
 {
-  struct GNUNET_JSONAPI_Object *json_obj;
+  struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
@@ -624,7 +624,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
 
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_object_parse (term_data,
+  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
                                                            &json_obj));
 
   if (NULL == json_obj)
@@ -634,18 +634,18 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
 
-  if (1 != GNUNET_JSONAPI_object_resource_count (json_obj))
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     handle->emsg = GNUNET_strdup ("Resource amount invalid");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_res = GNUNET_JSONAPI_object_get_resource (json_obj, 0);
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
 
   if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     handle->emsg = GNUNET_strdup ("Resource type invalid");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -665,7 +665,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
           0 != strcasecmp (keystring, ego_entry->keystring))
       {
         //Ego with same name not allowed
-        GNUNET_JSONAPI_object_delete (json_obj);
+        GNUNET_JSONAPI_document_delete (json_obj);
         resp = GNUNET_REST_create_json_response (NULL);
         handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
         cleanup_handle (handle);
@@ -677,7 +677,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
                                          newname,
                                          &do_finished,
                                          handle);
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     return;
   }
 
@@ -687,7 +687,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   {
     subsys = json_string_value (subsys_json);
     GNUNET_asprintf (&handle->subsys, "%s", subsys);
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
                                       handle->subsys,
                                       ego_entry->ego,
@@ -695,7 +695,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
                                       handle);
     return;
   }
-  GNUNET_JSONAPI_object_delete (json_obj);
+  GNUNET_JSONAPI_document_delete (json_obj);
   handle->emsg = GNUNET_strdup ("Subsystem not provided");
   GNUNET_SCHEDULER_add_now (&do_error, handle);
 }

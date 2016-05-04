@@ -757,7 +757,7 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Service listens on port %u\n",
+              "Service listens on port %lu\n",
               port);
   httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
                             0,

@@ -106,7 +106,7 @@ struct RequestHandle
   /**
    * JSON response object
    */
-  struct GNUNET_JSONAPI_Object *resp_object;
+  struct GNUNET_JSONAPI_Document *resp_object;
 
   /**
    * Rest connection
@@ -251,7 +251,7 @@ cleanup_handle (struct RequestHandle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
   if (NULL != handle->resp_object)
-    GNUNET_JSONAPI_object_delete (handle->resp_object);
+    GNUNET_JSONAPI_document_delete (handle->resp_object);
   if (NULL != handle->name)
     GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
@@ -407,13 +407,13 @@ namestore_list_response (void *cls,
   char *result;
 
   if (NULL == handle->resp_object)
-    handle->resp_object = GNUNET_JSONAPI_object_new ();
+    handle->resp_object = GNUNET_JSONAPI_document_new ();
 
   if (NULL == rname)
   {
     handle->list_it = NULL;
     //Handle response
-    if (GNUNET_SYSERR == GNUNET_JSONAPI_data_serialize (handle->resp_object, &result))
+    if (GNUNET_SYSERR == GNUNET_JSONAPI_document_serialize (handle->resp_object, &result))
     {
       GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
@@ -456,7 +456,7 @@ namestore_list_response (void *cls,
     GNUNET_JSONAPI_resource_add_attr (json_resource,
                                            GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
                                            result_array);
-    GNUNET_JSONAPI_object_resource_add (handle->resp_object, json_resource);
+    GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
   }
 
   json_decref (result_array);
@@ -658,7 +658,7 @@ json_to_gnsrecord (const json_t *records_json,
                   "Value property is no string\n");
       return GNUNET_SYSERR;
     }
-    GNUNET_asprintf (&value, "%s", json_string_value (value_json));
+    value = GNUNET_strdup (json_string_value (value_json));
     if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value ((*rd)[i].record_type,
                                                        value,
                                                        &rdata,
@@ -719,9 +719,8 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Object *json_obj;
+  struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
-  json_t *name_json;
   json_t *records_json;
   char term_data[handle->rest_handle->data_size+1];
 
@@ -741,7 +740,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   memcpy (term_data,
           handle->rest_handle->data,
           handle->rest_handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_object_parse (term_data,
+  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
                                                            &json_obj));
   if (NULL == json_obj)
   {
@@ -751,54 +750,45 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (1 != GNUNET_JSONAPI_object_resource_count (json_obj))
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Cannot create more than 1 resource! (Got %d)\n",
-                GNUNET_JSONAPI_object_resource_count (json_obj));
-    GNUNET_JSONAPI_object_delete (json_obj);
+                GNUNET_JSONAPI_document_resource_count (json_obj));
+    GNUNET_JSONAPI_document_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_res = GNUNET_JSONAPI_object_get_resource (json_obj, 0);
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
   if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
                                                             GNUNET_REST_JSONAPI_NAMESTORE_RECORD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unsupported JSON data type\n");
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
     return;
   }
-  name_json = GNUNET_JSONAPI_resource_get_id (json_res);
-  if (!json_is_string (name_json))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Name property is no string\n");
-    GNUNET_JSONAPI_object_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  GNUNET_asprintf (&handle->name, "%s", json_string_value (name_json));
+  handle->name = GNUNET_strdup (GNUNET_JSONAPI_resource_get_id (json_res));
   records_json = GNUNET_JSONAPI_resource_read_attr (json_res,
                                                          GNUNET_REST_JSONAPI_NAMESTORE_RECORD);
   if (NULL == records_json)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No records given\n");
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   if (GNUNET_SYSERR == json_to_gnsrecord (records_json, &handle->rd, &handle->rd_count))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_JSONAPI_object_delete (json_obj);
+  GNUNET_JSONAPI_document_delete (json_obj);
 
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
                                                     &handle->zone_pkey,
@@ -815,13 +805,13 @@ namestore_zkey_response (void *cls,
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Object *json_obj;
+  struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   json_t *name_json;
   char* result;
 
   handle->reverse_qe = NULL;
-  json_obj = GNUNET_JSONAPI_object_new ();
+  json_obj = GNUNET_JSONAPI_document_new ();
   if (NULL != label)
   {
     name_json = json_string (label);
@@ -830,19 +820,19 @@ namestore_zkey_response (void *cls,
     GNUNET_JSONAPI_resource_add_attr (json_res,
                                            GNUNET_REST_JSONAPI_NAMESTORE_NAME,
                                            name_json);
-    GNUNET_JSONAPI_object_resource_add (json_obj, json_res);
+    GNUNET_JSONAPI_document_resource_add (json_obj, json_res);
     json_decref (name_json);
   }
   //Handle response
-  if (GNUNET_SYSERR == GNUNET_JSONAPI_data_serialize (json_obj, &result))
+  if (GNUNET_SYSERR == GNUNET_JSONAPI_document_serialize (json_obj, &result))
   {
-    GNUNET_JSONAPI_object_delete (json_obj);
+    GNUNET_JSONAPI_document_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   resp = GNUNET_REST_create_json_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_JSONAPI_object_delete (json_obj);
+  GNUNET_JSONAPI_document_delete (json_obj);
   GNUNET_free (result);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
   return;
@@ -1105,9 +1095,9 @@ testservice_id_task (void *cls, int result)
   }
   name = get_name_from_url (handle->url);
   if (NULL != ego)
-    GNUNET_asprintf (&handle->ego_name, "%s", ego);
+    handle->ego_name = GNUNET_strdup (ego);
   if (NULL != name)
-    GNUNET_asprintf (&handle->name, "%s", name);
+    handle->name = GNUNET_strdup (name);
   if (NULL == handle->ego_name)
   {
     handle->identity_handle = GNUNET_IDENTITY_connect (handle->cfg, &id_connect_cb, handle);
@@ -1148,7 +1138,7 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
-  GNUNET_asprintf (&handle->url, "%s", rest_handle->url);
+  handle->url = GNUNET_strdup (rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

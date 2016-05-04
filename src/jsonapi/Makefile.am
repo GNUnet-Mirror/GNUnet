@@ -13,7 +13,11 @@ libgnunetjsonapi_la_LDFLAGS = \
   -version-info 0:0:0 \
   -no-undefined
 libgnunetjsonapi_la_SOURCES = \
-  jsonapi.c 
+  jsonapi.c \
+	jsonapi_document.c \
+	jsonapi_resource.c \
+	jsonapi_error.c \
+	jsonapi_relationship.c
 libgnunetjsonapi_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/json/libgnunetjson.la \

@@ -279,7 +279,7 @@ struct RequestHandle
   /**
    * Response object
    */
-  struct GNUNET_JSONAPI_Object *resp_object;
+  struct GNUNET_JSONAPI_Document *resp_object;
 
 };
 
@@ -296,7 +296,7 @@ cleanup_handle (struct RequestHandle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
   if (NULL != handle->resp_object)
-    GNUNET_JSONAPI_object_delete (handle->resp_object);
+    GNUNET_JSONAPI_document_delete (handle->resp_object);
   if (NULL != handle->timeout_task)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
   if (NULL != handle->identity_handle)
@@ -403,7 +403,7 @@ token_creat_cont (void *cls,
     return;
   }
 
-  handle->resp_object = GNUNET_JSONAPI_object_new ();
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
   json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
                                                     label);
   ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
@@ -420,9 +420,9 @@ token_creat_cont (void *cls,
   GNUNET_free (token_str);
   json_decref (ticket_json);
   json_decref (token_json);
-  GNUNET_JSONAPI_object_resource_add (handle->resp_object, json_resource);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
 
-  GNUNET_JSONAPI_data_serialize (handle->resp_object, &result_str);
+  GNUNET_JSONAPI_document_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
@@ -638,7 +638,7 @@ return_token_list (void *cls)
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
 
-  GNUNET_JSONAPI_data_serialize (handle->resp_object, &result_str);
+  GNUNET_JSONAPI_document_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
@@ -717,7 +717,7 @@ token_collect (void *cls,
                                              token);
       json_decref (token);
 
-      GNUNET_JSONAPI_object_resource_add (handle->resp_object, json_resource);
+      GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
       GNUNET_free (data);
     }
   }
@@ -776,7 +776,7 @@ list_token_cont (struct GNUNET_REST_RequestHandle *con_handle,
       GNUNET_free (ego_tmp);
     }
   }
-  handle->resp_object = GNUNET_JSONAPI_object_new ();
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
   if (NULL == handle->ego_head)
   {
     //Done
@@ -1045,7 +1045,7 @@ list_ego (void *cls,
     ego_entry->keystring =
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
     ego_entry->ego = ego;
-    GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);
+    ego_entry->identifier = GNUNET_strdup (identifier);
     GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head,handle->ego_tail, ego_entry);
   }
 
@@ -1076,7 +1076,7 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->conndata_handle = conndata_handle;
 
 
-  GNUNET_asprintf (&handle->url, "%s", conndata_handle->url);
+  handle->url = GNUNET_strdup (conndata_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

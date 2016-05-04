@@ -27,14 +27,14 @@
 static int
 test_serialize ()
 {
-  struct GNUNET_JSONAPI_Object *obj;
-  char* data = "{\"data\":[{\"id\":\"1\", \"type\":\"test\"}]}";
+  struct GNUNET_JSONAPI_Document *obj;
+  char* data = "{\"data\":{\"id\":\"1\",\"type\":\"bar\", \"attributes\":{\"foo\":\"bar\"}}}";
   char* tmp_data;
   json_t* data_js;
   json_t* tmp_data_js;
   json_error_t err;
   struct GNUNET_JSON_Specification jsonapispec[] = {
-    GNUNET_JSON_spec_jsonapi (&obj),
+    GNUNET_JSON_spec_jsonapi_document (&obj),
     GNUNET_JSON_spec_end()
   };
   data_js = json_loads (data, JSON_DECODE_ANY, &err);
@@ -42,8 +42,8 @@ test_serialize ()
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_JSON_parse (data_js, jsonapispec,
                                     NULL, NULL));
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_data_serialize (obj,
-                                                             &tmp_data));
+  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_serialize (obj,
+                                                                 &tmp_data));
   GNUNET_JSON_parse_free (jsonapispec);
   tmp_data_js = json_loads (tmp_data, JSON_DECODE_ANY, &err);
   GNUNET_assert (NULL != tmp_data_js);
@@ -62,14 +62,14 @@ test_serialize ()
 static int
 test_spec_jsonapi ()
 {
-  struct GNUNET_JSONAPI_Object *obj;
+  struct GNUNET_JSONAPI_Document *obj;
   struct GNUNET_JSONAPI_Resource *res;
   const char* data = "{\"data\":{\"id\":\"1\", \"type\":\"test\"}}";
   json_t* data_js;
   json_error_t err;
 
   struct GNUNET_JSON_Specification jsonapispec[] = {
-    GNUNET_JSON_spec_jsonapi (&obj),
+    GNUNET_JSON_spec_jsonapi_document (&obj),
     GNUNET_JSON_spec_end()
   };
   data_js = json_loads (data, JSON_DECODE_ANY, &err);
@@ -78,10 +78,10 @@ test_spec_jsonapi ()
                  GNUNET_JSON_parse (data_js, jsonapispec,
                                     NULL, NULL));
   json_decref (data_js);
-  res = GNUNET_JSONAPI_object_get_resource (obj, 0);
+  res = GNUNET_JSONAPI_document_get_resource (obj, 0);
   GNUNET_assert (GNUNET_YES == GNUNET_JSONAPI_resource_check_id (res, "1"));
   GNUNET_assert (GNUNET_YES == GNUNET_JSONAPI_resource_check_type (res, "test"));
-  GNUNET_assert (1 == GNUNET_JSONAPI_object_resource_count (obj));
+  GNUNET_assert (1 == GNUNET_JSONAPI_document_resource_count (obj));
   GNUNET_JSON_parse_free (jsonapispec);
   return 0;
 }

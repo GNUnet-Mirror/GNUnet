@@ -258,7 +258,7 @@ gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
                 (int) rd->record_type);
     return NULL;
   }
-  record_obj = json_object();
+  record_obj = json_object ();
   json_object_set_new (record_obj, "type", json_string (typename));
   json_object_set_new (record_obj, "value", json_string (string_val));
   GNUNET_free (string_val);
@@ -295,7 +295,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
 {
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Object *json_object;
+  struct GNUNET_JSONAPI_Document *json_document;
   struct GNUNET_JSONAPI_Resource *json_resource;
   uint32_t i;
   char *result;
@@ -303,7 +303,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   json_t *record_obj;
 
   result_array = json_array();
-  json_object = GNUNET_JSONAPI_object_new ();
+  json_document = GNUNET_JSONAPI_document_new ();
   json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_GNS_TYPEINFO, handle->name);
   handle->lookup_request = NULL;
   for (i=0; i<rd_count; i++)
@@ -318,11 +318,11 @@ process_lookup_result (void *cls, uint32_t rd_count,
   GNUNET_JSONAPI_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_GNS_RECORD,
                                          result_array);
-  GNUNET_JSONAPI_object_resource_add (json_object, json_resource);
-  GNUNET_JSONAPI_data_serialize (json_object, &result);
+  GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
+  GNUNET_JSONAPI_document_serialize (json_document, &result);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   json_decref (result_array);
-  GNUNET_JSONAPI_object_delete (json_object);
+  GNUNET_JSONAPI_document_delete (json_document);
   resp = GNUNET_REST_create_json_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
