@@ -22,6 +22,7 @@
 #define GNUNET_JSONAPI_LIB_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_rest_lib.h"
 #include "gnunet_json_lib.h"
 
 
@@ -200,5 +201,41 @@ GNUNET_JSONAPI_data_serialize (const struct GNUNET_JSONAPI_Object *resp,
  */
 json_t*
 GNUNET_JSONAPI_resource_get_id (const struct GNUNET_JSONAPI_Resource *resource);
+
+
 /* end of gnunet_jsonapi_lib.h */
+
+/**
+ * Check rest request for validity
+ *
+ * @param req handle to the request
+ * @return GNUNET_OK if valid
+ */
+int
+GNUNET_JSONAPI_check_request_acceptable (struct GNUNET_REST_RequestHandle *req);
+
+/**
+ * Check rest request for validity
+ *
+ * @param req handle to the request
+ * @return GNUNET_OK if valid
+ */
+int
+GNUNET_JSONAPI_check_request_supported (struct GNUNET_REST_RequestHandle *req);
+
+
+/**
+ * Handle jsonapi rest request. Checks request headers for jsonapi compliance
+ *
+ * @param req rest request handle
+ * @param handler rest request handlers
+ * @param cls closure
+ * @return GNUNET_OK if successful
+ */
+int
+GNUNET_JSONAPI_handle_request (struct GNUNET_REST_RequestHandle *req,
+                               const struct GNUNET_REST_RequestHandler *handlers,
+                               struct GNUNET_REST_RequestHandlerError *err,
+                               void *cls);
+
 #endif

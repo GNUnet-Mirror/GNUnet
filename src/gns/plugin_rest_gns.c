@@ -77,6 +77,11 @@ struct LookupHandle
   struct GNUNET_GNS_LookupRequest *lookup_request;
 
   /**
+   * Handle to rest request
+   */
+  struct GNUNET_REST_RequestHandle *rest_handle;
+
+  /**
    * Lookup an ego with the identity service.
    */
   struct GNUNET_IDENTITY_EgoLookup *el;
@@ -153,6 +158,11 @@ struct LookupHandle
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey shorten_key;
 
+  /**
+   * HTTP response code
+   */
+  int response_code;
+
 };
 
 
@@ -218,7 +228,7 @@ do_error (void *cls)
   struct MHD_Response *resp;
 
   resp = GNUNET_REST_create_json_response (NULL);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
 }
 
@@ -505,7 +515,7 @@ parse_url (const char *url, struct LookupHandle *handle)
 }
 
 static void
-get_gns_cont (struct RestConnectionDataHandle *conndata_handle,
+get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
               const char* url,
               void *cls)
 {
@@ -621,7 +631,7 @@ get_gns_cont (struct RestConnectionDataHandle *conndata_handle,
  * @param handle the lookup handle
  */
 static void
-options_cont (struct RestConnectionDataHandle *con_handle,
+options_cont (struct GNUNET_REST_RequestHandle *con_handle,
               const char* url,
               void *cls)
 {
@@ -652,24 +662,32 @@ options_cont (struct RestConnectionDataHandle *con_handle,
  * @return GNUNET_OK if request accepted
  */
 static void
-rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
+rest_gns_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
                          GNUNET_REST_ResultProcessor proc,
                          void *proc_cls)
 {
   struct LookupHandle *handle = GNUNET_new (struct LookupHandle);
+  struct GNUNET_REST_RequestHandlerError err;
 
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   handle->proc_cls = proc_cls;
   handle->proc = proc;
+  handle->rest_handle = conndata_handle;
 
-  static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+  static const struct GNUNET_REST_RequestHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_GNS, &get_gns_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_GNS, &options_cont},
     GNUNET_REST_HANDLER_END
   };
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle, handlers, handle))
+  if (GNUNET_NO == GNUNET_JSONAPI_handle_request (conndata_handle,
+                                                  handlers,
+                                                  &err,
+                                                  handle))
+  {
+    handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
 }
 
 

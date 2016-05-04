@@ -71,7 +71,7 @@ struct GNUNET_REST_Plugin
    * @param proc the callback for result
    * @param proc_cls closure for callback
    */
-  void (*process_request) (struct RestConnectionDataHandle *handle,
+  void (*process_request) (struct GNUNET_REST_RequestHandle *handle,
                            GNUNET_REST_ResultProcessor proc,
                            void *proc_cls);
 

@@ -129,7 +129,7 @@ struct MhdConnectionHandle
 
   struct GNUNET_REST_Plugin *plugin;
 
-  struct RestConnectionDataHandle *data_handle;
+  struct GNUNET_REST_RequestHandle *data_handle;
 
   int status;
 
@@ -217,7 +217,7 @@ url_iterator (void *cls,
               const char *key,
               const char *value)
 {
-  struct RestConnectionDataHandle *handle = cls;
+  struct GNUNET_REST_RequestHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
 
@@ -274,7 +274,7 @@ create_response (void *cls,
   char *plugin_name;
   struct GNUNET_HashCode key;
   struct MhdConnectionHandle *con_handle;
-  struct RestConnectionDataHandle *rest_conndata_handle;
+  struct GNUNET_REST_RequestHandle *rest_conndata_handle;
 
   con_handle = *con_cls;
 
@@ -311,7 +311,7 @@ create_response (void *cls,
   }
   if (GN_REST_STATE_INIT == con_handle->state)
   {
-    rest_conndata_handle = GNUNET_new (struct RestConnectionDataHandle);
+    rest_conndata_handle = GNUNET_new (struct GNUNET_REST_RequestHandle);
     rest_conndata_handle->method = meth;
     rest_conndata_handle->url = url;
     rest_conndata_handle->data = upload_data;

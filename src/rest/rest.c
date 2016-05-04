@@ -75,8 +75,9 @@ GNUNET_REST_create_json_response (const char *data)
 }
 
 int
-GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
-                            const struct GNUNET_REST_RestConnectionHandler *handlers,
+GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
+                            const struct GNUNET_REST_RequestHandler *handlers,
+                            struct GNUNET_REST_RequestHandlerError *err,
                             void *cls)
 {
   int count;
@@ -104,6 +105,7 @@ GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
     return GNUNET_YES;
   }
   GNUNET_free (url);
+  err->error_code = MHD_HTTP_BAD_REQUEST;
   return GNUNET_NO;
 }
 

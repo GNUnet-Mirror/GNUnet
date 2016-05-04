@@ -199,7 +199,7 @@ struct RequestHandle
   /**
    * Handle to the rest connection
    */
-  struct RestConnectionDataHandle *conndata_handle;
+  struct GNUNET_REST_RequestHandle *conndata_handle;
 
   /**
    * The processing state
@@ -272,6 +272,11 @@ struct RequestHandle
   char *emsg;
 
   /**
+   * Reponse code
+   */
+  int response_code;
+
+  /**
    * Response object
    */
   struct GNUNET_JSONAPI_Object *resp_object;
@@ -337,7 +342,7 @@ do_error (void *cls)
                    "{Error while processing request: %s}",
                    handle->emsg);
   resp = GNUNET_REST_create_json_response (json_error);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
   GNUNET_free (json_error);
 }
@@ -434,7 +439,7 @@ token_creat_cont (void *cls,
  * @param cls the request handle
  */
 static void
-issue_token_cont (struct RestConnectionDataHandle *con,
+issue_token_cont (struct GNUNET_REST_RequestHandle *con,
                   const char *url,
                   void *cls)
 {
@@ -730,7 +735,7 @@ token_collect (void *cls,
  * @param cls the RequestHandle
  */
 static void
-list_token_cont (struct RestConnectionDataHandle *con_handle,
+list_token_cont (struct GNUNET_REST_RequestHandle *con_handle,
                  const char* url,
                  void *cls)
 {
@@ -919,7 +924,7 @@ exchange_token_ticket_cb (void *cls,
  * @param cls the RequestHandle
  */
 static void
-exchange_token_ticket_cont (struct RestConnectionDataHandle *con_handle,
+exchange_token_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
                             const char* url,
                             void *cls)
 {
@@ -940,7 +945,7 @@ exchange_token_ticket_cont (struct RestConnectionDataHandle *con_handle,
  * @param cls the RequestHandle
  */
 static void
-options_cont (struct RestConnectionDataHandle *con_handle,
+options_cont (struct GNUNET_REST_RequestHandle *con_handle,
               const char* url,
               void *cls)
 {
@@ -965,7 +970,8 @@ options_cont (struct RestConnectionDataHandle *con_handle,
 static void
 init_cont (struct RequestHandle *handle)
 {
-  static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+  struct GNUNET_REST_RequestHandlerError err;
+  static const struct GNUNET_REST_RequestHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE, &issue_token_cont},
     //{MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_TOKEN_CHECK, &check_token_cont},
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_PROVIDER, &list_token_cont},
@@ -974,9 +980,12 @@ init_cont (struct RequestHandle *handle)
     GNUNET_REST_HANDLER_END
   };
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle, handlers, handle))
+  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle,
+                                               handlers,
+                                               &err,
+                                               handle))
   {
-    handle->emsg = GNUNET_strdup ("Request unsupported");
+    handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
   }
 }
@@ -1054,7 +1063,7 @@ list_ego (void *cls,
  * @return GNUNET_OK if request accepted
  */
 static void
-rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
+rest_identity_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)
 {

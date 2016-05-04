@@ -2522,7 +2522,7 @@ do_s5r_read (void *cls)
 					      s5r->sock,
 					      &do_s5r_read, s5r);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing %u bytes of socks data in state %d\n",
+	      "Processing %zu bytes of socks data in state %d\n",
 	      s5r->rbuf_len,
 	      s5r->state);
   switch (s5r->state)
@@ -2943,7 +2943,7 @@ run_cont ()
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Proxy listens on port %u\n",
+              "Proxy listens on port %lu\n",
               port);
 
   /* start MHD daemon for HTTP */

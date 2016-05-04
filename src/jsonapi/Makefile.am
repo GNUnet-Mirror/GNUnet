@@ -17,6 +17,7 @@ libgnunetjsonapi_la_SOURCES = \
 libgnunetjsonapi_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/json/libgnunetjson.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
   -ljansson \
   $(XLIB)
 

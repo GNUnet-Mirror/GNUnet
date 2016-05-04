@@ -37,17 +37,22 @@
 
 #define GNUNET_REST_HANDLER_END {NULL, NULL, NULL}
 
-struct RestConnectionDataHandle
+struct GNUNET_REST_RequestHandle
 {
   struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
   const char *method;
   const char *url;
   const char *data;
   size_t data_size;
-
 };
 
-struct GNUNET_REST_RestConnectionHandler
+struct GNUNET_REST_RequestHandlerError
+{
+  int error_code;
+  char* error_text;
+};
+
+struct GNUNET_REST_RequestHandler
 {
   /**
    * Http method to handle
@@ -62,7 +67,7 @@ struct GNUNET_REST_RestConnectionHandler
   /**
    * callback handler
    */
-  void (*proc) (struct RestConnectionDataHandle *handle,
+  void (*proc) (struct GNUNET_REST_RequestHandle *handle,
                 const char *url,
                 void *cls);
 
@@ -101,8 +106,9 @@ GNUNET_REST_create_json_response (const char *data);
 
 
 int
-GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
-                            const struct GNUNET_REST_RestConnectionHandler *handlers,
+GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
+                            const struct GNUNET_REST_RequestHandler *handlers,
+                            struct GNUNET_REST_RequestHandlerError *err,
                             void *cls);
 
 

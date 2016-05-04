@@ -98,7 +98,10 @@ decrypt_str_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                               &enc_key,
                                               &enc_iv,
                                               str_buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypted bytes: %d Expected bytes: %d\n", str_size, cyphertext_len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted bytes: %zd Expected bytes: %zd\n",
+              str_size,
+              cyphertext_len);
   if (-1 == str_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH invalid\n");
@@ -172,14 +175,14 @@ encrypt_str_ecdhe (const char *plaintext,
                                                         pub_key,
                                                         &new_key_hash));
   create_sym_key_from_ecdh(&new_key_hash, &skey, &iv);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting string %s\n (len=%d)",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting string %s\n (len=%zd)",
               plaintext,
               strlen (plaintext));
   enc_size = GNUNET_CRYPTO_symmetric_encrypt (plaintext,
                                               strlen (plaintext),
                                               &skey, &iv,
                                               *cyphertext);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted (len=%d)", enc_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted (len=%zd)", enc_size);
   return GNUNET_OK;
 }
 

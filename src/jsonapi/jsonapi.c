@@ -20,6 +20,7 @@
  */
 #include "platform.h"
 #include "gnunet_json_lib.h"
+#include "gnunet_rest_lib.h"
 
 #define GNUNET_JSONAPI_KEY_DATA "data"
 
@@ -475,4 +476,57 @@ GNUNET_JSON_spec_jsonapi (struct GNUNET_JSONAPI_Object **jsonapi_object)
   };
   *jsonapi_object = NULL;
   return ret;
+}
+
+/**
+ * Check rest request for validity
+ *
+ * @param req handle to the request
+ * @return GNUNET_OK if valid
+ */
+int
+GNUNET_JSONAPI_check_request_acceptable (struct GNUNET_REST_RequestHandle *req)
+{
+  //TODO
+  return GNUNET_OK;
+}
+
+/**
+ * Check rest request for validity
+ *
+ * @param req handle to the request
+ * @return GNUNET_OK if valid
+ */
+int
+GNUNET_JSONAPI_check_request_supported (struct GNUNET_REST_RequestHandle *req)
+{
+  //TODO
+  return GNUNET_OK;
+}
+
+/**
+ * Handle jsonapi rest request. Checks request headers for jsonapi compliance
+ *
+ * @param req rest request handle
+ * @param handler rest request handlers
+ * @param cls closure
+ * @return GNUNET_OK if successful
+ */
+int
+GNUNET_JSONAPI_handle_request (struct GNUNET_REST_RequestHandle *handle,
+                               const struct GNUNET_REST_RequestHandler *handlers,
+                               struct GNUNET_REST_RequestHandlerError *err,
+                               void *cls)
+{
+  if (GNUNET_OK != GNUNET_JSONAPI_check_request_acceptable (handle))
+  {
+    err->error_code = MHD_HTTP_NOT_ACCEPTABLE;
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != GNUNET_JSONAPI_check_request_supported (handle))
+  {
+    err->error_code = MHD_HTTP_UNSUPPORTED_MEDIA_TYPE;
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_REST_handle_request (handle, handlers, err, cls);
 }

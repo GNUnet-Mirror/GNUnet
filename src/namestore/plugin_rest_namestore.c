@@ -111,7 +111,7 @@ struct RequestHandle
   /**
    * Rest connection
    */
-  struct RestConnectionDataHandle *conndata_handle;
+  struct GNUNET_REST_RequestHandle *rest_handle;
 
   /**
    * Handle to GNS service.
@@ -224,19 +224,14 @@ struct RequestHandle
   char *url;
 
   /**
-   * The data from the REST request
-   */
-  const char* data;
-
-  /**
-   * the length of the REST data
-   */
-  size_t data_size;
-
-  /**
    * Cfg
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * HTTP response code
+   */
+  int response_code;
 
 };
 
@@ -364,7 +359,7 @@ do_error (void *cls)
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp = GNUNET_REST_create_json_response (NULL);
 
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
 }
 
@@ -596,7 +591,7 @@ del_cont (void *cls,
 }
 
 static void
-namestore_delete_cont (struct RestConnectionDataHandle *con,
+namestore_delete_cont (struct GNUNET_REST_RequestHandle *con,
                        const char *url,
                        void *cls)
 {
@@ -718,7 +713,7 @@ json_to_gnsrecord (const json_t *records_json,
 }
 
 static void
-namestore_create_cont (struct RestConnectionDataHandle *con,
+namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
                        const char *url,
                        void *cls)
 {
@@ -728,7 +723,7 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
   struct GNUNET_JSONAPI_Resource *json_res;
   json_t *name_json;
   json_t *records_json;
-  char term_data[handle->data_size+1];
+  char term_data[handle->rest_handle->data_size+1];
 
   if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
   {
@@ -737,13 +732,15 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (0 >= handle->data_size)
+  if (0 >= handle->rest_handle->data_size)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  term_data[handle->data_size] = '\0';
-  memcpy (term_data, handle->data, handle->data_size);
+  term_data[handle->rest_handle->data_size] = '\0';
+  memcpy (term_data,
+          handle->rest_handle->data,
+          handle->rest_handle->data_size);
   GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_object_parse (term_data,
                                                            &json_obj));
   if (NULL == json_obj)
@@ -853,7 +850,7 @@ namestore_zkey_response (void *cls,
 }
 
 static void
-namestore_zkey_cont (struct RestConnectionDataHandle *con,
+namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
                      const char *url,
                      void *cls)
 {
@@ -865,7 +862,7 @@ namestore_zkey_cont (struct RestConnectionDataHandle *con,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY),
                       &key);
   if ( GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
                                                &key) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -873,7 +870,7 @@ namestore_zkey_cont (struct RestConnectionDataHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+  handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                             &key);
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
@@ -893,7 +890,7 @@ namestore_zkey_cont (struct RestConnectionDataHandle *con,
 }
 
 static void
-namestore_info_cont (struct RestConnectionDataHandle *con,
+namestore_info_cont (struct GNUNET_REST_RequestHandle *con,
                      const char *url,
                      void *cls)
 {
@@ -920,7 +917,7 @@ get_name_from_url (const char* url)
  * @param cls the RequestHandle
  */
 static void
-options_cont (struct RestConnectionDataHandle *con_handle,
+options_cont (struct GNUNET_REST_RequestHandle *con_handle,
               const char* url,
               void *cls)
 {
@@ -950,7 +947,8 @@ testservice_task (void *cls,
                   int result)
 {
   struct RequestHandle *handle = cls;
-  static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+  struct GNUNET_REST_RequestHandlerError err;
+  static const struct GNUNET_REST_RequestHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE_ZKEY, &namestore_zkey_cont}, //reverse
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_info_cont}, //list
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
@@ -976,8 +974,14 @@ testservice_task (void *cls,
     return;
   }
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle, handlers, handle))
+  if (GNUNET_OK != GNUNET_JSONAPI_handle_request (handle->rest_handle,
+                                                  handlers,
+                                                  &err,
+                                                  handle))
+  {
+    handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error, (void*) handle);
+  }
 
 }
 
@@ -1079,10 +1083,10 @@ testservice_id_task (void *cls, int result)
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_EGO),
                       &key);
   if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
                                                &key) )
   {
-    ego = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+    ego = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                              &key);
   }
 
@@ -1091,10 +1095,10 @@ testservice_id_task (void *cls, int result)
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE),
                       &key);
   if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
                                                &key) )
   {
-    type = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+    type = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                               &key);
 
     handle->type = GNUNET_GNSRECORD_typename_to_number (type);
@@ -1134,7 +1138,7 @@ testservice_id_task (void *cls, int result)
  * @return GNUNET_OK if request accepted
  */
 static void
-rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
+rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)
 {
@@ -1143,10 +1147,8 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   handle->proc_cls = proc_cls;
   handle->proc = proc;
-  handle->conndata_handle = conndata_handle;
-  handle->data = conndata_handle->data;
-  handle->data_size = conndata_handle->data_size;
-  GNUNET_asprintf (&handle->url, "%s", conndata_handle->url);
+  handle->rest_handle = rest_handle;
+  GNUNET_asprintf (&handle->url, "%s", rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
