@@ -595,7 +595,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   rd_ser = &name_tmp[name_len];
   GNUNET_GNSRECORD_records_serialize (res_count, res, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending `%s' message with %u records and size %u\n",
+	      "Sending `%s' message with %u records and size %zu\n",
 	      "RECORD_RESULT",
 	      res_count,
 	      msg_size);
