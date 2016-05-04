@@ -67,8 +67,8 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   $(JSON_DIR) \
-	$(JSONAPI_DIR) \
   $(REST_DIR) \
+	$(JSONAPI_DIR) \
   hello \
   tun \
   block \
