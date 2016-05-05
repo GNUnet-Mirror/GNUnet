@@ -71,8 +71,10 @@ check_PROGRAMS = \
  $(TESTING_TESTS)
 endif
 
-if HAVE_REST
+if HAVE_MHD
+if HAVE_JSON
 REST_PLUGIN=libgnunet_plugin_rest_namestore.la
+endif
 endif
 
 if ENABLE_TEST_RUN

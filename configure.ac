@@ -970,8 +970,6 @@ AC_ARG_WITH(microhttpd,
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
-AM_CONDITIONAL(HAVE_REST, [test x$lmhd = x1 -a x$jansson = x1])
-
 AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
 
 # restore LIBS

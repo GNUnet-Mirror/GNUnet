@@ -38,7 +38,7 @@ libgnunetrest_la_SOURCES = \
   rest.c
 libgnunetrest_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
-  $(GN_LIBINTL) -lmicrohttpd -ljansson
+  $(GN_LIBINTL) -lmicrohttpd 
 libgnunetrest_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0

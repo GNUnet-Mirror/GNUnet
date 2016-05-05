@@ -92,8 +92,10 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_gns.la
 
 
-if HAVE_REST
+if HAVE_MHD
+if HAVE_JSON
 plugin_LTLIBRARIES += libgnunet_plugin_rest_gns.la
+endif
 endif
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \

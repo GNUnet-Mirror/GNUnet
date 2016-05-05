@@ -48,13 +48,13 @@ GNUNET_REST_namespace_match (const char *url, const char *namespace)
 }
 
 /**
- * Create JSON API MHD response
+ * Create MHD response
  *
- * @param data JSON result
+ * @param data result
  * @retun MHD response
  */
 struct MHD_Response*
-GNUNET_REST_create_json_response (const char *data)
+GNUNET_REST_create_response (const char *data)
 {
   struct MHD_Response *resp;
   size_t len;
@@ -69,7 +69,6 @@ GNUNET_REST_create_json_response (const char *data)
   resp = MHD_create_response_from_buffer (len,
                                           (void*)data,
                                           MHD_RESPMEM_MUST_COPY);
-  MHD_add_response_header (resp,MHD_HTTP_HEADER_CONTENT_TYPE,"application/json");
   return resp;
 
 }

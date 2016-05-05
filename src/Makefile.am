@@ -19,8 +19,10 @@ if HAVE_EXPERIMENTAL
 
 endif
 
-if HAVE_REST
+if HAVE_JSON
+if HAVE_MHD
   PROVIDER_DIR = identity-provider
+endif
 endif
 
 if HAVE_JSON
@@ -50,7 +52,7 @@ if HAVE_POSTGRESQL
  POSTGRES_DIR = pq postgres
 endif
 
-if HAVE_REST
+if HAVE_MHD
  REST_DIR = rest
 if HAVE_JSON
  JSONAPI_DIR = jsonapi

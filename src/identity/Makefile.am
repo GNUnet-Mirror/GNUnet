@@ -39,10 +39,12 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-identity 
 
-if HAVE_REST
+if HAVE_MHD
+if HAVE_JSON
 plugin_LTLIBRARIES = \
   libgnunet_plugin_rest_identity.la \
   libgnunet_plugin_gnsrecord_identity.la
+endif
 endif
 
 
