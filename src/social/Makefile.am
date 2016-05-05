@@ -40,6 +40,7 @@ gnunet_social_SOURCES = \
   gnunet-social.c
 gnunet_social_LDADD = \
   libgnunetsocial.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_social_SOURCES = \

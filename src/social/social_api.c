@@ -432,7 +432,7 @@ host_recv_notice_place_leave_modifier (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Host received modifier for _notice_place_leave message with ID %" PRIu64 ":\n"
               "%c%s: %.*s\n",
-              message_id, oper, name, value_size, value);
+              message_id, oper, name, value_size, (const char *) value);
 
   /* skip _nym, it's added later in eom() */
   if (0 == memcmp (name, "_nym", sizeof ("_nym"))
