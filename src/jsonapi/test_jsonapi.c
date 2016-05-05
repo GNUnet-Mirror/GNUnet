@@ -24,11 +24,47 @@
 #include "gnunet_jsonapi_lib.h"
 #include "gnunet_json_lib.h"
 
+#define TEST_JSONAPI_DOCUMENT "{\"data\":{\"id\":\"1\",\"type\":\"bar\",\"attributes\":{\"foo\":\"bar\"}}}"
+
+static int
+test_document ()
+{
+  struct GNUNET_JSONAPI_Document *obj;
+  struct GNUNET_JSONAPI_Resource *res;
+  json_t *doc_json;
+  json_t *data_js;
+  json_error_t err;
+
+  obj = GNUNET_JSONAPI_document_new ();
+  res = GNUNET_JSONAPI_resource_new ("bar",
+                                     "1");
+  
+  GNUNET_assert (GNUNET_OK == 
+                 GNUNET_JSONAPI_resource_add_attr (res,
+                                                   "foo",
+                                                   json_string ("bar")));
+
+  GNUNET_JSONAPI_document_resource_add (obj,
+                                        res);
+
+  GNUNET_assert (GNUNET_OK == 
+                 GNUNET_JSONAPI_document_to_json (obj,
+                                                  &doc_json));
+  data_js = json_loads (TEST_JSONAPI_DOCUMENT,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (NULL != data_js);
+  GNUNET_assert (0 != json_equal (data_js, doc_json));
+  GNUNET_JSONAPI_document_delete (obj);
+  json_decref (data_js);
+  json_decref (doc_json);
+  return 0;
+}
+
 static int
 test_serialize ()
 {
   struct GNUNET_JSONAPI_Document *obj;
-  char* data = "{\"data\":{\"id\":\"1\",\"type\":\"bar\", \"attributes\":{\"foo\":\"bar\"}}}";
   char* tmp_data;
   json_t* data_js;
   json_t* tmp_data_js;
@@ -37,7 +73,9 @@ test_serialize ()
     GNUNET_JSON_spec_jsonapi_document (&obj),
     GNUNET_JSON_spec_end()
   };
-  data_js = json_loads (data, JSON_DECODE_ANY, &err);
+  data_js = json_loads (TEST_JSONAPI_DOCUMENT,
+                        JSON_DECODE_ANY,
+                        &err);
   GNUNET_assert (NULL != data_js);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_JSON_parse (data_js, jsonapispec,
@@ -97,6 +135,8 @@ main(int argc,
   if (0 != test_spec_jsonapi ())
     return 1;
   if (0 != test_serialize ())
+    return 1;
+  if (0 != test_document ())
     return 1;
   return 0;
 }

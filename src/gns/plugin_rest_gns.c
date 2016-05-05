@@ -33,6 +33,7 @@
 #include <gnunet_gns_service.h>
 #include <gnunet_rest_lib.h>
 #include <gnunet_jsonapi_lib.h>
+#include <gnunet_jsonapi_util.h>
 #include <jansson.h>
 
 #define GNUNET_REST_API_NS_GNS "/gns"

@@ -286,19 +286,18 @@ GNUNET_JSONAPI_document_resource_remove (struct GNUNET_JSONAPI_Document *resp,
  * @return GNUNET_SYSERR on error else GNUNET_OK
  */
 int
-GNUNET_JSONAPI_document_serialize (const struct GNUNET_JSONAPI_Document *doc,
-                                   char **result)
+GNUNET_JSONAPI_document_to_json (const struct GNUNET_JSONAPI_Document *doc,
+                                 json_t **root_json)
 {
   struct GNUNET_JSONAPI_Resource *res;
   struct GNUNET_JSONAPI_Error *error;
-  json_t *root_json;
   json_t *res_json;
   json_t *res_json_tmp;
 
   if ((NULL == doc))
     return GNUNET_SYSERR;
 
-  root_json = json_object ();
+  *root_json = json_object ();
 
   //Check for errors first 
   if (doc->err_count != 0)
@@ -313,7 +312,9 @@ GNUNET_JSONAPI_document_serialize (const struct GNUNET_JSONAPI_Document *doc,
                                                    &res_json_tmp));
       json_array_append (res_json, res_json_tmp);
     }
-    json_object_set (root_json, GNUNET_JSONAPI_KEY_ERRORS, res_json);
+    json_object_set_new (*root_json,
+                         GNUNET_JSONAPI_KEY_ERRORS,
+                         res_json);
   } else {
     switch (doc->res_count)
     {
@@ -338,14 +339,34 @@ GNUNET_JSONAPI_document_serialize (const struct GNUNET_JSONAPI_Document *doc,
         }
         break;
     }
-    json_object_set (root_json, GNUNET_JSONAPI_KEY_DATA, res_json);
+    json_object_set_new (*root_json,
+                         GNUNET_JSONAPI_KEY_DATA,
+                         res_json);
   }
+  json_object_set (*root_json,
+                   GNUNET_JSONAPI_KEY_META,
+                   doc->meta);
+  return GNUNET_OK;
+}
 
-  //Add meta
-  json_object_set (root_json, GNUNET_JSONAPI_KEY_META, doc->meta);
-  *result = json_dumps (root_json, JSON_INDENT(2));
-  json_decref (root_json);
-  json_decref (res_json);
+/**
+ * String serialze jsonapi primary data
+ *
+ * @param data the JSON API primary data
+ * @param result where to store the result
+ * @return GNUNET_SYSERR on error else GNUNET_OK
+ */
+int
+GNUNET_JSONAPI_document_serialize (const struct GNUNET_JSONAPI_Document *doc,
+                                   char **result)
+{
+  json_t *json_doc;
+  if (GNUNET_OK != GNUNET_JSONAPI_document_to_json (doc,
+                                                    &json_doc))
+    return GNUNET_SYSERR;
+
+  *result = json_dumps (json_doc, JSON_INDENT(2));
+  json_decref (json_doc);
   return GNUNET_OK;
 }
 
