@@ -53,7 +53,20 @@ GNUNET_JSONAPI_document_delete (struct GNUNET_JSONAPI_Document *doc)
 {
   struct GNUNET_JSONAPI_Resource *res;
   struct GNUNET_JSONAPI_Resource *res_next;
-  
+  struct GNUNET_JSONAPI_Error *err;
+  struct GNUNET_JSONAPI_Error *err_next;
+
+
+  for (err = doc->err_list_head;
+       err != NULL;)
+  {
+    err_next = err->next;
+    GNUNET_CONTAINER_DLL_remove (doc->err_list_head,
+                                 doc->err_list_tail,
+                                 err);
+    GNUNET_JSONAPI_error_delete (err);
+    err = err_next;
+  }
 
   for (res = doc->res_list_head;
        res != NULL;)
@@ -65,6 +78,9 @@ GNUNET_JSONAPI_document_delete (struct GNUNET_JSONAPI_Document *doc)
     GNUNET_JSONAPI_resource_delete (res);
     res = res_next;
   }
+
+  if (NULL != doc->meta)
+    json_decref (doc->meta);
   GNUNET_free (doc);
   doc = NULL;
 }
@@ -95,7 +111,7 @@ GNUNET_JSONAPI_document_new ()
  */
 void
 GNUNET_JSONAPI_document_error_add (struct GNUNET_JSONAPI_Document *doc,
-                                      struct GNUNET_JSONAPI_Error *err)
+                                   struct GNUNET_JSONAPI_Error *err)
 {
   GNUNET_CONTAINER_DLL_insert (doc->err_list_head,
                                doc->err_list_tail,
@@ -113,7 +129,7 @@ GNUNET_JSONAPI_document_error_add (struct GNUNET_JSONAPI_Document *doc,
  */
 void
 GNUNET_JSONAPI_document_resource_add (struct GNUNET_JSONAPI_Document *doc,
-                                         struct GNUNET_JSONAPI_Resource *res)
+                                      struct GNUNET_JSONAPI_Resource *res)
 {
   GNUNET_CONTAINER_DLL_insert (doc->res_list_head,
                                doc->res_list_tail,
@@ -310,7 +326,7 @@ GNUNET_JSONAPI_document_to_json (const struct GNUNET_JSONAPI_Document *doc,
       GNUNET_assert (GNUNET_OK ==
                      GNUNET_JSONAPI_error_to_json (error,
                                                    &res_json_tmp));
-      json_array_append (res_json, res_json_tmp);
+      json_array_append_new (res_json, res_json_tmp);
     }
     json_object_set_new (*root_json,
                          GNUNET_JSONAPI_KEY_ERRORS,

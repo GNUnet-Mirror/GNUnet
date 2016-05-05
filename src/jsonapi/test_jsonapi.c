@@ -26,6 +26,46 @@
 
 #define TEST_JSONAPI_DOCUMENT "{\"data\":{\"id\":\"1\",\"type\":\"bar\",\"attributes\":{\"foo\":\"bar\"}}}"
 
+#define TEST_JSONAPI_DOCUMENT_ERR "{\"errors\":[{\"id\":\"1\",\"status\":\"403\",\"code\":\"23\", \"title\":\"Error\", \"detail\":\"Error details\"}]}"
+
+static int
+test_document_error ()
+{
+  struct GNUNET_JSONAPI_Document *obj;
+  struct GNUNET_JSONAPI_Error *error;
+  json_t *doc_json;
+  json_t *data_js;
+  json_error_t err;
+
+  obj = GNUNET_JSONAPI_document_new ();
+  error = GNUNET_JSONAPI_error_new ("1",
+                                    "403",
+                                    "23",
+                                    "Error",
+                                    "Error details",
+                                    NULL,
+                                    NULL,
+                                    NULL);
+
+
+  GNUNET_JSONAPI_document_error_add (obj,
+                                     error);
+
+  GNUNET_assert (GNUNET_OK == 
+                 GNUNET_JSONAPI_document_to_json (obj,
+                                                  &doc_json));
+  data_js = json_loads (TEST_JSONAPI_DOCUMENT_ERR,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (NULL != data_js);
+  GNUNET_assert (0 != json_equal (data_js, doc_json));
+  GNUNET_JSONAPI_document_delete (obj);
+  json_decref (data_js);
+  json_decref (doc_json);
+  return 0;
+}
+
+
 static int
 test_document ()
 {
@@ -38,7 +78,7 @@ test_document ()
   obj = GNUNET_JSONAPI_document_new ();
   res = GNUNET_JSONAPI_resource_new ("bar",
                                      "1");
-  
+
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_JSONAPI_resource_add_attr (res,
                                                    "foo",
@@ -137,6 +177,8 @@ main(int argc,
   if (0 != test_serialize ())
     return 1;
   if (0 != test_document ())
+    return 1;
+  if (0 != test_document_error ())
     return 1;
   return 0;
 }

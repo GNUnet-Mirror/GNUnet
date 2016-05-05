@@ -149,22 +149,22 @@ GNUNET_JSONAPI_error_new (const char *id,
   struct GNUNET_JSONAPI_Error *error;
   error = GNUNET_new (struct GNUNET_JSONAPI_Error);
 
-  GNUNET_assert (NULL != id);
-  error->id = GNUNET_strdup (id);
-  GNUNET_assert (NULL != status);
-  error->status = GNUNET_strdup (status);
-  GNUNET_assert (NULL != code);
-  error->code = GNUNET_strdup (code);
-  GNUNET_assert (NULL != title);
-  error->title = GNUNET_strdup (title);
-  GNUNET_assert (NULL != detail);
-  error->detail = GNUNET_strdup (detail);
-  GNUNET_assert (NULL != links);
-  error->links = json_deep_copy (links);
-  GNUNET_assert (NULL != source);
-  error->source = json_deep_copy (source);
-  GNUNET_assert (NULL != meta);
-  error->meta = json_deep_copy (meta);
+  if (NULL != id)
+    error->id = GNUNET_strdup (id);
+  if (NULL != status)
+    error->status = GNUNET_strdup (status);
+  if (NULL != code)
+    error->code = GNUNET_strdup (code);
+  if (NULL != title)
+    error->title = GNUNET_strdup (title);
+  if (NULL != detail)
+    error->detail = GNUNET_strdup (detail);
+  if (NULL != links)
+    error->links = json_deep_copy (links);
+  if (NULL != source)
+    error->source = json_deep_copy (source);
+  if (NULL != meta)
+    error->meta = json_deep_copy (meta);
   return error;
 }
 /**
