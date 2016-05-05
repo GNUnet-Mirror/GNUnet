@@ -57,6 +57,11 @@ static int list_sections;
  */
 static int ret;
 
+/**
+ * Should we generate a configuration file that is clean and
+ * only contains the deltas to the defaults?
+ */
+static int rewrite;
 
 /**
  * Print each option in a given section.
@@ -99,41 +104,70 @@ print_section_name (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CONFIGURATION_Handle *out;
+  struct GNUNET_CONFIGURATION_Handle *out = NULL;
+  struct GNUNET_CONFIGURATION_Handle *diff = NULL;
 
-  if (NULL == section || list_sections)
+  if (rewrite)
+  {
+    struct GNUNET_CONFIGURATION_Handle *def;
+
+    def = GNUNET_CONFIGURATION_create ();
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_load (def, NULL))
+    {
+      fprintf (stderr,
+               _("failed to load configuration defaults"));
+      ret = 1;
+      return;
+    }
+    diff = GNUNET_CONFIGURATION_get_diff (def,
+                                          cfg);
+    cfg = diff;
+  }
+  if ( ((! rewrite) && (NULL == section)) || list_sections)
   {
     if (! list_sections)
     {
-      fprintf (stderr, _("--section argument is required\n"));
+      fprintf (stderr,
+               _("--section argument is required\n"));
     }
-    fprintf (stderr, _("The following sections are available:\n"));
-    GNUNET_CONFIGURATION_iterate_sections (cfg, &print_section_name, NULL);
+    fprintf (stderr,
+             _("The following sections are available:\n"));
+    GNUNET_CONFIGURATION_iterate_sections (cfg,
+                                           &print_section_name,
+                                           NULL);
     ret = 1;
-    return;
+    goto cleanup;
   }
 
-  if (NULL == value)
+  if ( (NULL != section) && (NULL == value) )
   {
     if (NULL == option)
     {
-      GNUNET_CONFIGURATION_iterate_section_values (cfg, section,
-						   &print_option, NULL);
+      GNUNET_CONFIGURATION_iterate_section_values (cfg,
+                                                   section,
+						   &print_option,
+                                                   NULL);
     }
     else
     {
       if (is_filename)
       {
 	if (GNUNET_OK !=
-	    GNUNET_CONFIGURATION_get_value_filename (cfg, section, option, &value))
+	    GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                     section,
+                                                     option,
+                                                     &value))
 	{
 	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 				     section, option);
 	  ret = 3;
-	  return;
+          goto cleanup;
 	}
       }
       else
@@ -144,28 +178,38 @@ run (void *cls, char *const *args, const char *cfgfile,
 	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 				     section, option);
 	  ret = 3;
-	  return;
+          goto cleanup;
 	}
       }
       fprintf (stdout, "%s\n", value);
     }
   }
-  else
+  else if (NULL != section)
   {
     if (NULL == option)
     {
       fprintf (stderr, _("--option argument required to set value\n"));
       ret = 1;
-      return;
+      goto cleanup;
     }
     out = GNUNET_CONFIGURATION_dup (cfg);
-    GNUNET_CONFIGURATION_set_value_string (out, section, option, value);
-    if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_write (out, cfgfile))
-      ret = 2;
-    GNUNET_CONFIGURATION_destroy (out);
-    return;
+    GNUNET_CONFIGURATION_set_value_string (out,
+                                           section,
+                                           option,
+                                           value);
   }
+  if ( (NULL != diff) || (NULL != out) )
+  {
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_write ((NULL == out) ? diff : out,
+                                    cfgfile))
+      ret = 2;
+  }
+  if (NULL != out)
+    GNUNET_CONFIGURATION_destroy (out);
+ cleanup:
+  if (NULL != diff)
+    GNUNET_CONFIGURATION_destroy (diff);
 }
 
 
@@ -195,6 +239,9 @@ main (int argc, char *const *argv)
     { 'S', "list-sections", NULL,
       gettext_noop ("print available configuration sections"),
       0, &GNUNET_GETOPT_set_one, &list_sections },
+    { 'w', "rewrite", NULL,
+      gettext_noop ("write configuration file that only contains delta to defaults"),
+      0, &GNUNET_GETOPT_set_one, &rewrite },
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
