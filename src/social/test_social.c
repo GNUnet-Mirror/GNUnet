@@ -50,7 +50,7 @@ const char *app_id = "test";
 /**
  * Handle for task for timeout termination.
  */
-struct GNUNET_SCHEDULER_Task * end_badly_task;
+struct GNUNET_SCHEDULER_Task *end_badly_task;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -400,6 +400,14 @@ guest_reconnected (void *cls, int result,
 
 
 static void
+app_connected (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "App connected: %p\n", cls);
+}
+
+
+static void
 app_recv_host (void *cls,
                struct GNUNET_SOCIAL_HostConnection *hconn,
                struct GNUNET_SOCIAL_Ego *ego,
@@ -492,6 +500,7 @@ schedule_reconnect (void *cls)
                                    app_recv_ego,
                                    app_recv_host,
                                    app_recv_guest,
+                                   app_connected,
                                    NULL);
 }
 

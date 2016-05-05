@@ -102,6 +102,7 @@ struct GNUNET_SOCIAL_App
   GNUNET_SOCIAL_AppEgoCallback ego_cb;
   GNUNET_SOCIAL_AppHostPlaceCallback host_cb;
   GNUNET_SOCIAL_AppGuestPlaceCallback guest_cb;
+  GNUNET_SOCIAL_AppConnectedCallback connected_cb;
   void *cb_cls;
 };
 
@@ -925,6 +926,16 @@ app_recv_ego (void *cls,
 
 
 static void
+app_recv_ego_end (void *cls,
+                  struct GNUNET_CLIENT_MANAGER_Connection *client,
+                  const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SOCIAL_App *
+    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+}
+
+
+static void
 app_recv_place (void *cls,
                 struct GNUNET_CLIENT_MANAGER_Connection *client,
                 const struct GNUNET_MessageHeader *msg)
@@ -955,15 +966,30 @@ app_recv_place (void *cls,
     struct GNUNET_SOCIAL_HostConnection *hconn = GNUNET_malloc (sizeof (*hconn));
     hconn->app = app;
     hconn->plc_msg = *pmsg;
-    app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key, pmsg->place_state);
+    if (NULL != app->host_cb)
+      app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key, pmsg->place_state);
   }
   else
   {
     struct GNUNET_SOCIAL_GuestConnection *gconn = GNUNET_malloc (sizeof (*gconn));
     gconn->app = app;
     gconn->plc_msg = *pmsg;
-    app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
+    if (NULL != app->guest_cb)
+      app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
   }
+}
+
+
+static void
+app_recv_place_end (void *cls,
+                  struct GNUNET_CLIENT_MANAGER_Connection *client,
+                  const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SOCIAL_App *
+    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+
+  if (NULL != app->connected_cb)
+    app->connected_cb (app->cb_cls);
 }
 
 
@@ -1049,9 +1075,17 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler app_handlers[] =
     GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO,
     sizeof (struct AppEgoMessage), GNUNET_YES },
 
+  { app_recv_ego_end, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END,
+    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
+
   { app_recv_place, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE,
     sizeof (struct AppPlaceMessage), GNUNET_NO },
+
+  { app_recv_place_end, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END,
+    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
 
   { app_recv_result, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
@@ -2426,6 +2460,7 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_SOCIAL_AppEgoCallback ego_cb,
                            GNUNET_SOCIAL_AppHostPlaceCallback host_cb,
                            GNUNET_SOCIAL_AppGuestPlaceCallback guest_cb,
+                           GNUNET_SOCIAL_AppConnectedCallback connected_cb,
                            void *cls)
 {
   uint16_t app_id_size = strnlen (id, GNUNET_SOCIAL_APP_MAX_ID_SIZE);
@@ -2438,6 +2473,7 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   app->ego_cb = ego_cb;
   app->host_cb = host_cb;
   app->guest_cb = guest_cb;
+  app->connected_cb = connected_cb;
   app->cb_cls = cls;
   app->egos = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   app->client = GNUNET_CLIENT_MANAGER_connect (cfg, "social",

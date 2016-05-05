@@ -2643,8 +2643,14 @@ extern "C"
 /** S->C: notify about an existing ego */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO 853
 
+/** S->C: end of ego list */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END 854
+
 /** S->C: notify about an existing place */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 854
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 855
+
+/** S->C: end of place list */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END 856
 
 /** C->S: set message processing flags */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET 860

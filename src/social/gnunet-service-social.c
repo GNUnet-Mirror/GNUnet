@@ -432,7 +432,7 @@ place_entry_cleanup (void *cls,
                      void *value)
 {
   struct Place *plc = value;
-  
+
   cleanup_place (plc);
   return GNUNET_YES;
 }
@@ -538,7 +538,7 @@ static void
 cleanup_place (void *cls)
 {
   struct Place *plc = cls;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Cleaning up place %s\n",
               plc, GNUNET_h2s (&plc->pub_key_hash));
@@ -1945,6 +1945,21 @@ app_notify_place (struct GNUNET_MessageHeader *msg,
 
 
 void
+app_notify_place_end (struct GNUNET_SERVER_Client *client)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Sending end of place list notification to client\n",
+              client);
+
+  struct GNUNET_MessageHeader msg;
+  msg.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END);
+  msg.size = htons (sizeof (msg));
+
+  client_send_msg (client, &msg);
+}
+
+
+void
 app_notify_ego (struct Ego *ego, struct GNUNET_SERVER_Client *client)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1961,6 +1976,21 @@ app_notify_ego (struct Ego *ego, struct GNUNET_SERVER_Client *client)
 
   client_send_msg (client, &emsg->header);
   GNUNET_free (emsg);
+}
+
+
+void
+app_notify_ego_end (struct GNUNET_SERVER_Client *client)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Sending end of ego list notification to client\n",
+              client);
+
+  struct GNUNET_MessageHeader msg;
+  msg.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END);
+  msg.size = htons (sizeof (msg));
+
+  client_send_msg (client, &msg);
 }
 
 
@@ -2008,11 +2038,13 @@ client_recv_app_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CRYPTO_hash (app_id, app_id_size, &app_id_hash);
 
   GNUNET_CONTAINER_multihashmap_iterate (egos, ego_entry, client);
+  app_notify_ego_end (client);
 
   struct GNUNET_CONTAINER_MultiHashMap *
     app_places = GNUNET_CONTAINER_multihashmap_get (apps_places, &app_id_hash);
   if (NULL != app_places)
     GNUNET_CONTAINER_multihashmap_iterate (app_places, app_place_entry_notify, client);
+  app_notify_place_end (client);
 
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;

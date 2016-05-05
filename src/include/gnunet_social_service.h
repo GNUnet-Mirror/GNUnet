@@ -334,6 +334,13 @@ enum GNUNET_SOCIAL_AppPlaceState
 
 
 /**
+ * Called after receiving initial list of egos and places.
+ */
+typedef void
+(*GNUNET_SOCIAL_AppConnectedCallback) (void *cls);
+
+
+/**
  * Notification about a home.
  *
  * @param cls
@@ -402,6 +409,7 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_SOCIAL_AppEgoCallback ego_cb,
                            GNUNET_SOCIAL_AppHostPlaceCallback host_cb,
                            GNUNET_SOCIAL_AppGuestPlaceCallback guest_cb,
+                           GNUNET_SOCIAL_AppConnectedCallback connected_cb,
                            void *cls);
 
 
