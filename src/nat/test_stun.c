@@ -247,7 +247,7 @@ run (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Service listens on port %u\n",
-              port);
+              (unsigned int) port);
   rh = GNUNET_NAT_stun_make_request (stun_server,
                                      stun_port,
                                      lsock4,

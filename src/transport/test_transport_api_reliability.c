@@ -318,8 +318,9 @@ set_bit (unsigned int bitIdx)
   if (bitIdx >= sizeof (bitmap) * 8)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "tried to set bit %d of %d(!?!?)\n",
-                bitIdx, sizeof (bitmap) * 8);
+                "tried to set bit %u of %u(!?!?)\n",
+                bitIdx,
+                (unsigned int) sizeof (bitmap) * 8);
     return GNUNET_SYSERR;
   }
   arraySlot = bitIdx / 8;
@@ -341,8 +342,10 @@ get_bit (const char *map, unsigned int bit)
 {
   if (bit > TOTAL_MSGS)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "get bit %d of %d(!?!?)\n", bit,
-                sizeof (bitmap) * 8);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "get bit %u of %u(!?!?)\n",
+                bit,
+                (unsigned int) sizeof (bitmap) * 8);
     return 0;
   }
   return ((map)[bit >> 3] & (1 << (bit & 7))) > 0;

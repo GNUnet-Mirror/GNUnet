@@ -163,7 +163,8 @@ notify_ready (void *cls, size_t size, void *buf)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting message with %u bytes to peer %s\n",
-              sizeof (struct GNUNET_MessageHeader), GNUNET_i2s (&p->id));
+              (unsigned int) sizeof (struct GNUNET_MessageHeader),
+              GNUNET_i2s (&p->id));
   GNUNET_assert (size >= 256);
 
   if (buf != NULL)
@@ -308,10 +309,12 @@ main (int argc, char *argv[])
 
   res = getrlimit (RLIMIT_NOFILE, &r_file_old);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Maximum number of open files was: %u/%u\n", r_file_old.rlim_cur,
-              r_file_old.rlim_max);
+              "Maximum number of open files was: %u/%u\n",
+              (unsigned int) r_file_old.rlim_cur,
+              (unsigned int) r_file_old.rlim_max);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Setting maximum number of open files to: %u\n", MAX_FILES);
+              "Setting maximum number of open files to: %u\n",
+              MAX_FILES);
   r_file_new.rlim_cur = MAX_FILES;
   r_file_new.rlim_max = r_file_old.rlim_max;
   res = setrlimit (RLIMIT_NOFILE, &r_file_new);

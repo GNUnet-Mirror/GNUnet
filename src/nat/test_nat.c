@@ -54,9 +54,11 @@ static void
 addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
                socklen_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address changed: %s `%s' (%u bytes)\n",
-              add_remove == GNUNET_YES ? "added" : "removed", GNUNET_a2s (addr,
-                                                                          addrlen),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Address changed: %s `%s' (%u bytes)\n",
+              add_remove == GNUNET_YES ? "added" : "removed",
+              GNUNET_a2s (addr,
+                          addrlen),
               (unsigned int) addrlen);
 }
 
@@ -90,13 +92,17 @@ struct addr_cls
  * @param name name of the interface
  * @param isDefault do we think this may be our default interface
  * @param addr address of the interface
- * @param addrlen number of bytes in addr
- * @return GNUNET_OK to continue iterating
+ * @param addrlen number of bytes in @a addr
+ * @return #GNUNET_OK to continue iterating
  */
 static int
-process_if (void *cls, const char *name, int isDefault,
-            const struct sockaddr *addr, const struct sockaddr *broadcast_addr,
-            const struct sockaddr *netmask, socklen_t addrlen)
+process_if (void *cls,
+            const char *name,
+            int isDefault,
+            const struct sockaddr *addr,
+            const struct sockaddr *broadcast_addr,
+            const struct sockaddr *netmask,
+            socklen_t addrlen)
 {
   struct addr_cls *data = cls;
 
@@ -116,7 +122,9 @@ process_if (void *cls, const char *name, int isDefault,
  * Main function run with scheduler.
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAT_Handle *nat;
@@ -167,8 +175,15 @@ main (int argc, char *const argv[])
                     "WARNING",
                     NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Testing NAT library, timeout set to %d seconds\n", TIMEOUT);
-  GNUNET_PROGRAM_run (3, argv_prog, "test-nat", "nohelp", options, &run, NULL);
+              "Testing NAT library, timeout set to %s\n",
+              GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+                                                      GNUNET_YES));
+  GNUNET_PROGRAM_run (3,
+                      argv_prog,
+                      "test-nat",
+                      "nohelp",
+                      options,
+                      &run, NULL);
   return 0;
 }
 

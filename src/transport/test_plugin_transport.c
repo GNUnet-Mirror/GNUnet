@@ -380,7 +380,8 @@ test_addr_string (void *cls)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Plugin creates different address length when converting address->string->address: %u != %u\n",
-               w->address->address_length, s2a_len);
+               (unsigned int) w->address->address_length,
+               s2a_len);
   }
   else if (0 != memcmp (s2a, w->address->address, s2a_len))
   {
@@ -439,7 +440,7 @@ env_notify_address (void *cls,
     addresses_reported++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                "Adding address of length %u\n",
-                address->address_length);
+                (unsigned int) address->address_length);
 
     for (wtmp = head; NULL != wtmp; wtmp = wtmp->next)
     {
@@ -465,7 +466,7 @@ env_notify_address (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Removing address of length %u\n",
-                address->address_length);
+                (unsigned int) address->address_length);
     w = head;
     while (NULL != w)
     {

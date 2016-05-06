@@ -121,8 +121,9 @@ main (int argc, char *const argv[])
                     NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "UPnP test for NAT library, timeout set to %d seconds\n",
-              TIMEOUT);
+              "UPnP test for NAT library, timeout set to %s\n",
+              GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+                                                      GNUNET_YES));
   GNUNET_PROGRAM_run (5, argv_prog, "test-nat-mini", "nohelp", options, &run,
                       NULL);
   return 0;
