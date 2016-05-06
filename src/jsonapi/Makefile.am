@@ -45,5 +45,6 @@ test_jsonapi_SOURCES = \
   test_jsonapi.c
 test_jsonapi_LDADD = \
   libgnunetjsonapi.la \
+  $(top_builddir)/src/json/libgnunetjson.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson

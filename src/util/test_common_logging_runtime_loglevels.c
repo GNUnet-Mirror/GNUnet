@@ -179,16 +179,22 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   if (delay_is_a_dummy)
     delay_outside_of_range = 1;
 
-  if (!stop)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong log format?\n");
-  if (!level_matches)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong log level\n");
-  if (!delay_is_sane)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Delay %ld is insane\n", *delay);
-  if (!delay_outside_of_range)
+  if (! stop)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Wrong log format?\n");
+  if (! level_matches)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Wrong log level\n");
+  if (! delay_is_sane)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Delay %ld is insane\n",
+                *delay);
+  if (! delay_outside_of_range)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Delay %ld is not outside of range (%ld ; %ld)\n",
-                *delay, delay_lessthan, delay_morethan, c);
+                *delay,
+                delay_lessthan,
+                delay_morethan);
   if (!stop || !level_matches || !delay_is_sane || !delay_outside_of_range)
     return NULL;
   *len = *len - i;
