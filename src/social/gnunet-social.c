@@ -37,6 +37,9 @@
 
 /* operations corresponding to API calls */
 
+/** --status */
+static int op_status;
+
 /** --host-enter */
 static int op_host_enter;
 
@@ -661,7 +664,11 @@ app_connected (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "App connected: %p\n", cls);
 
-  if (op_host_enter) {
+  if (op_status)
+  {
+    GNUNET_SCHEDULER_add_now (&schedule_end, NULL);
+  }
+  else if (op_host_enter) {
     host_enter ();
   }
   else if (op_guest_enter) {
@@ -725,13 +732,20 @@ app_recv_guest (void *cls,
 
 static void
 app_recv_ego (void *cls,
-              struct GNUNET_SOCIAL_Ego *ego,
-              const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
+              struct GNUNET_SOCIAL_Ego *e,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
               const char *name)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Ego: %s\t%s\n",
-              name, GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key));
+              name, GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key));
+
+  if (0 == memcmp (&ego_pub_key, pub_key, sizeof (*pub_key))
+      || 0 == strcmp (opt_ego, name))
+  {
+    ego = e;
+  }
+
 }
 
 
@@ -775,22 +789,24 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   cfg = c;
 
+  if (! (op_status || op_host_enter || op_host_leave || op_host_announce
+         || op_guest_enter || op_guest_leave || op_guest_talk
+         || op_history_replay || op_history_replay_latest
+         || op_look_at || op_look_for))
+  {
+    op_status = 1;
+  }
+
   if (!opt_follow)
   {
     timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout, NULL);
   }
 
-  if (op_host_enter && NULL != opt_place)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("--place must not be specified when using --host-enter\n"));
-    return;
-  }
-
-  if (!opt_place
-      || GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_place,
-                                                                  strlen (opt_place),
-                                                                  &place_pub_key))
+  if (!op_status && !op_host_enter
+      && (!opt_place
+          || GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_place,
+                                                                      strlen (opt_place),
+                                                                      &place_pub_key)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("--place missing or invalid.\n"));
@@ -826,17 +842,31 @@ main (int argc, char *const *argv)
 {
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    /*
+     * gnunet program options in addition to the ones below:
+     *
+     * -c, --config=FILENAME
+     * -l, --logfile=LOGFILE
+     * -L, --log=LOGLEVEL
+     * -h, --help
+     * -v, --version
+     */
+
     /* operations */
+
+    { 's', "status", NULL,
+      gettext_noop ("list of egos and subscribed places"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_status },
 
     { 'E', "host-enter", NULL,
       gettext_noop ("create a place for nyms to join"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter },
 
-    { 'L', "host-leave", NULL,
+    { 'D', "host-leave", NULL,
       gettext_noop ("destroy a place we were hosting"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_leave },
 
-    { 'A', "host-announce", NULL,
+    { 'T', "host-announce", NULL,
       gettext_noop ("publish something to a place we are hosting"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_announce },
 
@@ -844,7 +874,7 @@ main (int argc, char *const *argv)
       gettext_noop ("join somebody else's place"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_enter },
 
-    { 'l', "guest-leave", NULL,
+    { 'd', "guest-leave", NULL,
       gettext_noop ("leave somebody else's place"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_leave },
 
@@ -862,7 +892,7 @@ main (int argc, char *const *argv)
 
     /* options */
 
-    { 'A', "app", "application ID",
+    { 'A', "app", "APPLICATION_ID",
       gettext_noop ("application ID to use when connecting"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_app },
 
@@ -874,7 +904,7 @@ main (int argc, char *const *argv)
       gettext_noop ("peer ID for --guest-enter"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_peer },
 
-    { 'g', "ego", "PUBKEY",
+    { 'g', "ego", "NAME|PUBKEY",
       gettext_noop ("public key of ego"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_place },
 
@@ -886,11 +916,11 @@ main (int argc, char *const *argv)
       gettext_noop ("method name"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_method },
 
-    { 'd', "data", "DATA",
+    { 'b', "body", "DATA",
       gettext_noop ("message body to transmit"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_data },
 
-    { 'n', "name", "VAR_NAME",
+    { 'k', "name", "VAR_NAME",
       gettext_noop ("state var name to query"),
       GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_name },
 
@@ -913,24 +943,25 @@ main (int argc, char *const *argv)
     return 2;
 
   const char *help =
-    _ ("interact with the social service: enter/leave, send/receive messages, access history and state");
+    _ ("Interact with the social service: enter/leave, send/receive messages, access history and state.\n");
   const char *usage =
-    "gnunet-social --host-enter --ego <name or pubkey> [--listen]\n"
-    "gnunet-social --host-leave --place <pubkey>\n"
-    "gnunet-social --host-announce --place <pubkey> --method <method_name> --data <message body>\n"
+    "gnunet-social [--status]\n"
     "\n"
-    "gnunet-social --guest-enter --place <pubkey> --ego <name or pubkey> [--listen]\n"
-    "gnunet-social --guest-leave --place <pubkey>\n"
-    "gnunet-social --guest-talk --place <pubkey> --method <method_nmae> --data <data>\n"
+    "gnunet-social --host-enter --ego <NAME or PUBKEY> [--listen]\n"
+    "gnunet-social --host-leave --place <PUBKEY>\n"
+    "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE BODY>\n"
     "\n"
-    "gnunet-social --history-replay --place <pubkey> --start <msgid> --end <msgid>  [--method <method_prefix>]\n"
-    "gnunet-social --history-replay-latest --place <pubkey> --limit <msg_limit> [--method <method_prefix>]\n"
+    "gnunet-social --guest-enter --place <PUBKEY> --ego <NAME or PUBKEY> [--listen]\n"
+    "gnunet-social --guest-leave --place <PUBKEY>\n"
+    "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NMAE> --data <DATA>\n"
     "\n"
-    "gnunet-social --look-at --place <pubkey> --name <full_name>\n"
-    "gnunet-social --look-for --place <pubkey> --name <name_prefix>\n";
+    "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --end <MSGID>  [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
+    "\n"
+    "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
+    "gnunet-social --look-for --place <PUBKEY> --name <NAME_PREFIX>\n";
 
-  res = GNUNET_PROGRAM_run (argc, argv, usage,
-                            help, options, &run, NULL);
+  res = GNUNET_PROGRAM_run (argc, argv, help, usage, options, &run, NULL);
 
   GNUNET_free ((void *) argv);
 
