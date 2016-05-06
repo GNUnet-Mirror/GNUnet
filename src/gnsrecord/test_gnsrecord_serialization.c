@@ -56,16 +56,26 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   res = 0;
 
-  len = GNUNET_GNSRECORD_records_get_size(rd_count, src);
+  len = GNUNET_GNSRECORD_records_get_size (rd_count, src);
   char rd_ser[len];
-  GNUNET_assert (len == GNUNET_GNSRECORD_records_serialize(rd_count, src, len, rd_ser));
+  GNUNET_assert (len ==
+                 GNUNET_GNSRECORD_records_serialize (rd_count,
+                                                     src,
+                                                     len,
+                                                     rd_ser));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serialized data len: %u\n",len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Serialized data len: %u\n",
+              (unsigned int) len);
 
   GNUNET_assert (rd_ser != NULL);
 
   struct GNUNET_GNSRECORD_Data dst[rd_count];
-  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_records_deserialize (len, rd_ser, rd_count, dst));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_records_deserialize (len,
+                                                       rd_ser,
+                                                       rd_count,
+                                                       dst));
 
   GNUNET_assert (dst != NULL);
 

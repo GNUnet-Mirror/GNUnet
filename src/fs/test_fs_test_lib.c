@@ -64,8 +64,7 @@ do_stop (void *cls)
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Finished download, shutting down\n",
-                (unsigned long long) FILESIZE);
+                "Finished download, shutting down\n");
   }
   if (NULL != fn)
   {

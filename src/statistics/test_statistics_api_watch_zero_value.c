@@ -58,8 +58,11 @@ static int
 watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received value `%s' `%s' %llu\n",
-      subsystem, name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received value `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              (unsigned long long) value);
   GNUNET_assert (0 == strcmp (name, "test-1"));
   if ((0 == value) && (3 == ok))
   {
@@ -88,11 +91,17 @@ watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
 
 
 static int
-watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
+watch_2 (void *cls,
+         const char *subsystem,
+         const char *name,
+         uint64_t value,
          int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received value `%s' `%s' %llu\n",
-      subsystem, name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received value `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              (unsigned long long) value);
 
   GNUNET_assert (0 == strcmp (name, "test-2"));
   if ((42 == value) && (1 == ok2))
@@ -106,7 +115,9 @@ watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received unexpected value %llu\n", value);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received unexpected value %llu\n",
+                (unsigned long long) value);
 
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (shutdown_task);
@@ -136,7 +147,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_STATISTICS_set (h2, "test-2", 42, GNUNET_NO);
 
   shutdown_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &force_shutdown,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &force_shutdown,
                                     NULL);
 }
 

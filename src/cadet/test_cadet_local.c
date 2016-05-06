@@ -156,7 +156,8 @@ inbound_channel (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "received incoming channel on peer %d, port %u\n",
-              id, port);
+              (int) id,
+              (unsigned int) port);
   if (id != 2L)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

@@ -201,9 +201,11 @@ tmit_notify (void *cls, size_t *data_size, void *data)
 
   uint16_t size = strlen (tmit->data[tmit->n]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify data: %u bytes available, "
-              "processing fragment %u/%u (size %u).\n",
-              *data_size, tmit->n + 1, tmit->data_count, size);
+              "Transmit notify data: %u bytes available, processing fragment %u/%u (size %u).\n",
+              (unsigned int) *data_size,
+              tmit->n + 1,
+              tmit->data_count,
+              size);
   if (*data_size < size)
   {
     *data_size = 0;
@@ -468,9 +470,12 @@ member_recv_message (void *cls,
                      const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
   struct MemberClosure *mcls = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%u: member_recv_message() %u/%u\n",
-              test, mcls->n + 1, mcls->msgs_expected);
+              test,
+              (unsigned int) (mcls->n + 1),
+              mcls->msgs_expected);
   if (++mcls->n != mcls->msgs_expected)
     return;
 

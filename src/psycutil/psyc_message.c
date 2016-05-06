@@ -267,45 +267,54 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
 {
   uint16_t size = ntohs (msg->size);
   uint16_t type = ntohs (msg->type);
-  GNUNET_log (kind, "Message of type %d and size %u:\n", type, size);
+
+  GNUNET_log (kind,
+              "Message of type %d and size %u:\n",
+              type,
+              size);
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE:
   {
-    struct GNUNET_PSYC_MessageHeader *pmsg
-      = (struct GNUNET_PSYC_MessageHeader *) msg;
-    GNUNET_log (kind, "\tID: %" PRIu64 "\tflags: %x" PRIu32 "\n",
-                GNUNET_ntohll (pmsg->message_id), ntohl (pmsg->flags));
+    const struct GNUNET_PSYC_MessageHeader *pmsg
+      = (const struct GNUNET_PSYC_MessageHeader *) msg;
+    GNUNET_log (kind,
+                "\tID: %" PRIu64 "\tflags: %x" PRIu32 "\n",
+                GNUNET_ntohll (pmsg->message_id),
+                ntohl (pmsg->flags));
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
   {
-    struct GNUNET_PSYC_MessageMethod *meth
-      = (struct GNUNET_PSYC_MessageMethod *) msg;
+    const struct GNUNET_PSYC_MessageMethod *meth
+      = (const struct GNUNET_PSYC_MessageMethod *) msg;
     GNUNET_log (kind,
                 "\t%.*s\n",
                 (int) (size - sizeof (*meth)),
-                &meth[1]);
+                (const char *) &meth[1]);
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
   {
-    struct GNUNET_PSYC_MessageModifier *mod
-      = (struct GNUNET_PSYC_MessageModifier *) msg;
+    const struct GNUNET_PSYC_MessageModifier *mod
+      = (const struct GNUNET_PSYC_MessageModifier *) msg;
     uint16_t name_size = ntohs (mod->name_size);
     char oper = ' ' < mod->oper ? mod->oper : ' ';
     GNUNET_log (kind,
                 "\t%c%.*s\t%.*s\n",
                 oper,
                 (int) name_size,
-                &mod[1],
+                (const char *) &mod[1],
                 (int) (size - sizeof (*mod) - name_size),
-                ((char *) &mod[1]) + name_size);
+                ((const char *) &mod[1]) + name_size);
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
-    GNUNET_log (kind, "\t%.*s\n", size - sizeof (*msg), &msg[1]);
+    GNUNET_log (kind,
+                "\t%.*s\n",
+                (int) (size - sizeof (*msg)),
+                (const char *) &msg[1]);
     break;
   }
 }
@@ -320,7 +329,8 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
 struct GNUNET_PSYC_TransmitHandle *
 GNUNET_PSYC_transmit_create (struct GNUNET_CLIENT_MANAGER_Connection *client)
 {
-  struct GNUNET_PSYC_TransmitHandle *tmit = GNUNET_malloc (sizeof (*tmit));
+  struct GNUNET_PSYC_TransmitHandle *tmit = GNUNET_new (struct GNUNET_PSYC_TransmitHandle);
+
   tmit->client = client;
   return tmit;
 }

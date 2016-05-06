@@ -415,19 +415,22 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static int
-inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+inbound_notify (void *cls,
+                const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s' %llu.\n",
-              GNUNET_i2s (other), ntohs (message->size));
+              "Core provides inbound data from `%4s' %u.\n",
+              GNUNET_i2s (other),
+              (unsigned int) ntohs (message->size));
   total_bytes_recv += ntohs (message->size);
   return GNUNET_OK;
 }
 
 
 static int
-outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+outbound_notify (void *cls,
+                 const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -363,21 +363,28 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
-stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
-                const char *subsystem, const char *name,
-                uint64_t value, int is_persistent)
+stats_iterator (void *cls,
+                const struct GNUNET_TESTBED_Peer *peer,
+                const char *subsystem,
+                const char *name,
+                uint64_t value,
+                int is_persistent)
 {
   static const char *s_sent = "# keepalives sent";
   static const char *s_recv = "# keepalives received";
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "STATS PEER %u - %s [%s]: %llu\n",
-              i, subsystem, name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "STATS PEER %u - %s [%s]: %llu\n",
+              i,
+              subsystem,
+              name,
+              (unsigned long long) value);
   if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
 
@@ -401,7 +408,7 @@ gather_stats_and_exit (void *cls)
   disconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "gathering statistics from line %d\n",
-	      l);
+	      (int) l);
   if (NULL != ch)
   {
     if (NULL != th)
@@ -497,7 +504,9 @@ data_task (void *cls)
     else
     {
       i++;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "in %u ms\n", i);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "in %llu ms\n",
+                  (unsigned long long) i);
       data_job = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 									      i),
 					       &data_task, (void *) i);
@@ -535,7 +544,10 @@ tmt_rdy (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, ack_received %u\n",
-                size, buf, data_sent, ack_received);
+                (unsigned int) size,
+                buf,
+                data_sent,
+                ack_received);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok %u, ok goal %u\n", ok, ok_goal);
     GNUNET_break (ok >= ok_goal - 2);
 
@@ -559,8 +571,10 @@ tmt_rdy (void *cls, size_t size, void *buf)
     else
       data_sent++;
     counter++;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " Sent message %d size %u\n",
-                counter, msg_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                " Sent message %u size %u\n",
+                counter,
+                (unsigned int) msg_size);
     if (data_sent < TOTAL_PACKETS && SPEED == test)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Scheduling message %d\n",
@@ -751,7 +765,8 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d\n",
-              GNUNET_i2s (initiator), (long) cls);
+              GNUNET_i2s (initiator),
+              (int) (long) cls);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == peers_requested - 1)
@@ -807,7 +822,8 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unknown peer! %d\n", i);
+                "Unknown peer! %d\n",
+                (int) i);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
 
   if (NULL != disconnect_task)

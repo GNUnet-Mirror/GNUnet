@@ -381,7 +381,7 @@ test_addr_string (void *cls)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Plugin creates different address length when converting address->string->address: %u != %u\n",
                (unsigned int) w->address->address_length,
-               s2a_len);
+               (unsigned int) s2a_len);
   }
   else if (0 != memcmp (s2a, w->address->address, s2a_len))
   {

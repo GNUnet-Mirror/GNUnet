@@ -152,11 +152,15 @@ end ()
 
 
 void
-state_reset_result (void *cls, int64_t result,
-                    const char *err_msg, uint16_t err_msg_size)
+state_reset_result (void *cls,
+                    int64_t result,
+                    const char *err_msg,
+                    uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_reset_result:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "state_reset_result:\t%d\n",
+              (int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_state_reset (h, &channel_pub_key,
