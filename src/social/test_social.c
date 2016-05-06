@@ -510,8 +510,8 @@ host_recv_zone_add_place_result (void *cls, int64_t result,
                                  const void *data, uint16_t data_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Zone add place result: %d (%.*s).\n",
-              test, result, data_size, data);
+              "Test #%u: Zone add place result: %" PRId64 " (%.*s).\n",
+              test, result, data_size, (const char *) data);
   GNUNET_assert (GNUNET_YES == result);
 
   GNUNET_assert (GNUNET_YES == is_guest_nym_added);
@@ -600,7 +600,7 @@ guest_look_for_result (void *cls,
 {
   struct ResultClosure *rcls = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "guest_look_for_result: %d\n", result_code);
+              "guest_look_for_result: %" PRId64 "\n", result_code);
   GNUNET_assert (GNUNET_OK == result_code);
   GNUNET_assert (3 == rcls->n);
   GNUNET_free (rcls);
@@ -620,7 +620,7 @@ guest_look_for_var (void *cls,
   rcls->n++;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "guest_look_for_var: %s\n%.*s\n",
-              name, value_size, value);
+              name, value_size, (const char *) value);
 }
 
 
@@ -640,7 +640,7 @@ guest_look_at_result (void *cls, int64_t result_code,
   struct ResultClosure *rcls = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "guest_look_at_result: %d\n", result_code);
+              "guest_look_at_result: %" PRId64 "\n", result_code);
   GNUNET_assert (GNUNET_OK == result_code);
   GNUNET_assert (1 == rcls->n);
   GNUNET_free (rcls);
@@ -661,7 +661,7 @@ guest_look_at_var (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "guest_look_at_var: %s\n%.*s\n",
-              name, value_size, value);
+              name, value_size, (const char *) value);
 }
 
 
@@ -680,9 +680,9 @@ guest_recv_history_replay_latest_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received latest history replay result "
-              "(%lu messages, %" PRId64 " fragments):\n"
+              "(%" PRIu32 " messages, %" PRId64 " fragments):\n"
               "%.*s\n",
-              test, counter, result, data_size, data);
+              test, counter, result, data_size, (const char *) data);
   //GNUNET_assert (2 == counter); /* message count */
   //GNUNET_assert (7 == result); /* fragment count */
 
@@ -710,7 +710,7 @@ guest_recv_history_replay_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received history replay result: %" PRId64 "\n"
               "%.*s\n",
-              test, result, data_size, data);
+              test, result, data_size, (const char *) data);
 //  GNUNET_assert (2 == counter); /* message count */
 //  GNUNET_assert (7 == result); /* fragment count */
 
@@ -760,7 +760,7 @@ guest_recv_modifier (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
-              test, message_id, oper, name, value_size, value, value_size);
+              test, message_id, oper, name, value_size, (const char *) value, value_size);
   /** @todo FIXME: check modifier */
 }
 
@@ -778,7 +778,7 @@ guest_recv_mod_foo_bar (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received modifier matching _foo_bar for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
-              test, message_id, oper, name, value_size, value, value_size);
+              test, message_id, oper, name, value_size, (const char *) value, value_size);
   struct ResultClosure *rc = cls;
   rc->n++;
   /** @todo FIXME: check modifier */
@@ -796,7 +796,7 @@ guest_recv_data (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
-              test, message_id, data_size, data);
+              test, message_id, data_size, (const char *) data);
   /** @todo FIXME: check data */
 }
 
@@ -872,7 +872,7 @@ host_recv_modifier (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Host received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s\n",
-              test, message_id, oper, name, value_size, value);
+              test, message_id, oper, name, value_size, (const char *) value);
 }
 
 
@@ -887,7 +887,7 @@ host_recv_data (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Host received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
-              test, message_id, data_size, data);
+              test, message_id, data_size, (const char *) data);
 }
 
 
@@ -1042,7 +1042,7 @@ guest_recv_entry_decision (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n%.*s\n",
-                method_name, data_size, data);
+                method_name, data_size, (const char *) data);
     /** @todo FIXME: check response message */
   }
 
@@ -1084,7 +1084,7 @@ host_answer_door (void *cls,
               test, join_req_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s\n%.*s\n",
-              method_name, data_size, data);
+              method_name, data_size, (const char *) data);
 
   switch (test)
   {
@@ -1285,6 +1285,7 @@ id_host_created (void *cls, const char *emsg)
                                    app_recv_ego,
                                    app_recv_host,
                                    app_recv_guest,
+                                   app_connected,
                                    NULL);
 }
 

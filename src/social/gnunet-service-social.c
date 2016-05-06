@@ -1308,7 +1308,7 @@ app_place_remove (const char *app_id,
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error removing app place file: %s: %s\n",
+                "Error removing app place file: %s: %s (%d)\n",
                 app_place_filename, strerror (errno), errno);
     ret = GNUNET_SYSERR;
   }
@@ -1641,7 +1641,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     if (0 != remaining)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "%u + %u + %u != %u\n",
+                  "%zu + %u + %u != %u\n",
                   sizeof (*greq), relay_size, join_msg_size, greq_size);
       GNUNET_break (0);
       GNUNET_free (gst);
@@ -2656,9 +2656,9 @@ psyc_transmit_queue_next_method (struct Place *plc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%p psyc_transmit_queue_next_method: invalid method name.\n",
-                plc, ntohs (pmsg->type));
+                plc);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%u <= %u || NUL != %u\n",
+                "%zu <= %u || NUL != %u\n",
                 sizeof (*pmeth), psize, *((char *) pmeth + psize - 1));
     GNUNET_break (0);
     GNUNET_free (pmeth);
@@ -2924,7 +2924,8 @@ psyc_recv_history_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p History replay #%" PRIu64 ": "
               "PSYCstore returned %" PRId64 " (%.*s)\n",
-              opcls->plc, GNUNET_ntohll (opcls->op_id), result, err_msg_size, err_msg);
+              opcls->plc, GNUNET_ntohll (opcls->op_id), result,
+              err_msg_size, (const char *) err_msg);
 
   // FIXME: place might have been destroyed
   client_send_result (opcls->client, opcls->op_id, result, err_msg, err_msg_size);
@@ -2953,7 +2954,7 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p History replay #%" PRIu64 ": "
-                "invalid method prefix. size: %u < %u?\n",
+                "invalid method prefix. size: %u < %zu?\n",
                 plc, GNUNET_ntohll (req->op_id), size, sizeof (*req) + 1);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -3029,7 +3030,8 @@ psyc_recv_state_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p State get #%" PRIu64 ": "
               "PSYCstore returned %" PRId64 " (%.*s)\n",
-              opcls->plc, GNUNET_ntohll (opcls->op_id), result, err_msg_size, err_msg);
+              opcls->plc, GNUNET_ntohll (opcls->op_id), result,
+              err_msg_size, (const char *) err_msg);
 
   // FIXME: place might have been destroyed
   client_send_result (opcls->client, opcls->op_id, result, err_msg, err_msg_size);
@@ -3062,7 +3064,7 @@ client_recv_state_get (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p State get #%" PRIu64 ": "
-                "invalid name. size: %u < %u?\n",
+                "invalid name. size: %u < %zu?\n",
                 plc, GNUNET_ntohll (req->op_id), size, sizeof (*req) + 1);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
