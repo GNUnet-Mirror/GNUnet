@@ -321,7 +321,7 @@ load (struct GNUNET_SERVER_Handle *server)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading %llu bytes of statistics from `%s'\n"),
-              fsize, fn);
+              (unsigned long long) fsize, fn);
   mst = GNUNET_SERVER_mst_create (&inject_message,
                                   server);
   GNUNET_break (GNUNET_OK ==
@@ -475,7 +475,7 @@ transmit (struct GNUNET_SERVER_Client *client,
               e->subsystem->service,
               e->name,
               e->persistent,
-              e->value);
+              (unsigned long long) e->value);
   GNUNET_SERVER_notification_context_unicast (nc, client, &m->header,
                                               GNUNET_NO);
   GNUNET_free (m);
@@ -793,7 +793,7 @@ handle_set (void *cls,
                 "Statistic `%s:%s' updated to value %llu (%d).\n",
                 service,
                 name,
-                pos->value,
+                (unsigned long long) pos->value,
                 pos->persistent);
     if ( (changed) ||
          (1 == initial_set) )
@@ -829,7 +829,7 @@ handle_set (void *cls,
               "New statistic on `%s:%s' with value %llu created.\n",
               service,
               name,
-              pos->value);
+              (unsigned long long) pos->value);
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
 }
@@ -907,7 +907,7 @@ handle_watch (void *cls,
                 "New statistic on `%s:%s' with value %llu created.\n",
                 service,
                 name,
-                pos->value);
+                (unsigned long long) pos->value);
   }
   we = GNUNET_new (struct WatchEntry);
   we->client = client;

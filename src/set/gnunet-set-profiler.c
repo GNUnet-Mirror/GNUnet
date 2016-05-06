@@ -192,7 +192,10 @@ set_result_cb (void *cls,
 
   if (element->size != sizeof (struct GNUNET_HashCode))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "wrong element size: %u, expected %u\n", element->size, sizeof (struct GNUNET_HashCode));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "wrong element size: %u, expected %u\n",
+                element->size,
+                (unsigned int) sizeof (struct GNUNET_HashCode));
     GNUNET_assert (0);
   }
 

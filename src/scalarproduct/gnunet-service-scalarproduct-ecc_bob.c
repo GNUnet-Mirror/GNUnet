@@ -1179,8 +1179,7 @@ handle_client_disconnect (void *cls,
   if (NULL == client)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client disconnected from us.\n",
-              client);
+              "Client disconnected from us.\n");
   s = GNUNET_SERVER_client_get_user_context (client,
                                              struct BobServiceSession);
   if (NULL == s)

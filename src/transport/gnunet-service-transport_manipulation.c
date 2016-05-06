@@ -350,7 +350,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delaying %u byte message to peer `%s' with peer specific delay for %s\n",
-              msg_size,
+              (unsigned int) msg_size,
               GNUNET_i2s (target),
               GNUNET_STRINGS_relative_time_to_string (delay,
                                                       GNUNET_YES));

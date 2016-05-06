@@ -266,7 +266,9 @@ data_ready (void *cls, size_t size, void *buf)
   }
 
   total_size = data_size + sizeof (struct GNUNET_MessageHeader);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending %u bytes\n", data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "sending %u bytes\n",
+              (unsigned int) data_size);
   GNUNET_assert (size >= total_size);
 
   msg = buf;
@@ -297,7 +299,9 @@ read_stdio (void *cls)
   static char buf[60000];
 
   data_size = read (0, buf, 60000);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stdio read %u bytes\n", data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "stdio read %u bytes\n",
+              (unsigned int) data_size);
   if (data_size < 1)
   {
     GNUNET_SCHEDULER_shutdown();

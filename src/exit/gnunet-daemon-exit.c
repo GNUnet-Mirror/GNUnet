@@ -1181,7 +1181,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
     char dbuf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received TCP packet with %u bytes going from %s:%u to %s:%u\n",
-		pktlen - sizeof (struct GNUNET_TUN_TcpHeader),
+		(unsigned int) (pktlen - sizeof (struct GNUNET_TUN_TcpHeader)),
 		inet_ntop (af,
 			   source_ip,
 			   sbuf, sizeof (sbuf)),

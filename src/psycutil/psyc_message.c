@@ -282,7 +282,10 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
   {
     struct GNUNET_PSYC_MessageMethod *meth
       = (struct GNUNET_PSYC_MessageMethod *) msg;
-    GNUNET_log (kind, "\t%.*s\n", size - sizeof (*meth), &meth[1]);
+    GNUNET_log (kind,
+                "\t%.*s\n",
+                (int) (size - sizeof (*meth)),
+                &meth[1]);
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
@@ -291,8 +294,12 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
       = (struct GNUNET_PSYC_MessageModifier *) msg;
     uint16_t name_size = ntohs (mod->name_size);
     char oper = ' ' < mod->oper ? mod->oper : ' ';
-    GNUNET_log (kind, "\t%c%.*s\t%.*s\n", oper, name_size, &mod[1],
-                size - sizeof (*mod) - name_size,
+    GNUNET_log (kind,
+                "\t%c%.*s\t%.*s\n",
+                oper,
+                (int) name_size,
+                &mod[1],
+                (int) (size - sizeof (*mod) - name_size),
                 ((char *) &mod[1]) + name_size);
     break;
   }

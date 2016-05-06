@@ -196,8 +196,9 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
   if (req_size < sizeof (struct StoreRecordMessage))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received message with invalid size: (%d < %d).\n", req_size,
-                sizeof (struct StoreRecordMessage));
+                "Received message with invalid size: (%d < %d).\n",
+                (int) req_size,
+                (int) sizeof (struct StoreRecordMessage));
     return NULL;
   }
   srm = (struct StoreRecordMessage *) message;
@@ -209,8 +210,11 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received message with invalid sizes: (%d + %d + %d + %d != %d).\n",
-                ss_size, key_size, value_size,
-                sizeof (struct StoreRecordMessage), req_size);
+                ss_size,
+                key_size,
+                value_size,
+                (int) sizeof (struct StoreRecordMessage),
+                req_size);
     return NULL;
   }
   record = GNUNET_new (struct GNUNET_PEERSTORE_Record);

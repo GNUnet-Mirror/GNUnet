@@ -1105,7 +1105,10 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
   if (msize != esize)
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "m:%u, e: %u\n", msize, esize);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "m:%u, e: %u\n",
+                (unsigned int) msize,
+                (unsigned int) esize);
     h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
@@ -1212,11 +1215,17 @@ process_get_tunnel (struct GNUNET_CADET_Handle *h,
   if (msize != esize)
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "m:%u, e: %u (%u ch, %u conn)\n",
-                msize, esize, ch_n, c_n);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u (%u ch, %u conn)\n",
-                sizeof (struct GNUNET_CADET_LocalInfoTunnel),
-                sizeof (CADET_ChannelNumber), sizeof (struct GNUNET_HashCode));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "m:%u, e: %u (%u ch, %u conn)\n",
+                (unsigned int) msize,
+                (unsigned int) esize,
+                ch_n,
+                c_n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u (%u ch, %u conn)\n",
+                (unsigned int) sizeof (struct GNUNET_CADET_LocalInfoTunnel),
+                (unsigned int) sizeof (CADET_ChannelNumber),
+                (unsigned int) sizeof (struct GNUNET_HashCode));
     h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }

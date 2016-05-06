@@ -214,6 +214,10 @@ src/identity-provider/identity_provider_api.c
 src/identity-provider/identity_token.c
 src/identity-provider/plugin_rest_identity_provider.c
 src/jsonapi/jsonapi.c
+src/jsonapi/jsonapi_document.c
+src/jsonapi/jsonapi_error.c
+src/jsonapi/jsonapi_relationship.c
+src/jsonapi/jsonapi_resource.c
 src/json/json.c
 src/json/json_generator.c
 src/json/json_helper.c
@@ -322,6 +326,7 @@ src/set/ibf.c
 src/set/ibf_sim.c
 src/set/set_api.c
 src/social/gnunet-service-social.c
+src/social/gnunet-social.c
 src/social/social_api.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c

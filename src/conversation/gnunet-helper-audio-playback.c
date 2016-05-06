@@ -173,15 +173,15 @@ process_header (ogg_packet *op)
   dec = opus_decoder_create (SAMPLING_RATE, channels, &err);
   if (OPUS_OK != err)
   {
-    fprintf (stderr, 
-	     "Cannot create encoder: %s\n", 
+    fprintf (stderr,
+	     "Cannot create encoder: %s\n",
 	     opus_strerror (err));
     return NULL;
   }
   if (! dec)
   {
     fprintf (stderr,
-	     "Decoder initialization failed: %s\n", 
+	     "Decoder initialization failed: %s\n",
 	     opus_strerror (err));
     return NULL;
   }
@@ -209,7 +209,7 @@ process_header (ogg_packet *op)
 
 
 #ifdef DEBUG_DUMP_DECODED_OGG
-static size_t 
+static size_t
 fwrite_le32(opus_int32 i32, FILE *file)
 {
    unsigned char buf[4];
@@ -221,7 +221,7 @@ fwrite_le32(opus_int32 i32, FILE *file)
 }
 
 
-static size_t 
+static size_t
 fwrite_le16(int i16, FILE *file)
 {
    unsigned char buf[2];
@@ -292,9 +292,11 @@ audio_write (int64_t maxout)
       int64_t wrote = 0;
       wrote = to_write;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Writing %u * %u * %u = %u bytes into PA\n",
-                  to_write, channels, sizeof (float),
-                  to_write * channels * sizeof (float));
+                  "Writing %u * %u * %u = %llu bytes into PA\n",
+                  to_write,
+                  channels,
+                  (unsigned int) sizeof (float),
+                  (unsigned long long) (to_write * channels * sizeof (float)));
 #ifdef DEBUG_DUMP_DECODED_OGG
       if (dump_to_stdout)
       {
@@ -453,12 +455,14 @@ ogg_demux_and_decode ()
           so that we can adjust the timestamp counting.*/
         gran_offset = preskip;
 
-        if (!pcm_buffer)
+        if (! pcm_buffer)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Allocating %u * %u * %u = %u bytes of buffer space\n",
-                  MAX_FRAME_SIZE, channels, sizeof (float),
-                  MAX_FRAME_SIZE * channels * sizeof (float));
+                      "Allocating %u * %u * %u = %llu bytes of buffer space\n",
+                      MAX_FRAME_SIZE,
+                      channels,
+                      (unsigned int) sizeof (float),
+                      (unsigned long long) (MAX_FRAME_SIZE * channels * sizeof (float)));
           pcm_buffer = pa_xmalloc (sizeof (float) * MAX_FRAME_SIZE * channels);
         }
       }
@@ -501,7 +505,9 @@ ogg_demux_and_decode ()
         frame_size = ret;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Decoded %d bytes/channel (%d bytes) from %u compressed bytes\n",
-                    ret, ret * channels, op.bytes);
+                    ret,
+                    ret * channels,
+                    (unsigned int) op.bytes);
 
         /*Apply header gain, if we're not using an opus library new
           enough to do this internally.*/

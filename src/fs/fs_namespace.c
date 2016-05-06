@@ -204,7 +204,9 @@ write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to open `%s' for writing: %s\n"), STRERROR (errno));
+                _("Failed to open `%s' for writing: %s\n"),
+                fn,
+                STRERROR (errno));
     GNUNET_free (fn);
     return;
   }
@@ -226,7 +228,9 @@ write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
   }
 END:
   if (GNUNET_OK != GNUNET_BIO_write_close (wh))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to write `%s': %s\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to write `%s': %s\n"),
+                fn,
                 STRERROR (errno));
   GNUNET_free (fn);
 }

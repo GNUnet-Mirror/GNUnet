@@ -613,7 +613,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= tnq->len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending %u bytes via cadet channel\n",
-	      tnq->len);
+	      (unsigned int) tnq->len);
   GNUNET_CONTAINER_DLL_remove (ts->tmq_head,
 			       ts->tmq_tail,
 			       tnq);
@@ -648,7 +648,7 @@ send_to_channel (struct ChannelMessageQueueEntry *tnq,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing %u bytes for transmission via cadet channel\n",
-	      tnq->len);
+	      (unsigned int) tnq->len);
   GNUNET_assert (NULL != ts->channel);
   GNUNET_CONTAINER_DLL_insert_tail (ts->tmq_head,
 				    ts->tmq_tail,

@@ -648,7 +648,7 @@ transmit_ready (void *cls,
     return 0;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "In round s, sending to `%s' estimate with %u bits\n",
+              "In round %s, sending to `%s' estimate with %u bits\n",
               GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].timestamp)),
               GNUNET_i2s (&peer_entry->id),
               (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
@@ -784,7 +784,7 @@ schedule_current_round (void *cls,
   delay =
       get_transmit_delay ((peer_entry->previous_round == GNUNET_NO) ? -1 : 0);
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (delay, 
+      GNUNET_SCHEDULER_add_delayed (delay,
 				    &transmit_task_cb,
 				    peer_entry);
   return GNUNET_OK;

@@ -143,13 +143,13 @@ set_pref_task (void *cls)
  */
 struct PreferenceGenerator *
 GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
-    struct BenchmarkPartner *dest,
-    enum GeneratorType type,
-    long int base_value,
-    long int value_rate,
-    struct GNUNET_TIME_Relative period,
-    struct GNUNET_TIME_Relative frequency,
-    enum GNUNET_ATS_PreferenceKind kind)
+                                            struct BenchmarkPartner *dest,
+                                            enum GeneratorType type,
+                                            unsigned int base_value,
+                                            unsigned int value_rate,
+                                            struct GNUNET_TIME_Relative period,
+                                            struct GNUNET_TIME_Relative frequency,
+                                            enum GNUNET_ATS_PreferenceKind kind)
 {
   struct PreferenceGenerator *pg;
 
@@ -174,31 +174,31 @@ GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up constant preference generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_value);
+                  "Setting up constant preference generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_value);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up linear preference generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bips\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_value, value_rate);
+                  "Setting up linear preference generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bips\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up sinus preference generator master[%u] `%s' and slave [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_value, value_rate);
+                  "Setting up sinus preference generator master[%u] `%s' and slave [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up random preference generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bps\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_value, value_rate);
+                  "Setting up random preference generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bps\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_value, value_rate);
       break;
     default:
       break;

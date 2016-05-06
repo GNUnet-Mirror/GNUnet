@@ -405,8 +405,8 @@ stream_read_callback (pa_stream * s,
   const void *data;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got %u/%u bytes of PCM data\n",
-	      length,
+	      "Got %u/%d bytes of PCM data\n",
+	      (unsigned int) length,
 	      pcm_length);
 
   GNUNET_assert (NULL != s);
@@ -718,8 +718,8 @@ ogg_init ()
     if (NULL == commentspacket)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to allocate %d bytes for second packet\n"),
-                  commentspacket_len);
+		  _("Failed to allocate %u bytes for second packet\n"),
+                  (unsigned int) commentspacket_len);
       exit (5);
     }
 

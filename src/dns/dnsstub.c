@@ -436,7 +436,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Received DNS response that is too small (%u bytes)"),
-		  r);
+		  (unsigned int) r);
       return GNUNET_NO;
     }
     dns = (struct GNUNET_TUN_DnsHeader *) buf;

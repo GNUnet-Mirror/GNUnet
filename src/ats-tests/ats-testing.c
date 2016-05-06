@@ -243,8 +243,9 @@ comm_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
 
     if (me->core_slave_connections == top->num_slaves)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Master [%u] connected all slaves\n",
-          me->no);
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Master [%u] connected all slaves\n",
+                 me->no);
     }
     completed = GNUNET_YES;
     for (c = 0; c < top->num_masters; c++)
@@ -254,9 +255,8 @@ comm_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
     }
     if (GNUNET_YES == completed)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "All master peers connected all slave peers\n", id,
-          GNUNET_i2s (peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "All master peers connected all slave peers\n");
       top->state.connected_CORE = GNUNET_YES;
       /* Notify about setup done */
       if (NULL != top->done_cb)

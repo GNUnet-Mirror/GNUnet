@@ -916,9 +916,9 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Ephemeral key message from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
 		GNUNET_i2s (&kx->peer),
-		now.abs_value_us,
-		start_t.abs_value_us,
-		end_t.abs_value_us);
+		(unsigned long long) now.abs_value_us,
+                (unsigned long long) start_t.abs_value_us,
+                (unsigned long long) end_t.abs_value_us);
     return;
   }
   kx->other_ephemeral_key = m->ephemeral_key;
@@ -1395,7 +1395,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                              used - ENCRYPTED_HEADER_SIZE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted %u bytes for %s\n",
-              used - ENCRYPTED_HEADER_SIZE,
+              (unsigned int) (used - ENCRYPTED_HEADER_SIZE),
               GNUNET_i2s (&kx->peer));
   derive_auth_key (&auth_key,
 		   &kx->encrypt_key,
@@ -1517,7 +1517,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from %s\n",
-              size - ENCRYPTED_HEADER_SIZE,
+              (unsigned int) (size - ENCRYPTED_HEADER_SIZE),
               GNUNET_i2s (&kx->peer));
   pt = (struct EncryptedMessage *) buf;
 

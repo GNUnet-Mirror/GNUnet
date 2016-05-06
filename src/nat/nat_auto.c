@@ -522,7 +522,7 @@ test_stun (struct GNUNET_NAT_AutoHandle *ah)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "STUN service listens on port %u\n",
-              port);
+              (unsigned int) port);
   if (GNUNET_NO ==
       GNUNET_NAT_stun_make_request (stun_server, stun_port,
 				    lsock4,

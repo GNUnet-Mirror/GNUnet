@@ -279,7 +279,7 @@ client_response_handler (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queued reply to query `%s' for local client\n",
-              GNUNET_h2s (&prd->query), (unsigned int) prd->type);
+              GNUNET_h2s (&prd->query));
   if (GNUNET_BLOCK_EVALUATION_OK_LAST != eval)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -410,19 +410,6 @@ kill_httpd ()
 
 
 /**
- * Task run whenever HTTP server is idle for too long. Kill it.
- *
- * @param cls NULL
- */
-static void
-kill_httpd_task (void *cls)
-{
-  httpd_task = NULL;
-  kill_httpd ();
-}
-
-
-/**
  * Schedule MHD.  This function should be called initially when an
  * MHD is first getting its client socket, and will then automatically
  * always be called later whenever there is work to be done.

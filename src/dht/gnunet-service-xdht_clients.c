@@ -318,13 +318,18 @@ send_reply_to_client (void *cls, size_t size, void *buf)
                                  reply);
     memcpy (&cbuf[off], reply->msg, msize);
     GNUNET_free (reply);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting %u bytes to client %p\n",
-                msize, client->client_handle);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitting %u bytes to client %p\n",
+                (unsigned int) msize,
+                client->client_handle);
     off += msize;
   }
   process_pending_messages (client);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitted %u/%u bytes to client %p\n",
-              (unsigned int) off, (unsigned int) size, client->client_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmitted %u/%u bytes to client %p\n",
+              (unsigned int) off,
+              (unsigned int) size,
+              client->client_handle);
   return off;
 }
 

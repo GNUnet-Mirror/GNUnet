@@ -779,7 +779,9 @@ transmit_line_audio (void *cls,
   ch->audio_data = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending %u bytes of audio data from line %u to remote line %u via cadet\n",
-              ch->audio_size, ch->line->local_line, ch->remote_line);
+              (unsigned int) ch->audio_size,
+              ch->line->local_line,
+              ch->remote_line);
   return sizeof (struct CadetAudioMessage) + ch->audio_size;
 }
 
@@ -1291,21 +1293,25 @@ handle_cadet_audio_message (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received %u bytes of AUDIO data for non-existing line %u, dropping.\n",
-                  msize, ntohl (msg->remote_line));
+                  (unsigned int) msize,
+                  ntohl (msg->remote_line));
       return GNUNET_SYSERR;
     }
     if (NULL == ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received %u bytes of AUDIO data for unknown sender.\n",
-                  msize);
+                  (unsigned int) msize);
       return GNUNET_SYSERR;
     }
     if ((GNUNET_YES == ch->suspended_local) || (GNUNET_YES == ch->suspended_remote))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received %u bytes of AUDIO data on suspended channel CID %u:(%u:%u); dropping\n",
-                  msize, ch->cid, ch->remote_line, line->local_line);
+                  (unsigned int) msize,
+                  ch->cid,
+                  ch->remote_line,
+                  line->local_line);
       GNUNET_CADET_receive_done (channel);
       return GNUNET_OK;
     }
@@ -1315,7 +1321,10 @@ handle_cadet_audio_message (void *cls,
   GNUNET_CADET_receive_done (channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarding %u bytes of AUDIO data to client CID %u:(%u:%u)\n",
-              msize, ch->cid, ch->remote_line, ch->line->local_line);
+              (unsigned int) msize,
+              ch->cid,
+              ch->remote_line,
+              ch->line->local_line);
   cam = (struct ClientAudioMessage *) buf;
   cam->header.size = htons (sizeof (buf));
   cam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);

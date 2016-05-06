@@ -591,12 +591,13 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
  */
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
-    struct BenchmarkPartner *dest,
-    enum GeneratorType type,
-    long int base_rate,
-    long int max_rate,
-    struct GNUNET_TIME_Relative period,
-    struct GNUNET_TIME_Relative duration);
+                                        struct BenchmarkPartner *dest,
+                                        enum GeneratorType type,
+                                        unsigned int base_rate,
+                                        unsigned int max_rate,
+                                        struct GNUNET_TIME_Relative period,
+                                        struct GNUNET_TIME_Relative duration);
+
 
 void
 GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
@@ -623,13 +624,13 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ();
  */
 struct PreferenceGenerator *
 GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
-    struct BenchmarkPartner *dest,
-    enum GeneratorType type,
-    long int base_value,
-    long int value_rate,
-    struct GNUNET_TIME_Relative period,
-    struct GNUNET_TIME_Relative frequency,
-    enum GNUNET_ATS_PreferenceKind kind);
+                                            struct BenchmarkPartner *dest,
+                                            enum GeneratorType type,
+                                            unsigned int base_value,
+                                            unsigned int value_rate,
+                                            struct GNUNET_TIME_Relative period,
+                                            struct GNUNET_TIME_Relative frequency,
+                                            enum GNUNET_ATS_PreferenceKind kind);
 
 void
 GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);

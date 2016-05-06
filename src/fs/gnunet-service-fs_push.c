@@ -296,7 +296,7 @@ transmit_content (struct MigrationReadyPeer *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking for transmission of %u bytes to %s for migration\n",
-              msize,
+              (unsigned int) msize,
               GNUNET_i2s (GSF_connected_peer_get_identity2_(peer->peer)));
   peer->th = GSF_peer_transmit_ (peer->peer,
                                  GNUNET_NO, 0 /* priority */ ,

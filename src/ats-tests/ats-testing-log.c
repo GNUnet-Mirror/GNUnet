@@ -698,12 +698,13 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
     if (GNUNET_YES == l->verbose)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Master[%u] delta: %llu us, bytes (sent/received): %u / %u; throughput send/recv: %u / %u\n", c_m,
-          delta.rel_value_us,
-          mlt->total_bytes_sent,
-          mlt->total_bytes_received,
-          mlt->total_throughput_send,
-          mlt->total_throughput_recv);
+                  "Master[%u] delta: %llu us, bytes (sent/received): %u / %u; throughput send/recv: %u / %u\n",
+                  c_m,
+                  (unsigned long long) delta.rel_value_us,
+                  mlt->total_bytes_sent,
+                  mlt->total_bytes_received,
+                  mlt->total_throughput_send,
+                  mlt->total_throughput_recv);
     }
 
     mlt->slaves_log = GNUNET_malloc (bp->peer->num_partners *
@@ -783,13 +784,13 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
       if (GNUNET_YES == l->verbose)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-            "Master [%u] -> Slave [%u]: delta: %llu us, bytes (sent/received): %u / %u; throughput send/recv: %u / %u\n",
-            c_m, c_s,
-            delta.rel_value_us,
-            mlt->total_bytes_sent,
-            mlt->total_bytes_received,
-            slt->throughput_sent,
-            slt->throughput_recv);
+                    "Master [%u] -> Slave [%u]: delta: %llu us, bytes (sent/received): %u / %u; throughput send/recv: %u / %u\n",
+                    c_m, c_s,
+                    (unsigned long long) delta.rel_value_us,
+                    mlt->total_bytes_sent,
+                    mlt->total_bytes_received,
+                    slt->throughput_sent,
+                    slt->throughput_recv);
       }
       else
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

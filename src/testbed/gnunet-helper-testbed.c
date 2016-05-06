@@ -513,7 +513,8 @@ read_task (void *cls)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG_DEBUG ("Read %u bytes\n", sread);
+  LOG_DEBUG ("Read %u bytes\n",
+             (unsigned int) sread);
   if (GNUNET_OK !=
       GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread, GNUNET_NO,
                                  GNUNET_NO))

@@ -508,8 +508,9 @@ block_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Indexing block `%s' for offset %llu with index size %u\n",
-                GNUNET_h2s (&chk->query), (unsigned long long) offset,
-                sizeof (struct OnDemandBlock));
+                GNUNET_h2s (&chk->query),
+                (unsigned long long) offset,
+                (unsigned int) sizeof (struct OnDemandBlock));
     odb.offset = GNUNET_htonll (offset);
     odb.file_id = p->data.file.file_id;
     GNUNET_assert (pc->qre == NULL);

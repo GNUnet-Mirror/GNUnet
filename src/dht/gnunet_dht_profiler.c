@@ -494,8 +494,10 @@ bandwidth_stats_cont (void *cls,
                       struct GNUNET_TESTBED_Operation *op,
                       const char *emsg)
 {
-  INFO ("# Outgoing bandwidth: %u\n", outgoing_bandwidth);
-  INFO ("# Incoming bandwidth: %u\n", incoming_bandwidth);
+  INFO ("# Outgoing bandwidth: %llu\n",
+        (unsigned long long) outgoing_bandwidth);
+  INFO ("# Incoming bandwidth: %llu\n",
+        (unsigned long long) incoming_bandwidth);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -508,8 +510,8 @@ bandwidth_stats_cont (void *cls,
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
 bandwidth_stats_iterator (void *cls,
@@ -635,7 +637,8 @@ get_iter (void *cls,
 
   total_put_path_length = total_put_path_length + (double)put_path_length;
   total_get_path_length = total_get_path_length + (double)get_path_length;
-  DEBUG ("total_put_path_length = %f,put_path \n",total_put_path_length);
+  DEBUG ("total_put_path_length = %u,put_path \n",
+         total_put_path_length);
   /* Summarize if profiling is complete */
   if (n_active == n_gets_fail + n_gets_ok)
   {

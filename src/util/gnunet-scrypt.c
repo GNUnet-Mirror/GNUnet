@@ -51,7 +51,7 @@ static char *pwfn;
 
 /**
  * Write our current proof to disk.
- * 
+ *
  * @param cls closure
  */
 static void
@@ -65,7 +65,7 @@ shutdown_task (void *cls)
                             GNUNET_DISK_PERM_USER_WRITE))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 			      "write",
-			      proof);
+			      pwfn);
 }
 
 
@@ -129,7 +129,7 @@ find_proof (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Got Proof of Work %llu\n",
-	      proof);
+	      (unsigned long long) proof);
   proof_task = NULL;
   memcpy (&buf[sizeof (uint64_t)], &pub,
           sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
@@ -290,7 +290,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delay between tries: %s\n",
               GNUNET_STRINGS_relative_time_to_string (proof_find_delay, 1));
-  proof_task = 
+  proof_task =
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&find_proof,
 					NULL);

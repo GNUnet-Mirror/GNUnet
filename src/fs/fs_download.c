@@ -2096,7 +2096,7 @@ create_download_context (struct GNUNET_FS_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting download %p, %u bytes at offset %llu\n",
 	      dc,
-	      (unsigned long long) length,
+	      (unsigned int) length,
 	      (unsigned long long) offset);
   dc->h = h;
   dc->uri = GNUNET_FS_uri_dup (uri);

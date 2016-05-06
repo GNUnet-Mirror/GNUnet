@@ -479,8 +479,8 @@ adv_transmit_ready (void *cls,
               (unsigned int) transmission_size);
   hostlist_adv_count++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " # Sent advertisement message: %u\n",
-              hostlist_adv_count);
+              " # Sent advertisement message: %llu\n",
+              (unsigned long long) hostlist_adv_count);
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# hostlist advertisements send"), 1,
                             GNUNET_NO);
@@ -520,7 +520,7 @@ connect_handler (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked CORE to transmit advertisement message with a size of %u bytes to peer `%s'\n",
-              size,
+              (unsigned int) size,
               GNUNET_i2s (peer));
   if (NULL ==
       (th = GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES,

@@ -706,7 +706,7 @@ try_transmission (struct Session *session)
                 "Soliciting messages (excess %d, maxpc %d, message size %u, deadline %s)\n",
                 excess,
                 maxpc,
-                msize,
+                (unsigned int) msize,
                 GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_deadline),
                                                         GNUNET_YES));
     solicit_messages (session,

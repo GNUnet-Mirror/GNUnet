@@ -3309,8 +3309,10 @@ send_verify_successor_message (void *cls)
   trail_id = trail->trail_id;
   if (NULL == GDS_ROUTING_get_next_hop(trail_id,GDS_ROUTING_SRC_TO_DEST))
   {
-    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail->trail_id), __LINE__);
+    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line %u",
+          GNUNET_i2s (&my_identity),
+          GNUNET_h2s (&trail->trail_id),
+          __LINE__);
     GNUNET_break(0);
     return;
   }
@@ -5352,8 +5354,10 @@ handle_dht_p2p_verify_successor_result(void *cls,
   {
     /* Here it may happen that source peer has found a new successor, and removed
      the trail, Hence no entry found in the routing table. Fail silently.*/
-    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+    DEBUG (" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line %u",
+           GNUNET_i2s (&my_identity),
+           GNUNET_h2s (&trail_id),
+           __LINE__);
     GNUNET_break_op(0);
     return GNUNET_OK;
   }
@@ -5773,8 +5777,10 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   next_hop = GDS_ROUTING_get_next_hop (trail_id, trail_direction);
   if (NULL == next_hop)
   {
-    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line %u",
+          GNUNET_i2s (&my_identity),
+          GNUNET_h2s(&trail_id),
+          __LINE__);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }

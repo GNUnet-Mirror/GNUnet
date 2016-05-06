@@ -383,7 +383,8 @@ handle_message_get (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Message get: invalid method prefix. size: %u < %u?\n",
-                size, sizeof (*req) + 1);
+                size,
+                (unsigned int) (sizeof (*req) + 1));
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;

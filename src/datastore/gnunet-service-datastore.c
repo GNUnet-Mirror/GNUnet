@@ -1400,7 +1400,8 @@ process_stat_in (void *cls,
   payload += value;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Notification from statistics about existing payload (%llu), new payload is %llu\n",
-              value, payload);
+              (unsigned long long) value,
+              (unsigned long long) payload);
   return GNUNET_OK;
 }
 

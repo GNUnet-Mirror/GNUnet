@@ -559,7 +559,10 @@ stats_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "%p -> %s [%s]: %llu\n",
-                peer, subsystem, name, value);
+                peer,
+                subsystem,
+                name,
+                (unsigned long long) value);
     return GNUNET_OK;
   }
   size =
@@ -569,7 +572,8 @@ stats_iterator (void *cls,
                      peer,
                      subsystem, value, name);
   if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Unable to write to file!\n");
 
   return GNUNET_OK;
 }

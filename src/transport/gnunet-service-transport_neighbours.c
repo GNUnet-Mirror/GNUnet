@@ -1296,12 +1296,12 @@ transmit_send_continuation (void *cls,
   if (bytes_in_send_queue < mq->message_buf_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Bytes_in_send_queue `%u', Message_size %u, result: %s, payload %u, on wire %u\n",
+                "Bytes_in_send_queue `%llu', Message_size %u, result: %s, payload %u, on wire %u\n",
                 bytes_in_send_queue,
-                mq->message_buf_size,
+                (unsigned int) mq->message_buf_size,
                 (GNUNET_OK == success) ? "OK" : "FAIL",
-                size_payload,
-                physical);
+                (unsigned int) size_payload,
+                (unsigned int) physical);
     GNUNET_break (0);
   }
 
@@ -1325,7 +1325,7 @@ transmit_send_continuation (void *cls,
 	      "Sending message to `%s' of type %u with %u bytes was a %s\n",
 	      GNUNET_i2s (receiver),
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
-              mq->message_buf_size,
+              (unsigned int) mq->message_buf_size,
               (success == GNUNET_OK) ? "success" : "FAILURE");
   if (NULL != mq->cont)
     mq->cont (mq->cont_cls,
@@ -1401,7 +1401,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Giving message with %u bytes to plugin session %p\n",
-              mq->message_buf_size,
+              (unsigned int) mq->message_buf_size,
               n->primary_address.session);
   (void) send_with_session (n,
 			    mq->message_buf,
@@ -1773,7 +1773,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Enqueueing %u bytes to send to peer %s\n",
-              msg_size,
+              (unsigned int) msg_size,
               GNUNET_i2s (target));
   GNUNET_CONTAINER_DLL_insert_tail (n->messages_head,
                                     n->messages_tail,
@@ -2117,7 +2117,7 @@ inbound_bw_tracker_update (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "New inbound delay for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id),
-              delay.rel_value_us / 1000);
+              (unsigned long long) delay.rel_value_us / 1000LL);
   papi->update_inbound_delay (papi->cls,
                               &n->id,
                               n->primary_address.session,
@@ -3244,11 +3244,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* The session used to send the SYN terminated:
      * this implies a connect error*/
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Failed to send SYN in %s with `%s' %p: session terminated\n",
-                "CONNECT_SENT",
+                "Failed to send SYN in CONNECT_SENT with `%s' %p: session terminated\n",
                 GST_plugins_a2s (n->primary_address.address),
-                n->primary_address.session,
-                GNUNET_i2s (peer));
+                n->primary_address.session);
 
     /* Destroy the address since it cannot be used */
     unset_primary_address (n);
@@ -3274,11 +3272,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Failed to send SYN in %s with `%s' %p: session terminated\n",
-                "RECONNECT_SENT",
+                "Failed to send SYN in RECONNECT_SENT with `%s' %p: session terminated\n",
                 GST_plugins_a2s (n->primary_address.address),
-                n->primary_address.session,
-                GNUNET_i2s (peer));
+                n->primary_address.session);
     /* Destroy the address since it cannot be used */
     unset_primary_address (n);
     set_state_and_timeout (n,

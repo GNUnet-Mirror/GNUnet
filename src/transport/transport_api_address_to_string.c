@@ -203,7 +203,7 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
               client,
               GNUNET_i2s (&address->peer),
               address->transport_name,
-              address->address_length);
+              (unsigned int) address->address_length);
 
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);

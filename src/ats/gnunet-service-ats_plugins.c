@@ -132,8 +132,7 @@ solver_info_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Solver notifies `%s' with result `%s'\n",
                 "GAS_OP_SOLVE_STOP",
-                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL",
-                add_info);
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
     return;
   case GAS_OP_SOLVE_SETUP_START:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -306,7 +305,7 @@ parse_quota (const char *quota_str,
                 direction,
                 GNUNET_ATS_print_network_type (network),
                 quota_str,
-                GNUNET_ATS_DefaultBandwidth);
+                (unsigned long long) GNUNET_ATS_DefaultBandwidth);
     ret = GNUNET_ATS_DefaultBandwidth;
   }
   else
@@ -360,7 +359,7 @@ load_quota (const struct GNUNET_CONFIGURATION_Handle *cfg,
                 _("No %s-quota configured for network `%s', assigning default bandwidth %llu\n"),
                 direction,
                 GNUNET_ATS_print_network_type (type),
-                GNUNET_ATS_DefaultBandwidth);
+                (unsigned long long) GNUNET_ATS_DefaultBandwidth);
     ret = GNUNET_ATS_DefaultBandwidth;
   }
   GNUNET_free (entry);

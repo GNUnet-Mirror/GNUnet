@@ -354,12 +354,12 @@ server_start ()
   if ((0 == port) || (port > UINT16_MAX))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Invalid port number %llu.  Exiting.\n"),
+                _("Invalid port number %u.  Exiting.\n"),
                 port);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Businesscard HTTP server starts on %llu\n"),
+              _("Businesscard HTTP server starts on %u\n"),
               port);
   daemon_handle = MHD_start_daemon (MHD_USE_DUAL_STACK | MHD_USE_DEBUG,
                                     (uint16_t) port,

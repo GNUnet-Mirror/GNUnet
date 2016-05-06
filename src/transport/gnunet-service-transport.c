@@ -224,7 +224,7 @@ process_payload (const struct GNUNET_HELLO_Address *address,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Discarded %u bytes type %u payload from peer `%s'\n",
-                msg_size,
+                (unsigned int) msg_size,
                 ntohs (message->type),
                 GNUNET_i2s (&address->peer));
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
@@ -866,9 +866,9 @@ run (void *cls,
   {
     max_fd_rlimit = r_file.rlim_cur;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Maximum number of open files was: %u/%u\n",
-        r_file.rlim_cur,
-        r_file.rlim_max);
+                "Maximum number of open files was: %u/%u\n",
+                (unsigned int) r_file.rlim_cur,
+                (unsigned int) r_file.rlim_max);
   }
   max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */
 #endif

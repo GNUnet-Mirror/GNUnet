@@ -1790,7 +1790,10 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "%u + %u + %u != %u\n",
-                  sizeof (*req), relay_size, join_msg_size, req_size);
+                  (unsigned int) sizeof (*req),
+                  relay_size,
+                  join_msg_size,
+                  req_size);
       GNUNET_break (0);
       GNUNET_SERVER_client_disconnect (client);
       GNUNET_free (slv);
@@ -2261,7 +2264,9 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Message payload too large: %u < %u.\n",
-                chn, GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD, size - sizeof (*msg));
+                chn,
+                GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD,
+                (unsigned int) (size - sizeof (*msg)));
     GNUNET_break (0);
     transmit_cancel (chn, client);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2298,13 +2303,18 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
  * Received result of GNUNET_PSYCSTORE_membership_store()
  */
 static void
-store_recv_membership_store_result (void *cls, int64_t result,
-                                    const char *err_msg, uint16_t err_msg_size)
+store_recv_membership_store_result (void *cls,
+                                    int64_t result,
+                                    const char *err_msg,
+                                    uint16_t err_msg_size)
 {
   struct Operation *op = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%.s)\n",
-              op->chn, result, err_msg_size, err_msg);
+              op->chn,
+              result,
+              (int) err_msg_size,
+              err_msg);
 
   if (NULL != op->client)
     client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
@@ -2432,7 +2442,10 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p History replay #%" PRIu64 ": "
                 "invalid method prefix. size: %u < %u?\n",
-                chn, GNUNET_ntohll (req->op_id), size, sizeof (*req) + 1);
+                chn,
+                GNUNET_ntohll (req->op_id),
+                size,
+                (unsigned int) sizeof (*req) + 1);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;

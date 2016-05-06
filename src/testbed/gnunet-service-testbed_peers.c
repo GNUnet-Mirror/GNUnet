@@ -429,14 +429,15 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
  *
  * @param cls NULL
  * @param client identification of the client
  * @param message the actual message
  */
 void
-GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
+GST_handle_peer_destroy (void *cls,
+                         struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerDestroyMessage *msg;
@@ -446,8 +447,9 @@ GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (const struct GNUNET_TESTBED_PeerDestroyMessage *) message;
   peer_id = ntohl (msg->peer_id);
-  LOG_DEBUG ("Received peer destory on peer: %u and operation id: %ul\n",
-             peer_id, GNUNET_ntohll (msg->operation_id));
+  LOG_DEBUG ("Received peer destory on peer: %u and operation id: %llu\n",
+             (unsigned int) peer_id,
+             (unsigned long long) GNUNET_ntohll (msg->operation_id));
   if (!VALID_PEER_ID (peer_id))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -494,7 +496,7 @@ GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
  * Stats a peer
  *
  * @param peer the peer to start
- * @return GNUNET_OK upon success; GNUNET_SYSERR upon failure
+ * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
  */
 static int
 start_peer (struct Peer *peer)
@@ -511,7 +513,7 @@ start_peer (struct Peer *peer)
  * Stops a peer
  *
  * @param peer the peer to stop
- * @return GNUNET_OK upon success; GNUNET_SYSERR upon failure
+ * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
  */
 static int
 stop_peer (struct Peer *peer)

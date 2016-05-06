@@ -93,8 +93,9 @@ get_delay (struct TrafficGenerator *tg)
   delay.rel_value_us =  GNUNET_TIME_UNIT_SECONDS.rel_value_us * TEST_MESSAGE_SIZE / cur_rate;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Current rate is %u, calculated delay is %u \n",
-      cur_rate, delay.rel_value_us);
+              "Current rate is %lld, calculated delay is %llu\n",
+              cur_rate,
+              (unsigned long long) delay.rel_value_us);
   return delay;
 }
 
@@ -308,12 +309,12 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
  */
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
-    struct BenchmarkPartner *dest,
-    enum GeneratorType type,
-    long int base_rate,
-    long int max_rate,
-    struct GNUNET_TIME_Relative period,
-    struct GNUNET_TIME_Relative duration)
+                                        struct BenchmarkPartner *dest,
+                                        enum GeneratorType type,
+                                        unsigned int base_rate,
+                                        unsigned int max_rate,
+                                        struct GNUNET_TIME_Relative period,
+                                        struct GNUNET_TIME_Relative duration)
 {
   struct TrafficGenerator *tg;
 
@@ -337,31 +338,32 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up constant traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_rate);
+                  "Setting up constant traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_rate);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up linear traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bips\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_rate, max_rate);
+                  "Setting up linear traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bips\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_rate,
+                  max_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up sinus traffic generator master[%u] `%s' and slave [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_rate, max_rate);
+                  "Setting up sinus traffic generator master[%u] `%s' and slave [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_rate, max_rate);
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up random traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bps\n",
-          dest->me->no, GNUNET_i2s (&dest->me->id),
-          dest->dest->no, GNUNET_i2s (&dest->dest->id),
-          base_rate, max_rate);
+                  "Setting up random traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bps\n",
+                  dest->me->no, GNUNET_i2s (&dest->me->id),
+                  dest->dest->no, GNUNET_i2s (&dest->dest->id),
+                  base_rate, max_rate);
       break;
     default:
       break;

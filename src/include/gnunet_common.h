@@ -692,7 +692,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * a failure of the command 'cmd' with the message given
  * by strerror(errno).
  */
-#define GNUNET_log_strerror_file(level, cmd, filename) do { GNUNET_log(level, _("`%s' failed on file `%s' at %s:%d with error: %s\n"), cmd, filename,__FILE__, __LINE__, STRERROR(errno)); } while(0)
+#define GNUNET_log_strerror_file(level, cmd, filename) do { GNUNET_log(level, _("`%s' failed on file `%s' at %s:%d with error: %s\n"), cmd, filename, __FILE__, __LINE__, STRERROR(errno)); } while(0)
 
 
 /**

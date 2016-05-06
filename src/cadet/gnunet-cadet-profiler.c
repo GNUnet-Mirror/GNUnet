@@ -453,8 +453,10 @@ stats_iterator (void *cls,
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " STATS %u - %s [%s]: %llu\n",
-              i, subsystem, name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " STATS %u - %s [%s]: %llu\n",
+              i, subsystem, name,
+              (unsigned long long) value);
 
   return GNUNET_OK;
 }
@@ -569,7 +571,9 @@ adjust_running_peers (unsigned int target)
 static void
 next_rnd (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ROUND %ld\n", current_round);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ROUND %u\n",
+              current_round);
   if (0.0 == rounds[current_round])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Finishing\n");
@@ -680,7 +684,7 @@ pong (struct GNUNET_CADET_Channel *channel,
 static size_t
 tmt_rdy_ping (void *cls, size_t size, void *buf)
 {
-  struct CadetPeer *peer = (struct CadetPeer *) cls;
+  struct CadetPeer *peer = cls;
   struct CadetPingMessage *msg = buf;
 
   peer->ping_ntr = NULL;
@@ -691,11 +695,16 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
     GNUNET_break (GNUNET_YES == test_finished);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
-                size, buf, peer->data_sent, peer->data_received);
+                (unsigned int) size,
+                buf,
+                peer->data_sent,
+                peer->data_received);
 
     return 0;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending: msg %d\n", peer->data_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending: msg %d\n",
+              peer->data_sent);
   msg->header.size = htons (size);
   msg->header.type = htons (PING);
   msg->counter = htonl (peer->data_sent++);
@@ -726,7 +735,9 @@ ping_handler (void *cls, struct GNUNET_CADET_Channel *channel,
 {
   long n = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u got PING\n", n);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%u got PING\n",
+              (unsigned int) n);
   GNUNET_CADET_receive_done (channel);
   if (GNUNET_NO == test_finished)
     pong (channel, (struct CadetPingMessage *) message);
@@ -814,8 +825,11 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   GNUNET_assert (NULL != peer);
   if (NULL == peers[n].incoming)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %3u: %u <= %u\n",
-                peers_warmup, n, get_index (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "WARMUP %3u: %u <= %u\n",
+                peers_warmup,
+                (unsigned int) n,
+                get_index (peer));
     peers_warmup++;
     if (peers_warmup < peers_total)
       return NULL;
@@ -829,8 +843,11 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   }
   GNUNET_assert (peer == peers[n].incoming);
   GNUNET_assert (peer->dest == &peers[n]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u %p\n",
-              n, get_index (peer), channel);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%u <= %u %p\n",
+              (unsigned int) n,
+              get_index (peer),
+              channel);
   peers[n].incoming_ch = channel;
 
   return NULL;
@@ -911,8 +928,11 @@ start_test (void *cls)
       GNUNET_CADET_TEST_cleanup (test_ctx);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u %p\n",
-                i, get_index (peers[i].dest), peers[i].ch);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "%lu => %u %p\n",
+                i,
+                get_index (peers[i].dest),
+                peers[i].ch);
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (2000),
                                                        &ping, &peers[i]);
   }
@@ -981,8 +1001,10 @@ peer_id_cb (void *cls,
     return;
   }
   peers[n].id = *(pinfo->result.id);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " %u  id: %s\n",
-              n, GNUNET_i2s (&peers[n].id));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%ld  id: %s\n",
+              n,
+              GNUNET_i2s (&peers[n].id));
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (ids, &peers[n].id, &peers[n],
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));

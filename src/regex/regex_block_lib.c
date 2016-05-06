@@ -164,7 +164,7 @@ struct CheckEdgeContext
  * @param len Lenght of token.
  * @param key Hash of next state.
  *
- * @return GNUNET_YES, to keep iterating
+ * @return #GNUNET_YES, to keep iterating
  */
 static int
 check_edge (void *cls,
@@ -175,8 +175,11 @@ check_edge (void *cls,
   struct CheckEdgeContext *ctx = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "edge %.*s [%u]: %s->%s\n",
-              (int) len, token, len, GNUNET_h2s(key));
+	      "edge %.*s [%u]: %sn",
+              (int) len,
+              token,
+              (unsigned int) len,
+              GNUNET_h2s (key));
   if (NULL == ctx->xquery)
     return GNUNET_YES;
   if (strlen (ctx->xquery) < len)
@@ -209,7 +212,8 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
   struct CheckEdgeContext ctx;
   int res;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Block check\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Block check\n");
   if (GNUNET_OK !=
       REGEX_BLOCK_get_key (block, size,
 			   &key))
@@ -229,8 +233,9 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
        ( (NULL == xquery) || ('\0' == xquery[0]) ) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  out! Is accepting: %u, xquery %p\n",
-       ntohs(block->is_accepting), xquery);
+         "  out! Is accepting: %u, xquery %p\n",
+         ntohs(block->is_accepting),
+         xquery);
     return GNUNET_OK;
   }
   ctx.xquery = xquery;
