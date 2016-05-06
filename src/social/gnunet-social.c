@@ -43,6 +43,9 @@ static int op_status;
 /** --host-enter */
 static int op_host_enter;
 
+/** --host-reconnect */
+static int op_host_reconnect;
+
 /** --host-leave */
 static int op_host_leave;
 
@@ -51,6 +54,9 @@ static int op_host_announce;
 
 /** --guest-enter */
 static int op_guest_enter;
+
+/** --guest-reconnect */
+static int op_guest_reconnect;
 
 /** --guest-leave */
 static int op_guest_leave;
@@ -82,11 +88,20 @@ static char *opt_place;
 /** --ego */
 static char *opt_ego;
 
+/** --gns */
+static char *opt_gns;
+
 /** --peer */
 static char *opt_peer;
 
 /** --follow */
 static int opt_follow;
+
+/** --admit */
+static int opt_admit;
+
+/** --refuse */
+static int opt_refuse;
 
 /** --method */
 static char *opt_method;
@@ -119,15 +134,12 @@ struct GNUNET_SCHEDULER_Task *timeout_task;
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 struct GNUNET_CORE_Handle *core;
-struct GNUNET_PeerIdentity peer;
+struct GNUNET_PeerIdentity peer, this_peer;
 
 struct GNUNET_SOCIAL_App *app;
 
 /** public key of connected place */
 struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
-
-/** hash of @a place_pub_key */
-struct GNUNET_HashCode place_pub_hash;
 
 struct GNUNET_PSYC_Slicer *slicer;
 
@@ -145,6 +157,15 @@ struct GNUNET_SOCIAL_Place *plc;
 static void
 disconnect ()
 {
+  if (hst)
+  {
+    GNUNET_SOCIAL_host_disconnect (hst, NULL, NULL);
+  }
+  if (gst)
+  {
+    GNUNET_SOCIAL_guest_disconnect (gst, NULL, NULL);
+  }
+
   GNUNET_SOCIAL_app_disconnect (app);
   GNUNET_CORE_disconnect (core);
   GNUNET_SCHEDULER_shutdown ();
@@ -163,7 +184,7 @@ timeout (void *cls)
 }
 
 static void
-schedule_end (void *cls)
+schedule_success (void *cls)
 {
   ret = 0;
   disconnect ();
@@ -171,16 +192,33 @@ schedule_end (void *cls)
 
 
 static void
-end ()
+schedule_fail (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "The end.\n");
+  disconnect ();
+}
 
+
+static void
+exit_success ()
+{
   if (timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&schedule_end, NULL);
+  GNUNET_SCHEDULER_add_now (&schedule_success, NULL);
+}
+
+
+static void
+exit_fail ()
+{
+  if (timeout_task != NULL)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
+  GNUNET_SCHEDULER_add_now (&schedule_fail, NULL);
 }
 
 
@@ -192,7 +230,7 @@ host_left ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "The host has left the place.\n");
-  end ();
+  exit_success ();
 }
 
 
@@ -251,7 +289,18 @@ notify_data (void *cls, uint16_t *data_size, void *data)
   tmit->size -= size;
   tmit->data += size;
 
-  return 0 == tmit->size ? GNUNET_NO : GNUNET_YES;
+  if (0 == tmit->size)
+  {
+    if (op_host_announce || op_guest_talk)
+    {
+      exit_success ();
+    }
+    return GNUNET_NO;
+  }
+  else
+  {
+    return GNUNET_YES;
+  }
 }
 
 
@@ -297,10 +346,15 @@ static void
 recv_history_replay_result (void *cls, int64_t result,
                             const void *data, uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest received history replay result: %" PRId64 "\n"
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received history replay result: %" PRId64 "\n"
               "%.*s\n",
               result, data_size, (const char *) data);
+
+  if (op_history_replay || op_history_replay_latest)
+  {
+    exit_success ();
+  }
 }
 
 
@@ -333,9 +387,13 @@ static void
 look_result (void *cls, int64_t result_code,
              const void *data, uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "look_result: %" PRId64 "\n", result_code);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received look result: %" PRId64 "\n", result_code);
 
+  if (op_look_at || op_look_for)
+  {
+    exit_success ();
+  }
 }
 
 
@@ -348,7 +406,7 @@ look_var (void *cls,
           uint32_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "guest_look_at_var: %s\n%.*s\n",
+              "look_at_var: %s\n%.*s\n",
               name, value_size, (const char *) value);
 }
 
@@ -467,22 +525,33 @@ guest_recv_entry_decision (void *cls,
     GNUNET_PSYC_message_parse (pmsg, &method_name, env, &data, &data_size);
     GNUNET_free (pmsg);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%s\n%.*s\n",
                 method_name, data_size, (const char *) data);
+  }
+
+  if (op_guest_enter && !opt_follow)
+  {
+    exit_success ();
   }
 }
 
 
 static void
 guest_recv_local_enter (void *cls, int result,
-                        const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
                         uint64_t max_message_id)
 {
+  char *pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest entered to local place: %d, max_message_id: %" PRIu64 "\n",
-              result, max_message_id);
+              "Guest entered to local place: %s, max_message_id: %" PRIu64 "\n",
+              pub_str, max_message_id);
   GNUNET_assert (0 <= result);
+
+  if (op_guest_enter && !opt_follow)
+  {
+    exit_success ();
+  }
 }
 
 
@@ -501,12 +570,20 @@ guest_enter_msg_create ()
 
 
 static void
-guest_enter (struct GNUNET_PeerIdentity *peer)
+guest_enter (const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
+             const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Entering to place as guest.\n");
 
-  gst = GNUNET_SOCIAL_guest_enter (app, ego, &place_pub_key,
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "--ego missing or invalid\n");
+    exit_fail ();
+    return;
+  }
+
+  gst = GNUNET_SOCIAL_guest_enter (app, ego, pub_key,
                                    GNUNET_PSYC_SLAVE_JOIN_NONE,
                                    peer, 0, NULL, guest_enter_msg_create (),
                                    slicer_create (),
@@ -519,7 +596,7 @@ guest_enter (struct GNUNET_PeerIdentity *peer)
 static void
 guest_enter_by_name (const char *gns_name)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Entering to place by name as guest.\n");
 
   gst = GNUNET_SOCIAL_guest_enter_by_name (app, ego, gns_name, NULL,
@@ -546,9 +623,28 @@ host_answer_door (void *cls,
   char *
     nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Entry request: %s\n", nym_str);
   GNUNET_free (nym_str);
+
+  if (opt_admit)
+  {
+    struct GNUNET_PSYC_Message *
+      resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
+                                         DATA2ARG ("Welcome, nym!"));
+    GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, resp);
+    GNUNET_free (resp);
+  }
+  else if (opt_refuse)
+  {
+    struct GNUNET_PSYC_Message *
+      resp = GNUNET_PSYC_message_create ("_notice_place_refuse", NULL,
+                                         DATA2ARG ("Go away!"));
+    GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_NO, resp);
+    GNUNET_free (resp);
+  }
+
+
 }
 
 
@@ -562,7 +658,7 @@ host_farewell (void *cls,
   char *
     nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Farewell: %s\n", nym_str);
   GNUNET_free (nym_str);
 }
@@ -574,10 +670,15 @@ host_entered (void *cls, int result,
               uint64_t max_message_id)
 {
   place_pub_key = *pub_key;
-  GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Entered: %s, max_message_id: %" PRIu64 "\n",
-              GNUNET_h2s_full (&place_pub_hash), max_message_id);
+  char *pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Host entered: %s, max_message_id: %" PRIu64 "\n",
+              pub_str, max_message_id);
+
+  if (op_host_enter && !opt_follow)
+  {
+    exit_success ();
+  }
 }
 
 
@@ -585,6 +686,13 @@ static void
 host_enter ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "host_enter()\n");
+
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "--ego missing or invalid\n");
+    exit_fail ();
+    return;
+  }
 
   hst = GNUNET_SOCIAL_host_enter (app, ego,
                                   GNUNET_PSYC_CHANNEL_PRIVATE,
@@ -620,8 +728,8 @@ host_reconnected (void *cls, int result,
 		  const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
 		  uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Host reconnected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Host reconnected.\n");
 
   if (op_host_leave) {
     host_leave ();
@@ -640,8 +748,8 @@ guest_reconnected (void *cls, int result,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                    uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest reconnected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Guest reconnected.\n");
 
   if (op_guest_leave) {
     guest_leave ();
@@ -661,19 +769,43 @@ guest_reconnected (void *cls, int result,
 static void
 app_connected (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "App connected: %p\n", cls);
 
   if (op_status)
   {
-    GNUNET_SCHEDULER_add_now (&schedule_end, NULL);
+    exit_success ();
   }
-  else if (op_host_enter) {
+  else if (op_host_enter)
+  {
     host_enter ();
   }
-  else if (op_guest_enter) {
-    guest_enter (&peer);
-    // FIXME: guest_enter_by_name
+  else if (op_guest_enter)
+  {
+    if (opt_gns)
+    {
+      guest_enter_by_name (opt_gns);
+    }
+    else
+    {
+      if (opt_peer)
+      {
+        if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_peer,
+                                                                     strlen (opt_peer),
+                                                                     &peer.public_key))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "--peer invalid");
+          exit_fail ();
+          return;
+        }
+      }
+      else
+      {
+        peer = this_peer;
+      }
+      guest_enter (&place_pub_key, &peer);
+    }
   }
 }
 
@@ -685,17 +817,15 @@ app_recv_host (void *cls,
                const struct GNUNET_CRYPTO_EddsaPublicKey *host_pub_key,
                enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
-  struct GNUNET_HashCode host_pub_hash;
-  GNUNET_CRYPTO_hash (host_pub_key, sizeof (*host_pub_key), &host_pub_hash);
-  char *
-    host_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (host_pub_key);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Host: %s (%s)\n",
-              GNUNET_h2s_full (&host_pub_hash), host_pub_str);
+  char *host_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (host_pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Host:  %s\n", host_pub_str);
   GNUNET_free (host_pub_str);
 
-  if (0 == memcmp (&place_pub_key, host_pub_key, sizeof (*host_pub_key)))
+  if ((op_host_reconnect || op_host_leave || op_host_announce
+       || op_history_replay || op_history_replay_latest
+       || op_look_at || op_look_for)
+      && 0 == memcmp (&place_pub_key, host_pub_key, sizeof (*host_pub_key)))
   {
     hst = GNUNET_SOCIAL_host_enter_reconnect (hconn, slicer_create (), host_reconnected,
                                               host_answer_door, host_farewell, NULL);
@@ -711,17 +841,15 @@ app_recv_guest (void *cls,
                 const struct GNUNET_CRYPTO_EddsaPublicKey *guest_pub_key,
                 enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
-  struct GNUNET_HashCode guest_pub_hash;
-  GNUNET_CRYPTO_hash (guest_pub_key, sizeof (*guest_pub_key), &guest_pub_hash);
-  char *
-    guest_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (guest_pub_key);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Guest: %s (%s)\n",
-              GNUNET_h2s_full (&guest_pub_hash), guest_pub_str);
+  char *guest_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (guest_pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Guest: %s\n", guest_pub_str);
   GNUNET_free (guest_pub_str);
 
-  if (0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
+  if ((op_guest_reconnect || op_guest_leave || op_guest_talk
+       || op_history_replay || op_history_replay_latest
+       || op_look_at || op_look_for)
+      && 0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
   {
     gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn, GNUNET_PSYC_SLAVE_JOIN_NONE,
                                                slicer_create (), guest_reconnected, NULL);
@@ -736,12 +864,12 @@ app_recv_ego (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
               const char *name)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Ego: %s\t%s\n",
-              name, GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key));
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Ego:   %s\t%s\n",
+              GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key), name);
 
   if (0 == memcmp (&ego_pub_key, pub_key, sizeof (*pub_key))
-      || 0 == strcmp (opt_ego, name))
+      || (NULL != opt_ego && 0 == strcmp (opt_ego, name)))
   {
     ego = e;
   }
@@ -767,7 +895,7 @@ app_connect ()
 static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
-  peer = *my_identity;
+  this_peer = *my_identity;
   app_connect ();
 }
 
@@ -789,8 +917,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   cfg = c;
 
-  if (! (op_status || op_host_enter || op_host_leave || op_host_announce
-         || op_guest_enter || op_guest_leave || op_guest_talk
+  if (!opt_method)
+    opt_method = "message";
+  if (!opt_data)
+    opt_data = "";
+  if (!opt_name)
+    opt_name = "";
+
+  if (! (op_status
+         || op_host_enter || op_host_reconnect || op_host_leave || op_host_announce
+         || op_guest_enter || op_guest_reconnect || op_guest_leave || op_guest_talk
          || op_history_replay || op_history_replay_latest
          || op_look_at || op_look_for))
   {
@@ -802,7 +938,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout, NULL);
   }
 
-  if (!op_status && !op_host_enter
+  if ((op_host_reconnect || op_host_leave || op_host_announce
+       || op_guest_reconnect || (op_guest_enter && !opt_gns)
+       || op_guest_leave || op_guest_talk
+       || op_history_replay || op_history_replay_latest
+       || op_look_at || op_look_for)
       && (!opt_place
           || GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_place,
                                                                       strlen (opt_place),
@@ -810,6 +950,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("--place missing or invalid.\n"));
+    exit_fail ();
     return;
   }
 
@@ -818,11 +959,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
                                                 strlen (opt_ego),
                                                 &ego_pub_key);
-  }
-
-  if (opt_peer)
-  {
-    // FIXME: peer ID from string
   }
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
@@ -854,13 +990,17 @@ main (int argc, char *const *argv)
 
     /* operations */
 
-    { 's', "status", NULL,
+    { 'u', "status", NULL,
       gettext_noop ("list of egos and subscribed places"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_status },
 
     { 'E', "host-enter", NULL,
-      gettext_noop ("create a place for nyms to join"),
+      gettext_noop ("create a place"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter },
+
+    { 'H', "host-reconnect", NULL,
+      gettext_noop ("reconnect to a previously created place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_reconnect },
 
     { 'D', "host-leave", NULL,
       gettext_noop ("destroy a place we were hosting"),
@@ -873,6 +1013,10 @@ main (int argc, char *const *argv)
     { 'e', "guest-enter", NULL,
       gettext_noop ("join somebody else's place"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_enter },
+
+    { 'g', "guest-reconnect", NULL,
+      gettext_noop ("reconnect to a previously entered place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_reconnect },
 
     { 'd', "guest-leave", NULL,
       gettext_noop ("leave somebody else's place"),
@@ -890,51 +1034,72 @@ main (int argc, char *const *argv)
       gettext_noop ("replay history of latest messages up to the given --limit"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_history_replay_latest },
 
+    { 's', "look-for", NULL,
+      gettext_noop ("query state matching name prefix"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_look_for },
+
+    { 'S', "look-at", NULL,
+      gettext_noop ("query state matching exact name"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_look_at },
+
+
     /* options */
 
     { 'A', "app", "APPLICATION_ID",
       gettext_noop ("application ID to use when connecting"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_app },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_app },
 
     { 'p', "place", "PUBKEY",
       gettext_noop ("public key of place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_place },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_place },
 
     { 'P', "peer", "PEER_ID",
       gettext_noop ("peer ID for --guest-enter"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_peer },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_peer },
 
-    { 'g', "ego", "NAME|PUBKEY",
-      gettext_noop ("public key of ego"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_place },
+    { 'g', "gns", "ADDRESS",
+      gettext_noop ("GNS address"),
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_gns },
+
+    { 'i', "ego", "NAME|PUBKEY",
+      gettext_noop ("name or public key of ego"),
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_ego },
 
     { 'f', "follow", NULL,
       gettext_noop ("wait for incoming messages"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_follow },
 
+    { 'x', "admit", NULL,
+      gettext_noop ("respond to entry requests by admitting all guests"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_admit },
+
+    { 'X', "refuse", NULL,
+      gettext_noop ("respond to entry requests by refusing all guests"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_refuse },
+
     { 'm', "method", "METHOD_NAME",
       gettext_noop ("method name"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_method },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_method },
 
-    { 'b', "body", "DATA",
+    { 'b', "data", "DATA",
       gettext_noop ("message body to transmit"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_data },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_data },
 
     { 'k', "name", "VAR_NAME",
       gettext_noop ("state var name to query"),
-      GNUNET_NO, &GNUNET_GETOPT_set_string, &opt_name },
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_name },
 
     { 'a', "start", NULL,
       gettext_noop ("start message ID for history replay"),
-      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &opt_start },
+      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_start },
 
     { 'z', "end", NULL,
       gettext_noop ("end message ID for history replay"),
-      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &opt_end },
+      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_end },
 
     { 'n', "limit", NULL,
       gettext_noop ("number of messages to replay from history"),
-      GNUNET_NO, &GNUNET_GETOPT_set_ulong, &opt_limit },
+      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_limit },
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -943,15 +1108,18 @@ main (int argc, char *const *argv)
     return 2;
 
   const char *help =
-    _ ("Interact with the social service: enter/leave, send/receive messages, access history and state.\n");
+    _ ("gnunet-social - Interact with the social service: enter/leave, send/receive messages, access history and state.\n");
   const char *usage =
     "gnunet-social [--status]\n"
     "\n"
-    "gnunet-social --host-enter --ego <NAME or PUBKEY> [--listen]\n"
+    "gnunet-social --host-enter --ego <NAME or PUBKEY> [--follow] [--admit | --refuse]\n"
+    "gnunet-social --host-reconnect --place <PUBKEY> [--follow] [--admit | --refuse]\n"
     "gnunet-social --host-leave --place <PUBKEY>\n"
     "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE BODY>\n"
     "\n"
-    "gnunet-social --guest-enter --place <PUBKEY> --ego <NAME or PUBKEY> [--listen]\n"
+    "gnunet-social --guest-enter --place <PUBKEY> --peer <PEERID> --ego <NAME or PUBKEY> [--follow]\n"
+    "gnunet-social --guest-enter --gns <GNS_ADDRESS> --ego <NAME or PUBKEY> [--follow]\n"
+    "gnunet-social --guest-reconnect --place <PUBKEY> [--follow]\n"
     "gnunet-social --guest-leave --place <PUBKEY>\n"
     "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NMAE> --data <DATA>\n"
     "\n"
