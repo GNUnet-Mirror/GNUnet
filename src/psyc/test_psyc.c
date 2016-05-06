@@ -336,7 +336,10 @@ state_get_var (void *cls, const struct GNUNET_MessageHeader *mod,
                uint32_t value_size, uint32_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got state var: %s\n%.*s\n", name, value_size, value);
+              "Got state var: %s\n%.*s\n",
+              name,
+              (int) value_size,
+              (const char *) value);
 }
 
 
@@ -348,7 +351,9 @@ slave_state_get_prefix_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_state_get_prefix:\t%" PRId64 " (%.s)\n",
-              result, err_msg_size, err_msg);
+              result,
+              (int) err_msg_size,
+              (const char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
   end ();
 }
@@ -442,7 +447,9 @@ slave_history_replay_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_history_replay:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result,
+              (int) err_msg_size,
+              (const char *) err_msg);
   GNUNET_assert (9 == result);
 
   master_state_get ();
@@ -470,7 +477,9 @@ master_history_replay_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "master_history_replay:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result,
+              (int) err_msg_size,
+              (const char *) err_msg);
   GNUNET_assert (9 == result);
 
   slave_history_replay ();
@@ -498,7 +507,9 @@ slave_history_replay_latest_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_history_replay_latest:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result,
+              (int) err_msg_size,
+              (const char *) err_msg);
   GNUNET_assert (9 == result);
 
   master_history_replay ();

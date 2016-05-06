@@ -2265,7 +2265,7 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Message payload too large: %u < %u.\n",
                 chn,
-                GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD,
+                (unsigned int) GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD,
                 (unsigned int) (size - sizeof (*msg)));
     GNUNET_break (0);
     transmit_cancel (chn, client);
@@ -2310,7 +2310,7 @@ store_recv_membership_store_result (void *cls,
 {
   struct Operation *op = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%.s)\n",
+              "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%.*s)\n",
               op->chn,
               result,
               (int) err_msg_size,
