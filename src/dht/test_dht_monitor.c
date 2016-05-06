@@ -332,7 +332,8 @@ monitor_res_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%u got a REPLY message for key %s with %u bytes\n",
               i,
-	      GNUNET_h2s (key), size);
+	      GNUNET_h2s (key),
+              (unsigned int) size);
   monitor_counter++;
 }
 
