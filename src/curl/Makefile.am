@@ -6,6 +6,16 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_LIBGNURL
+LIB_GNURL=@LIBGNURL@
+CPP_GNURL=@LIBGNURL_CPPFLAGS@
+else
+if HAVE_LIBCURL
+LIB_GNURL=@LIBCURL@
+CPP_GNURL=@LIBCURL_CPPFLAGS@
+endif
+endif
+
 lib_LTLIBRARIES = \
   libgnunetcurl.la
 
@@ -18,8 +28,10 @@ libgnunetcurl_la_SOURCES = \
 libgnunetcurl_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
-  -lcurl \
+  $(LIB_GNURL) \
   $(XLIB)
+libgnunetcurl_la_CPPFLAGS = \
+ $(CPP_GNURL) $(AM_CPPFLAGS)
 
 #check_PROGRAMS = \
 #  test_curl
