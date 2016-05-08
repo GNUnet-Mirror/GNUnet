@@ -64,11 +64,11 @@ static int op_guest_leave;
 /** --guest-talk */
 static int op_guest_talk;
 
-/** --history-replay */
-static char *op_history_replay;
+/** --replay */
+static char *op_replay;
 
-/** --history-replay-latest */
-static char *op_history_replay_latest;
+/** --replay-latest */
+static char *op_replay_latest;
 
 /** --look-at */
 static int op_look_at;
@@ -97,11 +97,11 @@ static char *opt_peer;
 /** --follow */
 static int opt_follow;
 
-/** --admit */
-static int opt_admit;
+/** --welcome */
+static int opt_welcome;
 
-/** --refuse */
-static int opt_refuse;
+/** --deny */
+static int opt_deny;
 
 /** --method */
 static char *opt_method;
@@ -116,8 +116,8 @@ static char *opt_name;
 /** --start */
 static uint64_t opt_start;
 
-/** --end */
-static uint64_t opt_end;
+/** --until */
+static uint64_t opt_until;
 
 /** --limit */
 static int opt_limit;
@@ -352,7 +352,7 @@ recv_history_replay_result (void *cls, int64_t result,
               "%.*s\n",
               result, data_size, (const char *) data);
 
-  if (op_history_replay || op_history_replay_latest)
+  if (op_replay || op_replay_latest)
   {
     exit_success ();
   }
@@ -628,7 +628,7 @@ host_answer_door (void *cls,
               "Entry request: %s\n", nym_str);
   GNUNET_free (nym_str);
 
-  if (opt_admit)
+  if (opt_welcome)
   {
     struct GNUNET_PSYC_Message *
       resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
@@ -636,7 +636,7 @@ host_answer_door (void *cls,
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, resp);
     GNUNET_free (resp);
   }
-  else if (opt_refuse)
+  else if (opt_deny)
   {
     struct GNUNET_PSYC_Message *
       resp = GNUNET_PSYC_message_create ("_notice_place_refuse", NULL,
@@ -709,10 +709,10 @@ host_enter ()
 static void
 place_reconnected ()
 {
-  if (op_history_replay) {
-    history_replay (opt_start, opt_end, opt_method);
+  if (op_replay) {
+    history_replay (opt_start, opt_until, opt_method);
   }
-  else if (op_history_replay_latest) {
+  else if (op_replay_latest) {
     history_replay_latest (opt_limit, opt_method);
   }
   else if (op_look_at) {
@@ -824,7 +824,7 @@ app_recv_host (void *cls,
   GNUNET_free (host_pub_str);
 
   if ((op_host_reconnect || op_host_leave || op_host_announce
-       || op_history_replay || op_history_replay_latest
+       || op_replay || op_replay_latest
        || op_look_at || op_look_for)
       && 0 == memcmp (&place_pub_key, host_pub_key, sizeof (*host_pub_key)))
   {
@@ -848,7 +848,7 @@ app_recv_guest (void *cls,
   GNUNET_free (guest_pub_str);
 
   if ((op_guest_reconnect || op_guest_leave || op_guest_talk
-       || op_history_replay || op_history_replay_latest
+       || op_replay || op_replay_latest
        || op_look_at || op_look_for)
       && 0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
   {
@@ -928,7 +928,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (! (op_status
          || op_host_enter || op_host_reconnect || op_host_leave || op_host_announce
          || op_guest_enter || op_guest_reconnect || op_guest_leave || op_guest_talk
-         || op_history_replay || op_history_replay_latest
+         || op_replay || op_replay_latest
          || op_look_at || op_look_for))
   {
     op_status = 1;
@@ -942,7 +942,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((op_host_reconnect || op_host_leave || op_host_announce
        || op_guest_reconnect || (op_guest_enter && !opt_gns)
        || op_guest_leave || op_guest_talk
-       || op_history_replay || op_history_replay_latest
+       || op_replay || op_replay_latest
        || op_look_at || op_look_for)
       && (!opt_place
           || GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_place,
@@ -991,6 +991,10 @@ main (int argc, char *const *argv)
 
     /* operations */
 
+    { 'B', "guest-leave", NULL,
+      gettext_noop ("say good-bye and leave somebody else's place"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_leave },
+
     { 'C', "host-enter", NULL,
       gettext_noop ("create a place"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter },
@@ -1007,13 +1011,9 @@ main (int argc, char *const *argv)
       gettext_noop ("find state matching name prefix"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_look_for },
 
-    { 'H', "history-replay-latest", NULL,
-      gettext_noop ("replay history of latest messages up to the given --limit"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_history_replay_latest },
-
-    { 'L', "guest-leave", NULL,
-      gettext_noop ("leave somebody else's place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_leave },
+    { 'H', "replay-latest", NULL,
+      gettext_noop ("replay history of messages up to the given --limit"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_replay_latest },
 
     { 'N', "host-reconnect", NULL,
       gettext_noop ("reconnect to a previously created place"),
@@ -1039,9 +1039,9 @@ main (int argc, char *const *argv)
       gettext_noop ("list of egos and subscribed places"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &op_status },
 
-    { 'X', "history-replay", NULL,
-      gettext_noop ("extract and replay history between message IDs --start and --end"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_history_replay },
+    { 'X', "replay", NULL,
+      gettext_noop ("extract and replay history between message IDs --start and --until"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_replay },
 
 
     /* options */
@@ -1062,28 +1062,28 @@ main (int argc, char *const *argv)
       gettext_noop ("wait for incoming messages"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_follow },
 
+    { 'g', "gns", "GNS_NAME",
+      gettext_noop ("GNS name"),
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_gns },
+
     { 'i', "peer", "PEER_ID",
       gettext_noop ("peer ID for --guest-enter"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_peer },
 
     { 'k', "name", "VAR_NAME",
-      gettext_noop ("state var name to query"),
+      gettext_noop ("state variable name (key) to query"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_name },
-
-    { 'l', "limit", NULL,
-      gettext_noop ("number of messages to replay from history"),
-      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_limit },
 
     { 'm', "method", "METHOD_NAME",
       gettext_noop ("method name"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_method },
 
-    { 'n', "gns", "GNS_NAME",
-      gettext_noop ("GNS name"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_gns },
+    { 'n', "limit", NULL,
+      gettext_noop ("number of messages to replay from history"),
+      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_limit },
 
     { 'p', "place", "PUBKEY",
-      gettext_noop ("public key of place"),
+      gettext_noop ("key address of place"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_place },
 
     { 's', "start", NULL,
@@ -1092,15 +1092,15 @@ main (int argc, char *const *argv)
 
     { 'w', "welcome", NULL,
       gettext_noop ("respond to entry requests by admitting all guests"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_admit },
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_welcome },
 
     { 'u', "until", NULL,
       gettext_noop ("end message ID for history replay"),
-      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_end },
+      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_until },
 
     { 'y', "deny", NULL,
       gettext_noop ("respond to entry requests by refusing all guests"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_refuse },
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_deny },
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -1113,8 +1113,8 @@ main (int argc, char *const *argv)
   const char *usage =
     "gnunet-social [--status]\n"
     "\n"
-    "gnunet-social --host-enter --ego <NAME or PUBKEY> [--follow] [--admit | --refuse]\n"
-    "gnunet-social --host-reconnect --place <PUBKEY> [--follow] [--admit | --refuse]\n"
+    "gnunet-social --host-enter --ego <NAME or PUBKEY> [--follow] [--welcome | --deny]\n"
+    "gnunet-social --host-reconnect --place <PUBKEY> [--follow] [--welcome | --deny]\n"
     "gnunet-social --host-leave --place <PUBKEY>\n"
     "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --body <MESSAGE_BODY>\n"
     "\n"
@@ -1124,7 +1124,7 @@ main (int argc, char *const *argv)
     "gnunet-social --guest-leave --place <PUBKEY>\n"
     "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NAME> --body <MESSAGE_BODY>\n"
     "\n"
-    "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --end <MSGID>  [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
     "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
     "\n"
     "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
