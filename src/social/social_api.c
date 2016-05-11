@@ -2502,9 +2502,12 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        Application handle.
  */
 void
-GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app)
+GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
+                              GNUNET_ContinuationCallback disconnect_cb,
+                              void *disconnect_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (app->client, GNUNET_NO, NULL, NULL);
+  GNUNET_CLIENT_MANAGER_disconnect (app->client, GNUNET_NO,
+                                    disconnect_cb, disconnect_cls);
 }
 
 

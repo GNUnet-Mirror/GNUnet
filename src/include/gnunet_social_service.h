@@ -420,7 +420,9 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        App handle.
  */
 void
-GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app);
+GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
+                              GNUNET_ContinuationCallback disconnect_cb,
+                              void *disconnect_cls);
 
 
 /**

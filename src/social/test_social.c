@@ -221,7 +221,7 @@ cleanup ()
     hst = NULL;
     hst_plc = NULL;
   }
-  GNUNET_SOCIAL_app_disconnect (app);
+  GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -495,7 +495,7 @@ schedule_reconnect (void *cls)
   hst = NULL;
   gst = NULL;
 
-  GNUNET_SOCIAL_app_disconnect (app);
+  GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
   app = GNUNET_SOCIAL_app_connect (cfg, app_id,
                                    app_recv_ego,
                                    app_recv_host,
