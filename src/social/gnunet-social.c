@@ -155,20 +155,38 @@ struct GNUNET_SOCIAL_Place *plc;
 
 
 static void
+disconnected (void *cls)
+{
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+static void
+app_disconnected (void *cls)
+{
+  if (hst || gst)
+  {
+    if (hst)
+    {
+      GNUNET_SOCIAL_host_disconnect (hst, disconnected, NULL);
+    }
+    if (gst)
+    {
+      GNUNET_SOCIAL_guest_disconnect (gst, disconnected, NULL);
+    }
+  }
+  else
+  {
+    GNUNET_SCHEDULER_shutdown ();
+  }
+}
+
+
+static void
 disconnect ()
 {
-  if (hst)
-  {
-    GNUNET_SOCIAL_host_disconnect (hst, NULL, NULL);
-  }
-  if (gst)
-  {
-    GNUNET_SOCIAL_guest_disconnect (gst, NULL, NULL);
-  }
-
-  GNUNET_SOCIAL_app_disconnect (app);
   GNUNET_CORE_disconnect (core);
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SOCIAL_app_disconnect (app, app_disconnected, NULL);
 }
 
 /**
@@ -206,7 +224,7 @@ exit_success ()
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&schedule_success, NULL);
+  GNUNET_SCHEDULER_add_now (schedule_success, NULL);
 }
 
 
@@ -218,7 +236,7 @@ exit_fail ()
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&schedule_fail, NULL);
+  GNUNET_SCHEDULER_add_now (schedule_fail, NULL);
 }
 
 
@@ -237,7 +255,7 @@ host_left ()
 static void
 host_leave ()
 {
-  GNUNET_SOCIAL_host_leave (hst, NULL, &host_left, NULL);
+  GNUNET_SOCIAL_host_leave (hst, NULL, host_left, NULL);
   hst = NULL;
   plc = NULL;
 }
@@ -258,7 +276,7 @@ guest_leave ()
     // method in the middle of vars? FIXME
   GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
                        "_notice_place_leave", DATA2ARG ("Leaving."));
-  GNUNET_SOCIAL_guest_leave (gst, env, &guest_left, NULL);
+  GNUNET_SOCIAL_guest_leave (gst, env, guest_left, NULL);
   GNUNET_PSYC_env_destroy (env);
   gst = NULL;
   plc = NULL;
@@ -296,11 +314,11 @@ notify_data (void *cls, uint16_t *data_size, void *data)
     {
       exit_success ();
     }
-    return GNUNET_NO;
+    return GNUNET_YES;
   }
   else
   {
-    return GNUNET_YES;
+    return GNUNET_NO;
   }
 }
 
@@ -317,7 +335,7 @@ host_announce (const char *method, const char *data, size_t data_size)
   tmit.size = data_size;
 
   GNUNET_SOCIAL_host_announce (hst, method, env,
-                               &notify_data, &tmit,
+                               notify_data, &tmit,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
 
@@ -335,7 +353,7 @@ guest_talk (const char *method,
   tmit.size = data_size;
 
   GNUNET_SOCIAL_guest_talk (gst, method, env,
-                            &notify_data, &tmit,
+                            notify_data, &tmit,
                             GNUNET_SOCIAL_TALK_NONE);
 }
 
@@ -365,7 +383,7 @@ history_replay (uint64_t start, uint64_t end, const char *prefix)
   GNUNET_SOCIAL_place_history_replay (plc, start, end, prefix,
                                       GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
                                       slicer,
-                                      &recv_history_replay_result,
+                                      recv_history_replay_result,
                                       NULL);
 }
 
@@ -376,7 +394,7 @@ history_replay_latest (uint64_t limit, const char *prefix)
   GNUNET_SOCIAL_place_history_replay_latest (plc, limit, prefix,
                                              GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
                                              slicer,
-                                             &recv_history_replay_result,
+                                             recv_history_replay_result,
                                              NULL);
 }
 
@@ -916,6 +934,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  GNUNET_SIGNAL_handler_install (SIGINT, disconnect);
+  GNUNET_SIGNAL_handler_install (SIGTERM, disconnect);
+  GNUNET_SIGNAL_handler_install (SIGKILL, disconnect);
+
   cfg = c;
 
   if (!opt_method)
@@ -936,7 +958,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (!opt_follow)
   {
-    timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout, NULL);
+    timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, timeout, NULL);
   }
 
   if ((op_host_reconnect || op_host_leave || op_host_announce
