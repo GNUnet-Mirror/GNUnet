@@ -933,16 +933,14 @@ place_recv_save_method (void *cls,
   plc->file_offset = 0;
   plc->file_save = GNUNET_NO;
 
-  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
-  memcpy (&place_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
-
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (&plc->pub_key);
   char *filename = NULL;
   GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%" PRIu64 ".part",
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   place_pub_str, DIR_SEPARATOR,
                    GNUNET_ntohll (msg->message_id));
+  GNUNET_free (place_pub_str);
 
   /* save if does not already exist */
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
@@ -979,16 +977,14 @@ place_recv_save_data (void *cls,
   if (GNUNET_YES != plc->file_save)
     return;
 
-  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
-  memcpy (&place_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
-
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (&plc->pub_key);
   char *filename = NULL;
   GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%" PRIu64 ".part",
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   place_pub_str, DIR_SEPARATOR,
                    GNUNET_ntohll (msg->message_id));
+  GNUNET_free (place_pub_str);
   GNUNET_DISK_directory_create_for_file (filename);
   struct GNUNET_DISK_FileHandle *
     fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
@@ -1026,16 +1022,14 @@ place_recv_save_eom (void *cls,
   if (GNUNET_YES != plc->file_save)
     return;
 
-  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
-  memcpy (&place_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
-
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (&plc->pub_key);
   char *fn = NULL;
   GNUNET_asprintf (&fn, "%s%c%s%c%s%c%" PRIu64,
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   place_pub_str, DIR_SEPARATOR,
                    GNUNET_ntohll (msg->message_id));
+  GNUNET_free (place_pub_str);
   char *fn_part = NULL;
   GNUNET_asprintf (&fn_part, "%s.part", fn);
 
@@ -1201,26 +1195,14 @@ app_place_save (const char *app_id,
   if (NULL == dir_places)
     return GNUNET_SYSERR;
 
-  struct GNUNET_HashCode ego_pub_hash;
-  struct GNUNET_HashCode place_pub_hash;
-  GNUNET_CRYPTO_hash (&ereq->ego_pub_key, sizeof (ereq->ego_pub_key),
-                      &ego_pub_hash);
-  GNUNET_CRYPTO_hash (&ereq->place_pub_key, sizeof (ereq->place_pub_key),
-                      &place_pub_hash);
-
-  struct GNUNET_CRYPTO_HashAsciiEncoded ego_pub_hash_ascii;
-  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
-  memcpy (&ego_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&ego_pub_hash), sizeof (ego_pub_hash_ascii));
-  memcpy (&place_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&place_pub_hash), sizeof (place_pub_hash_ascii));
-
+  char *ego_pub_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&ereq->ego_pub_key);
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (&ereq->place_pub_key);
   char *filename = NULL;
   GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%s",
                    dir_social, DIR_SEPARATOR,
                    "places", DIR_SEPARATOR,
-                   ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding);
+                   ego_pub_str, DIR_SEPARATOR,
+                   place_pub_str);
   int ret = GNUNET_DISK_directory_create_for_file (filename);
   if (GNUNET_OK != ret
       || 0 > GNUNET_DISK_fn_write (filename, ereq, ntohs (ereq->header.size),
@@ -1238,8 +1220,8 @@ app_place_save (const char *app_id,
                      dir_social, DIR_SEPARATOR,
                      "apps", DIR_SEPARATOR,
                      app_id, DIR_SEPARATOR,
-                     ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                     place_pub_hash_ascii.encoding);
+                     ego_pub_str, DIR_SEPARATOR,
+                     place_pub_str);
     ret = GNUNET_DISK_directory_create_for_file (filename);
     if (GNUNET_OK != ret
         || 0 > GNUNET_DISK_fn_write (filename, "", 0,
@@ -1251,6 +1233,8 @@ app_place_save (const char *app_id,
     }
     GNUNET_free (filename);
   }
+  GNUNET_free (ego_pub_str);
+  GNUNET_free (place_pub_str);
   return ret;
 }
 
@@ -1265,21 +1249,18 @@ app_place_remove (const char *app_id,
   GNUNET_CRYPTO_hash (ego_pub_key, sizeof (*ego_pub_key), &ego_pub_hash);
   GNUNET_CRYPTO_hash (place_pub_key, sizeof (*place_pub_key), &place_pub_hash);
 
-  struct GNUNET_CRYPTO_HashAsciiEncoded ego_pub_hash_ascii;
-  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
-  memcpy (&ego_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&ego_pub_hash), sizeof (ego_pub_hash_ascii));
-  memcpy (&place_pub_hash_ascii.encoding,
-          GNUNET_h2s_full (&place_pub_hash), sizeof (place_pub_hash_ascii));
-
+  char *ego_pub_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key);
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (place_pub_key);
   char *app_place_filename = NULL;
   GNUNET_asprintf (&app_place_filename,
                    "%s%c" "%s%c" "%s%c" "%s%c" "%s",
                    dir_social, DIR_SEPARATOR,
                    "apps", DIR_SEPARATOR,
                    app_id, DIR_SEPARATOR,
-                   ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding);
+                   ego_pub_str, DIR_SEPARATOR,
+                   place_pub_str);
+  GNUNET_free (ego_pub_str);
+  GNUNET_free (place_pub_str);
 
   struct GNUNET_HashCode app_id_hash;
   GNUNET_CRYPTO_hash (app_id, strlen (app_id) + 1, &app_id_hash);
@@ -3291,63 +3272,18 @@ path_basename (const char *path)
 struct PlaceLoadClosure
 {
   const char *app_id;
-  const char *ego_pub_hash_str;
+  const char *ego_pub_str;
 };
 
 
 /** Load a place file */
 int
-file_place_load (void *cls, const char *filename)
-{
-  char *app_id = cls;
-  uint64_t file_size = 0;
-  if (GNUNET_OK !=
-      GNUNET_DISK_file_size (filename, &file_size, GNUNET_YES, GNUNET_YES)
-      || file_size < sizeof (struct HostEnterRequest))
-    return GNUNET_OK;
-
-  struct PlaceEnterRequest *ereq = GNUNET_malloc (file_size);
-  ssize_t read_size = GNUNET_DISK_fn_read (filename, ereq, file_size);
-  if (read_size < 0 || read_size < sizeof (*ereq))
-    return GNUNET_OK;
-
-  uint16_t ereq_size = ntohs (ereq->header.size);
-  if (read_size != ereq_size)
-    return GNUNET_OK;
-
-  switch (ntohs (ereq->header.type))
-  {
-  case GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER:
-    if (ereq_size < sizeof (struct HostEnterRequest))
-      return GNUNET_OK;
-    struct HostEnterRequest *hreq = (struct HostEnterRequest *) ereq;
-    host_enter (hreq, NULL);
-    break;
-
-  case GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER:
-    if (ereq_size < sizeof (struct GuestEnterRequest))
-      return GNUNET_OK;
-    struct GuestEnterRequest *greq = (struct GuestEnterRequest *) ereq;
-    guest_enter (greq, NULL);
-    break;
-
-  default:
-    return GNUNET_OK;
-  }
-
-  app_place_add (app_id, ereq);
-  return GNUNET_OK;
-}
-
-
-/** Load an ego place file */
-int
-file_ego_place_load (void *cls, const char *place_filename)
+file_place_load (void *cls, const char *place_filename)
 {
   struct PlaceLoadClosure *plcls = cls;
 
-  const char *place_pub_hash_str = path_basename (place_filename);
-  if (NULL == place_pub_hash_str)
+  const char *place_pub_str = path_basename (place_filename);
+  if (NULL == place_pub_str)
   {
     GNUNET_break (0);
     return GNUNET_OK;
@@ -3357,44 +3293,84 @@ file_ego_place_load (void *cls, const char *place_filename)
   GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%s",
                    dir_social, DIR_SEPARATOR,
                    "places", DIR_SEPARATOR,
-                   plcls->ego_pub_hash_str, DIR_SEPARATOR,
-                   place_pub_hash_str);
+                   plcls->ego_pub_str, DIR_SEPARATOR,
+                   place_pub_str);
 
-  struct PlaceEnterRequest ereq[GNUNET_SERVER_MAX_MESSAGE_SIZE];
-
-  int read_size = GNUNET_DISK_fn_read (filename, &ereq,
-                                       GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_free (filename);
-
-  if (read_size < (ssize_t) sizeof (ereq))
+  uint64_t file_size = 0;
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (filename, &file_size, GNUNET_YES, GNUNET_YES)
+      || file_size < sizeof (struct PlaceEnterRequest))
     return GNUNET_OK;
 
+  struct PlaceEnterRequest *ereq = GNUNET_malloc (file_size);
+  ssize_t read_size = GNUNET_DISK_fn_read (filename, ereq, file_size);
+  if (read_size < 0 || read_size < sizeof (*ereq))
+  {
+    GNUNET_free (ereq);
+    return GNUNET_OK;
+  }
+
+  uint16_t ereq_size = ntohs (ereq->header.size);
+  if (read_size != ereq_size)
+  {
+    GNUNET_free (ereq);
+    return GNUNET_OK;
+  }
+
+  switch (ntohs (ereq->header.type))
+  {
+  case GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER:
+    if (ereq_size < sizeof (struct HostEnterRequest))
+    {
+      GNUNET_free (ereq);
+      return GNUNET_OK;
+    }
+    struct HostEnterRequest *hreq = (struct HostEnterRequest *) ereq;
+    host_enter (hreq, NULL);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER:
+    if (ereq_size < sizeof (struct GuestEnterRequest))
+    {
+      GNUNET_free (ereq);
+      return GNUNET_OK;
+    }
+    struct GuestEnterRequest *greq = (struct GuestEnterRequest *) ereq;
+    guest_enter (greq, NULL);
+    break;
+
+  default:
+    GNUNET_free (ereq);
+    return GNUNET_OK;
+  }
+
   app_place_add (plcls->app_id, ereq);
+  GNUNET_free (ereq);
   return GNUNET_OK;
 }
 
 
 /**
- * Read @e place_pub_hash_str entries in @a dir_ego
+ * Read @e place_pub_str entries in @a dir_ego
  *
  * @param dir_ego
  *        Data directory of an application ego.
- *        $GNUNET_DATA_HOME/social/apps/$app_id/$ego_pub_hash_str/
+ *        $GNUNET_DATA_HOME/social/apps/$app_id/$ego_pub_str/
  */
 int
 scan_app_ego_dir (void *cls, const char *dir_ego)
 {
   struct PlaceLoadClosure *plcls = cls;
-  plcls->ego_pub_hash_str = path_basename (dir_ego);
+  plcls->ego_pub_str = path_basename (dir_ego);
 
-  if (NULL != plcls->ego_pub_hash_str)
-    GNUNET_DISK_directory_scan (dir_ego, file_ego_place_load, plcls);
+  if (NULL != plcls->ego_pub_str)
+    GNUNET_DISK_directory_scan (dir_ego, file_place_load, plcls);
 
   return GNUNET_OK;
 }
 
 /**
- * Read @e ego_pub_hash_str entries in @a dir_app
+ * Read @e ego_pub_str entries in @a dir_app
  *
  * @param dir_app
  *        Data directory of an application.
