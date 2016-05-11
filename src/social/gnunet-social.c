@@ -52,6 +52,9 @@ static int op_host_leave;
 /** --host-announce */
 static int op_host_announce;
 
+/** --host-assign */
+static int op_host_assign;
+
 /** --guest-enter */
 static int op_guest_enter;
 
@@ -106,9 +109,9 @@ static int opt_deny;
 /** --method */
 static char *opt_method;
 
-/** --body */
+/** --data */
 // FIXME: should come from STDIN
-static char *opt_body;
+static char *opt_data;
 
 /** --name */
 static char *opt_name;
@@ -283,7 +286,7 @@ guest_leave ()
 }
 
 
-/* ANNOUNCE / TALK */
+/* ANNOUNCE / ASSIGN / TALK */
 
 
 struct TransmitClosure
@@ -310,7 +313,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 
   if (0 == tmit->size)
   {
-    if (op_host_announce || op_guest_talk)
+    if (op_host_announce || op_host_assign || op_guest_talk)
     {
       exit_success ();
     }
@@ -335,6 +338,19 @@ host_announce (const char *method, const char *data, size_t data_size)
   tmit.size = data_size;
 
   GNUNET_SOCIAL_host_announce (hst, method, env,
+                               notify_data, &tmit,
+                               GNUNET_SOCIAL_ANNOUNCE_NONE);
+}
+
+static void
+host_assign (const char *name, const char *data, size_t data_size)
+{
+  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_ASSIGN,
+                       name, data, data_size);
+
+  tmit = (struct TransmitClosure) {};
+  GNUNET_SOCIAL_host_announce (hst, "_assign", env,
                                notify_data, &tmit,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
@@ -727,6 +743,11 @@ host_enter ()
 static void
 place_reconnected ()
 {
+  static int first_run = GNUNET_YES;
+  if (GNUNET_NO == first_run)
+    return;
+  first_run = GNUNET_NO;
+
   if (op_replay) {
     history_replay (opt_start, opt_until, opt_method);
   }
@@ -754,7 +775,10 @@ host_reconnected (void *cls, int result,
     host_leave ();
   }
   else if (op_host_announce) {
-    host_announce (opt_method, opt_body, strlen (opt_body));
+    host_announce (opt_method, opt_data, strlen (opt_data));
+  }
+  else if (op_host_assign) {
+    host_assign (opt_name, opt_data, strlen (opt_data) + 1);
   }
   else {
     place_reconnected ();
@@ -774,7 +798,7 @@ guest_reconnected (void *cls, int result,
     guest_leave ();
   }
   else if (op_guest_talk) {
-    guest_talk (opt_method, opt_body, strlen (opt_body));
+    guest_talk (opt_method, opt_data, strlen (opt_data));
   }
   else {
     place_reconnected ();
@@ -841,7 +865,7 @@ app_recv_host (void *cls,
               "Host:  %s\n", host_pub_str);
   GNUNET_free (host_pub_str);
 
-  if ((op_host_reconnect || op_host_leave || op_host_announce
+  if ((op_host_reconnect || op_host_leave || op_host_announce || op_host_assign
        || op_replay || op_replay_latest
        || op_look_at || op_look_for)
       && 0 == memcmp (&place_pub_key, host_pub_key, sizeof (*host_pub_key)))
@@ -942,14 +966,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (!opt_method)
     opt_method = "message";
-  if (!opt_body)
-    opt_body = "";
+  if (!opt_data)
+    opt_data = "";
   if (!opt_name)
     opt_name = "";
 
   if (! (op_status
-         || op_host_enter || op_host_reconnect || op_host_leave || op_host_announce
-         || op_guest_enter || op_guest_reconnect || op_guest_leave || op_guest_talk
+         || op_host_enter || op_host_reconnect || op_host_leave
+         || op_host_announce || op_host_assign
+         || op_guest_enter || op_guest_reconnect
+         || op_guest_leave || op_guest_talk
          || op_replay || op_replay_latest
          || op_look_at || op_look_for))
   {
@@ -961,7 +987,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, timeout, NULL);
   }
 
-  if ((op_host_reconnect || op_host_leave || op_host_announce
+  if ((op_host_reconnect || op_host_leave || op_host_announce || op_host_assign
        || op_guest_reconnect || (op_guest_enter && !opt_gns)
        || op_guest_leave || op_guest_talk
        || op_replay || op_replay_latest
@@ -1012,6 +1038,10 @@ main (int argc, char *const *argv)
      */
 
     /* operations */
+
+    { 'A', "host-assign", NULL,
+      gettext_noop ("assign --name in state to --data"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_assign },
 
     { 'B', "guest-leave", NULL,
       gettext_noop ("say good-bye and leave somebody else's place"),
@@ -1072,9 +1102,9 @@ main (int argc, char *const *argv)
       gettext_noop ("application ID to use when connecting"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_app },
 
-    { 'b', "body", "MESSAGE_BODY",
-      gettext_noop ("message body to transmit"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_body },
+    { 'd', "data", "DATA",
+      gettext_noop ("message body or state value"),
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_data },
 
     { 'e', "ego", "NAME|PUBKEY",
       gettext_noop ("name or public key of ego"),
@@ -1093,7 +1123,7 @@ main (int argc, char *const *argv)
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_peer },
 
     { 'k', "name", "VAR_NAME",
-      gettext_noop ("state variable name (key) to query"),
+      gettext_noop ("name (key) to query from state"),
       GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_name },
 
     { 'm', "method", "METHOD_NAME",
@@ -1138,16 +1168,18 @@ main (int argc, char *const *argv)
     "gnunet-social --host-enter --ego <NAME or PUBKEY> [--follow] [--welcome | --deny]\n"
     "gnunet-social --host-reconnect --place <PUBKEY> [--follow] [--welcome | --deny]\n"
     "gnunet-social --host-leave --place <PUBKEY>\n"
-    "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --body <MESSAGE_BODY>\n"
+    "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE_BODY>\n"
     "\n"
     "gnunet-social --guest-enter --place <PUBKEY> --peer <PEERID> --ego <NAME or PUBKEY> [--follow]\n"
     "gnunet-social --guest-enter --gns <GNS_NAME> --ego <NAME or PUBKEY> [--follow]\n"
     "gnunet-social --guest-reconnect --place <PUBKEY> [--follow]\n"
     "gnunet-social --guest-leave --place <PUBKEY>\n"
-    "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NAME> --body <MESSAGE_BODY>\n"
+    "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE_BODY>\n"
     "\n"
     "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
     "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
+    "\n"
+    "gnunet-social --set --place <PUBKEY> --name <NAME> --data <VALUE>\n"
     "\n"
     "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
     "gnunet-social --look-for --place <PUBKEY> --name <NAME_PREFIX>\n";
