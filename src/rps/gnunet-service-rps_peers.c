@@ -1052,9 +1052,7 @@ Peers_cleanup_destroyed_channel (void *cls,
        GNUNET_i2s (peer));
     return;
   }
-
   peer_ctx = get_peer_ctx (peer);
-  GNUNET_assert (NULL != peer_ctx); /* It could have been removed by shutdown_task */
 
   /* If our peer issued the destruction of the channel, the #Peers_TO_DESTROY
    * flag will be set. In this case simply make sure that the channels are
