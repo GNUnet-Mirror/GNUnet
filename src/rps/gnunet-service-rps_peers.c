@@ -220,7 +220,6 @@ static const struct GNUNET_PeerIdentity *own_identity;
 static struct GNUNET_CADET_Handle *cadet_handle;
 
 
-
 /**
  * @brief Get the #PeerContext associated with a peer
  *
@@ -1062,9 +1061,6 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
 /**
  * This is called when a channel is destroyed.
  *
- * Removes peer completely from our knowledge if the send_channel was destroyed
- * Otherwise simply delete the recv_channel
- *
  * @param cls The closure
  * @param channel The channel being closed
  * @param channel_ctx The context associated with this channel
@@ -1093,6 +1089,7 @@ Peers_cleanup_destroyed_channel (void *cls,
   /* If our peer issued the destruction of the channel, the #Peers_TO_DESTROY
    * flag will be set. In this case simply make sure that the channels are
    * cleaned. */
+  /* FIXME This distinction seems to be redundant */
   if (Peers_check_peer_flag (peer, Peers_TO_DESTROY))
   {/* We initiatad the destruction of this particular peer */
     if (channel == peer_ctx->send_channel)
