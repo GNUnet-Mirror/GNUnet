@@ -157,6 +157,9 @@ struct GNUNET_SOCIAL_Place *plc;
 /* DISCONNECT */
 
 
+/**
+ * Callback called after the host or guest place disconnected.
+ */
 static void
 disconnected (void *cls)
 {
@@ -164,6 +167,9 @@ disconnected (void *cls)
 }
 
 
+/**
+ * Callback called after the application disconnected.
+ */
 static void
 app_disconnected (void *cls)
 {
@@ -185,6 +191,9 @@ app_disconnected (void *cls)
 }
 
 
+/**
+ * Disconnect from connected GNUnet services.
+ */
 static void
 disconnect ()
 {
@@ -193,9 +202,7 @@ disconnect ()
 }
 
 /**
- * Terminate the test case (failure).
- *
- * @param cls NULL
+ * Callback called when the program failed to finish the requested operation in time.
  */
 static void
 timeout (void *cls)
@@ -219,6 +226,9 @@ schedule_fail (void *cls)
 }
 
 
+/**
+ * Schedule exit with succes result.
+ */
 static void
 exit_success ()
 {
@@ -231,6 +241,9 @@ exit_success ()
 }
 
 
+/**
+ * Schedule exit with failure result.
+ */
 static void
 exit_fail ()
 {
@@ -246,6 +259,11 @@ exit_fail ()
 /* LEAVE */
 
 
+/**
+ * Callback notifying about the host has left and stopped hosting the place.
+ *
+ * This also indicates the end of the connection to the service.
+ */
 static void
 host_left ()
 {
@@ -255,6 +273,9 @@ host_left ()
 }
 
 
+/**
+ * Leave a place permanently and stop hosting a place.
+ */
 static void
 host_leave ()
 {
@@ -264,6 +285,11 @@ host_leave ()
 }
 
 
+/**
+ * Callback notifying about the guest has left the place.
+ *
+ * This also indicates the end of the connection to the service.
+ */
 static void
 guest_left (void *cls)
 {
@@ -272,13 +298,15 @@ guest_left (void *cls)
 }
 
 
+/**
+ * Leave a place permanently as guest.
+ */
 static void
 guest_leave ()
 {
   struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
-    // method in the middle of vars? FIXME
   GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
-                       "_notice_place_leave", DATA2ARG ("Leaving."));
+                       "_message", DATA2ARG ("Leaving."));
   GNUNET_SOCIAL_guest_leave (gst, env, guest_left, NULL);
   GNUNET_PSYC_env_destroy (env);
   gst = NULL;
@@ -296,6 +324,10 @@ struct TransmitClosure
 } tmit;
 
 
+/**
+ * Callback notifying about available buffer space to write message data
+ * when transmitting messages using host_announce() or guest_talk()
+ */
 static int
 notify_data (void *cls, uint16_t *data_size, void *data)
 {
@@ -326,6 +358,9 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 }
 
 
+/**
+ * Host announcement - send a message to the place.
+ */
 static void
 host_announce (const char *method, const char *data, size_t data_size)
 {
@@ -342,6 +377,10 @@ host_announce (const char *method, const char *data, size_t data_size)
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
 
+
+/**
+ * Assign a state var of @a name to the value of @a data.
+ */
 static void
 host_assign (const char *name, const char *data, size_t data_size)
 {
@@ -356,6 +395,9 @@ host_assign (const char *name, const char *data, size_t data_size)
 }
 
 
+/**
+ * Guest talk request to host.
+ */
 static void
 guest_talk (const char *method,
             const char *data, size_t data_size)
@@ -377,6 +419,9 @@ guest_talk (const char *method,
 /* HISTORY REPLAY */
 
 
+/**
+ * Callback notifying about the end of history replay results.
+ */
 static void
 recv_history_replay_result (void *cls, int64_t result,
                             const void *data, uint16_t data_size)
@@ -393,6 +438,10 @@ recv_history_replay_result (void *cls, int64_t result,
 }
 
 
+/**
+ * Replay history between a given @a start and @a end message IDs,
+ * optionally filtered by a method @a prefix.
+ */
 static void
 history_replay (uint64_t start, uint64_t end, const char *prefix)
 {
@@ -404,6 +453,9 @@ history_replay (uint64_t start, uint64_t end, const char *prefix)
 }
 
 
+/**
+ * Replay latest @a limit messages.
+ */
 static void
 history_replay_latest (uint64_t limit, const char *prefix)
 {
@@ -418,6 +470,9 @@ history_replay_latest (uint64_t limit, const char *prefix)
 /* LOOK AT/FOR */
 
 
+/**
+ * Callback notifying about the end of state var results.
+ */
 static void
 look_result (void *cls, int64_t result_code,
              const void *data, uint16_t data_size)
@@ -432,6 +487,9 @@ look_result (void *cls, int64_t result_code,
 }
 
 
+/**
+ * Callback notifying about a state var result.
+ */
 static void
 look_var (void *cls,
           const struct GNUNET_MessageHeader *mod,
@@ -441,28 +499,37 @@ look_var (void *cls,
           uint32_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "look_at_var: %s\n%.*s\n",
+              "Received var: %s\n%.*s\n",
               name, value_size, (const char *) value);
 }
 
 
+/**
+ * Look for a state var using exact match of the name.
+ */
 static void
-look_at (const char *name)
+look_at (const char *full_name)
 {
-  GNUNET_SOCIAL_place_look_at (plc, name, look_var, look_result, NULL);
+  GNUNET_SOCIAL_place_look_at (plc, full_name, look_var, look_result, NULL);
 }
 
 
+/**
+ * Look for state vars by name prefix.
+ */
 static void
-look_for (const char *name)
+look_for (const char *name_prefix)
 {
-  GNUNET_SOCIAL_place_look_for (plc, name, look_var, look_result, NULL);
+  GNUNET_SOCIAL_place_look_for (plc, name_prefix, look_var, look_result, NULL);
 }
 
 
 /* SLICER */
 
 
+/**
+ * Callback notifying about the start of a new incoming message.
+ */
 static void
 slicer_recv_method (void *cls,
                     const struct GNUNET_PSYC_MessageHeader *msg,
@@ -477,6 +544,9 @@ slicer_recv_method (void *cls,
 }
 
 
+/**
+ * Callback notifying about an incoming modifier.
+ */
 static void
 slicer_recv_modifier (void *cls,
                       const struct GNUNET_PSYC_MessageHeader *msg,
@@ -495,6 +565,9 @@ slicer_recv_modifier (void *cls,
 }
 
 
+/**
+ * Callback notifying about an incoming data fragment.
+ */
 static void
 slicer_recv_data (void *cls,
                   const struct GNUNET_PSYC_MessageHeader *msg,
@@ -510,6 +583,9 @@ slicer_recv_data (void *cls,
 }
 
 
+/**
+ * Callback notifying about the end of a message.
+ */
 static void
 slicer_recv_eom (void *cls,
                 const struct GNUNET_PSYC_MessageHeader *msg,
@@ -524,6 +600,9 @@ slicer_recv_eom (void *cls,
 }
 
 
+/**
+ * Create a slicer for receiving message parts.
+ */
 static struct GNUNET_PSYC_Slicer *
 slicer_create ()
 {
@@ -540,6 +619,12 @@ slicer_create ()
 /* GUEST ENTER */
 
 
+/**
+ * Callback called when the guest receives an entry decision from the host.
+ *
+ * It is called once after using guest_enter() or guest_enter_by_name(),
+ * in case of a reconnection only the local enter callback is called.
+ */
 static void
 guest_recv_entry_decision (void *cls,
                            int is_admitted,
@@ -572,6 +657,9 @@ guest_recv_entry_decision (void *cls,
 }
 
 
+/**
+ * Callback called after a guest connection is established to the local service.
+ */
 static void
 guest_recv_local_enter (void *cls, int result,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
@@ -590,6 +678,9 @@ guest_recv_local_enter (void *cls, int result,
 }
 
 
+/**
+ * Create entry requset message.
+ */
 static struct GNUNET_PSYC_Message *
 guest_enter_msg_create ()
 {
@@ -604,6 +695,9 @@ guest_enter_msg_create ()
 }
 
 
+/**
+ * Enter a place as guest, using its public key and peer ID.
+ */
 static void
 guest_enter (const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
              const struct GNUNET_PeerIdentity *peer)
@@ -628,6 +722,9 @@ guest_enter (const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
 }
 
 
+/**
+ * Enter a place as guest using its GNS address.
+ */
 static void
 guest_enter_by_name (const char *gns_name)
 {
@@ -645,6 +742,11 @@ guest_enter_by_name (const char *gns_name)
 /* HOST ENTER */
 
 
+/**
+ * Callback called when a @a nym wants to enter the place.
+ *
+ * The request needs to be replied with an entry decision.
+ */
 static void
 host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
@@ -683,6 +785,9 @@ host_answer_door (void *cls,
 }
 
 
+/**
+ * Callback called when a @a nym has left the place.
+ */
 static void
 host_farewell (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
@@ -699,6 +804,9 @@ host_farewell (void *cls,
 }
 
 
+/**
+ * Callback called after the host entered the place.
+ */
 static void
 host_entered (void *cls, int result,
               const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
@@ -717,6 +825,9 @@ host_entered (void *cls, int result,
 }
 
 
+/**
+ * Enter and start hosting a place.
+ */
 static void
 host_enter ()
 {
@@ -740,6 +851,9 @@ host_enter ()
 /* PLACE RECONNECT */
 
 
+/**
+ * Perform operations common to both host & guest places.
+ */
 static void
 place_reconnected ()
 {
@@ -763,6 +877,9 @@ place_reconnected ()
 }
 
 
+/**
+ * Callback called after reconnecting to a host place.
+ */
 static void
 host_reconnected (void *cls, int result,
 		  const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
@@ -786,6 +903,9 @@ host_reconnected (void *cls, int result,
 }
 
 
+/**
+ * Callback called after reconnecting to a guest place.
+ */
 static void
 guest_reconnected (void *cls, int result,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
@@ -809,6 +929,9 @@ guest_reconnected (void *cls, int result,
 /* APP */
 
 
+/**
+ * Callback called after the ego and place callbacks.
+ */
 static void
 app_connected (void *cls)
 {
@@ -853,6 +976,9 @@ app_connected (void *cls)
 }
 
 
+/**
+ * Callback notifying about a host place available for reconnection.
+ */
 static void
 app_recv_host (void *cls,
                struct GNUNET_SOCIAL_HostConnection *hconn,
@@ -877,6 +1003,9 @@ app_recv_host (void *cls,
 }
 
 
+/**
+ * Callback notifying about a guest place available for reconnection.
+ */
 static void
 app_recv_guest (void *cls,
                 struct GNUNET_SOCIAL_GuestConnection *gconn,
@@ -901,6 +1030,9 @@ app_recv_guest (void *cls,
 }
 
 
+/**
+ * Callback notifying about an available ego.
+ */
 static void
 app_recv_ego (void *cls,
               struct GNUNET_SOCIAL_Ego *e,
@@ -920,6 +1052,10 @@ app_recv_ego (void *cls,
 }
 
 
+
+/**
+ * Establish application connection to receive available egos and places.
+ */
 static void
 app_connect ()
 {
