@@ -284,6 +284,40 @@ create_or_get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
+ * @brief Check whether we have a connection to this @a peer
+ *
+ * Also sets the #Peers_ONLINE flag accordingly
+ *
+ * @param peer the peer in question
+ *
+ * @return #GNUNET_YES if we are connected
+ *         #GNUNET_NO  otherwise
+ */
+int
+Peers_check_connected (const struct GNUNET_PeerIdentity *peer)
+{
+  const struct PeerContext *peer_ctx;
+
+  /* If we don't know about this peer we don't know whether it's online */
+  if (GNUNET_NO == Peers_check_peer_known (peer))
+  {
+    return GNUNET_NO;
+  }
+  /* Get the context */
+  peer_ctx = get_peer_ctx (peer);
+  /* If we have no channel to this peer we don't know whether it's online */
+  if ( (NULL == peer_ctx->send_channel) &&
+       (NULL == peer_ctx->recv_channel) )
+  {
+    Peers_unset_peer_flag (peer, Peers_ONLINE);
+    return GNUNET_NO;
+  }
+  /* Otherwise (if we have a channel, we know that it's online */
+  Peers_set_peer_flag (peer, Peers_ONLINE);
+  return GNUNET_YES;
+}
+
+/**
  * @brief Set the peer flag to living and
  *        call the pending operations on this peer.
  *
@@ -702,6 +736,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to remove peer %s\n",
        GNUNET_i2s (&peer_ctx->peer_id));
+  Peers_unset_peer_flag (peer, Peers_ONLINE);
 
   GNUNET_array_grow (peer_ctx->pending_ops, peer_ctx->num_pending_ops, 0);
   // TODO delete struct GNUNET_TRANSPORT_TransmitHandle *transmit_handle
@@ -1018,6 +1053,7 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
     set_channel_flag (peer_ctx->send_channel_flags, Peers_CHANNEL_CLEAN);
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
     peer_ctx->send_channel = NULL;
+    (void) Peers_check_connected (peer);
     return GNUNET_YES;
   }
   return GNUNET_NO;
@@ -1063,7 +1099,7 @@ Peers_cleanup_destroyed_channel (void *cls,
       peer_ctx->send_channel = NULL;
     else if (channel == peer_ctx->recv_channel)
       peer_ctx->recv_channel = NULL;
-
+    (void) Peers_check_connected (peer);
     return;
   }
 
@@ -1090,6 +1126,7 @@ Peers_cleanup_destroyed_channel (void *cls,
            GNUNET_i2s (peer));
     }
   }
+  (void) Peers_check_connected (peer);
 }
 
 /**
