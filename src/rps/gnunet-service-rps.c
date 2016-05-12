@@ -646,17 +646,20 @@ insert_in_pull_map (void *cls,
  * Insert PeerID in #view
  *
  * Called once we know a peer is live.
+ * Implements #PeerOp
  */
 static void
 insert_in_view (void *cls,
 		const struct GNUNET_PeerIdentity *peer)
 {
+  GNUNET_assert (GNUNET_YES == Peers_check_peer_flag (peer, Peers_ONLINE));
   View_put (peer);
 }
 
 
 /**
  * Update sampler with given PeerID.
+ * Implements #PeerOp
  */
 static void
 insert_in_sampler (void *cls,
@@ -675,6 +678,23 @@ insert_in_sampler (void *cls,
      * messages to it */
     Peers_indicate_sending_intention (peer);
     //Peers_issue_peer_liveliness_check (peer);
+  }
+}
+
+/**
+ * @brief If @a peer was unknown, check liveliness and insert it in view and
+ *        sampler
+ *
+ * @param peer peer to insert
+ */
+static void
+got_peer (const struct GNUNET_PeerIdentity *peer)
+{
+  /* If we did not know this peer already, insert it into sampler and view */
+  if (GNUNET_YES == Peers_insert_peer_check_liveliness (peer))
+  {
+    Peers_schedule_operation (peer, insert_in_sampler);
+    Peers_schedule_operation (peer, insert_in_view);
   }
 }
 
@@ -1117,11 +1137,7 @@ handle_client_seed (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    if (GNUNET_YES == Peers_insert_peer_check_liveliness (&peers[i]))
-    {
-      Peers_schedule_operation (&peers[i], insert_in_sampler);
-      Peers_schedule_operation (&peers[i], insert_in_view);
-    }
+    got_peer (&peers[i]);
 
     //RPS_sampler_update (prot_sampler,   &peers[i]);
     //RPS_sampler_update (client_sampler, &peers[i]);
@@ -1995,9 +2011,7 @@ init_peer_cb (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got peer_id %s from cadet\n",
          GNUNET_i2s (peer));
-    Peers_insert_peer_check_liveliness (peer);
-    Peers_schedule_operation (peer, insert_in_sampler);
-    Peers_schedule_operation (peer, insert_in_view);
+    got_peer (peer);
   }
 }
 
@@ -2021,9 +2035,7 @@ process_peerinfo_peers (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got peer_id %s from peerinfo\n",
          GNUNET_i2s (peer));
-    Peers_insert_peer_check_liveliness (peer);
-    Peers_schedule_operation (peer, insert_in_sampler);
-    Peers_schedule_operation (peer, insert_in_view);
+    got_peer (peer);
   }
 }
 
