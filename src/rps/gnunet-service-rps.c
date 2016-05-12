@@ -1385,7 +1385,7 @@ handle_peer_pull_reply (void *cls,
       /* Make sure we 'know' about this peer */
       (void) Peers_insert_peer_check_liveliness (&peers[i]);
 
-      if (GNUNET_YES == Peers_check_peer_flag (&peers[i], Peers_VALID))
+      if (GNUNET_YES == Peers_check_peer_valid (&peers[i]))
       {
         CustomPeerMap_put (pull_map, &peers[i]);
       }
@@ -1694,7 +1694,7 @@ do_mal_round (void *cls)
      * That is one push per round as it will ignore more.
      */
     Peers_insert_peer_check_liveliness (&attacked_peer);
-    if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_VALID))
+    if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
       send_push (&attacked_peer);
   }
 
@@ -1706,7 +1706,7 @@ do_mal_round (void *cls)
     if (GNUNET_YES == Peers_check_peer_known (&attacked_peer))
     {
       Peers_insert_peer_check_liveliness (&attacked_peer);
-      if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_VALID))
+      if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Goding to send push to attacked peer (%s)\n",
@@ -2298,6 +2298,7 @@ run (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
   GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
   // TODO send push/pull to each of those peers?
+  // TODO read stored valid peers from last run
 
   peerinfo_notify_handle = GNUNET_PEERINFO_notify (cfg,
                                                    GNUNET_NO,

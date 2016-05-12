@@ -93,30 +93,15 @@ check ()
   Peers_insert_peer (&k1);
 
   CHECK (GNUNET_NO == Peers_check_peer_flag (&k1, Peers_PULL_REPLY_PENDING));
-  CHECK (GNUNET_NO == Peers_check_peer_flag (&k1, Peers_VALID));
   CHECK (GNUNET_NO == Peers_check_peer_flag (&k1, Peers_ONLINE));
   CHECK (GNUNET_NO == Peers_check_peer_flag (&k1, Peers_TO_DESTROY));
 
-  Peers_set_peer_flag (&k1, Peers_VALID);
-  CHECK (GNUNET_YES == Peers_check_peer_flag (&k1, Peers_VALID));
   CHECK (GNUNET_NO  == Peers_check_peer_flag (&k1, Peers_ONLINE));
-  Peers_unset_peer_flag (&k1, Peers_VALID);
-  CHECK (GNUNET_NO == Peers_check_peer_flag (&k1, Peers_VALID));
 
-  Peers_set_peer_flag (&k1, Peers_VALID);
   Peers_set_peer_flag (&k1, Peers_ONLINE);
-  CHECK (GNUNET_YES == Peers_check_peer_flag (&k1, Peers_VALID));
   CHECK (GNUNET_YES == Peers_check_peer_flag (&k1, Peers_ONLINE));
-  CHECK (GNUNET_YES == Peers_check_peer_flag (&k1,
-                                              Peers_ONLINE | Peers_VALID));
   CHECK (GNUNET_NO  == Peers_check_peer_flag (&k1, Peers_TO_DESTROY));
-  Peers_unset_peer_flag (&k1, Peers_VALID);
-  CHECK (GNUNET_NO  == Peers_check_peer_flag (&k1, Peers_VALID));
   CHECK (GNUNET_YES == Peers_check_peer_flag (&k1, Peers_ONLINE));
-  CHECK (GNUNET_YES == Peers_check_peer_flag (&k1,
-                                              Peers_ONLINE | Peers_VALID));
-  CHECK (GNUNET_NO  == Peers_check_peer_flag (&k1,
-                                              Peers_ONLINE & Peers_VALID));
   CHECK (GNUNET_NO  == Peers_check_peer_flag (&k1, Peers_TO_DESTROY));
 
   /* Check send intention */

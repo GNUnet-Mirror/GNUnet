@@ -43,11 +43,6 @@ enum Peers_PeerFlags
   /* IN_OWN_GOSSIP_LIST   = 0x08, unneeded? */
 
   /**
-   * We set this bit when we can be sure the other peer is/was live.
-   */
-  Peers_VALID                = 0x10,
-
-  /**
    * We set this bit when we know the peer is online.
    */
   Peers_ONLINE               = 0x20,
@@ -236,6 +231,8 @@ Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags
 /**
  * @brief Check whether we have information about the given peer.
  *
+ * FIXME probably deprecated. Make this the new _online.
+ *
  * @param peer peer in question
  *
  * @return #GNUNET_YES if peer is known
@@ -243,6 +240,19 @@ Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags
  */
 int
 Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * @brief Check whether @a peer is actually a peer.
+ *
+ * A valid peer is a peer that we know exists eg. we were connected to once.
+ *
+ * @param peer peer in question
+ *
+ * @return #GNUNET_YES if peer is valid
+ *         #GNUNET_NO  if peer is not valid
+ */
+int
+Peers_check_peer_valid (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Indicate that we want to send to the other peer

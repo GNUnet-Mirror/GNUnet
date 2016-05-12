@@ -203,6 +203,16 @@ struct PeerContext
    */
 };
 
+/**
+ * @brief Hashmap of valid peers.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *valid_peers;
+
+/**
+ * @brief Maximum number of valid peers to keep.
+ * TODO read from config
+ */
+static uint32_t num_valid_peers_max = UINT32_MAX;
 
 /**
  * Set of all peers to keep track of them.
@@ -317,10 +327,112 @@ Peers_check_connected (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
+ * @brief The closure to #get_rand_peer_iterator.
+ */
+struct GetRandPeerIteratorCls
+{
+  /**
+   * @brief The index of the peer to return.
+   * Will be decreased until 0.
+   * Then current peer is returned.
+   */
+  uint32_t index;
+
+  /**
+   * @brief Pointer to peer to return.
+   */
+  const struct GNUNET_PeerIdentity *peer;
+};
+
+/**
+ * @brief Iterator function for #get_random_peer_from_peermap.
+ *
+ * Implements #GNUNET_CONTAINER_PeerMapIterator.
+ * Decreases the index until the index is null.
+ * Then returns the current peer.
+ *
+ * @param cls the #GetRandPeerIteratorCls containing index and peer
+ * @param peer current peer
+ * @param value unused
+ *
+ * @return  #GNUNET_YES if we should continue to
+ *          iterate,
+ *          #GNUNET_NO if not.
+ */
+static int
+get_rand_peer_iterator (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        void *value)
+{
+  struct GetRandPeerIteratorCls *iterator_cls = cls;
+  if (0 >= iterator_cls->index)
+  {
+    iterator_cls->peer = peer;
+    return GNUNET_NO;
+  }
+  iterator_cls->index--;
+  return GNUNET_YES;
+}
+
+/**
+ * @brief Get a random peer from @a peer_map
+ *
+ * @param peer_map the peer_map to get the peer from
+ *
+ * @return a random peer
+ */
+static const struct GNUNET_PeerIdentity *
+get_random_peer_from_peermap (const struct
+                              GNUNET_CONTAINER_MultiPeerMap *peer_map)
+{
+  uint32_t rand_index;
+  struct GetRandPeerIteratorCls *iterator_cls;
+  const struct GNUNET_PeerIdentity *ret;
+
+  iterator_cls = GNUNET_new (struct GetRandPeerIteratorCls);
+  iterator_cls->index = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+      GNUNET_CONTAINER_multipeermap_size (peer_map));
+  (void) GNUNET_CONTAINER_multipeermap_iterate (valid_peers,
+                                                get_rand_peer_iterator,
+                                                iterator_cls);
+  ret = iterator_cls->peer;
+  GNUNET_free (iterator_cls);
+  return ret;
+}
+
+/**
+ * @brief Add a given @a peer to valid peers.
+ *
+ * If valid peers are already #num_valid_peers_max, delete a peer previously.
+ *
+ * @param peer the peer that is added to the valid peers.
+ *
+ * @return #GNUNET_YES if no other peer had to be removed
+ *         #GNUNET_NO  otherwise
+ */
+static int
+add_valid_peer (const struct GNUNET_PeerIdentity *peer)
+{
+  const struct GNUNET_PeerIdentity *rand_peer;
+  int ret;
+
+  ret = GNUNET_YES;
+  while (GNUNET_CONTAINER_multipeermap_size (valid_peers) >= num_valid_peers_max)
+  {
+    rand_peer = get_random_peer_from_peermap (valid_peers);
+    GNUNET_CONTAINER_multipeermap_remove_all (valid_peers, rand_peer);
+    ret = GNUNET_NO;
+  }
+  (void) GNUNET_CONTAINER_multipeermap_put (valid_peers, peer, NULL,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  return ret;
+}
+
+/**
  * @brief Set the peer flag to living and
  *        call the pending operations on this peer.
  *
- * Also sets the #Peers_VALID flag
+ * Also adds peer to #valid_peers.
  *
  * @param peer_ctx the #PeerContext of the peer to set live
  */
@@ -338,7 +450,7 @@ set_peer_live (struct PeerContext *peer_ctx)
   }
 
   peer = &peer_ctx->peer_id;
-  set_peer_flag (peer_ctx, Peers_VALID);
+  (void) add_valid_peer (peer);
   set_peer_flag (peer_ctx, Peers_ONLINE);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Peer %s is live and valid\n",
@@ -606,7 +718,10 @@ Peers_initialise (struct GNUNET_CADET_Handle *cadet_h,
   cadet_handle = cadet_h;
   own_identity = own_id;
   peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
+  valid_peers = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
 }
+
+// TODO read stored valid peers
 
 /**
  * @brief Delete storage of peers that was created with #Peers_initialise ()
@@ -623,7 +738,10 @@ Peers_terminate ()
         "Iteration destroying peers was aborted.\n");
   }
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
 }
+
+// TODO store valid peers
 
 /**
  * @brief Add peer to known peers.
@@ -672,7 +790,7 @@ Peers_insert_peer_check_liveliness (const struct GNUNET_PeerIdentity *peer)
     return ret;
   }
   peer_ctx = get_peer_ctx (peer);
-  if (GNUNET_NO == check_peer_flag_set (peer_ctx, Peers_VALID))
+  if (GNUNET_NO == Peers_check_peer_valid (peer))
   {
     check_peer_live (peer_ctx);
   }
@@ -875,6 +993,8 @@ Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags
 /**
  * @brief Check whether we have information about the given peer.
  *
+ * FIXME probably deprecated. Make this the new _online.
+ *
  * @param peer peer in question
  *
  * @return #GNUNET_YES if peer is known
@@ -884,6 +1004,22 @@ int
 Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+}
+
+/**
+ * @brief Check whether @a peer is actually a peer.
+ *
+ * A valid peer is a peer that we know exists eg. we were connected to once.
+ *
+ * @param peer peer in question
+ *
+ * @return #GNUNET_YES if peer is valid
+ *         #GNUNET_NO  if peer is not valid
+ */
+int
+Peers_check_peer_valid (const struct GNUNET_PeerIdentity *peer)
+{
+  return GNUNET_CONTAINER_multipeermap_contains (valid_peers, peer);
 }
 
 /**
