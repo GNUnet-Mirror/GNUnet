@@ -2666,11 +2666,14 @@ psyc_master_transmit_message (struct Host *hst)
     if (NULL == pmeth)
       return GNUNET_SYSERR;
 
-    hst->tmit_handle
-      = GNUNET_PSYC_master_transmit (hst->master, (const char *) &pmeth[1],
-                                     &host_transmit_notify_mod,
-                                     &host_transmit_notify_data, hst,
-                                     pmeth->flags);
+    hst->tmit_handle = (void *) &hst->tmit_handle;
+    struct GNUNET_PSYC_MasterTransmitHandle *
+      tmit_handle = GNUNET_PSYC_master_transmit (hst->master, (const char *) &pmeth[1],
+                                                 &host_transmit_notify_mod,
+                                                 &host_transmit_notify_data, hst,
+                                                 pmeth->flags);
+    if (NULL != hst->tmit_handle)
+      hst->tmit_handle = tmit_handle;
     GNUNET_free (pmeth);
   }
   else
@@ -2696,11 +2699,14 @@ psyc_slave_transmit_message (struct Guest *gst)
     if (NULL == pmeth)
       return GNUNET_SYSERR;
 
-    gst->tmit_handle
-      = GNUNET_PSYC_slave_transmit (gst->slave, (const char *) &pmeth[1],
-                                    &guest_transmit_notify_mod,
-                                    &guest_transmit_notify_data, gst,
-                                    pmeth->flags);
+    gst->tmit_handle = (void *) &gst->tmit_handle;
+    struct GNUNET_PSYC_SlaveTransmitHandle *
+      tmit_handle = GNUNET_PSYC_slave_transmit (gst->slave, (const char *) &pmeth[1],
+                                                 &guest_transmit_notify_mod,
+                                                 &guest_transmit_notify_data, gst,
+                                                 pmeth->flags);
+    if (NULL != gst->tmit_handle)
+      gst->tmit_handle = tmit_handle;
     GNUNET_free (pmeth);
   }
   else

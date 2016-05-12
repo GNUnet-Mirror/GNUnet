@@ -227,7 +227,7 @@ exit_success ()
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (schedule_success, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, schedule_success, NULL);
 }
 
 
@@ -239,7 +239,7 @@ exit_fail ()
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (schedule_fail, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, schedule_fail, NULL);
 }
 
 
