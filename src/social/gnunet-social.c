@@ -227,7 +227,7 @@ schedule_fail (void *cls)
 
 
 /**
- * Schedule exit with succes result.
+ * Schedule exit with success result.
  */
 static void
 exit_success ()
@@ -305,6 +305,7 @@ static void
 guest_leave ()
 {
   struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
+  // FIXME: wrong use of vars
   GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
                        "_message", DATA2ARG ("Leaving."));
   GNUNET_SOCIAL_guest_leave (gst, env, guest_left, NULL);
@@ -1304,6 +1305,11 @@ main (int argc, char *const *argv)
     "gnunet-social --host-enter --ego <NAME or PUBKEY> [--follow] [--welcome | --deny]\n"
     "gnunet-social --host-reconnect --place <PUBKEY> [--follow] [--welcome | --deny]\n"
     "gnunet-social --host-leave --place <PUBKEY>\n"
+    "gnunet-social --host-assign --place <PUBKEY> --name <NAME> --data <VALUE>\n"
+// FIXME: some state ops not implemented yet (no hurry)
+//  "gnunet-social --host-augment --place <PUBKEY> --name <NAME> --data <VALUE>\n"
+//  "gnunet-social --host-diminish --place <PUBKEY> --name <NAME> --data <VALUE>\n"
+//  "gnunet-social --host-set --place <PUBKEY> --name <NAME> --data <VALUE>\n"
     "gnunet-social --host-announce --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE_BODY>\n"
     "\n"
     "gnunet-social --guest-enter --place <PUBKEY> --peer <PEERID> --ego <NAME or PUBKEY> [--follow]\n"
@@ -1314,8 +1320,6 @@ main (int argc, char *const *argv)
     "\n"
     "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
     "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
-    "\n"
-    "gnunet-social --set --place <PUBKEY> --name <NAME> --data <VALUE>\n"
     "\n"
     "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
     "gnunet-social --look-for --place <PUBKEY> --name <NAME_PREFIX>\n";

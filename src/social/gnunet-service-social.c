@@ -1451,8 +1451,6 @@ client_recv_msg_proc_clear (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  struct Host *hst = (struct Host *) plc;
-
   GNUNET_PSYC_slicer_clear (plc->slicer);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
