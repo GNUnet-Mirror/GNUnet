@@ -396,7 +396,7 @@ tofile_ (const char *file_name, const char *line)
   if (size != size2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unable to write to file! (Size: %u, size2: %u)\n",
+                "Unable to write to file! (Size: %lu, size2: %lu)\n",
                 size,
                 size2);
     return;

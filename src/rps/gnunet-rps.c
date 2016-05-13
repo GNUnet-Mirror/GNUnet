@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_rps_service.h"
+#include <inttypes.h>
 
 static int ret;
 
@@ -146,7 +147,7 @@ run (void *cls,
     /* If number was specified use it, else request single peer. */
     num_peers = (NULL == args[0]) ? 1 : atoi (args[0]);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Requesting %u PeerIDs\n", num_peers);
+        "Requesting %" PRIu64 " PeerIDs\n", num_peers);
     req_handle = GNUNET_RPS_request_peers (rps_handle, num_peers, reply_handle, NULL);
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   }
