@@ -215,6 +215,11 @@ static struct GNUNET_CONTAINER_MultiPeerMap *valid_peers;
 static uint32_t num_valid_peers_max = UINT32_MAX;
 
 /**
+ * @brief Filename of the file that stores the valid peers persistently.
+ */
+static char *filename_valid_peers;
+
+/**
  * Set of all peers to keep track of them.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
@@ -385,7 +390,6 @@ static const struct GNUNET_PeerIdentity *
 get_random_peer_from_peermap (const struct
                               GNUNET_CONTAINER_MultiPeerMap *peer_map)
 {
-  uint32_t rand_index;
   struct GetRandPeerIteratorCls *iterator_cls;
   const struct GNUNET_PeerIdentity *ret;
 
@@ -704,24 +708,221 @@ mq_notify_sent_cb (void *cls)
   remove_pending_message (pending_msg);
 }
 
+/**
+ * @brief Clear the stored valid peers.
+ */
+static void
+clear_valid_peer_storage ()
+{
+  struct GNUNET_DISK_FileHandle *fh;
+
+  if (GNUNET_OK != GNUNET_DISK_file_test (filename_valid_peers))
+  {
+    return;
+  }
+  fh = GNUNET_DISK_file_open (filename_valid_peers,
+                              GNUNET_DISK_OPEN_WRITE,
+                              GNUNET_DISK_PERM_USER_READ |
+                                  GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == fh)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Not able to clear file `%s' containing valid peers\n",
+        filename_valid_peers);
+    return;
+  }
+  GNUNET_DISK_file_write (fh, "", 0);
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
+}
+
+/**
+ * @brief Iterator function for #store_valid_peers.
+ *
+ * Implements #GNUNET_CONTAINER_PeerMapIterator.
+ * Writes single peer to disk.
+ *
+ * @param cls the file handle to write to.
+ * @param peer current peer
+ * @param value unused
+ *
+ * @return  #GNUNET_YES if we should continue to
+ *          iterate,
+ *          #GNUNET_NO if not.
+ */
+static int
+store_peer_presistently_iterator (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  void *value)
+{
+  const struct GNUNET_DISK_FileHandle *fh = cls;
+  char peer_string[128];
+  int size;
+  ssize_t ret;
+
+  if (NULL == peer)
+  {
+    return GNUNET_YES;
+  }
+  size = GNUNET_snprintf (peer_string,
+                          sizeof (peer_string),
+                          "%s\n",
+                          GNUNET_i2s_full (peer));
+  GNUNET_assert (53 == size);
+  ret = GNUNET_DISK_file_write (fh,
+                                peer_string,
+                                size);
+  GNUNET_assert (size == ret);
+  return GNUNET_YES;
+}
+
+/**
+ * @brief Store the peers currently in #valid_peers to disk.
+ */
+static void
+store_valid_peers ()
+{
+  struct GNUNET_DISK_FileHandle *fh;
+  uint32_t number_written_peers;
+
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (filename_valid_peers))
+  {
+    GNUNET_break (0);
+  }
+  clear_valid_peer_storage ();
+  fh = GNUNET_DISK_file_open (filename_valid_peers,
+                              GNUNET_DISK_OPEN_WRITE |
+                                  GNUNET_DISK_OPEN_CREATE |
+                                  GNUNET_DISK_OPEN_APPEND,
+                              GNUNET_DISK_PERM_USER_READ |
+                                  GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == fh)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Not able to write valid peers to file `%s'\n",
+        filename_valid_peers);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Writing %u valid peers to disk\n",
+      GNUNET_CONTAINER_multipeermap_size (valid_peers));
+  number_written_peers =
+    GNUNET_CONTAINER_multipeermap_iterate (valid_peers,
+                                           store_peer_presistently_iterator,
+                                           fh);
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
+  GNUNET_assert (number_written_peers ==
+      GNUNET_CONTAINER_multipeermap_size (valid_peers));
+}
+
+/**
+ * @brief Convert string representation of peer id to peer id.
+ *
+ * Counterpart to #GNUNET_i2s_full.
+ *
+ * @param string_repr The string representation of the peer id
+ *
+ * @return The peer id
+ */
+static const struct GNUNET_PeerIdentity *
+s2i_full (const char *string_repr)
+{
+  struct GNUNET_PeerIdentity *peer;
+  size_t len;
+  int ret;
+
+  peer = GNUNET_new (struct GNUNET_PeerIdentity);
+  len = strlen (string_repr);
+  if (52 > len)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Not able to convert string representation of PeerID to PeerID\n"
+        "Sting representation: %s (len %u) - too short\n",
+        string_repr,
+        len);
+    GNUNET_break (0);
+  }
+  else if (52 < len)
+  {
+    len = 52;
+  }
+  ret = GNUNET_CRYPTO_eddsa_public_key_from_string (string_repr,
+                                                    len,
+                                                    &peer->public_key);
+  if (GNUNET_OK != ret)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Not able to convert string representation of PeerID to PeerID\n"
+        "Sting representation: %s\n",
+        string_repr);
+    GNUNET_break (0);
+  }
+  return peer;
+}
+
+/**
+ * @brief Restore the peers on disk to #valid_peers.
+ */
+static void
+restore_valid_peers ()
+{
+  off_t file_size;
+  uint32_t num_peers;
+  struct GNUNET_DISK_FileHandle *fh;
+  char *buf;
+  ssize_t size_read;
+  char *iter_buf;
+  const char *str_repr;
+  const struct GNUNET_PeerIdentity *peer;
+
+  if (GNUNET_OK != GNUNET_DISK_file_test (filename_valid_peers))
+  {
+    return;
+  }
+  fh = GNUNET_DISK_file_open (filename_valid_peers,
+                              GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_USER_READ);
+  GNUNET_assert (NULL != fh);
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_handle_size (fh, &file_size));
+  num_peers = file_size / 53;
+  buf = GNUNET_malloc (file_size);
+  size_read = GNUNET_DISK_file_read (fh, buf, file_size);
+  GNUNET_assert (size_read == file_size);
+  for (iter_buf = buf; iter_buf < buf + file_size - 1; iter_buf += 53)
+  {
+    str_repr = GNUNET_strndup (iter_buf, 53);
+    peer = s2i_full (str_repr);
+    add_valid_peer (peer);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Restored valid peer %s from disk\n",
+        GNUNET_i2s_full (peer));
+  }
+  GNUNET_assert (num_peers == GNUNET_CONTAINER_multipeermap_size (valid_peers));
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Restored %u valid peers from disk\n",
+      num_peers);
+}
 
 /**
  * @brief Initialise storage of peers
  *
+ * @param fn_valid_peers filename of the file used to store valid peer ids
  * @param cadet_h cadet handle
  * @param own_id own peer identity
  */
 void
-Peers_initialise (struct GNUNET_CADET_Handle *cadet_h,
+Peers_initialise (char* fn_valid_peers,
+                  struct GNUNET_CADET_Handle *cadet_h,
                   const struct GNUNET_PeerIdentity *own_id)
 {
+  filename_valid_peers = GNUNET_strdup (fn_valid_peers);
   cadet_handle = cadet_h;
   own_identity = own_id;
   peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
   valid_peers = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
+  restore_valid_peers ();
 }
-
-// TODO read stored valid peers
 
 /**
  * @brief Delete storage of peers that was created with #Peers_initialise ()
@@ -738,6 +939,8 @@ Peers_terminate ()
         "Iteration destroying peers was aborted.\n");
   }
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  store_valid_peers ();
+  GNUNET_free (filename_valid_peers);
   GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
 }
 
@@ -1232,6 +1435,18 @@ Peers_cleanup_destroyed_channel (void *cls,
       peer_ctx->send_channel = NULL;
     else if (channel == peer_ctx->recv_channel)
       peer_ctx->recv_channel = NULL;
+
+    if (NULL != peer_ctx->send_channel)
+    {
+      GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
+      peer_ctx->send_channel = NULL;
+    }
+    if (NULL != peer_ctx->recv_channel)
+    {
+      GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
+      peer_ctx->recv_channel = NULL;
+    }
+    /* Set the #Peers_ONLINE flag accordingly */
     (void) Peers_check_connected (peer);
     return;
   }

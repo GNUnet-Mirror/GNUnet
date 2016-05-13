@@ -102,11 +102,13 @@ typedef void (* PeerOp) (void *cls, const struct GNUNET_PeerIdentity *peer);
 /**
  * @brief Initialise storage of peers
  *
+ * @param fn_valid_peers filename of the file used to store valid peer ids
  * @param cadet_h cadet handle
  * @param own_id own peer identity
  */
 void
-Peers_initialise (struct GNUNET_CADET_Handle *cadet_h,
+Peers_initialise (char* fn_valid_peers,
+                  struct GNUNET_CADET_Handle *cadet_h,
                   const struct GNUNET_PeerIdentity *own_id);
 
 /**

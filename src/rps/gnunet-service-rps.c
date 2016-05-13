@@ -2183,6 +2183,7 @@ run (void *cls,
 {
   int size;
   int out_size;
+  char* fn_valid_peers;
 
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
   cfg = c;
@@ -2222,6 +2223,16 @@ run (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %u\n", sampler_size_est_need);
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "rps",
+                                               "FILENAME_VALID_PEERS",
+                                               &fn_valid_peers))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "rps", "FILENAME_VALID_PEERS");
+  }
 
 
   View_create (4);
@@ -2273,8 +2284,10 @@ run (void *cls,
                                        &cleanup_destroyed_channel,
                                        cadet_handlers,
                                        ports);
+
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
-  Peers_initialise (cadet_handle, &own_identity);
+  Peers_initialise (fn_valid_peers, cadet_handle, &own_identity);
+  GNUNET_free (fn_valid_peers);
 
   /* Initialise sampler */
   struct GNUNET_TIME_Relative half_round_interval;
