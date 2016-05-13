@@ -32,7 +32,7 @@
 
 
 
-#define LOG(kind, ...) GNUNET_log(kind, __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind,"rps-peers",__VA_ARGS__)
 
 
 /**

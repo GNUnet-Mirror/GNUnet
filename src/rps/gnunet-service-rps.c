@@ -966,7 +966,7 @@ client_respond (void *cls,
   for (i = 0; i < num_peers; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  %lu: %s\n",
+         "  %" PRIu32 ": %s\n",
          i,
          GNUNET_i2s (&peer_ids[i]));
   }
@@ -1074,7 +1074,7 @@ handle_client_request_cancel (void *cls,
   GNUNET_assert (NULL != cli_ctx->rep_cls_head);
   rep_cls = cli_ctx->rep_cls_head;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Client cancels request with id %lu\n",
+      "Client cancels request with id %" PRIu32 "\n",
       ntohl (msg->id));
   while ( (NULL != rep_cls->next) &&
           (rep_cls->id != ntohl (msg->id)) )
@@ -1311,7 +1311,7 @@ handle_peer_pull_reply (void *cls,
       sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        "message says it sends %" PRIu32 " peers, have space for %i peers\n",
+        "message says it sends %" PRIu32 " peers, have space for %lu peers\n",
         ntohl (in_msg->num_peers),
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
@@ -1530,7 +1530,7 @@ handle_client_act_malicious (void *cls,
       sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+        "message says it sends %" PRIu32 " peers, have space for %lu peers\n",
         ntohl (in_msg->num_peers),
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
@@ -2221,7 +2221,7 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size_est_need);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %u\n", sampler_size_est_need);
 
 
   View_create (4);
@@ -2266,7 +2266,6 @@ run (void *cls,
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
     {NULL, 0, 0}
   };
-
   const uint32_t ports[] = {GNUNET_RPS_CADET_PORT, 0}; // _PORT specified in src/rps/rps.h
   cadet_handle = GNUNET_CADET_connect (cfg,
                                        cls,
