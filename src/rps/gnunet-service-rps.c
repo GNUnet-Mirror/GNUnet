@@ -892,6 +892,10 @@ static void
 destroy_cli_ctx (struct ClientContext *cli_ctx)
 {
   GNUNET_assert (NULL != cli_ctx);
+  if (NULL != cli_ctx->mq)
+  {
+    GNUNET_MQ_destroy (cli_ctx->mq);
+  }
   if (NULL != cli_ctx->rep_cls_head)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -2070,6 +2074,7 @@ shutdown_task (void *cls)
   CustomPeerMap_destroy (pull_map);
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
+  GNUNET_free (file_name_view_log);
   GNUNET_array_grow (mal_peers, num_mal_peers, 0);
   if (NULL != mal_peer_set)
     GNUNET_CONTAINER_multipeermap_destroy (mal_peer_set);
