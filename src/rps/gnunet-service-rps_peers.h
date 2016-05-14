@@ -100,6 +100,19 @@ enum Peers_ChannelRole
 typedef void (* PeerOp) (void *cls, const struct GNUNET_PeerIdentity *peer);
 
 /**
+ * @brief Iterator over valid peers.
+ *
+ * @param cls closure
+ * @param peer current public peer id
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+typedef int
+(*PeersIterator) (void *cls,
+                  const struct GNUNET_PeerIdentity *peer);
+
+/**
  * @brief Initialise storage of peers
  *
  * @param fn_valid_peers filename of the file used to store valid peer ids
@@ -116,6 +129,19 @@ Peers_initialise (char* fn_valid_peers,
  */
 void
 Peers_terminate ();
+
+
+/**
+ * @brief Get all currently known, valid peer ids.
+ *
+ * @param it function to call on each peer id
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed,
+ *         #GNUNET_SYSERR if it aborted iteration
+ */
+int
+Peers_get_valid_peers (PeersIterator iterator,
+                       void *it_cls);
 
 /**
  * @brief Add peer to known peers.

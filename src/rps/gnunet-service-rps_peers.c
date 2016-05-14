@@ -204,6 +204,22 @@ struct PeerContext
 };
 
 /**
+ * @brief Closure to #valid_peer_iterator
+ */
+struct PeersIteratorCls
+{
+  /**
+   * Iterator function
+   */
+  PeersIterator iterator;
+
+  /**
+   * Closure to iterator
+   */
+  void *cls;
+};
+
+/**
  * @brief Hashmap of valid peers.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *valid_peers;
@@ -919,7 +935,53 @@ Peers_terminate ()
   GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
 }
 
-// TODO store valid peers
+
+/**
+ * Iterator over #valid_peers hash map entries.
+ *
+ * @param cls closure - unused
+ * @param peer current peer id
+ * @param value value in the hash map - unused
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+valid_peer_iterator (void *cls,
+                     const struct GNUNET_PeerIdentity *peer,
+                     void *value)
+{
+  struct PeersIteratorCls *it_cls = cls;
+
+  return it_cls->iterator (it_cls->cls,
+                           peer);
+}
+
+
+/**
+ * @brief Get all currently known, valid peer ids.
+ *
+ * @param it function to call on each peer id
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed,
+ *         #GNUNET_SYSERR if it aborted iteration
+ */
+int
+Peers_get_valid_peers (PeersIterator iterator,
+                       void *it_cls)
+{
+  struct PeersIteratorCls *cls;
+  int ret;
+
+  cls = GNUNET_new (struct PeersIteratorCls);
+  cls->iterator = iterator;
+  cls->cls = it_cls;
+  ret = GNUNET_CONTAINER_multipeermap_iterate (valid_peers,
+                                               valid_peer_iterator,
+                                               cls);
+  GNUNET_free (cls);
+  return ret;
+}
 
 /**
  * @brief Add peer to known peers.

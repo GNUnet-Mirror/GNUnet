@@ -698,7 +698,6 @@ got_peer (const struct GNUNET_PeerIdentity *peer)
   }
 }
 
-
 /**
  * @brief Checks if there is a sending channel and if it is needed
  *
@@ -2019,6 +2018,31 @@ init_peer_cb (void *cls,
   }
 }
 
+/**
+ * @brief Iterator function over stored, valid peers.
+ *
+ * We initialise the sampler with those.
+ *
+ * @param cls the closure
+ * @param peer the peer id
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+valid_peers_iterator (void *cls,
+                      const struct GNUNET_PeerIdentity *peer)
+{
+  if (NULL != peer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got stored, valid peer %s\n",
+         GNUNET_i2s (peer));
+    got_peer (peer);
+  }
+  return GNUNET_YES;
+}
+
 
 /**
  * Iterator over peers from peerinfo.
@@ -2316,6 +2340,8 @@ run (void *cls,
   GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
   // TODO send push/pull to each of those peers?
   // TODO read stored valid peers from last run
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting stored valid peers\n");
+  Peers_get_valid_peers (valid_peers_iterator, NULL);
 
   peerinfo_notify_handle = GNUNET_PEERINFO_notify (cfg,
                                                    GNUNET_NO,
