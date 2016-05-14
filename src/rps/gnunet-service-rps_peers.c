@@ -709,33 +709,6 @@ mq_notify_sent_cb (void *cls)
 }
 
 /**
- * @brief Clear the stored valid peers.
- */
-static void
-clear_valid_peer_storage ()
-{
-  struct GNUNET_DISK_FileHandle *fh;
-
-  if (GNUNET_OK != GNUNET_DISK_file_test (filename_valid_peers))
-  {
-    return;
-  }
-  fh = GNUNET_DISK_file_open (filename_valid_peers,
-                              GNUNET_DISK_OPEN_WRITE,
-                              GNUNET_DISK_PERM_USER_READ |
-                                  GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == fh)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-        "Not able to clear file `%s' containing valid peers\n",
-        filename_valid_peers);
-    return;
-  }
-  GNUNET_DISK_file_write (fh, "", 0);
-  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
-}
-
-/**
  * @brief Iterator function for #store_valid_peers.
  *
  * Implements #GNUNET_CONTAINER_PeerMapIterator.
@@ -789,11 +762,9 @@ store_valid_peers ()
   {
     GNUNET_break (0);
   }
-  clear_valid_peer_storage ();
   fh = GNUNET_DISK_file_open (filename_valid_peers,
                               GNUNET_DISK_OPEN_WRITE |
-                                  GNUNET_DISK_OPEN_CREATE |
-                                  GNUNET_DISK_OPEN_APPEND,
+                                  GNUNET_DISK_OPEN_CREATE,
                               GNUNET_DISK_PERM_USER_READ |
                                   GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == fh)
@@ -881,7 +852,7 @@ restore_valid_peers ()
   }
   fh = GNUNET_DISK_file_open (filename_valid_peers,
                               GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_USER_READ);
+                              GNUNET_DISK_PERM_NONE);
   GNUNET_assert (NULL != fh);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_handle_size (fh, &file_size));
   num_peers = file_size / 53;
@@ -897,6 +868,10 @@ restore_valid_peers ()
         "Restored valid peer %s from disk\n",
         GNUNET_i2s_full (peer));
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "num_peers: %" PRIu32 ", _size (valid_peers): %u\n",
+      num_peers,
+      GNUNET_CONTAINER_multipeermap_size (valid_peers));
   GNUNET_assert (num_peers == GNUNET_CONTAINER_multipeermap_size (valid_peers));
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
