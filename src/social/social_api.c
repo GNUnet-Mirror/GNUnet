@@ -957,6 +957,8 @@ app_recv_place (void *cls,
     ego = GNUNET_CONTAINER_multihashmap_get (app->egos, &ego_pub_hash);
   if (NULL == ego)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Failure to obtain ego. Is identity service running?\n");
     GNUNET_break (0);
     return;
   }
