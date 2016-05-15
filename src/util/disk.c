@@ -800,8 +800,7 @@ GNUNET_DISK_directory_create (const char *dir)
 
 
 /**
- * Create the directory structure for storing
- * a file.
+ * Create the directory structure for storing a file.
  *
  * @param filename name of a file in the directory
  * @returns #GNUNET_OK on success,
