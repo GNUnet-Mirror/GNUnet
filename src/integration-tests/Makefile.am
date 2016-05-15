@@ -28,8 +28,15 @@ endif
 if HAVE_MHD
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+if HAVE_LIBGNURL
 TESTS = \
  $(check_SCRIPTS)
+else
+if HAVE_LIBCURL
+TESTS = \
+ $(check_SCRIPTS)
+endif
+endif
 endif
 endif
 
@@ -54,7 +61,7 @@ test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connec
 test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
 	chmod +x test_integration_disconnect.py
-	
+
 test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
 	chmod +x test_integration_disconnect_nat.py
