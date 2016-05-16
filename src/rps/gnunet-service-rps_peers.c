@@ -1030,7 +1030,7 @@ Peers_check_peer_live (const struct GNUNET_PeerIdentity *peer)
   }
   ret = Peers_insert_peer (peer);
   peer_ctx = get_peer_ctx (peer);
-  if (GNUNET_NO == Peers_check_peer_valid (peer))
+  if (GNUNET_NO == Peers_check_peer_flag (peer, Peers_ONLINE))
   {
     check_peer_live (peer_ctx);
   }
