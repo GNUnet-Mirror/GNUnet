@@ -673,7 +673,7 @@ insert_in_sampler (void *cls,
   if (0 < RPS_sampler_count_id (prot_sampler, peer))
   {
     /* Make sure we 'know' about this peer */
-    (void) Peers_insert_peer_check_liveliness (peer);
+    (void) Peers_check_peer_live (peer);
     /* Establish a channel towards that peer to indicate we are going to send
      * messages to it */
     Peers_indicate_sending_intention (peer);
@@ -691,7 +691,7 @@ static void
 got_peer (const struct GNUNET_PeerIdentity *peer)
 {
   /* If we did not know this peer already, insert it into sampler and view */
-  if (GNUNET_YES == Peers_insert_peer_check_liveliness (peer))
+  if (GNUNET_YES == Peers_check_peer_live (peer))
   {
     Peers_schedule_operation (peer, insert_in_sampler);
     Peers_schedule_operation (peer, insert_in_view);
@@ -1386,7 +1386,7 @@ handle_peer_pull_reply (void *cls,
                                               &peers[i]))
     {
       /* Make sure we 'know' about this peer */
-      (void) Peers_insert_peer_check_liveliness (&peers[i]);
+      (void) Peers_check_peer_live (&peers[i]);
 
       if (GNUNET_YES == Peers_check_peer_valid (&peers[i]))
       {
@@ -1605,7 +1605,7 @@ handle_client_act_malicious (void *cls,
     /* Set the flag of the attacked peer to valid to avoid problems */
     if (GNUNET_NO == Peers_check_peer_known (&attacked_peer))
     {
-      Peers_insert_peer_check_liveliness (&attacked_peer);
+      Peers_check_peer_live (&attacked_peer);
       Peers_issue_peer_liveliness_check (&attacked_peer);
     }
 
@@ -1696,7 +1696,7 @@ do_mal_round (void *cls)
      * Send as many pushes to the attacked peer as possible
      * That is one push per round as it will ignore more.
      */
-    Peers_insert_peer_check_liveliness (&attacked_peer);
+    Peers_check_peer_live (&attacked_peer);
     if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
       send_push (&attacked_peer);
   }
@@ -1708,7 +1708,7 @@ do_mal_round (void *cls)
     /* Send PUSH to attacked peers */
     if (GNUNET_YES == Peers_check_peer_known (&attacked_peer))
     {
-      Peers_insert_peer_check_liveliness (&attacked_peer);
+      Peers_check_peer_live (&attacked_peer);
       if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1720,7 +1720,7 @@ do_mal_round (void *cls)
         Peers_issue_peer_liveliness_check (&attacked_peer);
     }
     else
-      Peers_insert_peer_check_liveliness (&attacked_peer);
+      Peers_check_peer_live (&attacked_peer);
     Peers_issue_peer_liveliness_check (&attacked_peer);
 
     /* The maximum of pushes we're going to send this round */

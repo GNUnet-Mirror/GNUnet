@@ -152,24 +152,24 @@ Peers_get_valid_peers (PeersIterator iterator,
  * @param peer the new #GNUNET_PeerIdentity
  *
  * @return #GNUNET_YES if peer was inserted
- *         #GNUNET_NO  if peer was already known
+ *         #GNUNET_NO  otherwise (if peer was already known or
+ *                     peer was #own_identity)
  */
 int
 Peers_insert_peer (const struct GNUNET_PeerIdentity *peer);
 
 /**
- * @brief Add peer to known peers and check for liveliness.
+ * @brief Try connecting to a peer to see whether it is online
  *
- * This function is called on new peer_ids from 'external' sources
- * (client seed, cadet get_peers(), ...)
+ * If not known yet, insert into known peers
  *
- * @param peer the new #GNUNET_PeerIdentity
- *
- * @return #GNUNET_YES if peer was inserted
- *         #GNUNET_NO  if peer was already known
+ * @param peer the peer whose liveliness is to be checked
+ * @return #GNUNET_YES if peer had to be inserted
+ *         #GNUNET_NO  otherwise (if peer was already known or
+ *                     peer was #own_identity)
  */
 int
-Peers_insert_peer_check_liveliness (const struct GNUNET_PeerIdentity *peer);
+Peers_check_peer_live (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Remove unecessary data
