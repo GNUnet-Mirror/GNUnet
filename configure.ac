@@ -1560,6 +1560,7 @@ src/jsonapi/Makefile
 src/hostlist/Makefile
 src/multicast/Makefile
 src/multicast/multicast.conf
+src/my/Makefile
 src/mysql/Makefile
 src/namecache/Makefile
 src/namecache/namecache.conf

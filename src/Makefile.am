@@ -45,7 +45,7 @@ endif
 endif
 
 if HAVE_MYSQL
- MYSQL_DIR = mysql
+ MYSQL_DIR = mysql my
 endif
 
 if HAVE_POSTGRESQL

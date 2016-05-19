@@ -225,6 +225,7 @@ src/json/json_mhd.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
+src/my/my.c
 src/mysql/mysql.c
 src/namecache/gnunet-namecache.c
 src/namecache/gnunet-service-namecache.c
