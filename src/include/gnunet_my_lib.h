@@ -64,7 +64,11 @@ typedef int
 			    const struct GNUNET_MY_QueryParam *qp,
                             MYSQL_BIND *qbind);
 
+/****** CREATE A NEW STRUCTURE ? *****/
+struct GNUNET_MY_Result
+{
 
+};
 
 /**
  * Information we pass to #GNUNET_MY_exec_prepared() to
@@ -135,6 +139,8 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,
                          const struct GNUNET_MY_QueryParam *params);
 
+
+static int extract_result(MYSQL * result, int row) ;
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
