@@ -95,7 +95,7 @@ struct GNUNET_MY_QueryParam
   /**
    * Information to pass to @e conv.  Size of @a data.
    */
-  unsigned long data_len;
+  unsigned long data_len ;
 
 };
 
@@ -222,13 +222,12 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
  */
 #define GNUNET_MY_result_spec_auto_from_type(dst) GNUNET_MY_result_spec_fixed_size ((dst), sizeof (*(dst)))
 
-
 /**
  * FIXME.
+ *
  */
 int
-GNUNET_MY_extract_result (struct GNUNET_MYSQL_Context *mc,
-                          struct GNUNET_MYSQL_StatementHandle *stmt,
+GNUNET_MY_extract_result (MYSQL_BIND * result,
                           int row,
                           struct GNUNET_MY_ResultSpec *specs);
 

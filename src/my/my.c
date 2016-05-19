@@ -90,5 +90,49 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
   return GNUNET_OK;
 }
 
+/**
+  * Extract results from a query result according 
+  * to the given specification. If colums are NULL,
+  * the destination is not modified, and #GNUNET_NO is returned
+  * 
+  *
+  * @param result 
+  * @param row, the row from the result to extract
+  * @param result specificatio to extract for
+  * @return 
+    #GNUNET_YES if all results could be extracted
+    #GNUNET_NO if at least one result was NULL
+    #GNUNET_SYSERR if a result was invalid
+*/
+int
+GNUNET_MY_extract_result (MYSQL_BIND * result,
+                          int row,
+                          struct GNUNET_MY_ResultSpec *specs)
+{
+  unsigned int i ;
+  int had_null = GNUNET_NO ;
+  int ret ;
+
+  for(i = 0 ; NULL != specs[i].conv ; i++) 
+  {
+    struct GNUNET_MY_ResultSpec * spec ;
+
+    spec = &specs[i] ;
+    ret = spec->conv(spec->conv_cls,
+                    NULL, //wait GNUNET_MY_QueryParam
+                    result);
+    
+    if(ret == GNUNET_SYSERR)
+      return GNUNET_SYSERR ;
+
+    if(spec->result_size != NULL)
+      *spec->result_size = spec->dst_size;
+  }
+  
+  if(GNUNET_YES == had_null)
+    return GNUNET_NO ;
+
+  return GNUNET_OK ;
+}
 
 /* end of my.c */
