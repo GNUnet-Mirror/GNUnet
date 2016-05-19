@@ -41,7 +41,7 @@ eval (unsigned int len)
   struct GNUNET_CRYPTO_RsaSignature *rsig;
   struct GNUNET_CRYPTO_RsaPublicKey *public_key;
   struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
-  struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
+  struct GNUNET_CRYPTO_RsaBlindingKey *bkey;
   unsigned int i;
   char sbuf[128];
   char *bbuf;

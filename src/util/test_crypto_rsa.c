@@ -43,7 +43,7 @@ main (int argc,
   struct GNUNET_CRYPTO_RsaPrivateKey *priv_copy;
   struct GNUNET_CRYPTO_RsaPublicKey *pub;
   struct GNUNET_CRYPTO_RsaPublicKey *pub_copy;
-  struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
+  struct GNUNET_CRYPTO_RsaBlindingKey *bkey;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_CRYPTO_RsaSignature *sig_copy;
   struct GNUNET_CRYPTO_RsaSignature *bsig;

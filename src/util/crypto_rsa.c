@@ -67,7 +67,7 @@ struct GNUNET_CRYPTO_RsaSignature
 /**
  * @brief RSA blinding key
  */
-struct GNUNET_CRYPTO_rsa_BlindingKey
+struct GNUNET_CRYPTO_RsaBlindingKey
 {
   /**
    * Random value used for blinding.
@@ -398,12 +398,12 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
  * @param len length of the key in bits (i.e. 2048)
  * @return the newly created blinding key
  */
-struct GNUNET_CRYPTO_rsa_BlindingKey *
+struct GNUNET_CRYPTO_RsaBlindingKey *
 GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len)
 {
-  struct GNUNET_CRYPTO_rsa_BlindingKey *blind;
+  struct GNUNET_CRYPTO_RsaBlindingKey *blind;
 
-  blind = GNUNET_new (struct GNUNET_CRYPTO_rsa_BlindingKey);
+  blind = GNUNET_new (struct GNUNET_CRYPTO_RsaBlindingKey);
   blind->r = gcry_mpi_new (len);
   gcry_mpi_randomize (blind->r,
                       len,
@@ -420,8 +420,8 @@ GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len)
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
-				    struct GNUNET_CRYPTO_rsa_BlindingKey *b2)
+GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_RsaBlindingKey *b1,
+				    struct GNUNET_CRYPTO_RsaBlindingKey *b2)
 {
   return gcry_mpi_cmp (b1->r,
 		       b2->r);
@@ -559,7 +559,7 @@ GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_RsaPublicKey *key)
  * @param bkey the blinding key to destroy
  */
 void
-GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
+GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_RsaBlindingKey *bkey)
 {
   gcry_mpi_release (bkey->r);
   GNUNET_free (bkey);
@@ -607,7 +607,7 @@ numeric_mpi_alloc_n_print (gcry_mpi_t v,
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
                                        char **buffer)
 {
   return numeric_mpi_alloc_n_print (bkey->r, buffer);
@@ -622,14 +622,14 @@ GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKe
  * @param len the length of the data in @a buf
  * @return NULL on error
  */
-struct GNUNET_CRYPTO_rsa_BlindingKey *
+struct GNUNET_CRYPTO_RsaBlindingKey *
 GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
                                        size_t len)
 {
-  struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
+  struct GNUNET_CRYPTO_RsaBlindingKey *bkey;
   size_t rsize;
 
-  bkey = GNUNET_new (struct GNUNET_CRYPTO_rsa_BlindingKey);
+  bkey = GNUNET_new (struct GNUNET_CRYPTO_RsaBlindingKey);
   if (0 !=
       gcry_mpi_scan (&bkey->r,
                      GCRYMPI_FMT_USG,
@@ -754,7 +754,7 @@ rsa_full_domain_hash (gcry_mpi_t *r,
  */
 size_t
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
-                         struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                         struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                          char **buffer)
 {
@@ -1057,7 +1057,7 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_RsaPublicKey *key)
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
-                           struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                           struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
                            struct GNUNET_CRYPTO_RsaPublicKey *pkey)
 {
   gcry_mpi_t n;
