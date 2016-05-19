@@ -72,6 +72,7 @@ gnunetinclude_HEADERS = \
   gnunet_microphone_lib.h \
   gnunet_multicast_service.h \
   gnunet_mq_lib.h \
+  gnunet_my_lib.h \
   gnunet_mysql_lib.h \
   gnunet_namecache_plugin.h \
   gnunet_namecache_service.h \
