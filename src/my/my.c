@@ -109,30 +109,30 @@ GNUNET_MY_extract_result (MYSQL_BIND * result,
                           int row,
                           struct GNUNET_MY_ResultSpec *specs)
 {
-  unsigned int i ;
-  int had_null = GNUNET_NO ;
-  int ret ;
+  unsigned int i;
+  int had_null = GNUNET_NO;
+  int ret;
 
   for(i = 0 ; NULL != specs[i].conv ; i++) 
   {
-    struct GNUNET_MY_ResultSpec * spec ;
+    struct GNUNET_MY_ResultSpec *spec;
 
-    spec = &specs[i] ;
+    spec = &specs[i];
     ret = spec->conv(spec->conv_cls,
                     NULL, //wait GNUNET_MY_QueryParam
                     result);
     
     if(ret == GNUNET_SYSERR)
-      return GNUNET_SYSERR ;
+      return GNUNET_SYSERR;
 
     if(spec->result_size != NULL)
       *spec->result_size = spec->dst_size;
   }
   
   if(GNUNET_YES == had_null)
-    return GNUNET_NO ;
+    return GNUNET_NO;
 
-  return GNUNET_OK ;
+  return GNUNET_OK;
 }
 
 /* end of my.c */

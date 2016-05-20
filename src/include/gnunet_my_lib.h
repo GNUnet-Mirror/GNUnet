@@ -120,7 +120,6 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_fixed_size (const void *ptr,
 				  size_t ptr_size);
 
-
 /**
  * Run a prepared SELECT statement.
  *
@@ -212,6 +211,84 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_fixed_size (void *ptr,
                                   size_t ptr_size);
 
+/**
+  * Generate query parameter for a string
+  *
+  *@param ptr pointer to the string query parameter to pass
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_string (const char *ptr);
+
+/**
+  * Generate fixed-size query parameter with size determined
+  * by variable type.
+  *
+  * @param x pointer to the query parameter to pass
+  */
+#define GNUNET_MY_query_param_auto_from_type(x) GNUNET_MY_query_param_fixed_size ((x), sizeof (*(x)))
+
+/**
+  * Generate query parameter for an RSA public key. The
+  * database must contain a BLOB type in the respective position.
+  *
+  * @param x the query parameter to pass
+  * @return array entry for the query parameters to use
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x);
+
+/**
+  * Generate query parameter for an RSA signature. The
+  * database must contain a BLOB type in the respective position
+  *
+  *@param x the query parameter to pass
+  *@return array entry for the query parameters to use
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
+
+/**
+  * Generate query parameter for an absolute time value.
+  * The database must store a 64-bit integer.
+  *
+  *@param x pointer to the query parameter to pass
+  *@return array entry for the query parameters to use
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
+
+/**
+  * Generate query parameter for an absolute time value.
+  * The database must store a 64-bit integer.
+  *
+  *@param x pointer to the query parameter to pass
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x);
+
+/**
+  * Generate query parameter for an uint16_t in host byte order.
+  *
+  * @param x pointer to the query parameter to pass
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_uint16 (const uint16_t *x);
+
+/**
+  * Generate query parameter for an uint32_t in host byte order
+  *
+  *@param x pointer to the query parameter to pass
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_uint32 (const uint32_t *x);
+
+/**
+  * Generate query parameter for an uint64_t in host byte order
+  *
+  *@param x pointer to the query parameter to pass
+  */
+struct GNUNET_MY_QueryParam
+GNUNET_MY_query_param_uint64 (const uint64_t *x);
 
 /**
  * We expect a fixed-size result, with size determined by the type of `* dst`

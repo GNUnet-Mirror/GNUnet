@@ -227,6 +227,7 @@ src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
 src/my/my.c
 src/my/my_query_helper.c
+src/my/my_result_helper.c
 src/mysql/mysql.c
 src/namecache/gnunet-namecache.c
 src/namecache/gnunet-service-namecache.c
