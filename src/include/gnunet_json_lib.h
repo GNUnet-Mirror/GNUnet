@@ -312,6 +312,16 @@ GNUNET_JSON_from_data (const void *data,
 
 
 /**
+ * Convert binary data to a JSON string with the base32crockford
+ * encoding.
+ *
+ * @param ptr binary data, sizeof (*ptr) must yield correct size
+ * @return json string that encodes @a data
+ */
+#define GNUNET_JSON_from_data_auto(ptr) GNUNET_JSON_from_data(ptr, sizeof (*ptr))
+
+
+/**
  * Convert absolute timestamp to a json string.
  *
  * @param stamp the time stamp
