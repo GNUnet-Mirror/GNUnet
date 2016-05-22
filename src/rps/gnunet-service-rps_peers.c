@@ -473,8 +473,9 @@ set_peer_live (struct PeerContext *peer_ctx)
   (void) add_valid_peer (peer);
   set_peer_flag (peer_ctx, Peers_ONLINE);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Peer %s is live and valid\n",
-      GNUNET_i2s (peer));
+      "Peer %s is live and valid, calling %i pending operations on it\n",
+      GNUNET_i2s (peer),
+      peer_ctx->num_pending_ops);
 
   /* Call pending operations */
   for (i = 0; i < peer_ctx->num_pending_ops; i++)
@@ -1560,7 +1561,7 @@ Peers_send_message (const struct GNUNET_PeerIdentity *peer,
   struct PendingMessage *pending_msg;
   struct GNUNET_MQ_Handle *mq;
 
-  pending_msg = insert_pending_message (peer, ev, "PULL REPLY");
+  pending_msg = insert_pending_message (peer, ev, type);
   mq = get_mq (peer);
   GNUNET_MQ_notify_sent (ev,
                          mq_notify_sent_cb,
