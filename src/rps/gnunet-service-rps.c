@@ -437,6 +437,43 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array,
 
 
 /**
+ * Insert PeerID in #view
+ *
+ * Called once we know a peer is live.
+ * Implements #PeerOp
+ *
+ * @return GNUNET_OK if peer was actually inserted
+ *         GNUNET_NO if peer was not inserted
+ */
+static void
+insert_in_view_op (void *cls,
+		const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * Insert PeerID in #view
+ *
+ * Called once we know a peer is live.
+ *
+ * @return GNUNET_OK if peer was actually inserted
+ *         GNUNET_NO if peer was not inserted
+ */
+static int
+insert_in_view (const struct GNUNET_PeerIdentity *peer)
+{
+  int online;
+
+  online = Peers_check_peer_flag (peer, Peers_ONLINE);
+  if ( (GNUNET_NO == online) ||
+       (GNUNET_SYSERR == online) ) /* peer is not even known */
+  {
+    (void) Peers_check_peer_live (peer);
+    (void) Peers_schedule_operation (peer, insert_in_view_op);
+    return GNUNET_NO;
+  }
+  return View_put (peer);
+}
+
+/**
  * Put random peer from sampler into the view as history update.
  */
 static void
@@ -448,7 +485,7 @@ hist_update (void *cls,
 
   for (i = 0; i < num_peers; i++)
   {
-    View_put (&ids[i]);
+    (void) insert_in_view (&ids[i]);
     to_file (file_name_view_log,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
@@ -642,11 +679,10 @@ insert_in_pull_map (void *cls,
  * Implements #PeerOp
  */
 static void
-insert_in_view (void *cls,
+insert_in_view_op (void *cls,
 		const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_assert (GNUNET_YES == Peers_check_peer_flag (peer, Peers_ONLINE));
-  View_put (peer);
+  (void) insert_in_view (peer);
 }
 
 
@@ -687,7 +723,7 @@ got_peer (const struct GNUNET_PeerIdentity *peer)
   if (GNUNET_YES == Peers_check_peer_live (peer))
   {
     Peers_schedule_operation (peer, insert_in_sampler);
-    Peers_schedule_operation (peer, insert_in_view);
+    Peers_schedule_operation (peer, insert_in_view_op);
   }
 }
 
@@ -1883,7 +1919,8 @@ do_round (void *cls)
                                            CustomPeerMap_size (push_map));
     for (i = 0; i < first_border; i++)
     {
-      View_put (CustomPeerMap_get_peer_by_index (push_map, permut[i]));
+      (void) insert_in_view (CustomPeerMap_get_peer_by_index (push_map,
+                                                              permut[i]));
       to_file (file_name_view_log,
                "+%s\t(push list)",
                GNUNET_i2s_full (&view_array[i]));
@@ -1897,8 +1934,8 @@ do_round (void *cls)
                                            CustomPeerMap_size (pull_map));
     for (i = first_border; i < second_border; i++)
     {
-      View_put (CustomPeerMap_get_peer_by_index (pull_map,
-                                                 permut[i - first_border]));
+      (void) insert_in_view (CustomPeerMap_get_peer_by_index (pull_map,
+            permut[i - first_border]));
       to_file (file_name_view_log,
                "+%s\t(pull list)",
                GNUNET_i2s_full (&view_array[i]));
