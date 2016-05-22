@@ -252,11 +252,6 @@ static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
  */
 static struct GNUNET_TIME_Relative request_rate;
 
-/**
- * Number of history update tasks.
- */
-static uint32_t num_hist_update_tasks;
-
 
 #ifdef ENABLE_MALICIOUS
 /**
@@ -458,8 +453,6 @@ hist_update (void *cls,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
   }
-  if (0 < num_hist_update_tasks)
-    num_hist_update_tasks--;
 }
 
 
@@ -1919,7 +1912,6 @@ do_round (void *cls)
                                   hist_update,
                                   NULL,
                                   final_size - second_border);
-    num_hist_update_tasks = final_size - second_border;
     // TODO change the peer_flags accordingly
 
     for (i = 0; i < View_size (); i++)
@@ -2331,9 +2323,6 @@ run (void *cls,
   /* Initialise push and pull maps */
   push_map = CustomPeerMap_create (4);
   pull_map = CustomPeerMap_create (4);
-
-
-  num_hist_update_tasks = 0;
 
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
