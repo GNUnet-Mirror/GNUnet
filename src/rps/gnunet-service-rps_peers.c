@@ -1178,14 +1178,19 @@ Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
  * @param peer the peer to check the flag of
  * @param flags the flags to check
  *
- * @return #GNUNET_YES if all given flags are set
- *         #GNUNET_NO  otherwise
+ * @return #GNUNET_SYSERR if peer is not known
+ *         #GNUNET_YES    if all given flags are set
+ *         #GNUNET_NO     otherwise
  */
 int
 Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
 {
   struct PeerContext *peer_ctx;
 
+  if (GNUNET_NO == Peers_check_peer_known (peer))
+  {
+    return GNUNET_SYSERR;
+  }
   peer_ctx = get_peer_ctx (peer);
   return check_peer_flag_set (peer_ctx, flags);
 }
