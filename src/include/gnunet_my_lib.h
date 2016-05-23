@@ -305,8 +305,9 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x);
  */
 int
 GNUNET_MY_extract_result (MYSQL_BIND * result,
-                          int row,
-                          struct GNUNET_MY_ResultSpec *specs);
+                          struct GNUNET_MY_QueryParam *qp,
+                          struct GNUNET_MY_ResultSpec *specs,
+                          int row);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

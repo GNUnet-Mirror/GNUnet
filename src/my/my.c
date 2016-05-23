@@ -106,24 +106,27 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
 */
 int
 GNUNET_MY_extract_result (MYSQL_BIND * result,
-                          int row,
-                          struct GNUNET_MY_ResultSpec *specs)
+                          struct GNUNET_MY_QueryParam *qp,
+                          struct GNUNET_MY_ResultSpec *rs,
+                          int row)
 {
   unsigned int i;
   int had_null = GNUNET_NO;
   int ret;
 
-  for(i = 0 ; NULL != specs[i].conv ; i++) 
+  for(i = 0 ; NULL != rs[i].conv ; i++) 
   {
     struct GNUNET_MY_ResultSpec *spec;
 
-    spec = &specs[i];
+    spec = &rs[i];
     ret = spec->conv(spec->conv_cls,
-                    NULL, //wait GNUNET_MY_QueryParam
+                    qp,
                     result);
     
-    if(ret == GNUNET_SYSERR)
+    if(ret == GNUNET_SYSERR){
+     //GNUNET_MY_cleanup_result(rs);
       return GNUNET_SYSERR;
+    }
 
     if(spec->result_size != NULL)
       *spec->result_size = spec->dst_size;

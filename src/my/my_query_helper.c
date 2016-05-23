@@ -44,6 +44,7 @@ my_conv_fixed_size (void *cls,
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = qp->data_len;
   qbind->length = (unsigned long *) &qp->data_len;
+  qbind->buffer_type = 1;
   return 0;
 }
 
