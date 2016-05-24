@@ -51,9 +51,21 @@ libgnunetpeerstore_la_LIBADD = \
 libgnunetpeerstore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+if HAVE_EXPERIMENTAL
+  FLAT_PLUGIN = libgnunet_plugin_peerstore_flat.la
+
+libgnunet_plugin_peerstore_flat_la_SOURCES = \
+  plugin_peerstore_flat.c
+libgnunet_plugin_peerstore_flat_la_LIBADD = \
+  libgnunetpeerstore.la  \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_peerstore_flat_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+endif
+
 if HAVE_SQLITE
-plugin_LTLIBRARIES = \
-  libgnunet_plugin_peerstore_sqlite.la
+SQLITE_PLUGIN = libgnunet_plugin_peerstore_sqlite.la
 
 libgnunet_plugin_peerstore_sqlite_la_SOURCES = \
   plugin_peerstore_sqlite.c
@@ -64,6 +76,11 @@ libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
 libgnunet_plugin_peerstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 endif
+
+plugin_LTLIBRARIES = \
+  $(SQLITE_PLUGIN) \
+	$(FLAT_PLUGIN)
+
 
 check_PROGRAMS = \
  test_peerstore_api_store \

@@ -17,7 +17,6 @@ libgnunetjsonapiutils_la_SOURCES = \
 	jsonapi.c
 libgnunetjsonapiutils_la_LIBADD = \
 	$(top_builddir)/src/util/libgnunetutil.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
   $(XLIB)
 
