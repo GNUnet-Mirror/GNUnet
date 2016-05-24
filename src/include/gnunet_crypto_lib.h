@@ -1787,9 +1787,16 @@ struct GNUNET_CRYPTO_RsaPrivateKey;
 struct GNUNET_CRYPTO_RsaPublicKey;
 
 /**
- * Key used to blind a message
+ * Constant-size pre-secret for blinding key generation.
  */
-struct GNUNET_CRYPTO_RsaBlindingKey;
+struct GNUNET_CRYPTO_RsaBlindingKeySecret
+{
+  /**
+   * Bits used to generate the blinding key.  256 bits
+   * of entropy is enough.
+   */
+  uint32_t pre_secret[8] GNUNET_PACKED;
+};
 
 /**
  * @brief an RSA signature
@@ -1929,28 +1936,6 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_RsaPublicKey *key);
 
 
 /**
- * Create a blinding key
- *
- * @param len length of the key in bits (i.e. 2048)
- * @return the newly created blinding key
- */
-struct GNUNET_CRYPTO_RsaBlindingKey *
-GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len);
-
-
-/**
- * Compare the values of two blinding keys.
- *
- * @param b1 one key
- * @param b2 the other key
- * @return 0 if the two are equal
- */
-int
-GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_RsaBlindingKey *b1,
-				    struct GNUNET_CRYPTO_RsaBlindingKey *b2);
-
-
-/**
  * Compare the values of two signatures.
  *
  * @param s1 one signature
@@ -1986,52 +1971,17 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
 
 
 /**
- * Destroy a blinding key
- *
- * @param bkey the blinding key to destroy
- */
-void
-GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_RsaBlindingKey *bkey);
-
-
-/**
- * Encode the blinding key in a format suitable for
- * storing it into a file.
- *
- * @param bkey the blinding key
- * @param[out] buffer set to a buffer with the encoded key
- * @return size of memory allocated in @a buffer
- */
-size_t
-GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
-                                       char **buffer);
-
-
-/**
- * Decode the blinding key from the data-format back
- * to the "normal", internal format.
- *
- * @param buf the buffer where the public key data is stored
- * @param len the length of the data in @a buf
- * @return NULL on error
- */
-struct GNUNET_CRYPTO_RsaBlindingKey *
-GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
-                                       size_t len);
-
-
-/**
  * Blinds the given message with the given blinding key
  *
  * @param hash hash of the message to sign
- * @param bkey the blinding key
+ * @param bks the blinding key secret
  * @param pkey the public key of the signer
  * @param[out] buffer set to a buffer with the blinded message to be signed
  * @return number of bytes stored in @a buffer
  */
 size_t
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
-                         struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
+                         const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                          char **buffer);
 
@@ -2112,13 +2062,13 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * #GNUNET_CRYPTO_rsa_blind().
  *
  * @param sig the signature made on the blinded signature purpose
- * @param bkey the blinding key used to blind the signature purpose
+ * @param bks the blinding key secret used to blind the signature purpose
  * @param pkey the public key of the signer
  * @return unblinded signature on success, NULL on error
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
-			   struct GNUNET_CRYPTO_RsaBlindingKey *bkey,
+			   const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
 			   struct GNUNET_CRYPTO_RsaPublicKey *pkey);
 
 

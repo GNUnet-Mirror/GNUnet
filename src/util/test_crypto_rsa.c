@@ -43,10 +43,10 @@ main (int argc,
   struct GNUNET_CRYPTO_RsaPrivateKey *priv_copy;
   struct GNUNET_CRYPTO_RsaPublicKey *pub;
   struct GNUNET_CRYPTO_RsaPublicKey *pub_copy;
-  struct GNUNET_CRYPTO_RsaBlindingKey *bkey;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_CRYPTO_RsaSignature *sig_copy;
   struct GNUNET_CRYPTO_RsaSignature *bsig;
+  struct GNUNET_CRYPTO_RsaBlindingKeySecret bsec;
   struct GNUNET_HashCode hash;
   char *blind_buf;
   size_t bsize;
@@ -110,19 +110,21 @@ main (int argc,
   GNUNET_CRYPTO_rsa_signature_free (sig);
 
   /* test blind signing */
-  bkey = GNUNET_CRYPTO_rsa_blinding_key_create (KEY_SIZE);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+			      &bsec,
+			      sizeof (bsec));
   bsize = GNUNET_CRYPTO_rsa_blind (&hash,
-                           bkey,
-                           pub,
-                           &blind_buf);
+				   &bsec,
+				   pub,
+				   &blind_buf);
   GNUNET_assert (0 != bsize);
   bsig = GNUNET_CRYPTO_rsa_sign_blinded (priv,
                                          blind_buf,
                                          bsize);
   GNUNET_free (blind_buf);
   sig = GNUNET_CRYPTO_rsa_unblind (bsig,
-                           bkey,
-                           pub);
+				   &bsec,
+				   pub);
   GNUNET_CRYPTO_rsa_signature_free (bsig);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));  
@@ -132,6 +134,5 @@ main (int argc,
   GNUNET_CRYPTO_rsa_private_key_free (priv_copy);
   GNUNET_CRYPTO_rsa_public_key_free (pub);
   GNUNET_CRYPTO_rsa_public_key_free (pub_copy);
-  GNUNET_CRYPTO_rsa_blinding_key_free (bkey);
   return 0;
 }
