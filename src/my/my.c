@@ -34,8 +34,10 @@
  * @param mc mysql context
  * @param sh handle to SELECT statment
  * @param params parameters to the statement
- * @return
+ * @return mysql result
  */
+
+ /***** FIXE THIS FUNCTION *****/
 int
 GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,

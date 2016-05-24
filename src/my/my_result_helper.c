@@ -18,28 +18,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
-
-/**
-  * Function called to clean up memory allocated
-  * by a #GNUNET_MY_ResultConverter.
-  *
-  * @param cls closure
-  * @param rd result data to clean up
-  */
-static void
-clean_varsize_blob (void *cls,
-                    void *rs)
-{
-  void **dst = rd;
-
-  if (NULL != *dst)
-  {
-    GNUNET_free (*dst);
-    *dst = NULL;
-  }
-}
-
+#include "gnunet_my_lib.h"
 
 /**
   * extract data from a Mysql database @a result at row @a row
@@ -66,15 +45,15 @@ extract_varsize_blob (void *cls,
   void *idst;
   size_t len;
 
-  MYSQL_ROW * rows;
-  MYSQL_FIELD * field;
+  MYSQL_ROW rows;
+  MYSQL_FIELD *field;
 
   rows = mysql_fetch_row (result);
 
   field = mysql_fetch_field (result);
 
   //If it's the correct field
-  if (field != fname)
+  if (field->name != fname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "Field '%s' does not exist in result",
@@ -122,7 +101,7 @@ GNUNET_MY_result_spec_variable_size (void **dst,
     (void *)(dst),
     0,
     ptr_size
-  }
+  };
 
   return res;
 }
@@ -142,7 +121,7 @@ GNUNET_MY_result_spec_variable_size (void **dst,
   *
   */
 static int
-extracted_fixed_blob (void *cls,
+extract_fixed_blob (void *cls,
                       MYSQL_RES * result,
                       int row,
                       const char * fname,
@@ -152,7 +131,7 @@ extracted_fixed_blob (void *cls,
   size_t len;
   const char *res;
 
-  MYSQL_ROW * rows;
+  MYSQL_ROW rows;
   MYSQL_FIELD * field;
 
   rows = mysql_fetch_row (result);
@@ -160,7 +139,7 @@ extracted_fixed_blob (void *cls,
   field = mysql_fetch_field (result);
 
   //If it's the correct field
-  if (field != fname)
+  if (field->name != fname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "Field '%s' does not exist in result",
@@ -235,7 +214,7 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
 static int
 extract_rsa_public_key (void *cls,
                         MYSQL_RES *result,
-                        int rown,
+                        int row,
                         const char *fname,
                         size_t *dst_size,
                         void *dst)
@@ -244,7 +223,7 @@ extract_rsa_public_key (void *cls,
   size_t len;
   const char *res;
 
-  MYSQL_ROW * rows;
+  MYSQL_ROW rows;
   MYSQL_FIELD * field;
 
   *pk = NULL;
@@ -254,7 +233,7 @@ extract_rsa_public_key (void *cls,
   field = mysql_fetch_field (result);
 
   //If it's the correct field
-  if (field != fname)
+  if (field->name != fname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "Field '%s' does not exist in result",
@@ -284,26 +263,6 @@ extract_rsa_public_key (void *cls,
   }
   return GNUNET_OK;
 }
-
-/**
-  * Function called to clean up memory allocated
-  * by a #GNUNET_MY_ResultConverter
-  *
-  * @param cls closure
-  * @param rd result data to clean up
-  */
-static void
-clean_rsa_public_key (void *cls,
-                      void *rd)
-{
-  struct GNUNET_CRYPTO_RsaPublicKey **pk = rd;
-  if (NULL != *pk)
-  {
-    GNUNET_CRYPTO_rsa_public_key_free (*pk);
-    *pk = NULL;
-  }
-}
-
 
 /**
   * RSA public key expected
@@ -351,7 +310,7 @@ extract_rsa_signature (void *cls,
   const char *res;
 
   
-  MYSQL_ROW * rows;
+  MYSQL_ROW rows;
   MYSQL_FIELD * field;
 
   *sig = NULL;
@@ -361,7 +320,7 @@ extract_rsa_signature (void *cls,
   field = mysql_fetch_field (result);
 
   //If it's the correct field
-  if (field == fname)
+  if (field->name == fname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "Field '%s' does not exist in result",
@@ -437,7 +396,7 @@ extract_string (void * cls,
   size_t len;
   const char *res;
 
-  MYSQL_ROW * rows;
+  MYSQL_ROW rows;
   MYSQL_FIELD * field;
 
   *str = NULL;
@@ -544,6 +503,43 @@ extract_uint16 (void *cls,
               void *dst)
 {
     //TO COMPLETE 
+  uint16_t *udst = dst;
+  const uint16_t *res;
+
+  MYSQL_ROW rows;
+  MYSQL_FIELD * field;
+
+  rows = mysql_fetch_row (result);
+
+  field = mysql_fetch_field (result);
+
+  //If it's the correct field
+  if (field->name == fname)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "Field '%s' does not exist in result",
+                fname);
+    return GNUNET_SYSERR;
+  }
+
+
+  if (rows[row] == NULL)
+  {
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_assert (NULL != dst);
+
+  if (sizeof (uint16_t) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  res = (uint16_t) rows[row];
+  *udst = ntohs (*res);
+
+  return GNUNET_OK;
 }
 
 /**
@@ -566,4 +562,161 @@ GNUNET_MY_result_spec_uint16 (uint16_t *u16)
 }
 
 /**
+  * Extrac data from a  MYSQL database @a result at row @a row
+  *
+  * @param cls closure
+  * @param result where to extract data from
+  * @param int row to extract data from
+  * @param fname name (or prefix) of the fields to extract from
+  * @param[in, out] dst_size where to store size of result, may be NULL
+  * @param[out] dst where to store the result
+  * @return
+  *      #GNUNET_OK if all results could be extracted
+  *      #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+  */
+static int
+extract_uint32 (void *cls,
+                MYSQL_RES * result,
+                int row,
+                const char *fname,
+                size_t *dst_size,
+                void *dst)
+{
+  uint32_t *udst = dst;
+  const uint32_t *res;
+
+  MYSQL_ROW rows;
+  MYSQL_FIELD * field;
+
+  rows = mysql_fetch_row (result);
+
+  field = mysql_fetch_field (result);
+
+  //If it's the correct field
+  if (field->name == fname)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "Field '%s' does not exist in result",
+                fname);
+    return GNUNET_SYSERR;
+  }
+
+
+  if (rows[row] == NULL)
+  {
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_assert (NULL != dst);
+
+  if (sizeof (uint32_t) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  res = (uint32_t) rows[row];
+
+  *udst = ntohl (*res);
+  return GNUNET_OK;
+}
+
+/**
+  * uint32_t expected
+  *
+  * @param[out] u32 where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_uint32 (uint32_t *u32)
+{
+  struct GNUNET_MY_ResultSpec res = {
+    &extract_uint32,
+    NULL,
+    (void *) u32,
+    sizeof (*u32),
+    NULL
+  };
+  return res;
+}
+
+/**
+  * Extract data from a MYSQL database @a result at row @a row
+  *
+  * @param cls closure
+  * @param result where to extract data from
+  * @param int row to extract data from
+  * @param fname name (or prefix) of the fields to extract from
+  * @param[in, out] dst_size where to store size of result, may be null
+  * @param[out] dst where to store the result
+  * @return
+  *    #GNUNET_OK if all results could be extracted
+  *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+  */
+static int
+extract_uint64 (void *cls,
+                MYSQL_RES * result,
+                int row, 
+                const char *fname,
+                size_t *dst_size,
+                void *dst)
+{
+  uint64_t *udst = dst;
+  const uint64_t *res;
+
+  MYSQL_ROW rows;
+  MYSQL_FIELD * field;
+
+  rows = mysql_fetch_row (result);
+
+  field = mysql_fetch_field (result);
+
+  //If it's the correct field
+  if (field->name == fname)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "Field '%s' does not exist in result",
+                fname);
+    return GNUNET_SYSERR;
+  }
+
+
+  if (rows[row] == NULL)
+  {
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_assert (NULL != dst);
+  if (sizeof (uint64_t) != *dst_size)
+  {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+
+  res = (uint64_t) rows[row];
+  *udst = GNUNET_ntohll (*res);
+
+  return GNUNET_OK;
+}
+
+
+/**
+  * uint64_t expected.
+  *
+  * @param[out] u64 where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_uint64 (uint64_t *u64)
+{
+  struct GNUNET_MY_ResultSpec res = {
+    &extract_uint64,
+    NULL,
+    (void *) u64,
+    sizeof (*u64),
+    NULL
+  };
+  return res;
+}
+
 /* end of pq_result_helper.c */

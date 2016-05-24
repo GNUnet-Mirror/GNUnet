@@ -299,10 +299,96 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x);
  */
 #define GNUNET_MY_result_spec_auto_from_type(dst) GNUNET_MY_result_spec_fixed_size ((dst), sizeof (*(dst)))
 
+
 /**
  * FIXME.
  *
  */
+ 
+ /**
+  * Variable-size result expected
+  *
+  * @param[out] dst where to store the result, allocated
+  * @param[out] sptr where to store the size of @a dst
+  * @return array entru for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_variable_size (void **dst,
+                                    size_t *ptr_size);
+/**
+  * RSA public key expected
+  *
+  * @param name name of the field in the table
+  * @param[out] rsa where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa);
+
+/**
+  * RSA signature expected.
+  *
+  * @param[out] sig where to store the result;
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig);
+
+/**
+  * 0- terminated string exprected.
+  *
+  * @param[out] dst where to store the result, allocated
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_string (char **dst);
+
+/**
+  * Absolute time expected
+  *
+  * @param name name of the field in the table
+  * @param[out] at where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at);
+
+/**
+  * Absolute time in network byte order expected
+  *
+  * @param[out] at where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at);
+
+/**
+  * uint16_t expected
+  *
+  * @param[out] u16 where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_uint16 (uint16_t *u16);
+
+/**
+  * uint32_t expected
+  *
+  * @param[out] u32 where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_uint32 (uint32_t *u32);
+
+/**
+  * uint64_t expected.
+  *
+  * @param[out] u64 where to store the result
+  * @return array entry for the result specification to use
+  */
+struct GNUNET_MY_ResultSpec
+GNUNET_MY_result_spec_uint64 (uint64_t *u64);
+
 int
 GNUNET_MY_extract_result (MYSQL_BIND * result,
                           struct GNUNET_MY_QueryParam *qp,
