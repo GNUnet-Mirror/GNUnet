@@ -406,7 +406,7 @@ extract_string (void * cls,
   field = mysql_fetch_field (result);
 
   //If it's the correct field
-  if (field == fname)
+  if (field->name == fname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "Field '%s' does not exist in result",
@@ -504,7 +504,7 @@ extract_uint16 (void *cls,
 {
     //TO COMPLETE 
   uint16_t *udst = dst;
-  const uint16_t *res;
+  uint16_t *res;
 
   MYSQL_ROW rows;
   MYSQL_FIELD * field;
@@ -536,7 +536,7 @@ extract_uint16 (void *cls,
     return GNUNET_SYSERR;
   }
 
-  res = (uint16_t) rows[row];
+  res = atoi (rows[row]);
   *udst = ntohs (*res);
 
   return GNUNET_OK;
