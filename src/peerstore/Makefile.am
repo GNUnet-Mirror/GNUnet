@@ -52,8 +52,8 @@ libgnunetpeerstore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 if HAVE_EXPERIMENTAL
-  FLAT_PLUGIN = libgnunet_plugin_peerstore_flat.la
-
+FLAT_PLUGIN = libgnunet_plugin_peerstore_flat.la
+FLAT_TESTS = test_plugin_peerstore_flat
 libgnunet_plugin_peerstore_flat_la_SOURCES = \
   plugin_peerstore_flat.c
 libgnunet_plugin_peerstore_flat_la_LIBADD = \
@@ -66,7 +66,9 @@ endif
 
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_peerstore_sqlite.la
-
+if HAVE_TESTING
+SQLITE_TESTS = test_plugin_peerstore_sqlite
+endif
 libgnunet_plugin_peerstore_sqlite_la_SOURCES = \
   plugin_peerstore_sqlite.c
 libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
@@ -81,13 +83,26 @@ plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
 	$(FLAT_PLUGIN)
 
+test_plugin_peerstore_sqlite_SOURCES = \
+  test_plugin_peerstore.c
+test_plugin_peerstore_sqlite_LDADD = \
+	$(top_builddir)/src/testing/libgnunettesting.la \
+	$(top_builddir)/src/util/libgnunetutil.la
+
+test_plugin_peerstore_flat_SOURCES = \
+  test_plugin_peerstore.c
+test_plugin_peerstore_flat_LDADD = \
+	$(top_builddir)/src/testing/libgnunettesting.la \
+	$(top_builddir)/src/util/libgnunetutil.la
 
 check_PROGRAMS = \
  test_peerstore_api_store \
  test_peerstore_api_iterate \
  test_peerstore_api_watch \
  test_peerstore_api_sync \
- perf_peerstore_store
+ perf_peerstore_store \
+ $(SQLITE_TESTS) \
+ $(FLAT_TESTS)
 
 EXTRA_DIST = \
  test_peerstore_api_data.conf
