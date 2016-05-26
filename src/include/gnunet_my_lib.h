@@ -304,7 +304,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x);
  * FIXME.
  *
  */
- 
+
  /**
   * Variable-size result expected
   *
@@ -390,7 +390,7 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_uint64 (uint64_t *u64);
 
 int
-GNUNET_MY_extract_result (MYSQL_BIND * result,
+GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                           struct GNUNET_MY_QueryParam *qp,
                           struct GNUNET_MY_ResultSpec *specs,
                           int row);

@@ -108,15 +108,20 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
     #GNUNET_SYSERR if a result was invalid
 */
 int
-GNUNET_MY_extract_result (MYSQL_BIND * result,
+GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                           struct GNUNET_MY_QueryParam *qp,
                           struct GNUNET_MY_ResultSpec *rs,
                           int row)
 {
+  MYSQL_BIND * result;
   unsigned int i;
   int had_null = GNUNET_NO;
   int ret;
+  MYSQL_STMT *stmt;
 
+  stmt = GNUNET_MYSQL_statement_get_stmt (NULL /* FIXME */, sh);
+  // result = mysql_get_result (stmt);
+  result = NULL;
   for (i = 0 ; NULL != rs[i].conv ; i++)
   {
     struct GNUNET_MY_ResultSpec *spec;

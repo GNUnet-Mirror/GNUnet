@@ -803,14 +803,20 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   struct GNUNET_CRYPTO_RsaPublicKey *public_key;
   gcry_sexp_t data;
   gcry_sexp_t result;
+  int rc;
 
   data = mpi_to_sexp (value);
 
   if (0 !=
-      gcry_pk_sign (&result,
-                    data,
-                    key->sexp))
+      (rc = gcry_pk_sign (&result,
+                          data,
+                          key->sexp)))
   {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("RSA signing failed at %s:%d: %s\n"),
+         __FILE__,
+         __LINE__,
+         gcry_strerror (rc));
     GNUNET_break (0);
     return NULL;
   }
@@ -863,7 +869,7 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 
   sig = rsa_sign_mpi (key, v);
   gcry_mpi_release (v);
-  return sig; 
+  return sig;
 }
 
 
@@ -890,7 +896,7 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 
   sig = rsa_sign_mpi (key, v);
   gcry_mpi_release (v);
-  return sig; 
+  return sig;
 
 }
 
