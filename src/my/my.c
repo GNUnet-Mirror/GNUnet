@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2016 GNUnet e.V.
+     Copyright (C) 2016 Inria & GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -92,16 +92,17 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
   return GNUNET_OK;
 }
 
+
 /**
-  * Extract results from a query result according 
-  * to the given specification. If colums are NULL,
-  * the destination is not modified, and #GNUNET_NO is returned
-  * 
-  *
-  * @param result 
-  * @param row, the row from the result to extract
-  * @param result specificatio to extract for
-  * @return 
+ * Extract results from a query result according
+ * to the given specification. If colums are NULL,
+ * the destination is not modified, and #GNUNET_NO is returned4
+ *
+ *
+ * @param result
+ * @param row, the row from the result to extract
+ * @param result specificatio to extract for
+ * @return
     #GNUNET_YES if all results could be extracted
     #GNUNET_NO if at least one result was NULL
     #GNUNET_SYSERR if a result was invalid
@@ -116,25 +117,26 @@ GNUNET_MY_extract_result (MYSQL_BIND * result,
   int had_null = GNUNET_NO;
   int ret;
 
-  for(i = 0 ; NULL != rs[i].conv ; i++) 
+  for (i = 0 ; NULL != rs[i].conv ; i++)
   {
     struct GNUNET_MY_ResultSpec *spec;
 
     spec = &rs[i];
-    ret = spec->conv(spec->conv_cls,
-                    qp,
-                    result);
-    
-    if(ret == GNUNET_SYSERR){
+    ret = spec->conv (spec->conv_cls,
+                      qp,
+                      result);
+
+    if (GNUNET_SYSERR == ret)
+    {
      //GNUNET_MY_cleanup_result(rs);
       return GNUNET_SYSERR;
     }
 
-    if(spec->result_size != NULL)
+    if (NULL != spec->result_size)
       *spec->result_size = spec->dst_size;
   }
-  
-  if(GNUNET_YES == had_null)
+
+  if (GNUNET_YES == had_null)
     return GNUNET_NO;
 
   return GNUNET_OK;
