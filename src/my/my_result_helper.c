@@ -24,64 +24,42 @@
   * extract data from a Mysql database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param qp data about the query 
+  * @param result mysql result
   * @return
   *   #GNUNET_OK if all results could be extracted
   *   #GNUNET_SYSERR if a result was invalid
   */
+
 static int
 extract_varsize_blob (void *cls,
-                      MYSQL_RES * result,
-                      int row,
-                      const char *fname,
-                      size_t *dst_size,
-                      void *dst)
+                      struct GNUNET_MY_ResultSpec *rs,
+                      MYSQL_BIND *results)
 {
-  const char *res;
-  void *idst;
   size_t len;
+  void *idst;
+  char * res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD *field;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name != fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  res = rows[row];
-
-  len = strlen(res);
+  len = results->buffer_length;
+  res = results->buffer;
 
   GNUNET_assert (NULL != res);
-  
-  *dst_size = len;
+
+  rs->dst_size = len;
+
   idst = GNUNET_malloc (len);
-  *((void **) dst) = idst;
+  *(void **)rs->dst = idst;
+
   memcpy (idst,
           res,
           len);
 
-  return GNUNET_OK;
+ return GNUNET_OK;
 }
 
 /**
@@ -95,7 +73,8 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_variable_size (void **dst,
                                     size_t *ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res = {
+  struct GNUNET_MY_ResultSpec res = 
+  {
     &extract_varsize_blob,
     NULL,
     (void *)(dst),
@@ -122,57 +101,34 @@ GNUNET_MY_result_spec_variable_size (void **dst,
   */
 static int
 extract_fixed_blob (void *cls,
-                      MYSQL_RES * result,
-                      int row,
-                      const char * fname,
-                      size_t * dst_size,
-                      void *dst)
+                    struct GNUNET_MY_ResultSpec *rs,
+                    MYSQL_BIND *results)
 {
   size_t len;
   const char *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name != fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  res = rows[row];
-
-  len = strlen (res);
-  if (*dst_size != len)
+  len = results->buffer_length;
+  if (rs->dst_size != len)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Field '%s' has wrong size (got %u, expected %u)\n",
-                fname,
+                "Results has wrong size (got %u, expected %u)\n",
                 (unsigned int)len,
-                (unsigned int) *dst_size);
+                (unsigned int)rs->dst_size);
     return GNUNET_SYSERR;
   }
 
+  res = results->buffer;
+
   GNUNET_assert (NULL != res);
-  
-  memcpy (dst,
+  memcpy (rs->dst,
           res,
           len);
-
+  
   return GNUNET_OK;
 }
 /**
@@ -187,7 +143,8 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_fixed_size (void *ptr,
                                   size_t ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res = { 
+  struct GNUNET_MY_ResultSpec res = 
+  { 
     &extract_fixed_blob,
     NULL,
     (void *)(ptr),
@@ -213,54 +170,33 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
   */
 static int
 extract_rsa_public_key (void *cls,
-                        MYSQL_RES *result,
-                        int row,
-                        const char *fname,
-                        size_t *dst_size,
-                        void *dst)
+                       struct GNUNET_MY_ResultSpec *rs,
+                        MYSQL_BIND *results)
+
 {
-  struct GNUNET_CRYPTO_RsaPublicKey **pk = dst;
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = rs->dst;
+  
   size_t len;
   const char *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  *pk = NULL;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name != fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  res = rows[row];
+  len = results->buffer_length;
+  res = results->buffer;
 
-  len = strlen (res);
-  
-  *pk = GNUNET_CRYPTO_rsa_public_key_decode (res, 
+  *pk = GNUNET_CRYPTO_rsa_public_key_decode (res,
                                             len);
 
   if (NULL == *pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Field '%s' contains bogus value (fails to decode\n",
-                  fname);
+                "Results contains bogus value (fail to decode)\n");
     return GNUNET_SYSERR;
   }
+
   return GNUNET_OK;
 }
 
@@ -300,51 +236,28 @@ GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
   */
 static int
 extract_rsa_signature (void *cls,
-                      MYSQL_RES * result,
-                      int row, const char *fname,
-                      size_t * dst_size,
-                      void *dst)
+                      struct GNUNET_MY_ResultSpec *rs,
+                      MYSQL_BIND *results)
 {
-  struct GNUNET_CRYPTO_RsaSignature **sig = dst;
+  struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
   size_t len;
   const char *res;
 
-  
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  *sig = NULL;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name == fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  res = rows[row];
-  len = strlen (res);
+  len = results->buffer_length;
+  res = results->buffer;
 
   *sig = GNUNET_CRYPTO_rsa_signature_decode (res,
                                             len);
 
-  if (NULL == *sig)
+  if (NULL != *sig)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Field '%s' contains bogus value (fails to decode)\n",
-                fname);
+                "Resuls contains bogus value (fails to decode)\n");
     return GNUNET_SYSERR;
   }
 
@@ -386,51 +299,30 @@ GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
   */
 static int
 extract_string (void * cls,
-                MYSQL_RES * result,
-                int row,
-                const char * fname,
-                size_t *dst_size,
-                void *dst)
+                struct GNUNET_MY_ResultSpec *rs,
+                MYSQL_BIND *results)
 {
-  char **str = dst;
+  char **str = rs->dst;
   size_t len;
   const char *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
   *str = NULL;
 
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name == fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  res = rows[row];
-  len = strlen (res);
- 
+  len = results->buffer_length;
+  res = results->buffer;
+
   *str = GNUNET_strndup (res,
                         len);
 
   if (NULL == *str)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Field '%s' contains bogus value (fails to decode) \n",
-                fname);
+                "Results contains bogus value (fail to decode)\n");
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -496,47 +388,25 @@ GNUNET_MY_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
  */
 static int
 extract_uint16 (void *cls,
-              MYSQL_RES * result,
-              int row,
-              const char *fname,
-              size_t *dst_size,
-              void *dst)
-{
-    //TO COMPLETE 
-  uint16_t *udst = dst;
-  uint16_t *res;
+                struct GNUNET_MY_ResultSpec *rs,
+                MYSQL_BIND *results)
+{ 
+  uint16_t *udst = rs->dst;
+  const uint16_t *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name == fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if(results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  GNUNET_assert (NULL != dst);
-
-  if (sizeof (uint16_t) != *dst_size)
+  GNUNET_assert (NULL != rs->dst);
+  if (sizeof (uint16_t) != rs->dst_size)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  res = atoi (rows[row]);
+  res = (uint16_t *)results->buffer;
   *udst = ntohs (*res);
 
   return GNUNET_OK;
@@ -576,48 +446,28 @@ GNUNET_MY_result_spec_uint16 (uint16_t *u16)
   */
 static int
 extract_uint32 (void *cls,
-                MYSQL_RES * result,
-                int row,
-                const char *fname,
-                size_t *dst_size,
-                void *dst)
+                struct GNUNET_MY_ResultSpec *rs,
+                MYSQL_BIND *results)
 {
-  uint32_t *udst = dst;
+  uint32_t *udst = rs->dst;
   const uint32_t *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name == fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if(results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  GNUNET_assert (NULL != dst);
-
-  if (sizeof (uint32_t) != *dst_size)
+  GNUNET_assert (NULL != rs->dst);
+  if (sizeof (uint32_t) != rs->dst_size)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  res = (uint32_t) rows[row];
+  res = (uint32_t *)results->buffer;
 
   *udst = ntohl (*res);
+  
   return GNUNET_OK;
 }
 
@@ -655,45 +505,25 @@ GNUNET_MY_result_spec_uint32 (uint32_t *u32)
   */
 static int
 extract_uint64 (void *cls,
-                MYSQL_RES * result,
-                int row, 
-                const char *fname,
-                size_t *dst_size,
-                void *dst)
+                struct GNUNET_MY_ResultSpec *rs,
+                MYSQL_BIND *results)
 {
-  uint64_t *udst = dst;
+  uint64_t *udst = rs->dst;
   const uint64_t *res;
 
-  MYSQL_ROW rows;
-  MYSQL_FIELD * field;
-
-  rows = mysql_fetch_row (result);
-
-  field = mysql_fetch_field (result);
-
-  //If it's the correct field
-  if (field->name == fname)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Field '%s' does not exist in result",
-                fname);
-    return GNUNET_SYSERR;
-  }
-
-
-  if (rows[row] == NULL)
+  if (results->is_null)
   {
     return GNUNET_SYSERR;
   }
 
-  GNUNET_assert (NULL != dst);
-  if (sizeof (uint64_t) != *dst_size)
+  GNUNET_assert (NULL != rs->dst);
+  if (sizeof (uint64_t) != rs->dst_size)
   {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
 
-  res = (uint64_t) rows[row];
+  res = (uint64_t *)results->buffer;
   *udst = GNUNET_ntohll (*res);
 
   return GNUNET_OK;

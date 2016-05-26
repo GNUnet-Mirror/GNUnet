@@ -20,6 +20,7 @@
 /**
  * @file my/my.c
  * @brief library to help with access to a MySQL database
+ * @author Christophe Genevey
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -34,10 +35,11 @@
  * @param mc mysql context
  * @param sh handle to SELECT statment
  * @param params parameters to the statement
- * @return mysql result
+ * @return 
+      #GNUNET_YES if we can prepare all statement
+      #GNUNET_SYSERR if we can't prepare all statement
  */
 
- /***** FIXE THIS FUNCTION *****/
 int
 GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,
@@ -113,27 +115,38 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                           struct GNUNET_MY_ResultSpec *rs,
                           int row)
 {
-  MYSQL_BIND * result;
+  MYSQL_BIND *result;
   unsigned int i;
   int had_null = GNUNET_NO;
   int ret;
+  
   MYSQL_STMT *stmt;
 
   stmt = GNUNET_MYSQL_statement_get_stmt (NULL /* FIXME */, sh);
   // result = mysql_get_result (stmt);
   result = NULL;
+
+  if (mysql_stmt_bind_result(stmt, result))
+  {
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                       _("`%s' failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_bind_result", __FILE__, __LINE__,
+                       mysql_stmt_error (stmt));
+      return GNUNET_SYSERR;
+  }
+
   for (i = 0 ; NULL != rs[i].conv ; i++)
   {
     struct GNUNET_MY_ResultSpec *spec;
 
     spec = &rs[i];
     ret = spec->conv (spec->conv_cls,
-                      qp,
+                      spec,
                       result);
 
     if (GNUNET_SYSERR == ret)
     {
-     //GNUNET_MY_cleanup_result(rs);
       return GNUNET_SYSERR;
     }
 

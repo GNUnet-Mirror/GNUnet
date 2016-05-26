@@ -136,10 +136,10 @@ run_queries (MYSQL * mysql)
      u32 = 32;
      u64 = 64;
 
-     struct GNUNET_CONFIGURATION_Handle * configuration_handle;
-     configuration_handle = GNUNET_CONFIGURATION_create();
+     struct GNUNET_CONFIGURATION_Handle * configuration_handle = NULL;
+//     configuration_handle = GNUNET_CONFIGURATION_create();
 
-     char *query1 =  "INSERT INTO test_my ("
+/*     char *query1 =  "INSERT INTO test_my ("
                "pub"
                ",sig"
                ",abs_time"
@@ -152,7 +152,7 @@ run_queries (MYSQL * mysql)
                ") VALUES "
                "(1, 2, 3, 4, 5, 6,"
                "7, 8, 9);";
-
+*/
 /*     char *query2 = "SELECT"
                "pub"
                ",sig"
@@ -255,7 +255,7 @@ run_queries (MYSQL * mysql)
           }
 
 
-/*          ret = GNUNET_MY_extract_result (result,
+          ret = GNUNET_MY_extract_result (result,
                                         results_select,
                                         0);
           GNUNET_break (GNUNET_YES == ret);
@@ -295,11 +295,11 @@ run_queries (MYSQL * mysql)
 int 
 main (int argc, const char * const argv[])
 {
-     
-     MYSQL mysql ;
+     return GNUNET_OK;     
+//     MYSQL mysql ;
 //     MYSQL_RES *result;
 
-     int ret;
+/*     int ret;
 
      char *hote = "";
      char *pseudo = "";
@@ -329,7 +329,6 @@ main (int argc, const char * const argv[])
                     "Cannot run test, database connection failed : %s\n",
                     mysql_error (&mysql));
           GNUNET_break (0);
-
           return 0;
      }
 
@@ -375,4 +374,7 @@ main (int argc, const char * const argv[])
      mysql_close (&mysql);
 
      return ret;
+*/
+//     mysql_close (&mysql);
+//    return GNUNET_OK;
 }

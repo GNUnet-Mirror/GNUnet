@@ -140,7 +140,6 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
  */
 struct GNUNET_MY_ResultParam;
 
-
 /**
  * Function called to convert input argument into SQL parameters.
  *
@@ -150,9 +149,8 @@ struct GNUNET_MY_ResultParam;
  */
 typedef int
 (*GNUNET_MY_ResultConverter)(void *cls,
-                             struct GNUNET_MY_QueryParam *qp,
+                             struct GNUNET_MY_ResultSpec *rs,
                              MYSQL_BIND *results);
-
 
 /**
  * Information we pass to #GNUNET_MY_extract_result() to
