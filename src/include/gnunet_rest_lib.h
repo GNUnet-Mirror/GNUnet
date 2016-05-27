@@ -33,7 +33,6 @@
 
 #include "gnunet_util_lib.h"
 #include "microhttpd.h"
-#include <jansson.h>
 
 #define GNUNET_REST_HANDLER_END {NULL, NULL, NULL}
 
