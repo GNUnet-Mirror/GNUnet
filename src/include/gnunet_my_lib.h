@@ -141,6 +141,12 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
 struct GNUNET_MY_ResultParam;
 
 /**
+ * Information we pass to #GNUNET_MY_extract_result() to
+ * initialize the arguments of the prepared statement.
+ */
+struct GNUNET_MY_ResultSpec;
+
+/**
  * Function called to convert input argument into SQL parameters.
  *
  * @param cls closure

@@ -136,7 +136,7 @@ run_queries (MYSQL * mysql)
      u32 = 32;
      u64 = 64;
 
-     struct GNUNET_CONFIGURATION_Handle * configuration_handle = NULL;
+//     struct GNUNET_CONFIGURATION_Handle * configuration_handle = NULL;
 //     configuration_handle = GNUNET_CONFIGURATION_create();
 
 /*     char *query1 =  "INSERT INTO test_my ("
@@ -291,15 +291,78 @@ run_queries (MYSQL * mysql)
 }
 
 
-/** OK **/
+/** REWRITTEN THIS FUNCTION **/
 int 
 main (int argc, const char * const argv[])
 {
-     return GNUNET_OK;     
-//     MYSQL mysql ;
-//     MYSQL_RES *result;
+     //CREATE A CONTEXTE 
+     struct GNUNET_DATASTORE_PluginEnvironment *env;
+     struct GNUNET_MYSQL_Context *context;
 
-/*     int ret;
+     GNUNET_log_setup (  "test-my",
+                         "WARNING",
+                         NULL);
+
+     context = GNUNET_MYSQL_context_create (NULL /* TO FIXE ***/, 
+                                             "datastore-mysql");
+
+     struct GNUNET_MYSQL_StatementHandle *statements_handle;
+     
+     statements_handle = GNUNET_MYSQL_statement_prepare (context,
+                                        "CREATE TABLE test_my("
+                                        "pub INT"
+                                        ", sig INT"
+                                        ", abs_time BIGINT"
+                                        ", forever BIGINT"
+                                        ", hash INT"
+                                        ", vsize VARCHAR"
+                                        ", u16 SMALLINT"
+                                        ", u32 INT"
+                                        ", u64 BIGINT"
+                                        ")");
+
+     //USE GNUNET_MY_exec_prepared
+     GNUNET_MY_exec_prepared(context,
+                              statements_handle,
+                              NULL);
+
+     if (GNUNET_OK != GNUNET_MYSQL_context_destroy (context))
+     {
+          //ERROR
+     }
+
+     return GNUNET_OK;
+
+/*  NEW VERSION TO FIXE   if (GNUNET_OK != 
+          mysql_prepare (&mysql))
+     {
+          GNUNET_break (0) ;
+          mysql_close (&mysql);
+          return 1;
+     }
+
+     int ret;
+     ret = run_queries (&mysql);
+
+     
+     if (mysql_query (&mysql, 
+                    "DROP TABLE test_my;"))
+     {
+          fprintf (stderr, "Failed to drop table : %s\n",
+                         mysql_error (&mysql));
+          mysql_close (&mysql);
+          return 1;
+     }
+
+*/
+/*  OLD VERSION (use SQL basic function)
+
+     ret = run_queries ();
+     
+     MYSQL mysql ;
+     MYSQL_RES *result;
+
+     int ret;
 
      char *hote = "";
      char *pseudo = "";
@@ -375,6 +438,4 @@ main (int argc, const char * const argv[])
 
      return ret;
 */
-//     mysql_close (&mysql);
-//    return GNUNET_OK;
 }
