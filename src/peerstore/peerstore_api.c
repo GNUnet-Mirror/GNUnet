@@ -670,7 +670,6 @@ handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   void *callback_cls;
   uint16_t msg_type;
   struct GNUNET_PEERSTORE_Record *record;
-  int continue_iter;
 
   ic = h->iterate_head;
   if (NULL == ic)
@@ -704,16 +703,13 @@ handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     record = PEERSTORE_parse_record_message (msg);
     if (NULL == record)
-      continue_iter =
-          callback (callback_cls, NULL,
+      callback (callback_cls, NULL,
                     _("Received a malformed response from service."));
     else
     {
-      continue_iter = callback (callback_cls, record, NULL);
+      callback (callback_cls, record, NULL);
       PEERSTORE_destroy_record (record);
     }
-    if (GNUNET_NO == continue_iter)
-      ic->callback = NULL;
   }
 }
 

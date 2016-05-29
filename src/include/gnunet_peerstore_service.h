@@ -133,9 +133,8 @@ typedef void
  * @param cls closure
  * @param record peerstore record information
  * @param emsg error message, or NULL if no errors
- * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop
  */
-typedef int
+typedef void
 (*GNUNET_PEERSTORE_Processor) (void *cls,
                                const struct GNUNET_PEERSTORE_Record *record,
                                const char *emsg);

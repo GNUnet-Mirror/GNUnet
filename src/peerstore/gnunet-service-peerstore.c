@@ -251,7 +251,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param emsg error message or NULL if no errors
  * @return #GNUNET_YES to continue iteration
  */
-static int
+static void
 record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
                  const char *emsg)
 {
@@ -270,7 +270,7 @@ record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
     GNUNET_SERVER_receive_done (cls_record->client,
                                 NULL == emsg ? GNUNET_OK : GNUNET_SYSERR);
     PEERSTORE_destroy_record (cls_record);
-    return GNUNET_NO;
+    return;
   }
 
   srm =
@@ -282,7 +282,6 @@ record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
                                               (struct GNUNET_MessageHeader *)
                                               srm, GNUNET_NO);
   GNUNET_free (srm);
-  return GNUNET_YES;
 }
 
 
