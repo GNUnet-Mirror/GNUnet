@@ -111,7 +111,7 @@ struct GNUNET_MY_QueryParam
 
 /**
  * Generate query parameter for a buffer @a ptr of
- * @a ptr_size bytes.
+ * @a ptr_size bytes.FG
  *
  * @param ptr pointer to the query parameter to pass
  * @oaran ptr_size number of bytes in @a ptr

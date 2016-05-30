@@ -35,6 +35,7 @@ test_my_SOURCES = \
   test_my.c
 test_my_LDADD = \
   libgnunetmy.la \
+  $(top_builddir)/src/mysql/libgnunetmysql.la \
   $(top_builddir)/src/util/libgnunetutil.la  \
   -lmysqlclient $(XLIB)
 
