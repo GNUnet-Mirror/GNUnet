@@ -283,6 +283,7 @@ check_PROGRAMS = \
  test_crypto_hash \
  test_crypto_hash_context \
  test_crypto_hkdf \
+ test_crypto_kdf \
  test_crypto_paillier \
  test_crypto_random \
  test_crypto_rsa \
@@ -467,6 +468,11 @@ test_crypto_hkdf_SOURCES = \
  test_crypto_hkdf.c
 test_crypto_hkdf_LDADD = \
  libgnunetutil.la
+
+test_crypto_kdf_SOURCES = \
+ test_crypto_kdf.c
+test_crypto_kdf_LDADD = \
+ libgnunetutil.la -lgcrypt
 
 test_crypto_paillier_SOURCES = \
  test_crypto_paillier.c

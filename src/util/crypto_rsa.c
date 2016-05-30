@@ -422,6 +422,49 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
 }
 
 
+/* 
+We originally added GNUNET_CRYPTO_kdf_mod_mpi for the benifit of the
+previous routine.
+
+There was previously a call to GNUNET_CRYPTO_kdf in 
+  bkey = rsa_blinding_key_derive (len, bks);
+that gives exactly len bits where 
+  len = GNUNET_CRYPTO_rsa_public_key_len (pkey);
+
+Now r = 2^(len-1)/pkey.n is the probability that a set high bit being
+okay, meaning bkey < pkey.n.  It follows that (1-r)/2 of the time bkey >
+pkey.n making the effective bkey be 
+  bkey mod pkey.n = bkey - pkey.n
+so the effective bkey has its high bit set with probability r/2.
+
+We expect r to be close to 1/2 if the exchange is honest, but the
+exchange can choose r otherwise.
+
+In blind signing, the exchange sees  
+  B = bkey * S mod pkey.n
+On deposit, the exchange sees S so they can compute bkey' = B/S mod
+pkey.n for all B they recorded to see if bkey' has it's high bit set.
+Also, note the exchange can compute 1/S efficiently since they know the
+factors of pkey.n.
+
+I suppose that happens with probability r/(1+r) if its the wrong B, not
+completely sure.  If otoh we've the right B, then we've the probability
+r/2 of a set high bit in the effective bkey.
+
+Interestingly, r^2-r has a maximum at the default r=1/2 anyways, giving
+the wrong and right probabilities 1/3 and 1/4, respectively.
+
+I feared this gives the exchange a meaningful fraction of a bit of
+information per coin involved in the transaction.  It sounds damaging if
+numerous coins were involved.  And it could run across transactions in
+some scenarios. 
+
+We fixed this by using a more uniform deterministic pseudo-random number
+generator for blinding factors.  I do not believe this to be a problem
+for the rsa_full_domain_hash routine, but better safe than sorry.
+*/
+
+
 /**
  * Compare the values of two signatures.
  *
