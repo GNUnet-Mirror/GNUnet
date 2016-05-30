@@ -47,8 +47,8 @@ run_queries (struct GNUNET_MYSQL_Context *context)
      uint32_t u32;
      uint64_t u64;
 
-     struct GNUNET_MYSQL_StatementHandle *statements_handle_insert;
-//     struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
+//     struct GNUNET_MYSQL_StatementHandle *statements_handle_insert;
+     struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
 
      struct GNUNET_CRYPTO_RsaPrivateKey *priv;
      struct GNUNET_HashCode hmsg;
@@ -62,6 +62,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
      u32 = 32;
      u64 = 64;
 
+/*   FIXE THE INSERT QUERY  
      statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
                                         "INSERT INTO test_my ("
                                         " pub"
@@ -74,8 +75,8 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                         ",u32"
                                         ",u64"
                                         ") VALUES "
-                                        "($1, $2, $3, $4, $5, $6,"
-                                        "$7, $8, $9)");
+                                        "(@1, @2, @3, @4, @5, @6,"
+                                        "@7, @8, @9);");
 
      if (NULL == statements_handle_insert)
      {
@@ -101,10 +102,12 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                              statements_handle_insert,
                                              params_insert))
      {
-          fprintf (stderr, "Failed to execute prepared statement\n");
+          fprintf (stderr, 
+                    "Failed to execute prepared statement\n");
           return 22;
      }
-/*     statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
+*/
+     statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
                                                                  "SELECT"
                                                                  " pub"
                                                                  ",sig"
@@ -136,7 +139,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           fprintf (stderr, "Failed to execute prepared statement\n");
           return 22;
      }
-*/
+
      return 0;
 }
 
