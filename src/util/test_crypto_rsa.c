@@ -18,19 +18,13 @@
  * @file util/test_crypto_rsa.c
  * @brief testcase for utility functions for RSA cryptography
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
+ * @author Jeffrey Burdges <burdges@gnunet.org>
  */
 #include "platform.h"
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
 #define KEY_SIZE 1024
-
-
-gcry_error_t
-rsa_full_domain_hash (gcry_mpi_t *r,
-                      const struct GNUNET_HashCode *hash,
-                      const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                      size_t *rsize);
 
 
 int
@@ -50,7 +44,6 @@ main (int argc,
   struct GNUNET_HashCode hash;
   char *blind_buf;
   size_t bsize;
-  gcry_mpi_t v;
 
   GNUNET_log_setup ("test-rsa", "WARNING", NULL);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -81,14 +74,6 @@ main (int argc,
   GNUNET_assert (NULL == GNUNET_CRYPTO_rsa_private_key_decode (enc, size));
   (void) fprintf (stderr, "The above warning is expected.\n");
   GNUNET_free (enc);
-
-  /* test full domain hash size */
-  GNUNET_assert (0 == rsa_full_domain_hash (&v, &hash, pub, NULL));
-  GNUNET_assert (gcry_mpi_get_nbits(v) < KEY_SIZE);
-  gcry_mpi_clear_highbit (v, gcry_mpi_get_nbits(v)-1); /* clear the set high bit */
-  GNUNET_assert (gcry_mpi_get_nbits(v) > 3*KEY_SIZE/4);
-  /* This test necessarily randomly fails with probability 2^(3 - KEY_SIZE/4) */
-  gcry_mpi_release(v);
 
   /* try ordinary sig first */
   sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,

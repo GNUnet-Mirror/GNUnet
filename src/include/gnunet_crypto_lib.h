@@ -27,6 +27,7 @@
  * @author Gerd Knorr <kraxel@bytesex.org>
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
+ * @author Jeffrey Burdges <burdges@gnunet.org>
  *
  * @defgroup crypto  Crypto library: cryptographic operations
  * Provides cryptographic primitives.
@@ -1012,6 +1013,26 @@ GNUNET_CRYPTO_kdf_v (void *result,
                      const void *skm,
                      size_t skm_len,
                      va_list argp);
+
+
+/**
+ * Deterministically generate a pseudo-random number uniformly from the
+ * integers modulo a libgcrypt mpi.
+ *
+ * @param[out] r MPI value set to the FDH
+ * @param n MPI to work modulo
+ * @param xts salt
+ * @param xts_len length of @a xts
+ * @param skm source key material
+ * @param skm_len length of @a skm
+ * @param ctx context string
+ */
+void
+GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
+                           gcry_mpi_t n,
+                           const void *xts,  size_t xts_len, 
+                           const void *skm,  size_t skm_len,
+                           const char *ctx);
 
 
 /**

@@ -22,6 +22,7 @@
  * @file src/util/crypto_kdf.c
  * @brief Key derivation
  * @author Nils Durner
+ * @author Jeffrey Burdges <burdges@gnunet.org>
  */
 
 #include <gcrypt.h>
@@ -43,8 +44,9 @@
  * @return #GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
-                     size_t xts_len, const void *skm, size_t skm_len,
+GNUNET_CRYPTO_kdf_v (void *result, size_t out_len,
+                     const void *xts, size_t xts_len,
+                     const void *skm, size_t skm_len,
                      va_list argp)
 {
   /*
@@ -76,8 +78,9 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
  * @return #GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
-                   size_t xts_len, const void *skm, size_t skm_len, ...)
+GNUNET_CRYPTO_kdf (void *result, size_t out_len,
+                   const void *xts, size_t xts_len,
+                   const void *skm, size_t skm_len, ...)
 {
   va_list argp;
   int ret;
@@ -88,3 +91,60 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
 
   return ret;
 }
+
+
+/**
+ * Deterministically generate a pseudo-random number uniformly from the
+ * integers modulo a libgcrypt mpi.
+ *
+ * @param[out] r MPI value set to the FDH
+ * @param n MPI to work modulo
+ * @param xts salt
+ * @param xts_len length of @a xts
+ * @param skm source key material
+ * @param skm_len length of @a skm
+ * @param ctx context string
+ */
+void
+GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
+                           gcry_mpi_t n,
+                           const void *xts,  size_t xts_len, 
+                           const void *skm,  size_t skm_len,
+                           const char *ctx)
+{
+  gcry_error_t rc;
+  unsigned int nbits;
+  size_t rsize;
+  unsigned int ctr;
+
+  nbits = gcry_mpi_get_nbits (n);
+  /* GNUNET_assert (nbits > 512); */
+
+  ctr = 0;
+  do {
+    /* Ain't clear if n is always divisible by 8 */
+    uint8_t buf[ (nbits-1)/8 + 1 ];
+
+    rc = GNUNET_CRYPTO_kdf (buf,
+                            sizeof (buf),
+                            xts, xts_len,
+                            skm, skm_len,
+                            ctx, strlen(ctx),
+                            &ctr, sizeof(ctr),
+                            NULL, 0);
+    GNUNET_assert (GNUNET_YES == rc);
+
+    rc = gcry_mpi_scan (r,
+                        GCRYMPI_FMT_USG,
+                        (const unsigned char *) buf,
+                        sizeof (buf),
+                        &rsize);
+    GNUNET_assert (0 == rc);  /* Allocation erro? */
+
+    gcry_mpi_clear_highbit (*r, nbits);
+    GNUNET_assert( 0 == gcry_mpi_test_bit (*r, nbits) );
+    ++ctr;
+  } while ( 0 <= gcry_mpi_cmp(*r,n) );
+}
+
+

@@ -400,31 +400,24 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
  * @return the newly created blinding key
  */
 static struct RsaBlindingKey *
-rsa_blinding_key_derive (unsigned int len,
+rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
 			 const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks)
 {
+  char *xts = "Blinding KDF extrator HMAC key";  /* Trusts bks' randomness more */
   struct RsaBlindingKey *blind;
-  uint8_t buf[len / 8];
-  int rc;
-  size_t rsize;
+  gcry_mpi_t n;
 
   blind = GNUNET_new (struct RsaBlindingKey);
-  /* FIXME: #4483: actually derive key from bks! - Jeff,
-     check that you're happy with this!*/
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (buf,
-				    sizeof (buf),
-				    "blinding-kdf",
-				    strlen ("blinding-kdf"),
-				    bks,
-				    sizeof (*bks),
-				    NULL, 0));
-  rc = gcry_mpi_scan (&blind->r,
-		      GCRYMPI_FMT_USG,
-		      (const unsigned char *) buf,
-		      sizeof (buf),
-		      &rsize);
-  GNUNET_assert (0 == rc);
+
+  /* Extract the composite n from the RSA public key */
+  GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
+  GNUNET_assert( 0 == gcry_mpi_get_flag(n, GCRYMPI_FLAG_OPAQUE) );
+
+  GNUNET_CRYPTO_kdf_mod_mpi (&blind->r,
+                             n,
+                             xts,  strlen(xts),
+                             bks,  sizeof(*bks),
+                             "Blinding KDF");
   return blind;
 }
 
@@ -538,13 +531,10 @@ unsigned int
 GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_RsaPublicKey *key)
 {
   gcry_mpi_t n;
-  int ret;
   unsigned int rval;
 
-  ret = key_from_sexp (&n, key->sexp, "rsa", "n");
-  if (0 != ret)
-  {
-    /* this is no public RSA key */
+  if (0 != key_from_sexp (&n, key->sexp, "rsa", "n"))
+  { /* Not an RSA public key */
     GNUNET_break (0);
     return 0;
   }
@@ -610,91 +600,33 @@ numeric_mpi_alloc_n_print (gcry_mpi_t v,
  * @param hash initial hash of the message to sign
  * @param pkey the public key of the signer
  * @param rsize If not NULL, the number of bytes actually stored in buffer
- * @return libgcrypt error that to represent an allocation failure
  */
-/* FIXME: exported symbol without proper prefix... */
-gcry_error_t
+static void
 rsa_full_domain_hash (gcry_mpi_t *r,
-                      const struct GNUNET_HashCode *hash,
-                      const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                      size_t *rsize)
+                                    const struct GNUNET_HashCode *hash,
+                                    const struct GNUNET_CRYPTO_RsaPublicKey *pkey)
 {
-  unsigned int i;
-  unsigned int nbits;
-  unsigned int nhashes;
-  gcry_error_t rc;
-  char *buf;
-  size_t buf_len;
-  gcry_md_hd_t h;
-  gcry_md_hd_t h0;
-  struct GNUNET_HashCode *hs;
+  gcry_mpi_t n;
+  char *xts;
+  size_t xts_len;
 
-  /* Uncomment the following to debug without using the full domain hash */
-  /*
-  rc = gcry_mpi_scan (r,
-                      GCRYMPI_FMT_USG,
-                      (const unsigned char *)hash,
-                      sizeof(struct GNUNET_HashCode),
-                      rsize);
-  return rc;
-  */
+  /* Extract the composite n from the RSA public key */
+  GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
+  GNUNET_assert( 0 == gcry_mpi_get_flag(n, GCRYMPI_FLAG_OPAQUE) );
 
-  nbits = GNUNET_CRYPTO_rsa_public_key_len (pkey);
-  if (nbits < 512)
-    nbits = 512;
+  /* We key with the public denomination key as a homage to RSA-PSS by  *
+   * Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree   *
+   * of the hypothetical polyomial-time attack on RSA-KTI created by a  *
+   * polynomial-time one-more forgary attack.  Yey seeding!             */
+  xts_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &xts);
 
-  /* Already almost an HMAC since we consume a hash, so no GCRY_MD_FLAG_HMAC. */
-  rc = gcry_md_open (&h, GCRY_MD_SHA512, 0);
-  if (0 != rc)
-    return rc;
+  GNUNET_CRYPTO_kdf_mod_mpi (r,
+                             n,
+                             xts,  xts_len,
+                             hash,  sizeof(*hash),
+                             "RSA-FDA FTpsW!");
 
-  /* We seed with the public denomination key as a homage to RSA-PSS by  *
-   * Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree    *
-   * of the hypothetical polyomial-time attack on RSA-KTI created by a   *
-   * polynomial-time one-more forgary attack.  Yey seeding!              */
-  buf_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &buf);
-  gcry_md_write (h, buf, buf_len);
-  GNUNET_free (buf);
-
-  nhashes = (nbits-1) / (8 * sizeof(struct GNUNET_HashCode)) + 1;
-  hs = GNUNET_new_array (nhashes,
-                         struct GNUNET_HashCode);
-  for (i=0; i<nhashes; i++)
-  {
-    gcry_md_write (h, hash, sizeof(struct GNUNET_HashCode));
-    rc = gcry_md_copy (&h0, h);
-    if (0 != rc)
-    {
-      gcry_md_close (h0);
-      break;
-    }
-    gcry_md_putc (h0, i % 256);
-    memcpy (&hs[i],
-            gcry_md_read (h0, GCRY_MD_SHA512),
-            sizeof(struct GNUNET_HashCode));
-    gcry_md_close (h0);
-  }
-  gcry_md_close (h);
-  if (0 != rc)
-  {
-    GNUNET_free (hs);
-    return rc;
-  }
-
-  rc = gcry_mpi_scan (r,
-                      GCRYMPI_FMT_USG,
-                      (const unsigned char *) hs,
-                      nhashes * sizeof(struct GNUNET_HashCode),
-                      rsize);
-  GNUNET_free (hs);
-  if (0 != rc)
-    return rc;
-
-  /* Do not allow *r to exceed n or signatures fail to verify unpredictably. *
-   * This happening with  gcry_mpi_clear_highbit (*r, nbits-1) so maybe      *
-   * gcry_mpi_clear_highbit is broken, but setting the highbit sounds good.  */
-  gcry_mpi_set_highbit (*r, nbits-2);
-  return rc;
+  GNUNET_free (xts);
 }
 
 
@@ -718,11 +650,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_t ne[2];
   gcry_mpi_t r_e;
   gcry_mpi_t data_r_e;
-  size_t rsize;
   size_t n;
-  gcry_error_t rc;
   int ret;
-  unsigned int len;
 
   ret = key_from_sexp (ne, pkey->sexp, "public-key", "ne");
   if (0 != ret)
@@ -734,17 +663,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
     return 0;
   }
 
-  rc = rsa_full_domain_hash (&data, hash, pkey, &rsize);
-  if (0 != rc)  /* Allocation error in libgcrypt */
-  {
-    GNUNET_break (0);
-    gcry_mpi_release (ne[0]);
-    gcry_mpi_release (ne[1]);
-    *buffer = NULL;
-    return 0;
-  }
-  len = GNUNET_CRYPTO_rsa_public_key_len (pkey);
-  bkey = rsa_blinding_key_derive (len,
+  rsa_full_domain_hash (&data, hash, pkey);
+  bkey = rsa_blinding_key_derive (pkey,
 				  bks);
   r_e = gcry_mpi_new (0);
   gcry_mpi_powm (r_e,
@@ -886,13 +806,11 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 {
   struct GNUNET_CRYPTO_RsaPublicKey *pkey;
   gcry_mpi_t v = NULL;
-  gcry_error_t rc;
   struct GNUNET_CRYPTO_RsaSignature *sig;
 
   pkey = GNUNET_CRYPTO_rsa_private_key_get_public (key);
-  rc = rsa_full_domain_hash (&v, hash, pkey, NULL);
+  rsa_full_domain_hash (&v, hash, pkey);
   GNUNET_CRYPTO_rsa_public_key_free (pkey);
-  GNUNET_assert (0 == rc);
 
   sig = rsa_sign_mpi (key, v);
   gcry_mpi_release (v);
@@ -1034,7 +952,6 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
   gcry_mpi_t ubsig;
   int ret;
   struct GNUNET_CRYPTO_RsaSignature *sret;
-  unsigned int len;
 
   ret = key_from_sexp (&n, pkey->sexp, "public-key", "n");
   if (0 != ret)
@@ -1053,8 +970,7 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
     GNUNET_break_op (0);
     return NULL;
   }
-  len = GNUNET_CRYPTO_rsa_public_key_len (pkey);
-  bkey = rsa_blinding_key_derive (len,
+  bkey = rsa_blinding_key_derive (pkey,
 				  bks);
 
   r_inv = gcry_mpi_new (0);
@@ -1106,8 +1022,7 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
   gcry_mpi_t r;
   int rc;
 
-  rc = rsa_full_domain_hash (&r, hash, pkey, NULL);
-  GNUNET_assert (0 == rc);  /* Allocation error in libgcrypt */
+  rsa_full_domain_hash (&r, hash, pkey);
   data = mpi_to_sexp(r);
   gcry_mpi_release (r);
 
