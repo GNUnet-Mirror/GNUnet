@@ -335,7 +335,7 @@ main (int argc, char *const *argv)
     {'m', "monitor", NULL,
      gettext_noop ("run in monitor mode egos"),
      0, &GNUNET_GETOPT_set_one, &monitor},
-    {'s', "set", "SUBSYSYSTEM",
+    {'s', "set", "SUBSYSTEM",
      gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
      1, &GNUNET_GETOPT_set_string, &set_subsystem},
     GNUNET_GETOPT_OPTION_END
