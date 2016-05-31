@@ -26,7 +26,6 @@
 #include <mysql/mysql.h>
 #include "gnunet_my_lib.h"
 
-
 /**
  * Function called to convert input argument into SQL parameters.
  *
@@ -41,11 +40,13 @@ my_conv_fixed_size (void *cls,
                     MYSQL_BIND *qbind)
 {
   GNUNET_assert (1 == qp->num_params);
+
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = qp->data_len;
-  qbind->length = (unsigned long *) &qp->data_len;
   qbind->buffer_type = 1;
-  return 0;
+
+  //return 0;
+  return 1;
 }
 
 
@@ -99,10 +100,15 @@ my_conv_uint16 (void *cls,
   const uint16_t *u_hbo = qp->data;
   uint16_t *u_nbo;
 
+  fprintf(stderr, "input data : %u\n", (unsigned)u_hbo);
+  
   GNUNET_assert (1 == qp->num_params);
+
 
   u_nbo = GNUNET_new (uint16_t);
   *u_nbo = htons (*u_hbo);
+  
+  fprintf(stderr, "output data : %u\n", (unsigned)u_nbo);
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof(uint16_t);
   qbind->buffer_type = 1;

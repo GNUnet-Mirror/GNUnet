@@ -251,7 +251,7 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
 
-/**
+/**q
   * Generate query parameter for an absolute time value.
   * The database must store a 64-bit integer.
   *
