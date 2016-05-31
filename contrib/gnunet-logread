@@ -1,26 +1,35 @@
 #!/usr/bin/env perl
-
-# Usage:
-#   gnunet-service |& gnunet-logread
-#   gnunet-logread service.log
-#
-# Options:
-#   -n <component_name>		Name of this component to use for IPC logging.
-#   -i </path/to/ipc.sock>	Path to IPC logging socket.
-#  Passing on log messages to IPC socket:
-#   -L <LOGLEVEL>		Minimum level of messages to pass on.
-#                               Log levels: NONE, ERROR, WARNING, INFO, DEBUG.
-#   -m <regex>		        Only pass on messages matching a regular expression.
+# helper tool to make gnunet logs more readable
+# try 'gnunet-logread -h' for usage
 
 use strict;
 use warnings;
 
 use Getopt::Std;
+my (%opts, $name, $ipc, $msg_level, $msg_regex);
+getopts ('i:x:n:s:L:m:h', \%opts);
+
+die <<X if $opts{h};
+Usage:
+	<gnunet-service> |& $0 [<options>]
+    or
+	$0 [<options>] <service.log>
+
+Options:
+   Regular screen output options:
+    -i <regex>			Include only messages that match regex.
+    -x <regex>			Exclude all messages that match regex.
+
+   Options to enable message passing to IPC socket:
+    -n <component_name>		Name of this component to use for IPC logging.
+    -s </path/to/ipc.sock>	Path to IPC logging socket.
+    -L <LOGLEVEL>		Minimum level of messages to pass on.
+                                Log levels: NONE, ERROR, WARNING, INFO, DEBUG.
+    -m <regex>		        Only pass messages matching a regular expression.
+X
+
 use Term::ANSIColor qw(:constants :pushpop);
 $Term::ANSIColor::AUTOLOCAL = 1;
-
-my (%opts, $name, $ipc, $msg_level, $msg_regex);
-getopts ('n:i:L:m:', \%opts);
 
 # Message type numbers to names
 my %msgtypes;
@@ -34,17 +43,21 @@ if (open HEADER, $filename)
         $msgtypes{$2} = $1 if /^\s*#define\s+GNUNET_MESSAGE_TYPE_(\w+)\s+(\d+)/i;
     }
     close HEADER;
-}
-else
-{
-    warn "$filename: $!, try setting \$GNUNET_PREFIX";
+} else {
+    warn <<X;
+Could not read $filename for message codes:
+	$!.
+Please provide a \$GNUNET_PREFIX environment variable to replace "/usr".
+Try also '$0 -h' for help
+
+X
 }
 
 my %levels = ( NONE => 0, ERROR => 1, WARNING => 2, INFO => 4, DEBUG => 8 );
 if (exists $opts{n})
 {
     $name = $opts{n};
-    $ipc = $opts{i} || '/tmp/gnunet-logread-ipc.sock';
+    $ipc = $opts{s} || '/tmp/gnunet-logread-ipc.sock';
     $msg_level = exists $levels{$opts{L}} ? $levels{$opts{L}} : 0;
     $msg_regex = $opts{m};
     print STDERR "RE: /$msg_regex/\n" if defined $msg_regex;
@@ -83,6 +96,8 @@ while (<>)
             print IPC "$time\t$name\t$level: $msg\n";
         }
     }
+    next if $opts{x} and /$opts{x}/io;
+    next if $opts{i} and not /$opts{i}/io;
 
     # Timestamp (e.g. Nov 01 19:36:11-384136)
     s/^([A-Z][a-z]{2} .[0-9] [0-9:]{8}(?:-[0-9]{6})?)/YELLOW $1/e;

@@ -544,7 +544,8 @@ list_callback (void *cls,
     ret = 3;
     return;
   }
-  FPRINTF (stdout, "%s", _("Running services:\n"));
+  if (! quiet)
+    FPRINTF (stdout, "%s", _("Running services:\n"));
   for (i = 0; i < count; i++)
     FPRINTF (stdout, "%s\n", list[i]);
   al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
