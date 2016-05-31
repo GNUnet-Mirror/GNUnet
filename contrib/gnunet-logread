@@ -4,25 +4,28 @@
 
 use strict;
 use warnings;
+my $DEFAULT_SOCKET = '/tmp/gnunet-logread-ipc.sock';
 
 use Getopt::Std;
 my (%opts, $name, $ipc, $msg_level, $msg_regex);
-getopts ('i:x:n:s:L:m:h', \%opts);
+getopts ('i:x:n:s:L:m:fh', \%opts);
 
 die <<X if $opts{h};
 Usage:
 	<gnunet-service> |& $0 [<options>]
     or
-	$0 [<options>] <service.log>
+	$0 [<options>] [<logfile>]
 
 Options:
+    -f				Follow input from IPC FIFO socket.
+
    Regular screen output options:
-    -i <regex>			Include only messages that match regex.
-    -x <regex>			Exclude all messages that match regex.
+    -i <regex>			Include only messages that match <regex>.
+    -x <regex>			Exclude all messages that match <regex>.
 
    Options to enable message passing to IPC socket:
     -n <component_name>		Name of this component to use for IPC logging.
-    -s </path/to/ipc.sock>	Path to IPC logging socket.
+    -s </path/to/ipc.sock>	Default = $DEFAULT_SOCKET
     -L <LOGLEVEL>		Minimum level of messages to pass on.
                                 Log levels: NONE, ERROR, WARNING, INFO, DEBUG.
     -m <regex>		        Only pass messages matching a regular expression.
@@ -35,6 +38,7 @@ $Term::ANSIColor::AUTOLOCAL = 1;
 my %msgtypes;
 my $prefix = $ENV{GNUNET_PREFIX} || '/usr';
 my $filename = "$prefix/include/gnunet/gnunet_protocols.h";
+$ipc = $opts{s} || $DEFAULT_SOCKET;
 
 if (open HEADER, $filename)
 {
@@ -56,17 +60,28 @@ X
 my %levels = ( NONE => 0, ERROR => 1, WARNING => 2, INFO => 4, DEBUG => 8 );
 if (exists $opts{n})
 {
+    die "You can't read and write the socket at the same time" if exists $opts{f};
     $name = $opts{n};
-    $ipc = $opts{s} || '/tmp/gnunet-logread-ipc.sock';
-    $msg_level = exists $levels{$opts{L}} ? $levels{$opts{L}} : 0;
+    $msg_level = $opts{L} && exists $levels{$opts{L}} ? $levels{$opts{L}} : 0;
     $msg_regex = $opts{m};
     print STDERR "RE: /$msg_regex/\n" if defined $msg_regex;
-    open IPC, '>', $ipc or die "$ipc: $!\n";
+    open O, '>', $ipc or die "Cannot write to $ipc: $!";
 }
 
-while (<>)
-{
-    if (fileno IPC) {
+if (exists $opts{f}) {
+    system('/bin/mkfifo', $ipc) unless -r $ipc;
+    open(I, $ipc) or die "Cannot read from $ipc: $!";
+    &perform while <I>;
+    close I;
+} else {
+    &perform while <>;
+}
+fileno O and close O;
+exit;
+
+
+sub perform {
+    if (fileno O) {
         my ($time, $type, $size, $from, $to, $level, $msg);
         if (($time, $type, $size, $from, $to) =
             /^([A-Z][a-z]{2}\ .[0-9]\ [0-9:]{8}(?:-[0-9]{6})?)\ util-.*\b
@@ -81,8 +96,8 @@ while (<>)
             my ($time, $type, $size, $from, $to) = ($1, $2, $3,
                                                 $4 || $name, $5 || $name);
             my $msg = exists $msgtypes{$type} ? $msgtypes{$type} : $type;
-            my $ofh = select IPC;
-            print IPC "$time\t$from -> $to\t$msg ($size)\n";
+            my $ofh = select O;
+            print O "$time\t$from -> $to\t$msg ($size)\n";
             $| = 1;
             select $ofh;
         }
@@ -93,11 +108,11 @@ while (<>)
                  && $levels{$level} <= $msg_level
                  && (!defined $msg_regex || $msg =~ /$msg_regex/i)))
         {
-            print IPC "$time\t$name\t$level: $msg\n";
+            print O "$time\t$name\t$level: $msg\n";
         }
     }
-    next if $opts{x} and /$opts{x}/io;
-    next if $opts{i} and not /$opts{i}/io;
+    return if $opts{x} and /$opts{x}/io;
+    return if $opts{i} and not /$opts{i}/io;
 
     # Timestamp (e.g. Nov 01 19:36:11-384136)
     s/^([A-Z][a-z]{2} .[0-9] [0-9:]{8}(?:-[0-9]{6})?)/YELLOW $1/e;
@@ -123,4 +138,3 @@ while (<>)
     print;
 }
 
-fileno IPC and close IPC;

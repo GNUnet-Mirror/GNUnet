@@ -1,6 +1,8 @@
 #!/bin/sh
 #
 # Usage: gnunet-logread-ipc | gnunet-logread
+#
+# ... obsoleted by gnunet-logread's new -f option that does the same thing
 
 ipc=${1:-/tmp/gnunet-logread-ipc.sock}
 test -e "$ipc" || mkfifo "$ipc"
