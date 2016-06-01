@@ -450,26 +450,50 @@ start_process (struct ServiceList *sl,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "OPTIONS",
 					     &options))
+    options = NULL;
+  else
+    options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
+  {
+    char *new_options;
+    char *optpos;
+    char *fin_options;
+
+    fin_options = GNUNET_strdup (final_option);
+    /* replace '{}' with service name */
+    while (NULL != (optpos = strstr (fin_options, "{}")))
+      {
+        /* terminate string at opening parenthesis */
+        *optpos = 0;
+        GNUNET_asprintf (&new_options,
+                         "%s%s%s",
+                         fin_options,
+                         sl->name,
+                         optpos + 2);
+        GNUNET_free (fin_options);
+        fin_options = new_options;
+      }
+    if (NULL != options)
     {
-      char *new_options;
-      char *optpos;
-      options = GNUNET_strdup (final_option);
-      /* replace '{}' with service name */
-      while (NULL != (optpos = strstr (options, "{}")))
-        {
-          /* terminate string at opening parenthesis */
-          *optpos = 0;
-          GNUNET_asprintf (&new_options, "%s%s%s", options, sl->name, optpos + 2);
-          GNUNET_free (options);
-          options = new_options;
-        }
-      options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
+      /* combine "fin_options" with "options" */
+      optpos = options;
+      GNUNET_asprintf (&options,
+                       "%s %s",
+                       optpos,
+                       fin_options);
+      GNUNET_free (optpos);
     }
+    else
+    {
+      /* only have "fin_options", use that */
+      options = fin_options;
+    }
+  }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
   {
     const char *service_type = NULL;
     const char *choices[] = { "GNUNET", "SIMPLE", NULL };
+
     is_simple_service = GNUNET_NO;
     if ( (GNUNET_OK ==
             GNUNET_CONFIGURATION_get_value_choice (cfg,
