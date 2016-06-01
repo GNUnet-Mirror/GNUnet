@@ -444,15 +444,18 @@ start_process (struct ServiceList *sl,
 
   /* obtain configuration */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "PREFIX",
-					     &loprefix))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             sl->name,
+                                             "PREFIX",
+                                             &loprefix))
     loprefix = GNUNET_strdup (prefix_command);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "OPTIONS",
-					     &options))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             sl->name,
+                                             "OPTIONS",
+                                             &options))
     options = NULL;
-  else
-    options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
+
   {
     char *new_options;
     char *optpos;
@@ -488,8 +491,11 @@ start_process (struct ServiceList *sl,
       options = fin_options;
     }
   }
-  use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
-
+  options = GNUNET_CONFIGURATION_expand_dollar (cfg,
+                                                options);
+  use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                    sl->name,
+                                                    "DEBUG");
   {
     const char *service_type = NULL;
     const char *choices[] = { "GNUNET", "SIMPLE", NULL };
@@ -525,8 +531,11 @@ start_process (struct ServiceList *sl,
     sl->proc =
       GNUNET_OS_start_process_s (sl->pipe_control,
                                  GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                 lsocks, loprefix, quotedbinary,
-                                 options, NULL);
+                                 lsocks,
+                                 loprefix,
+                                 quotedbinary,
+                                 options,
+                                 NULL);
   }
   else
   {
@@ -545,15 +554,23 @@ start_process (struct ServiceList *sl,
         sl->proc =
           GNUNET_OS_start_process_s (sl->pipe_control,
                                      GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                     lsocks, loprefix, quotedbinary, "-L",
-                                     "DEBUG", options, NULL);
+                                     lsocks,
+                                     loprefix,
+                                     quotedbinary,
+                                     "-L", "DEBUG",
+                                     options,
+                                     NULL);
       else
         sl->proc =
             GNUNET_OS_start_process_s (sl->pipe_control,
                                        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                       lsocks, loprefix, quotedbinary, "-c",
-                                       sl->config, "-L",
-                                       "DEBUG", options, NULL);
+                                       lsocks,
+                                       loprefix,
+                                       quotedbinary,
+                                       "-c", sl->config,
+                                       "-L", "DEBUG",
+                                       options,
+                                       NULL);
     }
     else
     {
@@ -561,14 +578,21 @@ start_process (struct ServiceList *sl,
         sl->proc =
             GNUNET_OS_start_process_s (sl->pipe_control,
                                        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                       lsocks, loprefix, quotedbinary,
-                                       options, NULL);
+                                       lsocks,
+                                       loprefix,
+                                       quotedbinary,
+                                       options,
+                                       NULL);
       else
         sl->proc =
             GNUNET_OS_start_process_s (sl->pipe_control,
                                        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                       lsocks, loprefix, quotedbinary, "-c",
-                                       sl->config, options, NULL);
+                                       lsocks,
+                                       loprefix,
+                                       quotedbinary,
+                                       "-c", sl->config,
+                                       options,
+                                       NULL);
     }
   }
   GNUNET_free (binary);
@@ -1493,7 +1517,7 @@ setup_service (void *cls,
   if (( (GNUNET_OK !=
 	 GNUNET_CONFIGURATION_get_value_filename (cfg, section,
                                                   "CONFIG",
-						  &config)) &&
+                                                  &config)) &&
 	(GNUNET_OK !=
 	 GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                   "PATHS",
@@ -1519,8 +1543,12 @@ setup_service (void *cls,
 #if WINDOWS
   sl->pipe_control = GNUNET_YES;
 #else
-  if (GNUNET_CONFIGURATION_have_value (cfg, section, "PIPECONTROL"))
-    sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "PIPECONTROL");
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+                                       section,
+                                       "PIPECONTROL"))
+    sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                             section,
+                                                             "PIPECONTROL");
 #endif
   GNUNET_CONTAINER_DLL_insert (running_head,
                                running_tail,
@@ -1650,21 +1678,29 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   }
 #endif
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "ARM", "GLOBAL_PREFIX",
-					     &prefix_command))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "ARM",
+                                             "GLOBAL_PREFIX",
+                                             &prefix_command))
     prefix_command = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "ARM", "GLOBAL_POSTFIX",
-					     &final_option))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "ARM",
+                                             "GLOBAL_POSTFIX",
+                                             &final_option))
     final_option = GNUNET_strdup ("");
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "ARM", "USER_ONLY"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "ARM",
+                                            "USER_ONLY"))
   {
     GNUNET_break (GNUNET_YES == start_user);
     start_system = GNUNET_NO;
   }
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "ARM", "SYSTEM_ONLY"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "ARM",
+                                            "SYSTEM_ONLY"))
   {
     GNUNET_break (GNUNET_YES == start_system);
     start_user = GNUNET_NO;
