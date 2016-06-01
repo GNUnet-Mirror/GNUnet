@@ -25,8 +25,10 @@ libgnunetmy_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 
+if ENABLE_TEST_RUN
 TESTS = \
  test_my
+endif
 
 check_PROGRAMS= \
  test_my
@@ -38,4 +40,3 @@ test_my_LDADD = \
   $(top_builddir)/src/mysql/libgnunetmysql.la \
   $(top_builddir)/src/util/libgnunetutil.la  \
   -lmysqlclient $(XLIB)
-

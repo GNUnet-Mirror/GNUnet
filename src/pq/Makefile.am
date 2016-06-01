@@ -24,9 +24,10 @@ libgnunetpq_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 
-
+if ENABLE_TEST_RUN
 TESTS = \
  test_pq
+endif
 
 check_PROGRAMS= \
  test_pq
