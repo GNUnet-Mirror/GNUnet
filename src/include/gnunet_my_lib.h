@@ -99,7 +99,6 @@ struct GNUNET_MY_QueryParam
 
 };
 
-
 /**
  * End of query parameter specification.
  *

@@ -81,6 +81,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
       GNUNET_MYSQL_statements_invalidate (mc);
       return GNUNET_SYSERR;
     }
+
   }
   if (mysql_stmt_execute (stmt))
   {
@@ -91,6 +92,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
     GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
+
   return GNUNET_OK;
 }
 

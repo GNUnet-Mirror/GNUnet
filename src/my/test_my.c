@@ -37,17 +37,34 @@
 static int
 run_queries (struct GNUNET_MYSQL_Context *context)
 {
-     const struct GNUNET_CRYPTO_RsaPublicKey *pub;
+     struct GNUNET_CRYPTO_RsaPublicKey *pub;
+//     struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
      struct GNUNET_CRYPTO_RsaSignature *sig;
+//     struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
      struct GNUNET_TIME_Absolute abs_time = GNUNET_TIME_absolute_get ();
+//     struct GNUNET_TIME_Absolute abs_time2;
      struct GNUNET_TIME_Absolute forever = GNUNET_TIME_UNIT_FOREVER_ABS;
+//     struct GNUNET_TIME_Absolute forever2;
      struct GNUNET_HashCode hc;
+//     struct GNUNET_HashCode hc2;
      const char msg[] = "hello";
+//     void *msg2;
+     size_t msg_len;
+//     size_t msg2_len;
+
      uint16_t u16;
+//     uint16_t u162;
      uint32_t u32;
+//     uint32_t u322;
      uint64_t u64;
+//     uint64_t u642;
+
+     msg_len = sizeof(msg);
+
+//     int ret;
 
      struct GNUNET_MYSQL_StatementHandle *statements_handle_insert;
+
 //     struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
 
      struct GNUNET_CRYPTO_RsaPrivateKey *priv;
@@ -62,7 +79,6 @@ run_queries (struct GNUNET_MYSQL_Context *context)
      u32 = 32;
      u64 = 64;
 
-//   FIXE THE INSERT QUERY  
      statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
                                         "INSERT INTO test_my ("
                                         " pub"
@@ -75,8 +91,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                         ",u32"
                                         ",u64"
                                         ") VALUES "
-                                        "(?, ?, ?, ?, ?, ?,"
-                                        "?, ?, ?)");
+                                        "( ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
      if (NULL == statements_handle_insert)
      {
@@ -84,7 +99,6 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           return 1;
      }
 
-     //ERROR WITH MSG
      struct GNUNET_MY_QueryParam params_insert[] = {
           GNUNET_MY_query_param_rsa_public_key (pub),
           GNUNET_MY_query_param_rsa_signature (sig),
@@ -98,21 +112,17 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           GNUNET_MY_query_param_end
      };
 
-     fprintf(stderr, " u16 : %u\n", (unsigned)params_insert[6].data);
-     fprintf(stderr, " &u16 : %u\n", (unsigned)&u16);
-
-      //FAIL HERE
-     if (GNUNET_OK != GNUNET_MY_exec_prepared (context,
+     if (GNUNET_OK != GNUNET_MY_exec_prepared(context,
                                              statements_handle_insert,
                                              params_insert))
      {
-          fprintf (stderr, 
-                    "Failed to execute prepared statement\n");
-          return 22;
+          fprintf (stderr, "Failed to execute prepared statement INSERT\n");
+          return 1;
      }
 
-/*   NOT THE GOOD FUNCTION -> TO FIXE 
-     statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
+
+
+/*   statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
                                                                  "SELECT"
                                                                  " pub"
                                                                  ",sig"
@@ -141,8 +151,32 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                              statements_handle_select,
                                              params_select))
      {
-          fprintf (stderr, "Failed to execute prepared statement\n");
-          return 22;
+          fprintf (stderr, "Failed to execute prepared statement SELECT\n");
+          return 1;
+     }
+
+
+     struct GNUNET_MY_ResultSpec results_select[] = {
+          GNUNET_MY_result_spec_rsa_public_key (&pub2),
+          GNUNET_MY_result_spec_rsa_signature (&sig2),
+          GNUNET_MY_result_spec_absolute_time (&abs_time2),
+          GNUNET_MY_result_spec_absolute_time (&forever2),
+          GNUNET_MY_result_spec_auto_from_type (&hc2),
+          GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
+          GNUNET_MY_result_spec_uint16 (&u162),
+          GNUNET_MY_result_spec_uint32 (&u322),
+          GNUNET_MY_result_spec_uint64 (&u642),
+          GNUNET_MY_result_spec_end
+     };
+
+     ret = GNUNET_MY_extract_result (statements_handle_select,
+                                        NULL,
+                                        results_select,
+                                        0);
+     if (GNUNET_OK != ret)
+     {
+          fprintf(stderr, "Failed to extract result\n");
+          return 1;
      }
 */
      return 0;
@@ -188,7 +222,7 @@ main (int argc, const char * const argv[])
                                                   ", sig INT NOT NULL"
                                                   ", abs_time BIGINT NOT NULL"
                                                   ", forever BIGINT NOT NULL"
-                                                  ", hash INT NOT NULL CHECK(LENGTH(hash)=64)"
+                                                  ", hash VARCHAR(32) NOT NULL CHECK(LENGTH(hash)=64)"
                                                   ", vsize VARCHAR(32) NOT NULL"
                                                   ", u16 SMALLINT NOT NULL"
                                                   ", u32 INT NOT NULL"
@@ -205,13 +239,13 @@ main (int argc, const char * const argv[])
 
      ret = run_queries (context);
 
-     if(GNUNET_OK != GNUNET_MYSQL_statement_run (context,
+/*     if(GNUNET_OK != GNUNET_MYSQL_statement_run (context,
                                                   "DROP TABLE test_my"))
      {
           fprintf (stderr, "Failed to drop table test_my\n");
           GNUNET_MYSQL_statements_invalidate (context);
      }
-
+*/
      GNUNET_MYSQL_context_destroy (context);
 
      return ret;
