@@ -814,23 +814,30 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
   char *rdir;
   size_t len;
   int ret;
+  int eno;
 
   rdir = GNUNET_STRINGS_filename_expand (filename);
-  if (rdir == NULL)
+  if (NULL == rdir)
+  {
+    errno = EINVAL;
     return GNUNET_SYSERR;
+  }
   len = strlen (rdir);
   while ((len > 0) && (rdir[len] != DIR_SEPARATOR))
     len--;
   rdir[len] = '\0';
   /* The empty path is invalid and in this case refers to / */
-  if (0 == len) {
+  if (0 == len)
+  {
     GNUNET_free (rdir);
     rdir = GNUNET_strdup ("/");
   }
   ret = GNUNET_DISK_directory_create (rdir);
-  if ((ret == GNUNET_OK) && (0 != ACCESS (rdir, W_OK)))
+  if ((GNUNET_OK == ret) && (0 != ACCESS (rdir, W_OK)))
     ret = GNUNET_NO;
+  eno = errno;
   GNUNET_free (rdir);
+  errno = eno;
   return ret;
 }
 

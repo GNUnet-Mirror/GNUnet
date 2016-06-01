@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_disk_lib.h"
 #include "gnunet_strings_lib.h"
 #include <regex.h>
 
@@ -357,6 +358,15 @@ setup_log_file (const struct tm *tm)
     return GNUNET_OK; /* no change */
   log_rotate (last_fn);
   strcpy (last_fn, fn);
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_create_for_file (fn))
+  {
+    fprintf (stderr,
+             "Failed to create directory for `%s': %s\n",
+             fn,
+             STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
 #if WINDOWS
   altlog_fd = OPEN (fn, O_APPEND |
                         O_BINARY |
