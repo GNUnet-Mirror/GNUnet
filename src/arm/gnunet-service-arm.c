@@ -481,8 +481,8 @@ start_process (struct ServiceList *sl,
       optpos = options;
       GNUNET_asprintf (&options,
                        "%s %s",
-                       optpos,
-                       fin_options);
+                       fin_options,
+                       optpos);
       GNUNET_free (optpos);
     }
     else
