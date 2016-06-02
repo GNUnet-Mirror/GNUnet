@@ -502,11 +502,11 @@ start_process (struct ServiceList *sl,
 
     is_simple_service = GNUNET_NO;
     if ( (GNUNET_OK ==
-            GNUNET_CONFIGURATION_get_value_choice (cfg,
-                                                   sl->name,
-                                                   "TYPE",
-                                                   choices,
-                                                   &service_type)) &&
+          GNUNET_CONFIGURATION_get_value_choice (cfg,
+                                                 sl->name,
+                                                 "TYPE",
+                                                 choices,
+                                                 &service_type)) &&
          (0 == strcasecmp (service_type, "SIMPLE")) )
       is_simple_service = GNUNET_YES;
   }
