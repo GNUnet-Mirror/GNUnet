@@ -614,7 +614,6 @@ peer_respect_cb (void *cls,
   struct GSF_ConnectedPeer *cp = cls;
 
   GNUNET_assert (NULL != cp->respect_iterate_req);
-  printf("Got a record!\n");
   if ((NULL != record) && (sizeof (cp->disk_respect) == record->value_size))
     cp->disk_respect = cp->ppd.respect = *((uint32_t *)record->value);
   GSF_push_start_ (cp);
@@ -622,7 +621,6 @@ peer_respect_cb (void *cls,
     cp->creation_cb (cp->creation_cb_cls, cp);
   if (NULL != record)
   {
-    printf("Cancelling!\n");
     GNUNET_PEERSTORE_iterate_cancel (cp->respect_iterate_req);
     cp->respect_iterate_req = NULL;
   }
