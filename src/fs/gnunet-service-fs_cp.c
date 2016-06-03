@@ -620,10 +620,8 @@ peer_respect_cb (void *cls,
   if (NULL != cp->creation_cb)
     cp->creation_cb (cp->creation_cb_cls, cp);
   if (NULL != record)
-  {
     GNUNET_PEERSTORE_iterate_cancel (cp->respect_iterate_req);
-    cp->respect_iterate_req = NULL;
-  }
+  cp->respect_iterate_req = NULL;
 }
 
 
