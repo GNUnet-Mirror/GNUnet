@@ -129,7 +129,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
   }
 
   num_fields = 0;
-  for (i=0;NULL != rs[i].conv;i++)
+  for (i=0;NULL != rs[i].pre_conv;i++)
     num_fields += rs[i].num_fields;
 
   if (mysql_stmt_field_count (stmt) != num_fields)
@@ -145,12 +145,12 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
 
     memset (result, 0, sizeof (MYSQL_BIND) * num_fields);
     field_off = 0;
-    for (i=0;NULL != rs[i].conv;i++)
+    for (i=0;NULL != rs[i].pre_conv;i++)
     {
       struct GNUNET_MY_ResultSpec *rp = &rs[i];
 
       if (GNUNET_OK !=
-          rp->pre_conv (rp->cls,
+          rp->pre_conv (rp->conv_cls,
                         rp,
                         stmt,
                         field_off,
@@ -186,13 +186,13 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
       return GNUNET_SYSERR;
     }
     field_off = 0;
-    for (i=0;NULL != rs[i].conv;i++)
+    for (i=0;NULL != rs[i].post_conv;i++)
     {
       struct GNUNET_MY_ResultSpec *rp = &rs[i];
 
       if (NULL != rp->post_conv)
         if (GNUNET_OK !=
-            rp->post_conv (rp->cls,
+            rp->post_conv (rp->conv_cls,
                            rp,
                            stmt,
                            field_off,
@@ -218,12 +218,12 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  * @param rs reult specification to clean up
  */
 void
-GNUNET_MY_cleanup_result (struct GNUNET_PQ_ResultSpec *rs)
+GNUNET_MY_cleanup_result (struct GNUNET_MY_ResultSpec *rs)
 {
   unsigned int i;
 
-  for (i=0;NULL != rs[i].conv;i++)
-    rs[i].cleaner (rs[i].cls,
+  for (i=0;NULL != rs[i].cleaner;i++)
+    rs[i].cleaner (rs[i].conv_cls,
                    &rs[i]);
 }
 

@@ -455,7 +455,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  * @param rs reult specification to clean up
  */
 void
-GNUNET_MY_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
+GNUNET_MY_cleanup_result (struct GNUNET_MY_ResultSpec *rs);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

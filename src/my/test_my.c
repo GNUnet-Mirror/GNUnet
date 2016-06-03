@@ -75,7 +75,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
      u32 = 32;
      u64 = 64;
 
-     statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
+/*     statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
                                         "INSERT INTO test_my ("
                                         " pub"
                                         ",sig"
@@ -107,6 +107,25 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           GNUNET_MY_query_param_uint64 (&u64),
           GNUNET_MY_query_param_end
      };
+*/
+     statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
+                                        "INSERT INTO test_my2 ("
+                                        " abs_time"
+                                        ",forever"
+                                        ",u16"
+                                        ",u32"
+                                        ",u64"
+                                        ") VALUES "
+                                        "( ?, ?, ?, ?, ?)");
+
+      struct GNUNET_MY_QueryParam params_insert[] = {
+          GNUNET_MY_query_param_absolute_time (&abs_time),
+          GNUNET_MY_query_param_absolute_time (&forever),
+          GNUNET_MY_query_param_uint16 (&u16),
+          GNUNET_MY_query_param_uint32 (&u32),
+          GNUNET_MY_query_param_uint64 (&u64),
+          GNUNET_MY_query_param_end
+     };
 
      if (GNUNET_OK != GNUNET_MY_exec_prepared(context,
                                              statements_handle_insert,
@@ -118,7 +137,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 
 
 
-   statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
+/*   statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
                                                                  "SELECT"
                                                                  " pub"
                                                                  ",sig"
@@ -132,6 +151,16 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                                                  " FROM test_my"
                                                                  " ORDER BY abs_time DESC "
                                                                  " LIMIT 1;");
+
+*/ 
+     statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
+                                                                 "SELECT"
+                                                                 " abs_time"
+                                                                 ",forever"
+                                                                 ",u16"
+                                                                 ",u32"
+                                                                 ",u64"
+                                                                 " FROM test_my2");
 
      if (NULL == statements_handle_select)
      {
@@ -151,7 +180,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           return 1;
      }
 
-
+/*
      struct GNUNET_MY_ResultSpec results_select[] = {
           GNUNET_MY_result_spec_rsa_public_key (&pub2),
           GNUNET_MY_result_spec_rsa_signature (&sig2),
@@ -164,11 +193,26 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           GNUNET_MY_result_spec_uint64 (&u642),
           GNUNET_MY_result_spec_end
      };
+*/
+     struct GNUNET_MY_ResultSpec results_select[] = {
+          GNUNET_MY_result_spec_absolute_time (&abs_time2),
+          GNUNET_MY_result_spec_absolute_time (&forever2),
+          GNUNET_MY_result_spec_uint16 (&u162),
+          GNUNET_MY_result_spec_uint32 (&u322),
+          GNUNET_MY_result_spec_uint64 (&u642),
+          GNUNET_MY_result_spec_end
+     };
 
      ret = GNUNET_MY_extract_result (statements_handle_select,
-                                        NULL,
-                                        results_select,
-                                        0);
+                                     results_select);
+
+     GNUNET_break (abs_time.abs_value_us == abs_time2.abs_value_us);
+     GNUNET_break (forever.abs_value_us == forever2.abs_value_us);
+
+     GNUNET_break (16 == u162);
+     GNUNET_break (32 == u322);
+     GNUNET_break (64 == u642);
+
      if (GNUNET_OK != ret)
      {
           fprintf(stderr, "Failed to extract result\n");
@@ -212,7 +256,7 @@ main (int argc, const char * const argv[])
           return 77;
      }
 
-     if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
+/*     if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
                                                   "CREATE TABLE test_my("
                                                   "pub INT NOT NULL"
                                                   ", sig INT NOT NULL"
@@ -232,11 +276,28 @@ main (int argc, const char * const argv[])
           
           return 1;
      }
+*/
+     if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
+                                                  "CREATE TABLE test_my2("
+                                                  " abs_time BIGINT NOT NULL"
+                                                  ", forever BIGINT NOT NULL"
+                                                  ", u16 SMALLINT NOT NULL"
+                                                  ", u32 INT NOT NULL"
+                                                  ", u64 BIGINT NOT NULL"
+                                                  ")"))
+     {
+          fprintf (stderr, 
+                    "Failed to create table \n"); 
+          GNUNET_MYSQL_statements_invalidate (context);    
+          GNUNET_MYSQL_context_destroy (context);
+          
+          return 1;
+     }
 
      ret = run_queries (context);
-
-/*     if(GNUNET_OK != GNUNET_MYSQL_statement_run (context,
-                                                  "DROP TABLE test_my"))
+/*
+     if(GNUNET_OK != GNUNET_MYSQL_statement_run (context,
+                                                  "DROP TABLE test_my2"))
      {
           fprintf (stderr, "Failed to drop table test_my\n");
           GNUNET_MYSQL_statements_invalidate (context);

@@ -106,8 +106,9 @@ my_conv_uint16 (void *cls,
   if (NULL == u_nbo)
     return -1;
 
-  *u_nbo = htons (*u_hbo);
-  
+//  *u_nbo = htons (*u_hbo);
+    *u_nbo = *u_hbo;
+
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof(uint16_t);
   qbind->buffer_type = MYSQL_TYPE_SHORT;
@@ -153,7 +154,8 @@ my_conv_uint32 (void *cls,
   GNUNET_assert (1 == qp->num_params);
 
   u_nbo = GNUNET_new (uint32_t);
-  *u_nbo = htonl (*u_hbo);
+//  *u_nbo = htonl (*u_hbo);
+    *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof(uint32_t);
@@ -200,7 +202,8 @@ my_conv_uint64 (void *cls,
   GNUNET_assert (1 == qp->num_params);
 
   u_nbo = GNUNET_new(uint64_t);
-  *u_nbo = GNUNET_htonll (*u_hbo);
+  //*u_nbo = GNUNET_htonll (*u_hbo);
+    *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof (uint64_t);
