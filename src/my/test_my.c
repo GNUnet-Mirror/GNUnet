@@ -38,34 +38,30 @@ static int
 run_queries (struct GNUNET_MYSQL_Context *context)
 {
      struct GNUNET_CRYPTO_RsaPublicKey *pub;
-//     struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
+     struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
      struct GNUNET_CRYPTO_RsaSignature *sig;
-//     struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
+     struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
      struct GNUNET_TIME_Absolute abs_time = GNUNET_TIME_absolute_get ();
-//     struct GNUNET_TIME_Absolute abs_time2;
+     struct GNUNET_TIME_Absolute abs_time2;
      struct GNUNET_TIME_Absolute forever = GNUNET_TIME_UNIT_FOREVER_ABS;
-//     struct GNUNET_TIME_Absolute forever2;
+     struct GNUNET_TIME_Absolute forever2;
      struct GNUNET_HashCode hc;
-//     struct GNUNET_HashCode hc2;
+     struct GNUNET_HashCode hc2;
      const char msg[] = "hello";
-//     void *msg2;
-     size_t msg_len;
-//     size_t msg2_len;
+     void *msg2;
+     size_t msg2_len;
 
      uint16_t u16;
-//     uint16_t u162;
+     uint16_t u162;
      uint32_t u32;
-//     uint32_t u322;
+     uint32_t u322;
      uint64_t u64;
-//     uint64_t u642;
+     uint64_t u642;
 
-     msg_len = sizeof(msg);
-
-//     int ret;
+     int ret;
 
      struct GNUNET_MYSQL_StatementHandle *statements_handle_insert;
-
-//     struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
+     struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
 
      struct GNUNET_CRYPTO_RsaPrivateKey *priv;
      struct GNUNET_HashCode hmsg;
@@ -122,7 +118,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 
 
 
-/*   statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
+   statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
                                                                  "SELECT"
                                                                  " pub"
                                                                  ",sig"
@@ -178,7 +174,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           fprintf(stderr, "Failed to extract result\n");
           return 1;
      }
-*/
+
      return 0;
 }
 
@@ -245,8 +241,8 @@ main (int argc, const char * const argv[])
           fprintf (stderr, "Failed to drop table test_my\n");
           GNUNET_MYSQL_statements_invalidate (context);
      }
-*/
-     GNUNET_MYSQL_context_destroy (context);
 
+     GNUNET_MYSQL_context_destroy (context);
+*/
      return ret;
 }

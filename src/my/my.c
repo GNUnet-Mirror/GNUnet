@@ -27,7 +27,7 @@
 #include <mysql/mysql.h>
 #include "gnunet_my_lib.h"
 
-
+#define STRING_SIZE 50
 
 /**
  * Run a prepared SELECT statement.
@@ -118,19 +118,86 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                           int row)
 {
   MYSQL_BIND *result;
+
+  int num_fields;  
+  MYSQL_FIELD *fields;
+  MYSQL_RES *res;
+
   unsigned int i;
+  unsigned int j;
   int had_null = GNUNET_NO;
   int ret;
   
+  result = NULL;
   MYSQL_STMT *stmt;
 
   stmt = GNUNET_MYSQL_statement_get_stmt (NULL /* FIXME */, sh);
-  // result = mysql_get_result (stmt);
-  result = NULL;
+  if (NULL == stmt)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                    ("`%s' failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_bind_result", __FILE__, __LINE__,
+                       mysql_stmt_error (stmt));
+    return GNUNET_SYSERR;
+  }
+
+
+  num_fields = mysql_stmt_field_count (stmt);
+  res = mysql_stmt_result_metadata (stmt);
+  fields = mysql_fetch_fields (res);
+
+  int int_data[num_fields];
+  long int long_data[num_fields];
+  short short_data[num_fields];
+  char str_data[STRING_SIZE];
+  int error[num_fields];
+
+  result = (MYSQL_BIND *)malloc (sizeof (MYSQL_BIND)*num_fields);
+  if(!result)
+  {
+    fprintf(stderr, "Error to allocate output buffers\n");
+    return GNUNET_SYSERR;
+  }
+
+  memset(result, 0, sizeof (MYSQL_BIND) * num_fields);
+
+/** INITIALISER LE MYSQL_BIND ****/
+
+  for(i = 0 ; i< num_fields ;i++)
+  {
+    result[i].buffer_type = fields[i].type; 
+    result[i].is_null = 0;  
+    result[i].error = &error[i];
+
+    switch (fields[i].type)
+    {
+      case MYSQL_TYPE_LONG:
+        result[i].buffer = &(int_data[i]);
+        result[i].buffer_length = sizeof (int_data);
+        break;
+
+      case MYSQL_TYPE_LONGLONG:
+        result[i].buffer = &(long_data[i]);
+        result[i].buffer_length = sizeof (long_data);
+        break;
+
+      case MYSQL_TYPE_STRING:
+        result[i].buffer = (char *)str_data;
+        result[i].buffer_length = sizeof (str_data);
+        break;
+
+      case MYSQL_TYPE_SHORT:
+        result[i].buffer = &(short_data[i]);
+        result[i].buffer_length = sizeof (short_data);
+        break;
+
+      default:
+        fprintf(stderr, "Failed : wrong type : %d!\n", fields[i].type);
+    } 
+  }
 
   if (mysql_stmt_bind_result(stmt, result))
   {
-
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
                        _("`%s' failed at %s:%d with error: %s\n"),
                        "mysql_stmt_bind_result", __FILE__, __LINE__,
@@ -138,27 +205,50 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
       return GNUNET_SYSERR;
   }
 
-  for (i = 0 ; NULL != rs[i].conv ; i++)
+  /*** FAILED HERE ***/
+  if (mysql_stmt_fetch (stmt))
   {
-    struct GNUNET_MY_ResultSpec *spec;
-
-    spec = &rs[i];
-    ret = spec->conv (spec->conv_cls,
-                      spec,
-                      result);
-
-    if (GNUNET_SYSERR == ret)
+    for(j = 0 ; j < num_fields ;j++)
     {
-      return GNUNET_SYSERR;
+      fprintf(stderr, "Error Bind [%d] : %d\n", j, error[j]);
     }
 
-    if (NULL != spec->result_size)
-      *spec->result_size = spec->dst_size;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                       _("`%s' failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_fetch", __FILE__, __LINE__,
+                       mysql_stmt_error (stmt));
+    return GNUNET_SYSERR;
+  }
+
+/*
+  while (1)
+  {
+    mysql_stmt_fetch (stmt);
+
+    for (i = 0 ; NULL != rs[i].conv ; i++)
+    {
+      struct GNUNET_MY_ResultSpec *spec;
+
+      spec = &rs[i];
+      ret = spec->conv (spec->conv_cls,
+                        spec,
+                        result);
+
+      if (GNUNET_SYSERR == ret)
+      {
+        return GNUNET_SYSERR;
+      }
+
+      if (NULL != spec->result_size)
+        *spec->result_size = spec->dst_size;
+    }
   }
 
   if (GNUNET_YES == had_null)
     return GNUNET_NO;
+*/
 
+  free (result);
   return GNUNET_OK;
 }
 
