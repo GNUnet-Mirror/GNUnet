@@ -95,7 +95,7 @@ struct GNUNET_MY_QueryParam
   /**
    * Information to pass to @e conv.  Size of @a data.
    */
-  unsigned long data_len ;
+  unsigned long data_len;
 
 };
 
@@ -149,13 +149,29 @@ struct GNUNET_MY_ResultSpec;
  * Function called to convert input argument into SQL parameters.
  *
  * @param cls closure
- * @param pq data about the query
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
  * @return -1 on error
  */
 typedef int
 (*GNUNET_MY_ResultConverter)(void *cls,
                              struct GNUNET_MY_ResultSpec *rs,
+                             MYSQL_STMT *stmt,
+                             unsigned int column,
                              MYSQL_BIND *results);
+
+/**
+ * Function called to cleanup result data.
+ *
+ * @param cls closure
+ * @param rs spec to clean up
+ */
+typedef void
+(*GNUNET_MY_ResultCleanup)(void *cls,
+                           struct GNUNET_MY_ResultSpec *rs);
+
 
 /**
  * Information we pass to #GNUNET_MY_extract_result() to
@@ -165,9 +181,19 @@ struct GNUNET_MY_ResultSpec
 {
 
   /**
-   * Function to call for the type conversion.
+   * Function to call to initialize the MYSQL_BIND array.
    */
-  GNUNET_MY_ResultConverter conv;
+  GNUNET_MY_ResultConverter pre_conv;
+
+  /**
+   * Function to call for converting the result. Can be NULL.
+   */
+  GNUNET_MY_ResultConverter post_conv;
+
+    /**
+   * Function to call for cleaning up the result. Can be NULL.
+   */
+  GNUNET_MY_ResultCleanup cleaner;
 
   /**
    * Closure for @e conv.
@@ -191,6 +217,18 @@ struct GNUNET_MY_ResultSpec
    */
   size_t *result_size;
 
+  /**
+   * How many fields does this result specification occupy
+   * in the result returned by MySQL.
+   */
+  unsigned int num_fields;
+
+  /**
+   * Location where we temporarily store the output buffer
+   * length from MySQL.  Internal to libgnunetmy.
+   */
+  unsigned long mysql_bind_output_length;
+
 };
 
 
@@ -199,7 +237,7 @@ struct GNUNET_MY_ResultSpec
  *
  * @return array last entry for the result specification to use
  */
-#define GNUNET_MY_result_spec_end { NULL, NULL, NULL, 0, NULL }
+#define GNUNET_MY_result_spec_end { NULL, NULL, NULL, 0, NULL, 0 }
 
 
 
@@ -392,11 +430,33 @@ GNUNET_MY_result_spec_uint32 (uint32_t *u32);
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_uint64 (uint64_t *u64);
 
+
+/**
+ * Extract results from a query result according to the given
+ * specification.  Always fetches the next row.
+ *
+ * @param sh statement that returned results
+ * @param rs specification to extract for
+ * @return
+ *  #GNUNET_YES if all results could be extracted
+ *  #GNUNET_NO if there is no more data in the result set
+ *  #GNUNET_SYSERR if a result was invalid
+ */
 int
 GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
-                          struct GNUNET_MY_QueryParam *qp,
-                          struct GNUNET_MY_ResultSpec *specs,
-                          int row);
+                          struct GNUNET_MY_ResultSpec *specs);
+
+
+
+/**
+ * Free all memory that was allocated in @a rs during
+ * #GNUNET_MY_extract_result().
+ *
+ * @param rs reult specification to clean up
+ */
+void
+GNUNET_MY_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

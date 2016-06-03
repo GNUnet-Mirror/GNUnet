@@ -21,116 +21,166 @@
 #include "gnunet_my_lib.h"
 
 /**
-  * extract data from a Mysql database @a result at row @a row
-  *
-  * @param cls closure
-  * @param qp data about the query 
-  * @param result mysql result
-  * @return
-  *   #GNUNET_OK if all results could be extracted
-  *   #GNUNET_SYSERR if a result was invalid
-  */
-
+ * extract data from a Mysql database @a result at row @a row
+ *
+ * @param cls closure
+ * @param qp data about the query
+ * @param result mysql result
+ * @return
+ *   #GNUNET_OK if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid
+ */
 static int
-extract_varsize_blob (void *cls,
-                      struct GNUNET_MY_ResultSpec *rs,
-                      MYSQL_BIND *results)
+pre_extract_varsize_blob (void *cls,
+                          struct GNUNET_MY_ResultSpec *rs,
+                          MYSQL_BIND *results)
 {
-  size_t len;
-  void *idst;
-  char * res;
-
-  if (results->is_null)
-  {
-    return GNUNET_SYSERR;
-  }
-
-  len = results->buffer_length;
-  res = results->buffer;
-
-  GNUNET_assert (NULL != res);
-
-  rs->dst_size = len;
-
-  idst = GNUNET_malloc (len);
-  *(void **)rs->dst = idst;
-
-  memcpy (idst,
-          res,
-          len);
-
- return GNUNET_OK;
+  results[0].buffer = NULL;
+  results[0].buffer_length = 0;
+  results[0].length = &rs->mysql_bind_output_length;
+  return GNUNET_OK;
 }
 
+
 /**
-  * Variable-size result expected
-  *
-  * @param[out] dst where to store the result, allocated
-  * @param[out] sptr where to store the size of @a dst
-  * @return array entru for the result specification to use
-  */
+ * extract data from a Mysql database @a result at row @a row
+ *
+ * @param cls closure
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
+ * @return
+ *   #GNUNET_OK if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid
+ */
+static int
+post_extract_varsize_blob (void *cls,
+                           struct GNUNET_MY_ResultSpec *rs,
+                           MYSQL_STMT *stmt,
+                           unsigned int column,
+                           MYSQL_BIND *results)
+{
+  void *buf;
+  size_t size;
+
+  size = (size_t) rs->mysql_bind_output_length;
+  if (rs->mysql_bind_output_length != size)
+    return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
+  buf = GNUNET_malloc (size);
+  results[0].buffer = buf;
+  results[0].buffer_length = size;
+  if (0 !=
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
+  *(void **) rs->dst = buf;
+  *rs->result_size = size;
+  return GNUNET_OK;
+}
+
+
+/**
+ * extract data from a Mysql database @a result at row @a row
+ *
+ * @param cls closure
+ * @param[in,out] rs
+ */
+static void
+cleanup_varsize_blob (void *cls,
+                      struct GNUNET_MY_ResultSpec *rs)
+{
+  void *ptr;
+
+  ptr = * (void **) rs->dst;
+  if (NULL == ptr)
+    return;
+  GNUNET_free (ptr);
+  *(void **) rs->dst = NULL;
+  *rs->result_size = 0;
+}
+
+
+/**
+ * Variable-size result expected
+ *
+ * @param[out] dst where to store the result, allocated
+ * @param[out] sptr where to store the size of @a dst
+ * @return array entru for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_variable_size (void **dst,
                                     size_t *ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res = 
+  struct GNUNET_MY_ResultSpec res =
   {
-    &extract_varsize_blob,
-    NULL,
-    (void *)(dst),
-    0,
-    ptr_size
+    .pre_conv = &pre_extract_varsize_blob,
+    .post_conv = &post_extract_varsize_blob,
+    .cleaner = &cleanup_varsize_blob,
+    .dst =  (void *)(dst),
+    .result_size = ptr_size,
+    .num_fields = 1
   };
 
   return res;
 }
 
+
 /**
-  * Extract data from a Mysql database @a result at row @a row
-  *
-  * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in] dst_size desired size, never NULL
-  * @param[out] dst where to store the result
-  * @return
-  *  #GNUNET_OK if all results could be extracted
-  *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
-  *
-  */
+ * Extract data from a Mysql database @a result at row @a row
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param int row to extract data from
+ * @param fname name (or prefix) of the fields to extract from
+ * @param[in] dst_size desired size, never NULL
+ * @param[out] dst where to store the result
+ * @return
+ *  #GNUNET_OK if all results could be extracted
+ *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
+ */
 static int
-extract_fixed_blob (void *cls,
-                    struct GNUNET_MY_ResultSpec *rs,
-                    MYSQL_BIND *results)
+pre_extract_fixed_blob (void *cls,
+                        struct GNUNET_MY_ResultSpec *rs,
+                        MYSQL_BIND *results)
 {
-  size_t len;
-  const char *res;
-
-  if (results->is_null)
-  {
-    return GNUNET_SYSERR;
-  }
-
-  len = results->buffer_length;
-  if (rs->dst_size != len)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Results has wrong size (got %u, expected %u)\n",
-                (unsigned int)len,
-                (unsigned int)rs->dst_size);
-    return GNUNET_SYSERR;
-  }
-
-  res = results->buffer;
-
-  GNUNET_assert (NULL != res);
-  memcpy (rs->dst,
-          res,
-          len);
-  
+  results[0].buffer = rs->dst;
+  results[0].buffer_length = rs->dst_size;
+  results[0].length = &rs->mysql_bind_output_length;
   return GNUNET_OK;
 }
+
+
+/**
+ * Check size of extracted fixed size data from a Mysql database @a
+ * result at row @a row
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param int row to extract data from
+ * @param fname name (or prefix) of the fields to extract from
+ * @param[in] dst_size desired size, never NULL
+ * @param[out] dst where to store the result
+ * @return
+ *  #GNUNET_OK if all results could be extracted
+ *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
+ */
+static int
+post_extract_fixed_blob (void *cls,
+                         struct GNUNET_MY_ResultSpec *rs,
+                         MYSQL_BIND *results)
+{
+  if (rs->dst_size != rs->mysql_bind_output_length)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
 /**
  * Fixed-size result expected.
  *
@@ -143,15 +193,15 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_fixed_size (void *ptr,
                                   size_t ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res = 
-  { 
-    &extract_fixed_blob,
-    NULL,
-    (void *)(ptr),
-    ptr_size,
-    NULL 
+  struct GNUNET_MY_ResultSpec res =
+  {
+    .pre_conv = &pre_extract_fixed_blob,
+    .post_conv = &post_extract_fixed_blob,
+    .dst = (void *)(ptr),
+    .dst_size = ptr_size,
+    .num_fields = 1
   };
-      
+
   return res;
 }
 
@@ -175,7 +225,7 @@ extract_rsa_public_key (void *cls,
 
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rs->dst;
-  
+
   size_t len;
   const char *res;
 
@@ -215,7 +265,8 @@ GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
     NULL,
     (void *) rsa,
     0,
-    NULL    
+    NULL,
+    1
   };
 
   return res;
@@ -273,13 +324,14 @@ extract_rsa_signature (void *cls,
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
 {
-  struct GNUNET_MY_ResultSpec res = 
+  struct GNUNET_MY_ResultSpec res =
   {
     &extract_rsa_signature,
     NULL,
     (void *)sig,
     0,
-    NULL
+    NULL,
+    1
   };
   return res;
 }
@@ -326,13 +378,15 @@ extract_string (void * cls,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
-}    
+}
+
+
 /**
-  * 0- terminated string exprected.
-  *
-  * @param[out] dst where to store the result, allocated
-  * @return array entry for the result specification to use
-  */
+ * 0- terminated string exprected.
+ *
+ * @param[out] dst where to store the result, allocated
+ * @return array entry for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_string (char **dst)
 {
@@ -341,23 +395,26 @@ GNUNET_MY_result_spec_string (char **dst)
     NULL,
     (void *) dst,
     0,
-    NULL
+    NULL,
+    1
   };
   return res;
 }
 
+
 /**
-  * Absolute time expected
-  *
-  * @param name name of the field in the table
-  * @param[out] at where to store the result
-  * @return array entry for the result specification to use
+ * Absolute time expected
+ *
+ * @param name name of the field in the table
+ * @param[out] at where to store the result
+ * @return array entry for the result specification to use
   */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
 {
   return GNUNET_MY_result_spec_uint64 (&at->abs_value_us);
 }
+
 
 /**
   * Absolute time in network byte order expected
@@ -368,10 +425,11 @@ GNUNET_MY_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
 {
-  struct GNUNET_MY_ResultSpec res = 
+  struct GNUNET_MY_ResultSpec res =
     GNUNET_MY_result_spec_auto_from_type (&at->abs_value_us__);
-    return res;
+  return res;
 }
+
 
 /**
  * Extract data from a Postgres database @a result at row @a row.
@@ -390,7 +448,7 @@ static int
 extract_uint16 (void *cls,
                 struct GNUNET_MY_ResultSpec *rs,
                 MYSQL_BIND *results)
-{ 
+{
   uint16_t *udst = rs->dst;
   const uint16_t *res;
 
@@ -412,12 +470,13 @@ extract_uint16 (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
-  * uint16_t expected
-  *
-  * @param[out] u16 where to store the result
-  * @return array entry for the result specification to use
-  */
+ * uint16_t expected
+ *
+ * @param[out] u16 where to store the result
+ * @return array entry for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_uint16 (uint16_t *u16)
 {
@@ -426,7 +485,8 @@ GNUNET_MY_result_spec_uint16 (uint16_t *u16)
     NULL,
     (void *) u16,
     sizeof (*u16),
-    NULL
+    NULL,
+    1
   };
   return res;
 }
@@ -467,7 +527,7 @@ extract_uint32 (void *cls,
   res = (uint32_t *)results->buffer;
 
   *udst = ntohl (*res);
-  
+
   return GNUNET_OK;
 }
 
@@ -485,7 +545,8 @@ GNUNET_MY_result_spec_uint32 (uint32_t *u32)
     NULL,
     (void *) u32,
     sizeof (*u32),
-    NULL
+    NULL,
+    1
   };
   return res;
 }
@@ -511,10 +572,8 @@ extract_uint64 (void *cls,
   uint64_t *udst = rs->dst;
   const uint64_t *res;
 
-  if (results->is_null)
-  {
-    return GNUNET_SYSERR;
-  }
+  results[0].buffer = &rs->dst;
+  results[0].buffer_length = 42;
 
   GNUNET_assert (NULL != rs->dst);
   if (sizeof (uint64_t) != rs->dst_size)
@@ -540,11 +599,10 @@ struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_uint64 (uint64_t *u64)
 {
   struct GNUNET_MY_ResultSpec res = {
-    &extract_uint64,
-    NULL,
-    (void *) u64,
-    sizeof (*u64),
-    NULL
+    .pre_conv = &extract_uint64,
+    .dst = (void *) u64,
+    .dst_size = sizeof (*u64),
+    .num_fields = 1
   };
   return res;
 }

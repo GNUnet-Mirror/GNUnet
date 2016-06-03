@@ -35,7 +35,7 @@
  * @param mc mysql context
  * @param sh handle to SELECT statment
  * @param params parameters to the statement
- * @return 
+ * @return
       #GNUNET_YES if we can prepare all statement
       #GNUNET_SYSERR if we can't prepare all statement
  */
@@ -98,37 +98,24 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
 
 
 /**
- * Extract results from a query result according
- * to the given specification. If colums are NULL,
- * the destination is not modified, and #GNUNET_NO is returned4
+ * Extract results from a query result according to the given
+ * specification.  Always fetches the next row.
  *
  *
- * @param result
- * @param row, the row from the result to extract
- * @param result specificatio to extract for
+ * @param sh statement that returned results
+ * @param rs specification to extract for
  * @return
-    #GNUNET_YES if all results could be extracted
-    #GNUNET_NO if at least one result was NULL
-    #GNUNET_SYSERR if a result was invalid
-*/
+ *  #GNUNET_YES if all results could be extracted
+ *  #GNUNET_NO if there is no more data in the result set
+ *  #GNUNET_SYSERR if a result was invalid
+ */
 int
 GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
-                          struct GNUNET_MY_QueryParam *qp,
-                          struct GNUNET_MY_ResultSpec *rs,
-                          int row)
+                          struct GNUNET_MY_ResultSpec *rs)
 {
-  MYSQL_BIND *result;
-
-  int num_fields;  
-  MYSQL_FIELD *fields;
-  MYSQL_RES *res;
-
+  unsigned int num_fields;
   unsigned int i;
-  unsigned int j;
-  int had_null = GNUNET_NO;
   int ret;
-  
-  result = NULL;
   MYSQL_STMT *stmt;
 
   stmt = GNUNET_MYSQL_statement_get_stmt (NULL /* FIXME */, sh);
@@ -141,115 +128,104 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
     return GNUNET_SYSERR;
   }
 
+  num_fields = 0;
+  for (i=0;NULL != rs[i].conv;i++)
+    num_fields += rs[i].num_fields;
 
-  num_fields = mysql_stmt_field_count (stmt);
-  res = mysql_stmt_result_metadata (stmt);
-  fields = mysql_fetch_fields (res);
-
-  int int_data[num_fields];
-  long int long_data[num_fields];
-  short short_data[num_fields];
-  char str_data[STRING_SIZE];
-  int error[num_fields];
-
-  result = (MYSQL_BIND *)malloc (sizeof (MYSQL_BIND)*num_fields);
-  if(!result)
+  if (mysql_stmt_field_count (stmt) != num_fields)
   {
-    fprintf(stderr, "Error to allocate output buffers\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Number of fields missmatch between SQL result and result specification\n");
     return GNUNET_SYSERR;
   }
 
-  memset(result, 0, sizeof (MYSQL_BIND) * num_fields);
-
-/** INITIALISER LE MYSQL_BIND ****/
-
-  for(i = 0 ; i< num_fields ;i++)
   {
-    result[i].buffer_type = fields[i].type; 
-    result[i].is_null = 0;  
-    result[i].error = &error[i];
+    MYSQL_BIND result[num_fields];
+    unsigned int field_off;
 
-    switch (fields[i].type)
+    memset (result, 0, sizeof (MYSQL_BIND) * num_fields);
+    field_off = 0;
+    for (i=0;NULL != rs[i].conv;i++)
     {
-      case MYSQL_TYPE_LONG:
-        result[i].buffer = &(int_data[i]);
-        result[i].buffer_length = sizeof (int_data);
-        break;
+      struct GNUNET_MY_ResultSpec *rp = &rs[i];
 
-      case MYSQL_TYPE_LONGLONG:
-        result[i].buffer = &(long_data[i]);
-        result[i].buffer_length = sizeof (long_data);
-        break;
-
-      case MYSQL_TYPE_STRING:
-        result[i].buffer = (char *)str_data;
-        result[i].buffer_length = sizeof (str_data);
-        break;
-
-      case MYSQL_TYPE_SHORT:
-        result[i].buffer = &(short_data[i]);
-        result[i].buffer_length = sizeof (short_data);
-        break;
-
-      default:
-        fprintf(stderr, "Failed : wrong type : %d!\n", fields[i].type);
-    } 
-  }
-
-  if (mysql_stmt_bind_result(stmt, result))
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+      if (GNUNET_OK !=
+          rp->pre_conv (rp->cls,
+                        rp,
+                        stmt,
+                        field_off,
+                        &result[field_off]))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Pre-conversion for MySQL result failed at offset %u\n",
+                    i);
+        GNUNET_MY_cleanup_result (rs);
+        return GNUNET_SYSERR;
+      }
+      field_off += rp->num_fields;
+    }
+    if (mysql_stmt_bind_result (stmt, result))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "my",
                        _("`%s' failed at %s:%d with error: %s\n"),
                        "mysql_stmt_bind_result", __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       return GNUNET_SYSERR;
-  }
-
-  /*** FAILED HERE ***/
-  if (mysql_stmt_fetch (stmt))
-  {
-    for(j = 0 ; j < num_fields ;j++)
-    {
-      fprintf(stderr, "Error Bind [%d] : %d\n", j, error[j]);
     }
-
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                       _("`%s' failed at %s:%d with error: %s\n"),
-                       "mysql_stmt_fetch", __FILE__, __LINE__,
+    ret = mysql_stmt_fetch (stmt);
+    if (MYSQL_NO_DATA == ret)
+      return GNUNET_NO;
+    if (0 != ret)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "my",
+                       _("mysql_stmt_fetch failed at %s:%d with error: %s\n"),
+                       __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
-    return GNUNET_SYSERR;
-  }
-
-/*
-  while (1)
-  {
-    mysql_stmt_fetch (stmt);
-
-    for (i = 0 ; NULL != rs[i].conv ; i++)
+      return GNUNET_SYSERR;
+    }
+    field_off = 0;
+    for (i=0;NULL != rs[i].conv;i++)
     {
-      struct GNUNET_MY_ResultSpec *spec;
+      struct GNUNET_MY_ResultSpec *rp = &rs[i];
 
-      spec = &rs[i];
-      ret = spec->conv (spec->conv_cls,
-                        spec,
-                        result);
-
-      if (GNUNET_SYSERR == ret)
-      {
-        return GNUNET_SYSERR;
-      }
-
-      if (NULL != spec->result_size)
-        *spec->result_size = spec->dst_size;
+      if (NULL != rp->post_conv)
+        if (GNUNET_OK !=
+            rp->post_conv (rp->cls,
+                           rp,
+                           stmt,
+                           field_off,
+                           &result[field_off]))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Post-conversion for MySQL result failed at offset %u\n",
+                      i);
+          GNUNET_MY_cleanup_result (rs);
+          return GNUNET_SYSERR;
+        }
+      field_off += rp->num_fields;
     }
   }
-
-  if (GNUNET_YES == had_null)
-    return GNUNET_NO;
-*/
-
-  free (result);
   return GNUNET_OK;
 }
+
+
+/**
+ * Free all memory that was allocated in @a rs during
+ * #GNUNET_MY_extract_result().
+ *
+ * @param rs reult specification to clean up
+ */
+void
+GNUNET_MY_cleanup_result (struct GNUNET_PQ_ResultSpec *rs)
+{
+  unsigned int i;
+
+  for (i=0;NULL != rs[i].conv;i++)
+    rs[i].cleaner (rs[i].cls,
+                   &rs[i]);
+}
+
 
 /* end of my.c */

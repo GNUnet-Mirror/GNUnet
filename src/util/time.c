@@ -149,6 +149,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_unit_ ()
 {
   static struct GNUNET_TIME_Relative one = { 1 };
+
   return one;
 }
 
@@ -160,6 +161,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_millisecond_ ()
 {
   static struct GNUNET_TIME_Relative one = { 1000 };
+
   return one;
 }
 
@@ -171,6 +173,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_second_ ()
 {
   static struct GNUNET_TIME_Relative one = { 1000 * 1000LL };
+
   return one;
 }
 
@@ -182,6 +185,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_minute_ ()
 {
   static struct GNUNET_TIME_Relative one = { 60 * 1000 * 1000LL };
+
   return one;
 }
 
@@ -193,6 +197,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_hour_ ()
 {
   static struct GNUNET_TIME_Relative one = { 60 * 60 * 1000 * 1000LL };
+
   return one;
 }
 
@@ -204,8 +209,10 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_get_forever_ ()
 {
   static struct GNUNET_TIME_Relative forever = { UINT64_MAX };
+
   return forever;
 }
+
 
 /**
  * Return "forever".
@@ -216,6 +223,7 @@ GNUNET_TIME_absolute_get_forever_ ()
   static struct GNUNET_TIME_Absolute forever = { UINT64_MAX };
   return forever;
 }
+
 
 /**
  * Convert relative time to an absolute time in the
@@ -564,7 +572,6 @@ GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 
   ret.rel_value_us = GNUNET_ntohll (a.rel_value_us__);
   return ret;
-
 }
 
 
