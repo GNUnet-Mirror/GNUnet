@@ -61,11 +61,11 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 				  size_t ptr_size)
 {
   struct GNUNET_MY_QueryParam qp = {
-    &my_conv_fixed_size,
-    NULL,
-    1,
-    ptr,
-    (unsigned long) ptr_size
+    .conv = &my_conv_fixed_size,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = ptr,
+    .data_len = (unsigned long) ptr_size
   };
   return qp;
 }
@@ -125,11 +125,11 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = { 
-      &my_conv_uint16,
-      NULL,
-      1,
-      x,
-      sizeof (*x)
+      .conv = &my_conv_uint16,
+      .conv_cls = NULL,
+      .num_params = 1,
+      .data = x,
+      .data_len = sizeof (*x)
     };
 
   return res;
@@ -173,11 +173,11 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint32 (const uint32_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
-    &my_conv_uint32,
-    NULL,
-    1,
-    x, 
-    sizeof (*x)
+    .conv = &my_conv_uint32,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = x, 
+    .data_len = sizeof (*x)
   };
   
   return res;
@@ -221,11 +221,11 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint64 (const uint64_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
-    &my_conv_uint64,
-    NULL,
-    1,
-    x,
-    sizeof(*x)
+    .conv = &my_conv_uint64,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = x,
+    .data_len = sizeof(*x)
   };
 
   return res;
@@ -253,8 +253,8 @@ my_conv_rsa_public_key (void *cls,
     buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
 
     qbind->buffer = (void *)buf;
-    qbind->buffer_length = buf_size - 1;
-    qbind->buffer_type = MYSQL_TYPE_LONG;
+    qbind->buffer_length = buf_size-1;
+    qbind->buffer_type = MYSQL_TYPE_BLOB;
 
     return 1;
   }
@@ -270,11 +270,11 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
   struct GNUNET_MY_QueryParam res = {
-    &my_conv_rsa_public_key,
-    NULL,
-    1,
-    x,
-    0
+    .conv = &my_conv_rsa_public_key,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = x,
+    .data_len = 0
   };
 
   return res;
@@ -303,8 +303,8 @@ my_conv_rsa_signature (void *cls,
                                                 &buf);
 
   qbind->buffer = (void *)buf;
-  qbind->buffer_length = buf_size - 1;
-  qbind->buffer_type = MYSQL_TYPE_LONG;
+  qbind->buffer_length = buf_size-1;
+  qbind->buffer_type = MYSQL_TYPE_BLOB;
 
   return 1;
 }
@@ -320,11 +320,11 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 {
   struct GNUNET_MY_QueryParam res = {
-    &my_conv_rsa_signature,
-    NULL,
-    1,
-    (x),
-    0
+    .conv = &my_conv_rsa_signature,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = (x),
+    .data_len = 0
   };
   return res;
 }

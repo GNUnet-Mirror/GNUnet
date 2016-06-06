@@ -173,7 +173,16 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                        mysql_stmt_error (stmt));
       return GNUNET_SYSERR;
     }
+
     ret = mysql_stmt_fetch (stmt);
+
+    if (MYSQL_DATA_TRUNCATED == ret)
+    {
+       fprintf(stderr, "Data truncated with error %d \n", ret);
+       fprintf(stderr, "nontruncated length of the parameter values : %d\n", rs[0].mysql_bind_output_length);
+       return GNUNET_SYSERR;
+    }
+    
     if (MYSQL_NO_DATA == ret)
       return GNUNET_NO;
     if (0 != ret)

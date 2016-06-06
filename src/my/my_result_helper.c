@@ -37,9 +37,10 @@ pre_extract_varsize_blob (void *cls,
                           unsigned int column,
                           MYSQL_BIND *results)
 {
-  results[0].buffer = 0;
+  results[0].buffer = NULL;
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   return GNUNET_OK;
 }
@@ -73,6 +74,7 @@ post_extract_varsize_blob (void *cls,
   buf = GNUNET_malloc (size);
   results[0].buffer = buf;
   results[0].buffer_length = size;
+
   if (0 !=
       mysql_stmt_fetch_column (stmt,
                                results,
@@ -235,10 +237,10 @@ pre_extract_rsa_public_key  (void *cls,
                         MYSQL_BIND *results)
 
 {
-  results[0].buffer = 0;
+  results[0].buffer = NULL;
   results[0].buffer_length = 0;
-  results[0].length = rs->mysql_bind_output_length;
-  results[0].buffer_type = MYSQL_TYPE_LONG;
+  results[0].length = &rs->mysql_bind_output_length;
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   return GNUNET_OK;
 }
@@ -291,9 +293,6 @@ post_extract_rsa_public_key  (void *cls,
                 "Results contains bogus value (fail to decode)\n");
     return GNUNET_SYSERR;
   }
-
-  if (rs->dst_size != rs->mysql_bind_output_length)
-    return GNUNET_SYSERR;
 
   return GNUNET_OK;
 }
@@ -366,7 +365,7 @@ pre_extract_rsa_signature (void *cls,
   results[0].buffer = 0;
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
-  results[0].buffer_type = MYSQL_TYPE_LONG;
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   return GNUNET_OK;
 }
@@ -391,8 +390,8 @@ post_extract_rsa_signature (void *cls,
                       MYSQL_BIND *results)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
-  size_t size;
-  const char *res;
+  size_t size = 0 ;
+  char *res = NULL;
 
   results[0].buffer = res;
   results[0].buffer_length = size;
