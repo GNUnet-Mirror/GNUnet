@@ -341,6 +341,7 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
     slicer->mod_value_remaining = slicer->mod_full_value_size;
     slicer->mod_value_size
       = ntohs (mod->header.size) - sizeof (*mod) - slicer->mod_name_size;
+    // fall through
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
     if (ptype == GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT)

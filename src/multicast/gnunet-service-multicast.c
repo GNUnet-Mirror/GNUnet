@@ -447,6 +447,7 @@ replay_req_remove_cadet (struct Channel *chn)
     if (c == chn)
     {
       GNUNET_CONTAINER_multihashmap_remove (grp_replay_req, &key, chn);
+      GNUNET_CONTAINER_multihashmap_iterator_destroy (it);
       return GNUNET_YES;
     }
   }
@@ -484,6 +485,7 @@ replay_req_remove_client (struct Group *grp, struct GNUNET_SERVER_Client *client
     if (c == client)
     {
       GNUNET_CONTAINER_multihashmap_remove (replay_req_client, &key, client);
+      GNUNET_CONTAINER_multihashmap_iterator_destroy (it);
       return GNUNET_YES;
     }
   }
@@ -759,7 +761,7 @@ cadet_send_channel (struct Channel *chn, const struct GNUNET_MessageHeader *msg)
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           ntohs (msg->size),
                                           &cadet_notify_transmit_ready,
-                                          (void *) msg);
+                                          tcls);
   GNUNET_assert (NULL != chn->tmit_handle);
 }
 

@@ -204,9 +204,10 @@ static void
 group_send_connect_msg (struct GNUNET_MULTICAST_Group *grp)
 {
   uint16_t cmsg_size = ntohs (grp->connect_msg->size);
-  struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
+  struct GNUNET_MessageHeader *cmsg = GNUNET_malloc (cmsg_size);
   memcpy (cmsg, grp->connect_msg, cmsg_size);
   GNUNET_CLIENT_MANAGER_transmit_now (grp->client, cmsg);
+  GNUNET_free (cmsg);
 }
 
 

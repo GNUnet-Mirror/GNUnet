@@ -866,7 +866,7 @@ store_recv_fragment_replay_result (void *cls, int64_t result,
   case GNUNET_SYSERR:
     GNUNET_MULTICAST_replay_response (rh, NULL,
                                       GNUNET_MULTICAST_REC_INTERNAL_ERROR);
-    break;
+    return;
   }
   GNUNET_MULTICAST_replay_response_end (rh);
 }
@@ -2006,7 +2006,6 @@ transmit_notify (void *cls, size_t *data_size, void *data)
     send_message_ack (chn, tmit_msg->client);
 
   GNUNET_CONTAINER_DLL_remove (chn->tmit_head, chn->tmit_tail, tmit_msg);
-  GNUNET_free (tmit_msg);
 
   if (NULL != chn->tmit_head)
   {
@@ -2016,8 +2015,10 @@ transmit_notify (void *cls, size_t *data_size, void *data)
            && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
   {
     /* FIXME: handle partial message (when still in_transmit) */
+    GNUNET_free (tmit_msg);
     return GNUNET_SYSERR;
   }
+  GNUNET_free (tmit_msg);
   return ret;
 }
 
@@ -2393,6 +2394,8 @@ store_recv_fragment_history (void *cls,
 
   /** @todo FIXME: send only to requesting client */
   client_send_msg (chn, &res->header);
+
+  GNUNET_free (res);
   return GNUNET_YES;
 }
 
@@ -2528,6 +2531,7 @@ store_recv_state_var (void *cls, const char *name,
   GNUNET_SERVER_notification_context_add (nc, op->client);
   GNUNET_SERVER_notification_context_unicast (nc, op->client, &res->header,
                                               GNUNET_NO);
+  GNUNET_free (res);
   return GNUNET_YES;
 }
 

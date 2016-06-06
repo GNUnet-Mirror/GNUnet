@@ -223,9 +223,10 @@ static void
 channel_send_connect_msg (struct GNUNET_PSYC_Channel *chn)
 {
   uint16_t cmsg_size = ntohs (chn->connect_msg->size);
-  struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
+  struct GNUNET_MessageHeader *cmsg = GNUNET_malloc (cmsg_size);
   memcpy (cmsg, chn->connect_msg, cmsg_size);
   GNUNET_CLIENT_MANAGER_transmit_now (chn->client, cmsg);
+  GNUNET_free (cmsg);
 }
 
 
@@ -762,6 +763,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
     memcpy (&dcsn[1], join_resp, join_resp_size);
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &dcsn->header);
+  GNUNET_free (dcsn);
   GNUNET_free (jh);
   return GNUNET_OK;
 }
@@ -1078,6 +1080,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
                                                             result_cb, cls));
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
+  GNUNET_free (req);
 }
 
 
@@ -1129,6 +1132,7 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
                                                             result_cb, cls));
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
+  GNUNET_free (req);
 }
 
 
@@ -1169,6 +1173,7 @@ channel_history_replay (struct GNUNET_PSYC_Channel *chn,
   memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
+  GNUNET_free (req);
   return hist;
 }
 
@@ -1309,6 +1314,7 @@ channel_state_get (struct GNUNET_PSYC_Channel *chn,
   memcpy (&req[1], name, name_size);
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
+  GNUNET_free (req);
   return sr;
 }
 
