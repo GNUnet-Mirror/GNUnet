@@ -379,6 +379,7 @@ host_announce (const char *method, const char *data, size_t data_size)
   GNUNET_SOCIAL_host_announce (hst, method, env,
                                notify_data, &tmit,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
+  GNUNET_PSYC_env_destroy (env);
 }
 
 
@@ -396,6 +397,7 @@ host_assign (const char *name, const char *data, size_t data_size)
   GNUNET_SOCIAL_host_announce (hst, "_assign", env,
                                notify_data, &tmit,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
+  GNUNET_PSYC_env_destroy (env);
 }
 
 
@@ -417,6 +419,7 @@ guest_talk (const char *method,
   GNUNET_SOCIAL_guest_talk (gst, method, env,
                             notify_data, &tmit,
                             GNUNET_SOCIAL_TALK_NONE);
+  GNUNET_PSYC_env_destroy (env);
 }
 
 
@@ -673,6 +676,7 @@ guest_recv_local_enter (void *cls, int result,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Guest entered to local place: %s, max_message_id: %" PRIu64 "\n",
               pub_str, max_message_id);
+  GNUNET_free (pub_str);
   GNUNET_assert (0 <= result);
 
   if (op_guest_enter && !opt_follow)
@@ -821,6 +825,7 @@ host_entered (void *cls, int result,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Host entered: %s, max_message_id: %" PRIu64 "\n",
               pub_str, max_message_id);
+  GNUNET_free (pub_str);
 
   if (op_host_enter && !opt_follow)
   {
