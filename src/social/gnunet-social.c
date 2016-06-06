@@ -163,6 +163,7 @@ struct GNUNET_SOCIAL_Place *plc;
 static void
 disconnected (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnected()\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -173,6 +174,7 @@ disconnected (void *cls)
 static void
 app_disconnected (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "app_disconnected()\n");
   if (hst || gst)
   {
     if (hst)
@@ -197,9 +199,10 @@ app_disconnected (void *cls)
 static void
 disconnect ()
 {
-  GNUNET_CORE_disconnect (core);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect()\n");
   GNUNET_SOCIAL_app_disconnect (app, app_disconnected, NULL);
 }
+
 
 /**
  * Callback called when the program failed to finish the requested operation in time.
@@ -207,7 +210,7 @@ disconnect ()
 static void
 timeout (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "timeout()\n");
   disconnect ();
 }
 
@@ -1058,8 +1061,11 @@ app_recv_ego (void *cls,
  * Establish application connection to receive available egos and places.
  */
 static void
-app_connect ()
+app_connect (void *cls)
 {
+  GNUNET_CORE_disconnect (core);
+  core = NULL;
+
   app = GNUNET_SOCIAL_app_connect (cfg, opt_app,
                                    app_recv_ego,
                                    app_recv_host,
@@ -1076,7 +1082,7 @@ static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
   this_peer = *my_identity;
-  app_connect ();
+  GNUNET_SCHEDULER_add_now (app_connect, NULL);
 }
 
 
@@ -1095,9 +1101,9 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_SIGNAL_handler_install (SIGINT, disconnect);
-  GNUNET_SIGNAL_handler_install (SIGTERM, disconnect);
-  GNUNET_SIGNAL_handler_install (SIGKILL, disconnect);
+//  GNUNET_SIGNAL_handler_install (SIGINT, disconnect);
+//  GNUNET_SIGNAL_handler_install (SIGTERM, disconnect);
+//  GNUNET_SIGNAL_handler_install (SIGKILL, disconnect);
 
   cfg = c;
 
