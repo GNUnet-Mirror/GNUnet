@@ -1148,9 +1148,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (opt_ego)
   {
-    GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
-                                                strlen (opt_ego),
-                                                &ego_pub_key);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
+                                                               strlen (opt_ego),
+                                                               &ego_pub_key));
   }
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,

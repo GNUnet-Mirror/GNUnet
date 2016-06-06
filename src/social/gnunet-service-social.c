@@ -841,7 +841,7 @@ place_recv_relay_method (void *cls,
   struct Place *plc = cls;
 
   if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
-      && GNUNET_YES == plc->is_host);
+      && GNUNET_YES == plc->is_host)
   {
     struct Host *hst = cls;
     host_relay_message_part (hst, &meth->header, &msg->slave_pub_key);
@@ -866,7 +866,7 @@ place_recv_relay_modifier (void *cls,
   struct Place *plc = cls;
 
   if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
-      && GNUNET_YES == plc->is_host);
+      && GNUNET_YES == plc->is_host)
   {
     struct Host *hst = cls;
     host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
@@ -887,7 +887,7 @@ place_recv_relay_data (void *cls,
   struct Place *plc = cls;
 
   if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
-      && GNUNET_YES == plc->is_host);
+      && GNUNET_YES == plc->is_host)
   {
     struct Host *hst = cls;
     host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
@@ -908,7 +908,7 @@ place_recv_relay_eom (void *cls,
   struct Place *plc = cls;
 
   if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
-      && GNUNET_YES == plc->is_host);
+      && GNUNET_YES == plc->is_host)
   {
     struct Host *hst = cls;
     host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
@@ -1599,6 +1599,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     uint16_t relay_size = gst->relay_count * sizeof (*relays);
     if (remaining < relay_size)
     {
+      GNUNET_free (gst);
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
@@ -1858,6 +1859,7 @@ client_recv_guest_enter_by_name (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (NULL != gcls->join_msg)
       GNUNET_free (gcls->join_msg);
+    GNUNET_free (gcls);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -2895,6 +2897,8 @@ psyc_recv_history_message (void *cls, const struct GNUNET_PSYC_MessageHeader *ms
 
   /** @todo FIXME: send only to requesting client */
   place_send_msg (plc, &res->header);
+
+  GNUNET_free (res);
 }
 
 
@@ -3001,6 +3005,8 @@ psyc_recv_state_var (void *cls,
 
   /** @todo FIXME: send only to requesting client */
   place_send_msg (plc, &res->header);
+
+  GNUNET_free (res);
 }
 
 
@@ -3304,10 +3310,14 @@ file_place_load (void *cls, const char *place_filename)
   if (GNUNET_OK !=
       GNUNET_DISK_file_size (filename, &file_size, GNUNET_YES, GNUNET_YES)
       || file_size < sizeof (struct PlaceEnterRequest))
+  {
+    GNUNET_free (filename);
     return GNUNET_OK;
+  }
 
   struct PlaceEnterRequest *ereq = GNUNET_malloc (file_size);
   ssize_t read_size = GNUNET_DISK_fn_read (filename, ereq, file_size);
+  GNUNET_free (filename);
   if (read_size < 0 || read_size < sizeof (*ereq))
   {
     GNUNET_free (ereq);

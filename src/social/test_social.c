@@ -463,10 +463,11 @@ app_recv_ego (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
               const char *name)
 {
+  char *ego_pub_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Got app ego notification: %p %s %s\n",
-              ego, name,
-              GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key));
+              ego, name, ego_pub_str);
+  GNUNET_free (ego_pub_str);
 
   if (NULL != strstr (name, host_name) && TEST_HOST_CREATE == test)
   {
@@ -1097,6 +1098,8 @@ host_answer_door (void *cls,
 
   case TEST_HOST_ANSWER_DOOR_ADMIT:
     test = TEST_GUEST_RECV_ENTRY_DCSN_ADMIT;
+    // fall through
+
   case TEST_GUEST_ENTER_BY_NAME:
     join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
                                             DATA2ARG ("Welcome, nym!"));

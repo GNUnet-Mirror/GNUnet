@@ -411,6 +411,7 @@ host_recv_notice_place_leave_method (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "_notice_place_leave: got method from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
+  GNUNET_free (str);
 }
 
 
@@ -459,6 +460,7 @@ host_recv_notice_place_leave_eom (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "_notice_place_leave: got EOM from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
+  GNUNET_free (str);
 
   if (GNUNET_YES != is_cancelled)
   {
@@ -1355,14 +1357,17 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
 void
 GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *hst,
                           const struct GNUNET_SOCIAL_Nym *nym,
-                          struct GNUNET_PSYC_Environment *env)
+                          struct GNUNET_PSYC_Environment *e)
 {
+  struct GNUNET_PSYC_Environment *env = e;
   if (NULL == env)
     env = GNUNET_PSYC_env_create ();
   GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
                        "_nym", &nym->pub_key, sizeof (nym->pub_key));
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_leave", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
+  if (NULL == e)
+    GNUNET_PSYC_env_destroy (env);
 }
 
 
@@ -1749,7 +1754,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
   uint16_t password_size = strlen (password) + 1;
 
   uint16_t join_msg_size = 0;
-  if (NULL != join_msg);
+  if (NULL != join_msg)
     join_msg_size = ntohs (join_msg->header.size);
 
   uint16_t greq_size = sizeof (struct GuestEnterByNameRequest)
