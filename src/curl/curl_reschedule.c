@@ -116,12 +116,13 @@ context_task (void *cls)
   GNUNET_NETWORK_fdset_copy_native (ws,
                                     &write_fd_set,
                                     max_fd + 1);
-  rc->task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                          delay,
-                                          rs,
-                                          ws,
-                                          &context_task,
-                                          rc);
+  if (NULL == rc->task)
+    rc->task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                            delay,
+                                            rs,
+                                            ws,
+                                            &context_task,
+                                            rc);
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
 }
