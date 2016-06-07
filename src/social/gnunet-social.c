@@ -204,6 +204,13 @@ disconnect ()
 }
 
 
+static void
+scheduler_shutdown (void *cls)
+{
+  disconnect ();
+}
+
+
 /**
  * Callback called when the program failed to finish the requested operation in time.
  */
@@ -1106,10 +1113,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-//  GNUNET_SIGNAL_handler_install (SIGINT, disconnect);
-//  GNUNET_SIGNAL_handler_install (SIGTERM, disconnect);
-//  GNUNET_SIGNAL_handler_install (SIGKILL, disconnect);
-
   cfg = c;
 
   if (!opt_method)
@@ -1130,6 +1133,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     op_status = 1;
   }
 
+  GNUNET_SCHEDULER_add_shutdown (scheduler_shutdown, NULL);
   if (!opt_follow)
   {
     timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, timeout, NULL);
@@ -1153,10 +1157,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (opt_ego)
   {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
-                                                               strlen (opt_ego),
-                                                               &ego_pub_key));
+    GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
+                                                strlen (opt_ego),
+                                                &ego_pub_key);
   }
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
