@@ -177,7 +177,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
 
     if (MYSQL_NO_DATA == ret)
       return GNUNET_NO;
-    if ((0 != ret ) & (MYSQL_DATA_TRUNCATED != ret))
+    if ((0 != ret ) && (MYSQL_DATA_TRUNCATED != ret))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "my",
