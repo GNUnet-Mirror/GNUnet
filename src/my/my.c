@@ -39,7 +39,6 @@
       #GNUNET_YES if we can prepare all statement
       #GNUNET_SYSERR if we can't prepare all statement
  */
-
 int
 GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,
@@ -82,15 +81,15 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
       return GNUNET_SYSERR;
     }
 
-  }
-  if (mysql_stmt_execute (stmt))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                     _("`%s' failed at %s:%d with error: %s\n"),
-                     "mysql_stmt_execute", __FILE__, __LINE__,
-                     mysql_stmt_error (stmt));
-    GNUNET_MYSQL_statements_invalidate (mc);
-    return GNUNET_SYSERR;
+    if (mysql_stmt_execute (stmt))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                       _("`%s' failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_execute", __FILE__, __LINE__,
+                       mysql_stmt_error (stmt));
+      GNUNET_MYSQL_statements_invalidate (mc);
+      return GNUNET_SYSERR;
+    }
   }
 
   return GNUNET_OK;
@@ -175,7 +174,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
     }
 
     ret = mysql_stmt_fetch (stmt);
-   
+
     if (MYSQL_NO_DATA == ret)
       return GNUNET_NO;
     if ((0 != ret ) & (MYSQL_DATA_TRUNCATED != ret))

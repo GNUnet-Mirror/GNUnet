@@ -89,7 +89,7 @@ GNUNET_MY_query_param_string (const char *ptr)
   *@param cls closure
   *@param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error 
+  *@return -1 on error
   */
 static int
 my_conv_uint16 (void *cls,
@@ -124,7 +124,7 @@ my_conv_uint16 (void *cls,
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
-  struct GNUNET_MY_QueryParam res = { 
+  struct GNUNET_MY_QueryParam res = {
       .conv = &my_conv_uint16,
       .conv_cls = NULL,
       .num_params = 1,
@@ -141,9 +141,9 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
   *@param cls closure
   *@param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error 
+  *@return -1 on error
   */
-static int 
+static int
 my_conv_uint32 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
@@ -176,10 +176,10 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
     .conv = &my_conv_uint32,
     .conv_cls = NULL,
     .num_params = 1,
-    .data = x, 
+    .data = x,
     .data_len = sizeof (*x)
   };
-  
+
   return res;
 }
 
@@ -189,7 +189,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
   *@param cls closure
   *@param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error 
+  *@return -1 on error
   */
 static int
 my_conv_uint64 (void *cls,
@@ -209,7 +209,7 @@ my_conv_uint64 (void *cls,
   qbind->buffer_length = sizeof (uint64_t);
   qbind->buffer_type = MYSQL_TYPE_LONGLONG;
 
-  return 1;  
+  return 1;
 }
 
 /**
@@ -237,7 +237,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
   *@param cls closure
   *@param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error 
+  *@return -1 on error
   */
 static int
 my_conv_rsa_public_key (void *cls,
@@ -249,15 +249,16 @@ my_conv_rsa_public_key (void *cls,
     size_t buf_size;
 
     GNUNET_assert(1 == qp->num_params);
-
+    // FIXME: this leaks memory right now...
     buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
 
-    qbind->buffer = (void *)buf;
-    qbind->buffer_length = buf_size-1;
+    qbind->buffer = (void *) buf;
+    qbind->buffer_length = buf_size;
     qbind->buffer_type = MYSQL_TYPE_BLOB;
 
     return 1;
   }
+
 
   /**
     * Generate query parameter for an RSA public key. The
@@ -280,18 +281,19 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
   return res;
 }
 
+
 /**
   * Function called to convert input argument into SQL parameters
   *
   *@param cls closure
   *@param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error 
+  *@return -1 on error
   */
-static int 
+static int
 my_conv_rsa_signature (void *cls,
-                      const struct GNUNET_MY_QueryParam *qp,
-                      MYSQL_BIND * qbind)
+                       const struct GNUNET_MY_QueryParam *qp,
+                       MYSQL_BIND *qbind)
 {
   const struct GNUNET_CRYPTO_RsaSignature *sig = qp->data;
   char *buf;
@@ -299,15 +301,15 @@ my_conv_rsa_signature (void *cls,
 
   GNUNET_assert(1 == qp->num_params);
 
-  buf_size = GNUNET_CRYPTO_rsa_signature_encode(sig,
-                                                &buf);
-
-  qbind->buffer = (void *)buf;
-  qbind->buffer_length = buf_size-1;
+  buf_size = GNUNET_CRYPTO_rsa_signature_encode (sig,
+                                                 &buf);
+  qbind->buffer = (void *) buf;
+  qbind->buffer_length = buf_size;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
 
   return 1;
 }
+
 
 /**
   * Generate query parameter for an RSA signature. The

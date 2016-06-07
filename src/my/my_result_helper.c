@@ -1,12 +1,15 @@
  /*
   This file is part of GNUnet
   Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
   Foundation; either version 3, or (at your option) any later version.
+
   GNUnet is distributed in the hope that it will be useful, but WITHOUT ANY
   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
   A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
   You should have received a copy of the GNU General Public License along with
   GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
 */
@@ -225,6 +228,7 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
   return res;
 }
 
+
 /**
   * Extract data from a Mysql database @a result at row @a row
   *
@@ -239,12 +243,11 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
   *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
   */
 static int
-pre_extract_rsa_public_key  (void *cls,
-                        struct GNUNET_MY_ResultSpec *rs,
-                        MYSQL_STMT *stmt,
-                        unsigned int column,
-                        MYSQL_BIND *results)
-
+pre_extract_rsa_public_key (void *cls,
+                            struct GNUNET_MY_ResultSpec *rs,
+                            MYSQL_STMT *stmt,
+                            unsigned int column,
+                            MYSQL_BIND *results)
 {
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
@@ -271,35 +274,41 @@ pre_extract_rsa_public_key  (void *cls,
   */
 static int
 post_extract_rsa_public_key  (void *cls,
-                        struct GNUNET_MY_ResultSpec *rs,
-                        MYSQL_STMT *stmt,
-                        unsigned int column,
-                        MYSQL_BIND *results)
+                              struct GNUNET_MY_ResultSpec *rs,
+                              MYSQL_STMT *stmt,
+                              unsigned int column,
+                              MYSQL_BIND *results)
 
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rs->dst;
-
+  void *buf;
   size_t size;
-  char *res;
 
-  results[0].buffer = res;
+  size = (size_t) rs->mysql_bind_output_length;
+
+  if (rs->mysql_bind_output_length != size)
+    return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
+  buf = GNUNET_malloc (size);
+
+  results[0].buffer = buf;
   results[0].buffer_length = size;
-
-  if (0 != 
-        mysql_stmt_fetch_column (stmt,
-                                results,
-                                column,
-                                0))
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
+  if (0 !=
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
   {
-    return GNUNET_SYSERR; 
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
   }
-
-  *pk = GNUNET_CRYPTO_rsa_public_key_decode (res,
-                                            size);
+  *pk = GNUNET_CRYPTO_rsa_public_key_decode (buf,
+                                             size);
+  GNUNET_free (buf);
   if (NULL == *pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Results contains bogus value (fail to decode)\n");
+                "Results contains bogus public key value (fail to decode)\n");
     return GNUNET_SYSERR;
   }
 
@@ -324,7 +333,6 @@ clean_rsa_public_key (void *cls,
   {
     GNUNET_CRYPTO_rsa_public_key_free (*pk);
     *pk = NULL;
-    *rs->result_size = 0;
   }
 }
 
@@ -378,6 +386,8 @@ pre_extract_rsa_signature (void *cls,
 
   return GNUNET_OK;
 }
+
+
 /**
   * Extract data from a Mysql database @a result at row @a row.
   *
@@ -399,31 +409,37 @@ post_extract_rsa_signature (void *cls,
                       MYSQL_BIND *results)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
-  size_t size = 0 ;
-  char *res = NULL;
+  void *buf;
+  size_t size;
 
-  results[0].buffer = res;
+  size = (size_t) rs->mysql_bind_output_length;
+
+  if (rs->mysql_bind_output_length != size)
+    return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
+  buf = GNUNET_malloc (size);
+
+  results[0].buffer = buf;
   results[0].buffer_length = size;
-
-  if (0 != 
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
+  if (0 !=
       mysql_stmt_fetch_column (stmt,
-                              results,
-                              column,
-                              0))
+                               results,
+                               column,
+                               0))
   {
+    GNUNET_free (buf);
     return GNUNET_SYSERR;
   }
 
-  *sig = GNUNET_CRYPTO_rsa_signature_decode (res,
-                                            size);
-
-  if (NULL != *sig)
+  *sig = GNUNET_CRYPTO_rsa_signature_decode (buf,
+                                             size);
+  GNUNET_free (buf);
+  if (NULL == *sig)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Resuls contains bogus value (fails to decode)\n");
+                "Resuls contains bogus signature value (fails to decode)\n");
     return GNUNET_SYSERR;
   }
-
   return GNUNET_OK;
 }
 
@@ -445,7 +461,6 @@ clean_rsa_signature (void *cls,
   {
     GNUNET_CRYPTO_rsa_signature_free (*sig);
     *sig = NULL;
-    rs->result_size = 0;
   }
 }
 
@@ -523,7 +538,7 @@ pre_extract_string (void * cls,
 
 
 /**
-  * Check size of extracted fixed size data from a Mysql database @a 
+  * Check size of extracted fixed size data from a Mysql database @a
   *
   * @param cls closure
   * @param result where to extract data from
@@ -545,7 +560,7 @@ post_extract_string (void * cls,
   if (rs->dst_size != rs->mysql_bind_output_length)
     return GNUNET_SYSERR;
   return GNUNET_OK;
-/*  
+/*
   char **str = rs->dst;
   size_t len;
   const char *res;

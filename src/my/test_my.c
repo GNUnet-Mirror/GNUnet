@@ -37,7 +37,7 @@
 static int
 run_queries (struct GNUNET_MYSQL_Context *context)
 {
-     struct GNUNET_CRYPTO_RsaPublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub;
      struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
      struct GNUNET_CRYPTO_RsaSignature *sig;
      struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
@@ -154,12 +154,12 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                                                  " ORDER BY abs_time DESC "
                                                                  " LIMIT 1;");
 
-*/ 
+*/
      statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
                                                                  "SELECT"
-                                                                 //" pub"
-                                                                 //" sig"
-                                                                 " abs_time"
+                                                                 " pub"
+                                                                 ",sig"
+                                                                 ",abs_time"
                                                                  ",forever"
                                                                  ",hash"
                                                                  ",vsize"
@@ -201,8 +201,8 @@ run_queries (struct GNUNET_MYSQL_Context *context)
      };
 */
      struct GNUNET_MY_ResultSpec results_select[] = {
-          //GNUNET_MY_result_spec_rsa_public_key (&pub2),
-          //GNUNET_MY_result_spec_rsa_signature (&sig2),
+          GNUNET_MY_result_spec_rsa_public_key (&pub2),
+          GNUNET_MY_result_spec_rsa_signature (&sig2),
           GNUNET_MY_result_spec_absolute_time (&abs_time2),
           GNUNET_MY_result_spec_absolute_time (&forever2),
           GNUNET_MY_result_spec_auto_from_type (&hc2),
@@ -244,12 +244,11 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 }
 
 
-int 
+int
 main (int argc, const char * const argv[])
 {
      struct GNUNET_CONFIGURATION_Handle *config;
      struct GNUNET_MYSQL_Context *context;
-
      int ret;
 
      GNUNET_log_setup (  "test-my",
@@ -257,19 +256,13 @@ main (int argc, const char * const argv[])
                          NULL);
 
      config = GNUNET_CONFIGURATION_create ();
-     if (NULL == config)
-     {
-          fprintf (stderr, "Failed to create a configuration\n");
-          return 1;
-     }
-
      if (GNUNET_OK != GNUNET_CONFIGURATION_parse (config, "test_my.conf"))
      {
           fprintf (stderr, "Failed to parse configuaration\n");
           return 1;
      }
 
-     context = GNUNET_MYSQL_context_create (config, 
+     context = GNUNET_MYSQL_context_create (config,
                                              "datastore-mysql");
      if (NULL == context)
      {
@@ -277,24 +270,26 @@ main (int argc, const char * const argv[])
           return 77;
      }
 
+     (void) GNUNET_MYSQL_statement_run (context,
+                                        "DROP TABLE test_my2;");
      if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
-                                                  "CREATE TABLE test_my2("
-                                                  "pub BLOB NOT NULL"
-                                                  ", sig BLOB NOT NULL"
-                                                  ", abs_time BIGINT NOT NULL"
-                                                  ", forever BIGINT NOT NULL"
-                                                  ", hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
-                                                  ", vsize BLOB NOT NULL"
-                                                  ", u16 SMALLINT NOT NULL"
-                                                  ", u32 INT NOT NULL"
-                                                  ", u64 BIGINT NOT NULL"
+                                                  "CREATE TABLE IF NOT EXISTS test_my2("
+                                                  " pub BLOB NOT NULL"
+                                                  ",sig BLOB NOT NULL"
+                                                  ",abs_time BIGINT NOT NULL"
+                                                  ",forever BIGINT NOT NULL"
+                                                  ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
+                                                  ",vsize BLOB NOT NULL"
+                                                  ",u16 SMALLINT NOT NULL"
+                                                  ",u32 INT NOT NULL"
+                                                  ",u64 BIGINT NOT NULL"
                                                   ")"))
      {
-          fprintf (stderr, 
-                    "Failed to create table \n"); 
-          GNUNET_MYSQL_statements_invalidate (context);    
+          fprintf (stderr,
+                    "Failed to create table \n");
+          GNUNET_MYSQL_statements_invalidate (context);
           GNUNET_MYSQL_context_destroy (context);
-          
+
           return 1;
      }
 
@@ -308,11 +303,11 @@ main (int argc, const char * const argv[])
                                                   ", u64 BIGINT NOT NULL"
                                                   ")"))
      {
-          fprintf (stderr, 
-                    "Failed to create table \n"); 
-          GNUNET_MYSQL_statements_invalidate (context);    
+          fprintf (stderr,
+                    "Failed to create table \n");
+          GNUNET_MYSQL_statements_invalidate (context);
           GNUNET_MYSQL_context_destroy (context);
-          
+
           return 1;
      }
 */
