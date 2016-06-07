@@ -393,6 +393,31 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
 
 
 /**
+ * Test for malicious RSA key.
+ *
+ * Assuming n is an RSA modulous and r is generated using a call to
+ * GNUNET_CRYPTO_kdf_mod_mpi, if gcd(r,n) != 1 then n must be a
+ * malicious RSA key designed to deanomize the user.
+ *
+ * @param r KDF result
+ * @param n RSA modulus
+ * @return Asserts gcd(r,n) = 1
+ */
+static int
+rsa_gcd_validate(gcry_mpi_t r, gcry_mpi_t n)
+{
+  gcry_mpi_t g;
+  int t;
+
+  g = gcry_mpi_new (0);
+  t = gcry_mpi_gcd(g,r,n);
+  gcry_mpi_release (g);
+  GNUNET_assert( t );
+  return t;
+}
+
+
+/**
  * Create a blinding key
  *
  * @param len length of the key in bits (i.e. 2048)
@@ -406,7 +431,6 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
   char *xts = "Blinding KDF extrator HMAC key";  /* Trusts bks' randomness more */
   struct RsaBlindingKey *blind;
   gcry_mpi_t n;
-  gcry_mpi_t g;
 
   blind = GNUNET_new (struct RsaBlindingKey);
 
@@ -419,12 +443,7 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                              xts,  strlen(xts),
                              bks,  sizeof(*bks),
                              "Blinding KDF");
-
-  /* If gcd(*r,n) != 1 then n must be a malicious fake RSA key
-     designed to deanomize the user. */
-  g = gcry_mpi_new (0);
-  GNUNET_assert( gcry_mpi_gcd(g,blind->r,n) );
-  gcry_mpi_release (g);
+  rsa_gcd_validate(blind->r,n);
 
   gcry_mpi_release (n);
   return blind;
@@ -661,7 +680,6 @@ rsa_full_domain_hash (gcry_mpi_t *r,
   gcry_mpi_t n;
   char *xts;
   size_t xts_len;
-  gcry_mpi_t g;
 
   /* Extract the composite n from the RSA public key */
   GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
@@ -678,14 +696,9 @@ rsa_full_domain_hash (gcry_mpi_t *r,
                              xts,  xts_len,
                              hash,  sizeof(*hash),
                              "RSA-FDA FTpsW!");
-
   GNUNET_free (xts);
 
-  /* If gcd(*r,n) != 1 then n must be a malicious fake RSA key
-     designed to deanomize the user. */
-  g = gcry_mpi_new (0);
-  GNUNET_assert( gcry_mpi_gcd(g,*r,n) );
-  gcry_mpi_release (g);
+  rsa_gcd_validate(*r,n);
 
   gcry_mpi_release (n);
 }
