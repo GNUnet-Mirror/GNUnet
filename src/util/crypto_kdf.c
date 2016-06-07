@@ -144,6 +144,7 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
     gcry_mpi_clear_highbit (*r, nbits);
     GNUNET_assert( 0 == gcry_mpi_test_bit (*r, nbits) );
     ++ctr;
+    /* We reject this FDH if either *r > n and retry with another ctr */
   } while ( 0 <= gcry_mpi_cmp(*r,n) );
 }
 

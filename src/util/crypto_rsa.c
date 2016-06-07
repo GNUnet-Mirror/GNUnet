@@ -406,6 +406,7 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
   char *xts = "Blinding KDF extrator HMAC key";  /* Trusts bks' randomness more */
   struct RsaBlindingKey *blind;
   gcry_mpi_t n;
+  gcry_mpi_t g;
 
   blind = GNUNET_new (struct RsaBlindingKey);
 
@@ -418,6 +419,14 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                              xts,  strlen(xts),
                              bks,  sizeof(*bks),
                              "Blinding KDF");
+
+  /* If gcd(*r,n) != 1 then n must be a malicious fake RSA key
+     designed to deanomize the user. */
+  g = gcry_mpi_new (0);
+  GNUNET_assert( gcry_mpi_gcd(g,blind->r,n) );
+  gcry_mpi_release (g);
+
+  gcry_mpi_release (n);
   return blind;
 }
 
@@ -652,6 +661,7 @@ rsa_full_domain_hash (gcry_mpi_t *r,
   gcry_mpi_t n;
   char *xts;
   size_t xts_len;
+  gcry_mpi_t g;
 
   /* Extract the composite n from the RSA public key */
   GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
@@ -670,6 +680,14 @@ rsa_full_domain_hash (gcry_mpi_t *r,
                              "RSA-FDA FTpsW!");
 
   GNUNET_free (xts);
+
+  /* If gcd(*r,n) != 1 then n must be a malicious fake RSA key
+     designed to deanomize the user. */
+  g = gcry_mpi_new (0);
+  GNUNET_assert( gcry_mpi_gcd(g,*r,n) );
+  gcry_mpi_release (g);
+
+  gcry_mpi_release (n);
 }
 
 
