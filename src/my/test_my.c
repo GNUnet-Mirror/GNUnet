@@ -162,7 +162,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                                                  " abs_time"
                                                                  ",forever"
                                                                  ",hash"
-                                                                 //" vsize"
+                                                                 ",vsize"
                                                                  ",u16"
                                                                  ",u32"
                                                                  ",u64"
@@ -206,7 +206,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
           GNUNET_MY_result_spec_absolute_time (&abs_time2),
           GNUNET_MY_result_spec_absolute_time (&forever2),
           GNUNET_MY_result_spec_auto_from_type (&hc2),
-          //GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
+          GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
           GNUNET_MY_result_spec_uint16 (&u162),
           GNUNET_MY_result_spec_uint32 (&u322),
           GNUNET_MY_result_spec_uint64 (&u642),
@@ -224,6 +224,12 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                             &hc2,
                             sizeof (struct GNUNET_HashCode)));
 
+     GNUNET_break (strlen (msg) == msg2_len);
+     GNUNET_break (0 ==
+            strncmp (msg,
+                  msg2,
+                  msg2_len));
+     fprintf(stderr, "msg2 : %d\n", strlen(msg2));
      GNUNET_break (16 == u162);
      GNUNET_break (32 == u322);
      GNUNET_break (64 == u642);

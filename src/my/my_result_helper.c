@@ -40,7 +40,7 @@ pre_extract_varsize_blob (void *cls,
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
-  results[0].buffer_type = MYSQL_TYPE_BLOB;
+ // results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   return GNUNET_OK;
 }
@@ -69,11 +69,16 @@ post_extract_varsize_blob (void *cls,
   size_t size;
 
   size = (size_t) rs->mysql_bind_output_length;
+
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
   buf = GNUNET_malloc (size);
+
   results[0].buffer = buf;
   results[0].buffer_length = size;
+  results[0].buffer_type = MYSQL_TYPE_BLOB;
+
+  fprintf(stderr, "size : %d\n", size);
 
   if (0 !=
       mysql_stmt_fetch_column (stmt,
@@ -84,8 +89,12 @@ post_extract_varsize_blob (void *cls,
     GNUNET_free (buf);
     return GNUNET_SYSERR;
   }
+
+  printf("buf : %s\n", (char*)buf);
+
   *(void **) rs->dst = buf;
   *rs->result_size = size;
+
   return GNUNET_OK;
 }
 
