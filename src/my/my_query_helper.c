@@ -62,6 +62,7 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 {
   struct GNUNET_MY_QueryParam qp = {
     .conv = &my_conv_fixed_size,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = ptr,
@@ -106,7 +107,6 @@ my_conv_uint16 (void *cls,
   if (NULL == u_nbo)
     return -1;
 
-//  *u_nbo = htons (*u_hbo);
     *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
@@ -126,6 +126,7 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
       .conv = &my_conv_uint16,
+      .cleaner = NULL,
       .conv_cls = NULL,
       .num_params = 1,
       .data = x,
@@ -174,6 +175,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint32,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -222,6 +224,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint64,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -260,6 +263,27 @@ my_conv_rsa_public_key (void *cls,
   }
 
 
+/**
+ * Function called to clean up memory allocated
+ * by a #GNUNET_MY_ResultConverter.
+ *
+ * @param cls closure
+ * @param rd result data to clean up
+ */
+static void
+my_clean_rsa_public_key (void *cls,
+                      struct GNUNET_MY_QueryParam *qp)
+{
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = qp->data;
+
+  if (NULL != *pk)
+  {
+    GNUNET_CRYPTO_rsa_public_key_free (*pk);
+    *pk = NULL;
+  }
+}
+
+
   /**
     * Generate query parameter for an RSA public key. The
     * database must contain a BLOB type in the respective position.
@@ -272,6 +296,7 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_public_key,
+    .cleaner = &my_clean_rsa_public_key,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -312,6 +337,27 @@ my_conv_rsa_signature (void *cls,
 
 
 /**
+ * Function called to clean up memory allocated
+ * by a #GNUNET_MY_QueryConverter.
+ *
+ * @param cls closure
+ * @param rd result data to clean up
+ */
+static void
+my_clean_rsa_signature (void *cls,
+          struct GNUNET_MY_QueryParam *qp)
+{
+  struct GNUNET_CRYPTO_RsaSignature **sig = qp->data;
+
+  if (NULL != *sig)
+  {
+    GNUNET_CRYPTO_rsa_signature_free (*sig);
+    *sig = NULL;
+  }
+}
+
+
+/**
   * Generate query parameter for an RSA signature. The
   * database must contain a BLOB type in the respective position
   *
@@ -323,6 +369,7 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_signature,
+    .cleaner = &my_clean_rsa_signature,
     .conv_cls = NULL,
     .num_params = 1,
     .data = (x),

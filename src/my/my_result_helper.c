@@ -43,7 +43,6 @@ pre_extract_varsize_blob (void *cls,
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
- // results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   return GNUNET_OK;
 }

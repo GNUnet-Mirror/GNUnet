@@ -66,9 +66,20 @@ typedef int
 
 
 /**
+ * Function called to cleanup result data.
+ *
+ * @param cls closure
+ * @param rs spec to clean up
+ */
+typedef void
+(*GNUNET_MY_QueryCleanup)(void *cls,
+                           struct GNUNET_MY_QueryParam *qp);
+/**
  * Information we pass to #GNUNET_MY_exec_prepared() to
  * initialize the arguments of the prepared statement.
  */
+
+
 struct GNUNET_MY_QueryParam
 {
 
@@ -76,6 +87,11 @@ struct GNUNET_MY_QueryParam
    * Function to call for the type conversion.
    */
   GNUNET_MY_QueryConverter conv;
+
+   /**
+   * Function to call for cleaning up the query. Can be NULL.
+   */
+  GNUNET_MY_QueryCleanup cleaner;
 
   /**
    * Closure for @e conv.
@@ -104,7 +120,7 @@ struct GNUNET_MY_QueryParam
  *
  * @return array last entry for the result specification to use
  */
-#define GNUNET_MY_query_param_end { NULL, NULL, 0, NULL, 0 }
+#define GNUNET_MY_query_param_end { NULL, NULL, NULL, 0, NULL, 0 }
 
 
 
@@ -446,6 +462,15 @@ int
 GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                           struct GNUNET_MY_ResultSpec *specs);
 
+
+/**
+ * Free all memory that was allocated in @a qp during
+ * #GNUNET_MY_exect_prepared().
+ *
+ * @param qp query specification to clean up
+ */
+void
+GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp);
 
 
 /**

@@ -65,6 +65,10 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                    p,
                    &qbind[off]))
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Conversion for MySQL query failed at offset %u\n",
+                    i);
+        GNUNET_MY_cleanup_query (params);
         return GNUNET_SYSERR;
       }
       off += p->num_params;
@@ -88,11 +92,29 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                        "mysql_stmt_execute", __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MYSQL_statements_invalidate (mc);
+      GNUNET_MY_cleanup_query (params);
       return GNUNET_SYSERR;
     }
   }
 
   return GNUNET_OK;
+}
+
+
+/**
+ * Free all memory that was allocated in @a qp during
+ * #GNUNET_MY_exect_prepared().
+ *
+ * @param qp query specification to clean up
+ */
+void
+GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp)
+{
+  unsigned int i;
+
+  for (i=0;NULL != qp[i].cleaner;i++)
+    qp[i].cleaner (qp[i].conv_cls,
+                   &qp[i]);
 }
 
 
