@@ -98,10 +98,10 @@ main (int argc,
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
 			      &bsec,
 			      sizeof (bsec));
-  bsize = GNUNET_CRYPTO_rsa_blind (&hash,
-				   &bsec,
-				   pub,
-				   &blind_buf);
+  GNUNET_CRYPTO_rsa_blind (&hash,
+			   &bsec,
+			   pub,
+			   &blind_buf,&bsize);
   GNUNET_assert (0 != bsize);
   bsig = GNUNET_CRYPTO_rsa_sign_blinded (priv,
                                          blind_buf,

@@ -401,7 +401,7 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
  *
  * @param r KDF result
  * @param n RSA modulus
- * @return Asserts gcd(r,n) = 1
+ * @return True if gcd(r,n) = 1, False means RSA key is malicious
  */
 static int
 rsa_gcd_validate(gcry_mpi_t r, gcry_mpi_t n)
@@ -412,7 +412,6 @@ rsa_gcd_validate(gcry_mpi_t r, gcry_mpi_t n)
   g = gcry_mpi_new (0);
   t = gcry_mpi_gcd(g,r,n);
   gcry_mpi_release (g);
-  GNUNET_assert( t );
   return t;
 }
 
@@ -422,7 +421,7 @@ rsa_gcd_validate(gcry_mpi_t r, gcry_mpi_t n)
  *
  * @param len length of the key in bits (i.e. 2048)
  * @param bks pre-secret to use to derive the blinding key
- * @return the newly created blinding key
+ * @return the newly created blinding key, NULL if RSA key is malicious
  */
 static struct RsaBlindingKey *
 rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
@@ -431,11 +430,13 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
   char *xts = "Blinding KDF extrator HMAC key";  /* Trusts bks' randomness more */
   struct RsaBlindingKey *blind;
   gcry_mpi_t n;
-
+ 
   blind = GNUNET_new (struct RsaBlindingKey);
+  GNUNET_assert( NULL != blind );
 
   /* Extract the composite n from the RSA public key */
   GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
+  /* Assert that it at least looks like an RSA key */
   GNUNET_assert( 0 == gcry_mpi_get_flag(n, GCRYMPI_FLAG_OPAQUE) );
 
   GNUNET_CRYPTO_kdf_mod_mpi (&blind->r,
@@ -443,7 +444,10 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                              xts,  strlen(xts),
                              bks,  sizeof(*bks),
                              "Blinding KDF");
-  rsa_gcd_validate(blind->r,n);
+  if (0 == rsa_gcd_validate(blind->r, n))  {
+    GNUNET_free (blind);
+    blind = NULL;
+  }
 
   gcry_mpi_release (n);
   return blind;
@@ -667,22 +671,23 @@ numeric_mpi_alloc_n_print (gcry_mpi_t v,
  *   https://eprint.iacr.org/2001/002.pdf
  *   http://www.di.ens.fr/~pointche/Documents/Papers/2001_fcA.pdf
  *
- * @param[out] r MPI value set to the FDH
  * @param hash initial hash of the message to sign
  * @param pkey the public key of the signer
  * @param rsize If not NULL, the number of bytes actually stored in buffer
+ * @return MPI value set to the FDH, NULL if RSA key is malicious
  */
-static void
-rsa_full_domain_hash (gcry_mpi_t *r,
-                                    const struct GNUNET_HashCode *hash,
-                                    const struct GNUNET_CRYPTO_RsaPublicKey *pkey)
+static gcry_mpi_t
+rsa_full_domain_hash (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
+                      const struct GNUNET_HashCode *hash)
 {
-  gcry_mpi_t n;
+  gcry_mpi_t r,n;
   char *xts;
   size_t xts_len;
+  int ok;
 
   /* Extract the composite n from the RSA public key */
   GNUNET_assert( 0 == key_from_sexp (&n, pkey->sexp, "rsa", "n") );
+  /* Assert that it at least looks like an RSA key */
   GNUNET_assert( 0 == gcry_mpi_get_flag(n, GCRYMPI_FLAG_OPAQUE) );
 
   /* We key with the public denomination key as a homage to RSA-PSS by  *
@@ -691,16 +696,19 @@ rsa_full_domain_hash (gcry_mpi_t *r,
    * polynomial-time one-more forgary attack.  Yey seeding!             */
   xts_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &xts);
 
-  GNUNET_CRYPTO_kdf_mod_mpi (r,
+  GNUNET_CRYPTO_kdf_mod_mpi (&r,
                              n,
                              xts,  xts_len,
                              hash,  sizeof(*hash),
                              "RSA-FDA FTpsW!");
   GNUNET_free (xts);
 
-  rsa_gcd_validate(*r,n);
-
+  ok = rsa_gcd_validate(r,n);
   gcry_mpi_release (n);
+  if (ok)
+    return r;
+  gcry_mpi_release (r);
+  return NULL;
 }
 
 
@@ -710,36 +718,45 @@ rsa_full_domain_hash (gcry_mpi_t *r,
  * @param hash hash of the message to sign
  * @param bkey the blinding key
  * @param pkey the public key of the signer
- * @param[out] buffer set to a buffer with the blinded message to be signed
- * @return number of bytes stored in @a buffer
+ * @param[out] buf set to a buffer with the blinded message to be signed
+ * @param[out] buf_size number of bytes stored in @a buf
+ * @return GNUNET_YES if successful, GNUNET_NO if RSA key is malicious
  */
-size_t
+int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buffer)
+                         char **buf, size_t *buf_size)
 {
   struct RsaBlindingKey *bkey;
   gcry_mpi_t data;
   gcry_mpi_t ne[2];
   gcry_mpi_t r_e;
   gcry_mpi_t data_r_e;
-  size_t n;
   int ret;
 
+  GNUNET_assert (buf != NULL && buf_size != NULL);
   ret = key_from_sexp (ne, pkey->sexp, "public-key", "ne");
   if (0 != ret)
     ret = key_from_sexp (ne, pkey->sexp, "rsa", "ne");
   if (0 != ret)
   {
     GNUNET_break (0);
-    *buffer = NULL;
+    *buf = NULL;
+    *buf_size = 0;
     return 0;
   }
 
-  rsa_full_domain_hash (&data, hash, pkey);
-  bkey = rsa_blinding_key_derive (pkey,
-				  bks);
+  data = rsa_full_domain_hash (pkey, hash);
+  if (NULL == data) 
+    goto rsa_gcd_validate_failure;
+
+  bkey = rsa_blinding_key_derive (pkey, bks);
+  if (NULL == bkey) {
+    gcry_mpi_release (data);
+    goto rsa_gcd_validate_failure;
+  }
+
   r_e = gcry_mpi_new (0);
   gcry_mpi_powm (r_e,
                  bkey->r,
@@ -756,9 +773,18 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (r_e);
   rsa_blinding_key_free (bkey);  
 
-  n = numeric_mpi_alloc_n_print (data_r_e, buffer);
+  *buf_size = numeric_mpi_alloc_n_print (data_r_e, buf);
   gcry_mpi_release (data_r_e);
-  return n;
+  return GNUNET_YES;
+
+rsa_gcd_validate_failure:
+  /* We know the RSA key is malicious here, so warn the wallet. */
+  /* GNUNET_break_op (0); */
+  gcry_mpi_release (ne[0]);
+  gcry_mpi_release (ne[1]);
+  *buf = NULL;
+  *buf_size = 0;
+  return GNUNET_NO;
 }
 
 
@@ -872,7 +898,7 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
  *
  * @param key private key to use for the signing
  * @param hash the hash of the message to sign
- * @return NULL on error, signature on success
+ * @return NULL on error, including a malicious RSA key, signature on success
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -883,13 +909,14 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   struct GNUNET_CRYPTO_RsaSignature *sig;
 
   pkey = GNUNET_CRYPTO_rsa_private_key_get_public (key);
-  rsa_full_domain_hash (&v, hash, pkey);
+  v = rsa_full_domain_hash (pkey, hash);
   GNUNET_CRYPTO_rsa_public_key_free (pkey);
-
+  if (NULL == v)   /* rsa_gcd_validate failed meaning */
+    return NULL;   /* our *own* RSA key is malicious. */
+ 
   sig = rsa_sign_mpi (key, v);
   gcry_mpi_release (v);
   return sig;
-
 }
 
 
@@ -1012,7 +1039,7 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_RsaPublicKey *key)
  * @param sig the signature made on the blinded signature purpose
  * @param bks the blinding key secret used to blind the signature purpose
  * @param pkey the public key of the signer
- * @return unblinded signature on success, NULL on error
+ * @return unblinded signature on success, NULL if RSA key is bad or malicious.
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
@@ -1044,8 +1071,19 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
     GNUNET_break_op (0);
     return NULL;
   }
-  bkey = rsa_blinding_key_derive (pkey,
-				  bks);
+
+  bkey = rsa_blinding_key_derive (pkey, bks);
+  if (NULL == bkey) 
+  {
+    /* RSA key is malicious since rsa_gcd_validate failed here. 
+     * It should have failed during GNUNET_CRYPTO_rsa_blind too though,
+     * so the exchange is being malicious in an unfamilair way, maybe 
+     * just trying to crash us.  */
+    GNUNET_break_op (0);
+    gcry_mpi_release (n);
+    gcry_mpi_release (s);
+    return NULL;
+  }
 
   r_inv = gcry_mpi_new (0);
   if (1 !=
@@ -1053,13 +1091,16 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
                      bkey->r,
                      n))
   {
+    /* We cannot find r mod n, so gcd(r,n) != 1, which should get *
+     * caught above, but we handle it the same here.              */  
     GNUNET_break_op (0);
-    gcry_mpi_release (n);
     gcry_mpi_release (r_inv);
-    gcry_mpi_release (s);
     rsa_blinding_key_free (bkey);  
+    gcry_mpi_release (n);
+    gcry_mpi_release (s);
     return NULL;
   }
+
   ubsig = gcry_mpi_new (0);
   gcry_mpi_mulm (ubsig, s, r_inv, n);
   gcry_mpi_release (n);
@@ -1079,13 +1120,13 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
 
 
 /**
- * Verify whether the given hash corresponds to the given signature and the
- * signature is valid with respect to the given public key.
+ * Verify whether the given hash corresponds to the given signature and
+ * the signature is valid with respect to the given public key.
  *
  * @param hash hash of the message to verify to match the @a sig
  * @param sig signature that is being validated
  * @param pkey public key of the signer
- * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
+ * @returns #GNUNET_YES if ok, #GNUNET_NO if RSA key is malicious, #GNUNET_SYSERR if signature is invalid
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
@@ -1096,7 +1137,18 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
   gcry_mpi_t r;
   int rc;
 
-  rsa_full_domain_hash (&r, hash, pkey);
+  r = rsa_full_domain_hash (pkey, hash);
+  if (NULL == r) {
+    GNUNET_break_op (0);
+    /* RSA key is malicious since rsa_gcd_validate failed here. 
+     * It should have failed during GNUNET_CRYPTO_rsa_blind too though,
+     * so the exchange is being malicious in an unfamilair way, maybe 
+     * just trying to crash us.  Arguably, we've only an internal error
+     * though because we should've detected this in our previous call 
+     * to GNUNET_CRYPTO_rsa_unblind. */
+    return GNUNET_NO;
+  }
+
   data = mpi_to_sexp(r);
   gcry_mpi_release (r);
 

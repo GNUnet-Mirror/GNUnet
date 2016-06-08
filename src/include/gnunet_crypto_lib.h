@@ -1995,16 +1995,17 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
  * Blinds the given message with the given blinding key
  *
  * @param hash hash of the message to sign
- * @param bks the blinding key secret
+ * @param bkey the blinding key
  * @param pkey the public key of the signer
- * @param[out] buffer set to a buffer with the blinded message to be signed
- * @return number of bytes stored in @a buffer
+ * @param[out] buf set to a buffer with the blinded message to be signed
+ * @param[out] buf_size number of bytes stored in @a buf
+ * @return GNUNET_YES if successful, GNUNET_NO if RSA key is malicious
  */
-size_t
+int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buffer);
+                         char **buf, size_t *buf_size);
 
 
 /**
@@ -2017,8 +2018,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                                const void *msg,
-                                size_t msg_len);
+                                const void *msg, size_t msg_len);
 
 
 /**
@@ -2026,7 +2026,7 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
  *
  * @param key private key to use for the signing
  * @param hash the hash of the message to sign
- * @return NULL on error, signature on success
+ * @return NULL on error, including a malicious RSA key, signature on success
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -2085,7 +2085,7 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * @param sig the signature made on the blinded signature purpose
  * @param bks the blinding key secret used to blind the signature purpose
  * @param pkey the public key of the signer
- * @return unblinded signature on success, NULL on error
+ * @return unblinded signature on success, NULL if RSA key is bad or malicious.
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
@@ -2100,7 +2100,7 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
  * @param hash the message to verify to match the @a sig
  * @param sig signature that is being validated
  * @param public_key public key of the signer
- * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
+ * @returns #GNUNET_YES if ok, #GNUNET_NO if RSA key is malicious, #GNUNET_SYSERR if signature
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
