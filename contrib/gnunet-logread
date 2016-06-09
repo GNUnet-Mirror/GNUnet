@@ -31,8 +31,12 @@ Options:
     -m <regex>		        Only pass messages matching a regular expression.
 X
 
+use POSIX qw(mkfifo);
+
 use Term::ANSIColor qw(:constants :pushpop);
 $Term::ANSIColor::AUTOLOCAL = 1;
+
+my %levels = ( NONE => 0, ERROR => 1, WARNING => 2, INFO => 4, DEBUG => 8 );
 
 # Message type numbers to names
 my %msgtypes;
@@ -57,10 +61,19 @@ Try also '$0 -h' for help
 X
 }
 
-my %levels = ( NONE => 0, ERROR => 1, WARNING => 2, INFO => 4, DEBUG => 8 );
-if (exists $opts{n})
-{
-    die "You can't read and write the socket at the same time" if exists $opts{f};
+die "You can't read and write the socket at the same time"
+  if exists $opts{f} and exists $opts{n};
+
+if ((exists $opts{n} or exists $opts{f}) and not -r $ipc) {
+    undef $!;
+    die "Could not mkfifo $ipc: $!" unless mkfifo $ipc, 0600;
+    system('chgrp', 'gnunet', $ipc);
+    die "Could not chgrp $ipc to 'gnunet': $!" if $!;
+    chmod 0660, $ipc;
+    die "Could not chmod $ipc to allow gnunet group writes: $!" if $!;
+}
+
+if (exists $opts{n}) {
     $name = $opts{n};
     $msg_level = $opts{L} && exists $levels{$opts{L}} ? $levels{$opts{L}} : 0;
     $msg_regex = $opts{m};
@@ -69,7 +82,6 @@ if (exists $opts{n})
 }
 
 if (exists $opts{f}) {
-    system('/bin/mkfifo', $ipc) unless -r $ipc;
     open(I, $ipc) or die "Cannot read from $ipc: $!";
     &perform while <I>;
     close I;
