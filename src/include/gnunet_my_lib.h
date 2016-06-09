@@ -73,7 +73,7 @@ typedef int
  */
 typedef void
 (*GNUNET_MY_QueryCleanup)(void *cls,
-                           struct GNUNET_MY_QueryParam *qp);
+                           MYSQL_BIND *qbind);
 /**
  * Information we pass to #GNUNET_MY_exec_prepared() to
  * initialize the arguments of the prepared statement.
@@ -146,7 +146,7 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 int
 GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,
-                         const struct GNUNET_MY_QueryParam *params);
+                         struct GNUNET_MY_QueryParam *params);
 
 
 /**
@@ -470,7 +470,8 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  * @param qp query specification to clean up
  */
 void
-GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp);
+GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
+                        MYSQL_BIND *qbind);
 
 
 /**

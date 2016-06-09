@@ -42,7 +42,7 @@
 int
 GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                          struct GNUNET_MYSQL_StatementHandle *sh,
-                         const struct GNUNET_MY_QueryParam *params)
+                         struct GNUNET_MY_QueryParam *params)
 {
   const struct GNUNET_MY_QueryParam *p;
   unsigned int num;
@@ -68,7 +68,6 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Conversion for MySQL query failed at offset %u\n",
                     i);
-        GNUNET_MY_cleanup_query (params);
         return GNUNET_SYSERR;
       }
       off += p->num_params;
@@ -92,9 +91,11 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
                        "mysql_stmt_execute", __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MYSQL_statements_invalidate (mc);
-      GNUNET_MY_cleanup_query (params);
       return GNUNET_SYSERR;
     }
+
+      GNUNET_MY_cleanup_query (params,
+                            qbind);
   }
 
   return GNUNET_OK;
@@ -108,13 +109,15 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
  * @param qp query specification to clean up
  */
 void
-GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp)
+GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
+                        MYSQL_BIND * qbind)
 {
   unsigned int i;
 
-  for (i=0;NULL != qp[i].cleaner;i++)
-    qp[i].cleaner (qp[i].conv_cls,
-                   &qp[i]);
+  for (i=0; NULL != qp[i].conv ;i++)
+      if(NULL != qp[i].cleaner)
+        qp[i].cleaner (qp[i].conv_cls,
+                        &qbind[i]);
 }
 
 
@@ -245,9 +248,10 @@ GNUNET_MY_cleanup_result (struct GNUNET_MY_ResultSpec *rs)
 {
   unsigned int i;
 
-  for (i=0;NULL != rs[i].cleaner;i++)
-    rs[i].cleaner (rs[i].conv_cls,
-                   &rs[i]);
+  for (i=0;NULL != rs[i].post_conv;i++)
+    if (NULL != rs[i].cleaner)
+      rs[i].cleaner (rs[i].conv_cls,
+                     &rs[i]);
 }
 
 

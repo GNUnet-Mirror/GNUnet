@@ -74,13 +74,12 @@ post_extract_varsize_blob (void *cls,
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
+
   buf = GNUNET_malloc (size);
 
   results[0].buffer = buf;
   results[0].buffer_length = size;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
-
-  fprintf(stderr, "size : %d\n", size);
 
   if (0 !=
       mysql_stmt_fetch_column (stmt,
@@ -91,8 +90,6 @@ post_extract_varsize_blob (void *cls,
     GNUNET_free (buf);
     return GNUNET_SYSERR;
   }
-
-  printf("buf : %s\n", (char*)buf);
 
   *(void **) rs->dst = buf;
   *rs->result_size = size;
@@ -111,16 +108,14 @@ static void
 cleanup_varsize_blob (void *cls,
                       struct GNUNET_MY_ResultSpec *rs)
 {
-  void *ptr;
+  void **ptr = (void **)rs->dst;
 
-  ptr = * (void **) rs->dst;
-  if (NULL == ptr)
-    return;
-  GNUNET_free (ptr);
-  *(void **) rs->dst = NULL;
-  *rs->result_size = 0;
+  if (NULL != *ptr)
+  {
+    GNUNET_free (*ptr);
+    *ptr = NULL;  
+  }
 }
-
 
 /**
  * Variable-size result expected
@@ -219,6 +214,7 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
   {
     .pre_conv = &pre_extract_fixed_blob,
     .post_conv = &post_extract_fixed_blob,
+    .cleaner = NULL,
     .dst = (void *)(ptr),
     .dst_size = ptr_size,
     .num_fields = 1
@@ -508,31 +504,8 @@ pre_extract_string (void * cls,
   results[0].buffer = (char *)rs->dst;
   results[0].buffer_length = rs->dst_size;
   results[0].length = &rs->mysql_bind_output_length;
-/*
-  char **str = rs->dst;
-  size_t len;
-  const char *res;
-
-  *str = NULL;
-
-  if (results->is_null)
-  {
-    return GNUNET_SYSERR;
-  }
-
-  len = results->buffer_length;
-  res = results->buffer;
-
-  *str = GNUNET_strndup (res,
-                        len);
-
-  if (NULL == *str)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Results contains bogus value (fail to decode)\n");
-    return GNUNET_SYSERR;
-  }
-*/  return GNUNET_OK;
+ 
+  return GNUNET_OK;
 }
 
 
@@ -559,32 +532,6 @@ post_extract_string (void * cls,
   if (rs->dst_size != rs->mysql_bind_output_length)
     return GNUNET_SYSERR;
   return GNUNET_OK;
-/*
-  char **str = rs->dst;
-  size_t len;
-  const char *res;
-
-  *str = NULL;
-
-  if (results->is_null)
-  {
-    return GNUNET_SYSERR;
-  }
-
-  len = results->buffer_length;
-  res = results->buffer;
-
-  *str = GNUNET_strndup (res,
-                        len);
-
-  if (NULL == *str)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Results contains bogus value (fail to decode)\n");
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-*/
 }
 
 
@@ -600,6 +547,7 @@ GNUNET_MY_result_spec_string (char **dst)
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_string,
     .post_conv = &post_extract_string,
+    .cleaner = NULL,
     .dst = (void *) dst,
     .dst_size = 0,
     .num_fields = 1
@@ -704,6 +652,7 @@ GNUNET_MY_result_spec_uint16 (uint16_t *u16)
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint16,
     .post_conv = &post_extract_uint16,
+    .cleaner = NULL,
     .dst = (void *) u16,
     .dst_size = sizeof (*u16),
     .num_fields = 1
@@ -778,6 +727,7 @@ GNUNET_MY_result_spec_uint32 (uint32_t *u32)
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint32,
     .post_conv = &post_extract_uint32,
+    .cleaner = NULL,
     .dst = (void *) u32,
     .dst_size = sizeof (*u32),
     .num_fields = 1
@@ -854,6 +804,7 @@ GNUNET_MY_result_spec_uint64 (uint64_t *u64)
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint64,
     .post_conv = &post_extract_uint64,
+    .cleaner = NULL,
     .dst = (void *) u64,
     .dst_size = sizeof (*u64),
     .num_fields = 1

@@ -26,6 +26,22 @@
 #include <mysql/mysql.h>
 #include "gnunet_my_lib.h"
 
+
+/**
+ * Function called to clean up memory allocated
+ * by a #GNUNET_MY_QueryConverter.
+ *
+ * @param cls closure
+ * @param rd result data to clean up
+ */
+static void
+my_clean_query (void *cls,
+          MYSQL_BIND *qbind)
+{
+  GNUNET_free (qbind[0].buffer);
+}
+
+
 /**
  * Function called to convert input argument into SQL parameters.
  *
@@ -84,6 +100,7 @@ GNUNET_MY_query_param_string (const char *ptr)
                                          strlen(ptr));
 }
 
+
 /**
   * Function called to convert input argument into SQL parameters
   *
@@ -107,7 +124,7 @@ my_conv_uint16 (void *cls,
   if (NULL == u_nbo)
     return -1;
 
-    *u_nbo = *u_hbo;
+  *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof(uint16_t);
@@ -115,6 +132,7 @@ my_conv_uint16 (void *cls,
 
   return 1;
 }
+
 
 /**
   * Generate query parameter for an uint16_t in host byte order.
@@ -126,7 +144,7 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
       .conv = &my_conv_uint16,
-      .cleaner = NULL,
+      .cleaner = &my_clean_query,
       .conv_cls = NULL,
       .num_params = 1,
       .data = x,
@@ -135,6 +153,7 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
 
   return res;
 }
+
 
 /**
   * Function called to convert input argument into SQL parameters
@@ -155,8 +174,8 @@ my_conv_uint32 (void *cls,
   GNUNET_assert (1 == qp->num_params);
 
   u_nbo = GNUNET_new (uint32_t);
-//  *u_nbo = htonl (*u_hbo);
-    *u_nbo = *u_hbo;
+
+  *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof(uint32_t);
@@ -164,6 +183,7 @@ my_conv_uint32 (void *cls,
 
   return 1;
 }
+
 
 /**
   * Generate query parameter for an uint32_t in host byte order
@@ -175,7 +195,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint32,
-    .cleaner = NULL,
+    .cleaner = &my_clean_query,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -184,6 +204,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
 
   return res;
 }
+
 
 /**
   * Function called to convert input argument into SQL parameters
@@ -204,8 +225,8 @@ my_conv_uint64 (void *cls,
   GNUNET_assert (1 == qp->num_params);
 
   u_nbo = GNUNET_new(uint64_t);
-  //*u_nbo = GNUNET_htonll (*u_hbo);
-    *u_nbo = *u_hbo;
+
+  *u_nbo = *u_hbo;
 
   qbind->buffer = (void *) u_nbo;
   qbind->buffer_length = sizeof (uint64_t);
@@ -213,6 +234,7 @@ my_conv_uint64 (void *cls,
 
   return 1;
 }
+
 
 /**
   * Generate query parameter for an uint64_t in host byte order
@@ -224,7 +246,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint64,
-    .cleaner = NULL,
+    .cleaner = &my_clean_query,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -233,6 +255,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
 
   return res;
 }
+
 
 /**
   * Function called to convert input argument into SQL parameters
@@ -246,57 +269,36 @@ static int
 my_conv_rsa_public_key (void *cls,
                         const struct GNUNET_MY_QueryParam *qp,
                         MYSQL_BIND * qbind)
-  {
-    const struct GNUNET_CRYPTO_RsaPublicKey *rsa = qp->data;
-    char *buf;
-    size_t buf_size;
-
-    GNUNET_assert(1 == qp->num_params);
-    // FIXME: this leaks memory right now...
-    buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
-
-    qbind->buffer = (void *) buf;
-    qbind->buffer_length = buf_size;
-    qbind->buffer_type = MYSQL_TYPE_BLOB;
-
-    return 1;
-  }
-
-
-/**
- * Function called to clean up memory allocated
- * by a #GNUNET_MY_ResultConverter.
- *
- * @param cls closure
- * @param rd result data to clean up
- */
-static void
-my_clean_rsa_public_key (void *cls,
-                      struct GNUNET_MY_QueryParam *qp)
 {
-  struct GNUNET_CRYPTO_RsaPublicKey **pk = qp->data;
+  const struct GNUNET_CRYPTO_RsaPublicKey *rsa = qp->data;
+  char *buf;
+  size_t buf_size;
 
-  if (NULL != *pk)
-  {
-    GNUNET_CRYPTO_rsa_public_key_free (*pk);
-    *pk = NULL;
-  }
+  GNUNET_assert(1 == qp->num_params);
+  // FIXME: this leaks memory right now...
+  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
+
+  qbind->buffer = (void *) buf;
+  qbind->buffer_length = buf_size;
+  qbind->buffer_type = MYSQL_TYPE_BLOB;
+
+  return 1;
 }
 
 
-  /**
-    * Generate query parameter for an RSA public key. The
-    * database must contain a BLOB type in the respective position.
-    *
-    * @param x the query parameter to pass
-    * @return array entry for the query parameters to use
-    */
+/**
+  * Generate query parameter for an RSA public key. The
+  * database must contain a BLOB type in the respective position.
+  *
+  * @param x the query parameter to pass
+  * @return array entry for the query parameters to use
+  */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_public_key,
-    .cleaner = &my_clean_rsa_public_key,
+    .cleaner = &my_clean_query,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -312,7 +314,7 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
   *
   *@param cls closure
   *@param pq data about the query
- * @param qbind array of parameters to initialize
+  *@param qbind array of parameters to initialize
   *@return -1 on error
   */
 static int
@@ -337,27 +339,6 @@ my_conv_rsa_signature (void *cls,
 
 
 /**
- * Function called to clean up memory allocated
- * by a #GNUNET_MY_QueryConverter.
- *
- * @param cls closure
- * @param rd result data to clean up
- */
-static void
-my_clean_rsa_signature (void *cls,
-          struct GNUNET_MY_QueryParam *qp)
-{
-  struct GNUNET_CRYPTO_RsaSignature **sig = qp->data;
-
-  if (NULL != *sig)
-  {
-    GNUNET_CRYPTO_rsa_signature_free (*sig);
-    *sig = NULL;
-  }
-}
-
-
-/**
   * Generate query parameter for an RSA signature. The
   * database must contain a BLOB type in the respective position
   *
@@ -369,7 +350,7 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_signature,
-    .cleaner = &my_clean_rsa_signature,
+    .cleaner = &my_clean_query,
     .conv_cls = NULL,
     .num_params = 1,
     .data = (x),
@@ -377,6 +358,7 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
   };
   return res;
 }
+
 
 /**
   * Generate query parameter for an absolute time value.
@@ -391,6 +373,7 @@ GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
   return GNUNET_MY_query_param_uint64 (&x->abs_value_us);
 }
 
+
 /**
   * Generate query parameter for an absolute time value.
   * The database must store a 64-bit integer.
@@ -402,5 +385,6 @@ GNUNET_MY_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x
 {
   return GNUNET_MY_query_param_auto_from_type (&x->abs_value_us__);
 }
+
 
 /* end of my_query_helper.c */

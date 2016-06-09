@@ -37,9 +37,9 @@
 static int
 run_queries (struct GNUNET_MYSQL_Context *context)
 {
-  struct GNUNET_CRYPTO_RsaPublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub = NULL;
   struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
-  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *sig = NULL;;
   struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
   struct GNUNET_TIME_Absolute abs_time = GNUNET_TIME_absolute_get ();
   struct GNUNET_TIME_Absolute abs_time2;
@@ -48,7 +48,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   struct GNUNET_HashCode hc;
   struct GNUNET_HashCode hc2;
   const char msg[] = "hello";
-  void *msg2;
+  void *msg2 = NULL;;
   size_t msg2_len;
 
   uint16_t u16;
@@ -60,10 +60,10 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 
   int ret;
 
-  struct GNUNET_MYSQL_StatementHandle *statements_handle_insert;
-  struct GNUNET_MYSQL_StatementHandle *statements_handle_select;
+  struct GNUNET_MYSQL_StatementHandle *statements_handle_insert = NULL;
+  struct GNUNET_MYSQL_StatementHandle *statements_handle_select = NULL;
 
-  struct GNUNET_CRYPTO_RsaPrivateKey *priv;
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv = NULL;
   struct GNUNET_HashCode hmsg;
 
   priv = GNUNET_CRYPTO_rsa_private_key_create (1024);
@@ -163,7 +163,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   ret = GNUNET_MY_extract_result (statements_handle_select,
                                   results_select);
 
-  GNUNET_break (GNUNET_YES == ret);
+  GNUNET_assert (GNUNET_YES == ret);
   GNUNET_break (abs_time.abs_value_us == abs_time2.abs_value_us);
   GNUNET_break (forever.abs_value_us == forever2.abs_value_us);
   GNUNET_break (0 ==
@@ -171,6 +171,8 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                             &hc2,
                             sizeof (struct GNUNET_HashCode)));
 
+  GNUNET_assert (NULL != sig2);
+  GNUNET_assert (NULL != pub2);
   GNUNET_break (0 ==
             GNUNET_CRYPTO_rsa_signature_cmp (sig,
                                  sig2));
@@ -192,7 +194,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_private_key_free (priv);
   GNUNET_CRYPTO_rsa_public_key_free (pub);     
-     
+  
   if (GNUNET_OK != ret)
       return 1;
 
@@ -250,6 +252,9 @@ main (int argc, const char * const argv[])
   }
 
   ret = run_queries (context);
+
+  GNUNET_MYSQL_context_destroy (context);
+  GNUNET_free (config);
 
   return ret;
 }
