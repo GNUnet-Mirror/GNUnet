@@ -23,12 +23,15 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_my_lib.h"
 
+
 /**
  * extract data from a Mysql database @a result at row @a row
  *
  * @param cls closure
- * @param qp data about the query
- * @param result mysql result
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] result mysql result
  * @return
  *   #GNUNET_OK if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid
@@ -117,11 +120,12 @@ cleanup_varsize_blob (void *cls,
   }
 }
 
+
 /**
  * Variable-size result expected
  *
  * @param[out] dst where to store the result, allocated
- * @param[out] sptr where to store the size of @a dst
+ * @param[out] ptr_size where to store the size of @a dst
  * @return array entru for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
@@ -146,11 +150,10 @@ GNUNET_MY_result_spec_variable_size (void **dst,
  * Extract data from a Mysql database @a result at row @a row
  *
  * @param cls closure
- * @param result where to extract data from
- * @param int row to extract data from
- * @param fname name (or prefix) of the fields to extract from
- * @param[in] dst_size desired size, never NULL
- * @param[out] dst where to store the result
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
  * @return
  *  #GNUNET_OK if all results could be extracted
  *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
@@ -176,11 +179,10 @@ pre_extract_fixed_blob (void *cls,
  * result at row @a row
  *
  * @param cls closure
- * @param result where to extract data from
- * @param int row to extract data from
- * @param fname name (or prefix) of the fields to extract from
- * @param[in] dst_size desired size, never NULL
- * @param[out] dst where to store the result
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
  * @return
  *  #GNUNET_OK if all results could be extracted
  *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
@@ -203,7 +205,7 @@ post_extract_fixed_blob (void *cls,
  *
  * @param name name of the field in the table
  * @param[out] dst where to store the result
- * @param dst_size number of bytes in @a dst
+ * @param ptr_size number of bytes in @a dst
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
@@ -228,11 +230,10 @@ GNUNET_MY_result_spec_fixed_size (void *ptr,
   * Extract data from a Mysql database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *   #GNUNET_OK if all results could be extracted
   *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -258,11 +259,10 @@ pre_extract_rsa_public_key (void *cls,
   * result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *   #GNUNET_OK if all results could be extracted
   *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -297,6 +297,7 @@ post_extract_rsa_public_key  (void *cls,
     GNUNET_free (buf);
     return GNUNET_SYSERR;
   }
+  
   *pk = GNUNET_CRYPTO_rsa_public_key_decode (buf,
                                              size);
   GNUNET_free (buf);
@@ -316,7 +317,7 @@ post_extract_rsa_public_key  (void *cls,
  * by a #GNUNET_MY_ResultConverter.
  *
  * @param cls closure
- * @param rd result data to clean up
+ * @param rs result data to clean up
  */
 static void
 clean_rsa_public_key (void *cls,
@@ -354,15 +355,15 @@ GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
   return res;
 }
 
+
 /**
   * Extract data from a Mysql database @a result at row @a row.
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in,out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -387,11 +388,10 @@ pre_extract_rsa_signature (void *cls,
   * Extract data from a Mysql database @a result at row @a row.
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in,out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -481,15 +481,15 @@ GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
   return res;
 }
 
+
 /**
   * Extract data from a Mysql database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non existing field or NULL)
@@ -513,11 +513,10 @@ pre_extract_string (void * cls,
   * Check size of extracted fixed size data from a Mysql database @a
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non existing field or NULL)
@@ -589,11 +588,10 @@ GNUNET_MY_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
  * Extract data from a Postgres database @a result at row @a row.
  *
  * @param cls closure
- * @param result where to extract data from
- * @param int row to extract data from
- * @param fname name (or prefix) of the fields to extract from
- * @param[in,out] dst_size where to store size of result, may be NULL
- * @param[out] dst where to store the result
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
  * @return
  *   #GNUNET_YES if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -618,11 +616,10 @@ pre_extract_uint16 (void *cls,
  * Check size of extracted fixed size data from a Mysql datbase.
  *
  * @param cls closure
- * @param result where to extract data from
- * @param int row to extract data from
- * @param fname name (or prefix) of the fields to extract from
- * @param[in,out] dst_size where to store size of result, may be NULL
- * @param[out] dst where to store the result
+ * @param[in,out] rs
+ * @param stmt the mysql statement that is being run
+ * @param column the column that is being processed
+ * @param[out] results
  * @return
  *   #GNUNET_YES if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -660,15 +657,16 @@ GNUNET_MY_result_spec_uint16 (uint16_t *u16)
   return res;
 }
 
+
 /**
   * Extrac data from a  MYSQL database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param cls closure
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *      #GNUNET_OK if all results could be extracted
   *      #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -693,11 +691,11 @@ pre_extract_uint32 (void *cls,
   * Extrac data from a  MYSQL database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be NULL
-  * @param[out] dst where to store the result
+  * @param cls closure
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *      #GNUNET_OK if all results could be extracted
   *      #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -740,11 +738,10 @@ GNUNET_MY_result_spec_uint32 (uint32_t *u32)
   * Extract data from a MYSQL database @a result at row @a row
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be null
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -765,16 +762,14 @@ pre_extract_uint64 (void *cls,
 }
 
 
-
 /**
   * Check size of extracted fixe size data from a Mysql database
   *
   * @param cls closure
-  * @param result where to extract data from
-  * @param int row to extract data from
-  * @param fname name (or prefix) of the fields to extract from
-  * @param[in, out] dst_size where to store size of result, may be null
-  * @param[out] dst where to store the result
+  * @param[in,out] rs
+  * @param stmt the mysql statement that is being run
+  * @param column the column that is being processed
+  * @param[out] results
   * @return
   *    #GNUNET_OK if all results could be extracted
   *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
@@ -811,5 +806,6 @@ GNUNET_MY_result_spec_uint64 (uint64_t *u64)
   };
   return res;
 }
+
 
 /* end of pq_result_helper.c */

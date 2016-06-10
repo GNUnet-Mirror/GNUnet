@@ -28,6 +28,7 @@
 #include "gnunet_mysql_lib.h"
 #include "gnunet_util_lib.h"
 
+
 /**
   * Run actual test queries.
   *
@@ -77,7 +78,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 
   memset (&hc, 0, sizeof(hc));
   memset (&hc2, 0, sizeof(hc2));
-  
+
   statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
                                         "INSERT INTO test_my2 ("
                                         " pub"
@@ -139,28 +140,28 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   }
 
   struct GNUNET_MY_QueryParam params_select[] = {
-        GNUNET_MY_query_param_end
+    GNUNET_MY_query_param_end
   };
 
   if (GNUNET_OK != GNUNET_MY_exec_prepared (context,
                                             statements_handle_select,
                                             params_select))
   {
-          fprintf (stderr, "Failed to execute prepared statement SELECT\n");
-          return 1;
+    fprintf (stderr, "Failed to execute prepared statement SELECT\n");
+    return 1;
   }
 
   struct GNUNET_MY_ResultSpec results_select[] = {
-        GNUNET_MY_result_spec_rsa_public_key (&pub2),
-        GNUNET_MY_result_spec_rsa_signature (&sig2),
-        GNUNET_MY_result_spec_absolute_time (&abs_time2),
-        GNUNET_MY_result_spec_absolute_time (&forever2),
-        GNUNET_MY_result_spec_auto_from_type (&hc2),
-        GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
-        GNUNET_MY_result_spec_uint16 (&u162),
-        GNUNET_MY_result_spec_uint32 (&u322),
-        GNUNET_MY_result_spec_uint64 (&u642),
-        GNUNET_MY_result_spec_end
+    GNUNET_MY_result_spec_rsa_public_key (&pub2),
+    GNUNET_MY_result_spec_rsa_signature (&sig2),
+    GNUNET_MY_result_spec_absolute_time (&abs_time2),
+    GNUNET_MY_result_spec_absolute_time (&forever2),
+    GNUNET_MY_result_spec_auto_from_type (&hc2),
+    GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
+    GNUNET_MY_result_spec_uint16 (&u162),
+    GNUNET_MY_result_spec_uint32 (&u322),
+    GNUNET_MY_result_spec_uint64 (&u642),
+    GNUNET_MY_result_spec_end
   };
 
   ret = GNUNET_MY_extract_result (statements_handle_select,
@@ -177,17 +178,18 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   GNUNET_assert (NULL != sig2);
   GNUNET_assert (NULL != pub2);
   GNUNET_break (0 ==
-            GNUNET_CRYPTO_rsa_signature_cmp (sig,
-                                 sig2));
+                GNUNET_CRYPTO_rsa_signature_cmp (sig,
+                                                 sig2));
   GNUNET_break (0 ==
-            GNUNET_CRYPTO_rsa_public_key_cmp (pub,
-                                  pub2));
+                GNUNET_CRYPTO_rsa_public_key_cmp (pub,
+                                                  pub2));
 
   GNUNET_break (strlen (msg) == msg2_len);
   GNUNET_break (0 ==
-            strncmp (msg,
-                  msg2,
-                  msg2_len));
+                strncmp (msg,
+                         msg2,
+                         msg2_len));
+
   GNUNET_break (16 == u162);
   GNUNET_break (32 == u322);
   GNUNET_break (64 == u642);
@@ -199,7 +201,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   GNUNET_CRYPTO_rsa_public_key_free (pub);     
   
   if (GNUNET_OK != ret)
-      return 1;
+    return 1;
 
   return 0;
 }
@@ -212,46 +214,47 @@ main (int argc, const char * const argv[])
   struct GNUNET_MYSQL_Context *context = NULL;
   int ret;
 
-  GNUNET_log_setup (  "test-my",
-                         "WARNING",
-                         NULL);
+  GNUNET_log_setup ("test-my",
+                    "WARNING",
+                    NULL);
 
   config = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK != GNUNET_CONFIGURATION_parse (config, "test_my.conf"))
   {
-      fprintf (stderr, "Failed to parse configuaration\n");
-      return 1;
+    fprintf (stderr, "Failed to parse configuaration\n");
+    return 1;
   }
 
   context = GNUNET_MYSQL_context_create (config,
-                                             "datastore-mysql");
+                                        "datastore-mysql");
   if (NULL == context)
   {
-      fprintf(stderr, "Failed to connect to database\n");
-      return 77;
+    fprintf(stderr, "Failed to connect to database\n");
+    return 77;
   }
 
   (void) GNUNET_MYSQL_statement_run (context,
-                                        "DROP TABLE test_my2;");
-  if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
-                                                  "CREATE TABLE IF NOT EXISTS test_my2("
-                                                  " pub BLOB NOT NULL"
-                                                  ",sig BLOB NOT NULL"
-                                                  ",abs_time BIGINT NOT NULL"
-                                                  ",forever BIGINT NOT NULL"
-                                                  ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
-                                                  ",vsize BLOB NOT NULL"
-                                                  ",u16 SMALLINT NOT NULL"
-                                                  ",u32 INT NOT NULL"
-                                                  ",u64 BIGINT NOT NULL"
-                                                  ")"))
-  {
-      fprintf (stderr,
-                "Failed to create table \n");
-      GNUNET_MYSQL_statements_invalidate (context);
-      GNUNET_MYSQL_context_destroy (context);
+                                    "DROP TABLE test_my2;");
 
-      return 1;
+  if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
+                                              "CREATE TABLE IF NOT EXISTS test_my2("
+                                              " pub BLOB NOT NULL"
+                                              ",sig BLOB NOT NULL"
+                                              ",abs_time BIGINT NOT NULL"
+                                              ",forever BIGINT NOT NULL"
+                                              ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
+                                              ",vsize BLOB NOT NULL"
+                                              ",u16 SMALLINT NOT NULL"
+                                              ",u32 INT NOT NULL"
+                                              ",u64 BIGINT NOT NULL"
+                                              ")"))
+  {
+    fprintf (stderr,
+            "Failed to create table \n");
+    GNUNET_MYSQL_statements_invalidate (context);
+    GNUNET_MYSQL_context_destroy (context);
+
+    return 1;
   }
 
   ret = run_queries (context);

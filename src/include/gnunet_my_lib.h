@@ -19,6 +19,7 @@
 */
 /**
  * @author Christian Grothoff
+ * @author Christophe Genevey
  *
  * @file
  * Helper library to access a MySQL database
@@ -123,7 +124,6 @@ struct GNUNET_MY_QueryParam
 #define GNUNET_MY_query_param_end { NULL, NULL, NULL, 0, NULL, 0 }
 
 
-
 /**
  * Generate query parameter for a buffer @a ptr of
  * @a ptr_size bytes.FG
@@ -134,6 +134,7 @@ struct GNUNET_MY_QueryParam
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_fixed_size (const void *ptr,
 				  size_t ptr_size);
+
 
 /**
  * Run a prepared SELECT statement.
@@ -304,7 +305,7 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
 
-/**q
+/**
   * Generate query parameter for an absolute time value.
   * The database must store a 64-bit integer.
   *
@@ -313,6 +314,7 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
   */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
+
 
 /**
   * Generate query parameter for an absolute time value.
@@ -356,11 +358,6 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x);
  */
 #define GNUNET_MY_result_spec_auto_from_type(dst) GNUNET_MY_result_spec_fixed_size ((dst), sizeof (*(dst)))
 
-
-/**
- * FIXME.
- *
- */
 
  /**
   * Variable-size result expected
@@ -468,6 +465,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  * #GNUNET_MY_exect_prepared().
  *
  * @param qp query specification to clean up
+ * @param qbind mysql query
  */
 void
 GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,

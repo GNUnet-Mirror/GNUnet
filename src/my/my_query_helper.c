@@ -21,6 +21,7 @@
  * @file my/my_query_helper.c
  * @brief library to help with access to a MySQL database
  * @author Christian Grothoff
+ * @author Christophe Genevey
  */
 #include "platform.h"
 #include <mysql/mysql.h>
@@ -32,7 +33,7 @@
  * by a #GNUNET_MY_QueryConverter.
  *
  * @param cls closure
- * @param rd result data to clean up
+ * @param qbind array of parameter to clean up
  */
 static void
 my_clean_query (void *cls,
@@ -119,7 +120,6 @@ my_conv_uint16 (void *cls,
 
   GNUNET_assert (1 == qp->num_params);
 
-
   u_nbo = GNUNET_new (uint16_t);
   if (NULL == u_nbo)
     return -1;
@@ -143,13 +143,13 @@ struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
-      .conv = &my_conv_uint16,
-      .cleaner = &my_clean_query,
-      .conv_cls = NULL,
-      .num_params = 1,
-      .data = x,
-      .data_len = sizeof (*x)
-    };
+    .conv = &my_conv_uint16,
+    .cleaner = &my_clean_query,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = x,
+    .data_len = sizeof (*x)
+  };
 
   return res;
 }
@@ -275,7 +275,7 @@ my_conv_rsa_public_key (void *cls,
   size_t buf_size;
 
   GNUNET_assert(1 == qp->num_params);
-  // FIXME: this leaks memory right now...
+
   buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
 
   qbind->buffer = (void *) buf;

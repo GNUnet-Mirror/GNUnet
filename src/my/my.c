@@ -107,6 +107,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
  * #GNUNET_MY_exect_prepared().
  *
  * @param qp query specification to clean up
+ * @param qbind array of parameter to clean up
  */
 void
 GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
@@ -115,9 +116,9 @@ GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
   unsigned int i;
 
   for (i=0; NULL != qp[i].conv ;i++)
-      if(NULL != qp[i].cleaner)
-        qp[i].cleaner (qp[i].conv_cls,
-                        &qbind[i]);
+    if(NULL != qp[i].cleaner)
+      qp[i].cleaner (qp[i].conv_cls,
+                    &qbind[i]);
 }
 
 
@@ -142,7 +143,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
   int ret;
   MYSQL_STMT *stmt;
 
-  stmt = GNUNET_MYSQL_statement_get_stmt (NULL /* FIXME */, sh);
+  stmt = GNUNET_MYSQL_statement_get_stmt (NULL, sh);
   if (NULL == stmt)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
@@ -183,7 +184,6 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Pre-conversion for MySQL result failed at offset %u\n",
                     i);
-        GNUNET_MY_cleanup_result (rs);
         return GNUNET_SYSERR;
       }
       field_off += rp->num_fields;
@@ -209,6 +209,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                        _("mysql_stmt_fetch failed at %s:%d with error: %s\n"),
                        __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
+      GNUNET_MY_cleanup_result (rs);
       return GNUNET_SYSERR;
     }
     field_off = 0;
@@ -241,7 +242,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  * Free all memory that was allocated in @a rs during
  * #GNUNET_MY_extract_result().
  *
- * @param rs reult specification to clean up
+ * @param rs result specification to clean up
  */
 void
 GNUNET_MY_cleanup_result (struct GNUNET_MY_ResultSpec *rs)
