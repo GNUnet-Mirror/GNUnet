@@ -75,6 +75,9 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   u32 = 32;
   u64 = 64;
 
+  memset (&hc, 0, sizeof(hc));
+  memset (&hc2, 0, sizeof(hc2));
+  
   statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
                                         "INSERT INTO test_my2 ("
                                         " pub"
@@ -205,8 +208,8 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 int
 main (int argc, const char * const argv[])
 {
-  struct GNUNET_CONFIGURATION_Handle *config;
-  struct GNUNET_MYSQL_Context *context;
+  struct GNUNET_CONFIGURATION_Handle *config = NULL;
+  struct GNUNET_MYSQL_Context *context = NULL;
   int ret;
 
   GNUNET_log_setup (  "test-my",
