@@ -108,7 +108,7 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len,
 void
 GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
                            gcry_mpi_t n,
-                           const void *xts,  size_t xts_len, 
+                           const void *xts,  size_t xts_len,
                            const void *skm,  size_t skm_len,
                            const char *ctx)
 {
@@ -121,7 +121,8 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
   /* GNUNET_assert (nbits > 512); */
 
   ctr = 0;
-  do {
+  while (1)
+  {
     /* Ain't clear if n is always divisible by 8 */
     uint8_t buf[ (nbits-1)/8 + 1 ];
 
@@ -145,7 +146,8 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
     GNUNET_assert( 0 == gcry_mpi_test_bit (*r, nbits) );
     ++ctr;
     /* We reject this FDH if either *r > n and retry with another ctr */
-  } while ( 0 <= gcry_mpi_cmp(*r,n) );
+    if (0 > gcry_mpi_cmp(*r, n))
+      break;
+    gcry_mpi_release (*r);
+  }
 }
-
-
