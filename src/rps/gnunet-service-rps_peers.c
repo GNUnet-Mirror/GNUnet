@@ -1020,7 +1020,7 @@ Peers_insert_peer (const struct GNUNET_PeerIdentity *peer)
  *                     peer was #own_identity)
  */
 int
-Peers_check_peer_live (const struct GNUNET_PeerIdentity *peer)
+Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
   int ret;
@@ -1518,29 +1518,6 @@ Peers_cleanup_destroyed_channel (void *cls,
     }
   }
   (void) Peers_check_connected (peer);
-}
-
-/**
- * @brief Issue a check whether peer is live
- *
- * This tries to establish a channel to the given peer. Once the channel is
- * established successfully, we know the peer is live.
- *
- * @param peer the peer to check liveliness
- */
-void
-Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
-{
-  struct PeerContext *peer_ctx;
-
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, own_identity))
-  {
-    return; /* We know that we are online */
-  }
-
-  peer_ctx = create_or_get_peer_ctx (peer);
-  // TODO if LIVE/ONLINE
-  check_peer_live (peer_ctx);
 }
 
 /**

@@ -169,7 +169,7 @@ Peers_insert_peer (const struct GNUNET_PeerIdentity *peer);
  *                     peer was #own_identity)
  */
 int
-Peers_check_peer_live (const struct GNUNET_PeerIdentity *peer);
+Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Remove unecessary data
@@ -379,17 +379,6 @@ void
 Peers_cleanup_destroyed_channel (void *cls,
                                  const struct GNUNET_CADET_Channel *channel,
                                  void *channel_ctx);
-
-/**
- * @brief Issue a check whether peer is live
- *
- * This tries to establish a channel to the given peer. Once the channel is
- * established successfully, we know the peer is live.
- *
- * @param peer the peer to check liveliness
- */
-void
-Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Send a message to another peer.
