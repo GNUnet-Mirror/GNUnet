@@ -46,11 +46,15 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   struct GNUNET_TIME_Absolute abs_time2;
   struct GNUNET_TIME_Absolute forever = GNUNET_TIME_UNIT_FOREVER_ABS;
   struct GNUNET_TIME_Absolute forever2;
+  const struct GNUNET_TIME_AbsoluteNBO abs_time_nbo = GNUNET_TIME_absolute_hton (abs_time);
   struct GNUNET_HashCode hc;
   struct GNUNET_HashCode hc2;
   const char msg[] = "hello";
-  void *msg2 = NULL;;
+  void *msg2 = NULL;
   size_t msg2_len;
+
+  const char msg3[] = "world";
+  char *msg4 = "";
 
   uint16_t u16;
   uint16_t u162;
@@ -85,13 +89,15 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                         ",sig"
                                         ",abs_time"
                                         ",forever"
+                                        ",abs_time_nbo"
                                         ",hash"
                                         ",vsize"
+                                        ",str"
                                         ",u16"
                                         ",u32"
                                         ",u64"
                                         ") VALUES "
-                                        "( ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                        "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
   if (NULL == statements_handle_insert)
   {
@@ -104,8 +110,10 @@ run_queries (struct GNUNET_MYSQL_Context *context)
     GNUNET_MY_query_param_rsa_signature (sig),
     GNUNET_MY_query_param_absolute_time (&abs_time),
     GNUNET_MY_query_param_absolute_time (&forever),
+    GNUNET_MY_query_param_absolute_time_nbo (&abs_time_nbo),
     GNUNET_MY_query_param_auto_from_type (&hc),
     GNUNET_MY_query_param_fixed_size (msg, strlen (msg)),
+    GNUNET_MY_query_param_string (msg3),
     GNUNET_MY_query_param_uint16 (&u16),
     GNUNET_MY_query_param_uint32 (&u32),
     GNUNET_MY_query_param_uint64 (&u64),
@@ -128,6 +136,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                                               ",forever"
                                                               ",hash"
                                                               ",vsize"
+                                                              ",str"
                                                               ",u16"
                                                               ",u32"
                                                               ",u64"
@@ -158,6 +167,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
     GNUNET_MY_result_spec_absolute_time (&forever2),
     GNUNET_MY_result_spec_auto_from_type (&hc2),
     GNUNET_MY_result_spec_variable_size (&msg2, &msg2_len),
+    GNUNET_MY_result_spec_string (&msg4),
     GNUNET_MY_result_spec_uint16 (&u162),
     GNUNET_MY_result_spec_uint32 (&u322),
     GNUNET_MY_result_spec_uint64 (&u642),
@@ -189,6 +199,11 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                 strncmp (msg,
                          msg2,
                          msg2_len));
+
+GNUNET_break (strlen (msg3) == strlen(msg4));
+GNUNET_break (0 ==
+                strcmp (msg3,
+                        msg4));
 
   GNUNET_break (16 == u162);
   GNUNET_break (32 == u322);
@@ -242,8 +257,10 @@ main (int argc, const char * const argv[])
                                               ",sig BLOB NOT NULL"
                                               ",abs_time BIGINT NOT NULL"
                                               ",forever BIGINT NOT NULL"
+                                              ",abs_time_nbo BIGINT NOT NULL"
                                               ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
                                               ",vsize BLOB NOT NULL"
+                                              ",str BLOB NOT NULL"
                                               ",u16 SMALLINT NOT NULL"
                                               ",u32 INT NOT NULL"
                                               ",u64 BIGINT NOT NULL"
