@@ -470,6 +470,8 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
     (void) Peers_schedule_operation (peer, insert_in_view_op);
     return GNUNET_NO;
   }
+  /* Open channel towards peer to keep connection open */
+  Peers_indicate_sending_intention (peer);
   return View_put (peer);
 }
 
