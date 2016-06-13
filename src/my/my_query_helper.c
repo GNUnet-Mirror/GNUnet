@@ -37,7 +37,7 @@
  */
 static void
 my_clean_query (void *cls,
-          MYSQL_BIND *qbind)
+                MYSQL_BIND *qbind)
 {
   GNUNET_free (qbind[0].buffer);
 }
@@ -115,21 +115,10 @@ my_conv_uint16 (void *cls,
                 const struct GNUNET_MY_QueryParam * qp,
                 MYSQL_BIND *qbind)
 {
-  const uint16_t *u_hbo = qp->data;
-  uint16_t *u_nbo;
-
   GNUNET_assert (1 == qp->num_params);
-
-  u_nbo = GNUNET_new (uint16_t);
-  if (NULL == u_nbo)
-    return -1;
-
-  *u_nbo = *u_hbo;
-
-  qbind->buffer = (void *) u_nbo;
-  qbind->buffer_length = sizeof(uint16_t);
+  qbind->buffer = (void *) qp->data;
+  qbind->buffer_length = sizeof (uint16_t);
   qbind->buffer_type = MYSQL_TYPE_SHORT;
-
   return 1;
 }
 
@@ -144,7 +133,7 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint16,
-    .cleaner = &my_clean_query,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -168,16 +157,8 @@ my_conv_uint32 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
 {
-  const uint32_t *u_hbo = qp->data;
-  uint32_t * u_nbo;
-
   GNUNET_assert (1 == qp->num_params);
-
-  u_nbo = GNUNET_new (uint32_t);
-
-  *u_nbo = *u_hbo;
-
-  qbind->buffer = (void *) u_nbo;
+  qbind->buffer = (void *) qp->data;
   qbind->buffer_length = sizeof(uint32_t);
   qbind->buffer_type = MYSQL_TYPE_LONG;
 
@@ -195,7 +176,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint32,
-    .cleaner = &my_clean_query,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
@@ -216,22 +197,13 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
   */
 static int
 my_conv_uint64 (void *cls,
-              const struct GNUNET_MY_QueryParam *qp,
-              MYSQL_BIND * qbind)
+                const struct GNUNET_MY_QueryParam *qp,
+                MYSQL_BIND * qbind)
 {
-  const uint64_t * u_hbo = qp->data;
-  uint64_t *u_nbo;
-
   GNUNET_assert (1 == qp->num_params);
-
-  u_nbo = GNUNET_new(uint64_t);
-
-  *u_nbo = *u_hbo;
-
-  qbind->buffer = (void *) u_nbo;
+  qbind->buffer = (void *) qp->data;
   qbind->buffer_length = sizeof (uint64_t);
   qbind->buffer_type = MYSQL_TYPE_LONGLONG;
-
   return 1;
 }
 
@@ -246,7 +218,7 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint64,
-    .cleaner = &my_clean_query,
+    .cleaner = NULL,
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,

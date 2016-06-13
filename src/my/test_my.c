@@ -75,29 +75,30 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   pub =  GNUNET_CRYPTO_rsa_private_key_get_public (priv);
   memset (&hmsg, 42, sizeof(hmsg));
   sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,
-                                        &hmsg);
+                                    &hmsg);
   u16 = 16;
   u32 = 32;
-  u64 = 64;
+  u64 = UINT64_MAX;
 
   memset (&hc, 0, sizeof(hc));
   memset (&hc2, 0, sizeof(hc2));
 
-  statements_handle_insert = GNUNET_MYSQL_statement_prepare (context,
-                                        "INSERT INTO test_my2 ("
-                                        " pub"
-                                        ",sig"
-                                        ",abs_time"
-                                        ",forever"
-                                        ",abs_time_nbo"
-                                        ",hash"
-                                        ",vsize"
-                                        ",str"
-                                        ",u16"
-                                        ",u32"
-                                        ",u64"
-                                        ") VALUES "
-                                        "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  statements_handle_insert
+    = GNUNET_MYSQL_statement_prepare (context,
+                                      "INSERT INTO test_my2 ("
+                                      " pub"
+                                      ",sig"
+                                      ",abs_time"
+                                      ",forever"
+                                      ",abs_time_nbo"
+                                      ",hash"
+                                      ",vsize"
+                                      ",str"
+                                      ",u16"
+                                      ",u32"
+                                      ",u64"
+                                      ") VALUES "
+                                      "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
   if (NULL == statements_handle_insert)
   {
@@ -128,19 +129,20 @@ run_queries (struct GNUNET_MYSQL_Context *context)
       return 1;
   }
 
-  statements_handle_select = GNUNET_MYSQL_statement_prepare (context,
-                                                              "SELECT"
-                                                              " pub"
-                                                              ",sig"
-                                                              ",abs_time"
-                                                              ",forever"
-                                                              ",hash"
-                                                              ",vsize"
-                                                              ",str"
-                                                              ",u16"
-                                                              ",u32"
-                                                              ",u64"
-                                                              " FROM test_my2");
+  statements_handle_select
+    = GNUNET_MYSQL_statement_prepare (context,
+                                      "SELECT"
+                                      " pub"
+                                      ",sig"
+                                      ",abs_time"
+                                      ",forever"
+                                      ",hash"
+                                      ",vsize"
+                                      ",str"
+                                      ",u16"
+                                      ",u32"
+                                      ",u64"
+                                      " FROM test_my2");
 
   if (NULL == statements_handle_select)
   {
@@ -200,21 +202,21 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                          msg2,
                          msg2_len));
 
-GNUNET_break (strlen (msg3) == strlen(msg4));
-GNUNET_break (0 ==
+  GNUNET_break (strlen (msg3) == strlen(msg4));
+  GNUNET_break (0 ==
                 strcmp (msg3,
                         msg4));
 
   GNUNET_break (16 == u162);
   GNUNET_break (32 == u322);
-  GNUNET_break (64 == u642);
+  GNUNET_break (UINT64_MAX == u642);
 
   GNUNET_MY_cleanup_result (results_select);
 
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_private_key_free (priv);
-  GNUNET_CRYPTO_rsa_public_key_free (pub);     
-  
+  GNUNET_CRYPTO_rsa_public_key_free (pub);
+
   if (GNUNET_OK != ret)
     return 1;
 
@@ -225,8 +227,8 @@ GNUNET_break (0 ==
 int
 main (int argc, const char * const argv[])
 {
-  struct GNUNET_CONFIGURATION_Handle *config = NULL;
-  struct GNUNET_MYSQL_Context *context = NULL;
+  struct GNUNET_CONFIGURATION_Handle *config;
+  struct GNUNET_MYSQL_Context *context;
   int ret;
 
   GNUNET_log_setup ("test-my",

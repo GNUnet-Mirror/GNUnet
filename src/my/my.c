@@ -27,7 +27,6 @@
 #include <mysql/mysql.h>
 #include "gnunet_my_lib.h"
 
-#define STRING_SIZE 50
 
 /**
  * Run a prepared SELECT statement.
@@ -94,8 +93,8 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
       return GNUNET_SYSERR;
     }
 
-      GNUNET_MY_cleanup_query (params,
-                            qbind);
+    GNUNET_MY_cleanup_query (params,
+                             qbind);
   }
 
   return GNUNET_OK;
@@ -111,14 +110,14 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
  */
 void
 GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
-                        MYSQL_BIND * qbind)
+                         MYSQL_BIND *qbind)
 {
   unsigned int i;
 
   for (i=0; NULL != qp[i].conv ;i++)
-    if(NULL != qp[i].cleaner)
+    if (NULL != qp[i].cleaner)
       qp[i].cleaner (qp[i].conv_cls,
-                    &qbind[i]);
+                     &qbind[i]);
 }
 
 
