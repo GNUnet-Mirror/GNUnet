@@ -357,16 +357,14 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh,
  * message from the service.
  *
  * @param cls the `struct GNUNET_ATS_SchedulingHandle`
- * @param msg message received, NULL on timeout or fatal error
+ * @param srm message received
  */
 static void
-process_ats_session_release_message (void *cls,
-                                     const struct GNUNET_MessageHeader *msg)
+handle_ats_session_release (void *cls,
+			    const struct GNUNET_ATS_SessionReleaseMessage *srm)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
-  const struct GNUNET_ATS_SessionReleaseMessage *srm;
 
-  srm = (const struct GNUNET_ATS_SessionReleaseMessage *) msg;
   /* Note: peer field in srm not necessary right now,
      but might be good to have in the future */
   release_session (sh,
@@ -379,18 +377,16 @@ process_ats_session_release_message (void *cls,
  * message from the service.
  *
  * @param cls the `struct GNUNET_ATS_SchedulingHandle`
- * @param msg message received, NULL on timeout or fatal error
+ * @param m message received
  */
 static void
-process_ats_address_suggestion_message (void *cls,
-                                        const struct GNUNET_MessageHeader *msg)
+handle_ats_address_suggestion (void *cls,
+			       const struct AddressSuggestionMessage *m)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
-  const struct AddressSuggestionMessage *m;
   struct GNUNET_ATS_AddressRecord *ar;
   uint32_t session_id;
 
-  m = (const struct AddressSuggestionMessage *) msg;
   session_id = ntohl (m->session_id);
   if (0 == session_id)
   {
@@ -528,14 +524,17 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 static void
 reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
 {
-  static const struct GNUNET_MQ_MessageHandler handlers[] =
-    { { &process_ats_session_release_message,
-        GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE,
-        sizeof (struct GNUNET_ATS_SessionReleaseMessage) },
-      { &process_ats_address_suggestion_message,
-        GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
-        sizeof (struct AddressSuggestionMessage) },
-      { NULL, 0, 0 } };
+  GNUNET_MQ_hd_fixed_size (ats_session_release,
+			   GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE,
+			   struct GNUNET_ATS_SessionReleaseMessage);
+  GNUNET_MQ_hd_fixed_size (ats_address_suggestion,
+			   GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
+			   struct AddressSuggestionMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_ats_session_release_handler (sh),
+    make_ats_address_suggestion_handler (sh),
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_MQ_Envelope *ev;
   struct ClientStartMessage *init;
   unsigned int i;

@@ -88,7 +88,7 @@ main (int argc, char *argv[])
   start = GNUNET_TIME_absolute_get();
   for (i = 0; i < l; i++)
     GNUNET_CRYPTO_eddsa_key_get_public (eddsa[i], &dspub[i]);
-  log_duration ("EdDSA", "get pubilc");
+  log_duration ("EdDSA", "get public");
 
   start = GNUNET_TIME_absolute_get();
   for (i = 0; i < l; i++)

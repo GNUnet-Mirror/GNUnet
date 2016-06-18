@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2014 GNUnet e.V.
+     Copyright (C) 2012-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -243,7 +243,7 @@ struct GNUNET_SET_ListenHandle
 static struct GNUNET_SET_Handle *
 create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  enum GNUNET_SET_OperationType op,
-                 uint32_t *cookie);
+                 const uint32_t *cookie);
 
 
 /**
@@ -251,21 +251,17 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * iterator and sends an acknowledgement to the service.
  *
  * @param cls the `struct GNUNET_SET_Handle *`
- * @param mh the message
+ * @param msg the message
  */
 static void
 handle_copy_lazy (void *cls,
-                  const struct GNUNET_MessageHeader *mh)
+                  const struct GNUNET_SET_CopyLazyResponseMessage *msg)
 {
-  struct GNUNET_SET_CopyLazyResponseMessage *msg;
   struct GNUNET_SET_Handle *set = cls;
   struct SetCopyRequest *req;
   struct GNUNET_SET_Handle *new_set;
 
-  msg = (struct GNUNET_SET_CopyLazyResponseMessage *) mh;
-
   req = set->copy_req_head;
-
   if (NULL == req)
   {
     /* Service sent us unsolicited lazy copy response */
@@ -275,21 +271,34 @@ handle_copy_lazy (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling response to lazy copy\n");
-
   GNUNET_CONTAINER_DLL_remove (set->copy_req_head,
                                set->copy_req_tail,
                                req);
-
-
   // We pass none as operation here, since it doesn't matter when
   // cloning.
-  new_set = create_internal (set->cfg, GNUNET_SET_OPERATION_NONE, &msg->cookie);
-
+  new_set = create_internal (set->cfg,
+			     GNUNET_SET_OPERATION_NONE,
+			     &msg->cookie);
   req->cb (req->cls, new_set);
-
   GNUNET_free (req);
 }
 
+
+/**
+ * Check that the given @a msg is well-formed.
+ *
+ * @param cls closure
+ * @param msg message to check
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_iter_element (void *cls,
+		    const struct GNUNET_SET_IterResponseMessage *msg)
+{
+  /* minimum size was already checked, everything else is OK! */
+  return GNUNET_OK;
+}
+ 
 
 /**
  * Handle element for iteration over the set.  Notifies the
@@ -298,30 +307,18 @@ handle_copy_lazy (void *cls,
  * @param cls the `struct GNUNET_SET_Handle *`
  * @param mh the message
  */
-static void
-handle_iter_element (void *cls,
-                     const struct GNUNET_MessageHeader *mh)
+ static void
+ handle_iter_element (void *cls,
+                      const struct GNUNET_SET_IterResponseMessage *msg)
 {
   struct GNUNET_SET_Handle *set = cls;
   GNUNET_SET_ElementIterator iter = set->iterator;
-  struct GNUNET_SET_Element element;
-  const struct GNUNET_SET_IterResponseMessage *msg;
+  struct GNUNET_SET_Element element;  
   struct GNUNET_SET_IterAckMessage *ack_msg;
   struct GNUNET_MQ_Envelope *ev;
   uint16_t msize;
 
-  msize = ntohs (mh->size);
-  if (msize < sizeof (sizeof (struct GNUNET_SET_IterResponseMessage)))
-  {
-    /* message malformed */
-    GNUNET_break (0);
-    set->iterator = NULL;
-    set->iteration_id++;
-    iter (set->iterator_cls,
-          NULL);
-    iter = NULL;
-  }
-  msg = (const struct GNUNET_SET_IterResponseMessage *) mh;
+  msize = ntohs (msg->header.size);
   if (set->iteration_id != ntohs (msg->iteration_id))
   {
     /* element from a previous iteration, skip! */
@@ -366,6 +363,22 @@ handle_iter_done (void *cls,
 
 
 /**
+ * Check that the given @a msg is well-formed.
+ *
+ * @param cls closure
+ * @param msg message to check
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_result (void *cls,
+	      const struct GNUNET_SET_ResultMessage *msg)
+{
+  /* minimum size was already checked, everything else is OK! */
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle result message for a set operation.
  *
  * @param cls the set
@@ -373,15 +386,13 @@ handle_iter_done (void *cls,
  */
 static void
 handle_result (void *cls,
-               const struct GNUNET_MessageHeader *mh)
+               const struct GNUNET_SET_ResultMessage *msg)
 {
   struct GNUNET_SET_Handle *set = cls;
-  const struct GNUNET_SET_ResultMessage *msg;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_Element e;
   enum GNUNET_SET_Status result_status;
 
-  msg = (const struct GNUNET_SET_ResultMessage *) mh;
   GNUNET_assert (NULL != set->mq);
   result_status = ntohs (msg->result_status);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -442,7 +453,7 @@ do_element:
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Treating result as element\n");
   e.data = &msg[1];
-  e.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ResultMessage);
+  e.size = ntohs (msg->header.size) - sizeof (struct GNUNET_SET_ResultMessage);
   e.element_type = ntohs (msg->element_type);
   if (NULL != oh->result_cb)
     oh->result_cb (oh->result_cls,
@@ -522,7 +533,8 @@ handle_client_set_error (void *cls,
                          enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_Handle *set = cls;
-
+  GNUNET_SET_ElementIterator iter = set->iterator;
+  
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling client set error %d\n",
        error);
@@ -534,6 +546,11 @@ handle_client_set_error (void *cls,
                                 GNUNET_SET_STATUS_FAILURE);
     set_operation_destroy (set->ops_head);
   }
+  set->iterator = NULL;
+  set->iteration_id++;
+  if (NULL != iter)
+    iter (set->iterator_cls,
+          NULL);
   set->invalid = GNUNET_YES;
   if (GNUNET_YES == set->destroy_requested)
   {
@@ -547,31 +564,34 @@ handle_client_set_error (void *cls,
 static struct GNUNET_SET_Handle *
 create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  enum GNUNET_SET_OperationType op,
-                 uint32_t *cookie)
+                 const uint32_t *cookie)
 {
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    { &handle_result,
-      GNUNET_MESSAGE_TYPE_SET_RESULT,
-      0 },
-    { &handle_iter_element,
-      GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
-      0 },
-    { &handle_iter_done,
-      GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
-      sizeof (struct GNUNET_MessageHeader) },
-    { &handle_copy_lazy,
-      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE,
-      sizeof (struct GNUNET_SET_CopyLazyResponseMessage) },
-    GNUNET_MQ_HANDLERS_END
+  GNUNET_MQ_hd_var_size (result,
+			 GNUNET_MESSAGE_TYPE_SET_RESULT,
+			 struct GNUNET_SET_ResultMessage);
+  GNUNET_MQ_hd_var_size (iter_element,
+			 GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
+			 struct GNUNET_SET_IterResponseMessage);
+  GNUNET_MQ_hd_fixed_size (iter_done,
+			   GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
+			   struct GNUNET_MessageHeader);
+  GNUNET_MQ_hd_fixed_size (copy_lazy,
+			   GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE,
+			   struct GNUNET_SET_CopyLazyResponseMessage);
+  struct GNUNET_SET_Handle *set = GNUNET_new (struct GNUNET_SET_Handle);
+  struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    make_result_handler (set),
+    make_iter_element_handler (set),
+    make_iter_done_handler (set),
+    make_copy_lazy_handler (set),
+    GNUNET_MQ_handler_end ()
   };
-  struct GNUNET_SET_Handle *set;
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *create_msg;
   struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
 
-  set = GNUNET_new (struct GNUNET_SET_Handle);
-  set->client = GNUNET_CLIENT_connect ("set", cfg);
   set->cfg = cfg;
+  set->client = GNUNET_CLIENT_connect ("set", cfg);
   if (NULL == set->client)
   {
     GNUNET_free (set);
@@ -796,41 +816,48 @@ listen_connect (void *cls);
 
 
 /**
+ * Check validity of request message for a listen operation
+ *
+ * @param cls the listen handle
+ * @param msg the message
+ * @return #GNUNET_OK if the message is well-formed
+ */
+static int
+check_request (void *cls,
+	       const struct GNUNET_SET_RequestMessage *msg)
+{
+  const struct GNUNET_MessageHeader *context_msg;
+
+  context_msg = GNUNET_MQ_extract_nested_mh (msg);
+  if (NULL == context_msg)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle request message for a listen operation
  *
  * @param cls the listen handle
- * @param mh the message
+ * @param msg the message
  */
 static void
 handle_request (void *cls,
-                const struct GNUNET_MessageHeader *mh)
+                const struct GNUNET_SET_RequestMessage *msg)
 {
   struct GNUNET_SET_ListenHandle *lh = cls;
-  const struct GNUNET_SET_RequestMessage *msg;
   struct GNUNET_SET_Request req;
   const struct GNUNET_MessageHeader *context_msg;
-  uint16_t msize;
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_RejectMessage *rmsg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing incoming operation request\n");
-  msize = ntohs (mh->size);
-  if (msize < sizeof (struct GNUNET_SET_RequestMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (lh->client);
-    lh->client = NULL;
-    GNUNET_MQ_destroy (lh->mq);
-    lh->mq = NULL;
-    lh->reconnect_task = GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff,
-                                                       &listen_connect, lh);
-    lh->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (lh->reconnect_backoff);
-    return;
-  }
   /* we got another valid request => reset the backoff */
   lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-  msg = (const struct GNUNET_SET_RequestMessage *) mh;
   req.accept_id = ntohl (msg->accept_id);
   req.accepted = GNUNET_NO;
   context_msg = GNUNET_MQ_extract_nested_mh (msg);
@@ -871,7 +898,8 @@ handle_client_listener_error (void *cls,
   GNUNET_MQ_destroy (lh->mq);
   lh->mq = NULL;
   lh->reconnect_task = GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff,
-                                                     &listen_connect, lh);
+                                                     &listen_connect,
+						     lh);
   lh->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (lh->reconnect_backoff);
 }
 
@@ -883,12 +911,15 @@ handle_client_listener_error (void *cls,
  */
 static void
 listen_connect (void *cls)
-{
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    { &handle_request, GNUNET_MESSAGE_TYPE_SET_REQUEST },
-    GNUNET_MQ_HANDLERS_END
-  };
+{ 
+  GNUNET_MQ_hd_var_size (request,
+			 GNUNET_MESSAGE_TYPE_SET_REQUEST,
+			 struct GNUNET_SET_RequestMessage);
   struct GNUNET_SET_ListenHandle *lh = cls;
+  struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    make_request_handler (lh),
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
 
@@ -900,7 +931,8 @@ listen_connect (void *cls)
   GNUNET_assert (NULL == lh->mq);
   lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client,
                                                   mq_handlers,
-                                                  &handle_client_listener_error, lh);
+                                                  &handle_client_listener_error,
+						  lh);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
   msg->operation = htonl (lh->operation);
   msg->app_id = lh->app_id;
@@ -1133,11 +1165,12 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element)
  * Hash a set element.
  *
  * @param element the element that should be hashed
- * @param ret_hash a pointer to where the hash of @a element
+ * @param[out] ret_hash a pointer to where the hash of @a element
  *        should be stored
  */
 void
-GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET_HashCode *ret_hash)
+GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element,
+			 struct GNUNET_HashCode *ret_hash)
 {
   struct GNUNET_HashContext *ctx = GNUNET_CRYPTO_hash_context_start ();
 

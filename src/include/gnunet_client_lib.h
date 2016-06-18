@@ -43,11 +43,49 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_mq_lib.h"
 
 /**
  * Opaque handle for a connection to a service.
  */
 struct GNUNET_CLIENT_Connection;
+
+
+/**
+ * Create a message queue to connect to a GNUnet service.
+ * If handlers are specfied, receive messages from the connection.
+ *
+ * @param connection the client connection
+ * @param handlers handlers for receiving messages, can be NULL
+ * @param error_handler error handler
+ * @param error_handler_cls closure for the @a error_handler
+ * @return the message queue
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CLIENT_connect2 (const char *service_name,
+			const struct GNUNET_CONFIGURATION_Handle *cfg,
+			const struct GNUNET_MQ_MessageHandler *handlers,
+			GNUNET_MQ_ErrorHandler error_handler,
+			void *error_handler_cls);
+
+
+/**
+ * Create a message queue for a GNUNET_CLIENT_Connection.
+ * If handlers are specfied, receive messages from the connection.
+ *
+ * @param connection the client connection
+ * @param handlers handlers for receiving messages
+ * @param error_handler error handler
+ * @param error_handler_cls closure for the @a error_handler
+ * @return the message queue
+ * @deprecated use #GNUNET_CLIENT_connect2
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
+                                       const struct GNUNET_MQ_MessageHandler *handlers,
+                                       GNUNET_MQ_ErrorHandler error_handler,
+                                       void *error_handler_cls);
+
 
 /**
  * Get a connection with a service.
@@ -55,6 +93,7 @@ struct GNUNET_CLIENT_Connection;
  * @param service_name name of the service
  * @param cfg configuration to use
  * @return NULL on error (service unknown to configuration)
+ * @deprecated use #GNUNET_CLIENT_connect2
  */
 struct GNUNET_CLIENT_Connection *
 GNUNET_CLIENT_connect (const char *service_name,
@@ -73,6 +112,7 @@ GNUNET_CLIENT_connect (const char *service_name,
  * which case the message may still be lost).
  *
  * @param client handle to the service connection
+ * @deprecated
  */
 void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client);
@@ -85,8 +125,9 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client);
  * @param cls closure
  * @param msg message received, NULL on timeout or fatal error
  */
-typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
-                                              const struct GNUNET_MessageHeader *msg);
+typedef void
+(*GNUNET_CLIENT_MessageHandler) (void *cls,
+				 const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -96,10 +137,12 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
  * @param handler function to call with the message
  * @param handler_cls closure for @a handler
  * @param timeout how long to wait until timing out
+ * @deprecated
  */
 void
 GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
-                       GNUNET_CLIENT_MessageHandler handler, void *handler_cls,
+                       GNUNET_CLIENT_MessageHandler handler,
+		       void *handler_cls,
                        struct GNUNET_TIME_Relative timeout);
 
 
@@ -128,6 +171,7 @@ struct GNUNET_CLIENT_TransmitHandle;
  * @return NULL if someone else is already waiting to be notified
  *         non-NULL if the notify callback was queued (can be used to cancel
  *         using #GNUNET_CONNECTION_notify_transmit_ready_cancel)
+ * @deprecated
  */
 struct GNUNET_CLIENT_TransmitHandle *
 GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
@@ -142,6 +186,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
  * Cancel a request for notification.
  *
  * @param th handle from the original request.
+ * @deprecated
  */
 void
 GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
@@ -168,6 +213,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
  * @param rn_cls closure for @a rn
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if a request
  *         is already pending
+ * @deprecated
  */
 int
 GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client,
@@ -191,8 +237,9 @@ struct GNUNET_CLIENT_TestHandle;
  *               #GNUNET_NO if the service is not running
  *               #GNUNET_SYSERR if the configuration is invalid
  */
-typedef void (*GNUNET_CLIENT_TestResultCallback)(void *cls,
-						 int result);
+typedef void
+(*GNUNET_CLIENT_TestResultCallback)(void *cls,
+				    int result);
 
 
 /**
@@ -207,6 +254,7 @@ typedef void (*GNUNET_CLIENT_TestResultCallback)(void *cls,
  * @param cb function to call with the result
  * @param cb_cls closure for @a cb
  * @return handle to cancel the test
+ * @deprecated
  */
 struct GNUNET_CLIENT_TestHandle *
 GNUNET_CLIENT_service_test (const char *service,
@@ -219,6 +267,7 @@ GNUNET_CLIENT_service_test (const char *service,
  * Abort testing for service.
  *
  * @param th test handle
+ * @deprecated
  */
 void
 GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th);

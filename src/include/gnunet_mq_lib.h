@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2013 GNUnet e.V.
+     Copyright (C) 2012-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,6 +20,7 @@
 
 /**
  * @author Florian Dold
+ * @author Christian Grothoff
  *
  * @file
  * General-purpose message queue
@@ -117,7 +118,7 @@ GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
 
 
 /**
- * Implementation of the GNUNET_MQ_msg_nested_mh macro.
+ * Implementation of the #GNUNET_MQ_msg_nested_mh macro.
  *
  * @param mhp pointer to the message header pointer that will be changed to allocate at
  *        the newly allocated space for the message.
@@ -130,13 +131,6 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
                           uint16_t base_size,
                           uint16_t type,
                           const struct GNUNET_MessageHeader *nested_mh);
-
-
-
-/**
- * End-marker for the handlers array
- */
-#define GNUNET_MQ_HANDLERS_END {NULL, 0, 0}
 
 
 /**
@@ -156,7 +150,9 @@ struct GNUNET_MQ_Envelope;
 enum GNUNET_MQ_Error
 {
   /**
-   * FIXME: document!
+   * Failed to read message from the network.
+   * FIXME: Likely not properly distinguished
+   * from TIMEOUT case in the code!
    */
   GNUNET_MQ_ERROR_READ = 1,
 
@@ -168,7 +164,13 @@ enum GNUNET_MQ_Error
   /**
    * FIXME: document!
    */
-  GNUNET_MQ_ERROR_TIMEOUT = 4
+  GNUNET_MQ_ERROR_TIMEOUT = 4,
+
+  /**
+   * We received a message that was malformed and thus
+   * could not be passed to its handler.
+   */
+  GNUNET_MQ_ERROR_MALFORMED = 8
 };
 
 
@@ -181,6 +183,19 @@ enum GNUNET_MQ_Error
 typedef void
 (*GNUNET_MQ_MessageCallback) (void *cls,
                               const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Called when a message needs to be validated.
+ *
+ * @param cls closure
+ * @param msg the received message
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR if not
+ */
+typedef int
+(*GNUNET_MQ_MessageValidationCallback) (void *cls,
+					const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -251,25 +266,135 @@ typedef void
 struct GNUNET_MQ_MessageHandler
 {
   /**
+   * Callback to validate a message of the specified @e type.
+   * The closure given to @e mv will be this struct (not @e ctx).
+   * Using NULL means only size-validation using 
+   * @e expected_size.  In this case, @e expected_size must
+   * be non-zero.
+   */
+  GNUNET_MQ_MessageValidationCallback mv;
+  
+  /**
    * Callback, called every time a new message of
-   * the specified type has been receied.
+   * the specified @e type has been receied.
+   * The closure given to @e mv will be this struct (not @e ctx).
    */
   GNUNET_MQ_MessageCallback cb;
 
   /**
-   * Type of the message this handler covers.
+   * Closure for @e mv and @e cb.
+   */
+  void *cls;
+  
+  /**
+   * Type of the message this handler covers, in host byte order.
    */
   uint16_t type;
 
   /**
-   * Expected size of messages of this type.  Use 0 for
-   * variable-size.  If non-zero, messages of the given
-   * type will be discarded (and the connection closed)
-   * if they do not have the right size.
+   * Expected size of messages of this type.  Minimum size of the
+   * message if @e mv is non-NULL.  Messages of the given type will be
+   * discarded (and the connection closed with an error reported to
+   * the application) if they do not have the right size.
    */
   uint16_t expected_size;
 };
 
+
+/**
+ * End-marker for the handlers array
+ */
+#define GNUNET_MQ_handler_end() {NULL, NULL, NULL, 0, 0}
+
+
+/**
+ * Defines a static function @a name which takes as a single argument
+ * a message handler for fixed-sized messages of type @a code and with
+ * a message type argument of @a str.  Given such an argument, the
+ * function @name will return a `struct GNUNET_MQ_MessageHandler`
+ * for the given message type.
+ *
+ * The macro is to be used as follows:
+ * <code>
+ * struct GNUNET_MessageTest { ... }; // must be fixed size
+ * GNUNET_MQ_hd_fixed_size(test_message, 
+ *                         GNUNET_MESSAGE_TYPE_TEST, 
+ *                         struct GNUNET_MessageTest);
+ * static void
+ * handle_test_message (void *cls, // the struct GNUNET_MQ_MessageHandler
+ *                      const struct GNUNET_MessageTest *msg)
+ * { ... }
+ * 
+ * struct GNUNET_MQ_MessageHandler handlers[] = {
+ *   make_test_message_handler (),
+ *   GNUNET_MQ_handler_end()
+ * };
+ *
+ * @param name unique basename for the functions
+ * @param code message type constant
+ * @param str type of the message (a struct)
+ */
+#define GNUNET_MQ_hd_fixed_size(name,code,str)   \
+  struct GNUNET_MQ_MessageHandler 	                     \
+  make_##name##_handler (void *cls) {                        \
+    void (*cb)(void *cls, const str *msg) = &handle_##name;  \
+    struct GNUNET_MQ_MessageHandler mh = {		     \
+      NULL, (GNUNET_MQ_MessageCallback) cb,                  \
+      cls, code, sizeof (str) };                             \
+    return mh;                                               \
+  }
+
+
+/**
+ * Defines a static function @a name which takes two arguments and a
+ * context-pointer for validating and handling variable-sized messages
+ * of type @a code and with a message type argument of @a str.  Given
+ * such arguments, the function @name will return a `struct
+ * GNUNET_MQ_MessageHandler` for the given message type.
+ *
+ * The macro is to be used as follows:
+ * <code>
+ * struct GNUNET_MessageTest { ... }; // can be variable size
+ * GNUNET_MQ_hd_var_size(test_message, 
+ *                       GNUNET_MESSAGE_TYPE_TEST, 
+ *                       struct GNUNET_MessageTest);
+ * static int
+ * check_test (void *cls,
+ *             const struct GNUNET_MessageTest *msg)
+ * {
+ *   const char *ctx = cls;
+ *   GNUNET_assert (0 == strcmp ("context", ctx));
+ *   // ...
+ * }
+ * static void
+ * handle_test (void *cls,
+ *              const struct GNUNET_MessageTest *msg)
+ * {
+ *   const char *ctx = cls;
+ *   GNUNET_assert (0 == strcmp ("context", ctx));
+ *   // ...
+ * } 
+ * 
+ * struct GNUNET_MQ_MessageHandler handlers[] = {
+ *   make_test_message_handler ("context"),
+ *   GNUNET_MQ_handler_end()
+ * };
+ *
+ * @param name unique basename for the functions
+ * @param code message type constant
+ * @param str type of the message (a struct)
+ */
+#define GNUNET_MQ_hd_var_size(name,code,str)               \
+  struct GNUNET_MQ_MessageHandler 	                   \
+  make_##name##_handler (void *ctx) { 	                   \
+    int (*mv)(void *cls, const str *msg) = &check_##name;  \
+    void (*cb)(void *cls, const str *msg) = &handle_##name;\
+    struct GNUNET_MQ_MessageHandler mh =                   \
+      { (GNUNET_MQ_MessageValidationCallback) mv,          \
+	(GNUNET_MQ_MessageCallback) cb,                    \
+	ctx, code, sizeof (str) };			   \
+    return mh;                                             \
+  }
 
 
 /**
@@ -321,17 +446,18 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
 
 
 /**
- * Associate the assoc_data in mq with a unique request id.
+ * Associate the assoc_data in @a mq with a unique request id.
  *
  * @param mq message queue, id will be unique for the queue
  * @param assoc_data to associate
  */
 uint32_t
-GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq, void *assoc_data);
+GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
+		     void *assoc_data);
 
 
 /**
- * Get the data associated with a request id in a queue
+ * Get the data associated with a @a request_id in a queue
  *
  * @param mq the message queue with the association
  * @param request_id the request id we are interested in
@@ -343,7 +469,7 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Remove the association for a request id
+ * Remove the association for a @a request_id
  *
  * @param mq the message queue with the association
  * @param request_id the request id we want to remove
@@ -352,33 +478,6 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
 void *
 GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
                         uint32_t request_id);
-
-
-/**
- * Create a message queue for a GNUNET_CLIENT_Connection.
- * If handlers are specfied, receive messages from the connection.
- *
- * @param connection the client connection
- * @param handlers handlers for receiving messages
- * @param error_handler error handler
- * @param cls closure for the handlers
- * @return the message queue
- */
-struct GNUNET_MQ_Handle *
-GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
-                                       const struct GNUNET_MQ_MessageHandler *handlers,
-                                       GNUNET_MQ_ErrorHandler error_handler,
-                                       void *cls);
-
-
-/**
- * Create a message queue for a GNUNET_SERVER_Client.
- *
- * @param client the client
- * @return the message queue
- */
-struct GNUNET_MQ_Handle *
-GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
 
 
 /**
@@ -401,24 +500,6 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
                                const struct GNUNET_MQ_MessageHandler *handlers,
                                GNUNET_MQ_ErrorHandler error_handler,
                                void *cls);
-
-
-/**
- * Replace the handlers of a message queue with new handlers.  Takes
- * effect immediately, even for messages that already have been
- * received, but for with the handler has not been called.
- *
- * If the message queue does not support receiving messages,
- * this function has no effect.
- *
- * @param mq message queue
- * @param new_handlers new handlers
- * @param cls new closure for the handlers
- */
-void
-GNUNET_MQ_replace_handlers (struct GNUNET_MQ_Handle *mq,
-                            const struct GNUNET_MQ_MessageHandler *new_handlers,
-                            void *cls);
 
 
 /**
@@ -476,10 +557,9 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Call the send implementation for the next queued message,
- * if any.
- * Only useful for implementing message queues,
- * results in undefined behavior if not used carefully.
+ * Call the send implementation for the next queued message, if any.
+ * Only useful for implementing message queues, results in undefined
+ * behavior if not used carefully.
  *
  * @param mq message queue to send the next message with
  */
@@ -488,15 +568,14 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Get the message that should currently be sent.
- * The returned message is only valid until #GNUNET_MQ_impl_send_continue
- * is called.
- * Fails if there is no current message.
- * Only useful for implementing message queues,
- * results in undefined behavior if not used carefully.
+ * Get the message that should currently be sent.  The returned
+ * message is only valid until #GNUNET_MQ_impl_send_continue is
+ * called.  Fails if there is no current message.  Only useful for
+ * implementing message queues, results in undefined behavior if not
+ * used carefully.
  *
  * @param mq message queue with the current message, only valid
- *        until #GNUNET_MQ_impl_send_continue is called
+ *        until #GNUNET_MQ_impl_send_continue() is called
  * @return message to send, never NULL
  */
 const struct GNUNET_MessageHeader *
@@ -511,7 +590,7 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
  * implementation state, continuations that are scheduled
  * by the implementation function often only have one closure
  * argument, with this function it is possible to get at the
- * implementation state when only passing the GNUNET_MQ_Handle
+ * implementation state when only passing the `struct GNUNET_MQ_Handle`
  * as closure.
  *
  * @param mq message queue with the current message

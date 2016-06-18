@@ -729,6 +729,16 @@ GNUNET_SERVER_notification_context_get_size (struct GNUNET_SERVER_NotificationCo
 
 
 /**
+ * Create a message queue for a server's client.
+ *
+ * @param client the client
+ * @return the message queue
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
+
+
+/**
  * Handle to a message stream tokenizer.
  */
 struct GNUNET_SERVER_MessageStreamTokenizer;
