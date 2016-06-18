@@ -90,6 +90,7 @@ struct GNUNET_CONSENSUS_Handle
   struct GNUNET_MQ_Handle *mq;
 };
 
+
 /**
  * FIXME: this should not bee necessary when the API
  * issue has been fixed
@@ -105,25 +106,37 @@ struct InsertDoneInfo
  * Called when the server has sent is a new element
  *
  * @param cls consensus handle
- * @param mh element message
+ * @param msg element message
+ */
+static int
+check_new_element (void *cls,
+                   const struct GNUNET_CONSENSUS_ElementMessage *msg)
+{
+  /* any size is fine, elements are variable-size */
+  return GNUNET_OK;
+}
+
+
+/**
+ * Called when the server has sent is a new element
+ *
+ * @param cls consensus handle
+ * @param msg element message
  */
 static void
 handle_new_element (void *cls,
-                    const struct GNUNET_MessageHeader *mh)
+                    const struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
-  const struct GNUNET_CONSENSUS_ElementMessage *msg
-      = (const struct GNUNET_CONSENSUS_ElementMessage *) mh;
   struct GNUNET_SET_Element element;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "received new element\n");
-
   element.element_type = msg->element_type;
   element.size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
-
-  consensus->new_element_cb (consensus->new_element_cls, &element);
+  consensus->new_element_cb (consensus->new_element_cls,
+                             &element);
 }
 
 
@@ -139,16 +152,12 @@ handle_conclude_done (void *cls,
 		      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
-
   GNUNET_CONSENSUS_ConcludeCallback cc;
 
   GNUNET_MQ_destroy (consensus->mq);
   consensus->mq = NULL;
-
   GNUNET_CLIENT_disconnect (consensus->client);
   consensus->client = NULL;
-
-
   GNUNET_assert (NULL != (cc = consensus->conclude_cb));
   consensus->conclude_cb = NULL;
   cc (consensus->conclude_cls);
@@ -165,9 +174,11 @@ handle_conclude_done (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING, "consensus service disconnected us\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "consensus service disconnected us\n");
 }
 
 
@@ -198,18 +209,22 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          GNUNET_CONSENSUS_ElementCallback new_element_cb,
                          void *new_element_cls)
 {
-  struct GNUNET_CONSENSUS_Handle *consensus;
+  GNUNET_MQ_hd_var_size (new_element,
+                         GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT,
+                         struct GNUNET_CONSENSUS_ElementMessage);
+  GNUNET_MQ_hd_fixed_size (conclude_done,
+                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE,
+                           struct GNUNET_MessageHeader);
+  struct GNUNET_CONSENSUS_Handle *consensus
+    = GNUNET_new (struct GNUNET_CONSENSUS_Handle);
+  struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    make_new_element_handler (consensus),
+    make_conclude_done_handler (consensus),
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_CONSENSUS_JoinMessage *join_msg;
   struct GNUNET_MQ_Envelope *ev;
-  const static struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {handle_new_element,
-      GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT, 0},
-    {handle_conclude_done,
-      GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE, 0},
-    GNUNET_MQ_HANDLERS_END
-  };
 
-  consensus = GNUNET_new (struct GNUNET_CONSENSUS_Handle);
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
@@ -334,4 +349,3 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
   }
   GNUNET_free (consensus);
 }
-
