@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 
+     Copyright (C)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -114,28 +114,52 @@ struct cb_cls_pack
 };
 
 
+
+/**
+ * This function is called, when the service replies to our request.
+ * It verifies that @a msg is well-formed.
+ *
+ * @param cls the closure
+ * @param msg the message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_reply (void *cls,
+             const struct GNUNET_RPS_CS_ReplyMessage *msg)
+{
+  uint16_t msize = ntohs (msg->header.size);
+  uint32_t num_peers = ntohl (msg->num_peers);
+
+  msize -= sizeof (struct GNUNET_RPS_CS_ReplyMessage);
+  if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
+       (msize % sizeof (struct GNUNET_PeerIdentity) != 0) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
 /**
  * This function is called, when the service replies to our request.
  * It calls the callback the caller gave us with the provided closure
  * and disconnects afterwards.
  *
  * @param cls the closure
- * @param message the message
+ * @param msg the message
  */
-  static void
+static void
 handle_reply (void *cls,
-              const struct GNUNET_MessageHeader *message)
+              const struct GNUNET_RPS_CS_ReplyMessage *msg)
 {
-  struct GNUNET_RPS_Handle *h = (struct GNUNET_RPS_Handle *) cls;
-  struct GNUNET_RPS_CS_ReplyMessage *msg;
+  struct GNUNET_RPS_Handle *h = cls;
   struct GNUNET_PeerIdentity *peers;
   struct GNUNET_RPS_Request_Handle *rh;
   uint32_t id;
 
   /* Give the peers back */
-  msg = (struct GNUNET_RPS_CS_ReplyMessage *) message;
   id = ntohl (msg->id);
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Service replied with %" PRIu32 " peers for id %" PRIu32 "\n",
        ntohl (msg->num_peers),
@@ -147,8 +171,11 @@ handle_reply (void *cls,
   rh = GNUNET_CONTAINER_multihashmap32_get (h->req_handlers, id);
   GNUNET_assert (NULL != rh);
   GNUNET_CONTAINER_multihashmap32_remove_all (h->req_handlers, id);
-  rh->ready_cb((rh)->ready_cb_cls, ntohl (msg->num_peers), peers);
+  rh->ready_cb (rh->ready_cb_cls,
+                ntohl (msg->num_peers),
+                peers);
 }
+
 
 /**
  * Reconnect to the service
@@ -166,8 +193,9 @@ reconnect (struct GNUNET_RPS_Handle *h);
  * @param cls the closure
  * @param error error code without specyfied meaning
  */
-  static void
-mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_RPS_Handle *h = cls;
   //TODO LOG
@@ -179,15 +207,19 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
   reconnect (h);
 }
 
+
 /**
  * Reconnect to the service
  */
 static void
 reconnect (struct GNUNET_RPS_Handle *h)
 {
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {&handle_reply, GNUNET_MESSAGE_TYPE_RPS_CS_REPLY, 0},
-    GNUNET_MQ_HANDLERS_END
+  GNUNET_MQ_hd_var_size (reply,
+                         GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
+                         struct GNUNET_RPS_CS_ReplyMessage);
+  struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    make_reply_handler (h),
+    GNUNET_MQ_handler_end ()
   };
 
   if (NULL != h->mq)
@@ -196,11 +228,12 @@ reconnect (struct GNUNET_RPS_Handle *h)
     GNUNET_CLIENT_disconnect (h->conn);
   h->conn = GNUNET_CLIENT_connect ("rps", h->cfg);
   GNUNET_assert (NULL != h->conn);
-  h->mq = GNUNET_MQ_queue_for_connection_client(h->conn,
-                                                mq_handlers,
-                                                mq_error_handler, // TODO implement
-                                                h);
+  h->mq = GNUNET_MQ_queue_for_connection_client (h->conn,
+                                                 mq_handlers,
+                                                 &mq_error_handler,
+                                                 h);
 }
+
 
 /**
  * Connect to the rps service
