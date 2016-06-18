@@ -60,7 +60,7 @@ store ()
 }
 
 
-static int
+static void
 watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
@@ -72,7 +72,6 @@ watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
   }
   else
     store ();
-  return GNUNET_YES;
 }
 
 

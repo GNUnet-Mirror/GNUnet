@@ -79,7 +79,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
-static int
+static void
 test_record (void *cls,
 						 const struct GNUNET_PEERSTORE_Record *record,
 						 const char *error)
@@ -88,13 +88,12 @@ test_record (void *cls,
   char* testval = "test_val";
 
   if (NULL == record)
-    return GNUNET_NO;
+    return;
 
   GNUNET_assert (0 == memcmp (record->peer, id, sizeof (struct GNUNET_PeerIdentity)));
   GNUNET_assert (0 == strcmp ("subsys", record->sub_system));
   GNUNET_assert (0 == strcmp ("key", record->key));
   GNUNET_assert (0 == memcmp (testval, record->value, strlen (testval)));
-  return GNUNET_YES;
 }
 
 

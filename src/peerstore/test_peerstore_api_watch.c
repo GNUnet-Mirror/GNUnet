@@ -35,7 +35,7 @@ static struct GNUNET_PeerIdentity p;
 static char *k = "test_peerstore_api_watch_key";
 static char *val = "test_peerstore_api_watch_val";
 
-static int
+static void
 watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
@@ -44,7 +44,6 @@ watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
   ok = 0;
   GNUNET_PEERSTORE_disconnect (h, GNUNET_NO);
   GNUNET_SCHEDULER_shutdown ();
-  return GNUNET_YES;
 }
 
 

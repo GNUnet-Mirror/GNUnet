@@ -29,6 +29,7 @@
 static int ok = 1;
 
 static struct GNUNET_PEERSTORE_Handle *h;
+static struct GNUNET_PEERSTORE_IterateContext *ic;
 
 static char *ss = "test_peerstore_api_iterate";
 static struct GNUNET_PeerIdentity p1;
@@ -40,60 +41,66 @@ static char *val = "test_peerstore_api_iterate_val";
 static int count = 0;
 
 
-static int
+static void
 iter3_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
   {
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 3);
   ok = 0;
   GNUNET_PEERSTORE_disconnect (h, GNUNET_NO);
   GNUNET_SCHEDULER_shutdown ();
-  return GNUNET_YES;
 }
 
 
-static int
+static void
 iter2_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
   {
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 2);
   count = 0;
-  GNUNET_PEERSTORE_iterate (h, ss, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+  ic = GNUNET_PEERSTORE_iterate (h, ss, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
                             iter3_cb, NULL);
-  return GNUNET_YES;
 }
 
 
-static int
+static void
 iter1_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
   {
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 1);
   count = 0;
-  GNUNET_PEERSTORE_iterate (h, ss, &p1, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+  ic = GNUNET_PEERSTORE_iterate (h, ss, &p1, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
                             iter2_cb, NULL);
-  return GNUNET_YES;
 }
 
 
@@ -114,7 +121,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_PEERSTORE_store (h, ss, &p2, k3, val, strlen (val) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
                           GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
-  GNUNET_PEERSTORE_iterate (h, ss, &p1, k1, GNUNET_TIME_UNIT_FOREVER_REL,
+  ic = GNUNET_PEERSTORE_iterate (h, ss, &p1, k1, GNUNET_TIME_UNIT_FOREVER_REL,
                             iter1_cb, NULL);
 }
 

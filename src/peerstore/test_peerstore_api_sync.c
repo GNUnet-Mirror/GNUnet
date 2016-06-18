@@ -79,7 +79,7 @@ static const char *val = "test_peerstore_api_store_val";
  * @param emsg any error message
  * @return #GNUNET_YES (all good, continue)
  */
-static int
+static void
 iterate_cb (void *cls,
 	    const struct GNUNET_PEERSTORE_Record *record,
             const char *emsg)
@@ -92,12 +92,10 @@ iterate_cb (void *cls,
     GNUNET_PEERSTORE_disconnect (h,
 				 GNUNET_NO);
     GNUNET_SCHEDULER_shutdown ();
-    return GNUNET_YES;
   }
   rec_val = record->value;
   GNUNET_break (0 == strcmp (rec_val, val));
   ok = 0;
-  return GNUNET_YES;
 }
 
 
