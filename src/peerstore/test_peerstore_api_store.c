@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C)
+     Copyright (C) GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,9 +22,9 @@
  * @brief testcase for peerstore store operation
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
+#include "gnunet_testing_lib.h"
+
 
 static int ok = 1;
 
@@ -39,24 +39,24 @@ static char *val3 = "test_peerstore_api_store_val3--";
 
 static int count = 0;
 
-static int
-test3_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+static void
+test3_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+    return;
   if (NULL != record)
   {
     GNUNET_assert ((strlen (val3) + 1) == record->value_size);
     GNUNET_assert (0 == strcmp ((char *) val3, (char *) record->value));
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 1);
   ok = 0;
   GNUNET_PEERSTORE_disconnect (h, GNUNET_YES);
   GNUNET_SCHEDULER_shutdown ();
-  return GNUNET_YES;
 }
 
 
@@ -66,7 +66,11 @@ test3_cont (void *cls, int success)
   if (GNUNET_YES != success)
     return;
   count = 0;
-  GNUNET_PEERSTORE_iterate (h, subsystem, &pid, key, GNUNET_TIME_UNIT_SECONDS,
+  GNUNET_PEERSTORE_iterate (h,
+                            subsystem,
+                            &pid,
+                            key,
+                            GNUNET_TIME_UNIT_SECONDS,
                             &test3_cont2, NULL);
 }
 
@@ -84,12 +88,13 @@ test3 ()
 }
 
 
-static int
-test2_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+static void
+test2_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+    return;
   if (NULL != record)
   {
     GNUNET_assert (((strlen (val1) + 1) == record->value_size) ||
@@ -97,12 +102,11 @@ test2_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
     GNUNET_assert ((0 == strcmp ((char *) val1, (char *) record->value)) ||
                    (0 == strcmp ((char *) val2, (char *) record->value)));
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 2);
   count = 0;
   test3 ();
-  return GNUNET_YES;
 }
 
 
@@ -112,7 +116,10 @@ test2_cont (void *cls, int success)
   if (GNUNET_YES != success)
     return;
   count = 0;
-  GNUNET_PEERSTORE_iterate (h, subsystem, &pid, key, GNUNET_TIME_UNIT_SECONDS,
+  GNUNET_PEERSTORE_iterate (h,
+                            subsystem,
+                            &pid, key,
+                            GNUNET_TIME_UNIT_SECONDS,
                             &test2_cont2, NULL);
 }
 
@@ -130,23 +137,23 @@ test2 ()
 }
 
 
-static int
-test1_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+static void
+test1_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
-    return GNUNET_NO;
+    return;
   if (NULL != record)
   {
     GNUNET_assert ((strlen (val1) + 1) == record->value_size);
     GNUNET_assert (0 == strcmp ((char *) val1, (char *) record->value));
     count++;
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (count == 1);
   count = 0;
   test2 ();
-  return GNUNET_YES;
 }
 
 
