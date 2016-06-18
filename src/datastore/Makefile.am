@@ -28,7 +28,6 @@ libgnunetdatastore_la_SOURCES = \
 libgnunetdatastore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/my/libgnunetmy.la \
   $(GN_LIBINTL)
 libgnunetdatastore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
