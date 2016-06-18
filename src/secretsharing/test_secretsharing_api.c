@@ -33,11 +33,12 @@ static int success;
 static struct GNUNET_SECRETSHARING_Session *keygen;
 
 
-static void secret_ready_cb (void *cls,
-                             struct GNUNET_SECRETSHARING_Share *my_share,
-                             struct GNUNET_SECRETSHARING_PublicKey *public_key,
-                             unsigned int num_ready_peers,
-                             struct GNUNET_PeerIdentity *ready_peers)
+static void
+secret_ready_cb (void *cls,
+                 struct GNUNET_SECRETSHARING_Share *my_share,
+                 struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                 unsigned int num_ready_peers,
+                 const struct GNUNET_PeerIdentity *ready_peers)
 {
   keygen = NULL;
   if (num_ready_peers == 1)

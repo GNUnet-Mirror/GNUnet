@@ -157,7 +157,7 @@ struct GNUNET_SECRETSHARING_DecryptRequestMessage
 struct GNUNET_SECRETSHARING_DecryptResponseMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE
+   * Type: #GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE
    */
   struct GNUNET_MessageHeader header;
 
@@ -165,7 +165,7 @@ struct GNUNET_SECRETSHARING_DecryptResponseMessage
    * Zero if decryption failed, non-zero if decryption succeeded.
    * If the decryption failed, plaintext is also zero.
    */
-  uint32_t success;
+  uint32_t success GNUNET_PACKED;
 
   /**
    * Decrypted plaintext.

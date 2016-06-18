@@ -36,7 +36,7 @@ GNUNET_SECRETSHARING_share_read (const void *data,
 {
   struct GNUNET_SECRETSHARING_Share *share;
   const struct GNUNET_SECRETSHARING_ShareHeaderNBO *sh = data;
-  char *p;
+  const char *p;
   size_t n;
   uint16_t payload_size;
 
@@ -47,7 +47,7 @@ GNUNET_SECRETSHARING_share_read (const void *data,
   if (NULL != readlen)
     *readlen = payload_size + sizeof *sh;
 
-  share = GNUNET_malloc (sizeof *share);
+  share = GNUNET_new (struct GNUNET_SECRETSHARING_Share);
 
   share->threshold = ntohs (sh->threshold);
   share->num_peers = ntohs (sh->num_peers);
@@ -56,20 +56,23 @@ GNUNET_SECRETSHARING_share_read (const void *data,
   share->my_share = sh->my_share;
   share->public_key = sh->public_key;
 
-  p = (void *) &sh[1];
+  p = (const char *) &sh[1];
 
   n = share->num_peers * sizeof (struct GNUNET_PeerIdentity);
-  share->peers = GNUNET_malloc (n);
+  share->peers = GNUNET_new_array (share->num_peers,
+                                   struct GNUNET_PeerIdentity);
   memcpy (share->peers, p, n);
   p += n;
 
   n = share->num_peers * sizeof (struct GNUNET_SECRETSHARING_FieldElement);
-  share->sigmas = GNUNET_malloc (n);
+  share->sigmas = GNUNET_new_array (share->num_peers,
+                                    struct GNUNET_SECRETSHARING_FieldElement);
   memcpy (share->sigmas, p, n);
   p += n;
 
   n = share->num_peers * sizeof (uint16_t);
-  share->original_indices = GNUNET_malloc (n);
+  share->original_indices = GNUNET_new_array (share->num_peers,
+                                              uint16_t);
   memcpy (share->original_indices, p, n);
 
   return share;
@@ -148,5 +151,3 @@ GNUNET_SECRETSHARING_share_destroy (struct GNUNET_SECRETSHARING_Share *share)
   share->peers = NULL;
   GNUNET_free (share);
 }
-
-
