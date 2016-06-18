@@ -277,18 +277,6 @@ GNUNET_JSONAPI_document_new ();
 
 
 /**
- * Create a JSON API primary data from a string
- *
- * @param data the string of the JSON API data
- * @param Pointer where to store new jsonapi Object.
- * @return GNUNET_OK on success
- */
-int
-GNUNET_JSONAPI_document_parse (const char* data,
-                               struct GNUNET_JSONAPI_Document** obj);
-
-
-/**
  * Delete a JSON API primary data
  *
  * @param type the JSON API resource type

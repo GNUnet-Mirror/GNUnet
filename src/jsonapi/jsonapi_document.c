@@ -408,4 +408,3 @@ GNUNET_JSON_spec_jsonapi_document (struct GNUNET_JSONAPI_Document **jsonapi_obje
   return ret;
 }
 
-

@@ -723,8 +723,14 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   json_t *records_json;
+  json_t *data_js;
+  json_error_t err;
   char term_data[handle->rest_handle->data_size+1];
-
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
+  
   if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -741,8 +747,13 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   memcpy (term_data,
           handle->rest_handle->data,
           handle->rest_handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
-                                                           &json_obj));
+  data_js = json_loads (term_data,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_js, docspec,
+                                    NULL, NULL));
+  json_decref (data_js);
   if (NULL == json_obj)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -762,7 +773,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
   if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
-                                                            GNUNET_REST_JSONAPI_NAMESTORE_RECORD))
+                                                       GNUNET_REST_JSONAPI_NAMESTORE_RECORD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unsupported JSON data type\n");
@@ -774,7 +785,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   handle->name = GNUNET_strdup (GNUNET_JSONAPI_resource_get_id (json_res));
   records_json = GNUNET_JSONAPI_resource_read_attr (json_res,
-                                                         GNUNET_REST_JSONAPI_NAMESTORE_RECORD);
+                                                    GNUNET_REST_JSONAPI_NAMESTORE_RECORD);
   if (NULL == records_json)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -817,10 +828,10 @@ namestore_zkey_response (void *cls,
   {
     name_json = json_string (label);
     json_res = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_REVINFO,
-                                                 handle->zkey_str);
+                                            handle->zkey_str);
     GNUNET_JSONAPI_resource_add_attr (json_res,
-                                           GNUNET_REST_JSONAPI_NAMESTORE_NAME,
-                                           name_json);
+                                      GNUNET_REST_JSONAPI_NAMESTORE_NAME,
+                                      name_json);
     GNUNET_JSONAPI_document_resource_add (json_obj, json_res);
     json_decref (name_json);
   }
@@ -862,7 +873,7 @@ namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
   handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                            &key);
+                                                        &key);
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
                                                   strlen (handle->zkey_str),
