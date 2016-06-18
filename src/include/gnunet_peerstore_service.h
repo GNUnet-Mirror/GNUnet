@@ -34,7 +34,6 @@
 #define GNUNET_PEERSTORE_SERVICE_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_common.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -138,6 +137,7 @@ typedef void
 (*GNUNET_PEERSTORE_Processor) (void *cls,
                                const struct GNUNET_PEERSTORE_Record *record,
                                const char *emsg);
+
 
 /**
  * Connect to the PEERSTORE service.

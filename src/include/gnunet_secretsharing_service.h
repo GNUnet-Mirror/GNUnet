@@ -168,11 +168,12 @@ struct GNUNET_SECRETSHARING_Plaintext
  * @param ready_peers peers that successfuly participated in establishing
  *                    the shared secret
  */
-typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
-                                                          struct GNUNET_SECRETSHARING_Share *my_share,
-                                                          struct GNUNET_SECRETSHARING_PublicKey *public_key,
-                                                          unsigned int num_ready_peers,
-                                                          struct GNUNET_PeerIdentity *ready_peers);
+typedef void
+(*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
+                                             struct GNUNET_SECRETSHARING_Share *my_share,
+                                             struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                                             unsigned int num_ready_peers,
+                                             const struct GNUNET_PeerIdentity *ready_peers);
 
 
 /**
@@ -182,8 +183,9 @@ typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
  * @param data decrypted value
  * @param data_size number of bytes in @a data
  */
-typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
-                                                      const struct GNUNET_SECRETSHARING_Plaintext *plaintext);
+typedef void
+(*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
+                                         const struct GNUNET_SECRETSHARING_Plaintext *plaintext);
 
 
 /**

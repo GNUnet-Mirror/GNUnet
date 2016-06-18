@@ -547,8 +547,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				GNUNET_CONVERSATION_CallEventHandler event_handler,
 				void *event_handler_cls)
 {
-  struct GNUNET_CONVERSATION_Call *call
-    = GNUNET_new (struct GNUNET_CONVERSATION_Call);
   GNUNET_MQ_hd_fixed_size (call_suspend,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
                            struct ClientPhoneSuspendMessage);
@@ -564,6 +562,8 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_MQ_hd_var_size (call_audio,
                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
                          struct ClientAudioMessage);
+  struct GNUNET_CONVERSATION_Call *call
+    = GNUNET_new (struct GNUNET_CONVERSATION_Call);
   struct GNUNET_MQ_MessageHandler handlers[] = {
     make_call_suspend_handler (call),
     make_call_resume_handler (call),

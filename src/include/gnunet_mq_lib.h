@@ -268,12 +268,12 @@ struct GNUNET_MQ_MessageHandler
   /**
    * Callback to validate a message of the specified @e type.
    * The closure given to @e mv will be this struct (not @e ctx).
-   * Using NULL means only size-validation using 
+   * Using NULL means only size-validation using
    * @e expected_size.  In this case, @e expected_size must
    * be non-zero.
    */
   GNUNET_MQ_MessageValidationCallback mv;
-  
+
   /**
    * Callback, called every time a new message of
    * the specified @e type has been receied.
@@ -285,7 +285,7 @@ struct GNUNET_MQ_MessageHandler
    * Closure for @e mv and @e cb.
    */
   void *cls;
-  
+
   /**
    * Type of the message this handler covers, in host byte order.
    */
@@ -317,14 +317,14 @@ struct GNUNET_MQ_MessageHandler
  * The macro is to be used as follows:
  * <code>
  * struct GNUNET_MessageTest { ... }; // must be fixed size
- * GNUNET_MQ_hd_fixed_size(test_message, 
- *                         GNUNET_MESSAGE_TYPE_TEST, 
- *                         struct GNUNET_MessageTest);
  * static void
- * handle_test_message (void *cls, // the struct GNUNET_MQ_MessageHandler
+ * handle_test_message (void *cls,
  *                      const struct GNUNET_MessageTest *msg)
  * { ... }
- * 
+ *
+ * GNUNET_MQ_hd_fixed_size(test_message,
+ *                         GNUNET_MESSAGE_TYPE_TEST,
+ *                         struct GNUNET_MessageTest);
  * struct GNUNET_MQ_MessageHandler handlers[] = {
  *   make_test_message_handler (),
  *   GNUNET_MQ_handler_end()
@@ -355,8 +355,8 @@ struct GNUNET_MQ_MessageHandler
  * The macro is to be used as follows:
  * <code>
  * struct GNUNET_MessageTest { ... }; // can be variable size
- * GNUNET_MQ_hd_var_size(test_message, 
- *                       GNUNET_MESSAGE_TYPE_TEST, 
+ * GNUNET_MQ_hd_var_size(test_message,
+ *                       GNUNET_MESSAGE_TYPE_TEST,
  *                       struct GNUNET_MessageTest);
  * static int
  * check_test (void *cls,
@@ -373,8 +373,8 @@ struct GNUNET_MQ_MessageHandler
  *   const char *ctx = cls;
  *   GNUNET_assert (0 == strcmp ("context", ctx));
  *   // ...
- * } 
- * 
+ * }
+ *
  * struct GNUNET_MQ_MessageHandler handlers[] = {
  *   make_test_message_handler ("context"),
  *   GNUNET_MQ_handler_end()
