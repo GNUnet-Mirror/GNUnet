@@ -145,7 +145,7 @@ GNUNET_JSONAPI_resource_add_attr (struct GNUNET_JSONAPI_Resource *resource,
     return GNUNET_SYSERR;
   if (NULL == resource->attr_obj)
     resource->attr_obj = json_object ();
-  json_object_set_new (resource->attr_obj, key, json);
+  json_object_set (resource->attr_obj, key, json);
   return GNUNET_OK;
 }
 

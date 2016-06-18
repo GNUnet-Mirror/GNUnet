@@ -346,6 +346,10 @@ create_response (void *cls,
                                "Access-Control-Allow-Headers",
                                allow_headers);
     }
+    //Always add JSONAPI content type. TODO
+    MHD_add_response_header (con_handle->response,
+                             MHD_HTTP_HEADER_CONTENT_TYPE,
+                             "application/vnd.api+json");
     int ret = MHD_queue_response (con,
                                   con_handle->status,
                                   con_handle->response);
