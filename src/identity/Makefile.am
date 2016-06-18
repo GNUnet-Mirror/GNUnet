@@ -70,6 +70,7 @@ libgnunet_plugin_rest_identity_la_LIBADD = \
 	libgnunetidentity.la \
   $(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_identity_la_LDFLAGS = \

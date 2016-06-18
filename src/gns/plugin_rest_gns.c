@@ -228,7 +228,7 @@ do_error (void *cls)
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp;
 
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
 }
@@ -324,7 +324,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   json_decref (result_array);
   GNUNET_JSONAPI_document_delete (json_document);
-  resp = GNUNET_REST_create_json_response (result);
+  resp = GNUNET_REST_create_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
   cleanup_handle (handle);
@@ -640,7 +640,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct LookupHandle *handle = cls;
 
   //For GNS, independent of path return all options
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            MHD_HTTP_METHOD_GET);

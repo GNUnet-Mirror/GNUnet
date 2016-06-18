@@ -279,7 +279,7 @@ do_error (void *cls)
                    "{Error while processing request: %s}",
                    &handle->emsg);
 
-  resp = GNUNET_REST_create_json_response (json_error);
+  resp = GNUNET_REST_create_response (json_error);
   handle->proc (handle->proc_cls,
 		resp,
 		handle->response_code);
@@ -339,7 +339,7 @@ get_ego_for_subsys (void *cls,
   }
   GNUNET_JSONAPI_document_serialize (json_document, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
+  resp = GNUNET_REST_create_response (result_str);
   GNUNET_JSONAPI_document_delete (json_document);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
@@ -372,7 +372,7 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
 
   if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url, GNUNET_REST_API_NS_IDENTITY))
   {
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
     return;
@@ -444,7 +444,7 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
   }
   GNUNET_JSONAPI_document_serialize (json_document, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
+  resp = GNUNET_REST_create_response (result_str);
   GNUNET_JSONAPI_document_delete (json_document);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
@@ -470,7 +470,7 @@ do_finished (void *cls, const char *emsg)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
   cleanup_handle (handle);
 }
@@ -528,7 +528,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
     GNUNET_JSONAPI_document_delete (json_obj);
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
     return;
@@ -549,7 +549,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
       GNUNET_JSONAPI_document_delete (json_obj);
-      resp = GNUNET_REST_create_json_response (NULL);
+      resp = GNUNET_REST_create_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
       cleanup_handle (handle);
       return;
@@ -610,7 +610,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
 
   if (GNUNET_NO == ego_exists)
   {
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
@@ -667,7 +667,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
       {
         //Ego with same name not allowed
         GNUNET_JSONAPI_document_delete (json_obj);
-        resp = GNUNET_REST_create_json_response (NULL);
+        resp = GNUNET_REST_create_response (NULL);
         handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
         cleanup_handle (handle);
         return;
@@ -731,7 +731,7 @@ ego_delete_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   if (GNUNET_NO == ego_exists)
   {
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
@@ -760,7 +760,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
 
   //For now, independent of path return all options
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            allow_methods);

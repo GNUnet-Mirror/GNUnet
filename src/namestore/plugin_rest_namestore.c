@@ -358,7 +358,7 @@ static void
 do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
-  struct MHD_Response *resp = GNUNET_REST_create_json_response (NULL);
+  struct MHD_Response *resp = GNUNET_REST_create_response (NULL);
 
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
@@ -419,9 +419,9 @@ namestore_list_response (void *cls,
       GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
     }
-    resp = GNUNET_REST_create_json_response (result);
+    resp = GNUNET_REST_create_response (result);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-    GNUNET_free (result);
+    GNUNET_free_non_null (result);
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
     return;
   }
@@ -480,7 +480,7 @@ create_finished (void *cls, int32_t success, const char *emsg)
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
     return;
   }
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
@@ -517,7 +517,7 @@ create_new_record_cont (void *cls,
   if (0 != rd_count)
   {
     handle->proc (handle->proc_cls,
-                  GNUNET_REST_create_json_response (NULL),
+                  GNUNET_REST_create_response (NULL),
                   MHD_HTTP_CONFLICT);
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
     return;
@@ -560,7 +560,7 @@ del_finished (void *cls,
     return;
   }
   handle->proc (handle->proc_cls,
-                GNUNET_REST_create_json_response (NULL),
+                GNUNET_REST_create_response (NULL),
                 MHD_HTTP_NO_CONTENT);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
@@ -767,7 +767,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unsupported JSON data type\n");
     GNUNET_JSONAPI_document_delete (json_obj);
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
     return;
@@ -831,7 +831,7 @@ namestore_zkey_response (void *cls,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  resp = GNUNET_REST_create_json_response (result);
+  resp = GNUNET_REST_create_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_JSONAPI_document_delete (json_obj);
   GNUNET_free (result);
@@ -916,7 +916,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
 
   //For now, independent of path return all options
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            allow_methods);
@@ -999,7 +999,7 @@ identity_cb (void *cls,
                   _("Ego `%s' not known to identity service\n"),
                   handle->ego_name);
     }
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
@@ -1024,7 +1024,7 @@ default_ego_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No default ego configured in identity service\n"));
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
@@ -1064,7 +1064,7 @@ testservice_id_task (void *cls, int result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Identity service is not running\n"));
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
@@ -1105,7 +1105,7 @@ testservice_id_task (void *cls, int result)
     if (NULL == handle->identity_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Cannot connect to identity service\n"));
-      resp = GNUNET_REST_create_json_response (NULL);
+      resp = GNUNET_REST_create_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
       cleanup_handle (handle);
     }

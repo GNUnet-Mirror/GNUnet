@@ -95,13 +95,13 @@ int
 GNUNET_REST_namespace_match (const char *url, const char *namespace);
 
 /**
- * Create JSON API MHD response
+ * Create REST MHD response
  *
- * @param data JSON result
+ * @param data result
  * @retun MHD response
  */
  struct MHD_Response*
-GNUNET_REST_create_json_response (const char *data);
+GNUNET_REST_create_response (const char *data);
 
 
 int
