@@ -447,18 +447,18 @@ cb_channel_destruction (void *cls,
               "Peer disconnected, terminating session %s with peer %s\n",
               GNUNET_h2s (&s->session_id),
               GNUNET_i2s (&s->peer));
-  if (NULL != s->cadet_mq)
-  {
-    GNUNET_MQ_destroy (s->cadet_mq);
-    s->cadet_mq = NULL;
-  }
-  s->channel = NULL;
   if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
   {
     /* We didn't get an answer yet, fail with error */
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
   }
+  if (NULL != s->cadet_mq)
+  {
+    GNUNET_MQ_destroy (s->cadet_mq);
+    s->cadet_mq = NULL;
+  }
+  s->channel = NULL;
 }
 
 
