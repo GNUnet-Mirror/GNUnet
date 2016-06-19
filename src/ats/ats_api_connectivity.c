@@ -72,11 +72,6 @@ struct GNUNET_ATS_ConnectivityHandle
   struct GNUNET_CONTAINER_MultiPeerMap *sug_requests;
 
   /**
-   * Connection to ATS service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
    * Message queue for sending requests to the ATS service.
    */
   struct GNUNET_MQ_Handle *mq;
@@ -129,11 +124,6 @@ force_reconnect (struct GNUNET_ATS_ConnectivityHandle *ch)
   {
     GNUNET_MQ_destroy (ch->mq);
     ch->mq = NULL;
-  }
-  if (NULL != ch->client)
-  {
-    GNUNET_CLIENT_disconnect (ch->client);
-    ch->client = NULL;
   }
   ch->backoff = GNUNET_TIME_STD_BACKOFF (ch->backoff);
   ch->task = GNUNET_SCHEDULER_add_delayed (ch->backoff,
@@ -203,15 +193,16 @@ reconnect (struct GNUNET_ATS_ConnectivityHandle *ch)
     { { NULL, 0, 0 } };
   struct GNUNET_MQ_Envelope *ev;
   struct ClientStartMessage *init;
+  struct GNUNET_CLIENT_Connection *client;
 
-  GNUNET_assert (NULL == ch->client);
-  ch->client = GNUNET_CLIENT_connect ("ats", ch->cfg);
-  if (NULL == ch->client)
+  GNUNET_assert (NULL == ch->mq);
+  client = GNUNET_CLIENT_connect ("ats", ch->cfg);
+  if (NULL == client)
   {
     force_reconnect (ch);
     return;
   }
-  ch->mq = GNUNET_MQ_queue_for_connection_client (ch->client,
+  ch->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                   handlers,
                                                   &error_handler,
                                                   ch);
@@ -280,11 +271,6 @@ GNUNET_ATS_connectivity_done (struct GNUNET_ATS_ConnectivityHandle *ch)
   {
     GNUNET_MQ_destroy (ch->mq);
     ch->mq = NULL;
-  }
-  if (NULL != ch->client)
-  {
-    GNUNET_CLIENT_disconnect (ch->client);
-    ch->client = NULL;
   }
   if (NULL != ch->task)
   {

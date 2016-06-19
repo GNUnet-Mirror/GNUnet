@@ -161,11 +161,6 @@ struct GNUNET_CONVERSATION_Phone
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Handle to talk with CONVERSATION service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
    * We keep all callers in a DLL.
    */
   struct GNUNET_CONVERSATION_Caller *caller_head;
@@ -562,6 +557,7 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
   };
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneRegisterMessage *reg;
+  struct GNUNET_CLIENT_Connection *client;
 
   clean_up_callers (phone);
   if (NULL != phone->mq)
@@ -569,16 +565,12 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
     GNUNET_MQ_destroy (phone->mq);
     phone->mq = NULL;
   }
-  if (NULL != phone->client)
-  {
-    GNUNET_CLIENT_disconnect (phone->client);
-    phone->client = NULL;
-  }
   phone->state = PS_REGISTER;
-  phone->client = GNUNET_CLIENT_connect ("conversation", phone->cfg);
-  if (NULL == phone->client)
+  client = GNUNET_CLIENT_connect ("conversation",
+                                  phone->cfg);
+  if (NULL == client)
     return;
-  phone->mq = GNUNET_MQ_queue_for_connection_client (phone->client,
+  phone->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                      handlers,
                                                      &phone_error_handler,
                                                      phone);
@@ -644,7 +636,7 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   phone->my_record.line = htonl ((uint32_t) line);
   phone->my_record.version = htonl (0);
   reconnect_phone (phone);
-  if ( (NULL == phone->client) ||
+  if ( (NULL == phone->mq) ||
        (NULL == phone->ns) )
   {
     GNUNET_break (0);
@@ -763,11 +755,6 @@ GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone)
   {
     GNUNET_MQ_destroy (phone->mq);
     phone->mq = NULL;
-  }
-  if (NULL != phone->client)
-  {
-    GNUNET_CLIENT_disconnect (phone->client);
-    phone->client = NULL;
   }
   GNUNET_free (phone);
 }

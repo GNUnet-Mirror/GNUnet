@@ -206,7 +206,7 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
   const struct GNUNET_MQ_MessageHandler *handler;
   int handled = GNUNET_NO;
   uint16_t ms = ntohs (mh->size);
-  
+
   if (NULL == mq->handlers)
     goto done;
   for (handler = mq->handlers; NULL != handler->cb; handler++)
@@ -665,6 +665,9 @@ static void
 connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
                                 void *impl_state)
 {
+  struct ClientConnectionState *state = impl_state;
+
+  GNUNET_CLIENT_disconnect (state->connection);
   GNUNET_free (impl_state);
 }
 
@@ -692,6 +695,7 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
                                void *impl_state)
 {
   struct ClientConnectionState *state = impl_state;
+
   GNUNET_assert (NULL != state->th);
   GNUNET_CLIENT_notify_transmit_ready_cancel (state->th);
   state->th = NULL;
@@ -723,9 +727,9 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
   state = GNUNET_new (struct ClientConnectionState);
   state->connection = connection;
   mq->impl_state = state;
-  mq->send_impl = connection_client_send_impl;
-  mq->destroy_impl = connection_client_destroy_impl;
-  mq->cancel_impl = connection_client_cancel_impl;
+  mq->send_impl = &connection_client_send_impl;
+  mq->destroy_impl = &connection_client_destroy_impl;
+  mq->cancel_impl = &connection_client_cancel_impl;
   if (NULL != handlers)
     state->receive_requested = GNUNET_YES;
 

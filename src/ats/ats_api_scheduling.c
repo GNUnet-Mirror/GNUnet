@@ -118,11 +118,6 @@ struct GNUNET_ATS_SchedulingHandle
   void *suggest_cb_cls;
 
   /**
-   * Connection to ATS service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
    * Message queue for sending requests to the ATS service.
    */
   struct GNUNET_MQ_Handle *mq;
@@ -189,11 +184,6 @@ force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   {
     GNUNET_MQ_destroy (sh->mq);
     sh->mq = NULL;
-  }
-  if (NULL != sh->client)
-  {
-    GNUNET_CLIENT_disconnect (sh->client);
-    sh->client = NULL;
   }
   sh->suggest_cb (sh->suggest_cb_cls,
                   NULL, NULL, NULL,
@@ -539,17 +529,18 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   struct ClientStartMessage *init;
   unsigned int i;
   struct GNUNET_ATS_AddressRecord *ar;
+  struct GNUNET_CLIENT_Connection *client;
 
-  GNUNET_assert (NULL == sh->client);
-  sh->client = GNUNET_CLIENT_connect ("ats",
-                                      sh->cfg);
-  if (NULL == sh->client)
+  GNUNET_assert (NULL == sh->mq);
+  client = GNUNET_CLIENT_connect ("ats",
+                                  sh->cfg);
+  if (NULL == client)
   {
     GNUNET_break (0);
     force_reconnect (sh);
     return;
   }
-  sh->mq = GNUNET_MQ_queue_for_connection_client (sh->client,
+  sh->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                   handlers,
                                                   &error_handler,
                                                   sh);
@@ -613,11 +604,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   {
     GNUNET_MQ_destroy (sh->mq);
     sh->mq = NULL;
-  }
-  if (NULL != sh->client)
-  {
-    GNUNET_CLIENT_disconnect (sh->client);
-    sh->client = NULL;
   }
   if (NULL != sh->task)
   {

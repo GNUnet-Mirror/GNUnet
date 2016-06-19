@@ -59,26 +59,26 @@ struct GNUNET_CLIENT_Connection;
  * @param handlers handlers for receiving messages, can be NULL
  * @param error_handler error handler
  * @param error_handler_cls closure for the @a error_handler
- * @return the message queue
+ * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connect2 (const char *service_name,
-			const struct GNUNET_CONFIGURATION_Handle *cfg,
-			const struct GNUNET_MQ_MessageHandler *handlers,
-			GNUNET_MQ_ErrorHandler error_handler,
-			void *error_handler_cls);
+GNUNET_CLIENT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const char *service_name,
+                       const struct GNUNET_MQ_MessageHandler *handlers,
+                       GNUNET_MQ_ErrorHandler error_handler,
+                       void *error_handler_cls);
 
 
 /**
  * Create a message queue for a GNUNET_CLIENT_Connection.
  * If handlers are specfied, receive messages from the connection.
  *
- * @param connection the client connection
+ * @param connection the client connection, taken over and freed by the MQ
  * @param handlers handlers for receiving messages
  * @param error_handler error handler
  * @param error_handler_cls closure for the @a error_handler
  * @return the message queue
- * @deprecated use #GNUNET_CLIENT_connect2
+ * @deprecated use #GNUNET_CLIENT_connecT
  */
 struct GNUNET_MQ_Handle *
 GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
@@ -189,8 +189,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
  * @deprecated
  */
 void
-GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
-                                            *th);
+GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle *th);
 
 
 /**

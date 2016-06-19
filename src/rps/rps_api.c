@@ -40,12 +40,7 @@ struct GNUNET_RPS_Handle
   /**
    * The handle to the client configuration.
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * The connection to the client.
-   */
-  struct GNUNET_CLIENT_Connection *conn;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * The message queue to the client.
@@ -214,6 +209,8 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_RPS_Handle *h)
 {
+  struct GNUNET_CLIENT_Connection *conn;
+
   GNUNET_MQ_hd_var_size (reply,
                          GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
                          struct GNUNET_RPS_CS_ReplyMessage);
@@ -224,11 +221,10 @@ reconnect (struct GNUNET_RPS_Handle *h)
 
   if (NULL != h->mq)
     GNUNET_MQ_destroy (h->mq);
-  if (NULL != h->conn)
-    GNUNET_CLIENT_disconnect (h->conn);
-  h->conn = GNUNET_CLIENT_connect ("rps", h->cfg);
-  GNUNET_assert (NULL != h->conn);
-  h->mq = GNUNET_MQ_queue_for_connection_client (h->conn,
+  conn = GNUNET_CLIENT_connect ("rps", h->cfg);
+  if (NULL == conn)
+    return;
+  h->mq = GNUNET_MQ_queue_for_connection_client (conn,
                                                  mq_handlers,
                                                  &mq_error_handler,
                                                  h);
@@ -241,15 +237,19 @@ reconnect (struct GNUNET_RPS_Handle *h)
  * @param cfg configuration to use
  * @return a handle to the service
  */
-  struct GNUNET_RPS_Handle *
+struct GNUNET_RPS_Handle *
 GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
-  //struct GNUNET_RPS_Request_Handle *rh;
 
-  h = GNUNET_new(struct GNUNET_RPS_Handle);
-  h->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  h = GNUNET_new (struct GNUNET_RPS_Handle);
+  h->cfg = cfg;
   reconnect (h);
+  if (NULL == h->mq)
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
   h->req_handlers = GNUNET_CONTAINER_multihashmap32_create (4);
   return h;
 }
@@ -264,7 +264,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cls closure given to the callback
  * @return a handle to cancel this request
  */
-  struct GNUNET_RPS_Request_Handle *
+struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
                           uint32_t num_req_peers,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
@@ -304,7 +304,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
  * @param n number of peers to seed
  * @param ids the ids of the peers seeded
  */
-  void
+void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
                      uint32_t n,
                      const struct GNUNET_PeerIdentity *ids)
@@ -375,7 +375,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
  *            if @type is 2 the last id is the id of the
  *            peer to be isolated from the rest
  */
-  void
+void
 GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t type,
                           uint32_t num_peers,
@@ -456,7 +456,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
  *
  * @param rh request handle of request to cancle
  */
-  void
+void
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
 {
   struct GNUNET_RPS_Handle *h;
@@ -482,12 +482,9 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
  *
  * @param h the handle to the rps service
  */
-  void
+void
 GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
-  if (NULL != h->conn)
-    GNUNET_CLIENT_disconnect (h->conn);
-  GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_MQ_destroy (h->mq);
   if (0 < GNUNET_CONTAINER_multihashmap32_size (h->req_handlers))
     LOG (GNUNET_ERROR_TYPE_WARNING,

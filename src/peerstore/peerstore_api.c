@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013-2014 GNUnet e.V.
+     Copyright (C) 2013-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -44,11 +44,6 @@ struct GNUNET_PEERSTORE_Handle
    * Our configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Connection to the service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Message queue
@@ -385,11 +380,6 @@ do_disconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  if (NULL != h->client)
-  {
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
-  }
   GNUNET_free (h);
 }
 
@@ -406,16 +396,14 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_PEERSTORE_Handle *h;
 
   h = GNUNET_new (struct GNUNET_PEERSTORE_Handle);
-
-  h->client = GNUNET_CLIENT_connect ("peerstore", cfg);
-  if (NULL == h->client)
+  h->cfg = cfg;
+  h->disconnecting = GNUNET_NO;
+  reconnect (h);
+  if (NULL == h->mq)
   {
     GNUNET_free (h);
     return NULL;
   }
-  h->cfg = cfg;
-  h->disconnecting = GNUNET_NO;
-  reconnect (h);
   return h;
 }
 
@@ -819,6 +807,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
   void *icb_cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
   struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_CLIENT_Connection *client;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Reconnecting...\n");
@@ -841,15 +830,11 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  if (NULL != h->client)
-  {
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
-  }
-  h->client = GNUNET_CLIENT_connect ("peerstore",
-                                     h->cfg);
-  GNUNET_assert (NULL != h->client);
-  h->mq = GNUNET_MQ_queue_for_connection_client (h->client,
+  client = GNUNET_CLIENT_connect ("peerstore",
+                                  h->cfg);
+  if (NULL == client)
+    return;
+  h->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                  mq_handlers,
                                                  &handle_client_error, h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,

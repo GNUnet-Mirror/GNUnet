@@ -404,6 +404,36 @@ do_connect (const char *service_name,
 
 
 /**
+ * Create a message queue to connect to a GNUnet service.
+ * If handlers are specfied, receive messages from the connection.
+ *
+ * @param connection the client connection
+ * @param handlers handlers for receiving messages, can be NULL
+ * @param error_handler error handler
+ * @param error_handler_cls closure for the @a error_handler
+ * @return the message queue, NULL on error
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CLIENT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const char *service_name,
+                       const struct GNUNET_MQ_MessageHandler *handlers,
+                       GNUNET_MQ_ErrorHandler error_handler,
+                       void *error_handler_cls)
+{
+  struct GNUNET_CLIENT_Connection *c;
+
+  c = GNUNET_CLIENT_connect (service_name,
+                             cfg);
+  if (NULL == c)
+    return NULL;
+  return GNUNET_MQ_queue_for_connection_client (c,
+                                                handlers,
+                                                error_handler,
+                                                error_handler_cls);
+}
+
+
+/**
  * Get a connection with a service.
  *
  * @param service_name name of the service

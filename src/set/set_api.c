@@ -26,7 +26,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_client_lib.h"
 #include "gnunet_set_service.h"
 #include "set.h"
 
@@ -49,11 +48,6 @@ struct SetCopyRequest
  */
 struct GNUNET_SET_Handle
 {
-  /**
-   * Client connected to the set service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
   /**
    * Message queue for @e client.
    */
@@ -189,10 +183,6 @@ struct GNUNET_SET_OperationHandle
  */
 struct GNUNET_SET_ListenHandle
 {
-  /**
-   * Connection to the service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Message queue for the client.
@@ -298,7 +288,7 @@ check_iter_element (void *cls,
   /* minimum size was already checked, everything else is OK! */
   return GNUNET_OK;
 }
- 
+
 
 /**
  * Handle element for iteration over the set.  Notifies the
@@ -313,7 +303,7 @@ check_iter_element (void *cls,
 {
   struct GNUNET_SET_Handle *set = cls;
   GNUNET_SET_ElementIterator iter = set->iterator;
-  struct GNUNET_SET_Element element;  
+  struct GNUNET_SET_Element element;
   struct GNUNET_SET_IterAckMessage *ack_msg;
   struct GNUNET_MQ_Envelope *ev;
   uint16_t msize;
@@ -534,7 +524,7 @@ handle_client_set_error (void *cls,
 {
   struct GNUNET_SET_Handle *set = cls;
   GNUNET_SET_ElementIterator iter = set->iterator;
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling client set error %d\n",
        error);
@@ -589,15 +579,16 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *create_msg;
   struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
+  struct GNUNET_CLIENT_Connection *client;
 
   set->cfg = cfg;
-  set->client = GNUNET_CLIENT_connect ("set", cfg);
-  if (NULL == set->client)
+  client = GNUNET_CLIENT_connect ("set", cfg);
+  if (NULL == client)
   {
     GNUNET_free (set);
     return NULL;
   }
-  set->mq = GNUNET_MQ_queue_for_connection_client (set->client,
+  set->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                    mq_handlers,
                                                    &handle_client_set_error,
                                                    set);
@@ -750,11 +741,6 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Really destroying set\n");
-  if (NULL != set->client)
-  {
-    GNUNET_CLIENT_disconnect (set->client);
-    set->client = NULL;
-  }
   if (NULL != set->mq)
   {
     GNUNET_MQ_destroy (set->mq);
@@ -893,8 +879,6 @@ handle_client_listener_error (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Listener broke down (%d), re-connecting\n",
        (int) error);
-  GNUNET_CLIENT_disconnect (lh->client);
-  lh->client = NULL;
   GNUNET_MQ_destroy (lh->mq);
   lh->mq = NULL;
   lh->reconnect_task = GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff,
@@ -911,7 +895,7 @@ handle_client_listener_error (void *cls,
  */
 static void
 listen_connect (void *cls)
-{ 
+{
   GNUNET_MQ_hd_var_size (request,
 			 GNUNET_MESSAGE_TYPE_SET_REQUEST,
 			 struct GNUNET_SET_RequestMessage);
@@ -922,14 +906,14 @@ listen_connect (void *cls)
   };
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
+  struct GNUNET_CLIENT_Connection *client;
 
   lh->reconnect_task = NULL;
-  GNUNET_assert (NULL == lh->client);
-  lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);
-  if (NULL == lh->client)
-    return;
   GNUNET_assert (NULL == lh->mq);
-  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client,
+  client = GNUNET_CLIENT_connect ("set", lh->cfg);
+  if (NULL == client)
+    return;
+  lh->mq = GNUNET_MQ_queue_for_connection_client (client,
                                                   mq_handlers,
                                                   &handle_client_listener_error,
 						  lh);
@@ -969,7 +953,7 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lh->app_id = *app_id;
   lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   listen_connect (lh);
-  if (NULL == lh->client)
+  if (NULL == lh->mq)
   {
     GNUNET_free (lh);
     return NULL;
@@ -992,11 +976,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
   {
     GNUNET_MQ_destroy (lh->mq);
     lh->mq = NULL;
-  }
-  if (NULL != lh->client)
-  {
-    GNUNET_CLIENT_disconnect (lh->client);
-    lh->client = NULL;
   }
   if (NULL != lh->reconnect_task)
   {

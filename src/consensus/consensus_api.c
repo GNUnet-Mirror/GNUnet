@@ -45,17 +45,12 @@ struct GNUNET_CONSENSUS_Handle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Client connected to the consensus service, may be NULL if not connected.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
    * Callback for new elements. Not called for elements added locally.
    */
   GNUNET_CONSENSUS_ElementCallback new_element_cb;
 
   /**
-   * Closure for new_element_cb
+   * Closure for @e new_element_cb
    */
   void *new_element_cls;
 
@@ -75,7 +70,7 @@ struct GNUNET_CONSENSUS_Handle
   GNUNET_CONSENSUS_ConcludeCallback conclude_cb;
 
   /**
-   * Closure for the conclude callback.
+   * Closure for the @e conclude_cb callback.
    */
   void *conclude_cls;
 
@@ -156,8 +151,6 @@ handle_conclude_done (void *cls,
 
   GNUNET_MQ_destroy (consensus->mq);
   consensus->mq = NULL;
-  GNUNET_CLIENT_disconnect (consensus->client);
-  consensus->client = NULL;
   GNUNET_assert (NULL != (cc = consensus->conclude_cb));
   consensus->conclude_cb = NULL;
   cc (consensus->conclude_cls);
@@ -224,17 +217,22 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   };
   struct GNUNET_CONSENSUS_JoinMessage *join_msg;
   struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_CLIENT_Connection *client;
 
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
   consensus->session_id = *session_id;
-  consensus->client = GNUNET_CLIENT_connect ("consensus", cfg);
-  consensus->mq = GNUNET_MQ_queue_for_connection_client (consensus->client,
-                                                         mq_handlers, mq_error_handler, consensus);
-
-  GNUNET_assert (consensus->client != NULL);
-
+  client = GNUNET_CLIENT_connect ("consensus", cfg);
+  if (NULL == client)
+  {
+    GNUNET_free (consensus);
+    return NULL;
+  }
+  consensus->mq = GNUNET_MQ_queue_for_connection_client (client,
+                                                         mq_handlers,
+                                                         &mq_error_handler,
+                                                         consensus);
   ev = GNUNET_MQ_msg_extra (join_msg,
                             (num_peers * sizeof (struct GNUNET_PeerIdentity)),
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
@@ -342,10 +340,7 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
     GNUNET_MQ_destroy (consensus->mq);
     consensus->mq = NULL;
   }
-  if (NULL != consensus->client)
-  {
-    GNUNET_CLIENT_disconnect (consensus->client);
-    consensus->client = NULL;
-  }
   GNUNET_free (consensus);
 }
+
+/* end of consensus_api.c */

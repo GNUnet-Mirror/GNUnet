@@ -38,10 +38,6 @@
  */
 struct GNUNET_SECRETSHARING_Session
 {
-  /**
-   * Client connected to the secretsharing service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Message queue for @e client.
@@ -65,10 +61,6 @@ struct GNUNET_SECRETSHARING_Session
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle
 {
-  /**
-   * Client connected to the secretsharing service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * Message queue for @e client.
@@ -226,8 +218,6 @@ GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *s)
 {
   GNUNET_MQ_destroy (s->mq);
   s->mq = NULL;
-  GNUNET_CLIENT_disconnect (s->client);
-  s->client = NULL;
   GNUNET_free (s);
 }
 
@@ -270,9 +260,10 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   };
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_CreateMessage *msg;
+  struct GNUNET_CLIENT_Connection *client;
 
-  s->client = GNUNET_CLIENT_connect ("secretsharing", cfg);
-  if (NULL == s->client)
+  client = GNUNET_CLIENT_connect ("secretsharing", cfg);
+  if (NULL == client)
   {
     /* secretsharing not configured correctly */
     GNUNET_break (0);
@@ -281,7 +272,8 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   }
   s->secret_ready_cb = cb;
   s->secret_ready_cls = cls;
-  s->mq = GNUNET_MQ_queue_for_connection_client (s->client, mq_handlers,
+  s->mq = GNUNET_MQ_queue_for_connection_client (client,
+                                                 mq_handlers,
                                                  &handle_session_client_error,
                                                  s);
   GNUNET_assert (NULL != s->mq);
@@ -356,13 +348,16 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_DecryptRequestMessage *msg;
   size_t share_size;
+  struct GNUNET_CLIENT_Connection *client;
 
-  s->client = GNUNET_CLIENT_connect ("secretsharing", cfg);
+  client = GNUNET_CLIENT_connect ("secretsharing", cfg);
+  if (NULL == client)
+    return NULL;
   s->decrypt_cb = decrypt_cb;
   s->decrypt_cls = decrypt_cb_cls;
-  GNUNET_assert (NULL != s->client);
 
-  s->mq = GNUNET_MQ_queue_for_connection_client (s->client, mq_handlers,
+  s->mq = GNUNET_MQ_queue_for_connection_client (client,
+                                                 mq_handlers,
                                                  &handle_decrypt_client_error,
                                                  s);
   GNUNET_assert (NULL != s->mq);
@@ -505,8 +500,6 @@ GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandl
 {
   GNUNET_MQ_destroy (dh->mq);
   dh->mq = NULL;
-  GNUNET_CLIENT_disconnect (dh->client);
-  dh->client = NULL;
   GNUNET_free (dh);
 }
 

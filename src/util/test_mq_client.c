@@ -32,8 +32,6 @@
 
 static struct GNUNET_SERVER_Handle *server;
 
-static struct GNUNET_CLIENT_Connection *client;
-
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ok;
@@ -44,13 +42,15 @@ static int received = 0;
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
+recv_cb (void *cls,
+         struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   received++;
   if (received == 2)
   {
-    GNUNET_SERVER_receive_done (argclient, GNUNET_NO);
+    GNUNET_SERVER_receive_done (argclient,
+                                GNUNET_NO);
     return;
   }
 
@@ -79,7 +79,8 @@ clean_up (void *cls)
  * @param client identification of the client
  */
 static void
-notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+notify_disconnect (void *cls,
+                   struct GNUNET_SERVER_Client *client)
 {
   if (client == NULL)
     return;
@@ -110,10 +111,14 @@ send_trap_cb (void *cls)
 
 
 static void
-test_mq (struct GNUNET_CLIENT_Connection *client)
+test_mq ()
 {
+  struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *mqm;
+
+  client = GNUNET_CLIENT_connect ("test", cfg);
+  GNUNET_assert (client != NULL);
 
   /* FIXME: test handling responses */
   mq = GNUNET_MQ_queue_for_connection_client (client, NULL, NULL, NULL);
@@ -122,14 +127,13 @@ test_mq (struct GNUNET_CLIENT_Connection *client)
   GNUNET_MQ_send (mq, mqm);
 
   mqm = GNUNET_MQ_msg_header (MY_TYPE);
-  GNUNET_MQ_notify_sent (mqm, send_trap_cb, NULL);
+  GNUNET_MQ_notify_sent (mqm, &send_trap_cb, NULL);
   GNUNET_MQ_send (mq, mqm);
   GNUNET_MQ_send_cancel (mqm);
 
   mqm = GNUNET_MQ_msg_header (MY_TYPE);
-  GNUNET_MQ_notify_sent (mqm, send_cb, NULL);
+  GNUNET_MQ_notify_sent (mqm, &send_cb, NULL);
   GNUNET_MQ_send (mq, mqm);
-
 }
 
 
@@ -163,10 +167,7 @@ task (void *cls)
   GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME", "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-  client = GNUNET_CLIENT_connect ("test", cfg);
-  GNUNET_assert (client != NULL);
-
-  test_mq (client);
+  test_mq ();
 }
 
 
