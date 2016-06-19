@@ -579,21 +579,18 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *create_msg;
   struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
-  struct GNUNET_CLIENT_Connection *client;
 
   set->cfg = cfg;
-  client = GNUNET_CLIENT_connect ("set", cfg);
-  if (NULL == client)
+  set->mq = GNUNET_CLIENT_connecT (cfg,
+                                   "set",
+                                   mq_handlers,
+                                   &handle_client_set_error,
+                                   set);
+  if (NULL == set->mq)
   {
     GNUNET_free (set);
     return NULL;
   }
-  set->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                   mq_handlers,
-                                                   &handle_client_set_error,
-                                                   set);
-  GNUNET_assert (NULL != set->mq);
-
   if (NULL == cookie)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
