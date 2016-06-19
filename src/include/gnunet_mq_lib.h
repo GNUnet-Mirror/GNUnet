@@ -252,7 +252,7 @@ typedef void
  * the message queue.
  * Not every message queue implementation supports an error handler.
  *
- * @param cls closure, same closure as for the message handlers
+ * @param cls closure
  * @param error error code
  */
 typedef void
