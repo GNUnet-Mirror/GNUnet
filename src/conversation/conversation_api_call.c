@@ -86,11 +86,6 @@ struct GNUNET_CONVERSATION_Call
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Handle to talk with CONVERSATION service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
    * Our caller identity.
    */
   struct GNUNET_IDENTITY_Ego *caller_id;
@@ -509,11 +504,6 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
     GNUNET_MQ_destroy (call->mq);
     call->mq = NULL;
   }
-  if (NULL != call->client)
-  {
-    GNUNET_CLIENT_disconnect (call->client);
-    call->client = NULL;
-  }
   call->state = CS_SHUTDOWN;
   call->event_handler (call->event_handler_cls,
                        GNUNET_CONVERSATION_EC_CALL_ERROR);
@@ -574,8 +564,12 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   };
   struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
 
-  call->client = GNUNET_CLIENT_connect ("conversation", cfg);
-  if (NULL == call->client)
+  call->mq = GNUNET_CLIENT_connecT (cfg,
+                                    "conversation",
+                                    handlers,
+                                    &call_error_handler,
+                                    call);
+  if (NULL == call->mq)
   {
     GNUNET_break (0);
     GNUNET_free (call);
@@ -595,10 +589,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_CONVERSATION_call_stop (call);
     return NULL;
   }
-  call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
-                                                    handlers,
-                                                    &call_error_handler,
-                                                    call);
   call->state = CS_LOOKUP;
   GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
@@ -636,11 +626,6 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
   {
     GNUNET_MQ_destroy (call->mq);
     call->mq = NULL;
-  }
-  if (NULL != call->client)
-  {
-    GNUNET_CLIENT_disconnect (call->client);
-    call->client = NULL;
   }
   if (NULL != call->gns_lookup)
   {

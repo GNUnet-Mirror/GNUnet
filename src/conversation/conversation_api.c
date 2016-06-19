@@ -557,7 +557,6 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
   };
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneRegisterMessage *reg;
-  struct GNUNET_CLIENT_Connection *client;
 
   clean_up_callers (phone);
   if (NULL != phone->mq)
@@ -566,14 +565,13 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
     phone->mq = NULL;
   }
   phone->state = PS_REGISTER;
-  client = GNUNET_CLIENT_connect ("conversation",
-                                  phone->cfg);
-  if (NULL == client)
+  phone->mq = GNUNET_CLIENT_connecT (phone->cfg,
+                                     "conversation",
+                                     handlers,
+                                     &phone_error_handler,
+                                     phone);
+  if (NULL == phone->mq)
     return;
-  phone->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                     handlers,
-                                                     &phone_error_handler,
-                                                     phone);
   e = GNUNET_MQ_msg (reg, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER);
   reg->line = phone->my_record.line;
   GNUNET_MQ_send (phone->mq, e);
