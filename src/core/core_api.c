@@ -696,7 +696,7 @@ handle_send_ready (void *cls,
   ret = th->get_message (th->get_message_cls,
                          th->msize,
                          &sm[1]);
-  sm->header.size = htons (ret);
+  sm->header.size = htons (ret + sizeof (struct SendMessage));
   th->msize = ret;
   // GNUNET_assert (ret == th->msize); /* NOTE: API change! */
   delay = GNUNET_TIME_absolute_get_duration (th->request_time);
