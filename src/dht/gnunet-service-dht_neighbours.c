@@ -752,8 +752,10 @@ send_find_peer_message (void *cls)
                                 DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value_us /
                                 (newly_found_peers + 1));
   newly_found_peers = 0;
+  GNUNET_assert (NULL == find_peer_task);
   find_peer_task =
-      GNUNET_SCHEDULER_add_delayed (next_send_time, &send_find_peer_message,
+      GNUNET_SCHEDULER_add_delayed (next_send_time,
+                                    &send_find_peer_message,
                                     NULL);
 }
 
@@ -821,6 +823,7 @@ handle_core_connect (void *cls,
       (GNUNET_YES != disable_try_connect))
   {
     /* got a first connection, good time to start with FIND PEER requests... */
+    GNUNET_assert (NULL == find_peer_task);
     find_peer_task = GNUNET_SCHEDULER_add_now (&send_find_peer_message,
                                                NULL);
   }
