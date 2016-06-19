@@ -217,22 +217,21 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   };
   struct GNUNET_CONSENSUS_JoinMessage *join_msg;
   struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_CLIENT_Connection *client;
 
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
   consensus->session_id = *session_id;
-  client = GNUNET_CLIENT_connect ("consensus", cfg);
-  if (NULL == client)
+  consensus->mq = GNUNET_CLIENT_connecT (cfg,
+                                         "consensus",
+                                         mq_handlers,
+                                         &mq_error_handler,
+                                         consensus);
+  if (NULL == consensus->mq)
   {
     GNUNET_free (consensus);
     return NULL;
   }
-  consensus->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                         mq_handlers,
-                                                         &mq_error_handler,
-                                                         consensus);
   ev = GNUNET_MQ_msg_extra (join_msg,
                             (num_peers * sizeof (struct GNUNET_PeerIdentity)),
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);

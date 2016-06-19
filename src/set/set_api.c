@@ -903,21 +903,21 @@ listen_connect (void *cls)
   };
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
-  struct GNUNET_CLIENT_Connection *client;
 
   lh->reconnect_task = NULL;
   GNUNET_assert (NULL == lh->mq);
-  client = GNUNET_CLIENT_connect ("set", lh->cfg);
-  if (NULL == client)
+  lh->mq = GNUNET_CLIENT_connecT (lh->cfg,
+                                  "set",
+                                  mq_handlers,
+                                  &handle_client_listener_error,
+                                  lh);
+  if (NULL == lh->mq)
     return;
-  lh->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                  mq_handlers,
-                                                  &handle_client_listener_error,
-						  lh);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
   msg->operation = htonl (lh->operation);
   msg->app_id = lh->app_id;
-  GNUNET_MQ_send (lh->mq, mqm);
+  GNUNET_MQ_send (lh->mq,
+                  mqm);
 }
 
 

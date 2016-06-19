@@ -221,13 +221,11 @@ reconnect (struct GNUNET_RPS_Handle *h)
 
   if (NULL != h->mq)
     GNUNET_MQ_destroy (h->mq);
-  conn = GNUNET_CLIENT_connect ("rps", h->cfg);
-  if (NULL == conn)
-    return;
-  h->mq = GNUNET_MQ_queue_for_connection_client (conn,
-                                                 mq_handlers,
-                                                 &mq_error_handler,
-                                                 h);
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "rps",
+                                 mq_handlers,
+                                 &mq_error_handler,
+                                 h);
 }
 
 

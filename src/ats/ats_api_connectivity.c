@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010-2015 GNUnet e.V.
+     Copyright (C) 2010-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -193,19 +193,18 @@ reconnect (struct GNUNET_ATS_ConnectivityHandle *ch)
     { { NULL, 0, 0 } };
   struct GNUNET_MQ_Envelope *ev;
   struct ClientStartMessage *init;
-  struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_assert (NULL == ch->mq);
-  client = GNUNET_CLIENT_connect ("ats", ch->cfg);
-  if (NULL == client)
+  ch->mq = GNUNET_CLIENT_connecT (ch->cfg,
+                                  "ats",
+                                  handlers,
+                                  &error_handler,
+                                  ch);
+  if (NULL == ch->mq)
   {
     force_reconnect (ch);
     return;
   }
-  ch->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                  handlers,
-                                                  &error_handler,
-                                                  ch);
   ev = GNUNET_MQ_msg (init,
                       GNUNET_MESSAGE_TYPE_ATS_START);
   init->start_flag = htonl (START_FLAG_CONNECTION_SUGGESTION);

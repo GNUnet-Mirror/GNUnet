@@ -113,15 +113,13 @@ send_trap_cb (void *cls)
 static void
 test_mq ()
 {
-  struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *mqm;
 
-  client = GNUNET_CLIENT_connect ("test", cfg);
-  GNUNET_assert (client != NULL);
-
   /* FIXME: test handling responses */
-  mq = GNUNET_MQ_queue_for_connection_client (client, NULL, NULL, NULL);
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test",
+                              NULL, NULL, NULL);
 
   mqm = GNUNET_MQ_msg_header (MY_TYPE);
   GNUNET_MQ_send (mq, mqm);

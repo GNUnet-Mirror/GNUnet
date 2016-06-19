@@ -260,10 +260,14 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   };
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_CreateMessage *msg;
-  struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect ("secretsharing", cfg);
-  if (NULL == client)
+  s->mq = GNUNET_CLIENT_connecT (cfg,
+                                 "secretsharing",
+                                 client,
+                                 mq_handlers,
+                                 &handle_session_client_error,
+                                 s);
+  if (NULL == s->mq)
   {
     /* secretsharing not configured correctly */
     GNUNET_break (0);
@@ -272,12 +276,6 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   }
   s->secret_ready_cb = cb;
   s->secret_ready_cls = cls;
-  s->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                 mq_handlers,
-                                                 &handle_session_client_error,
-                                                 s);
-  GNUNET_assert (NULL != s->mq);
-
   ev = GNUNET_MQ_msg_extra (msg,
                             num_peers * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE);
@@ -348,20 +346,19 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_DecryptRequestMessage *msg;
   size_t share_size;
-  struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect ("secretsharing", cfg);
-  if (NULL == client)
-    return NULL;
   s->decrypt_cb = decrypt_cb;
   s->decrypt_cls = decrypt_cb_cls;
-
-  s->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                 mq_handlers,
-                                                 &handle_decrypt_client_error,
-                                                 s);
-  GNUNET_assert (NULL != s->mq);
-
+  s->mq = GNUNET_CLIENT_connecT (cfg,
+                                 "secretsharing",
+                                 mq_handlers,
+                                 &handle_decrypt_client_error,
+                                 s);
+  if (NULL == s->mq)
+  {
+    GNUNET_free (s);
+    return NULL;
+  }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_SECRETSHARING_share_write (share, NULL, 0,
                                                    &share_size));

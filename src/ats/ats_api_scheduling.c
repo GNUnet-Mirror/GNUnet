@@ -529,21 +529,19 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   struct ClientStartMessage *init;
   unsigned int i;
   struct GNUNET_ATS_AddressRecord *ar;
-  struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_assert (NULL == sh->mq);
-  client = GNUNET_CLIENT_connect ("ats",
-                                  sh->cfg);
-  if (NULL == client)
+  sh->mq = GNUNET_CLIENT_connecT (sh->cfg,
+                                  "ats",
+                                  handlers,
+                                  &error_handler,
+                                  sh);
+  if (NULL == sh->mq)
   {
     GNUNET_break (0);
     force_reconnect (sh);
     return;
   }
-  sh->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                  handlers,
-                                                  &error_handler,
-                                                  sh);
   ev = GNUNET_MQ_msg (init,
                       GNUNET_MESSAGE_TYPE_ATS_START);
   init->start_flag = htonl (START_FLAG_SCHEDULING);

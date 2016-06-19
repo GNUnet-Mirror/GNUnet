@@ -807,7 +807,6 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
   void *icb_cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
   struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_CLIENT_Connection *client;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Reconnecting...\n");
@@ -830,13 +829,13 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  client = GNUNET_CLIENT_connect ("peerstore",
-                                  h->cfg);
-  if (NULL == client)
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "peerstore",
+                                 mq_handlers,
+                                 &handle_client_error,
+                                 h);
+  if (NULL == h->mq)
     return;
-  h->mq = GNUNET_MQ_queue_for_connection_client (client,
-                                                 mq_handlers,
-                                                 &handle_client_error, h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Resending pending requests after reconnect.\n");
   if (NULL != h->watches)
