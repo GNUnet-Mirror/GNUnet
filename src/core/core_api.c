@@ -696,7 +696,9 @@ handle_send_ready (void *cls,
   ret = th->get_message (th->get_message_cls,
                          th->msize,
                          &sm[1]);
-  GNUNET_assert (ret == th->msize); /* NOTE: API change! */
+  sm->header.size = htons (ret);
+  th->msize = ret;
+  // GNUNET_assert (ret == th->msize); /* NOTE: API change! */
   delay = GNUNET_TIME_absolute_get_duration (th->request_time);
   overdue = GNUNET_TIME_absolute_get_duration (th->deadline);
   if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
