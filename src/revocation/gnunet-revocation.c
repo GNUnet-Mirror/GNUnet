@@ -238,7 +238,7 @@ perform_revocation (const struct RevocationData *rd)
  */
 static void
 sync_rd (const struct RevocationData *rd)
-{ 
+{
   if ( (NULL != filename) &&
        (sizeof (struct RevocationData) ==
 	GNUNET_DISK_fn_write (filename,
@@ -283,6 +283,7 @@ calculate_pow (void *cls)
   struct RevocationData *rd = cls;
 
   /* store temporary results */
+  pow_task = NULL;
   if (0 == (rd->pow % 128))
     sync_rd (rd);
   /* display progress estimate */
@@ -312,7 +313,9 @@ calculate_pow (void *cls)
                                 "write",
                                 filename);
     if (perform)
+    {
       perform_revocation (rd);
+    }
     else
     {
       FPRINTF (stderr, "%s", "\n");
@@ -322,7 +325,6 @@ calculate_pow (void *cls)
                filename);
       GNUNET_SCHEDULER_shutdown ();
     }
-    GNUNET_free (rd);
     return;
   }
   pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow,
