@@ -138,7 +138,9 @@ terminate_task (void *cls)
   FPRINTF (stderr,
            "\nThroughput was %llu kb/s\n",
            total_bytes * 1000000LL / 1024 / delta);
-  GAUGER ("CORE", "Core throughput/s", total_bytes * 1000000LL / 1024 / delta,
+  GAUGER ("CORE",
+          "Core throughput/s",
+          total_bytes * 1000000LL / 1024 / delta,
           "kb/s");
   ok = 0;
 }
@@ -155,7 +157,9 @@ terminate_task_error (void *cls)
 
 
 static size_t
-transmit_ready (void *cls, size_t size, void *buf)
+transmit_ready (void *cls,
+                size_t size,
+                void *buf)
 {
   char *cbuf = buf;
   struct TestMessage hdr;
@@ -183,7 +187,10 @@ transmit_ready (void *cls, size_t size, void *buf)
   do
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending message %u of size %u at offset %u\n", tr_n, s, ret);
+                "Sending message %u of size %u at offset %u\n",
+                tr_n,
+                s,
+                ret);
     hdr.header.size = htons (s);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
@@ -202,14 +209,16 @@ transmit_ready (void *cls, size_t size, void *buf)
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                     &terminate_task_error, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Returning total message block of size %u\n", ret);
+              "Returning total message block of size %u\n",
+              ret);
   total_bytes += ret;
   return ret;
 }
 
 
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_notify (void *cls,
+                const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
@@ -240,30 +249,35 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+disconnect_notify (void *cls,
+                   const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   pc->connect_status = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted connection to `%s' cut\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypted connection to `%s' cut\n",
               GNUNET_i2s (peer));
 }
 
 
 static int
-inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+inbound_notify (void *cls,
+                const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%s'.\n", GNUNET_i2s (other));
+              "Core provides inbound data from `%s'.\n",
+              GNUNET_i2s (other));
   return GNUNET_OK;
 }
 
 
 static int
-outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+outbound_notify (void *cls,
+                 const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -274,7 +288,9 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 
 
 static size_t
-transmit_ready (void *cls, size_t size, void *buf);
+transmit_ready (void *cls,
+                size_t size,
+                void *buf);
 
 
 static int
@@ -294,22 +310,29 @@ process_mtype (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, s, ntohs (message->size), ntohl (hdr->num));
+                n, s,
+                ntohs (message->size),
+                ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
-    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
+    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
+                                         NULL);
     return GNUNET_SYSERR;
   }
   if (ntohl (hdr->num) != n)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, s, ntohs (message->size), ntohl (hdr->num));
+                n, s,
+                ntohs (message->size),
+                ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
     err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
     return GNUNET_SYSERR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
-              ntohl (hdr->num), ntohs (message->size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got message %u of size %u\n",
+              ntohl (hdr->num),
+              ntohs (message->size));
   n++;
   if (0 == (n % (TOTAL_MSGS / 100)))
     FPRINTF (stderr, "%s",  ".");
@@ -379,7 +402,8 @@ init_notify (void *cls,
 
 
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls,
+               const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
@@ -400,7 +424,8 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 
 static void
-setup_peer (struct PeerContext *p, const char *cfgname)
+setup_peer (struct PeerContext *p,
+            const char *cfgname)
 {
   char *binary;
 
@@ -423,7 +448,9 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
@@ -431,7 +458,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
   err_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &terminate_task_error,
+                                    NULL);
 
   GNUNET_assert (NULL != (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1,
                                                        &init_notify,
@@ -447,10 +476,13 @@ static void
 stop_arm (struct PeerContext *p)
 {
   if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
@@ -461,7 +493,8 @@ stop_arm (struct PeerContext *p)
 int
 main (int argc, char *argv1[])
 {
-  char *const argv[] = { "test-core-api-reliability",
+  char *const argv[] = {
+    "test-core-api-reliability",
     "-c",
     "test_core_api_data.conf",
     NULL

@@ -876,7 +876,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 	  (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) ))
     return; /* no client cares about this message notification */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service passes message from `%4s' of type %u to client.\n",
+              "Core service passes message from `%s' of type %u to client.\n",
               GNUNET_i2s (sender),
               (unsigned int) ntohs (msg->type));
   GSC_SESSIONS_add_to_typemap (sender, ntohs (msg->type));

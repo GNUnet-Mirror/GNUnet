@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010 Christian Grothoff
+     Copyright (C) 2010, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 
 /**
  * @file core/test_core_api_send_to_self.c
- * @brief
+ * @brief test that sending a message to ourselves via CORE works
  * @author Philipp Toelke
  */
 #include "platform.h"
@@ -38,7 +38,7 @@ static int ret;
 /**
  * Handle to the cleanup task.
  */
-struct GNUNET_SCHEDULER_Task * die_task;
+static struct GNUNET_SCHEDULER_Task *die_task;
 
 /**
  * Identity of this peer.
@@ -48,7 +48,7 @@ static struct GNUNET_PeerIdentity myself;
 /**
  * The handle to core
  */
-struct GNUNET_CORE_Handle *core;
+static struct GNUNET_CORE_Handle *core;
 
 
 /**
@@ -57,45 +57,64 @@ struct GNUNET_CORE_Handle *core;
 static void
 cleanup (void *cls)
 {
-  die_task = NULL;
-
-  if (core != NULL)
+  if (NULL != die_task)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting core.\n");
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = NULL;
+  }
+  if (NULL != core)
+  {
     GNUNET_CORE_disconnect (core);
     core = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Ending test.\n");
+}
+
+
+/**
+ * Function scheduled as very last function, cleans up after us
+ */
+static void
+do_timeout (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test timeout.\n");
+  die_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static int
-receive (void *cls, const struct GNUNET_PeerIdentity *other,
+receive (void *cls,
+         const struct GNUNET_PeerIdentity *other,
          const struct GNUNET_MessageHeader *message)
 {
-  if (die_task != NULL)
-    GNUNET_SCHEDULER_cancel (die_task);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received message from peer %s\n",
               GNUNET_i2s (other));
   GNUNET_assert (GNUNET_MESSAGE_TYPE_DUMMY == ntohs (message->type));
   GNUNET_assert (0 == memcmp (other, &myself, sizeof (myself)));
-  GNUNET_SCHEDULER_add_now (&cleanup, NULL);
+  GNUNET_SCHEDULER_shutdown ();
   ret = 0;
   return GNUNET_OK;
 }
 
 
 static size_t
-send_message (void *cls, size_t size, void *buf)
+send_message (void *cls,
+              size_t size,
+              void *buf)
 {
-  if (size == 0 || buf == NULL)
+  struct GNUNET_MessageHeader *hdr = buf;
+  if ( (size == 0) || (buf == NULL) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not send; got 0 buffer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Could not send; got 0 buffer\n");
     return 0;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending!\n");
-  struct GNUNET_MessageHeader *hdr = buf;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending!\n");
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
   hdr->type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   return ntohs (hdr->size);
@@ -114,23 +133,32 @@ init (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Correctly connected to CORE; we are the peer %s.\n",
               GNUNET_i2s (my_identity));
-  memcpy (&myself, my_identity, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&myself,
+          my_identity,
+          sizeof (struct GNUNET_PeerIdentity));
 }
 
 
 static void
-connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_cb (void *cls,
+            const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connected to peer %s.\n",
               GNUNET_i2s (peer));
-  if (0 == memcmp (peer, &myself, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer,
+                   &myself,
+                   sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Connected to myself; sending message!\n");
-    GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES, 0,
-                                       GNUNET_TIME_UNIT_FOREVER_REL, peer,
+    GNUNET_CORE_notify_transmit_ready (core,
+                                       GNUNET_YES,
+                                       0,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       peer,
                                        sizeof (struct GNUNET_MessageHeader),
-                                       send_message, NULL);
+                                       &send_message, NULL);
   }
 }
 
@@ -147,16 +175,20 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   const static struct GNUNET_CORE_MessageHandler handlers[] = {
-    {&receive, GNUNET_MESSAGE_TYPE_DUMMY, 0},
+    { &receive,
+      GNUNET_MESSAGE_TYPE_DUMMY,
+      sizeof (struct GNUNET_MessageHeader) },
     {NULL, 0, 0}
   };
   core =
-    GNUNET_CORE_connect (cfg, NULL, &init, &connect_cb, NULL, NULL,
+    GNUNET_CORE_connect (cfg, NULL, &init,
+                         &connect_cb, NULL, NULL,
 			 0, NULL, 0, handlers);
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 300), &cleanup,
-                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup,
+                                 NULL);
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                           &do_timeout,
+                                           NULL);
 }
 
 
@@ -170,6 +202,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  ret = 1;
   if (0 != GNUNET_TESTING_peer_run ("test-core-api-send-to-self",
 				    "test_core_api_peer1.conf",
 				    &run, NULL))
