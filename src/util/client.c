@@ -505,7 +505,9 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client)
     client->tag = NULL;
   }
   client->receiver_handler = NULL;
-  GNUNET_array_grow (client->received_buf, client->received_size, 0);
+  GNUNET_array_grow (client->received_buf,
+                     client->received_size,
+                     0);
   GNUNET_free (client->service_name);
   GNUNET_free (client);
 }

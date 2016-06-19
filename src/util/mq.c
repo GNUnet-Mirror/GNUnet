@@ -512,7 +512,8 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_queued (void *cls, size_t size,
+transmit_queued (void *cls,
+                 size_t size,
                  void *buf)
 {
   struct GNUNET_MQ_Handle *mq = cls;
@@ -521,7 +522,6 @@ transmit_queued (void *cls, size_t size,
   size_t msg_size;
 
   GNUNET_assert (NULL != buf);
-
   msg_size = ntohs (msg->size);
   GNUNET_assert (size >= msg_size);
   memcpy (buf, msg, msg_size);
@@ -632,6 +632,7 @@ connection_client_transmit_queued (void *cls,
   size_t msg_size;
 
   GNUNET_assert (NULL != mq);
+  state->th = NULL;
   msg = GNUNET_MQ_impl_current (mq);
 
   if (NULL == buf)
@@ -667,6 +668,11 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
 {
   struct ClientConnectionState *state = impl_state;
 
+  if (NULL != state->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (state->th);
+    state->th = NULL;
+  }
   GNUNET_CLIENT_disconnect (state->connection);
   GNUNET_free (impl_state);
 }
@@ -684,8 +690,10 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
   state->th =
       GNUNET_CLIENT_notify_transmit_ready (state->connection,
 					   ntohs (msg->size),
-                                           GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
-                                           &connection_client_transmit_queued, mq);
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_NO,
+                                           &connection_client_transmit_queued,
+                                           mq);
   GNUNET_assert (NULL != state->th);
 }
 
