@@ -60,7 +60,7 @@ struct GNUNET_CONSENSUS_Handle
   struct GNUNET_HashCode session_id;
 
   /**
-   * GNUNES_YES iff the join message has been sent to the service.
+   * #GNUNET_YES iff the join message has been sent to the service.
    */
   int joined;
 
