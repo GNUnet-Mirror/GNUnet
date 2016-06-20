@@ -171,7 +171,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *tag;
   char *value;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deserializing config file\n");
   ret = GNUNET_OK;
   section = GNUNET_strdup ("");
   nr = 0;
@@ -253,9 +252,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
       value = &line[1];
       GNUNET_free (section);
       section = GNUNET_strdup (value);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Config section `%s'\n",
-	   section);
       continue;
     }
     if (NULL != (eq = strchr (line, '=')))
@@ -281,7 +277,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	value[strlen (value) - 1] = '\0';
 	value++;
       }
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Config value %s=\"%s\"\n", tag, value);
       GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, &value[i]);
       GNUNET_free (tag);
       continue;
@@ -293,7 +288,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
     ret = GNUNET_SYSERR;
     break;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished deserializing config\n");
   GNUNET_free_non_null (line_orig);
   GNUNET_free (section);
   GNUNET_assert ( (GNUNET_OK != ret) || (r_bytes == size) );
@@ -320,12 +314,9 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   int dirty;
   int ret;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to parse config file `%s'\n",
-       filename);
   fn = GNUNET_STRINGS_filename_expand (filename);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Config file name expanded to `%s'\n",
+       "Asked to parse config file `%s'\n",
        fn);
   if (NULL == fn)
     return GNUNET_SYSERR;
@@ -334,7 +325,8 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Error while determining the file size of %s\n", fn);
+	 "Error while determining the file size of `%s'\n",
+         fn);
     GNUNET_free (fn);
     return GNUNET_SYSERR;
   }
@@ -349,7 +341,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   if (fs != GNUNET_DISK_fn_read (fn, mem, fs))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Error while reading file %s\n",
+	 _("Error while reading file `%s'\n"),
          fn);
     GNUNET_free (fn);
     GNUNET_free (mem);
@@ -505,7 +497,8 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     GNUNET_free (cfg_buf);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Writing configration to file: %s failed\n", filename);
+	 "Writing configration to file `%s' failed\n",
+         filename);
     cfg->dirty = GNUNET_SYSERR; /* last write failed */
     return GNUNET_SYSERR;
   }
@@ -980,10 +973,6 @@ GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle 
 {
   struct ConfigEntry *e;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to retrieve string `%s' in section `%s'\n",
-       option,
-       section);
   if ( (NULL == (e = find_entry (cfg, section, option))) ||
        (NULL == e->val) )
   {
@@ -1149,7 +1138,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return orig;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to $-expand %s\n", orig);
+       "Asked to $-expand %s\n",
+       orig);
   if ('$' != orig[0])
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1232,14 +1222,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              start,
                                              &prefix))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Filename for `%s' is not in PATHS config section\n",
-         start);
     if (NULL == (env = getenv (start)))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "`%s' is not an environment variable\n",
-           start);
       /* try default */
       def = expand_dollar (cfg, def, depth + 1);
       env = def;
@@ -1258,9 +1242,6 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     prefix = GNUNET_strdup (env);
   }
   prefix = GNUNET_CONFIGURATION_expand_dollar (cfg, prefix);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Prefix is `%s'\n",
-       prefix);
   if ( (erased_pos) && ('}' != erased_char) )
   {
     len = strlen (prefix) + 1;
@@ -1274,9 +1255,6 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free_non_null (def);
   GNUNET_free (prefix);
   GNUNET_free (orig);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Expanded to `%s'\n",
-       result);
   return result;
 }
 
@@ -1338,10 +1316,6 @@ GNUNET_CONFIGURATION_get_value_filename (const struct GNUNET_CONFIGURATION_Handl
 {
   char *tmp;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to retrieve filename `%s' in section `%s'\n",
-       option,
-       section);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &tmp))
   {
@@ -1350,12 +1324,9 @@ GNUNET_CONFIGURATION_get_value_filename (const struct GNUNET_CONFIGURATION_Handl
     *value = NULL;
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Retrieved filename `%s', $-expanding\n", tmp);
   tmp = GNUNET_CONFIGURATION_expand_dollar (cfg, tmp);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Expanded to filename `%s', *nix-expanding\n", tmp);
   *value = GNUNET_STRINGS_filename_expand (tmp);
   GNUNET_free (tmp);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Filename result is `%s'\n", *value);
   if (*value == NULL)
     return GNUNET_SYSERR;
   return GNUNET_OK;
