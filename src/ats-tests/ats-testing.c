@@ -66,7 +66,6 @@ do_shutdown (void *cls)
   int c_op;
   struct BenchmarkPeer *p;
 
-  top->shutdown_task = NULL;
   top->state.benchmarking = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
@@ -379,7 +378,8 @@ test_recv_cb (void *cls,
 
 
 static void *
-transport_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+transport_connect_adapter (void *cls,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
 
@@ -389,6 +389,7 @@ transport_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to create transport connection \n");
   return me->th;
 }
+
 
 static void
 transport_disconnect_adapter (void *cls, void *op_result)
@@ -401,8 +402,9 @@ transport_disconnect_adapter (void *cls, void *op_result)
 
 
 static void
-connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
-    const char *emsg)
+connect_completion_callback (void *cls,
+                             struct GNUNET_TESTBED_Operation *op,
+                             const char *emsg)
 {
   struct TestbedConnectOperation *cop = cls;
   static int ops = 0;
@@ -410,8 +412,9 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (NULL == emsg)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        _("Connected master [%u] with slave [%u]\n"), cop->master->no,
-        cop->slave->no);
+               _("Connected master [%u] with slave [%u]\n"),
+               cop->master->no,
+               cop->slave->no);
   }
   else
   {
@@ -419,9 +422,7 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
         _("Failed to connect master peer [%u] with slave [%u]\n"),
         cop->master->no, cop->slave->no);
     GNUNET_break(0);
-    if (NULL != top->shutdown_task)
-      GNUNET_SCHEDULER_cancel (top->shutdown_task);
-    top->shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL );
+    GNUNET_SCHEDULER_shutdown ();
   }
   GNUNET_TESTBED_operation_done (op);
   ops++;
@@ -435,6 +436,7 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
     top->state.connected_PEERS = GNUNET_YES;
   }
 }
+
 
 static void
 do_connect_peers (void *cls)
@@ -470,9 +472,7 @@ do_connect_peers (void *cls)
             _("Could not connect master [%u] and slave [%u]\n"), p->no,
             top->sps[c_s].no);
         GNUNET_break(0);
-        if (NULL != top->shutdown_task)
-          GNUNET_SCHEDULER_cancel (top->shutdown_task);
-        top->shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL );
+        GNUNET_SCHEDULER_shutdown ();
         return;
       }
     }
@@ -481,17 +481,19 @@ do_connect_peers (void *cls)
 
 
 static void
-comm_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-    void *ca_result, const char *emsg)
+comm_connect_completion_cb (void *cls,
+                            struct GNUNET_TESTBED_Operation *op,
+                            void *ca_result,
+                            const char *emsg)
 {
   static int comm_done = 0;
+
   if ((NULL != emsg) || (NULL == ca_result))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initialization failed, shutdown\n"));
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Initialization failed, shutdown\n");
     GNUNET_break(0);
-    if (NULL != top->shutdown_task)
-      GNUNET_SCHEDULER_cancel (top->shutdown_task);
-    top->shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL );
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   comm_done++;
@@ -504,6 +506,7 @@ comm_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_SCHEDULER_add_now (&do_connect_peers, NULL );
   }
 }
+
 
 static void
 do_comm_connect (void *cls)
@@ -631,11 +634,10 @@ ats_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   if ((NULL != emsg) || (NULL == ca_result))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initialization failed, shutdown\n"));
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Initialization failed, shutdown\n");
     GNUNET_break(0);
-    if (NULL != top->shutdown_task)
-      GNUNET_SCHEDULER_cancel (top->shutdown_task);
-    top->shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL );
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   op_done++;
@@ -721,15 +723,18 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
 {
   int c_m;
   int c_s;
+
   GNUNET_assert(NULL == cls);
   GNUNET_assert(top->num_masters + top->num_slaves == num_peers);
   GNUNET_assert(NULL != peers_);
 
-  top->shutdown_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown, top);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 top);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting up %u masters and %u slaves\n",
-      top->num_masters, top->num_slaves);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Setting up %u masters and %u slaves\n",
+              top->num_masters,
+              top->num_slaves);
 
   /* Setup master peers */
   for (c_m = 0; c_m < top->num_masters; c_m++)
@@ -791,9 +796,8 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
  */
 static void
 controller_event_cb (void *cls,
-    const struct GNUNET_TESTBED_EventInformation *event)
+                     const struct GNUNET_TESTBED_EventInformation *event)
 {
-  struct GNUNET_ATS_TEST_Topology *top = cls;
   switch (event->type)
   {
   case GNUNET_TESTBED_ET_CONNECT:
@@ -802,10 +806,10 @@ controller_event_cb (void *cls,
     break;
   default:
     GNUNET_break(0);
-    GNUNET_SCHEDULER_cancel (top->shutdown_task);
-    top->shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL );
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
+
 
 struct BenchmarkPeer *
 GNUNET_ATS_TEST_get_peer (int src)
@@ -814,6 +818,7 @@ GNUNET_ATS_TEST_get_peer (int src)
     return NULL;
   return &top->mps[src];
 }
+
 
 struct BenchmarkPartner *
 GNUNET_ATS_TEST_get_partner (int src, int dest)

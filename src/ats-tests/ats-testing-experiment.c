@@ -639,7 +639,7 @@ GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
 
 
 struct Experiment *
-GNUNET_ATS_TEST_experimentation_load (char *filename)
+GNUNET_ATS_TEST_experimentation_load (const char *filename)
 {
   struct Experiment *e;
   struct GNUNET_CONFIGURATION_Handle *cfg;

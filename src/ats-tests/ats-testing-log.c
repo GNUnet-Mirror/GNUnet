@@ -227,7 +227,7 @@ struct LoggingHandle
   /**
    * Logging task
    */
-  struct GNUNET_SCHEDULER_Task * log_task;
+  struct GNUNET_SCHEDULER_Task *log_task;
 
   /**
    * Reference to perf_ats' masters
@@ -236,7 +236,7 @@ struct LoggingHandle
   int num_slaves;
   int running;
   int verbose;
-  char *name;
+  const char *name;
   struct GNUNET_TIME_Relative frequency;
 
   /**
@@ -419,11 +419,12 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp, char **fs, int slave
 
 void
 GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
-    char *experiment_name, int plots)
+                                       const char *experiment_name,
+                                       int plots)
 {
   struct GNUNET_DISK_FileHandle *f[l->num_slaves];
   struct GNUNET_DISK_FileHandle *f_m;
-  char *tmp_exp_name;
+  const char *tmp_exp_name;
   char *filename_master;
   char *filename_slaves[l->num_slaves];
   char *data;
@@ -878,11 +879,15 @@ GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l)
  */
 struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
-    char *testname, struct BenchmarkPeer *masters, int num_masters, int num_slaves,
-    int verbose)
+                              const char *testname,
+                              struct BenchmarkPeer *masters,
+                              int num_masters,
+                              int num_slaves,
+                              int verbose)
 {
   struct LoggingHandle *l;
   int c_m;
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Start logging `%s'\n"), testname);
 

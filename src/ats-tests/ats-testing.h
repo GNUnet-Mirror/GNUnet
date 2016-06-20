@@ -377,14 +377,9 @@ struct BenchmarkState
 struct GNUNET_ATS_TEST_Topology
 {
   /**
-   * Shutdown task
-   */
-  struct GNUNET_SCHEDULER_Task * shutdown_task;
-
-  /**
    * Progress task
    */
-  struct GNUNET_SCHEDULER_Task * progress_task;
+  struct GNUNET_SCHEDULER_Task *progress_task;
 
   /**
    * Test result
@@ -544,8 +539,9 @@ extern struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 void
 GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
-    GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb,
-    GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb);
+                                     GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb,
+                                     GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb);
+
 
 /**
  * Load an experiment from a file
@@ -554,7 +550,7 @@ GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
  * @return the Experiment or NULL on failure
  */
 struct Experiment *
-GNUNET_ATS_TEST_experimentation_load (char *filename);
+GNUNET_ATS_TEST_experimentation_load (const char *filename);
 
 
 /**
@@ -606,7 +602,8 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
  * Stop all traffic generators
  */
 void
-GNUNET_ATS_TEST_generate_traffic_stop_all ();
+GNUNET_ATS_TEST_generate_traffic_stop_all (void);
+
 
 /**
  * Generate between the source master and the partner and set preferences with a
@@ -635,8 +632,9 @@ GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
 void
 GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);
 
+
 void
-GNUNET_ATS_TEST_generate_preferences_stop_all ();
+GNUNET_ATS_TEST_generate_preferences_stop_all (void);
 
 /*
  * Logging related functions
@@ -655,8 +653,12 @@ GNUNET_ATS_TEST_generate_preferences_stop_all ();
  */
 struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
-    char *testname, struct BenchmarkPeer *masters, int num_masters, int num_slaves,
-    int verbose);
+                              const char *testname,
+                              struct BenchmarkPeer *masters,
+                              int num_masters,
+                              int num_slaves,
+                              int verbose);
+
 
 /**
  * Stop logging
@@ -666,6 +668,7 @@ GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
 void
 GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l);
 
+
 /**
  * Stop logging
  *
@@ -673,6 +676,7 @@ GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l);
  */
 void
 GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
+
 
 /**
  * Log all data now
@@ -688,21 +692,24 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);
  *
  * @param l logging handle to use
  * @param test_name name of the current test
- * @param plots create gnuplots: GNUNET_YES or GNUNET_NO
+ * @param plots create gnuplots: #GNUNET_YES or #GNUNET_NO
  */
 void
 GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
-    char *test_name, int plots);
+                                       const char *test_name,
+                                       int plots);
 
-/*
+
+/**
  * Topology related functions
  */
-
 struct BenchmarkPeer *
 GNUNET_ATS_TEST_get_peer (int src);
 
+
 struct BenchmarkPartner *
 GNUNET_ATS_TEST_get_partner (int src, int dest);
+
 
 /**
  * Create a topology for ats testing
@@ -711,26 +718,29 @@ GNUNET_ATS_TEST_get_partner (int src, int dest);
  * @param cfg_file configuration file to use for the peers
  * @param num_slaves number of slaves
  * @param num_masters number of masters
- * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
+ * @param test_core connect to CORE service (#GNUNET_YES) or transport (#GNUNET_NO)
  * @param done_cb function to call when topology is setup
  * @param done_cb_cls cls for callback
  * @param transport_recv_cb callback to call when data are received
  * @param log_request_cb callback to call when logging is required
  */
 void
-GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
-    unsigned int num_slaves,
-    unsigned int num_masters,
-    int test_core,
-    GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
-    void *done_cb_cls,
-    GNUNET_TRANSPORT_ReceiveCallback recv_cb,
-    GNUNET_ATS_TEST_LogRequest ats_perf_cb);
+GNUNET_ATS_TEST_create_topology (char *name,
+                                 char *cfg_file,
+                                 unsigned int num_slaves,
+                                 unsigned int num_masters,
+                                 int test_core,
+                                 GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
+                                 void *done_cb_cls,
+                                 GNUNET_TRANSPORT_ReceiveCallback recv_cb,
+                                 GNUNET_ATS_TEST_LogRequest ats_perf_cb);
+
 
 /**
  * Shutdown topology
  */
 void
 GNUNET_ATS_TEST_shutdown_topology (void);
+
 
 /* end of file ats-testing.h */
