@@ -298,6 +298,8 @@ static void
 timeout_fail (void *cls)
 {
   GNUNET_SCHEDULER_shutdown ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "test timed out\n");
   ret = 1;
 }
 
