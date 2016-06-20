@@ -813,13 +813,13 @@ slave_key_store (struct Plugin *plugin,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-membership_store (void *cls,
-                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                  int did_join,
-                  uint64_t announced_at,
-                  uint64_t effective_since,
-                  uint64_t group_generation)
+sqlite_membership_store (void *cls,
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                         int did_join,
+                         uint64_t announced_at,
+                         uint64_t effective_since,
+                         uint64_t group_generation)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_membership;
@@ -1898,7 +1898,7 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_PSYCSTORE_PluginFunctions);
   api->cls = &plugin;
-  api->membership_store = &membership_store;
+  api->membership_store = &sqlite_membership_store;
   api->membership_test = &membership_test;
   api->fragment_store = &fragment_store;
   api->message_add_flags = &message_add_flags;

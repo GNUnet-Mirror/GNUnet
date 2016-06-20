@@ -161,7 +161,8 @@ typedef void
  * @param cont_cls continuation closure for @a cont
  */
 typedef void
-(*PluginPut) (void *cls, const struct GNUNET_HashCode *key,
+(*PluginPut) (void *cls,
+              const struct GNUNET_HashCode *key,
 	      uint32_t size,
 	      const void *data,
 	      enum GNUNET_BLOCK_Type type,
