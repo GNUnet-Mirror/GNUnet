@@ -263,7 +263,6 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
 
   s->mq = GNUNET_CLIENT_connecT (cfg,
                                  "secretsharing",
-                                 client,
                                  mq_handlers,
                                  &handle_session_client_error,
                                  s);
