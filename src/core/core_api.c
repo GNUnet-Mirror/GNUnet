@@ -215,6 +215,11 @@ struct GNUNET_CORE_Handle
    */
   int currently_down;
 
+  /**
+   * Did we ever get INIT?
+   */
+  int have_init;
+
 };
 
 
@@ -359,6 +364,7 @@ handle_init_reply (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Connected to core service of peer `%s'.\n",
          GNUNET_i2s (&h->me));
+    h->have_init = GNUNET_YES;
     init (h->cls,
           &h->me);
   }
@@ -366,9 +372,17 @@ handle_init_reply (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Successfully reconnected to core service.\n");
-    GNUNET_break (0 == memcmp (&h->me,
-                               &m->my_identity,
-                               sizeof (struct GNUNET_PeerIdentity)));
+    if (GNUNET_NO == h->have_init)
+    {
+      h->me = m->my_identity;
+      h->have_init = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_break (0 == memcmp (&h->me,
+                                 &m->my_identity,
+                                 sizeof (struct GNUNET_PeerIdentity)));
+    }
   }
   /* fake 'connect to self' */
   pr = GNUNET_new (struct PeerRecord);
