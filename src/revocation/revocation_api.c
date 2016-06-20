@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2013 GNUnet e.V.
+      Copyright (C) 2013, 2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public Licerevocation as published
@@ -37,19 +37,9 @@ struct GNUNET_REVOCATION_Query
 {
 
   /**
-   * Connection to the service.
+   * Message queue to the service.
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Our configuration.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Key to check.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey key;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Function to call with the result.
@@ -61,77 +51,50 @@ struct GNUNET_REVOCATION_Query
    */
   void *func_cls;
 
-  /**
-   * Transmission handle to the service.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
 };
+
+
+/**
+ * Generic error handler, called with the appropriate
+ * error code and the same closure specified at the creation of
+ * the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_NSE_Handle *`
+ * @param error error code
+ */
+static void
+query_mq_error_handler (void *cls,
+                        enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_REVOCATION_Query *q = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Revocation query MQ error\n");
+  q->func (q->func_cls,
+           GNUNET_SYSERR);
+  GNUNET_REVOCATION_query_cancel (q);
+}
 
 
 /**
  * Handle response to our revocation query.
  *
  * @param cls our `struct GNUNET_REVOCATION_Query` handle
- * @param msg response we got, NULL on disconnect
+ * @param qrm response we got
  */
 static void
 handle_revocation_query_response (void *cls,
-                                  const struct GNUNET_MessageHeader *msg)
+                                  const struct QueryResponseMessage *qrm)
 {
   struct GNUNET_REVOCATION_Query *q = cls;
-  const struct QueryResponseMessage *qrm;
 
-  if ( (NULL == msg) ||
-       (sizeof (struct QueryResponseMessage) != ntohs (msg->size)) ||
-       (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE != ntohs (msg->type)) )
-  {
-    GNUNET_break (NULL == msg);
-    q->func (q->func_cls, GNUNET_SYSERR);
-    GNUNET_REVOCATION_query_cancel (q);
-    return;
-  }
-  qrm = (const struct QueryResponseMessage *) msg;
-  q->func (q->func_cls, ntohl (qrm->is_valid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Revocation query result: %d\n",
+              ntohl (qrm->is_valid));
+  q->func (q->func_cls,
+           ntohl (qrm->is_valid));
   GNUNET_REVOCATION_query_cancel (q);
-}
-
-
-/**
- * Transmit our revocation query to the service.
- *
- * @param cls our `struct GNUNET_REVOCATION_Query` handle
- * @param size number of bytes available in @a buf
- * @param buf where to copy the query
- * @return number of bytes copied to @a buf
- */
-static size_t
-send_revocation_query (void *cls,
-                       size_t size,
-                       void *buf)
-{
-  struct GNUNET_REVOCATION_Query *q = cls;
-  struct QueryMessage qm;
-
-  q->th = NULL;
-  if ( (NULL == buf) ||
-       (sizeof (struct QueryMessage) > size) )
-  {
-    GNUNET_break (0);
-    q->func (q->func_cls, GNUNET_SYSERR);
-    GNUNET_REVOCATION_query_cancel (q);
-    return 0;
-  }
-  qm.header.size = htons (sizeof (struct QueryMessage));
-  qm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY);
-  qm.reserved = htonl (0);
-  qm.key = q->key;
-  memcpy (buf, &qm, sizeof (struct QueryMessage));
-  GNUNET_CLIENT_receive (q->client,
-                         &handle_revocation_query_response,
-                         q,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  return sizeof (struct QueryMessage);
 }
 
 
@@ -147,28 +110,39 @@ send_revocation_query (void *cls,
 struct GNUNET_REVOCATION_Query *
 GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-			 GNUNET_REVOCATION_Callback func, void *func_cls)
+			 GNUNET_REVOCATION_Callback func,
+                         void *func_cls)
 {
-  struct GNUNET_REVOCATION_Query *q;
+  GNUNET_MQ_hd_fixed_size (revocation_query_response,
+                           GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE,
+                           struct QueryResponseMessage);
+  struct GNUNET_REVOCATION_Query *q
+    = GNUNET_new (struct GNUNET_REVOCATION_Query);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_revocation_query_response_handler (q),
+    GNUNET_MQ_handler_end ()
+  };
+  struct QueryMessage *qm;
+  struct GNUNET_MQ_Envelope *env;
 
-  q = GNUNET_new (struct GNUNET_REVOCATION_Query);
-  q->client = GNUNET_CLIENT_connect ("revocation", cfg);
-  if (NULL == q->client)
+  q->mq = GNUNET_CLIENT_connecT (cfg,
+                                 "revocation",
+                                 handlers,
+                                 &query_mq_error_handler,
+                                 q);
+  if (NULL == q->mq)
   {
-    GNUNET_break (0);
     GNUNET_free (q);
     return NULL;
   }
-  q->cfg = cfg;
-  q->key = *key;
   q->func = func;
   q->func_cls = func_cls;
-  q->th = GNUNET_CLIENT_notify_transmit_ready (q->client,
-                                               sizeof (struct QueryMessage),
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               GNUNET_YES,
-                                               &send_revocation_query,
-                                               q);
+  env = GNUNET_MQ_msg (qm,
+                       GNUNET_MESSAGE_TYPE_REVOCATION_QUERY);
+  qm->reserved = htonl (0);
+  qm->key = *key;
+  GNUNET_MQ_send (q->mq,
+                  env);
   return q;
 }
 
@@ -181,12 +155,11 @@ GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_REVOCATION_query_cancel (struct GNUNET_REVOCATION_Query *q)
 {
-  if (NULL != q->th)
+  if (NULL != q->mq)
   {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (q->th);
-    q->th = NULL;
+    GNUNET_MQ_destroy (q->mq);
+    q->mq = NULL;
   }
-  GNUNET_CLIENT_disconnect (q->client);
   GNUNET_free (q);
 }
 
@@ -198,29 +171,9 @@ struct GNUNET_REVOCATION_Handle
 {
 
   /**
-   * Connection to the service.
+   * Message queue to the service.
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Our configuration.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Key to revoke.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey key;
-
-  /**
-   * Signature showing that we have the right to revoke.
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
-
-  /**
-   * Proof of work showing that we spent enough resources to broadcast revocation.
-   */
-  uint64_t pow;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Function to call once we are done.
@@ -232,83 +185,50 @@ struct GNUNET_REVOCATION_Handle
    */
   void *func_cls;
 
-  /**
-   * Transmission handle to the service.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
 };
+
+
+/**
+ * Generic error handler, called with the appropriate
+ * error code and the same closure specified at the creation of
+ * the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_NSE_Handle *`
+ * @param error error code
+ */
+static void
+revocation_mq_error_handler (void *cls,
+                             enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_REVOCATION_Handle *h = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Revocation MQ error\n");
+  h->func (h->func_cls,
+           GNUNET_SYSERR);
+  GNUNET_REVOCATION_revoke_cancel (h);
+}
 
 
 /**
  * Handle response to our revocation query.
  *
  * @param cls our `struct GNUNET_REVOCATION_Handle` handle
- * @param msg response we got, NULL on disconnect
+ * @param rrm response we got
  */
 static void
 handle_revocation_response (void *cls,
-                            const struct GNUNET_MessageHeader *msg)
+                            const struct RevocationResponseMessage *rrm)
 {
   struct GNUNET_REVOCATION_Handle *h = cls;
-  const struct RevocationResponseMessage *rrm;
 
-  if ( (NULL == msg) ||
-       (sizeof (struct RevocationResponseMessage) != ntohs (msg->size)) ||
-       (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE != ntohs (msg->type)) )
-  {
-    GNUNET_break (NULL == msg);
-    h->func (h->func_cls, GNUNET_SYSERR);
-    GNUNET_REVOCATION_revoke_cancel (h);
-    return;
-  }
-  rrm = (const struct RevocationResponseMessage *) msg;
-  h->func (h->func_cls, ntohl (rrm->is_valid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Revocation transmission result: %d\n",
+              ntohl (rrm->is_valid));
+  h->func (h->func_cls,
+           ntohl (rrm->is_valid));
   GNUNET_REVOCATION_revoke_cancel (h);
-
-}
-
-
-/**
- * Transmit our revocation to the service.
- *
- * @param cls our `struct GNUNET_REVOCATION_Handle` handle
- * @param size number of bytes available in @a buf
- * @param buf where to copy the query
- * @return number of bytes copied to @a buf
- */
-static size_t
-send_revoke (void *cls,
-             size_t size,
-             void *buf)
-{
-  struct GNUNET_REVOCATION_Handle *h = cls;
-  struct RevokeMessage rm;
-
-  h->th = NULL;
-  if ( (NULL == buf) ||
-       (sizeof (struct RevokeMessage) > size) )
-  {
-    GNUNET_break (0);
-    h->func (h->func_cls, GNUNET_SYSERR);
-    GNUNET_REVOCATION_revoke_cancel (h);
-    return 0;
-  }
-  rm.header.size = htons (sizeof (struct RevokeMessage));
-  rm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE);
-  rm.reserved = htonl (0);
-  rm.proof_of_work = h->pow;
-  rm.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
-  rm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                           sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  rm.public_key = h->key;
-  rm.signature = h->sig;
-  memcpy (buf, &rm, sizeof (struct RevokeMessage));
-  GNUNET_CLIENT_receive (h->client,
-                         &handle_revocation_response,
-                         h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  return sizeof (struct RevokeMessage);
 }
 
 
@@ -332,10 +252,21 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
 			  const struct GNUNET_CRYPTO_EcdsaSignature *sig,
 			  uint64_t pow,
-			  GNUNET_REVOCATION_Callback func, void *func_cls)
+			  GNUNET_REVOCATION_Callback func,
+                          void *func_cls)
 {
-  struct GNUNET_REVOCATION_Handle *h;
+  GNUNET_MQ_hd_fixed_size (revocation_response,
+                           GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE,
+                           struct RevocationResponseMessage);
+  struct GNUNET_REVOCATION_Handle *h
+    = GNUNET_new (struct GNUNET_REVOCATION_Handle);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_revocation_response_handler (h),
+    GNUNET_MQ_handler_end ()
+  };
   unsigned long long matching_bits;
+  struct RevokeMessage *rm;
+  struct GNUNET_MQ_Envelope *env;
 
   if ( (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -343,26 +274,38 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                "WORKBITS",
                                                &matching_bits)) &&
        (GNUNET_YES !=
-        GNUNET_REVOCATION_check_pow (key, pow,
+        GNUNET_REVOCATION_check_pow (key,
+                                     pow,
                                      (unsigned int) matching_bits)) )
   {
     GNUNET_break (0);
+    GNUNET_free (h);
     return NULL;
   }
-  h = GNUNET_new (struct GNUNET_REVOCATION_Handle);
-  h->client = GNUNET_CLIENT_connect ("revocation", cfg);
-  h->cfg = cfg;
-  h->key = *key;
-  h->sig = *sig;
-  h->pow = pow;
+
+  h->mq = GNUNET_CLIENT_connecT (cfg,
+                                 "revocation",
+                                 handlers,
+                                 &revocation_mq_error_handler,
+                                 h);
+  if (NULL == h->mq)
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
   h->func = func;
   h->func_cls = func_cls;
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                               sizeof (struct RevokeMessage),
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               GNUNET_YES,
-                                               &send_revoke,
-                                               h);
+  env = GNUNET_MQ_msg (rm,
+                       GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE);
+  rm->reserved = htonl (0);
+  rm->proof_of_work = pow;
+  rm->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
+  rm->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                            sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  rm->public_key = *key;
+  rm->signature = *sig;
+  GNUNET_MQ_send (h->mq,
+                  env);
   return h;
 }
 
@@ -375,15 +318,13 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h)
 {
-  if (NULL != h->th)
+  if (NULL != h->mq)
   {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-    h->th = NULL;
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
   }
-  GNUNET_CLIENT_disconnect (h->client);
   GNUNET_free (h);
 }
-
 
 
 /**
@@ -478,4 +419,3 @@ GNUNET_REVOCATION_sign_revocation (const struct GNUNET_CRYPTO_EcdsaPrivateKey *k
 
 
 /* end of revocation_api.c */
-

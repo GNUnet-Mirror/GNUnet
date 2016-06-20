@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet.
-   Copyright (C) 2009, 2013 GNUnet e.V.
+   Copyright (C) 2009, 2013, 2016 GNUnet e.V.
 
    GNUnet is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published
@@ -260,11 +260,12 @@ identity_connect_adapter (void *cls,
                           const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TestPeer *me = cls;
+
   me->cfg = cfg;
-  me->idh = GNUNET_IDENTITY_connect (cfg, NULL, NULL );
+  me->idh = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   if (NULL == me->idh)
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to create IDENTITY handle \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create IDENTITY handle \n");
   return me->idh;
 }
 
@@ -367,9 +368,8 @@ test_connection (void *cls,
 {
   unsigned int c;
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                &do_shutdown, NULL);
-
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   if (NUM_TEST_PEERS != num_peers)
   {
     ok = 4;
