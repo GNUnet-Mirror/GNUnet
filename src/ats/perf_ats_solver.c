@@ -1315,7 +1315,8 @@ run (void *cls, char * const *args, const char *cfgfile,
   {
     ph.env.out_quota[c] = quotas_out[c];
     ph.env.in_quota[c] = quotas_in[c];
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loading network quotas: `%s' %llu %llu \n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Loading network quotas: `%s' %llu %llu \n",
                 GNUNET_ATS_print_network_type (c),
                 ph.env.out_quota[c],
                 ph.env.in_quota[c]);
@@ -1323,12 +1324,17 @@ run (void *cls, char * const *args, const char *cfgfile,
   GAS_normalization_start ();
   GAS_preference_init ();
 
-  GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s'\n"), ph.ats_string);
+  GNUNET_asprintf (&plugin,
+                   "libgnunet_plugin_ats_%s",
+                   ph.ats_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             _("Initializing solver `%s'\n"),
+             ph.ats_string);
   if  (NULL == (ph.sf = GNUNET_PLUGIN_load (plugin, &ph.env)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to initialize solver `%s'!\n"), plugin);
+                _("Failed to initialize solver `%s'!\n"),
+                plugin);
     ret = 1;
     return;
   }
@@ -1336,16 +1342,24 @@ run (void *cls, char * const *args, const char *cfgfile,
   /* Do the benchmark */
   for (ph.current_iteration = 1; ph.current_iteration <= ph.total_iterations; ph.current_iteration++)
   {
-    fprintf (stderr, "Iteration %u of %u starting\n", ph.current_iteration, ph.total_iterations);
+    fprintf (stderr,
+             "Iteration %u of %u starting\n",
+             ph.current_iteration,
+             ph.total_iterations);
     perf_run_iteration ();
     evaluate (ph.current_iteration);
-    fprintf (stderr, "Iteration %u of %u done\n", ph.current_iteration, ph.total_iterations);
+    fprintf (stderr,
+             "Iteration %u of %u done\n",
+             ph.current_iteration,
+             ph.total_iterations);
   }
   if (ph.create_datafile)
     write_all_iterations ();
 
   /* Unload solver*/
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             _("Unloading solver `%s'\n"),
+             ph.ats_string);
   GNUNET_PLUGIN_unload (plugin, ph.sf);
   ph.sf = NULL;
   GNUNET_free (plugin);
@@ -1368,6 +1382,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_CONFIGURATION_destroy (solver_cfg);
   GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
 }
+
 
 /**
  * Main function of the benchmark
