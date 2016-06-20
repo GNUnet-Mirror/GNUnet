@@ -45,6 +45,7 @@ secret_ready_cb (void *cls,
     success = 1;
   // FIXME: check that our share is valid, which we can do as there's only
   // one peer.
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "secret ready, shutting down\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
