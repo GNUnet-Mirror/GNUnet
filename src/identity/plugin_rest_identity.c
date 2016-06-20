@@ -496,9 +496,14 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   json_t *egoname_json;
+  json_t *data_js;
+  json_error_t err;
   const char* egoname;
   char term_data[handle->data_size+1];
-
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
   if (strlen (GNUNET_REST_API_NS_IDENTITY) != strlen (handle->url))
   {
     handle->emsg = GNUNET_strdup (GNUNET_REST_ERROR_RESOURCE_INVALID);
@@ -513,8 +518,16 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
-                                                           &json_obj));
+  data_js = json_loads (term_data,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (NULL != data_js);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_js, docspec,
+                                    NULL, NULL));
+
+  json_decref (data_js);
+
   if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -586,11 +599,17 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   struct MHD_Response *resp;
   json_t *subsys_json;
   json_t *name_json;
+  json_t *data_js;
+  json_error_t err;
   const char *keystring;
   const char *subsys;
   const char *newname;
   char term_data[handle->data_size+1];
   int ego_exists = GNUNET_NO;
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
 
   if (strlen (GNUNET_REST_API_NS_IDENTITY) > strlen (handle->url))
   {
@@ -628,8 +647,15 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
 
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  GNUNET_assert (GNUNET_OK == GNUNET_JSONAPI_document_parse (term_data,
-                                                           &json_obj));
+  data_js = json_loads (term_data,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (NULL != data_js);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_js, docspec,
+                                    NULL, NULL));
+
+  json_decref (data_js);
 
   if (NULL == json_obj)
   {
@@ -657,7 +683,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
 
   //This is a rename
   name_json = GNUNET_JSONAPI_resource_read_attr (json_res,
-                                                      GNUNET_REST_JSONAPI_IDENTITY_NEWNAME);
+                                                 GNUNET_REST_JSONAPI_IDENTITY_NEWNAME);
   if ((NULL != name_json) && json_is_string (name_json))
   {
     newname = json_string_value (name_json);
