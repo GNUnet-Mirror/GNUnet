@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2012, 2013 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2012, 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -40,7 +40,7 @@ struct GNUNET_ARM_Handle
   /**
    * Our control connection to the ARM service.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * The configuration that we are using.
@@ -154,7 +154,7 @@ struct ARMControlMessage
   GNUNET_ARM_ServiceListCallback list_cont;
 
   /**
-   * Closure for @e result_cont' or @e list_cont'.
+   * Closure for @e result_cont or @e list_cont.
    */
   void *cont_cls;
 
@@ -166,7 +166,7 @@ struct ARMControlMessage
   /**
    * Task to run when request times out.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task_id;
+  struct GNUNET_SCHEDULER_Task *timeout_task_id;
 
   /**
    * Flags for passing std descriptors to ARM (when starting ARM).
@@ -198,13 +198,14 @@ reconnect_arm (struct GNUNET_ARM_Handle *h);
  * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down);
+trigger_next_request (struct GNUNET_ARM_Handle *h,
+                      int ignore_currently_down);
 
 
 /**
  * Task scheduled to try to re-connect to arm.
  *
- * @param cls the 'struct GNUNET_ARM_Handle'
+ * @param cls the `struct GNUNET_ARM_Handle`
  */
 static void
 reconnect_arm_task (void *cls)
@@ -212,7 +213,8 @@ reconnect_arm_task (void *cls)
   struct GNUNET_ARM_Handle *h = cls;
 
   h->reconnect_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to ARM service after delay\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to ARM service after delay\n");
   reconnect_arm (h);
 }
 
@@ -250,7 +252,8 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   */
   h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
   if (NULL != h->conn_status)
-    h->conn_status (h->conn_status_cls, GNUNET_NO);
+    h->conn_status (h->conn_status_cls,
+                    GNUNET_NO);
 }
 
 
@@ -262,10 +265,12 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
  * @return NULL if not found
  */
 static struct ARMControlMessage *
-find_cm_by_id (struct GNUNET_ARM_Handle *h, uint64_t id)
+find_cm_by_id (struct GNUNET_ARM_Handle *h,
+               uint64_t id)
 {
   struct ARMControlMessage *result;
-  for (result = h->control_sent_head; result; result = result->next)
+
+  for (result = h->control_sent_head; NULL != result; result = result->next)
     if (id == result->msg->request_id)
       return result;
   return NULL;
@@ -275,11 +280,12 @@ find_cm_by_id (struct GNUNET_ARM_Handle *h, uint64_t id)
 /**
  * Handler for ARM 'termination' reply (failure to receive).
  *
- * @param cls our "struct GNUNET_ARM_Handle"
+ * @param cls our `struct GNUNET_ARM_Handle`
  * @param msg expected to be NULL
  */
 static void
-arm_termination_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+arm_termination_handler (void *cls,
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ARM_Handle *h = cls;
   struct ARMControlMessage *cm;
@@ -287,7 +293,9 @@ arm_termination_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   if (NULL != msg)
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_receive (h->client, &arm_termination_handler, h,
+    GNUNET_CLIENT_receive (h->client,
+                           &arm_termination_handler,
+                           h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
@@ -412,7 +420,8 @@ client_notify_handler (void *cls,
   GNUNET_assert (NULL != cm->timeout_task_id);
   GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
   GNUNET_CONTAINER_DLL_remove (h->control_sent_head,
-                               h->control_sent_tail, cm);
+                               h->control_sent_tail,
+                               cm);
   if (GNUNET_YES == fail)
   {
     reconnect_arm_later (h);
@@ -442,11 +451,15 @@ client_notify_handler (void *cls,
       GNUNET_free (h->thm);
     }
     h->thm = cm;
-    GNUNET_CLIENT_receive (h->client, &arm_termination_handler, h,
+    GNUNET_CLIENT_receive (h->client,
+                           &arm_termination_handler,
+                           h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
-  GNUNET_CLIENT_receive (h->client, &client_notify_handler, h,
+  GNUNET_CLIENT_receive (h->client,
+                         &client_notify_handler,
+                         h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   switch (ntohs (msg->type))
   {
@@ -457,12 +470,16 @@ client_notify_handler (void *cls,
          (const char *) &cm->msg[1], ntohs (msg->type));
     result = (enum GNUNET_ARM_Result) ntohl (res->result);
     if (NULL != cm->result_cont)
-      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK,
-                       (const char *) &cm->msg[1], result);
+      cm->result_cont (cm->cont_cls,
+                       GNUNET_ARM_REQUEST_SENT_OK,
+                       (const char *) &cm->msg[1],
+                       result);
     break;
   case GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT:
     if (NULL != cm->list_cont)
-        cm->list_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, rcount,
+        cm->list_cont (cm->cont_cls,
+                       GNUNET_ARM_REQUEST_SENT_OK,
+                       rcount,
                        list);
     GNUNET_free_non_null (list);
     break;
@@ -481,7 +498,9 @@ client_notify_handler (void *cls,
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_arm_message (void *cls, size_t size, void *buf)
+transmit_arm_message (void *cls,
+                      size_t size,
+                      void *buf)
 {
   struct GNUNET_ARM_Handle *h = cls;
   struct ARMControlMessage *cm;
@@ -534,16 +553,20 @@ transmit_arm_message (void *cls, size_t size, void *buf)
   request_id = h->request_id_counter++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting control message with %u bytes of type %u to arm with id %llu\n",
-       (unsigned int) msize, (unsigned int) ntohs (cm->msg->header.type), request_id);
+       (unsigned int) msize,
+       (unsigned int) ntohs (cm->msg->header.type),
+       request_id);
   arm_msg->reserved = htonl (0);
   arm_msg->request_id = GNUNET_htonll (request_id);
   memcpy (buf, cm->msg, msize);
   /* Otherwise we won't be able to find it later! */
   arm_msg->request_id = request_id;
   GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                               h->control_pending_tail, cm);
+                               h->control_pending_tail,
+                               cm);
   GNUNET_CONTAINER_DLL_insert_tail (h->control_sent_head,
-                                    h->control_sent_tail, cm);
+                                    h->control_sent_tail,
+                                    cm);
   /* Don't free msg, keep it around (kind of wasteful, but then we don't
    * really have many messages to handle, and it'll be freed when it times
    * out anyway.
@@ -565,7 +588,8 @@ transmit_arm_message (void *cls, size_t size, void *buf)
  * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
+trigger_next_request (struct GNUNET_ARM_Handle *h,
+                      int ignore_currently_down)
 {
   uint16_t msize;
 
@@ -578,7 +602,8 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
   }
   if (NULL != h->cth)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Request pending, not processing queue\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Request pending, not processing queue\n");
     return;
   }
   if (NULL != h->control_pending_head)
@@ -591,9 +616,11 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
     return;                     /* no pending message */
   }
   h->cth =
-      GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
+      GNUNET_CLIENT_notify_transmit_ready (h->client,
+                                           msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_arm_message, h);
+                                           GNUNET_NO,
+                                           &transmit_arm_message, h);
 }
 
 
@@ -601,7 +628,7 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
  * Connect to arm.
  *
  * @param h arm handle
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 reconnect_arm (struct GNUNET_ARM_Handle *h)
@@ -614,12 +641,14 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "arm_api, GNUNET_CLIENT_connect returned NULL\n");
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls, GNUNET_SYSERR);
+      h->conn_status (h->conn_status_cls,
+                      GNUNET_SYSERR);
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
-  trigger_next_request (h, GNUNET_YES);
+  trigger_next_request (h,
+                        GNUNET_YES);
   return GNUNET_OK;
 }
 
@@ -667,7 +696,8 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
 {
   struct ARMControlMessage *cm;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnecting from ARM service\n");
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
@@ -678,15 +708,19 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
   {
     if (NULL != h->control_pending_head)
       GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                                   h->control_pending_tail, cm);
+                                   h->control_pending_tail,
+                                   cm);
     else
       GNUNET_CONTAINER_DLL_remove (h->control_sent_head,
-                                   h->control_sent_tail, cm);
+                                   h->control_sent_tail,
+                                   cm);
     GNUNET_assert (NULL != cm->timeout_task_id);
     GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
     if (NULL != cm->result_cont)
-      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED,
-                       NULL, 0);
+      cm->result_cont (cm->cont_cls,
+                       GNUNET_ARM_REQUEST_DISCONNECTED,
+                       NULL,
+                       0);
     /* FIXME: What about list callback? */
     GNUNET_free_non_null (cm->msg);
     GNUNET_free (cm);
@@ -726,17 +760,23 @@ control_message_timeout (void *cls)
   if ((NULL == arm_msg) || (0 == arm_msg->request_id))
   {
     GNUNET_CONTAINER_DLL_remove (cm->h->control_pending_head,
-                                 cm->h->control_pending_tail, cm);
+                                 cm->h->control_pending_tail,
+                                 cm);
   }
   else
   {
     GNUNET_CONTAINER_DLL_remove (cm->h->control_sent_head,
-                                 cm->h->control_sent_tail, cm);
+                                 cm->h->control_sent_tail,
+                                 cm);
   }
   if (NULL != cm->result_cont)
-    cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_TIMEOUT, NULL, 0);
+    cm->result_cont (cm->cont_cls,
+                     GNUNET_ARM_REQUEST_TIMEOUT,
+                     NULL, 0);
   else if (NULL != cm->list_cont)
-    cm->list_cont (cm->cont_cls, GNUNET_ARM_REQUEST_TIMEOUT, 0, NULL);
+    cm->list_cont (cm->cont_cls,
+                   GNUNET_ARM_REQUEST_TIMEOUT,
+                   0, NULL);
   GNUNET_free_non_null (cm->msg);
   GNUNET_free (cm);
 }
@@ -797,11 +837,17 @@ arm_service_report (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Looks like `%s' is not running, will start it.\n",
        "gnunet-service-arm");
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (
-      cm->h->cfg, "arm", "PREFIX", &loprefix))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cm->h->cfg,
+                                             "arm",
+                                             "PREFIX",
+                                             &loprefix))
     loprefix = GNUNET_strdup ("");
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (
-      cm->h->cfg, "arm", "OPTIONS", &lopostfix))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cm->h->cfg,
+                                             "arm",
+                                             "OPTIONS",
+                                             &lopostfix))
     lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cm->h->cfg,
@@ -847,27 +893,41 @@ arm_service_report (void *cls,
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
     if (NULL == config)
-      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
-                                        NULL, loprefix, quotedbinary,
+      proc = GNUNET_OS_start_process_s (GNUNET_NO,
+                                        cm->std_inheritance,
+                                        NULL,
+                                        loprefix,
+                                        quotedbinary,
                                         /* no daemonization! */
                                         lopostfix, NULL);
     else
-      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
-                                        NULL, loprefix, quotedbinary, "-c", config,
+      proc = GNUNET_OS_start_process_s (GNUNET_NO,
+                                        cm->std_inheritance,
+                                        NULL,
+                                        loprefix,
+                                        quotedbinary,
+                                        "-c", config,
                                         /* no daemonization! */
                                         lopostfix, NULL);
   }
   else
   {
     if (NULL == config)
-      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
-                                        NULL, loprefix, quotedbinary,
+      proc = GNUNET_OS_start_process_s (GNUNET_NO,
+                                        cm->std_inheritance,
+                                        NULL,
+                                        loprefix,
+                                        quotedbinary,
                                         "-d", lopostfix, NULL);
     else
-      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
-                                        NULL, loprefix, quotedbinary, "-c",
-                                        config,
-                                        "-d", lopostfix, NULL);
+      proc = GNUNET_OS_start_process_s (GNUNET_NO,
+                                        cm->std_inheritance,
+                                        NULL,
+                                        loprefix,
+                                        quotedbinary,
+                                        "-c", config,
+                                        "-d", lopostfix,
+                                        NULL);
   }
   GNUNET_free (binary);
   GNUNET_free (quotedbinary);
@@ -901,13 +961,16 @@ arm_service_report (void *cls,
  * @param service_name name of the service
  * @param timeout how long to wait before failing for good
  * @param cb callback to invoke when service is ready
- * @param cb_cls closure for callback
+ * @param cb_cls closure for @a cb
  * @param type type of the request
  */
 static void
-change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
-		struct GNUNET_TIME_Relative timeout, GNUNET_ARM_ResultCallback cb,
-		void *cb_cls, uint16_t type)
+change_service (struct GNUNET_ARM_Handle *h,
+                const char *service_name,
+		struct GNUNET_TIME_Relative timeout,
+                GNUNET_ARM_ResultCallback cb,
+		void *cb_cls,
+                uint16_t type)
 {
   struct ARMControlMessage *cm;
   size_t slen;
@@ -942,11 +1005,13 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (cm->timeout),
 					       GNUNET_NO));
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-                                    h->control_pending_tail, cm);
+                                    h->control_pending_tail,
+                                    cm);
   cm->timeout_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (cm->timeout),
-				    &control_message_timeout, cm);
+				    &control_message_timeout,
+                                    cm);
   trigger_next_request (h, GNUNET_NO);
 }
 
@@ -959,7 +1024,7 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
  * @param std_inheritance inheritance of std streams
  * @param timeout how long to wait before failing for good
  * @param cont callback to invoke after request is sent or not sent
- * @param cont_cls closure for callback
+ * @param cont_cls closure for @a cont
  */
 void
 GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
@@ -1037,11 +1102,16 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Service test is already in progress, we're busy\n");
       if (NULL != cont)
-        cont (cont_cls, GNUNET_ARM_REQUEST_BUSY, NULL, 0);
+        cont (cont_cls,
+              GNUNET_ARM_REQUEST_BUSY,
+              NULL, 0);
     }
     return;
   }
-  change_service (h, service_name, timeout, cont, cont_cls,
+  change_service (h,
+                  service_name,
+                  timeout,
+                  cont, cont_cls,
 		  GNUNET_MESSAGE_TYPE_ARM_START);
 }
 
@@ -1058,7 +1128,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
  * @param service_name name of the service
  * @param timeout how long to wait before failing for good
  * @param cont callback to invoke after request is sent or is not sent
- * @param cont_cls closure for callback
+ * @param cont_cls closure for @a cont
  */
 void
 GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
@@ -1070,8 +1140,13 @@ GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Stopping service `%s' within %s\n",
        service_name,
-       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO));
-  change_service (h, service_name, timeout, cont, cont_cls,
+       GNUNET_STRINGS_relative_time_to_string (timeout,
+                                               GNUNET_NO));
+  change_service (h,
+                  service_name,
+                  timeout,
+                  cont,
+                  cont_cls,
 		  GNUNET_MESSAGE_TYPE_ARM_STOP);
 }
 
@@ -1082,7 +1157,7 @@ GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
  * @param h handle to ARM
  * @param timeout how long to wait before failing for good
  * @param cont callback to invoke after request is sent or is not sent
- * @param cont_cls closure for callback
+ * @param cont_cls closure for @a cont
  */
 void
 GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
@@ -1095,7 +1170,8 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Requesting LIST from ARM service with timeout: %s\n",
-       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (timeout,
+                                               GNUNET_YES));
   cm = GNUNET_new (struct ARMControlMessage);
   cm->h = h;
   cm->list_cont = cont;
@@ -1107,12 +1183,15 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
   msg->reserved = htonl (0);
   cm->msg = msg;
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
-                                    h->control_pending_tail, cm);
+                                    h->control_pending_tail,
+                                    cm);
   cm->timeout_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (cm->timeout),
-				    &control_message_timeout, cm);
-  trigger_next_request (h, GNUNET_NO);
+				    &control_message_timeout,
+                                    cm);
+  trigger_next_request (h,
+                        GNUNET_NO);
 }
 
 
