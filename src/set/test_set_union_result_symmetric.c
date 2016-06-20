@@ -61,6 +61,11 @@ static unsigned int count_set1;
  */
 static unsigned int count_set2;
 
+/**
+ * Task that is run when the test times out.
+ */
+static struct GNUNET_SCHEDULER_Task *timeout_task;
+
 
 static void
 result_cb_set1 (void *cls,
@@ -78,6 +83,11 @@ result_cb_set1 (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "set 1: failure\n");
       ret = 1;
+      if (NULL != timeout_task)
+      {
+        GNUNET_SCHEDULER_cancel (timeout_task);
+        timeout_task = NULL;
+      }
       GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_SET_STATUS_DONE:
@@ -86,7 +96,14 @@ result_cb_set1 (void *cls,
       GNUNET_SET_destroy (set1);
       set1 = NULL;
       if (NULL == set2)
+      {
+        if (NULL != timeout_task)
+        {
+          GNUNET_SCHEDULER_cancel (timeout_task);
+          timeout_task = NULL;
+        }
         GNUNET_SCHEDULER_shutdown ();
+      }
       break;
     case GNUNET_SET_STATUS_ADD_REMOTE:
       break;
@@ -112,6 +129,11 @@ result_cb_set2 (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "set 2: failure\n");
       ret = 1;
+      if (NULL != timeout_task)
+      {
+        GNUNET_SCHEDULER_cancel (timeout_task);
+        timeout_task = NULL;
+      }
       GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_SET_STATUS_DONE:
@@ -120,7 +142,14 @@ result_cb_set2 (void *cls,
       GNUNET_SET_destroy (set2);
       set2 = NULL;
       if (NULL == set1)
+      {
+        if (NULL != timeout_task)
+        {
+          GNUNET_SCHEDULER_cancel (timeout_task);
+          timeout_task = NULL;
+        }
         GNUNET_SCHEDULER_shutdown ();
+      }
       break;
     case GNUNET_SET_STATUS_ADD_REMOTE:
       break;
@@ -297,6 +326,7 @@ test_iter ()
 static void
 timeout_fail (void *cls)
 {
+  timeout_task = NULL;
   GNUNET_SCHEDULER_shutdown ();
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "test timed out\n");
@@ -317,9 +347,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                &timeout_fail,
-                                NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+                                               &timeout_fail,
+                                               NULL);
 
   config = cfg;
   GNUNET_TESTING_peer_get_identity (peer,
