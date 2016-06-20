@@ -395,7 +395,7 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
   if (NULL != handlers)
   {
     for (i=0;NULL != handlers[i].cb; i++) ;
-    mq->handlers = GNUNET_new_array (i,
+    mq->handlers = GNUNET_new_array (i + 1,
 				     struct GNUNET_MQ_MessageHandler);
     memcpy (mq->handlers,
 	    handlers,
