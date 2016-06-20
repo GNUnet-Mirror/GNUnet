@@ -342,7 +342,7 @@ do_error (void *cls)
   GNUNET_asprintf (&json_error,
                    "{Error while processing request: %s}",
                    handle->emsg);
-  resp = GNUNET_REST_create_json_response (json_error);
+  resp = GNUNET_REST_create_response (json_error);
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
   GNUNET_free (json_error);
@@ -425,7 +425,7 @@ token_creat_cont (void *cls,
 
   GNUNET_JSONAPI_document_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
+  resp = GNUNET_REST_create_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   GNUNET_SCHEDULER_add_now (&do_cleanup_handle_delayed, handle);
@@ -467,7 +467,7 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
                                                 GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "URL invalid: %s\n", handle->url);
-    resp = GNUNET_REST_create_json_response (NULL);
+    resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
     return;
@@ -641,7 +641,7 @@ return_token_list (void *cls)
 
   GNUNET_JSONAPI_document_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
+  resp = GNUNET_REST_create_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -848,7 +848,7 @@ exchange_cont (void *cls,
   GNUNET_free (token_str);
 
   result = json_dumps (root, JSON_INDENT(1));
-  resp = GNUNET_REST_create_json_response (result);
+  resp = GNUNET_REST_create_response (result);
   GNUNET_free (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   cleanup_handle (handle);
@@ -954,7 +954,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
 
   //For now, independent of path return all options
-  resp = GNUNET_REST_create_json_response (NULL);
+  resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            allow_methods);
