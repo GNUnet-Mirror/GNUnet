@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -98,9 +98,10 @@ GNUNET_NAMECACHE_disconnect (struct GNUNET_NAMECACHE_Handle *h);
  *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_NAMECACHE_ContinuationWithStatus) (void *cls,
-                                                         int32_t success,
-                                                         const char *emsg);
+typedef void
+(*GNUNET_NAMECACHE_ContinuationWithStatus) (void *cls,
+                                            int32_t success,
+                                            const char *emsg);
 
 
 
@@ -112,7 +113,7 @@ typedef void (*GNUNET_NAMECACHE_ContinuationWithStatus) (void *cls,
  * @param block block to store
  * @param cont continuation to call when done
  * @param cont_cls closure for @a cont
- * @return handle to abort the request
+ * @return handle to abort the request, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
 GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
@@ -127,8 +128,9 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
  * @param cls closure
  * @param block block that was stored in the namecache
  */
-typedef void (*GNUNET_NAMECACHE_BlockProcessor) (void *cls,
-						 const struct GNUNET_GNSRECORD_Block *block);
+typedef void
+(*GNUNET_NAMECACHE_BlockProcessor) (void *cls,
+                                    const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -141,12 +143,13 @@ typedef void (*GNUNET_NAMECACHE_BlockProcessor) (void *cls,
  * @param proc function to call on the matching block, or with
  *        NULL if there is no matching block
  * @param proc_cls closure for @a proc
- * @return a handle that can be used to cancel
+ * @return a handle that can be used to cancel, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
 GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_NAMECACHE_BlockProcessor proc, void *proc_cls);
+			       GNUNET_NAMECACHE_BlockProcessor proc,
+                               void *proc_cls);
 
 
 /**
