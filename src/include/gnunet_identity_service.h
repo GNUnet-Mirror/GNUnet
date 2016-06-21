@@ -105,8 +105,7 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
 
 
 /**
- * Method called to inform about the egos of
- * this peer.
+ * Method called to inform about the egos of this peer.
  *
  * When used with #GNUNET_IDENTITY_connect, this function is
  * initially called for all egos and then again whenever a
@@ -161,8 +160,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Obtain the ego that is currently preferred/default
- * for a service.
+ * Obtain the ego that is currently preferred/default for a service.
  *
  * @param id identity service to query
  * @param service_name for which service is an identity wanted

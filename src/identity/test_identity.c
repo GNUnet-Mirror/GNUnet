@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -50,7 +50,7 @@ static struct GNUNET_IDENTITY_Operation *op;
 /**
  * Handle for task for timeout termination.
  */
-static struct GNUNET_SCHEDULER_Task * endbadly_task;
+static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
 
 /**
@@ -105,12 +105,12 @@ end_normally (void *cls)
 static void
 end ()
 {
-  if (endbadly_task != NULL)
+  if (NULL != endbadly_task)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&end_normally, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -142,18 +142,35 @@ notification_cb (void *cls,
     break;
   case 1: /* create */
     GNUNET_assert (NULL != ego);
-    GNUNET_assert (0 == strcmp (identifier, "test-id"));
+    GNUNET_assert (0 == strcmp (identifier,
+                                "test-id"));
     my_ego = ego;
     *ctx = &round;
     break;
   case 2: /* rename */
     GNUNET_assert (my_ego == ego);
-    GNUNET_assert (0 == strcmp (identifier, "test"));
+    GNUNET_assert (0 == strcmp (identifier,
+                                "test"));
     GNUNET_assert (*ctx == &round);
     break;
-  case 3: /* delete */
+  case 3: /* reconnect-down */
     GNUNET_assert (my_ego == ego);
     GNUNET_assert (NULL == identifier);
+    GNUNET_assert (*ctx == &round);
+    *ctx = NULL;
+    break;
+  case 4: /* reconnect-up */
+    GNUNET_assert (0 == strcmp (identifier,
+                                "test"));
+    my_ego = ego;
+    *ctx = &round;
+    break;
+  case 5: /* end of iteration after reconnect */
+    GNUNET_assert (NULL == ego);
+    GNUNET_assert (NULL == identifier);
+    break;
+  case 6: /* delete */
+    GNUNET_assert (my_ego == ego);
     GNUNET_assert (*ctx == &round);
     *ctx = NULL;
     break;
@@ -181,6 +198,21 @@ delete_cont (void *cls,
 
 
 /**
+ * Continue by deleting the "test" identity.
+ *
+ * @param cls NULL
+ */
+static void
+finally_delete (void *cls)
+{
+  op = GNUNET_IDENTITY_delete (h,
+			       "test",
+			       &delete_cont,
+			       NULL);
+}
+
+
+/**
  * Continuation called from expected-to-fail rename operation.
  *
  * @param cls NULL
@@ -191,11 +223,10 @@ fail_rename_cont (void *cls,
 		  const char *emsg)
 {
   GNUNET_assert (NULL != emsg);
-  op = GNUNET_IDENTITY_delete (h,
-			       "test",
-			       &delete_cont,
-			       NULL);
-   end (); /* yepee */
+  op = NULL;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &finally_delete,
+                                NULL);
 }
 
 
@@ -250,8 +281,13 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly, NULL);
-  h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
+						&endbadly,
+                                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&end_normally,
+                                 NULL);
+  h = GNUNET_IDENTITY_connect (cfg,
+                               &notification_cb,
+                               NULL);
   GNUNET_assert (NULL != h);
   op = GNUNET_IDENTITY_create (h,
 			       "test-id",
