@@ -359,32 +359,34 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x);
 #define GNUNET_MY_result_spec_auto_from_type(dst) GNUNET_MY_result_spec_fixed_size ((dst), sizeof (*(dst)))
 
 
- /**
-  * Variable-size result expected
-  *
-  * @param[out] dst where to store the result, allocated
-  * @param[out] sptr where to store the size of @a dst
-  * @return array entru for the result specification to use
-  */
+/**
+ * Variable-size result expected
+ *
+ * @param[out] dst where to store the result, allocated
+ * @param[out] sptr where to store the size of @a dst
+ * @return array entru for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_variable_size (void **dst,
-                                    size_t *ptr_size);
+                                     size_t *ptr_size);
+
 /**
-  * RSA public key expected
-  *
-  * @param name name of the field in the table
-  * @param[out] rsa where to store the result
-  * @return array entry for the result specification to use
-  */
+ * RSA public key expected
+ *
+ * @param name name of the field in the table
+ * @param[out] rsa where to store the result
+ * @return array entry for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa);
 
+
 /**
-  * RSA signature expected.
-  *
-  * @param[out] sig where to store the result;
-  * @return array entry for the result specification to use
-  */
+ * RSA signature expected.
+ *
+ * @param[out] sig where to store the result;
+ * @return array entry for the result specification to use
+ */
 struct GNUNET_MY_ResultSpec
 GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig);
 

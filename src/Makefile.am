@@ -70,7 +70,7 @@ SUBDIRS = \
   util \
   $(JSON_DIR) \
   $(REST_DIR) \
-	$(JSONAPI_DIR) \
+  $(JSONAPI_DIR) \
   hello \
   tun \
   block \
@@ -97,19 +97,19 @@ SUBDIRS = \
   hostlist \
   topology \
   regex \
-  cadet \
   dns \
   identity \
-  set \
-  scalarproduct \
-  revocation \
   gnsrecord \
   namecache \
   namestore \
+  peerstore \
+  cadet \
+  set \
+  scalarproduct \
+  revocation \
   vpn \
   gns \
   $(CONVERSATION_DIR) \
-  peerstore \
   fs \
   exit \
   pt \

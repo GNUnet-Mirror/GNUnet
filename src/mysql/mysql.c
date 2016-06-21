@@ -104,6 +104,11 @@ struct GNUNET_MYSQL_StatementHandle
   struct GNUNET_MYSQL_StatementHandle *prev;
 
   /**
+   * Mysql Context the statement handle belongs to.
+   */
+  struct GNUNET_MYSQL_Context *mc;
+
+  /**
    * Original query string.
    */
   char *query;
@@ -366,6 +371,7 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
   struct GNUNET_MYSQL_StatementHandle *sh;
 
   sh = GNUNET_new (struct GNUNET_MYSQL_StatementHandle);
+  sh->mc = mc;
   sh->query = GNUNET_strdup (query);
   GNUNET_CONTAINER_DLL_insert (mc->shead, mc->stail, sh);
   return sh;
@@ -404,9 +410,10 @@ GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc, const char *sql)
  * @return GNUNET_OK on success
  */
 static int
-prepare_statement (struct GNUNET_MYSQL_Context *mc,
-                   struct GNUNET_MYSQL_StatementHandle *sh)
+prepare_statement (struct GNUNET_MYSQL_StatementHandle *sh)
 {
+  struct GNUNET_MYSQL_Context *mc = sh->mc;
+
   if (GNUNET_YES == sh->valid)
     return GNUNET_OK;
   if ((NULL == mc->dbf) && (GNUNET_OK != iopen (mc)))
@@ -435,15 +442,13 @@ prepare_statement (struct GNUNET_MYSQL_Context *mc,
  * be used, and if, with caution!  On failures during the interaction with
  * the handle, you must call 'GNUNET_MYSQL_statements_invalidate'!
  *
- * @param mc mysql context
  * @param sh prepared statement to introspect
  * @return MySQL statement handle, NULL on error
  */
 MYSQL_STMT *
-GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_Context * mc,
-                                 struct GNUNET_MYSQL_StatementHandle * sh)
+GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_StatementHandle *sh)
 {
-  (void) prepare_statement (mc, sh);
+  (void) prepare_statement (sh);
   return sh->statement;
 }
 
@@ -452,15 +457,14 @@ GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_Context * mc,
  * Bind the parameters for the given MySQL statement
  * and run it.
  *
- * @param mc mysql context
  * @param sh statement to bind and run
  * @param ap arguments for the binding
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 static int
-init_params (struct GNUNET_MYSQL_Context *mc,
-             struct GNUNET_MYSQL_StatementHandle *sh, va_list ap)
+init_params (struct GNUNET_MYSQL_StatementHandle *sh, va_list ap)
 {
+  struct GNUNET_MYSQL_Context *mc = sh->mc;
   MYSQL_BIND qbind[MAX_PARAM];
   unsigned int pc;
   unsigned int off;
@@ -542,7 +546,6 @@ init_params (struct GNUNET_MYSQL_Context *mc,
 /**
  * Run a prepared SELECT statement.
  *
- * @param mc mysql context
  * @param s statement to run
  * @param result_size number of elements in results array
  * @param results pointer to already initialized MYSQL_BIND
@@ -556,8 +559,7 @@ init_params (struct GNUNET_MYSQL_Context *mc,
  *         the number of successfully affected (or queried) rows
  */
 int
-GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
-                                               struct
+GNUNET_MYSQL_statement_run_prepared_select_va (struct
                                                GNUNET_MYSQL_StatementHandle *s,
                                                unsigned int result_size,
                                                MYSQL_BIND * results,
@@ -569,12 +571,12 @@ GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
   unsigned int rsize;
   int total;
 
-  if (GNUNET_OK != prepare_statement (mc, s))
+  if (GNUNET_OK != prepare_statement (s))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != init_params (mc, s, ap))
+  if (GNUNET_OK != init_params (s, ap))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -591,7 +593,7 @@ GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
                 _("`%s' failed at %s:%d with error: %s\n"),
                 "mysql_stmt_bind_result", __FILE__, __LINE__,
                 mysql_stmt_error (s->statement));
-    GNUNET_MYSQL_statements_invalidate (mc);
+    GNUNET_MYSQL_statements_invalidate (s->mc);
     return GNUNET_SYSERR;
   }
 
@@ -607,7 +609,7 @@ GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
                        _("`%s' failed at %s:%d with error: %s\n"),
                        "mysql_stmt_fetch", __FILE__, __LINE__,
                        mysql_stmt_error (s->statement));
-      GNUNET_MYSQL_statements_invalidate (mc);
+      GNUNET_MYSQL_statements_invalidate (s->mc);
       return GNUNET_SYSERR;
     }
     total++;
@@ -623,7 +625,6 @@ GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
 /**
  * Run a prepared SELECT statement.
  *
- * @param mc mysql context
  * @param sh handle to SELECT statment
  * @param result_size number of elements in results array
  * @param results pointer to already initialized MYSQL_BIND
@@ -637,8 +638,7 @@ GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
  *         the number of successfully affected (or queried) rows
  */
 int
-GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
-                                            struct GNUNET_MYSQL_StatementHandle
+GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_StatementHandle
                                             *sh, unsigned int result_size,
                                             MYSQL_BIND * results,
                                             GNUNET_MYSQL_DataProcessor
@@ -649,7 +649,7 @@ GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
 
   va_start (ap, processor_cls);
   ret =
-      GNUNET_MYSQL_statement_run_prepared_select_va (mc, sh, result_size,
+      GNUNET_MYSQL_statement_run_prepared_select_va (sh, result_size,
                                                      results, processor,
                                                      processor_cls, ap);
   va_end (ap);
@@ -660,7 +660,6 @@ GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
 /**
  * Run a prepared statement that does NOT produce results.
  *
- * @param mc mysql context
  * @param sh handle to statment
  * @param insert_id NULL or address where to store the row ID of whatever
  *        was inserted (only for INSERT statements!)
@@ -671,17 +670,16 @@ GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
  *         the number of successfully affected rows
  */
 int
-GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_Context *mc,
-                                     struct GNUNET_MYSQL_StatementHandle *sh,
+GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_StatementHandle *sh,
                                      unsigned long long *insert_id, ...)
 {
   va_list ap;
   int affected;
 
-  if (GNUNET_OK != prepare_statement (mc, sh))
+  if (GNUNET_OK != prepare_statement (sh))
     return GNUNET_SYSERR;
   va_start (ap, insert_id);
-  if (GNUNET_OK != init_params (mc, sh, ap))
+  if (GNUNET_OK != init_params (sh, ap))
   {
     va_end (ap);
     return GNUNET_SYSERR;

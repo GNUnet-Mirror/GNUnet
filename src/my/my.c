@@ -55,7 +55,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
     MYSQL_BIND qbind[num];
     unsigned int off;
 
-    memset(qbind, 0, sizeof(qbind));
+    memset (qbind, 0, sizeof(qbind));
     off = 0;
     for (i=0;NULL != (p = &params[i])->conv;i++)
     {
@@ -71,7 +71,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
       }
       off += p->num_params;
     }
-    stmt = GNUNET_MYSQL_statement_get_stmt (mc, sh);
+    stmt = GNUNET_MYSQL_statement_get_stmt (sh);
     if (mysql_stmt_bind_param (stmt,
                                qbind))
     {
@@ -142,7 +142,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
   int ret;
   MYSQL_STMT *stmt;
 
-  stmt = GNUNET_MYSQL_statement_get_stmt (NULL, sh);
+  stmt = GNUNET_MYSQL_statement_get_stmt (sh);
   if (NULL == stmt)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
@@ -209,6 +209,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                        __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MY_cleanup_result (rs);
+      mysql_stmt_free_result (stmt);
       return GNUNET_SYSERR;
     }
     field_off = 0;
@@ -227,12 +228,14 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       "Post-conversion for MySQL result failed at offset %u\n",
                       i);
+          mysql_stmt_free_result (stmt);
           GNUNET_MY_cleanup_result (rs);
           return GNUNET_SYSERR;
         }
       field_off += rp->num_fields;
     }
   }
+  mysql_stmt_free_result (stmt);
   return GNUNET_OK;
 }
 
