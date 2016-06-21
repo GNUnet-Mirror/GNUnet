@@ -38,12 +38,6 @@
 /**
  * A namecache client
  */
-struct NamecacheClient;
-
-
-/**
- * A namecache client
- */
 struct NamecacheClient
 {
   /**
