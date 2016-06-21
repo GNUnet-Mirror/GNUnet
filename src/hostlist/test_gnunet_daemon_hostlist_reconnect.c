@@ -51,32 +51,6 @@ static struct PeerContext p1;
 static struct PeerContext p2;
 
 
-static void
-clean_up (void *cls)
-{
-  if (NULL != p1.ghh)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-    p1.ghh = NULL;
-  }
-  if (p1.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (p1.th);
-    p1.th = NULL;
-  }
-  if (NULL != p2.ghh)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-    p2.ghh = NULL;
-  }
-  if (p2.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (p2.th);
-    p2.th = NULL;
-  }
-  GNUNET_SCHEDULER_shutdown ();
-}
-
 /**
  * Timeout, give up.
  */
@@ -86,7 +60,7 @@ timeout_error (void *cls)
   timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout trying to connect peers, test failed.\n");
-  clean_up (NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -108,12 +82,7 @@ notify_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peers connected, shutting down.\n");
   ok = 0;
-  if (timeout_task != NULL)
-  {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = NULL;
-  }
-  GNUNET_SCHEDULER_add_now (&clean_up, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -185,6 +154,31 @@ stop_arm (struct PeerContext *p)
 static void
 shutdown_task (void *cls)
 {
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
+  if (NULL != p1.ghh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+    p1.ghh = NULL;
+  }
+  if (p1.th != NULL)
+  {
+    GNUNET_TRANSPORT_disconnect (p1.th);
+    p1.th = NULL;
+  }
+  if (NULL != p2.ghh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+    p2.ghh = NULL;
+  }
+  if (p2.th != NULL)
+  {
+    GNUNET_TRANSPORT_disconnect (p2.th);
+    p2.th = NULL;
+  }
   stop_arm (&p1);
   stop_arm (&p2);
 }
@@ -198,9 +192,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   ok++;
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &timeout_error, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 NULL);
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
   setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
 }
