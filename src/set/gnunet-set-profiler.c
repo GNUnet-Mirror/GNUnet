@@ -149,8 +149,9 @@ check_all_done (void)
   }
 
   statistics_file = fopen (statistics_filename, "w");
-  GNUNET_STATISTICS_get (statistics, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
-                         statistics_done, statistics_result, NULL);
+  GNUNET_STATISTICS_get (statistics, NULL, NULL,
+                         &statistics_done,
+                         &statistics_result, NULL);
 }
 
 

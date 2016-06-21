@@ -254,7 +254,7 @@ stat_run (void *cls,
 #else
                            stats[sm->value].subsystem, stats[sm->value].name,
 #endif
-                           GNUNET_TIME_UNIT_FOREVER_REL, &get_done, &print_stat,
+                           &get_done, &print_stat,
                            sm);
     return;
   }

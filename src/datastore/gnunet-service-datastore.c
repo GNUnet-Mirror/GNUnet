@@ -54,6 +54,11 @@
 static char *quota_stat_name;
 
 /**
+ * Task to timeout stat GET.
+ */
+static struct GNUNET_SCHEDULER_Task *stat_timeout_task;
+
+/**
  * After how many payload-changing operations
  * do we sync our statistics?
  */
@@ -1526,8 +1531,12 @@ static void
 process_stat_done (void *cls,
                    int success)
 {
-
   stat_get = NULL;
+  if (NULL != stat_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (stat_timeout_task);
+    stat_timeout_task = NULL;
+  }
   plugin = load_plugin ();
   if (NULL == plugin)
   {
@@ -1576,6 +1585,20 @@ process_stat_done (void *cls,
 
 
 /**
+ * Fetching stats took to long, run without.
+ *
+ * @param cls NULL
+ */
+static void
+stat_timeout (void *cls)
+{
+  stat_timeout_task = NULL;
+  GNUNET_STATISTICS_get_cancel (stat_get);
+  process_stat_done (NULL, GNUNET_NO);
+}
+
+
+/**
  * Task run during shutdown.
  */
 static void
@@ -1616,6 +1639,11 @@ cleaning_task (void *cls)
   {
     GNUNET_STATISTICS_get_cancel (stat_get);
     stat_get = NULL;
+  }
+  if (NULL != stat_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (stat_timeout_task);
+    stat_timeout_task = NULL;
   }
   GNUNET_free_non_null (plugin_name);
   plugin_name = NULL;
@@ -1813,12 +1841,15 @@ run (void *cls,
       GNUNET_STATISTICS_get (stats,
                              "datastore",
                              quota_stat_name,
-                             GNUNET_TIME_UNIT_SECONDS,
                              &process_stat_done,
                              &process_stat_in,
                              NULL);
   if (NULL == stat_get)
     process_stat_done (NULL, GNUNET_SYSERR);
+  else
+    stat_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                      &stat_timeout,
+                                                      NULL);
   GNUNET_SERVER_disconnect_notify (server,
                                    &cleanup_reservations,
                                    NULL);

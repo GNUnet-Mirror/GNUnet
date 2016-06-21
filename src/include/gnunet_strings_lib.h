@@ -222,7 +222,7 @@ GNUNET_STRINGS_buffer_fill (char *buffer,
  * in the buffer and assign the count (varargs) of type "const char**"
  * to the locations of the respective strings in the buffer.
  *
- * @param buffer the buffer to parse
+ * @param buffer the buffer to parse FIXME: not 'const', is it?
  * @param size size of the @a buffer
  * @param count number of strings to locate
  * @param ... pointers to where to store the strings

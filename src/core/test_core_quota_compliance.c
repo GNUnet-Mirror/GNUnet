@@ -242,29 +242,29 @@ measurement_stop (void *cls)
   else
     ok = 0; /* pass */
   GNUNET_STATISTICS_get (p1.stats, "core", "# discarded CORE_SEND requests",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
+                         NULL, &print_stat, &p1);
 
   GNUNET_STATISTICS_get (p1.stats, "core",
                          "# discarded CORE_SEND request bytes",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
+                         NULL, &print_stat, &p1);
   GNUNET_STATISTICS_get (p1.stats, "core",
                          "# discarded lower priority CORE_SEND requests",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, NULL);
+                         NULL, &print_stat, NULL);
   GNUNET_STATISTICS_get (p1.stats, "core",
                          "# discarded lower priority CORE_SEND request bytes",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
+                         NULL, &print_stat, &p1);
   GNUNET_STATISTICS_get (p2.stats, "core", "# discarded CORE_SEND requests",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
+                         NULL, &print_stat, &p2);
 
   GNUNET_STATISTICS_get (p2.stats, "core",
                          "# discarded CORE_SEND request bytes",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
+                         NULL, &print_stat, &p2);
   GNUNET_STATISTICS_get (p2.stats, "core",
                          "# discarded lower priority CORE_SEND requests",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
+                         NULL, &print_stat, &p2);
   GNUNET_STATISTICS_get (p2.stats, "core",
                          "# discarded lower priority CORE_SEND request bytes",
-                         GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p2);
+                         NULL, &print_stat, &p2);
 
   if (ok != 0)
     kind = GNUNET_ERROR_TYPE_ERROR;

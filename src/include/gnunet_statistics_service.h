@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2009-2013 GNUnet e.V.
+      Copyright (C) 2009-2013, 2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -138,14 +138,15 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Continuation called by #GNUNET_STATISTICS_get functions.
+ * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
  * @param cls closure
  * @param success #GNUNET_OK if statistics were
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
-typedef void (*GNUNET_STATISTICS_Callback) (void *cls,
-                                            int success);
+typedef void
+(*GNUNET_STATISTICS_Callback) (void *cls,
+                               int success);
 
 
 /**
@@ -160,8 +161,6 @@ struct GNUNET_STATISTICS_GetHandle;
  * @param handle identification of the statistics service
  * @param subsystem limit to the specified subsystem, NULL for all subsystems
  * @param name name of the statistic value, NULL for all values
- * @param timeout after how long should we give up (and call
- *        notify with buf NULL and size 0)?
  * @param cont continuation to call when done (can be NULL)
  *        This callback CANNOT destroy the statistics handle in the same call.
  * @param proc function to call on each value
@@ -172,9 +171,9 @@ struct GNUNET_STATISTICS_GetHandle *
 GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
                        const char *subsystem,
                        const char *name,
-                       struct GNUNET_TIME_Relative timeout,
                        GNUNET_STATISTICS_Callback cont,
-                       GNUNET_STATISTICS_Iterator proc, void *cls);
+                       GNUNET_STATISTICS_Iterator proc,
+                       void *cls);
 
 
 /**

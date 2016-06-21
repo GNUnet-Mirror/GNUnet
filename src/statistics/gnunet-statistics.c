@@ -29,7 +29,6 @@
 #include "gnunet_statistics_service.h"
 #include "statistics.h"
 
-#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Final status code.
@@ -69,7 +68,7 @@ static char *remote_host;
 /**
  * Remote host's port
  */
-static unsigned long long  remote_port;
+static unsigned long long remote_port;
 
 /**
  * Value to set
@@ -80,6 +79,11 @@ static unsigned long long set_val;
  * Set operation
  */
 static int set_value;
+
+/**
+ * Handle for pending GET operation.
+ */
+static struct GNUNET_STATISTICS_GetHandle *gh;
 
 
 /**
@@ -134,10 +138,11 @@ printer (void *cls,
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
-cleanup (void *cls, int success)
+cleanup (void *cls,
+         int success)
 {
-
-  if (success != GNUNET_OK)
+  gh = NULL;
+  if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
       FPRINTF (stderr,
@@ -166,12 +171,21 @@ shutdown_task (void *cls)
 
   if (NULL == h)
     return;
+  if (NULL != gh)
+  {
+    GNUNET_STATISTICS_get_cancel (gh);
+    gh = NULL;
+  }
   if ( (GNUNET_YES == watch) &&
        (NULL != subsystem) &&
        (NULL != name) )
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h));
-  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+		   GNUNET_STATISTICS_watch_cancel (h,
+                                                   subsystem,
+                                                   name,
+                                                   &printer, h));
+  GNUNET_STATISTICS_destroy (h,
+                             GNUNET_NO);
   h = NULL;
 }
 
@@ -207,12 +221,17 @@ main_task (void *cls)
       ret = 1;
       return;
     }
-    GNUNET_STATISTICS_set (h, name, (uint64_t) set_val, persistent);
-    GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+    GNUNET_STATISTICS_set (h,
+                           name,
+                           (uint64_t) set_val,
+                           persistent);
+    GNUNET_STATISTICS_destroy (h,
+                               GNUNET_YES);
     h = NULL;
     return;
   }
-  if (NULL == (h = GNUNET_STATISTICS_create ("gnunet-statistics", cfg)))
+  if (NULL == (h = GNUNET_STATISTICS_create ("gnunet-statistics",
+                                             cfg)))
   {
     ret = 1;
     return;
@@ -220,10 +239,12 @@ main_task (void *cls)
   if (GNUNET_NO == watch)
   {
     if (NULL ==
-      GNUNET_STATISTICS_get (h, subsystem, name, GET_TIMEOUT,
-			     &cleanup,
-                             &printer, h))
-    cleanup (h, GNUNET_SYSERR);
+        (gh = GNUNET_STATISTICS_get (h,
+                                     subsystem,
+                                     name,
+                                     &cleanup,
+                                     &printer, h)) )
+      cleanup (h, GNUNET_SYSERR);
   }
   else
   {
@@ -235,15 +256,21 @@ main_task (void *cls)
       ret = 1;
       return;
     }
-    if (GNUNET_OK != GNUNET_STATISTICS_watch (h, subsystem, name,
-					      &printer, h))
+    if (GNUNET_OK !=
+        GNUNET_STATISTICS_watch (h,
+                                 subsystem,
+                                 name,
+                                 &printer, h))
     {
-      fprintf (stderr, _("Failed to initialize watch routine\n"));
-      GNUNET_SCHEDULER_add_now (&shutdown_task, h);
+      fprintf (stderr,
+               _("Failed to initialize watch routine\n"));
+      GNUNET_SCHEDULER_add_now (&shutdown_task,
+                                h);
       return;
     }
   }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, h);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 h);
 }
 
 
@@ -291,11 +318,17 @@ resolver_test_task (void *cls,
 
   /* Manipulate configuration */
   GNUNET_CONFIGURATION_set_value_string (cfg,
-					 "statistics", "UNIXPATH", "");
+					 "statistics",
+                                         "UNIXPATH",
+                                         "");
   GNUNET_CONFIGURATION_set_value_string (cfg,
-					 "statistics", "HOSTNAME", remote_host);
+					 "statistics",
+                                         "HOSTNAME",
+                                         remote_host);
   GNUNET_CONFIGURATION_set_value_number (cfg,
-					 "statistics", "PORT", remote_port);
+					 "statistics",
+                                         "PORT",
+                                         remote_port);
   GNUNET_SCHEDULER_add_now (&main_task, cfg);
 }
 
@@ -309,7 +342,9 @@ resolver_test_task (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   set_value = GNUNET_NO;
@@ -324,7 +359,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     set_value = GNUNET_YES;
   }
   if (NULL != remote_host)
-    GNUNET_CLIENT_service_test ("resolver", cfg, GNUNET_TIME_UNIT_SECONDS,
+    GNUNET_CLIENT_service_test ("resolver",
+                                cfg,
+                                GNUNET_TIME_UNIT_SECONDS,
 				&resolver_test_task, (void *) cfg);
   else
     GNUNET_SCHEDULER_add_now (&main_task, (void *) cfg);
@@ -367,7 +404,8 @@ main (int argc, char *const *argv)
   };
   remote_port = 0;
   remote_host = NULL;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                                 &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==

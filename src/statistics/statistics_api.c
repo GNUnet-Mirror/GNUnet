@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -88,7 +88,7 @@ struct GNUNET_STATISTICS_WatchEntry
   GNUNET_STATISTICS_Iterator proc;
 
   /**
-   * Closure for proc
+   * Closure for @e proc
    */
   void *proc_cls;
 
@@ -137,7 +137,7 @@ struct GNUNET_STATISTICS_GetHandle
   GNUNET_STATISTICS_Iterator proc;
 
   /**
-   * Closure for proc and cont.
+   * Closure for @e proc and @e cont.
    */
   void *cls;
 
@@ -145,11 +145,6 @@ struct GNUNET_STATISTICS_GetHandle
    * Timeout for this action.
    */
   struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Task run on timeout.
-   */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Associated value.
@@ -167,7 +162,7 @@ struct GNUNET_STATISTICS_GetHandle
   int aborted;
 
   /**
-   * Is this a GET, SET, UPDATE or WATCH?
+   * Is this a #ACTION_GET, #ACTION_SET, #ACTION_UPDATE or #ACTION_WATCH?
    */
   enum ActionType type;
 
@@ -195,14 +190,9 @@ struct GNUNET_STATISTICS_Handle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Socket (if available).
+   * Message queue to the service.
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Currently pending transmission request.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Head of the linked list of pending actions (first action
@@ -230,7 +220,7 @@ struct GNUNET_STATISTICS_Handle
   /**
    * Task doing exponential back-off trying to reconnect.
    */
-  struct GNUNET_SCHEDULER_Task * backoff_task;
+  struct GNUNET_SCHEDULER_Task *backoff_task;
 
   /**
    * Time for next connect retry.
@@ -248,7 +238,7 @@ struct GNUNET_STATISTICS_Handle
   uint64_t peak_rss;
 
   /**
-   * Size of the 'watches' array.
+   * Size of the @e watches array.
    */
   unsigned int watches_size;
 
@@ -321,6 +311,15 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h);
 
 
 /**
+ * Reconnect at a later time, respecting back-off.
+ *
+ * @param h statistics handle
+ */
+static void
+reconnect_later (struct GNUNET_STATISTICS_Handle *h);
+
+
+/**
  * Transmit request to service that we want to watch
  * the development of a particular value.
  *
@@ -353,7 +352,8 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
   ai->type = ACTION_WATCH;
   ai->proc = watch->proc;
   ai->cls = watch->proc_cls;
-  GNUNET_CONTAINER_DLL_insert_tail (h->action_head, h->action_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (h->action_head,
+                                    h->action_tail,
 				    ai);
   schedule_action (h);
 }
@@ -367,11 +367,6 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
 static void
 free_action_item (struct GNUNET_STATISTICS_GetHandle *gh)
 {
-  if (NULL != gh->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (gh->timeout_task);
-    gh->timeout_task = NULL;
-  }
   GNUNET_free_non_null (gh->subsystem);
   GNUNET_free_non_null (gh->name);
   GNUNET_free (gh);
@@ -388,11 +383,6 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
 {
   struct GNUNET_STATISTICS_GetHandle *c;
 
-  if (NULL != h->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-    h->th = NULL;
-  }
   h->receiving = GNUNET_NO;
   if (NULL != (c = h->current))
   {
@@ -400,16 +390,232 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
     if ( (NULL != c->cont) &&
 	 (GNUNET_YES != c->aborted) )
     {
-      c->cont (c->cls, GNUNET_SYSERR);
+      c->cont (c->cls,
+               GNUNET_SYSERR);
       c->cont = NULL;
     }
     free_action_item (c);
   }
-  if (NULL != h->client)
+  if (NULL != h->mq)
   {
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
   }
+}
+
+
+/**
+ * Process a #GNUNET_MESSAGE_TYPE_STATISTICS_VALUE message.
+ *
+ * @param cls statistics handle
+ * @param smsg message received from the service, never NULL
+ * @return #GNUNET_OK if the message was well-formed
+ */
+static int
+check_statistics_value (void *cls,
+                        const struct GNUNET_STATISTICS_ReplyMessage *smsg)
+{
+  const char *service;
+  const char *name;
+  uint16_t size;
+
+  size = ntohs (smsg->header.size);
+  size -= sizeof (struct GNUNET_STATISTICS_ReplyMessage);
+  if (size !=
+      GNUNET_STRINGS_buffer_tokenize ((const char *) &smsg[1],
+                                      size,
+                                      2,
+                                      &service,
+                                      &name))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Process a #GNUNET_MESSAGE_TYPE_STATISTICS_VALUE message.
+ *
+ * @param cls statistics handle
+ * @param msg message received from the service, never NULL
+ * @return #GNUNET_OK if the message was well-formed
+ */
+static void
+handle_statistics_value (void *cls,
+                         const struct GNUNET_STATISTICS_ReplyMessage *smsg)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+  const char *service;
+  const char *name;
+  uint16_t size;
+
+  if (h->current->aborted)
+    return;           /* iteration aborted, don't bother */
+
+  size = ntohs (smsg->header.size);
+  size -= sizeof (struct GNUNET_STATISTICS_ReplyMessage);
+  GNUNET_assert (size ==
+                 GNUNET_STRINGS_buffer_tokenize ((const char *) &smsg[1],
+                                                 size,
+                                                 2,
+                                                 &service,
+                                                 &name));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received valid statistic on `%s:%s': %llu\n",
+       service, name,
+       GNUNET_ntohll (smsg->value));
+  if (GNUNET_OK !=
+      h->current->proc (h->current->cls,
+                        service,
+                        name,
+                        GNUNET_ntohll (smsg->value),
+                        0 !=
+                        (ntohl (smsg->uid) & GNUNET_STATISTICS_PERSIST_BIT)))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Processing of remaining statistics aborted by client.\n");
+    h->current->aborted = GNUNET_YES;
+  }
+}
+
+
+/**
+ * We have received a watch value from the service.  Process it.
+ *
+ * @param cls statistics handle
+ * @param msg the watch value message
+ */
+static void
+handle_statistics_watch_value (void *cls,
+                               const struct GNUNET_STATISTICS_WatchValueMessage *wvm)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+  struct GNUNET_STATISTICS_WatchEntry *w;
+  uint32_t wid;
+
+  GNUNET_break (0 == ntohl (wvm->reserved));
+  wid = ntohl (wvm->wid);
+  if (wid >= h->watches_size)
+  {
+    do_disconnect (h);
+    reconnect_later (h);
+    return;
+  }
+  w = h->watches[wid];
+  if (NULL == w)
+    return;
+  (void) w->proc (w->proc_cls,
+                  w->subsystem,
+                  w->name,
+                  GNUNET_ntohll (wvm->value),
+                  0 != (ntohl (wvm->flags) & GNUNET_STATISTICS_PERSIST_BIT));
+}
+
+
+/**
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_STATISTICS_Handle *`
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  if (GNUNET_NO != h->do_destroy)
+  {
+    h->do_destroy = GNUNET_NO;
+    GNUNET_STATISTICS_destroy (h,
+                               GNUNET_NO);
+    return;
+  }
+  do_disconnect (h);
+  reconnect_later (h);
+}
+
+
+/**
+ * Task used to destroy the statistics handle.
+ *
+ * @param cls the `struct GNUNET_STATISTICS_Handle`
+ */
+static void
+destroy_task (void *cls)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+}
+
+
+/**
+ * Handle a #GNUNET_MESSAGE_TYPE_TEST (sic) message. We receive this
+ * message at the end of the shutdown when the service confirms that
+ * all data has been written to disk.
+ *
+ * @param cls our `struct GNUNET_STATISTICS_Handle *`
+ * @param msg the message
+ */
+static void
+handle_test (void *cls,
+             const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  if (GNUNET_SYSERR != h->do_destroy)
+  {
+    /* not in shutdown, why do we get 'TEST'? */
+    GNUNET_break (0);
+    do_disconnect (h);
+    reconnect_later (h);
+    return;
+  }
+  h->do_destroy = GNUNET_NO;
+  GNUNET_SCHEDULER_add_now (&destroy_task,
+                            h);
+}
+
+
+/**
+ * Handle a #GNUNET_MESSAGE_TYPE_STATISTICS_END message. We receive
+ * this message in response to a query to indicate that there are no
+ * further matching results.
+ *
+ * @param cls our `struct GNUNET_STATISTICS_Handle *`
+ * @param msg the message
+ */
+static void
+handle_statistics_end (void *cls,
+                       const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+  struct GNUNET_STATISTICS_GetHandle *c;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received end of statistics marker\n");
+  if (NULL == (c = h->current))
+  {
+    GNUNET_break (0);
+    do_disconnect (h);
+    reconnect_later (h);
+    return;
+  }
+  h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+  h->current = NULL;
+  schedule_action (h);
+  if (NULL != c->cont)
+  {
+    c->cont (c->cls,
+             GNUNET_OK);
+    c->cont = NULL;
+  }
+  free_action_item (c);
 }
 
 
@@ -422,39 +628,60 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
 static int
 try_connect (struct GNUNET_STATISTICS_Handle *h)
 {
+  GNUNET_MQ_hd_fixed_size (test,
+                           GNUNET_MESSAGE_TYPE_TEST,
+                           struct GNUNET_MessageHeader);
+  GNUNET_MQ_hd_fixed_size (statistics_end,
+                           GNUNET_MESSAGE_TYPE_STATISTICS_END,
+                           struct GNUNET_MessageHeader);
+  GNUNET_MQ_hd_var_size (statistics_value,
+                         GNUNET_MESSAGE_TYPE_STATISTICS_VALUE,
+                         struct GNUNET_STATISTICS_ReplyMessage);
+  GNUNET_MQ_hd_fixed_size (statistics_watch_value,
+                           GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE,
+                           struct GNUNET_STATISTICS_WatchValueMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (h),
+    make_statistics_end_handler (h),
+    make_statistics_value_handler (h),
+    make_statistics_watch_value_handler (h),
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_STATISTICS_GetHandle *gh;
   struct GNUNET_STATISTICS_GetHandle *gn;
-  unsigned int i;
 
   if (NULL != h->backoff_task)
     return GNUNET_NO;
-  if (NULL != h->client)
+  if (NULL != h->mq)
     return GNUNET_YES;
-  h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);
-  if (NULL != h->client)
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "statistics",
+                                 handlers,
+                                 &mq_error_handler,
+                                 h);
+  if (NULL == h->mq)
   {
-    gn = h->action_head;
-    while (NULL != (gh = gn))
-    {
-      gn = gh->next;
-      if (gh->type == ACTION_WATCH)
-      {
-	GNUNET_CONTAINER_DLL_remove (h->action_head,
-				     h->action_tail,
-				     gh);
-	free_action_item (gh);
-      }
-    }
-    for (i = 0; i < h->watches_size; i++)
-    {
-      if (NULL != h->watches[i])
-        schedule_watch_request (h, h->watches[i]);
-    }
-    return GNUNET_YES;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to connect to statistics service!\n");
+    return GNUNET_NO;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Failed to connect to statistics service!\n");
-  return GNUNET_NO;
+  gn = h->action_head;
+  while (NULL != (gh = gn))
+  {
+    gn = gh->next;
+    if (gh->type == ACTION_WATCH)
+    {
+      GNUNET_CONTAINER_DLL_remove (h->action_head,
+                                   h->action_tail,
+                                   gh);
+      free_action_item (gh);
+    }
+  }
+  for (unsigned int i = 0; i < h->watches_size; i++)
+    if (NULL != h->watches[i])
+      schedule_watch_request (h,
+                              h->watches[i]);
+  return GNUNET_YES;
 }
 
 
@@ -474,7 +701,7 @@ reconnect_task (void *cls)
 
 
 /**
- * Task used by 'reconnect_later' to shutdown the handle
+ * Task used by #reconnect_later() to shutdown the handle
  *
  * @param cls the statistics handle
  */
@@ -483,7 +710,8 @@ do_destroy (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
-  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+  GNUNET_STATISTICS_destroy (h,
+                             GNUNET_NO);
 }
 
 
@@ -514,227 +742,17 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Could not save some persistent statistics\n"));
     h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_now (&do_destroy, h);
+    GNUNET_SCHEDULER_add_now (&do_destroy,
+                              h);
     return;
   }
-  h->backoff_task =
-    GNUNET_SCHEDULER_add_delayed (h->backoff, &reconnect_task, h);
+  h->backoff_task
+    = GNUNET_SCHEDULER_add_delayed (h->backoff,
+                                    &reconnect_task,
+                                    h);
   h->backoff = GNUNET_TIME_STD_BACKOFF (h->backoff);
 }
 
-
-/**
- * Process a #GNUNET_MESSAGE_TYPE_STATISTICS_VALUE message.
- *
- * @param h statistics handle
- * @param msg message received from the service, never NULL
- * @return #GNUNET_OK if the message was well-formed
- */
-static int
-process_statistics_value_message (struct GNUNET_STATISTICS_Handle *h,
-				  const struct GNUNET_MessageHeader *msg)
-{
-  char *service;
-  char *name;
-  const struct GNUNET_STATISTICS_ReplyMessage *smsg;
-  uint16_t size;
-
-  if (h->current->aborted)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Iteration was aborted, ignoring VALUE\n");
-    return GNUNET_OK;           /* don't bother */
-  }
-  size = ntohs (msg->size);
-  if (size < sizeof (struct GNUNET_STATISTICS_ReplyMessage))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  smsg = (const struct GNUNET_STATISTICS_ReplyMessage *) msg;
-  size -= sizeof (struct GNUNET_STATISTICS_ReplyMessage);
-  if (size !=
-      GNUNET_STRINGS_buffer_tokenize ((const char *) &smsg[1], size, 2,
-                                      &service, &name))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received valid statistic on `%s:%s': %llu\n",
-       service, name,
-       GNUNET_ntohll (smsg->value));
-  if (GNUNET_OK !=
-      h->current->proc (h->current->cls, service, name,
-                        GNUNET_ntohll (smsg->value),
-                        0 !=
-                        (ntohl (smsg->uid) & GNUNET_STATISTICS_PERSIST_BIT)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Processing of remaining statistics aborted by client.\n");
-    h->current->aborted = GNUNET_YES;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "VALUE processed successfully\n");
-  return GNUNET_OK;
-}
-
-
-/**
- * We have received a watch value from the service.  Process it.
- *
- * @param h statistics handle
- * @param msg the watch value message
- * @return #GNUNET_OK if the message was well-formed, #GNUNET_SYSERR if not,
- *         #GNUNET_NO if this watch has been cancelled
- */
-static int
-process_watch_value (struct GNUNET_STATISTICS_Handle *h,
-                     const struct GNUNET_MessageHeader *msg)
-{
-  const struct GNUNET_STATISTICS_WatchValueMessage *wvm;
-  struct GNUNET_STATISTICS_WatchEntry *w;
-  uint32_t wid;
-
-  if (sizeof (struct GNUNET_STATISTICS_WatchValueMessage) != ntohs (msg->size))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  wvm = (const struct GNUNET_STATISTICS_WatchValueMessage *) msg;
-  GNUNET_break (0 == ntohl (wvm->reserved));
-  wid = ntohl (wvm->wid);
-  if (wid >= h->watches_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  w = h->watches[wid];
-  if (NULL == w)
-    return GNUNET_NO;
-  (void) w->proc (w->proc_cls, w->subsystem, w->name,
-                  GNUNET_ntohll (wvm->value),
-                  0 != (ntohl (wvm->flags) & GNUNET_STATISTICS_PERSIST_BIT));
-  return GNUNET_OK;
-}
-
-
-/**
- * Task used to destroy the statistics handle.
- *
- * @param cls the `struct GNUNET_STATISTICS_Handle`
- */
-static void
-destroy_task (void *cls)
-{
-  struct GNUNET_STATISTICS_Handle *h = cls;
-
-  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-}
-
-
-/**
- * Function called with messages from stats service.
- *
- * @param cls closure
- * @param msg message received, NULL on timeout or fatal error
- */
-static void
-receive_stats (void *cls,
-               const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_STATISTICS_Handle *h = cls;
-  struct GNUNET_STATISTICS_GetHandle *c;
-  int ret;
-
-  if (NULL == msg)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-         "Error receiving statistics from service, is the service running?\n");
-    do_disconnect (h);
-    reconnect_later (h);
-    return;
-  }
-  switch (ntohs (msg->type))
-  {
-  case GNUNET_MESSAGE_TYPE_TEST:
-    if (GNUNET_SYSERR != h->do_destroy)
-    {
-      /* not in shutdown, why do we get 'TEST'? */
-      GNUNET_break (0);
-      do_disconnect (h);
-      reconnect_later (h);
-      return;
-    }
-    h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_now (&destroy_task, h);
-    break;
-  case GNUNET_MESSAGE_TYPE_STATISTICS_END:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received end of statistics marker\n");
-    if (NULL == (c = h->current))
-    {
-      GNUNET_break (0);
-      do_disconnect (h);
-      reconnect_later (h);
-      return;
-    }
-    h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-    if (h->watches_size > 0)
-    {
-      GNUNET_CLIENT_receive (h->client, &receive_stats, h,
-                             GNUNET_TIME_UNIT_FOREVER_REL);
-    }
-    else
-    {
-      h->receiving = GNUNET_NO;
-    }
-    h->current = NULL;
-    schedule_action (h);
-    if (NULL != c->cont)
-    {
-      c->cont (c->cls, GNUNET_OK);
-      c->cont = NULL;
-    }
-    free_action_item (c);
-    return;
-  case GNUNET_MESSAGE_TYPE_STATISTICS_VALUE:
-    if (GNUNET_OK != process_statistics_value_message (h, msg))
-    {
-      do_disconnect (h);
-      reconnect_later (h);
-      return;
-    }
-    /* finally, look for more! */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Processing VALUE done, now reading more\n");
-    GNUNET_CLIENT_receive (h->client, &receive_stats, h,
-			   GNUNET_TIME_absolute_get_remaining (h->
-							       current->timeout));
-    h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-    return;
-  case GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE:
-    if (GNUNET_OK !=
-	(ret = process_watch_value (h, msg)))
-    {
-      do_disconnect (h);
-      if (GNUNET_NO == ret)
-	h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-      reconnect_later (h);
-      return;
-    }
-    h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-    GNUNET_assert (h->watches_size > 0);
-    GNUNET_CLIENT_receive (h->client, &receive_stats, h,
-			   GNUNET_TIME_UNIT_FOREVER_REL);
-    return;
-  default:
-    GNUNET_break (0);
-    do_disconnect (h);
-    reconnect_later (h);
-    return;
-  }
-}
 
 
 /**
@@ -742,51 +760,30 @@ receive_stats (void *cls,
  * the response).
  *
  * @param handle statistics handle
- * @param size how many bytes can we write to @a buf
- * @param buf where to write requests to the service
- * @return number of bytes written to @a buf
  */
-static size_t
-transmit_get (struct GNUNET_STATISTICS_Handle *handle,
-              size_t size,
-              void *buf)
+static void
+transmit_get (struct GNUNET_STATISTICS_Handle *handle)
 {
   struct GNUNET_STATISTICS_GetHandle *c;
   struct GNUNET_MessageHeader *hdr;
+  struct GNUNET_MQ_Envelope *env;
   size_t slen1;
   size_t slen2;
-  uint16_t msize;
 
   GNUNET_assert (NULL != (c = handle->current));
-  if (NULL == buf)
-  {
-    /* timeout / error */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission of request for statistics failed!\n");
-    do_disconnect (handle);
-    reconnect_later (handle);
-    return 0;
-  }
   slen1 = strlen (c->subsystem) + 1;
   slen2 = strlen (c->name) + 1;
-  msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
-  GNUNET_assert (msize <= size);
-  hdr = (struct GNUNET_MessageHeader *) buf;
-  hdr->size = htons (msize);
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_GET);
+  env = GNUNET_MQ_msg_extra (hdr,
+                             slen1 + slen2,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_GET);
   GNUNET_assert (slen1 + slen2 ==
-                 GNUNET_STRINGS_buffer_fill ((char *) &hdr[1], slen1 + slen2, 2,
+                 GNUNET_STRINGS_buffer_fill ((char *) &hdr[1],
+                                             slen1 + slen2,
+                                             2,
                                              c->subsystem,
                                              c->name));
-  if (GNUNET_YES != handle->receiving)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission of GET done, now reading response\n");
-    handle->receiving = GNUNET_YES;
-    GNUNET_CLIENT_receive (handle->client, &receive_stats, handle,
-                           GNUNET_TIME_absolute_get_remaining (c->timeout));
-  }
-  return msize;
+  GNUNET_MQ_send (handle->mq,
+                  env);
 }
 
 
@@ -795,53 +792,34 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle,
  * the response).
  *
  * @param handle statistics handle
- * @param size how many bytes can we write to @a buf
- * @param buf where to write requests to the service
- * @return number of bytes written to @a buf
  */
-static size_t
-transmit_watch (struct GNUNET_STATISTICS_Handle *handle,
-                size_t size,
-                void *buf)
+static void
+transmit_watch (struct GNUNET_STATISTICS_Handle *handle)
 {
   struct GNUNET_MessageHeader *hdr;
+  struct GNUNET_MQ_Envelope *env;
   size_t slen1;
   size_t slen2;
-  uint16_t msize;
 
-  if (NULL == buf)
-  {
-    /* timeout / error */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission of request for statistics failed!\n");
-    do_disconnect (handle);
-    reconnect_later (handle);
-    return 0;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting watch request for `%s'\n",
        handle->current->name);
   slen1 = strlen (handle->current->subsystem) + 1;
   slen2 = strlen (handle->current->name) + 1;
-  msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
-  GNUNET_assert (msize <= size);
-  hdr = (struct GNUNET_MessageHeader *) buf;
-  hdr->size = htons (msize);
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_WATCH);
+  env = GNUNET_MQ_msg_extra (hdr,
+                             slen1 + slen2,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_WATCH);
   GNUNET_assert (slen1 + slen2 ==
-                 GNUNET_STRINGS_buffer_fill ((char *) &hdr[1], slen1 + slen2, 2,
+                 GNUNET_STRINGS_buffer_fill ((char *) &hdr[1],
+                                             slen1 + slen2,
+                                             2,
                                              handle->current->subsystem,
                                              handle->current->name));
-  if (GNUNET_YES != handle->receiving)
-  {
-    handle->receiving = GNUNET_YES;
-    GNUNET_CLIENT_receive (handle->client, &receive_stats, handle,
-                           GNUNET_TIME_UNIT_FOREVER_REL);
-  }
+  GNUNET_MQ_send (handle->mq,
+                  env);
   GNUNET_assert (NULL == handle->current->cont);
   free_action_item (handle->current);
   handle->current = NULL;
-  return msize;
 }
 
 
@@ -849,39 +827,20 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle,
  * Transmit a SET/UPDATE request.
  *
  * @param handle statistics handle
- * @param size how many bytes can we write to @a buf
- * @param buf where to write requests to the service
- * @return number of bytes written to @a buf
  */
-static size_t
-transmit_set (struct GNUNET_STATISTICS_Handle *handle,
-              size_t size,
-              void *buf)
+static void
+transmit_set (struct GNUNET_STATISTICS_Handle *handle)
 {
   struct GNUNET_STATISTICS_SetMessage *r;
+  struct GNUNET_MQ_Envelope *env;
   size_t slen;
   size_t nlen;
-  size_t nsize;
 
-  if (NULL == buf)
-  {
-    do_disconnect (handle);
-    reconnect_later (handle);
-    return 0;
-  }
   slen = strlen (handle->current->subsystem) + 1;
   nlen = strlen (handle->current->name) + 1;
-  nsize = sizeof (struct GNUNET_STATISTICS_SetMessage) + slen + nlen;
-  if (size < nsize)
-  {
-    GNUNET_break (0);
-    do_disconnect (handle);
-    reconnect_later (handle);
-    return 0;
-  }
-  r = buf;
-  r->header.size = htons (nsize);
-  r->header.type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_SET);
+  env = GNUNET_MQ_msg_extra (r,
+                             slen + nlen,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_SET);
   r->flags = 0;
   r->value = GNUNET_htonll (handle->current->value);
   if (handle->current->make_persistent)
@@ -889,52 +848,17 @@ transmit_set (struct GNUNET_STATISTICS_Handle *handle,
   if (handle->current->type == ACTION_UPDATE)
     r->flags |= htonl (GNUNET_STATISTICS_SETFLAG_RELATIVE);
   GNUNET_assert (slen + nlen ==
-                 GNUNET_STRINGS_buffer_fill ((char *) &r[1], slen + nlen, 2,
+                 GNUNET_STRINGS_buffer_fill ((char *) &r[1],
+                                             slen + nlen,
+                                             2,
                                              handle->current->subsystem,
                                              handle->current->name));
   GNUNET_assert (NULL == handle->current->cont);
   free_action_item (handle->current);
   handle->current = NULL;
   update_memory_statistics (handle);
-  return nsize;
-}
-
-
-/**
- * Function called when we are ready to transmit a request to the service.
- *
- * @param cls the `struct GNUNET_STATISTICS_Handle`
- * @param size how many bytes can we write to @a buf
- * @param buf where to write requests to the service
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_action (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_STATISTICS_Handle *h = cls;
-  size_t ret;
-
-  h->th = NULL;
-  ret = 0;
-  if (NULL != h->current)
-    switch (h->current->type)
-    {
-    case ACTION_GET:
-      ret = transmit_get (h, size, buf);
-      break;
-    case ACTION_SET:
-    case ACTION_UPDATE:
-      ret = transmit_set (h, size, buf);
-      break;
-    case ACTION_WATCH:
-      ret = transmit_watch (h, size, buf);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-    }
-  schedule_action (h);
-  return ret;
+  GNUNET_MQ_send (handle->mq,
+                  env);
 }
 
 
@@ -952,10 +876,10 @@ GNUNET_STATISTICS_create (const char *subsystem,
   struct GNUNET_STATISTICS_Handle *ret;
 
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "statistics", "DISABLE"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "statistics",
+                                            "DISABLE"))
     return NULL;
-  GNUNET_assert (NULL != subsystem);
-  GNUNET_assert (NULL != cfg);
   ret = GNUNET_new (struct GNUNET_STATISTICS_Handle);
   ret->cfg = cfg;
   ret->subsystem = GNUNET_strdup (subsystem);
@@ -978,8 +902,6 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 {
   struct GNUNET_STATISTICS_GetHandle *pos;
   struct GNUNET_STATISTICS_GetHandle *next;
-  struct GNUNET_TIME_Relative timeout;
-  int i;
 
   if (NULL == h)
     return;
@@ -989,26 +911,19 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     GNUNET_SCHEDULER_cancel (h->backoff_task);
     h->backoff_task = NULL;
   }
-  if (sync_first)
+  if ( (sync_first) &&
+       (GNUNET_YES == try_connect (h)) )
   {
-    if (NULL != h->current)
-    {
-      if (ACTION_GET == h->current->type)
-      {
-        if (NULL != h->th)
-        {
-          GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-          h->th = NULL;
-        }
-        free_action_item (h->current);
-        h->current = NULL;
-      }
-    }
+    if ( (NULL != h->current) &&
+         (ACTION_GET == h->current->type) )
+      h->current->aborted = GNUNET_YES;
     next = h->action_head;
     while (NULL != (pos = next))
     {
       next = pos->next;
-      if (ACTION_GET == pos->type)
+      if ( (ACTION_GET == pos->type) ||
+           (ACTION_WATCH == pos->type) ||
+           (GNUNET_NO == pos->make_persistent) )
       {
 	GNUNET_CONTAINER_DLL_remove (h->action_head,
 				     h->action_tail,
@@ -1016,25 +931,11 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
         free_action_item (pos);
       }
     }
-    if ( (NULL == h->current) &&
-	 (NULL != (h->current = h->action_head)) )
-      GNUNET_CONTAINER_DLL_remove (h->action_head,
-				   h->action_tail,
-				   h->current);
     h->do_destroy = GNUNET_YES;
-    if ((NULL != h->current) && (NULL == h->th) &&
-	(NULL != h->client))
-    {
-      timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
-      h->th =
-	GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
-					     timeout, GNUNET_YES,
-					     &transmit_action, h);
-      GNUNET_assert (NULL != h->th);
-    }
-    if (NULL != h->th)
-      return; /* do not finish destruction just yet */
+    schedule_action (h);
+    return; /* do not finish destruction just yet */
   }
+  /* do clean up all */
   while (NULL != (pos = h->action_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->action_head,
@@ -1043,7 +944,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     free_action_item (pos);
   }
   do_disconnect (h);
-  for (i = 0; i < h->watches_size; i++)
+  for (unsigned int i = 0; i < h->watches_size; i++)
   {
     if (NULL == h->watches[i])
       continue;
@@ -1051,49 +952,11 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     GNUNET_free (h->watches[i]->name);
     GNUNET_free (h->watches[i]);
   }
-  GNUNET_array_grow (h->watches, h->watches_size, 0);
+  GNUNET_array_grow (h->watches,
+                     h->watches_size,
+                     0);
   GNUNET_free (h->subsystem);
   GNUNET_free (h);
-}
-
-
-/**
- * Function called to transmit TEST message to service to
- * confirm that the service has received all of our 'SET'
- * messages (during statistics disconnect/shutdown).
- *
- * @param cls the `struct GNUNET_STATISTICS_Handle`
- * @param size how many bytes can we write to @a buf
- * @param buf where to write requests to the service
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_test_on_shutdown (void *cls,
-			   size_t size,
-			   void *buf)
-{
-  struct GNUNET_STATISTICS_Handle *h = cls;
-  struct GNUNET_MessageHeader hdr;
-
-  h->th = NULL;
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to receive acknowledgement from statistics service, some statistics might have been lost!\n"));
-    h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_now (&destroy_task, h);
-    return 0;
-  }
-  hdr.type = htons (GNUNET_MESSAGE_TYPE_TEST);
-  hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
-  memcpy (buf, &hdr, sizeof (hdr));
-  if (GNUNET_YES != h->receiving)
-  {
-    h->receiving = GNUNET_YES;
-    GNUNET_CLIENT_receive (h->client, &receive_stats, h,
-                           GNUNET_TIME_UNIT_FOREVER_REL);
-  }
-  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -1105,65 +968,52 @@ transmit_test_on_shutdown (void *cls,
 static void
 schedule_action (struct GNUNET_STATISTICS_Handle *h)
 {
-  struct GNUNET_TIME_Relative timeout;
-
-  if ( (NULL != h->th) ||
-       (NULL != h->backoff_task) )
+  if (NULL != h->backoff_task)
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (h))
   {
     reconnect_later (h);
     return;
   }
-  if (NULL != h->current)
-    return; /* action already pending */
   /* schedule next action */
-  h->current = h->action_head;
-  if (NULL == h->current)
+  while (NULL == h->current)
   {
-    if (GNUNET_YES == h->do_destroy)
+    h->current = h->action_head;
+    if (NULL == h->current)
     {
+      struct GNUNET_MessageHeader *hdr;
+      struct GNUNET_MQ_Envelope *env;
+
+      if (GNUNET_YES != h->do_destroy)
+        return; /* nothing to do */
+      /* let service know that we're done */
       h->do_destroy = GNUNET_SYSERR; /* in 'TEST' mode */
-      h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
-						   sizeof (struct GNUNET_MessageHeader),
-						   SET_TRANSMIT_TIMEOUT,
-						   GNUNET_NO,
-						   &transmit_test_on_shutdown, h);
+      env = GNUNET_MQ_msg (hdr,
+                           GNUNET_MESSAGE_TYPE_TEST);
+      GNUNET_MQ_send (h->mq,
+                      env);
+      return;
     }
-    return;
+    GNUNET_CONTAINER_DLL_remove (h->action_head,
+                                 h->action_tail,
+                                 h->current);
+    switch (h->current->type)
+    {
+    case ACTION_GET:
+      transmit_get (h);
+      break;
+    case ACTION_SET:
+    case ACTION_UPDATE:
+      transmit_set (h);
+      break;
+    case ACTION_WATCH:
+      transmit_watch (h);
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+    }
   }
-  GNUNET_CONTAINER_DLL_remove (h->action_head, h->action_tail, h->current);
-  timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
-  if (NULL ==
-      (h->th =
-       GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
-                                            timeout, GNUNET_YES,
-                                            &transmit_action, h)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failed to transmit request to statistics service.\n");
-    do_disconnect (h);
-    reconnect_later (h);
-  }
-}
-
-
-/**
- * We have run into a timeout on a #GNUNET_STATISTICS_get() operation,
- * call the continuation.
- *
- * @param cls the `struct GNUNET_STATISTICS_GetHandle`
- */
-static void
-run_get_timeout (void *cls)
-{
-  struct GNUNET_STATISTICS_GetHandle *gh = cls;
-  GNUNET_STATISTICS_Callback cont = gh->cont;
-  void *cont_cls = gh->cls;
-
-  gh->timeout_task = NULL;
-  GNUNET_STATISTICS_get_cancel (gh);
-  cont (cont_cls, GNUNET_SYSERR);
 }
 
 
@@ -1173,8 +1023,6 @@ run_get_timeout (void *cls)
  * @param handle identification of the statistics service
  * @param subsystem limit to the specified subsystem, NULL for our subsystem
  * @param name name of the statistic value, NULL for all values
- * @param timeout after how long should we give up (and call
- *        cont with an error code)?
  * @param cont continuation to call when done (can be NULL)
  *        This callback CANNOT destroy the statistics handle in the same call.
  * @param proc function to call on each value
@@ -1183,10 +1031,11 @@ run_get_timeout (void *cls)
  */
 struct GNUNET_STATISTICS_GetHandle *
 GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *subsystem, const char *name,
-                       struct GNUNET_TIME_Relative timeout,
+                       const char *subsystem,
+                       const char *name,
                        GNUNET_STATISTICS_Callback cont,
-                       GNUNET_STATISTICS_Iterator proc, void *cls)
+                       GNUNET_STATISTICS_Iterator proc,
+                       void *cls)
 {
   size_t slen1;
   size_t slen2;
@@ -1211,12 +1060,8 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   ai->cont = cont;
   ai->proc = proc;
   ai->cls = cls;
-  ai->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ai->type = ACTION_GET;
   ai->msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
-  ai->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                                   &run_get_timeout,
-                                                   ai);
   GNUNET_CONTAINER_DLL_insert_tail (handle->action_head,
 				    handle->action_tail,
 				    ai);
@@ -1236,23 +1081,18 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
 {
   if (NULL == gh)
     return;
-  if (NULL != gh->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (gh->timeout_task);
-    gh->timeout_task = NULL;
-  }
   gh->cont = NULL;
   if (gh->sh->current == gh)
   {
     gh->aborted = GNUNET_YES;
+    return;
   }
-  else
-  {
-    GNUNET_CONTAINER_DLL_remove (gh->sh->action_head, gh->sh->action_tail, gh);
-    GNUNET_free (gh->name);
-    GNUNET_free (gh->subsystem);
-    GNUNET_free (gh);
-  }
+  GNUNET_CONTAINER_DLL_remove (gh->sh->action_head,
+                               gh->sh->action_tail,
+                               gh);
+  GNUNET_free (gh->name);
+  GNUNET_free (gh->subsystem);
+  GNUNET_free (gh);
 }
 
 
@@ -1268,8 +1108,10 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
  */
 int
 GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
-                         const char *subsystem, const char *name,
-                         GNUNET_STATISTICS_Iterator proc, void *proc_cls)
+                         const char *subsystem,
+                         const char *name,
+                         GNUNET_STATISTICS_Iterator proc,
+                         void *proc_cls)
 {
   struct GNUNET_STATISTICS_WatchEntry *w;
 
@@ -1280,8 +1122,11 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
   w->name = GNUNET_strdup (name);
   w->proc = proc;
   w->proc_cls = proc_cls;
-  GNUNET_array_append (handle->watches, handle->watches_size, w);
-  schedule_watch_request (handle, w);
+  GNUNET_array_append (handle->watches,
+                       handle->watches_size,
+                       w);
+  schedule_watch_request (handle,
+                          w);
   return GNUNET_OK;
 }
 
@@ -1304,11 +1149,10 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
                                 void *proc_cls)
 {
   struct GNUNET_STATISTICS_WatchEntry *w;
-  unsigned int i;
 
   if (NULL == handle)
     return GNUNET_SYSERR;
-  for (i=0;i<handle->watches_size;i++)
+  for (unsigned int i=0;i<handle->watches_size;i++)
   {
     w = handle->watches[i];
     if (NULL == w)
@@ -1327,7 +1171,6 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
   }
   return GNUNET_SYSERR;
 }
-
 
 
 /**
@@ -1421,7 +1264,8 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
   ai->msize = nsize;
   ai->value = value;
   ai->type = type;
-  GNUNET_CONTAINER_DLL_insert_tail (h->action_head, h->action_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (h->action_head,
+                                    h->action_tail,
 				    ai);
   schedule_action (h);
 }
@@ -1445,7 +1289,11 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
   if (NULL == handle)
     return;
   GNUNET_assert (GNUNET_NO == handle->do_destroy);
-  add_setter_action (handle, name, make_persistent, value, ACTION_SET);
+  add_setter_action (handle,
+                     name,
+                     make_persistent,
+                     value,
+                     ACTION_SET);
 }
 
 

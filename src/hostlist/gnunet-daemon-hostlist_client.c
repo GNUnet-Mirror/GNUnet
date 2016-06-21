@@ -1265,13 +1265,37 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
-primary_task (void *cls, int success)
+primary_task (void *cls,
+              int success)
 {
+  if (NULL != ti_check_download)
+  {
+    GNUNET_SCHEDULER_cancel (ti_check_download);
+    ti_check_download = NULL;
+  }
   sget = NULL;
   GNUNET_assert (NULL != stats);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Statistics request done, scheduling hostlist download\n");
   ti_check_download = GNUNET_SCHEDULER_add_now (&task_check, NULL);
+}
+
+
+/**
+ * Continuation called by the statistics code once
+ * we go the stat.  Initiates hostlist download scheduling.
+ *
+ * @param cls closure
+ * @param success #GNUNET_OK if statistics were
+ *        successfully obtained, #GNUNET_SYSERR if not.
+ */
+static void
+stat_timeout_task (void *cls)
+{
+  GNUNET_STATISTICS_get_cancel (sget);
+  sget = NULL;
+  ti_check_download = GNUNET_SCHEDULER_add_now (&task_check,
+                                                NULL);
 }
 
 
@@ -1637,7 +1661,6 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   sget = GNUNET_STATISTICS_get (stats, "hostlist",
 				gettext_noop
 				("# milliseconds between hostlist downloads"),
-				GNUNET_TIME_UNIT_MINUTES,
                                 &primary_task,
                                 &process_stat,
 				NULL);
@@ -1645,7 +1668,14 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Statistics request failed, scheduling hostlist download\n");
-    ti_check_download = GNUNET_SCHEDULER_add_now (&task_check, NULL);
+    ti_check_download = GNUNET_SCHEDULER_add_now (&task_check,
+                                                  NULL);
+  }
+  else
+  {
+    ti_check_download = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                                      &stat_timeout_task,
+                                                      NULL);
   }
   return GNUNET_OK;
 }

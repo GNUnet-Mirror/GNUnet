@@ -262,10 +262,11 @@ service_connect_comp (void *cls,
   struct PeerGetStatsContext *peer_sc = cls;
   struct GNUNET_STATISTICS_Handle *h = ca_result;
 
-  LOG_DEBUG ("Retrieving statistics of peer %u\n", peer_sc->peer_index);
+  LOG_DEBUG ("Retrieving statistics of peer %u\n",
+             peer_sc->peer_index);
   peer_sc->get_handle =
-      GNUNET_STATISTICS_get (h, peer_sc->sc->subsystem, peer_sc->sc->name,
-                             GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_STATISTICS_get (h, peer_sc->sc->subsystem,
+                             peer_sc->sc->name,
                              &iteration_completion_cb,
                              iterator_cb, peer_sc);
 }

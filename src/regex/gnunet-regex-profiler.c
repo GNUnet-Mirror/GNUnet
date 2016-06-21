@@ -663,7 +663,6 @@ stats_connect_cb (void *cls,
   peer->stats_handle = ca_result;
 
   if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, NULL, NULL,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
                                      &stats_cb,
                                      &stats_iterator, peer))
   {

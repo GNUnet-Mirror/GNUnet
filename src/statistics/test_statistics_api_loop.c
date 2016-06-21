@@ -70,7 +70,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   i = 0;
   GNUNET_break (NULL !=
                 GNUNET_STATISTICS_get (h, NULL, "test-0",
-                                       GNUNET_TIME_UNIT_MINUTES, &next,
+                                       &next,
                                        &check_1, cls));
 }
 
