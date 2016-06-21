@@ -40,7 +40,7 @@ struct GNUNET_ARM_Handle
   /**
    * Our control connection to the ARM service.
    */
-  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_CLIENT_Connection *client;
 
   /**
    * The configuration that we are using.
