@@ -123,7 +123,6 @@
 #include "gnunet_mysql_lib.h"
 #include "gnunet_my_lib.h"
 
-
 #define MAX_DATUM_SIZE 65536
 
 
@@ -496,6 +495,7 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   unsigned int anonymity;
 //  unsigned long long exp;
   uint64_t exp;
+  //char *type = NULL;
   //size_t hashSize;
 //  unsigned long size;
   size_t size;
@@ -532,10 +532,63 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   rbind[6].buffer = &uid;
   rbind[6].is_unsigned = 1;
 */
+  //  ret = GNUNET_MYSQL_statement_run_prepared_select_va (plugin->mc, stmt, 7, rbind, NULL, NULL, ap);
+  va_start (ap, proc_cls);
+  
+  struct GNUNET_MY_QueryParam *params_select = NULL;
+  struct GNUNET_MY_QueryParam end = GNUNET_MY_query_param_end;
+
+  unsigned int *param_long = NULL;
+  int param_is_unsigned;
+  unsigned long param_length;
+  unsigned long *length = NULL;
+
+  unsigned long long *param_longlong = NULL;
+  void *param_blob = NULL;
+
+//  enum enum_field_type ft;
+  int ft;
+  int i = 0;
+
+  ft = 0;
+
+  while (-1 != (ft = va_arg(ap, int)))
+  {
+   switch (ft)
+   {
+    case MYSQL_TYPE_LONG:
+      param_long = va_arg (ap, unsigned int*);
+      param_is_unsigned = va_arg (ap, int);
+      params_select[i] = GNUNET_MY_query_param_uint32 (param_long);
+      break;
+
+    case MYSQL_TYPE_LONGLONG:
+      param_longlong = va_arg (ap, unsigned long long *);
+      param_is_unsigned = va_arg (ap, int);
+      params_select[i] = GNUNET_MY_query_param_uint64 (param_longlong);
+      break;
+
+    case MYSQL_TYPE_BLOB:
+      param_blob = va_arg (ap, void *);
+      param_length = va_arg (ap, unsigned long);
+      length = va_arg (ap, unsigned long *);
+      params_select[i] = GNUNET_MY_query_param_fixed_size (param_blob, param_length);
+      break;
+
+    default:
+      GNUNET_break(0);
+   }
+   i++;
+  }
+
+  params_select[i] = end;
+
+/*
   struct GNUNET_MY_QueryParam params_select[] ={
+    
     GNUNET_MY_query_param_end
   };
-
+*/
   struct GNUNET_MY_ResultSpec results_select[] = {
     GNUNET_MY_result_spec_uint32 (&type),
     GNUNET_MY_result_spec_uint32 (&priority),
@@ -547,8 +600,6 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
     GNUNET_MY_query_param_end
   };
 
-  va_start (ap, proc_cls);
-//  ret = GNUNET_MYSQL_statement_run_prepared_select_va (plugin->mc, stmt, 7, rbind, NULL, NULL, ap);
   ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params_select);
   va_end (ap);
   if (ret <= 0)
