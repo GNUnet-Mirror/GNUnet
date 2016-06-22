@@ -108,8 +108,8 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len,
 void
 GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
                            gcry_mpi_t n,
-                           const void *xts,  size_t xts_len,
-                           const void *skm,  size_t skm_len,
+                           const void *xts, size_t xts_len,
+                           const void *skm, size_t skm_len,
                            const char *ctx)
 {
   gcry_error_t rc;
