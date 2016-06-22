@@ -989,7 +989,8 @@ handle_stop (void *cls,
  * @param message the actual message
  */
 static void
-handle_list (void *cls, struct GNUNET_SERVER_Client *client,
+handle_list (void *cls,
+             struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_ARM_ListResultMessage *msg;
@@ -1595,7 +1596,8 @@ setup_service (void *cls,
  * @param client identification of the client
  */
 static void
-handle_client_connecting (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_connecting (void *cls,
+                          struct GNUNET_SERVER_Client *client)
 {
   /* All clients are considered to be of the "monitor" kind
    * (that is, they don't affect ARM shutdown).
@@ -1615,9 +1617,12 @@ handle_client_connecting (void *cls, struct GNUNET_SERVER_Client *client)
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
-handle_monitor (void *cls, struct GNUNET_SERVER_Client *client,
-	     const struct GNUNET_MessageHeader *message)
+handle_monitor (void *cls,
+                struct GNUNET_SERVER_Client *client,
+                const struct GNUNET_MessageHeader *message)
 {
+  /* FIXME: might want to start by letting monitor know about
+     services that are already running */
   /* Removal is handled by the server implementation, internally. */
   if ((NULL != client) && (NULL != notifier))
   {
