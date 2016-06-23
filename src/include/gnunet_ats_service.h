@@ -526,7 +526,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Get information about addresses known to the ATS subsystem.
  *
- * @param handle the performance handle to use
+ * @param ph the performance handle to use
  * @param peer peer idm can be NULL for all peers
  * @param all #GNUNET_YES to get information about all addresses or #GNUNET_NO to
  *        get only address currently used
@@ -536,7 +536,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return handle to abort the operation
  */
 struct GNUNET_ATS_AddressListHandle *
-GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
+GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *ph,
                                        const struct GNUNET_PeerIdentity *peer,
                                        int all,
                                        GNUNET_ATS_AddressInformationCallback infocb,
@@ -546,10 +546,10 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
 /**
  * Cancel a pending address listing operation
  *
- * @param handle the `struct GNUNET_ATS_AddressListHandle` handle to cancel
+ * @param alh the `struct GNUNET_ATS_AddressListHandle` handle to cancel
  */
 void
-GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle);
+GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *alh);
 
 
 /**
