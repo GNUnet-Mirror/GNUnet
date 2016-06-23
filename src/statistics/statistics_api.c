@@ -536,6 +536,11 @@ mq_error_handler (void *cls,
   if (GNUNET_NO != h->do_destroy)
   {
     h->do_destroy = GNUNET_NO;
+    if (NULL != h->destroy_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->destroy_task);
+      h->destroy_task = NULL;
+    }
     GNUNET_STATISTICS_destroy (h,
                                GNUNET_NO);
     return;
@@ -551,10 +556,12 @@ mq_error_handler (void *cls,
  * @param cls the `struct GNUNET_STATISTICS_Handle`
  */
 static void
-destroy_task (void *cls)
+do_destroy (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
+  h->destroy_task = NULL;
+  h->do_destroy = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Running final destruction\n");
   GNUNET_STATISTICS_destroy (h,
@@ -584,11 +591,12 @@ handle_test (void *cls,
     reconnect_later (h);
     return;
   }
-  h->do_destroy = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received TEST message from statistics, can complete disconnect\n");
-  GNUNET_SCHEDULER_add_now (&destroy_task,
-                            h);
+  if (NULL != h->destroy_task)
+    GNUNET_SCHEDULER_cancel (h->destroy_task);
+  h->destroy_task = GNUNET_SCHEDULER_add_now (&do_destroy,
+                                              h);
 }
 
 
@@ -711,23 +719,6 @@ reconnect_task (void *cls)
 
 
 /**
- * Task used by #reconnect_later() to shutdown the handle
- *
- * @param cls the statistics handle
- */
-static void
-do_destroy (void *cls)
-{
-  struct GNUNET_STATISTICS_Handle *h = cls;
-
-  h->destroy_task = NULL;
-  h->do_destroy = GNUNET_NO;
-  GNUNET_STATISTICS_destroy (h,
-                             GNUNET_NO);
-}
-
-
-/**
  * Reconnect at a later time, respecting back-off.
  *
  * @param h statistics handle
@@ -753,7 +744,6 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
     if (GNUNET_YES == loss)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Could not save some persistent statistics\n"));
-    h->do_destroy = GNUNET_NO;
     if (NULL != h->destroy_task)
       GNUNET_SCHEDULER_cancel (h->destroy_task);
     h->destroy_task = GNUNET_SCHEDULER_add_now (&do_destroy,
@@ -923,7 +913,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
 
   if (NULL == h)
     return;
-  GNUNET_assert (GNUNET_NO == h->do_destroy); // Don't call twice.
+  GNUNET_assert (GNUNET_NO == h->do_destroy); /* Don't call twice. */
   if ( (sync_first) &&
        (GNUNET_YES == try_connect (h)) )
   {
@@ -946,6 +936,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     }
     h->do_destroy = GNUNET_YES;
     schedule_action (h);
+    GNUNET_assert (NULL == h->destroy_task);
     h->destroy_task
       = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (h->backoff,
                                                                      5),
