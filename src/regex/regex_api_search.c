@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,9 +18,9 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file regex/regex_api.c
- * @brief access regex service to advertise capabilities via regex and discover
- *        respective peers using matching strings
+ * @file regex/regex_api_search.c
+ * @brief access regex service to discover
+ *        peers using matching strings
  * @author Maximilian Szengel
  * @author Christian Grothoff
  */
@@ -31,141 +31,6 @@
 #include "regex_ipc.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "regex-api",__VA_ARGS__)
-
-/**
- * Handle to store cached data about a regex announce.
- */
-struct GNUNET_REGEX_Announcement
-{
-  /**
-   * Connection to the regex service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Our configuration.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Message we're sending to the service.
-   */
-  struct AnnounceMessage msg;
-};
-
-
-/**
- * We got a response (!?) or disconnect after asking regex
- * to do the announcement.  Retry.
- *
- * @param cls the 'struct GNUNET_REGEX_Announcement' to retry
- * @param msg NULL on disconnect
- */
-static void
-handle_a_reconnect (void *cls,
-		    const struct GNUNET_MessageHeader *msg);
-
-
-/**
- * Try sending the announcement request to regex.  On
- * errors (i.e. regex died), try again.
- *
- * @param a the announcement to retry
- */
-static void
-retry_announcement (struct GNUNET_REGEX_Announcement *a)
-{
-  GNUNET_assert (NULL != a->client);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (a->client,
-							  &a->msg.header,
-							  GNUNET_TIME_UNIT_FOREVER_REL,
-							  GNUNET_YES,
-							  &handle_a_reconnect,
-							  a));
-}
-
-
-/**
- * We got a response (!?) or disconnect after asking regex
- * to do the announcement.  Retry.
- *
- * @param cls the 'struct GNUNET_REGEX_Announcement' to retry
- * @param msg NULL on disconnect
- */
-static void
-handle_a_reconnect (void *cls,
-		    const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_REGEX_Announcement *a = cls;
-
-  GNUNET_CLIENT_disconnect (a->client);
-  a->client = GNUNET_CLIENT_connect ("regex", a->cfg);
-  retry_announcement (a);
-}
-
-
-/**
- * Announce the given peer under the given regular expression.
- *
- * @param cfg configuration to use
- * @param regex Regular expression to announce.
- * @param refresh_delay after what delay should the announcement be repeated?
- * @param compression How many characters per edge can we squeeze?
- * @return Handle to reuse o free cached resources.
- *         Must be freed by calling #GNUNET_REGEX_announce_cancel().
- */
-struct GNUNET_REGEX_Announcement *
-GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const char *regex,
-		       struct GNUNET_TIME_Relative refresh_delay,
-                       uint16_t compression)
-{
-  struct GNUNET_REGEX_Announcement *a;
-  size_t slen;
-
-  slen = strlen (regex) + 1;
-  if (slen + sizeof (struct AnnounceMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Regex `%s' is too long!\n"),
-                regex);
-    GNUNET_break (0);
-    return NULL;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting REGEX announcement %s\n",
-       regex);
-  a = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Announcement) + slen);
-  a->cfg = cfg;
-  a->client = GNUNET_CLIENT_connect ("regex", cfg);
-  if (NULL == a->client)
-  {
-    GNUNET_free (a);
-    return NULL;
-  }
-  a->msg.header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE);
-  a->msg.header.size = htons (slen + sizeof (struct AnnounceMessage));
-  a->msg.compression = htons (compression);
-  a->msg.reserved = htons (0);
-  a->msg.refresh_delay = GNUNET_TIME_relative_hton (refresh_delay);
-  memcpy (&a[1], regex, slen);
-  retry_announcement (a);
-  return a;
-}
-
-
-/**
- * Stop announcing the regex specified by the given handle.
- *
- * @param a handle returned by a previous GNUNET_REGEX_announce call.
- */
-void
-GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a)
-{
-  GNUNET_CLIENT_disconnect (a->client);
-  GNUNET_free (a);
-}
 
 
 /**

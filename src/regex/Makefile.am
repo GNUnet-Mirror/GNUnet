@@ -62,7 +62,9 @@ libgnunetregex_internal_a_DEPENDENCIES = \
 
 
 libgnunetregex_la_SOURCES = \
-  regex_api.c regex_ipc.h
+  regex_api_announce.c \
+  regex_api_search.c \
+  regex_ipc.h
 libgnunetregex_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetregex_la_LDFLAGS = \
