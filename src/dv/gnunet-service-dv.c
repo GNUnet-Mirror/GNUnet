@@ -617,7 +617,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Acking transmission of %u bytes to %s with plugin\n",
-                  msize,
+                  (unsigned int) msize,
                   GNUNET_i2s (&pending->next_target));
       send_ack_to_plugin (&pending->next_target,
 			  pending->uid,
@@ -628,7 +628,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting total of %u bytes to %s\n",
-	      off,
+	      (unsigned int) off,
 	      GNUNET_i2s (&dn->peer));
   GNUNET_assert (NULL != core_api);
   if (NULL != pending)
@@ -1761,7 +1761,7 @@ handle_dv_route_message (void *cls,
   prev[4] = me[4] = src[4] = dst[4] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Handling DV message with %u bytes payload of type %u from %s to %s routed by %s to me (%s @ hop %u)\n",
-              ntohs (message->size) - sizeof (struct RouteMessage),
+              (unsigned int) (ntohs (message->size) - sizeof (struct RouteMessage)),
               ntohs (payload->type),
               src, dst,
               prev, me,
