@@ -51,7 +51,7 @@ static struct GNUNET_ARM_Handle *arm;
 static void
 trigger_disconnect (void *cls)
 {
-  GNUNET_ARM_disconnect_and_free (arm);
+  GNUNET_ARM_disconnect (arm);
   arm = NULL;
 }
 
@@ -59,7 +59,6 @@ trigger_disconnect (void *cls)
 static void
 arm_stop_cb (void *cls,
 	     enum GNUNET_ARM_RequestStatus status,
-	     const char *servicename,
 	     enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
@@ -100,15 +99,15 @@ service_list (void *cls,
  stop_arm:
   GNUNET_ARM_request_service_stop (arm,
                                    "arm",
-                                   TIMEOUT,
-                                   &arm_stop_cb, NULL);
+                                   &arm_stop_cb,
+                                   NULL);
 }
 
 
 static void
 hostname_resolve_cb (void *cls,
-                   const struct sockaddr *addr,
-                   socklen_t addrlen)
+                     const struct sockaddr *addr,
+                     socklen_t addrlen)
 {
   if ((0 == ret) || (4 == ret) || (1 == resolved_ok))
     return;
@@ -120,8 +119,8 @@ hostname_resolve_cb (void *cls,
     ret = 3;
     GNUNET_ARM_request_service_stop (arm,
                                      "arm",
-                                     TIMEOUT,
-                                     &arm_stop_cb, NULL);
+                                     &arm_stop_cb,
+                                     NULL);
     return;
   }
   if (0 == asked_for_a_list)
@@ -129,7 +128,6 @@ hostname_resolve_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Resolved hostname, now checking the service list\n");
     GNUNET_ARM_request_service_list (arm,
-                                     TIMEOUT,
                                      &service_list,
                                      NULL);
     asked_for_a_list = 1;
@@ -141,7 +139,6 @@ hostname_resolve_cb (void *cls,
 static void
 arm_start_cb (void *cls,
 	      enum GNUNET_ARM_RequestStatus status,
-	      const char *servicename,
 	      enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
@@ -150,7 +147,8 @@ arm_start_cb (void *cls,
               "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
   if (NULL ==
-      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, TIMEOUT,
+      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
+                                        TIMEOUT,
                                         &hostname_resolve_cb,
                                         NULL))
   {
@@ -159,8 +157,9 @@ arm_start_cb (void *cls,
     GNUNET_break (0);
     ret = 2;
     GNUNET_ARM_request_service_stop (arm,
-                                     "arm", TIMEOUT,
-                                     &arm_stop_cb, NULL);
+                                     "arm",
+                                     &arm_stop_cb,
+                                     NULL);
   }
 }
 
@@ -171,11 +170,14 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  arm = GNUNET_ARM_connect (c, NULL, NULL);
-  GNUNET_ARM_request_service_start (arm, "arm",
+  arm = GNUNET_ARM_connect (c,
+                            NULL,
+                            NULL);
+  GNUNET_ARM_request_service_start (arm,
+                                    "arm",
                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                    START_TIMEOUT,
-                                    &arm_start_cb, NULL);
+                                    &arm_start_cb,
+                                    NULL);
 }
 
 

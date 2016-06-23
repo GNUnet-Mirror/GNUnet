@@ -219,7 +219,7 @@ arm_disconnect_adapter (void *cls, void *op_result)
 {
   FAIL_TEST (NULL != op_result, return);
   FAIL_TEST (op_result == arm_handle, return);
-  GNUNET_ARM_disconnect_and_free (arm_handle);
+  GNUNET_ARM_disconnect (arm_handle);
   arm_handle = NULL;
   FAIL_TEST (PEER_SERVICE_CONNECT == sub_test, return);
   FAIL_TEST (NULL != operation, return);
@@ -451,11 +451,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = GNUNET_CONFIGURATION_dup (config);
   host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   FAIL_TEST (NULL != host, return);
-  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, status_cb,
+  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host,
+                                        &status_cb,
                                         NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort,
+                                    (GNUNET_TIME_UNIT_MINUTES, 5),
+                                    &do_abort,
                                     NULL);
 }
 

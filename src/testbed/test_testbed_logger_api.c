@@ -17,13 +17,11 @@
       Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
       Boston, MA 02110-1301, USA.
  */
-
 /**
  * @file testbed/test_testbed_logger_api.c
  * @brief testcases for the testbed logger api
  * @author Sree Harsha Totakura
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
@@ -53,8 +51,8 @@ static char *search_dir;
 /**
  * Abort task identifier
  */
-static struct GNUNET_SCHEDULER_Task * abort_task;
-static struct GNUNET_SCHEDULER_Task * write_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
+static struct GNUNET_SCHEDULER_Task *write_task;
 
 static int result;
 
@@ -78,6 +76,7 @@ static int result;
     }                                                           \
   } while (0)
 
+
 /**
  * Shutdown nicely
  *
@@ -99,7 +98,8 @@ shutdown_now ()
 static void
 do_abort (void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Aborting\n");
   abort_task = NULL;
   shutdown_now ();
 }
@@ -125,20 +125,34 @@ iterator_cb (void *cls,
   size_t len;
   uint64_t fs;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Iterator sees file %s\n",
+       filename);
   len = strlen (filename);
-  if (len < 5)                  /* log file: `pid'.dat */
-    return GNUNET_OK;
-
   fn = filename + len;
   if (0 != strcasecmp (".dat", fn - 4))
     return GNUNET_OK;
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size (filename, &fs,
-			     GNUNET_NO, GNUNET_YES))
+      GNUNET_DISK_file_size (filename,
+                             &fs,
+			     GNUNET_NO,
+                             GNUNET_YES))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to obtain file size for file %s\n",
+         filename);
     return GNUNET_SYSERR;
-  if ((BSIZE * 2) != fs)        /* The file size should be equal to what we
-                                   have written */
+  }
+  if ((BSIZE * 2) != fs)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Unexpected file size for file %s\n",
+         filename);
+    /* The file size should be equal to what we
+       have written */
     return GNUNET_SYSERR;
+  }
+  result = GNUNET_OK;
   return GNUNET_OK;
 }
 
@@ -151,11 +165,21 @@ iterator_cb (void *cls,
  * @param size the amount of data sent
  */
 static void
-flush_comp (void *cls, size_t size)
+flush_comp (void *cls,
+            size_t size)
 {
-  FAIL_TEST (&write_task == cls, return);
-  FAIL_TEST ((BSIZE * 2) == size, return);
-  FAIL_TEST (GNUNET_OK == GNUNET_TESTING_peer_stop (peer), return);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Flush running\n");
+  FAIL_TEST (&write_task == cls,
+             return);
+  FAIL_TEST ((BSIZE * 2) == size,
+             return);
+  FAIL_TEST (GNUNET_OK ==
+             GNUNET_TESTING_peer_stop (peer),
+             return);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peer stopped, scanning %s\n",
+       search_dir);
   FAIL_TEST (GNUNET_SYSERR !=
 	     GNUNET_DISK_directory_scan (search_dir,
 					 &iterator_cb,
@@ -172,17 +196,22 @@ do_write (void *cls)
   char buf[BSIZE];
 
   write_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Write task running\n");
   if (0 == i)
     write_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1),
 					       &do_write,
 					       NULL);
   (void) memset (buf, i, BSIZE);
-  GNUNET_TESTBED_LOGGER_write (h, buf, BSIZE);
+  GNUNET_TESTBED_LOGGER_write (h,
+                               buf,
+                               BSIZE);
   if (0 == i++)
     return;
   GNUNET_TESTBED_LOGGER_flush (h,
 			       GNUNET_TIME_UNIT_FOREVER_REL,
-                               &flush_comp, &write_task);
+                               &flush_comp,
+                               &write_task);
 }
 
 
@@ -199,13 +228,22 @@ test_main (void *cls,
 	   const struct GNUNET_CONFIGURATION_Handle *cfg,
            struct GNUNET_TESTING_Peer *p)
 {
-  FAIL_TEST (NULL != (h = GNUNET_TESTBED_LOGGER_connect (cfg)), return);
-  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename
-             (cfg, "testbed-logger", "dir", &search_dir), return);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to logger\n");
+  FAIL_TEST (NULL != (h = GNUNET_TESTBED_LOGGER_connect (cfg)),
+             return);
+  FAIL_TEST (GNUNET_OK ==
+             GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                      "testbed-logger",
+                                                      "dir",
+                                                      &search_dir),
+             return);
   peer = p;
-  write_task = GNUNET_SCHEDULER_add_now (&do_write, NULL);
+  write_task = GNUNET_SCHEDULER_add_now (&do_write,
+                                         NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (10),
-                                             &do_abort, NULL);
+                                             &do_abort,
+                                             NULL);
 }
 
 
@@ -218,6 +256,9 @@ main (int argc, char **argv)
   int ret;
 
   result = GNUNET_SYSERR;
+  GNUNET_log_setup ("test-testbed-logger-api",
+                    "WARNING",
+                    NULL);
   ret = GNUNET_TESTING_service_run ("test-testbed-logger",
                                     "testbed-logger",
                                     "test_testbed_logger_api.conf",

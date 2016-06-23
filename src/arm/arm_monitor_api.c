@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2012, 2013 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2012, 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,7 +21,8 @@
 /**
  * @file arm/arm_monitor_api.c
  * @brief API for monitoring the ARM service
- * @author Christian Grothoff, LRN
+ * @author Christian Grothoff
+ * @author LRN
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -241,9 +242,9 @@ reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
  * @return context to use for further ARM monitor operations, NULL on error.
  */
 struct GNUNET_ARM_MonitorHandle *
-GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    GNUNET_ARM_ServiceStatusCallback cont,
-                    void *cont_cls)
+GNUNET_ARM_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_ARM_ServiceStatusCallback cont,
+                          void *cont_cls)
 {
   struct GNUNET_ARM_MonitorHandle *h;
 
@@ -266,7 +267,7 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h)
+GNUNET_ARM_monitor_stop (struct GNUNET_ARM_MonitorHandle *h)
 {
   if (NULL != h->mq)
   {

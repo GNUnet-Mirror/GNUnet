@@ -157,9 +157,7 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *trusted_ip,
 					     const char *hostname,
-                                             const struct
-                                             GNUNET_TESTING_SharedService *
-                                             shared_services,
+                                             const struct GNUNET_TESTING_SharedService *shared_services,
 					     uint16_t lowport,
 					     uint16_t highport);
 
@@ -185,12 +183,12 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * GNUnet source code.
  *
  * This is primarily a helper function used internally
- * by 'GNUNET_TESTING_peer_configure'.
+ * by #GNUNET_TESTING_peer_configure().
  *
  * @param system the testing system handle
  * @param key_number desired pre-created hostkey to obtain
  * @param id set to the peer's identity (hash of the public
- *        key; if NULL, GNUNET_SYSERR is returned immediately
+ *        key; if NULL, #GNUNET_SYSERR is returned immediately
  * @return NULL on error (not enough keys)
  */
 struct GNUNET_CRYPTO_EddsaPrivateKey *
@@ -227,10 +225,10 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  * system. The default configuration will be available in PATHS section under
  * the option DEFAULTCONFIG after the call. SERVICE_HOME is also set in PATHS
  * section to the temporary directory specific to this configuration. If we run
- * out of "*port" numbers, return SYSERR.
+ * out of "*port" numbers, return #GNUNET_SYSERR.
  *
  * This is primarily a helper function used internally
- * by 'GNUNET_TESTING_peer_configure'.
+ * by #GNUNET_TESTING_peer_configure().
  *
  * @param system system to use to coordinate resource usage
  * @param cfg template configuration to update
@@ -353,9 +351,9 @@ typedef void
  *
  * @param peer the peer to stop
  * @param cb the callback to signal peer shutdown
- * @param cb_cls closure for the above callback
- * @return GNUNET_OK upon successfully giving the request to the ARM API (this
- *           does not mean that the peer is successfully stopped); GNUNET_SYSERR
+ * @param cb_cls closure for the @a cb
+ * @return #GNUNET_OK upon successfully giving the request to the ARM API (this
+ *           does not mean that the peer is successfully stopped); #GNUNET_SYSERR
  *           upon any error.
  */
 int

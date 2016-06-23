@@ -75,7 +75,9 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h);
  * @param cls the closure given to GNUNET_TESTBED_LOGGER_send()
  * @param size the amount of data sent
  */
-typedef void (*GNUNET_TESTBED_LOGGER_FlushCompletion) (void *cls, size_t size);
+typedef void
+(*GNUNET_TESTBED_LOGGER_FlushCompletion) (void *cls,
+                                          size_t size);
 
 
 /**
@@ -89,7 +91,8 @@ typedef void (*GNUNET_TESTBED_LOGGER_FlushCompletion) (void *cls, size_t size);
  */
 void
 GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
-                             const void *data, size_t size);
+                             const void *data,
+                             size_t size);
 
 
 /**
