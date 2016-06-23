@@ -264,7 +264,7 @@ free_meter (struct ProgressMeter *meter)
  */
 static void
 do_shutdown (void *cls)
-{ 
+{
   if (NULL != mysql_ctx)
   {
     GNUNET_MYSQL_context_destroy (mysql_ctx);
@@ -361,8 +361,7 @@ regex_iterator (void *cls,
     rbind[0].is_unsigned = GNUNET_YES;
 
     result =
-        GNUNET_MYSQL_statement_run_prepared_select (mysql_ctx,
-                                                    select_stmt_handle, 1,
+        GNUNET_MYSQL_statement_run_prepared_select (select_stmt_handle, 1,
                                                     rbind, &return_ok, NULL,
                                                     MYSQL_TYPE_BLOB, key,
                                                     sizeof (struct
@@ -388,7 +387,7 @@ regex_iterator (void *cls,
     }
 
     result =
-        GNUNET_MYSQL_statement_run_prepared (mysql_ctx, stmt_handle, NULL,
+        GNUNET_MYSQL_statement_run_prepared (stmt_handle, NULL,
                                              MYSQL_TYPE_BLOB, key,
                                              sizeof (struct GNUNET_HashCode),
                                              &k_length, MYSQL_TYPE_STRING,
@@ -432,7 +431,7 @@ regex_iterator (void *cls,
     d_length = 0;
 
     result =
-        GNUNET_MYSQL_statement_run_prepared (mysql_ctx, stmt_handle, NULL,
+        GNUNET_MYSQL_statement_run_prepared (stmt_handle, NULL,
                                              MYSQL_TYPE_BLOB, key,
                                              sizeof (struct GNUNET_HashCode),
                                              &k_length, MYSQL_TYPE_STRING, NULL,
