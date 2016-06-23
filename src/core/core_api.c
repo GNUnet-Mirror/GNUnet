@@ -963,6 +963,11 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   struct SendMessageRequest *smr;
   struct GNUNET_MQ_Envelope *env;
 
+  if (NULL == handle->mq)
+  {
+    GNUNET_break (0); /* SEE #4588: do not call NTR from disconnect notification! */
+    return NULL;
+  }
   GNUNET_assert (NULL != notify);
   if ( (notify_size > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE) ||
        (notify_size + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
