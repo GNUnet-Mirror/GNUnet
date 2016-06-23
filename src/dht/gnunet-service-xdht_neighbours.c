@@ -3735,7 +3735,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                            hop_count, putlen, pp,
                            GNUNET_TIME_absolute_ntoh (put->expiration_time),
                            payload, payload_size);
-   }
   return GNUNET_OK;
 }
 
