@@ -209,7 +209,7 @@ run (void *cls,
   GNUNET_DHT_put (dht_handle, &hash, 1, GNUNET_DHT_RO_NONE,
                   GNUNET_BLOCK_TYPE_TEST, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
-                  TOTAL_TIMEOUT, &test_get, NULL);
+                  &test_get, NULL);
   GNUNET_free (data);
 }
 

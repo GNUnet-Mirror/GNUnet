@@ -510,7 +510,6 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                         block_size,
                         block,
                         expire,
-                        DHT_OPERATION_TIMEOUT,
                         &dht_put_continuation,
                         pc_arg);
   GNUNET_free (block);

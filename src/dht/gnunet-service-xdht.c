@@ -59,13 +59,6 @@ const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
  */
 extern unsigned int track_topology;
 
-#if ENABLE_MALICIOUS
-/**
- * Should this peer act malicious?
- */
-unsigned int malicious;
-#endif
-
 
 /**
  * Task run during shutdown.

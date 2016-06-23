@@ -755,16 +755,17 @@ delayed_put (void *cls)
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
                               ac->put_data, ac->put_data_size);
   GNUNET_CRYPTO_hash (ac->put_data, ac->put_data_size, &ac->hash);
-  DEBUG ("PUT_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
-  ac->dht_put = GNUNET_DHT_put (ac->dht, &ac->hash,
+  DEBUG ("PUT_REQUEST_START key %s\n",
+         GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
+  ac->dht_put = GNUNET_DHT_put (ac->dht,
+                                &ac->hash,
                                 replication,
                                 GNUNET_DHT_RO_RECORD_ROUTE,
                                 GNUNET_BLOCK_TYPE_TEST,
                                 ac->put_data_size,
                                 ac->put_data,
                                 GNUNET_TIME_UNIT_FOREVER_ABS, /* expiration time */
-                                timeout,                      /* PUT timeout */
-                                put_cont, ac);                /* continuation and its closure */
+                                &put_cont, ac);                /* continuation and its closure */
   n_puts++;
 }
 

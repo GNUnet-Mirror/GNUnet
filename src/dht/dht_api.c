@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011, 2012 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2012, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -36,85 +36,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-api",__VA_ARGS__)
 
-/**
- * Entry in our list of messages to be (re-)transmitted.
- */
-struct PendingMessage
-{
-  /**
-   * This is a doubly-linked list.
-   */
-  struct PendingMessage *prev;
-
-  /**
-   * This is a doubly-linked list.
-   */
-  struct PendingMessage *next;
-
-  /**
-   * Message that is pending, allocated at the end
-   * of this struct.
-   */
-  const struct GNUNET_MessageHeader *msg;
-
-  /**
-   * Handle to the DHT API context.
-   */
-  struct GNUNET_DHT_Handle *handle;
-
-  /**
-   * Continuation to call when the request has been
-   * transmitted (for the first time) to the service; can be NULL.
-   */
-  GNUNET_SCHEDULER_TaskCallback cont;
-
-  /**
-   * Closure for 'cont'.
-   */
-  void *cont_cls;
-
-  /**
-   * Unique ID for this request
-   */
-  uint64_t unique_id;
-
-  /**
-   * Free the saved message once sent, set to GNUNET_YES for messages
-   * that do not receive responses; GNUNET_NO if this pending message
-   * is aliased from a 'struct GNUNET_DHT_RouteHandle' and will be freed
-   * from there.
-   */
-  int free_on_send;
-
-  /**
-   * GNUNET_YES if this message is in our pending queue right now.
-   */
-  int in_pending_queue;
-
-};
-
-#if ENABLE_MALICIOUS
-/**
- * Handle to act malicious message
- */
-struct GNUNET_DHT_ActMaliciousHandle
-{
-  /**
-   * Continuation to call when done.
-   */
-  GNUNET_DHT_ActMaliciousContinuation cont;
-
-  /**
-   * Main handle to this DHT api
-   */
-  struct GNUNET_DHT_Handle *dht_handle;
-
-  /**
-   * Closure for 'cont'.
-   */
-  void *cont_cls;
-};
-#endif
 
 /**
  * Handle to a PUT request.
@@ -137,25 +58,14 @@ struct GNUNET_DHT_PutHandle
   GNUNET_DHT_PutContinuation cont;
 
   /**
-   * Pending message associated with this PUT operation,
-   * NULL after the message has been transmitted to the service.
-   */
-  struct PendingMessage *pending;
-
-  /**
    * Main handle to this DHT api
    */
   struct GNUNET_DHT_Handle *dht_handle;
 
   /**
-   * Closure for 'cont'.
+   * Closure for @e cont.
    */
   void *cont_cls;
-
-  /**
-   * Timeout task for this operation.
-   */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Unique ID for the PUT operation.
@@ -176,7 +86,7 @@ struct GNUNET_DHT_GetHandle
   GNUNET_DHT_GetIterator iter;
 
   /**
-   * Closure for the iterator callback
+   * Closure for @a iter.
    */
   void *iter_cls;
 
@@ -184,13 +94,6 @@ struct GNUNET_DHT_GetHandle
    * Main handle to this DHT api
    */
   struct GNUNET_DHT_Handle *dht_handle;
-
-  /**
-   * The actual message sent for this request,
-   * used for retransmitting requests on service
-   * failure/reconnect.  Freed on route_stop.
-   */
-  struct PendingMessage *message;
 
   /**
    * Array of hash codes over the results that we have already
@@ -209,25 +112,36 @@ struct GNUNET_DHT_GetHandle
   uint64_t unique_id;
 
   /**
-   * Size of the 'seen_results' array.  Note that not
+   * Size of the extended query, allocated at the end of this struct.
+   */
+  size_t xquery_size;
+
+  /**
+   * Desired replication level.
+   */
+  uint32_t desired_replication_level;
+
+  /**
+   * Type of the block we are looking for.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Routing options.
+   */
+  enum GNUNET_DHT_RouteOption options;
+
+  /**
+   * Size of the @e seen_results array.  Note that not
    * all positions might be used (as we over-allocate).
    */
   unsigned int seen_results_size;
 
   /**
-   * Offset into the 'seen_results' array marking the
+   * Offset into the @e seen_results array marking the
    * end of the positions that are actually used.
    */
   unsigned int seen_results_end;
-
-  /**
-   * Offset into the 'seen_results' array marking the
-   * position up to where we've send the hash codes to
-   * the DHT for blocking (needed as we might not be
-   * able to send all hash codes at once).
-   */
-  unsigned int seen_results_transmission_offset;
-
 
 };
 
@@ -278,7 +192,7 @@ struct GNUNET_DHT_MonitorHandle
   GNUNET_DHT_MonitorPutCB put_cb;
 
   /**
-   * Closure for cb.
+   * Closure for @e get_cb, @e put_cb and @e get_resp_cb.
    */
   void *cb_cls;
 
@@ -297,24 +211,9 @@ struct GNUNET_DHT_Handle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Socket (if available).
+   * Connection to DHT service.
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Currently pending transmission request (or NULL).
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
-   * Head of linked list of messages we would like to transmit.
-   */
-  struct PendingMessage *pending_head;
-
-  /**
-   * Tail of linked list of messages we would like to transmit.
-   */
-  struct PendingMessage *pending_tail;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Head of linked list of messages we would like to monitor.
@@ -345,7 +244,7 @@ struct GNUNET_DHT_Handle
   /**
    * Task for trying to reconnect.
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * How quickly should we retry?  Used for exponential back-off on
@@ -358,101 +257,93 @@ struct GNUNET_DHT_Handle
    */
   uint64_t uid_gen;
 
-  /**
-   * Did we start our receive loop yet?
-   */
-  int in_receive;
 
-#if ENABLE_MALICIOUS
-  /**
-   * Handle of act malicious request.
-   */
-  struct GNUNET_DHT_ActMaliciousHandle *mh;
-#endif
 };
-
-
-/**
- * Handler for messages received from the DHT service
- * a demultiplexer which handles numerous message types
- *
- * @param cls the `struct GNUNET_DHT_Handle`
- * @param msg the incoming message
- */
-static void
-service_message_handler (void *cls,
-			 const struct GNUNET_MessageHeader *msg);
 
 
 /**
  * Try to (re)connect to the DHT service.
  *
- * @param handle DHT handle to reconnect
+ * @param h DHT handle to reconnect
  * @return #GNUNET_YES on success, #GNUNET_NO on failure.
  */
 static int
-try_connect (struct GNUNET_DHT_Handle *handle)
-{
-  if (NULL != handle->client)
-    return GNUNET_OK;
-  handle->in_receive = GNUNET_NO;
-  handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
-  if (NULL == handle->client)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Failed to connect to the DHT service!\n"));
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
+try_connect (struct GNUNET_DHT_Handle *h);
 
 
 /**
- * Queue messages to DHT to block certain results from the result set.
+ * Send GET message for a @a get_handle to DHT.
  *
- * @param get_handle GET to generate messages for.
+ * @param gh GET to generate messages for.
  */
 static void
-queue_filter_messages (struct GNUNET_DHT_GetHandle *get_handle)
+send_get (struct GNUNET_DHT_GetHandle *gh)
 {
-  struct PendingMessage *pm;
+  struct GNUNET_DHT_Handle *h = gh->dht_handle;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_DHT_ClientGetMessage *get_msg;
+
+  env = GNUNET_MQ_msg_extra (get_msg,
+                             gh->xquery_size,
+                             GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET);
+  get_msg->options = htonl ((uint32_t) gh->options);
+  get_msg->desired_replication_level = htonl (gh->desired_replication_level);
+  get_msg->type = htonl (gh->type);
+  get_msg->key = gh->key;
+  get_msg->unique_id = gh->unique_id;
+  memcpy (&get_msg[1],
+          &gh[1],
+          gh->xquery_size);
+  GNUNET_MQ_send (h->mq,
+                  env);
+}
+
+
+/**
+ * Send GET message(s) for indicating which results are already known
+ * for a @a get_handle to DHT.  Complex as we need to send the list of
+ * known results, which means we may need mulitple messages to block
+ * known results from the result set.
+ *
+ * @param gh GET to generate messages for
+ * @param transmission_offset_start at which offset should we start?
+ */
+static void
+send_get_known_results (struct GNUNET_DHT_GetHandle *gh,
+                        unsigned int transmission_offset_start)
+{
+  struct GNUNET_DHT_Handle *h = gh->dht_handle;
+  struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DHT_ClientGetResultSeenMessage *msg;
-  uint16_t msize;
   unsigned int delta;
   unsigned int max;
+  unsigned int transmission_offset;
 
-  while (get_handle->seen_results_transmission_offset < get_handle->seen_results_end)
+  max = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*msg))
+    / sizeof (struct GNUNET_HashCode);
+  transmission_offset = transmission_offset_start;
+  while (transmission_offset < gh->seen_results_end)
   {
-    delta = get_handle->seen_results_end - get_handle->seen_results_transmission_offset;
-    max = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage)) / sizeof (struct GNUNET_HashCode);
+    delta = gh->seen_results_end - transmission_offset;
     if (delta > max)
       delta = max;
-    msize = sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage) + delta * sizeof (struct GNUNET_HashCode);
-
-    pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-    msg = (struct GNUNET_DHT_ClientGetResultSeenMessage *) &pm[1];
-    pm->msg = &msg->header;
-    pm->handle = get_handle->dht_handle;
-    pm->unique_id = get_handle->unique_id;
-    pm->free_on_send = GNUNET_YES;
-    pm->in_pending_queue = GNUNET_YES;
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN);
-    msg->header.size = htons (msize);
-    msg->key = get_handle->key;
-    msg->unique_id = get_handle->unique_id;
+    env = GNUNET_MQ_msg_extra (msg,
+                               delta * sizeof (struct GNUNET_HashCode),
+                               GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN);
+    msg->key = gh->key;
+    msg->unique_id = gh->unique_id;
     memcpy (&msg[1],
-	    &get_handle->seen_results[get_handle->seen_results_transmission_offset],
+	    &gh->seen_results[transmission_offset],
 	    sizeof (struct GNUNET_HashCode) * delta);
-    get_handle->seen_results_transmission_offset += delta;
-    GNUNET_CONTAINER_DLL_insert_tail (get_handle->dht_handle->pending_head,
-				      get_handle->dht_handle->pending_tail,
-				      pm);
+    GNUNET_MQ_send (h->mq,
+                    env);
+    transmission_offset += delta;
   }
 }
 
 
 /**
- * Add the request corresponding to the given route handle
+ * Add the GET request corresponding to the given route handle
  * to the pending queue (if it is not already in there).
  *
  * @param cls the `struct GNUNET_DHT_Handle *`
@@ -461,35 +352,49 @@ queue_filter_messages (struct GNUNET_DHT_GetHandle *get_handle)
  * @return #GNUNET_YES (always)
  */
 static int
-add_request_to_pending (void *cls,
-			const struct GNUNET_HashCode *key,
-			void *value)
+add_get_request_to_pending (void *cls,
+                            const struct GNUNET_HashCode *key,
+                            void *value)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_GetHandle *get_handle = value;
+  struct GNUNET_DHT_GetHandle *gh = value;
 
-  if (GNUNET_NO == get_handle->message->in_pending_queue)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Retransmitting request related to %s to DHT %p\n", GNUNET_h2s (key),
-         handle);
-    get_handle->seen_results_transmission_offset = 0;
-    GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                                 get_handle->message);
-    queue_filter_messages (get_handle);
-    get_handle->message->in_pending_queue = GNUNET_YES;
-  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Retransmitting request related to %s to DHT %p\n",
+       GNUNET_h2s (key),
+       handle);
+  send_get (gh);
+  send_get_known_results (gh, 0);
   return GNUNET_YES;
 }
 
 
 /**
- * Try to send messages from list of messages to send
+ * Send #GNUNET_MESSAGE_TYPE_DHT_MONITOR_START message.
  *
- * @param handle DHT_Handle
+ * @param mh monitor handle to generate start message for
  */
 static void
-process_pending_messages (struct GNUNET_DHT_Handle *handle);
+send_monitor_start (struct GNUNET_DHT_MonitorHandle *mh)
+{
+  struct GNUNET_DHT_Handle *h = mh->dht_handle;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_DHT_MonitorStartStopMessage *m;
+
+  env = GNUNET_MQ_msg (m,
+                       GNUNET_MESSAGE_TYPE_DHT_MONITOR_START);
+  m->type = htonl (mh->type);
+  m->get = htons (NULL != mh->get_cb);
+  m->get_resp = htons (NULL != mh->get_resp_cb);
+  m->put = htons (NULL != mh->put_cb);
+  if (NULL != mh->key)
+  {
+    m->filter_key = htons(1);
+    m->key = *mh->key;
+  }
+  GNUNET_MQ_send (h->mq,
+                  env);
+}
 
 
 /**
@@ -500,280 +405,169 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle);
 static void
 try_reconnect (void *cls)
 {
-  struct GNUNET_DHT_Handle *handle = cls;
+  struct GNUNET_DHT_Handle *h = cls;
+  struct GNUNET_DHT_MonitorHandle *mh;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting with DHT %p\n", handle);
-  handle->retry_time = GNUNET_TIME_STD_BACKOFF (handle->retry_time);
-  handle->reconnect_task = NULL;
-  if (GNUNET_YES != try_connect (handle))
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reconnecting with DHT %p\n",
+       h);
+  h->retry_time = GNUNET_TIME_STD_BACKOFF (h->retry_time);
+  h->reconnect_task = NULL;
+  if (GNUNET_YES != try_connect (h))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "dht reconnect failed(!)\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "DHT reconnect failed!\n");
+    h->reconnect_task
+      = GNUNET_SCHEDULER_add_delayed (h->retry_time,
+                                      &try_reconnect,
+                                      h);
     return;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (handle->active_requests,
-                                         &add_request_to_pending, handle);
-  process_pending_messages (handle);
+  GNUNET_CONTAINER_multihashmap_iterate (h->active_requests,
+                                         &add_get_request_to_pending,
+                                         h);
+  for (mh = h->monitor_head; NULL != mh; mh = mh->next)
+    send_monitor_start (mh);
 }
 
 
 /**
  * Try reconnecting to the DHT service.
  *
- * @param handle handle to dht to (possibly) disconnect and reconnect
+ * @param h handle to dht to (possibly) disconnect and reconnect
  */
 static void
-do_disconnect (struct GNUNET_DHT_Handle *handle)
+do_disconnect (struct GNUNET_DHT_Handle *h)
 {
   struct GNUNET_DHT_PutHandle *ph;
-  struct GNUNET_DHT_PutHandle *next;
+  GNUNET_DHT_PutContinuation cont;
+  void *cont_cls;
 
-  if (NULL == handle->client)
+  if (NULL == h->mq)
     return;
-  GNUNET_assert (NULL == handle->reconnect_task);
-  if (NULL != handle->th)
-    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
-  handle->th = NULL;
+  GNUNET_MQ_destroy (h->mq);
+  h->mq = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting from DHT service, will try to reconnect in %s\n",
-              GNUNET_STRINGS_relative_time_to_string (handle->retry_time,
+              GNUNET_STRINGS_relative_time_to_string (h->retry_time,
 						      GNUNET_YES));
-  GNUNET_CLIENT_disconnect (handle->client);
-  handle->client = NULL;
-
-  /* signal disconnect to all PUT requests that were transmitted but waiting
-     for the put confirmation */
-  next = handle->put_head;
-  while (NULL != (ph = next))
+  /* notify client about all PUTs that (may) have failed due to disconnect */
+  while (NULL != (ph = h->put_head))
   {
-    next = ph->next;
-    if (NULL == ph->pending)
-    {
-      if (NULL != ph->cont)
-	ph->cont (ph->cont_cls, GNUNET_SYSERR);
-      GNUNET_DHT_put_cancel (ph);
-    }
+    cont = ph->cont;
+    cont_cls = ph->cont_cls;
+    GNUNET_DHT_put_cancel (ph);
+    if (NULL != cont)
+      cont (cont_cls,
+            GNUNET_SYSERR);
   }
-  handle->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (handle->retry_time, &try_reconnect, handle);
+  GNUNET_assert (NULL == h->reconnect_task);
+  h->reconnect_task
+    = GNUNET_SCHEDULER_add_delayed (h->retry_time,
+                                    &try_reconnect,
+                                    h);
 }
 
 
 /**
- * Transmit the next pending message, called by notify_transmit_ready
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
  *
- * @param cls the DHT handle
- * @param size number of bytes available in @a buf for transmission
- * @param buf where to copy messages for the service
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_pending (void *cls,
-		  size_t size,
-		  void *buf);
-
-
-/**
- * Try to send messages from list of messages to send
- *
- * @param handle handle to DHT
+ * @param cls closure with the `struct GNUNET_DHT_Handle *`
+ * @param error error code
  */
 static void
-process_pending_messages (struct GNUNET_DHT_Handle *handle)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  struct PendingMessage *head;
+  struct GNUNET_DHT_Handle *h = cls;
 
-  if (NULL == handle->client)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "process_pending_messages called, but client is NULL, reconnecting\n");
-    do_disconnect (handle);
-    return;
-  }
-  if (NULL != handle->th)
-    return;
-  if (NULL == (head = handle->pending_head))
-    return;
-  handle->th =
-      GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                           ntohs (head->msg->size),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_YES, &transmit_pending,
-                                           handle);
-  if (NULL != handle->th)
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "notify_transmit_ready returned NULL, reconnecting\n");
-  do_disconnect (handle);
+  do_disconnect (h);
 }
 
 
 /**
- * Transmit the next pending message, called by notify_transmit_ready
+ * Verify integrity of a get monitor message from the service.
  *
- * @param cls the DHT handle
- * @param size number of bytes available in @a buf for transmission
- * @param buf where to copy messages for the service
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_pending (void *cls,
-		  size_t size,
-		  void *buf)
-{
-  struct GNUNET_DHT_Handle *handle = cls;
-  struct PendingMessage *head;
-  size_t tsize;
-
-
-  handle->th = NULL;
-  if (NULL == buf)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission to DHT service failed!  Reconnecting!\n");
-    do_disconnect (handle);
-    return 0;
-  }
-  if (NULL == (head = handle->pending_head))
-    return 0;
-
-  tsize = ntohs (head->msg->size);
-  if (size < tsize)
-  {
-    process_pending_messages (handle);
-    return 0;
-  }
-  memcpy (buf, head->msg, tsize);
-  GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
-                               head);
-  head->in_pending_queue = GNUNET_NO;
-  if (NULL != head->cont)
-  {
-    head->cont (head->cont_cls);
-    head->cont = NULL;
-    head->cont_cls = NULL;
-  }
-  if (GNUNET_YES == head->free_on_send)
-    GNUNET_free (head);
-  process_pending_messages (handle);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Forwarded request of %u bytes to DHT service\n", (unsigned int) tsize);
-  if (GNUNET_NO == handle->in_receive)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from DHT\n");
-    handle->in_receive = GNUNET_YES;
-
-    GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
-                           GNUNET_TIME_UNIT_FOREVER_REL);
-  }
-  return tsize;
-}
-
-
-/**
- * Process a given reply that might match the given
- * request.
- *
- * @param cls the `struct GNUNET_DHT_ClientResultMessage`
- * @param key query of the request
- * @param value the `struct GNUNET_DHT_RouteHandle` of a request matching the same key
- * @return #GNUNET_YES to continue to iterate over all results,
- *         #GNUNET_NO if the reply is malformed or we found a matching request
+ * @param cls The DHT handle.
+ * @param msg Monitor get message from the service.
+ * @return #GNUNET_OK if everything went fine,
+ *         #GNUNET_SYSERR if the message is malformed.
  */
 static int
-process_reply (void *cls,
-	       const struct GNUNET_HashCode *key,
-	       void *value)
+check_monitor_get (void *cls,
+                   const struct GNUNET_DHT_MonitorGetMessage *msg)
 {
-  const struct GNUNET_DHT_ClientResultMessage *dht_msg = cls;
-  struct GNUNET_DHT_GetHandle *get_handle = value;
-  const struct GNUNET_PeerIdentity *put_path;
-  const struct GNUNET_PeerIdentity *get_path;
-  struct GNUNET_HashCode hc;
-  uint32_t put_path_length;
-  uint32_t get_path_length;
-  size_t data_length;
-  size_t msize;
-  size_t meta_length;
-  const void *data;
+  uint32_t plen = ntohl (msg->get_path_length);
+  uint16_t msize = ntohs (msg->header.size) - sizeof (*msg);
 
-  if (dht_msg->unique_id != get_handle->unique_id)
-  {
-    /* UID mismatch */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Ignoring reply for %s: UID mismatch: %llu/%llu\n", GNUNET_h2s (key),
-         dht_msg->unique_id, get_handle->unique_id);
-    return GNUNET_YES;
-  }
-  msize = ntohs (dht_msg->header.size);
-  put_path_length = ntohl (dht_msg->put_path_length);
-  get_path_length = ntohl (dht_msg->get_path_length);
-  meta_length =
-      sizeof (struct GNUNET_DHT_ClientResultMessage) +
-      sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
-  if ((msize < meta_length) ||
-      (get_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
-      (put_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+  if ( (plen > UINT16_MAX) ||
+       (plen * sizeof (struct GNUNET_HashCode) != msize) )
   {
     GNUNET_break (0);
-    return GNUNET_NO;
+    return GNUNET_SYSERR;
   }
-  data_length = msize - meta_length;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Giving %u byte reply for %s to application\n",
-       (unsigned int) data_length, GNUNET_h2s (key));
-  put_path = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
-  get_path = &put_path[put_path_length];
-  data = &get_path[get_path_length];
-  /* remember that we've seen this result */
-  GNUNET_CRYPTO_hash (data, data_length, &hc);
-  if (get_handle->seen_results_size == get_handle->seen_results_end)
-    GNUNET_array_grow (get_handle->seen_results,
-		       get_handle->seen_results_size,
-		       get_handle->seen_results_size * 2 + 1);
-  GNUNET_assert (get_handle->seen_results_end == get_handle->seen_results_transmission_offset);
-  get_handle->seen_results[get_handle->seen_results_end++] = hc;
-  /* no need to block it explicitly, service already knows about it! */
-  get_handle->seen_results_transmission_offset++;
-  get_handle->iter (get_handle->iter_cls,
-                    GNUNET_TIME_absolute_ntoh (dht_msg->expiration), key,
-                    get_path, get_path_length, put_path, put_path_length,
-                    ntohl (dht_msg->type), data_length, data);
-  return GNUNET_NO;
+  return GNUNET_OK;
 }
 
 
 /**
  * Process a get monitor message from the service.
  *
- * @param handle The DHT handle.
+ * @param cls The DHT handle.
  * @param msg Monitor get message from the service.
+ */
+static void
+handle_monitor_get (void *cls,
+                    const struct GNUNET_DHT_MonitorGetMessage *msg)
+{
+  struct GNUNET_DHT_Handle *handle = cls;
+  struct GNUNET_DHT_MonitorHandle *mh;
+
+  for (mh = handle->monitor_head; NULL != mh; mh = mh->next)
+  {
+    if (NULL == mh->get_cb)
+      continue;
+    if ( ( (GNUNET_BLOCK_TYPE_ANY == mh->type) ||
+           (mh->type == ntohl (msg->type)) ) &&
+         ( (NULL == mh->key) ||
+           (0 == memcmp (mh->key,
+                         &msg->key,
+                         sizeof (struct GNUNET_HashCode))) ) )
+      mh->get_cb (mh->cb_cls,
+                  ntohl (msg->options),
+                  (enum GNUNET_BLOCK_Type) ntohl(msg->type),
+                  ntohl (msg->hop_count),
+                  ntohl (msg->desired_replication_level),
+                  ntohl (msg->get_path_length),
+                  (struct GNUNET_PeerIdentity *) &msg[1],
+                  &msg->key);
+  }
+}
+
+
+/**
+ * Validate a get response monitor message from the service.
+ *
+ * @param cls The DHT handle.
+ * @param msg monitor get response message from the service
  * @return #GNUNET_OK if everything went fine,
  *         #GNUNET_SYSERR if the message is malformed.
  */
 static int
-process_monitor_get_message (struct GNUNET_DHT_Handle *handle,
-                             const struct GNUNET_DHT_MonitorGetMessage *msg)
+check_monitor_get_resp (void *cls,
+                        const struct GNUNET_DHT_MonitorGetRespMessage *msg)
 {
-  struct GNUNET_DHT_MonitorHandle *h;
+  size_t msize = ntohs (msg->header.size) - sizeof (*msg);
+  uint32_t getl = ntohl (msg->get_path_length);
+  uint32_t putl = ntohl (msg->put_path_length);
 
-  for (h = handle->monitor_head; NULL != h; h = h->next)
+  if ( (getl + putl < getl) ||
+       ( (msize / sizeof (struct GNUNET_PeerIdentity)) < getl + putl) )
   {
-    int type_ok;
-    int key_ok;
-
-    type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
-    key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (struct GNUNET_HashCode)));
-    if (type_ok && key_ok && (NULL != h->get_cb))
-      h->get_cb (h->cb_cls,
-		 ntohl (msg->options),
-		 (enum GNUNET_BLOCK_Type) ntohl(msg->type),
-		 ntohl (msg->hop_count),
-		 ntohl (msg->desired_replication_level),
-		 ntohl (msg->get_path_length),
-		 (struct GNUNET_PeerIdentity *) &msg[1],
-		 &msg->key);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
@@ -782,50 +576,66 @@ process_monitor_get_message (struct GNUNET_DHT_Handle *handle,
 /**
  * Process a get response monitor message from the service.
  *
- * @param handle The DHT handle.
+ * @param cls The DHT handle.
  * @param msg monitor get response message from the service
+ */
+static void
+handle_monitor_get_resp (void *cls,
+                         const struct GNUNET_DHT_MonitorGetRespMessage *msg)
+{
+  struct GNUNET_DHT_Handle *handle = cls;
+  size_t msize = ntohs (msg->header.size) - sizeof (*msg);
+  const struct GNUNET_PeerIdentity *path;
+  uint32_t getl = ntohl (msg->get_path_length);
+  uint32_t putl = ntohl (msg->put_path_length);
+  struct GNUNET_DHT_MonitorHandle *mh;
+
+  path = (const struct GNUNET_PeerIdentity *) &msg[1];
+  for (mh = handle->monitor_head; NULL != mh; mh = mh->next)
+  {
+    if (NULL == mh->get_resp_cb)
+      continue;
+    if ( ( (GNUNET_BLOCK_TYPE_ANY == mh->type) ||
+           (mh->type == ntohl(msg->type)) ) &&
+         ( (NULL == mh->key) ||
+           (0 == memcmp (mh->key,
+                         &msg->key,
+                         sizeof (struct GNUNET_HashCode))) ) )
+      mh->get_resp_cb (mh->cb_cls,
+                       (enum GNUNET_BLOCK_Type) ntohl (msg->type),
+                       path,
+                       getl,
+                       &path[getl],
+                       putl,
+                       GNUNET_TIME_absolute_ntoh(msg->expiration_time),
+                       &msg->key,
+                       (const void *) &path[getl + putl],
+                       msize - sizeof (struct GNUNET_PeerIdentity) * (putl + getl));
+  }
+}
+
+
+/**
+ * Check validity of a put monitor message from the service.
+ *
+ * @param cls The DHT handle.
+ * @param msg Monitor put message from the service.
  * @return #GNUNET_OK if everything went fine,
  *         #GNUNET_SYSERR if the message is malformed.
  */
 static int
-process_monitor_get_resp_message (struct GNUNET_DHT_Handle *handle,
-                                  const struct GNUNET_DHT_MonitorGetRespMessage *msg)
+check_monitor_put (void *cls,
+                   const struct GNUNET_DHT_MonitorPutMessage *msg)
 {
-  struct GNUNET_DHT_MonitorHandle *h;
-  struct GNUNET_PeerIdentity *path;
-  uint32_t getl;
-  uint32_t putl;
   size_t msize;
+  uint32_t putl;
 
-  msize = ntohs (msg->header.size);
-  path = (struct GNUNET_PeerIdentity *) &msg[1];
-  getl = ntohl (msg->get_path_length);
+  msize = ntohs (msg->header.size) - sizeof (*msg);
   putl = ntohl (msg->put_path_length);
-  if ( (getl + putl < getl) ||
-       ( ((msize - sizeof (struct GNUNET_DHT_MonitorGetRespMessage)) / sizeof (struct GNUNET_PeerIdentity)) < getl + putl) )
+  if ((msize / sizeof (struct GNUNET_PeerIdentity)) < putl)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
-  }
-  for (h = handle->monitor_head; NULL != h; h = h->next)
-  {
-    int type_ok;
-    int key_ok;
-
-    type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
-    key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (struct GNUNET_HashCode)));
-    if (type_ok && key_ok && (NULL != h->get_resp_cb))
-      h->get_resp_cb (h->cb_cls,
-                      (enum GNUNET_BLOCK_Type) ntohl(msg->type),
-                      path, getl,
-                      &path[getl], putl,
-                      GNUNET_TIME_absolute_ntoh(msg->expiration_time),
-                      &msg->key,
-                      (void *) &path[getl + putl],
-                      msize -
-                      sizeof (struct GNUNET_DHT_MonitorGetRespMessage) -
-                      sizeof (struct GNUNET_PeerIdentity) * (putl + getl));
   }
   return GNUNET_OK;
 }
@@ -834,95 +644,177 @@ process_monitor_get_resp_message (struct GNUNET_DHT_Handle *handle,
 /**
  * Process a put monitor message from the service.
  *
- * @param handle The DHT handle.
+ * @param cls The DHT handle.
+ * @param msg Monitor put message from the service.
+ */
+static void
+handle_monitor_put (void *cls,
+                    const struct GNUNET_DHT_MonitorPutMessage *msg)
+{
+  struct GNUNET_DHT_Handle *handle = cls;
+  size_t msize = ntohs (msg->header.size) - sizeof (*msg);
+  uint32_t putl = ntohl (msg->put_path_length);
+  const struct GNUNET_PeerIdentity *path;
+  struct GNUNET_DHT_MonitorHandle *mh;
+
+  path = (const struct GNUNET_PeerIdentity *) &msg[1];
+  for (mh = handle->monitor_head; NULL != mh; mh = mh->next)
+  {
+    if (NULL == mh->put_cb)
+      continue;
+    if ( ( (GNUNET_BLOCK_TYPE_ANY == mh->type) ||
+           (mh->type == ntohl(msg->type)) ) &&
+         ( (NULL == mh->key) ||
+           (0 == memcmp (mh->key,
+                         &msg->key,
+                         sizeof (struct GNUNET_HashCode))) ) )
+      mh->put_cb (mh->cb_cls,
+                  ntohl (msg->options),
+                  (enum GNUNET_BLOCK_Type) ntohl(msg->type),
+                  ntohl (msg->hop_count),
+                  ntohl (msg->desired_replication_level),
+                  putl,
+                  path,
+                  GNUNET_TIME_absolute_ntoh(msg->expiration_time),
+                  &msg->key,
+                  (const void *) &path[putl],
+                  msize - sizeof (struct GNUNET_PeerIdentity) * putl);
+  }
+}
+
+
+/**
+ * Verify that client result  message received from the service is well-formed.
+ *
+ * @param cls The DHT handle.
  * @param msg Monitor put message from the service.
  * @return #GNUNET_OK if everything went fine,
  *         #GNUNET_SYSERR if the message is malformed.
  */
 static int
-process_monitor_put_message (struct GNUNET_DHT_Handle *handle,
-                             const struct GNUNET_DHT_MonitorPutMessage *msg)
+check_client_result (void *cls,
+                     const struct GNUNET_DHT_ClientResultMessage *msg)
 {
-  struct GNUNET_DHT_MonitorHandle *h;
-  size_t msize;
-  struct GNUNET_PeerIdentity *path;
-  uint32_t putl;
+  size_t msize = ntohs (msg->header.size) - sizeof (*msg);
+  uint32_t put_path_length = ntohl (msg->put_path_length);
+  uint32_t get_path_length = ntohl (msg->get_path_length);
+  size_t meta_length;
 
-  msize = ntohs (msg->header.size);
-  path = (struct GNUNET_PeerIdentity *) &msg[1];
-  putl = ntohl (msg->put_path_length);
-  if (((msize - sizeof (struct GNUNET_DHT_MonitorGetRespMessage)) / sizeof (struct GNUNET_PeerIdentity)) < putl)
+  meta_length =
+    sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
+  if ( (msize < meta_length) ||
+       (get_path_length >
+        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       (put_path_length >
+        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  for (h = handle->monitor_head; NULL != h; h = h->next)
-  {
-    int type_ok;
-    int key_ok;
-
-    type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
-    key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (struct GNUNET_HashCode)));
-    if (type_ok && key_ok && (NULL != h->put_cb))
-      h->put_cb (h->cb_cls,
-                 ntohl (msg->options),
-                 (enum GNUNET_BLOCK_Type) ntohl(msg->type),
-                 ntohl (msg->hop_count),
-                 ntohl (msg->desired_replication_level),
-                 putl, path,
-                 GNUNET_TIME_absolute_ntoh(msg->expiration_time),
-                 &msg->key,
-                 (void *) &path[putl],
-                 msize -
-                 sizeof (struct GNUNET_DHT_MonitorPutMessage) -
-                 sizeof (struct GNUNET_PeerIdentity) * putl);
-  }
   return GNUNET_OK;
 }
 
 
-#if ENABLE_MALICIOUS
 /**
- * Process a act malicious confirmation from service.
- * @param handle The DHT handle.
- * @param msg confirmation message from the service.
- * @return #GNUNET_OK if everything went fine,
- *         #GNUNET_SYSERR if the message is malformed.
+ * Process a given reply that might match the given request.
+ *
+ * @param cls the `struct GNUNET_DHT_ClientResultMessage`
+ * @param key query of the request
+ * @param value the `struct GNUNET_DHT_GetHandle` of a request matching the same key
+ * @return #GNUNET_YES to continue to iterate over all results
  */
 static int
-process_act_malicious_confirmation_message (struct GNUNET_DHT_Handle *handle,
-           const struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *msg)
+process_client_result (void *cls,
+                       const struct GNUNET_HashCode *key,
+                       void *value)
 {
-   struct GNUNET_DHT_ActMaliciousHandle *mh;
-   GNUNET_DHT_PutContinuation cont;
-   void *cont_cls;
+  const struct GNUNET_DHT_ClientResultMessage *crm = cls;
+  struct GNUNET_DHT_GetHandle *get_handle = value;
+  size_t msize = ntohs (crm->header.size) - sizeof (*crm);
+  uint32_t put_path_length = ntohl (crm->put_path_length);
+  uint32_t get_path_length = ntohl (crm->get_path_length);
+  const struct GNUNET_PeerIdentity *put_path;
+  const struct GNUNET_PeerIdentity *get_path;
+  struct GNUNET_HashCode hc;
+  size_t data_length;
+  size_t meta_length;
+  const void *data;
 
-   mh = handle->mh;
-   if (NULL == mh)
-    return GNUNET_OK;
-  cont = mh->cont;
-  cont_cls = mh->cont_cls;
-  if (NULL != cont)
-    cont (cont_cls, GNUNET_OK);
-
-  return GNUNET_OK;
+  if (crm->unique_id != get_handle->unique_id)
+  {
+    /* UID mismatch */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring reply for %s: UID mismatch: %llu/%llu\n",
+         GNUNET_h2s (key),
+         crm->unique_id,
+         get_handle->unique_id);
+    return GNUNET_YES;
+  }
+  /* FIXME: might want to check that type matches */
+  meta_length =
+      sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
+  data_length = msize - meta_length;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Giving %u byte reply for %s to application\n",
+       (unsigned int) data_length,
+       GNUNET_h2s (key));
+  put_path = (const struct GNUNET_PeerIdentity *) &crm[1];
+  get_path = &put_path[put_path_length];
+  data = &get_path[get_path_length];
+  /* remember that we've seen this result */
+  GNUNET_CRYPTO_hash (data,
+                      data_length,
+                      &hc);
+  if (get_handle->seen_results_size == get_handle->seen_results_end)
+    GNUNET_array_grow (get_handle->seen_results,
+		       get_handle->seen_results_size,
+		       get_handle->seen_results_size * 2 + 1);
+  get_handle->seen_results[get_handle->seen_results_end++] = hc;
+  /* no need to block it explicitly, service already knows about it! */
+  get_handle->iter (get_handle->iter_cls,
+                    GNUNET_TIME_absolute_ntoh (crm->expiration),
+                    key,
+                    get_path,
+                    get_path_length,
+                    put_path,
+                    put_path_length,
+                    ntohl (crm->type),
+                    data_length,
+                    data);
+  return GNUNET_YES;
 }
-#endif
+
+
+/**
+ * Process a client result  message received from the service.
+ *
+ * @param cls The DHT handle.
+ * @param msg Monitor put message from the service.
+ */
+static void
+handle_client_result (void *cls,
+                      const struct GNUNET_DHT_ClientResultMessage *msg)
+{
+  struct GNUNET_DHT_Handle *handle = cls;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
+                                              &msg->key,
+                                              &process_client_result,
+                                              (void *) msg);
+}
 
 
 /**
  * Process a put confirmation message from the service.
  *
- * @param handle The DHT handle.
+ * @param cls The DHT handle.
  * @param msg confirmation message from the service.
- * @return #GNUNET_OK if everything went fine,
- *         #GNUNET_SYSERR if the message is malformed.
  */
-static int
-process_put_confirmation_message (struct GNUNET_DHT_Handle *handle,
-				  const struct GNUNET_DHT_ClientPutConfirmationMessage *msg)
+static void
+handle_put_confirmation (void *cls,
+                         const struct GNUNET_DHT_ClientPutConfirmationMessage *msg)
 {
+  struct GNUNET_DHT_Handle *handle = cls;
   struct GNUNET_DHT_PutHandle *ph;
   GNUNET_DHT_PutContinuation cont;
   void *cont_cls;
@@ -931,125 +823,62 @@ process_put_confirmation_message (struct GNUNET_DHT_Handle *handle,
     if (ph->unique_id == msg->unique_id)
       break;
   if (NULL == ph)
-    return GNUNET_OK;
+    return;
   cont = ph->cont;
   cont_cls = ph->cont_cls;
   GNUNET_DHT_put_cancel (ph);
   if (NULL != cont)
-    cont (cont_cls, GNUNET_OK);
-  return GNUNET_OK;
+    cont (cont_cls,
+          GNUNET_OK);
 }
 
 
 /**
- * Handler for messages received from the DHT service
- * a demultiplexer which handles numerous message types
+ * Try to (re)connect to the DHT service.
  *
- * @param cls the `struct GNUNET_DHT_Handle`
- * @param msg the incoming message
+ * @param h DHT handle to reconnect
+ * @return #GNUNET_YES on success, #GNUNET_NO on failure.
  */
-static void
-service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+static int
+try_connect (struct GNUNET_DHT_Handle *h)
 {
-  struct GNUNET_DHT_Handle *handle = cls;
-  const struct GNUNET_DHT_ClientResultMessage *dht_msg;
-  uint16_t msize;
-  int ret;
-
-
-  if (NULL == msg)
+  GNUNET_MQ_hd_var_size (monitor_get,
+                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
+                         struct GNUNET_DHT_MonitorGetMessage);
+  GNUNET_MQ_hd_var_size (monitor_get_resp,
+                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP,
+                         struct GNUNET_DHT_MonitorGetRespMessage);
+  GNUNET_MQ_hd_var_size (monitor_put,
+                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
+                         struct GNUNET_DHT_MonitorPutMessage);
+  GNUNET_MQ_hd_var_size (client_result,
+                         GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT,
+                         struct GNUNET_DHT_ClientResultMessage);
+  GNUNET_MQ_hd_fixed_size (put_confirmation,
+                           GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK,
+                           struct GNUNET_DHT_ClientPutConfirmationMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_monitor_get_handler (h),
+    make_monitor_get_resp_handler (h),
+    make_monitor_put_handler (h),
+    make_client_result_handler (h),
+    make_put_confirmation_handler (h),
+    GNUNET_MQ_handler_end ()
+  };
+  if (NULL != h->mq)
+    return GNUNET_OK;
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "dht",
+                                 handlers,
+                                 &mq_error_handler,
+                                 h);
+  if (NULL == h->mq)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Error receiving data from DHT service, reconnecting\n");
-    do_disconnect (handle);
-    return;
-  }
-  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  ret = GNUNET_SYSERR;
-  msize = ntohs (msg->size);
-  switch (ntohs (msg->type))
-  {
-  case GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET:
-    if (msize < sizeof (struct GNUNET_DHT_MonitorGetMessage))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    ret = process_monitor_get_message(handle,
-				      (const struct GNUNET_DHT_MonitorGetMessage *) msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP:
-    if (msize < sizeof (struct GNUNET_DHT_MonitorGetRespMessage))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    ret = process_monitor_get_resp_message(handle,
-					   (const struct GNUNET_DHT_MonitorGetRespMessage *) msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT:
-    if (msize < sizeof (struct GNUNET_DHT_MonitorPutMessage))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    ret = process_monitor_put_message(handle,
-				      (const struct GNUNET_DHT_MonitorPutMessage *) msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT_RESP:
-    /* Not implemented yet */
-    GNUNET_break(0);
-    break;
-  case GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT:
-    if (ntohs (msg->size) < sizeof (struct GNUNET_DHT_ClientResultMessage))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received reply for `%s' from DHT service %p\n",
-         GNUNET_h2s (&dht_msg->key), handle);
-    GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
-						&dht_msg->key,
-						&process_reply,
-						(void *) dht_msg);
-    ret = GNUNET_OK;
-    break;
-  case GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK:
-    if (ntohs (msg->size) != sizeof (struct GNUNET_DHT_ClientPutConfirmationMessage))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    ret = process_put_confirmation_message (handle,
-					    (const struct GNUNET_DHT_ClientPutConfirmationMessage*) msg);
-    break;
-#if ENABLE_MALICIOUS
-    case GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK:
-       if(msize != sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage))
-       {
-         GNUNET_break (0);
-         break;
-       }
-       ret = process_act_malicious_confirmation_message (handle,
-					    (const struct GNUNET_DHT_ClientActMaliciousConfirmationMessage*) msg);
-      break;
-#endif
-  default:
-    GNUNET_break(0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unknown DHT message type: %hu (%hu) size: %hu\n",
-         ntohs (msg->type), msg->type, msize);
-    break;
+         "Failed to connect to the DHT service!\n");
+    return GNUNET_NO;
   }
-  if (GNUNET_OK != ret)
-  {
-    GNUNET_break (0);
-    do_disconnect (handle);
-    return;
-  }
+  return GNUNET_YES;
 }
 
 
@@ -1069,9 +898,12 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   handle = GNUNET_new (struct GNUNET_DHT_Handle);
   handle->cfg = cfg;
-  handle->uid_gen =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len, GNUNET_YES);
+  handle->uid_gen
+    = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                UINT64_MAX);
+  handle->active_requests
+    = GNUNET_CONTAINER_multihashmap_create (ht_len,
+                                            GNUNET_YES);
   if (GNUNET_NO == try_connect (handle))
   {
     GNUNET_DHT_disconnect (handle);
@@ -1089,88 +921,29 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
 {
-  struct PendingMessage *pm;
   struct GNUNET_DHT_PutHandle *ph;
 
-  GNUNET_assert (NULL != handle);
   GNUNET_assert (0 ==
                  GNUNET_CONTAINER_multihashmap_size (handle->active_requests));
-  if (NULL != handle->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
-    handle->th = NULL;
-  }
-  while (NULL != (pm = handle->pending_head))
-  {
-    GNUNET_assert (GNUNET_YES == pm->in_pending_queue);
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
-                                 pm);
-    pm->in_pending_queue = GNUNET_NO;
-    GNUNET_assert (GNUNET_YES == pm->free_on_send);
-    if (NULL != pm->cont)
-      pm->cont (pm->cont_cls);
-    GNUNET_free (pm);
-  }
   while (NULL != (ph = handle->put_head))
   {
-    GNUNET_break (NULL == ph->pending);
     if (NULL != ph->cont)
-      ph->cont (ph->cont_cls, GNUNET_SYSERR);
+      ph->cont (ph->cont_cls,
+                GNUNET_SYSERR);
     GNUNET_DHT_put_cancel (ph);
   }
-
-  if (NULL != handle->client)
+  if (NULL != handle->mq)
   {
-    GNUNET_CLIENT_disconnect (handle->client);
-    handle->client = NULL;
+    GNUNET_MQ_destroy (handle->mq);
+    handle->mq = NULL;
   }
   if (NULL != handle->reconnect_task)
+  {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
+    handle->reconnect_task = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_destroy (handle->active_requests);
   GNUNET_free (handle);
-}
-
-
-/**
- * Timeout for the transmission of a fire&forget-request.  Clean it up.
- *
- * @param cls the `struct GNUNET_DHT_PutHandle *`
- */
-static void
-timeout_put_request (void *cls)
-{
-  struct GNUNET_DHT_PutHandle *ph = cls;
-  struct GNUNET_DHT_Handle *handle = ph->dht_handle;
-
-  ph->timeout_task = NULL;
-  if (NULL != ph->pending)
-  {
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
-				 ph->pending);
-    ph->pending->in_pending_queue = GNUNET_NO;
-    GNUNET_free (ph->pending);
-  }
-  if (NULL != ph->cont)
-    ph->cont (ph->cont_cls, GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (handle->put_head,
-			       handle->put_tail,
-			       ph);
-  GNUNET_free (ph);
-}
-
-
-/**
- * Function called whenever the PUT message leaves the queue.  Sets
- * the message pointer in the put handle to NULL.
- *
- * @param cls the `struct GNUNET_DHT_PutHandle`
- */
-static void
-mark_put_message_gone (void *cls)
-{
-  struct GNUNET_DHT_PutHandle *ph = cls;
-
-  ph->pending = NULL;
 }
 
 
@@ -1190,26 +963,25 @@ mark_put_message_gone (void *cls)
  * @param size number of bytes in data; must be less than 64k
  * @param data the data to store
  * @param exp desired expiration time for the value
- * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
  *        You must not call #GNUNET_DHT_disconnect in this continuation
  * @param cont_cls closure for @a cont
  */
 struct GNUNET_DHT_PutHandle *
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-	            	const struct GNUNET_HashCode * key,
+                const struct GNUNET_HashCode *key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type, size_t size,
-		            const void *data,
+                enum GNUNET_BLOCK_Type type,
+                size_t size,
+                const void *data,
                 struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout,
-		            GNUNET_DHT_PutContinuation cont,
+                GNUNET_DHT_PutContinuation cont,
                 void *cont_cls)
 {
+  struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DHT_ClientPutMessage *put_msg;
   size_t msize;
-  struct PendingMessage *pending;
   struct GNUNET_DHT_PutHandle *ph;
 
   msize = sizeof (struct GNUNET_DHT_ClientPutMessage) + size;
@@ -1219,36 +991,30 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
     GNUNET_break (0);
     return NULL;
   }
+  if (NULL == handle->mq)
+    return NULL;
   ph = GNUNET_new (struct GNUNET_DHT_PutHandle);
   ph->dht_handle = handle;
-  ph->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, &timeout_put_request, ph);
   ph->cont = cont;
   ph->cont_cls = cont_cls;
   ph->unique_id = ++handle->uid_gen;
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  ph->pending = pending;
-  put_msg = (struct GNUNET_DHT_ClientPutMessage *) &pending[1];
-  pending->msg = &put_msg->header;
-  pending->handle = handle;
-  pending->cont = &mark_put_message_gone;
-  pending->cont_cls = ph;
-  pending->free_on_send = GNUNET_YES;
-  put_msg->header.size = htons (msize);
-  put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT);
-  put_msg->type = htonl (type);
+  GNUNET_CONTAINER_DLL_insert_tail (handle->put_head,
+				    handle->put_tail,
+				    ph);
+  env = GNUNET_MQ_msg_extra (put_msg,
+                             size,
+                             GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT);
+  put_msg->type = htonl ((uint32_t) type);
   put_msg->options = htonl ((uint32_t) options);
   put_msg->desired_replication_level = htonl (desired_replication_level);
   put_msg->unique_id = ph->unique_id;
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   put_msg->key = *key;
-  memcpy (&put_msg[1], data, size);
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
-  GNUNET_CONTAINER_DLL_insert_tail (handle->put_head,
-				    handle->put_tail,
-				    ph);
-  process_pending_messages (handle);
+  memcpy (&put_msg[1],
+          data,
+          size);
+  GNUNET_MQ_send (handle->mq,
+                  env);
   return ph;
 }
 
@@ -1269,19 +1035,6 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
 {
   struct GNUNET_DHT_Handle *handle = ph->dht_handle;
 
-  if (NULL != ph->pending)
-  {
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-				 handle->pending_tail,
-				 ph->pending);
-    GNUNET_free (ph->pending);
-    ph->pending = NULL;
-  }
-  if (ph->timeout_task != NULL)
-  {
-    GNUNET_SCHEDULER_cancel (ph->timeout_task);
-    ph->timeout_task = NULL;
-  }
   GNUNET_CONTAINER_DLL_remove (handle->put_head,
 			       handle->put_tail,
 			       ph);
@@ -1302,21 +1055,22 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
  * @param xquery extended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in @a xquery
  * @param iter function to call on each result
- * @param iter_cls closure for iter
+ * @param iter_cls closure for @a iter
  * @return handle to stop the async get
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type, const struct GNUNET_HashCode * key,
+                      enum GNUNET_BLOCK_Type type,
+                      const struct GNUNET_HashCode *key,
                       uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options, const void *xquery,
-                      size_t xquery_size, GNUNET_DHT_GetIterator iter,
+                      enum GNUNET_DHT_RouteOption options,
+                      const void *xquery,
+                      size_t xquery_size,
+                      GNUNET_DHT_GetIterator iter,
                       void *iter_cls)
 {
-  struct GNUNET_DHT_ClientGetMessage *get_msg;
-  struct GNUNET_DHT_GetHandle *get_handle;
+  struct GNUNET_DHT_GetHandle *gh;
   size_t msize;
-  struct PendingMessage *pending;
 
   msize = sizeof (struct GNUNET_DHT_ClientGetMessage) + xquery_size;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
@@ -1325,37 +1079,31 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
     GNUNET_break (0);
     return NULL;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending query for %s to DHT %p\n",
-       GNUNET_h2s (key), handle);
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  get_msg = (struct GNUNET_DHT_ClientGetMessage *) &pending[1];
-  pending->msg = &get_msg->header;
-  pending->handle = handle;
-  pending->free_on_send = GNUNET_NO;
-  get_msg->header.size = htons (msize);
-  get_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET);
-  get_msg->options = htonl ((uint32_t) options);
-  get_msg->desired_replication_level = htonl (desired_replication_level);
-  get_msg->type = htonl (type);
-  get_msg->key = *key;
-  get_msg->unique_id = ++handle->uid_gen;
-  memcpy (&get_msg[1], xquery, xquery_size);
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
-  get_handle = GNUNET_new (struct GNUNET_DHT_GetHandle);
-  get_handle->key = *key;
-  get_handle->dht_handle = handle;
-  get_handle->iter = iter;
-  get_handle->iter_cls = iter_cls;
-  get_handle->message = pending;
-  get_handle->unique_id = get_msg->unique_id;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending query for %s to DHT %p\n",
+       GNUNET_h2s (key),
+       handle);
+  gh = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle) +
+                      xquery_size);
+  gh->iter = iter;
+  gh->iter_cls = iter_cls;
+  gh->dht_handle = handle;
+  gh->key = *key;
+  gh->unique_id = ++handle->uid_gen;
+  gh->xquery_size = xquery_size;
+  gh->desired_replication_level = desired_replication_level;
+  gh->type = type;
+  gh->options = options;
+  memcpy (&gh[1],
+          xquery,
+          xquery_size);
   GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
-                                     &get_handle->key,
-                                     get_handle,
+                                     &gh->key,
+                                     gh,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  process_pending_messages (handle);
-  return get_handle;
+  if (NULL != handle->mq)
+    send_get (gh);
+  return gh;
 }
 
 
@@ -1375,8 +1123,10 @@ GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
 				     const struct GNUNET_HashCode *results)
 {
   unsigned int needed;
+  unsigned int had;
 
-  needed = get_handle->seen_results_end + num_results;
+  had = get_handle->seen_results_end;
+  needed = had + num_results;
   if (needed > get_handle->seen_results_size)
     GNUNET_array_grow (get_handle->seen_results,
 		       get_handle->seen_results_size,
@@ -1385,8 +1135,9 @@ GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
 	  results,
 	  num_results * sizeof (struct GNUNET_HashCode));
   get_handle->seen_results_end += num_results;
-  queue_filter_messages (get_handle);
-  process_pending_messages (get_handle->dht_handle);
+  if (NULL != get_handle->dht_handle->mq)
+    send_get_known_results (get_handle,
+                            had);
 }
 
 
@@ -1398,52 +1149,33 @@ GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
 void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
 {
-  struct GNUNET_DHT_Handle *handle;
-  const struct GNUNET_DHT_ClientGetMessage *get_msg;
-  struct GNUNET_DHT_ClientGetStopMessage *stop_msg;
-  struct PendingMessage *pending;
+  struct GNUNET_DHT_Handle *handle = get_handle->dht_handle;
 
-  handle = get_handle->message->handle;
-  get_msg =
-      (const struct GNUNET_DHT_ClientGetMessage *) get_handle->message->msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending STOP for %s to DHT via %p\n",
-       GNUNET_h2s (&get_msg->key), handle);
-  /* generate STOP */
-  pending =
-      GNUNET_malloc (sizeof (struct PendingMessage) +
-                     sizeof (struct GNUNET_DHT_ClientGetStopMessage));
-  stop_msg = (struct GNUNET_DHT_ClientGetStopMessage *) &pending[1];
-  pending->msg = &stop_msg->header;
-  pending->handle = handle;
-  pending->free_on_send = GNUNET_YES;
-  stop_msg->header.size =
-      htons (sizeof (struct GNUNET_DHT_ClientGetStopMessage));
-  stop_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP);
-  stop_msg->reserved = htonl (0);
-  stop_msg->unique_id = get_msg->unique_id;
-  stop_msg->key = get_msg->key;
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
+       GNUNET_h2s (&get_handle->key),
+       handle);
+  if (NULL != handle->mq)
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_DHT_ClientGetStopMessage *stop_msg;
 
-  /* remove 'GET' from active status */
+    env = GNUNET_MQ_msg (stop_msg,
+                         GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP);
+    stop_msg->reserved = htonl (0);
+    stop_msg->unique_id = get_handle->unique_id;
+    stop_msg->key = get_handle->key;
+    GNUNET_MQ_send (handle->mq,
+                    env);
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (handle->active_requests,
                                                        &get_handle->key,
                                                        get_handle));
-  if (GNUNET_YES == get_handle->message->in_pending_queue)
-  {
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
-                                 get_handle->message);
-    get_handle->message->in_pending_queue = GNUNET_NO;
-  }
-  GNUNET_free (get_handle->message);
   GNUNET_array_grow (get_handle->seen_results,
 		     get_handle->seen_results_end,
 		     0);
   GNUNET_free (get_handle);
-  process_pending_messages (handle);
 }
 
 
@@ -1468,141 +1200,62 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
                           GNUNET_DHT_MonitorPutCB put_cb,
                           void *cb_cls)
 {
-  struct GNUNET_DHT_MonitorHandle *h;
-  struct GNUNET_DHT_MonitorStartStopMessage *m;
-  struct PendingMessage *pending;
+  struct GNUNET_DHT_MonitorHandle *mh;
 
-  h = GNUNET_new (struct GNUNET_DHT_MonitorHandle);
-  GNUNET_CONTAINER_DLL_insert(handle->monitor_head, handle->monitor_tail, h);
-
-  h->get_cb = get_cb;
-  h->get_resp_cb = get_resp_cb;
-  h->put_cb = put_cb;
-  h->cb_cls = cb_cls;
-  h->type = type;
-  h->dht_handle = handle;
+  mh = GNUNET_new (struct GNUNET_DHT_MonitorHandle);
+  mh->get_cb = get_cb;
+  mh->get_resp_cb = get_resp_cb;
+  mh->put_cb = put_cb;
+  mh->cb_cls = cb_cls;
+  mh->type = type;
+  mh->dht_handle = handle;
   if (NULL != key)
   {
-    h->key = GNUNET_new (struct GNUNET_HashCode);
-    *h->key = *key;
+    mh->key = GNUNET_new (struct GNUNET_HashCode);
+    *mh->key = *key;
   }
-
-  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
-                           sizeof (struct PendingMessage));
-  m = (struct GNUNET_DHT_MonitorStartStopMessage *) &pending[1];
-  pending->msg = &m->header;
-  pending->handle = handle;
-  pending->free_on_send = GNUNET_YES;
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_START);
-  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartStopMessage));
-  m->type = htonl(type);
-  m->get = htons(NULL != get_cb);
-  m->get_resp = htons(NULL != get_resp_cb);
-  m->put = htons(NULL != put_cb);
-  if (NULL != key) {
-    m->filter_key = htons(1);
-    memcpy (&m->key, key, sizeof(struct GNUNET_HashCode));
-  }
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
-  process_pending_messages (handle);
-
-  return h;
+  GNUNET_CONTAINER_DLL_insert (handle->monitor_head,
+                               handle->monitor_tail,
+                               mh);
+  if (NULL != handle->mq)
+    send_monitor_start (mh);
+  return mh;
 }
 
 
 /**
  * Stop monitoring.
  *
- * @param handle The handle to the monitor request returned by monitor_start.
+ * @param mh The handle to the monitor request returned by monitor_start.
  *
  * On return get_handle will no longer be valid, caller must not use again!!!
  */
 void
-GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
+GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *mh)
 {
+  struct GNUNET_DHT_Handle *handle = mh->dht_handle;
   struct GNUNET_DHT_MonitorStartStopMessage *m;
-  struct PendingMessage *pending;
+  struct GNUNET_MQ_Envelope *env;
 
-  GNUNET_CONTAINER_DLL_remove (handle->dht_handle->monitor_head,
-                               handle->dht_handle->monitor_tail,
-                               handle);
-
-  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
-                           sizeof (struct PendingMessage));
-  m = (struct GNUNET_DHT_MonitorStartStopMessage *) &pending[1];
-  pending->msg = &m->header;
-  pending->handle = handle->dht_handle;
-  pending->free_on_send = GNUNET_YES;
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP);
-  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartStopMessage));
-  m->type = htonl(handle->type);
-  m->get = htons (NULL != handle->get_cb);
-  m->get_resp = htons(NULL != handle->get_resp_cb);
-  m->put = htons (NULL != handle->put_cb);
-  if (NULL != handle->key)
+  GNUNET_CONTAINER_DLL_remove (handle->monitor_head,
+                               handle->monitor_tail,
+                               mh);
+  env = GNUNET_MQ_msg (m,
+                       GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP);
+  m->type = htonl (mh->type);
+  m->get = htons (NULL != mh->get_cb);
+  m->get_resp = htons(NULL != mh->get_resp_cb);
+  m->put = htons (NULL != mh->put_cb);
+  if (NULL != mh->key)
   {
     m->filter_key = htons (1);
-    m->key = *handle->key;
+    m->key = *mh->key;
   }
-  GNUNET_CONTAINER_DLL_insert (handle->dht_handle->pending_head,
-                               handle->dht_handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
-  process_pending_messages (handle->dht_handle);
-
-  GNUNET_free_non_null (handle->key);
-  GNUNET_free (handle);
+  GNUNET_MQ_send (handle->mq,
+                  env);
+  GNUNET_free_non_null (mh->key);
+  GNUNET_free (mh);
 }
-
-
-#if ENABLE_MALICIOUS
-/**
- * Turn the DHT service to act malicious.
- *
- * @param handle the DHT handle
- * @param action 1 to make the service malicious; 0 to make it benign
- * @param cont continuation to call when done (transmitting request to service)
- * @param cont_cls closure for @a cont
- */
-struct GNUNET_DHT_ActMaliciousHandle *
-GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle,
-                          unsigned int action,
-                          GNUNET_DHT_PutContinuation cont,
-                          void *cont_cls)
-{
-  struct GNUNET_DHT_ActMaliciousMessage *amm;
-  struct GNUNET_DHT_ActMaliciousHandle *mh;
-  struct PendingMessage *pending;
-  size_t msize;
-
-  msize = sizeof(struct GNUNET_DHT_ActMaliciousMessage);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break(0);
-    return NULL;
-  }
-  mh = GNUNET_new (struct GNUNET_DHT_ActMaliciousHandle);
-  mh->dht_handle = handle;
-  mh->cont = cont;
-  mh->cont_cls = cont_cls;
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  amm = (struct GNUNET_DHT_ActMaliciousMessage *)&pending[1];
-  pending->msg = &amm->header;
-  pending->handle = handle;
-  pending->free_on_send = GNUNET_YES;
-  amm->header.size = htons (msize);
-  amm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS);
-  amm->action = action;
-  handle->mh = mh;
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                               pending);
-  pending->in_pending_queue = GNUNET_YES;
-  process_pending_messages (handle);
-  return mh;
-}
-#endif
 
 
 /* end of dht_api.c */

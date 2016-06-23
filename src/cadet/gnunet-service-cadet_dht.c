@@ -214,7 +214,6 @@ announce_id (void *cls)
   const struct GNUNET_HELLO_Message *hello;
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_TIME_Relative retry_time;
 
   announce_id_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
@@ -235,7 +234,6 @@ announce_id (void *cls)
     return;
   }
   expiration = GNUNET_HELLO_get_last_expiration (hello);
-  retry_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
   GNUNET_STATISTICS_update (stats, "# DHT announce",
@@ -251,7 +249,6 @@ announce_id (void *cls)
                   size,  /* Size of the data */
                   (const char *) hello, /* Data itself */
                   expiration,  /* Data expiration */
-                  retry_time, /* Retry time */
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
   announce_id_task =

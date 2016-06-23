@@ -3480,7 +3480,6 @@ do_dht_put (void *cls)
 			    sizeof (struct GNUNET_DNS_Advertisement),
 			    &dns_advertisement,
 			    expiration,
-			    GNUNET_TIME_UNIT_FOREVER_REL,
 			    &dht_put_cont, NULL);
 }
 

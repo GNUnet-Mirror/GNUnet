@@ -42,11 +42,6 @@ struct GNUNET_HashCode key;
 static char *query_key;
 
 /**
- * User supplied timeout value
- */
-static unsigned long long timeout_request = 5;
-
-/**
  * User supplied expiration value
  */
 static unsigned long long expiration_seconds = 3600;
@@ -148,7 +143,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
 
   cfg = c;
@@ -170,8 +164,6 @@ run (void *cls,
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
-  timeout =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   expiration =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
                                         (GNUNET_TIME_UNIT_SECONDS,
@@ -179,12 +171,16 @@ run (void *cls,
   if (verbose)
     FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-  GNUNET_DHT_put (dht_handle, &key, replication,
+  GNUNET_DHT_put (dht_handle,
+                  &key,
+                  replication,
                   (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
                   query_type,
-                  strlen (data), data, expiration, timeout, &message_sent_cont,
+                  strlen (data),
+                  data,
+                  expiration,
+                  &message_sent_cont,
                   NULL);
-
 }
 
 
@@ -210,9 +206,6 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'t', "type", "TYPE",
    gettext_noop ("the type to insert data as"),
    1, &GNUNET_GETOPT_set_uint, &query_type},
-  {'T', "timeout", "TIMEOUT",
-   gettext_noop ("how long to execute this query before giving up?"),
-   1, &GNUNET_GETOPT_set_ulong, &timeout_request},
   {'V', "verbose", NULL,
    gettext_noop ("be verbose (print progress information)"),
    0, &GNUNET_GETOPT_set_one, &verbose},
@@ -230,10 +223,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                                 &argc, &argv))
     return 2;
-
-
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-put",
                               gettext_noop

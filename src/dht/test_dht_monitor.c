@@ -216,7 +216,6 @@ do_puts (void *cls)
                     GNUNET_BLOCK_TYPE_TEST,
 		    sizeof (value), &value,
 		    GNUNET_TIME_UNIT_FOREVER_ABS,
-                    GNUNET_TIME_UNIT_FOREVER_REL,
 		    NULL, NULL);
   }
   put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY,

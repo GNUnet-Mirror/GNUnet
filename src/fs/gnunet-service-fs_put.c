@@ -199,9 +199,14 @@ process_dht_put_content (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Retrieved block `%s' of type %u for DHT PUT\n", GNUNET_h2s (key),
               type);
-  po->dht_put = GNUNET_DHT_put (GSF_dht, key, DEFAULT_PUT_REPLICATION,
-				GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, type, size, data,
-				expiration, GNUNET_TIME_UNIT_FOREVER_REL,
+  po->dht_put = GNUNET_DHT_put (GSF_dht,
+                                key,
+                                DEFAULT_PUT_REPLICATION,
+				GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                type,
+                                size,
+                                data,
+				expiration,
 				&delay_dht_put_blocks, po);
 }
 

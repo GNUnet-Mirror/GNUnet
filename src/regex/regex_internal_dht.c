@@ -151,7 +151,6 @@ regex_iterator (void *cls,
                     size,
                     &ab,
                     GNUNET_TIME_relative_to_absolute (DHT_TTL),
-                    DHT_TTL,
                     NULL, NULL);
   }
   block = REGEX_BLOCK_create (proof,
@@ -165,7 +164,6 @@ regex_iterator (void *cls,
                   GNUNET_BLOCK_TYPE_REGEX,
                   size, block,
                   GNUNET_TIME_relative_to_absolute (DHT_TTL),
-                  DHT_TTL,
                   NULL, NULL);
   GNUNET_STATISTICS_update (h->stats,
                             "# regex blocks stored",

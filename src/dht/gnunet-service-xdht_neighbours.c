@@ -939,12 +939,6 @@ static struct GNUNET_TIME_Relative notify_successor_retry_time;
 unsigned int track_topology;
 
 /**
- * Should I be a malicious peer and drop the PUT/GET packets?
- * if 0 then NOT malicious.
- */
-unsigned int act_malicious;
-
-/**
  * Count of fingers found. Ideally we should have O(logn) fingers for a
  * stable network.
  */
@@ -1067,19 +1061,6 @@ process_friend_queue (struct FriendInfo *peer)
   GNUNET_break (NULL != peer->th);
 }
 
-
-#if ENABLE_MALICIOUS
-/**
- * Set the ENABLE_MALICIOUS value to malicious.
- * @param malicious
- */
-int
-GDS_NEIGHBOURS_act_malicious (unsigned int malicious)
-{
-  act_malicious = malicious;
-  return GNUNET_OK;
-}
-#endif
 
 /**
  * Construct a trail setup message and forward it to target_friend
@@ -2291,38 +2272,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
   }
   /* In case we are sending the request to  a finger, then send across all of its
    trail.*/
-#if ENABLE_MALICIOUS
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&successor.best_known_destination,
-                                            &successor.next_hop))
-  {
-    struct FingerInfo *next_hop_finger;
-    unsigned int i;
-
-    next_hop_finger = &finger_table[successor.finger_table_index];
-    for (i = 0; i < next_hop_finger->trails_count; i++)
-    {
-      if (GNUNET_YES == next_hop_finger->trail_list[i].is_present)
-      {
-        if(0 == next_hop_finger->trail_list[i].trail_length)
-        {
-           GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
-                                    best_known_dest, intermediate_trail_id, &next_hop,
-                                    0, 1, &my_identity, expiration_time,
-                                    data, data_size);
-           return;
-        }
-        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
-        GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
-                                 best_known_dest,
-                                 next_hop_finger->trail_list[i].trail_id,
-                                 &next_hop, 0, 1, &my_identity,
-                                 expiration_time,
-                                 data, data_size);
-       }
-    }
-    return;
-  }
-#endif
  GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
                           best_known_dest, intermediate_trail_id, &next_hop,
                           0, 1, &my_identity, expiration_time,
@@ -2436,38 +2385,6 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
     return;
   }
 
-#if ENABLE_MALICIOUS
-  struct GNUNET_PeerIdentity next_hop;
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&successor.best_known_destination,
-                                            &successor.next_hop))
-  {
-    struct FingerInfo *next_hop_finger;
-    unsigned int i;
-
-    next_hop_finger = &finger_table[successor.finger_table_index];
-    for (i = 0; i < next_hop_finger->trails_count; i++)
-    {
-      if (GNUNET_YES == next_hop_finger->trail_list[i].is_present)
-      {
-        if(0 == next_hop_finger->trail_list[i].trail_length)
-        {
-           GDS_NEIGHBOURS_send_get (key, block_type, options,
-                                    desired_replication_level,
-                                    best_known_dest,intermediate_trail_id,
-                                    &successor.next_hop,
-                                    0, 1, &my_identity);
-           return;
-        }
-        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
-        GDS_NEIGHBOURS_send_get (key, block_type, options, desired_replication_level,
-                                 best_known_dest,
-                                 next_hop_finger->trail_list[i].trail_id,
-                                 &next_hop, 0, 1, &my_identity);
-       }
-    }
-    return;
-  }
-#endif
   GDS_NEIGHBOURS_send_get (key, block_type, options, desired_replication_level,
                            best_known_dest,intermediate_trail_id, &successor.next_hop,
                            0, 1, &my_identity);
@@ -3686,13 +3603,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-#if ENABLE_MALICIOUS
-  if(1 == act_malicious)
-  {
-    DEBUG("\n I AM MALICIOUS PUT_REQUEST_DROPPED for key = %ss",GNUNET_h2s(&put->key));
-    return GNUNET_OK;
-  }
-#endif
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), (int64_t) msize,
@@ -3818,45 +3728,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                               &(put->key),putlen, pp, ntohl (put->block_type),
                               payload_size, payload);
   }
-  else
-  {
-#if ENABLE_MALICIOUS
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&successor.best_known_destination,
-                                            &successor.next_hop))
-  {
-    struct FingerInfo *next_hop_finger;
-    unsigned int i;
-
-    next_hop_finger = &finger_table[successor.finger_table_index];
-    for (i = 0; i < next_hop_finger->trails_count; i++)
-    {
-      if (GNUNET_YES == next_hop_finger->trail_list[i].is_present)
-      {
-        if(0 == next_hop_finger->trail_list[i].trail_length)
-        {
-          GDS_NEIGHBOURS_send_put (&put->key,
-                                  ntohl (put->block_type),ntohl (put->options),
-                                  ntohl (put->desired_replication_level),
-                                  best_known_dest, intermediate_trail_id, &next_hop,
-                                  hop_count, putlen, pp,
-                                  GNUNET_TIME_absolute_ntoh (put->expiration_time),
-                                  payload, payload_size);
-          return GNUNET_OK;
-        }
-        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
-        GDS_NEIGHBOURS_send_put (&put->key,
-                                 ntohl (put->block_type),ntohl (put->options),
-                                 ntohl (put->desired_replication_level),
-                                 best_known_dest,
-                                 next_hop_finger->trail_list[i].trail_id,
-                                 &next_hop, hop_count, putlen, pp,
-                                 GNUNET_TIME_absolute_ntoh (put->expiration_time),
-                                 payload, payload_size);
-       }
-    }
-    return GNUNET_OK;
-  }
-#endif
   GDS_NEIGHBOURS_send_put (&put->key,
                            ntohl (put->block_type),ntohl (put->options),
                            ntohl (put->desired_replication_level),
@@ -3917,13 +3788,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_YES;
   }
 
-#if ENABLE_MALICIOUS
-  if(1 == act_malicious)
-  {
-    DEBUG("I am malicious,GET_REQUEST_DROPPED for key = %s. \n",GNUNET_h2s(&get->key));
-    return GNUNET_OK;
-  }
-#endif
   current_best_known_dest = get->best_known_destination;
   received_intermediate_trail_id = get->intermediate_trail_id;
   get_path = (const struct GNUNET_PeerIdentity *)&get[1];
@@ -3997,37 +3861,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
   {
 
-#if ENABLE_MALICIOUS
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&successor.best_known_destination,
-                                            &successor.next_hop))
-  {
-    struct FingerInfo *next_hop_finger;
-    unsigned int i;
-
-    next_hop_finger = &finger_table[successor.finger_table_index];
-    for (i = 0; i < next_hop_finger->trails_count; i++)
-    {
-      if(0 == next_hop_finger->trail_list[i].trail_length)
-      {
-        GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
-                                get->desired_replication_level, best_known_dest,
-                                intermediate_trail_id, &next_hop, hop_count,
-                                get_length, gp);
-        return GNUNET_OK;
-      }
-      if (GNUNET_YES == next_hop_finger->trail_list[i].is_present)
-      {
-        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
-        GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
-                                 get->desired_replication_level, best_known_dest,
-                                 next_hop_finger->trail_list[i].trail_id,
-                                 &next_hop, hop_count,
-                                 get_length, gp);
-       }
-    }
-    return GNUNET_OK;
-  }
-#endif
     GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
                              get->desired_replication_level, best_known_dest,
                              intermediate_trail_id, &next_hop, hop_count,
@@ -6167,10 +6000,6 @@ GDS_NEIGHBOURS_init (void)
                                       sizeof (struct PeerNotifyConfirmationMessage)},
     {NULL, 0, 0}
   };
-
-#if ENABLE_MALICIOUS
-  act_malicious = 0;
-#endif
 
   core_api =
     GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
