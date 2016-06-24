@@ -38,12 +38,13 @@ static struct GNUNET_PEERINFO_Handle *h;
 
 static int global_ret;
 
+
 static int
 addr_cb (void *cls,
          const struct GNUNET_HELLO_Address *address,
          struct GNUNET_TIME_Absolute expiration)
 {
-  int *addr = cls;
+  unsigned int *addr = cls;
 
   (*addr) ++;
   return GNUNET_OK;
@@ -57,28 +58,35 @@ process (void *cls,
          const char *err_msg)
 {
   static unsigned int calls = 0;
-  int addr;
+  unsigned int addr;
 
-  if (err_msg != NULL)
+  if (NULL != err_msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Error in communication with PEERINFO service\n"));
+                "Error in communication with PEERINFO service: %s\n",
+                err_msg);
   }
   if (NULL != peer)
   {
     addr = 0;
     if (NULL != hello)
     {
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &addr_cb, &addr);
+      GNUNET_HELLO_iterate_addresses (hello,
+                                      GNUNET_NO,
+                                      &addr_cb,
+                                      &addr);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Got information about peer `%s' with %u addresses \n",
-                  GNUNET_i2s (peer), addr);
+                  "Got information about peer %s with %u addresses\n",
+                  GNUNET_i2s (peer),
+                  addr);
       calls++;
     }
     else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Fail: Got information about peer `%s' without HELLO \n",
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got no HELLP for peer %s\n",
                   GNUNET_i2s (peer));
+    }
   }
   else
   {
@@ -87,13 +95,18 @@ process (void *cls,
       fprintf (stderr,
                "Failed: got no callbacks!\n");
       global_ret = 1;
+      GNUNET_PEERINFO_disconnect (h);
+      h = NULL;
     }
     else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Got %u callbacks\n", calls);
-        global_ret = 0;
-      }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got %u HELLOs in total\n",
+                  calls);
+      global_ret = 0;
+      GNUNET_PEERINFO_disconnect (h);
+      h = NULL;
+    }
   }
 }
 
@@ -105,14 +118,18 @@ run (void *cls,
 {
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (NULL != h);
-  ic = GNUNET_PEERINFO_iterate (h, GNUNET_YES, NULL,
-                                GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
+  ic = GNUNET_PEERINFO_iterate (h,
+                                GNUNET_YES,
+                                NULL,
+                                &process,
+                                cls);
+  GNUNET_assert (NULL != ic);
 }
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   global_ret = 3;
   if (0 != GNUNET_TESTING_service_run ("test_peerinfo_shipped_hellos",

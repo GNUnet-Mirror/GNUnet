@@ -32,7 +32,7 @@
 #include "gnunet-peerinfo_plugins.h"
 
 /**
- * How long until we time out during peerinfo iterations?
+ * How long until we time out during address lookup?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -210,7 +210,7 @@ static struct PrintContext *pc_tail;
 /**
  * Handle to current #GNUNET_PEERINFO_add_peer() operation.
  */
-static struct GNUNET_PEERINFO_AddContext *ac;
+static struct GNUNET_MQ_Envelope *ac;
 
 /**
  * Hello of this peer (if initialized).
@@ -561,17 +561,11 @@ print_my_uri (void *cls,
  * Continuation called from #GNUNET_PEERINFO_add_peer()
  *
  * @param cls closure, NULL
- * @param emsg error message, NULL on success
  */
 static void
-add_continuation (void *cls,
-		  const char *emsg)
+add_continuation (void *cls)
 {
   ac = NULL;
-  if (NULL != emsg)
-    fprintf (stderr,
-	     _("Failure adding HELLO: %s\n"),
-	     emsg);
   tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
@@ -599,7 +593,8 @@ parse_hello_uri (const char *put_uri)
   {
     /* WARNING: this adds the address from URI WITHOUT verification! */
     if (GNUNET_OK == ret)
-      ac = GNUNET_PEERINFO_add_peer (peerinfo, hello,
+      ac = GNUNET_PEERINFO_add_peer (peerinfo,
+                                     hello,
                                      &add_continuation,
                                      NULL);
     else
@@ -628,7 +623,7 @@ shutdown_task (void *cls)
 
   if (NULL != ac)
   {
-    GNUNET_PEERINFO_add_peer_cancel (ac);
+    GNUNET_MQ_send_cancel (ac);
     ac = NULL;
   }
   if (NULL != tt)
@@ -830,7 +825,6 @@ state_machine (void *cls)
     pic = GNUNET_PEERINFO_iterate (peerinfo,
                                    include_friend_only,
                                    NULL,
-				   TIMEOUT,
 				   &print_peer_info, NULL);
   }
   else if (GNUNET_YES == get_self)
@@ -850,7 +844,6 @@ state_machine (void *cls)
     pic = GNUNET_PEERINFO_iterate (peerinfo,
                                    include_friend_only,
                                    &my_peer_identity,
-				   TIMEOUT,
                                    &print_my_uri, NULL);
     get_uri = GNUNET_NO;
   }

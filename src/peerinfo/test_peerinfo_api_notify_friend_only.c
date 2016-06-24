@@ -209,22 +209,6 @@ process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 static void
-add_peer_done (void *cls, const char *emsg)
-{
-  if (NULL == emsg)
-  {
-    return;
-  }
-  else
-  {
-    GNUNET_break(0);
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  }
-}
-
-
-static void
 add_peer ()
 {
   struct GNUNET_HELLO_Message *h2;
@@ -233,10 +217,9 @@ add_peer ()
   agc = 2;
   memset (&pid, 32, sizeof(pid));
   h2 = GNUNET_HELLO_create (&pid.public_key, &address_generator, &agc,
-      GNUNET_YES);
-  GNUNET_PEERINFO_add_peer (h, h2, &add_peer_done, NULL);
+                            GNUNET_YES);
+  GNUNET_PEERINFO_add_peer (h, h2, NULL, NULL);
   GNUNET_free(h2);
-
 }
 
 

@@ -468,7 +468,28 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
 
 
 /**
- * Implementation of the GNUNET_MQ_msg_nested_mh macro.
+ * Create a new envelope by copying an existing message.
+ *
+ * @param hdr header of the message to copy
+ * @return envelope containing @a hdr
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_msg_copy (const struct GNUNET_MessageHeader *hdr)
+{
+  struct GNUNET_MQ_Envelope *mqm;
+  uint16_t size = ntohs (hdr->size);
+
+  mqm = GNUNET_malloc (sizeof (*mqm) + size);
+  mqm->mh = (struct GNUNET_MessageHeader *) &mqm[1];
+  memcpy (mqm->mh,
+          hdr,
+          size);
+  return mqm;
+}
+
+
+/**
+ * Implementation of the #GNUNET_MQ_msg_nested_mh macro.
  *
  * @param mhp pointer to the message header pointer that will be changed to allocate at
  *        the newly allocated space for the message.

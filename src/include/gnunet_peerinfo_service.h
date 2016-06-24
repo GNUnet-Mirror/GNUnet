@@ -81,23 +81,6 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
- * Continuation called with a status result.
- *
- * @param cls closure
- * @param emsg error message, NULL on success
- */
-typedef void
-(*GNUNET_PEERINFO_Continuation)(void *cls,
-                                const char *emsg);
-
-
-/**
- * Opaque handle to cancel 'add' operation.
- */
-struct GNUNET_PEERINFO_AddContext;
-
-
-/**
  * Add a host to the persistent list.  This method operates in
  * semi-reliable mode: if the transmission is not completed by
  * the time #GNUNET_PEERINFO_disconnect() is called, it will be
@@ -112,24 +95,14 @@ struct GNUNET_PEERINFO_AddContext;
  * @return handle to cancel add operation; all pending
  *         'add' operations will be cancelled automatically
  *        on disconnect, so it is not necessary to keep this
- *        handle (unless @a cont is NULL and at some point
+ *        handle (unless @a cont is non-NULL and at some point
  *        calling @a cont must be prevented)
  */
-struct GNUNET_PEERINFO_AddContext *
+struct GNUNET_MQ_Envelope *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
                           const struct GNUNET_HELLO_Message *hello,
-			  GNUNET_PEERINFO_Continuation cont,
+			  GNUNET_MQ_NotifyCallback cont,
 			  void *cont_cls);
-
-
-/**
- * Cancel pending 'add' operation.  Must only be called before
- * either 'cont' or #GNUNET_PEERINFO_disconnect() are invoked.
- *
- * @param ac handle for the add operation to cancel
- */
-void
-GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac);
 
 
 /**
@@ -175,8 +148,8 @@ struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 			 int include_friend_only,
                          const struct GNUNET_PeerIdentity *peer,
-                         struct GNUNET_TIME_Relative timeout,
-                         GNUNET_PEERINFO_Processor callback, void *callback_cls);
+                         GNUNET_PEERINFO_Processor callback,
+                         void *callback_cls);
 
 
 /**

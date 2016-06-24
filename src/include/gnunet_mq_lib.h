@@ -412,6 +412,16 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
 
 
 /**
+ * Create a new envelope by copying an existing message.
+ *
+ * @param hdr header of the message to copy
+ * @return envelope containing @a hdr
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_msg_copy (const struct GNUNET_MessageHeader *hdr);
+
+
+/**
  * Discard the message queue message, free all
  * allocated resources. Must be called in the event
  * that a message is created but should not actually be sent.

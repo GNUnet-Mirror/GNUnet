@@ -132,7 +132,7 @@ handle_search_response (void *cls,
  * We got a disconnect after asking regex to do the announcement.
  * Retry.
  *
- * @param cls the `struct GNUNET_REGEX_Announcement` to retry
+ * @param cls the `struct GNUNET_REGEX_Search` to retry
  * @param error error code
  */
 static void

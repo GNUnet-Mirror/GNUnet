@@ -609,7 +609,6 @@ process_notify (void *cls,
   builder->pitr
     = GNUNET_PEERINFO_iterate (peerinfo,
                                GNUNET_NO, NULL,
-                               GNUNET_TIME_UNIT_MINUTES,
                                &host_processor, NULL);
 }
 

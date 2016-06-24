@@ -119,8 +119,7 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
       retries++;
       add_peer ();
       ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, NULL,
-                                    GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 15), &process,
+                                    &process,
                                     cls);
       return;
     }
@@ -135,7 +134,8 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_assert (3 == global_ret);
     agc = 3;
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
+                                    &check_it, &agc);
     GNUNET_assert (agc == 0);
     global_ret = 2;
   }
@@ -151,8 +151,7 @@ run (void *cls,
   GNUNET_assert (NULL != h);
   add_peer ();
   ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, &pid,
-                                GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
+                                &process, cls);
 }
 
 
