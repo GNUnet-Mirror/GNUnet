@@ -1386,9 +1386,9 @@ shutdown_task (void *cls)
   }
   if (NULL != lh)
   {
-    struct GNUNET_TIME_Relative timeout;
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
-    GNUNET_TESTBED_LOGGER_flush (lh, timeout, &flush_comp_cb, NULL);
+    GNUNET_TESTBED_LOGGER_flush (lh,
+                                 &flush_comp_cb,
+                                 NULL);
   }
   if (NULL != histogram)
   {

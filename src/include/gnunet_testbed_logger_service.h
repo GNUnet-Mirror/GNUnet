@@ -40,7 +40,7 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_configuration_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * Opaque handle for the logging service
@@ -70,7 +70,7 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h);
 
 /**
  * Functions of this type are called to notify a successful transmission of the
- * message to the logger service
+ * message to the logger service.
  *
  * @param cls the closure given to GNUNET_TESTBED_LOGGER_send()
  * @param size the amount of data sent
@@ -87,7 +87,7 @@ typedef void
  *
  * @param h the logger handle
  * @param data the data to send;
- * @param size how many bytes of data to send
+ * @param size how many bytes of @a data to send
  */
 void
 GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
@@ -99,13 +99,11 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
  * Flush the buffered data to the logger service
  *
  * @param h the logger handle
- * @param timeout how long to wait before calling the flust completion callback
  * @param cb the callback to call after the data is flushed
- * @param cb_cls the closure for the above callback
+ * @param cb_cls the closure for @a cb
  */
 void
 GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
-                             struct GNUNET_TIME_Relative timeout,
                              GNUNET_TESTBED_LOGGER_FlushCompletion cb,
                              void *cb_cls);
 

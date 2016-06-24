@@ -209,7 +209,6 @@ do_write (void *cls)
   if (0 == i++)
     return;
   GNUNET_TESTBED_LOGGER_flush (h,
-			       GNUNET_TIME_UNIT_FOREVER_REL,
                                &flush_comp,
                                &write_task);
 }
