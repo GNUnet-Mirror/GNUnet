@@ -29,7 +29,7 @@
 #include "gnunet_protocols.h"
 #include "peerinfo.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "nse-api",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "peerinfo-api",__VA_ARGS__)
 
 /**
  * Context for the info handler.
