@@ -137,7 +137,8 @@ do_finish (void *cls,
 static void
 do_put (void *cls,
 	const struct GNUNET_HashCode *key,
-	size_t size, const void *data,
+	size_t size,
+        const void *data,
 	enum GNUNET_BLOCK_Type type,
 	uint32_t priority,
 	uint32_t anonymity,
@@ -158,7 +159,7 @@ do_put (void *cls,
 			     priority, anonymity,
 			     0 /* FIXME: replication is lost... */,
 			     expiration,
-			     0, 1, GNUNET_TIME_UNIT_FOREVER_REL,
+			     0, 1,
 			     &do_finish, NULL);
 }
 
@@ -173,7 +174,6 @@ do_get ()
 				 offset,
 				 NULL, GNUNET_BLOCK_TYPE_ANY,
 				 0, 1,
-				 GNUNET_TIME_UNIT_FOREVER_REL,
 				 &do_put, NULL);
 }
 

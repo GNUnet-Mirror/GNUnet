@@ -416,16 +416,20 @@ delete_expired (void *cls)
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
+ * @return #GNUNET_SYSERR to abort the iteration, #GNUNET_OK to continue
  *         (continue on call to "next", of course),
- *         GNUNET_NO to delete the item and continue (if supported)
+ *         #GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-quota_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                 const void *data, enum GNUNET_BLOCK_Type type,
-                 uint32_t priority, uint32_t anonymity,
-                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+quota_processor (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 uint32_t size,
+                 const void *data,
+                 enum GNUNET_BLOCK_Type type,
+                 uint32_t priority,
+                 uint32_t anonymity,
+                 struct GNUNET_TIME_Absolute expiration,
+                 uint64_t uid)
 {
   unsigned long long *need = cls;
 
@@ -473,12 +477,15 @@ manage_space (unsigned long long need)
   unsigned long long last;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asked to free up %llu bytes of cache space\n", need);
+              "Asked to free up %llu bytes of cache space\n",
+              need);
   last = 0;
   while ((need > 0) && (last != need))
   {
     last = need;
-    plugin->api->get_expiration (plugin->api->cls, &quota_processor, &need);
+    plugin->api->get_expiration (plugin->api->cls,
+                                 &quota_processor,
+                                 &need);
   }
 }
 
@@ -1068,7 +1075,7 @@ handle_put (void *cls,
 
 
 /**
- * Handle GET-message.
+ * Handle #GNUNET_MESSAGE_TYPE_DATASTORE_GET-message.
  *
  * @param cls closure
  * @param client identification of the client
@@ -1080,28 +1087,52 @@ handle_get (void *cls,
             const struct GNUNET_MessageHeader *message)
 {
   const struct GetMessage *msg;
-  uint16_t size;
 
-  size = ntohs (message->size);
-  if ((size != sizeof (struct GetMessage)) &&
-      (size != sizeof (struct GetMessage) - sizeof (struct GNUNET_HashCode)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   msg = (const struct GetMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing GET request for `%s' of type %u\n",
-              GNUNET_h2s (&msg->key),
+              "Processing GET request of type %u\n",
               ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET requests received"),
                             1,
                             GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  if ( (size == sizeof (struct GetMessage)) &&
-       (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter, &msg->key)) )
+  plugin->api->get_key (plugin->api->cls,
+                        GNUNET_ntohll (msg->offset),
+                        NULL,
+                        NULL,
+                        ntohl (msg->type),
+                        &transmit_item,
+                        client);
+}
+
+/**
+ * Handle #GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_get_key (void *cls,
+                struct GNUNET_SERVER_Client *client,
+                const struct GNUNET_MessageHeader *message)
+{
+  const struct GetKeyMessage *msg;
+
+  msg = (const struct GetKeyMessage *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Processing GET request for `%s' of type %u\n",
+              GNUNET_h2s (&msg->key),
+              ntohl (msg->type));
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# GET KEY requests received"),
+                            1,
+                            GNUNET_NO);
+  GNUNET_SERVER_client_keep (client);
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_bloomfilter_test (filter,
+                                         &msg->key))
   {
     /* don't bother database... */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1112,14 +1143,19 @@ handle_get (void *cls,
                               ("# requests filtered by bloomfilter"),
                               1,
                               GNUNET_NO);
-    transmit_item (client, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS,
+    transmit_item (client,
+                   NULL, 0, NULL, 0, 0, 0,
+                   GNUNET_TIME_UNIT_ZERO_ABS,
                    0);
     return;
   }
-  plugin->api->get_key (plugin->api->cls, GNUNET_ntohll (msg->offset),
-                        ((size ==
-                          sizeof (struct GetMessage)) ? &msg->key : NULL), NULL,
-                        ntohl (msg->type), &transmit_item, client);
+  plugin->api->get_key (plugin->api->cls,
+                        GNUNET_ntohll (msg->offset),
+                        &msg->key,
+                        NULL,
+                        ntohl (msg->type),
+                        &transmit_item,
+                        client);
 }
 
 
@@ -1369,7 +1405,8 @@ disk_utilization_change_cb (void *cls,
                 _("Datastore payload must have been inaccurate (%lld < %lld). Recomputing it.\n"),
                 (long long) payload,
                 (long long) -delta);
-    plugin->api->estimate_size (plugin->api->cls, &payload);
+    plugin->api->estimate_size (plugin->api->cls,
+                                &payload);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("New payload: %lld\n"),
                 (long long) payload);
@@ -1474,7 +1511,10 @@ static const struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0},
   {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
    sizeof (struct UpdateMessage)},
-  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0},
+  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET,
+   sizeof (struct GetMessage) },
+  {&handle_get_key, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY,
+   sizeof (struct GetKeyMessage) },
   {&handle_get_replication, NULL,
    GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
    sizeof (struct GNUNET_MessageHeader)},
@@ -1555,6 +1595,10 @@ process_stat_done (void *cls,
                 "Failed to obtain value from statistics service, recomputing it\n");
     plugin->api->estimate_size (plugin->api->cls,
                                 &payload);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("New payload: %lld\n"),
+                (long long) payload);
+
   }
   if (GNUNET_YES == refresh_bf)
   {
@@ -1624,7 +1668,13 @@ cleaning_task (void *cls)
     expired_kill_task = NULL;
   }
   if (GNUNET_YES == do_drop)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Dropping database!\n");
     plugin->api->drop (plugin->api->cls);
+    payload = 0;
+    last_sync++;
+  }
   if (NULL != plugin)
   {
     unload_plugin (plugin);
@@ -1651,7 +1701,8 @@ cleaning_task (void *cls)
     sync_stats ();
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (stats,
+                               GNUNET_YES);
     stats = NULL;
   }
   GNUNET_free (quota_stat_name);

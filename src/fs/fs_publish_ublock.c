@@ -294,7 +294,6 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
                             bo->replication_level,
                             bo->expiration_time,
                             -2, 1,
-                            GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                             &ublock_put_cont, uc);
   }
   else

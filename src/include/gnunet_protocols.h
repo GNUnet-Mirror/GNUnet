@@ -459,6 +459,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 103
 
+/**
+ * Message sent by datastore client to get data by key.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY 104
+
 
 /*******************************************************************************
  * FS message types

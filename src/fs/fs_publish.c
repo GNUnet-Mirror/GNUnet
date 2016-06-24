@@ -266,7 +266,6 @@ publish_sblocks_cont (void *cls,
   {
     pc->qre =
         GNUNET_DATASTORE_release_reserve (pc->dsh, pc->rid, UINT_MAX, UINT_MAX,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                           &finish_release_reserve, pc);
   }
   else
@@ -526,7 +525,6 @@ block_proc (void *cls,
                               p->bo.replication_level,
                               p->bo.expiration_time,
                               -2, 1,
-                              GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &ds_put_cont, pc);
     return;
   }
@@ -547,7 +545,6 @@ block_proc (void *cls,
                             p->bo.replication_level,
                             p->bo.expiration_time,
                             -2, 1,
-                            GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                             &ds_put_cont,
                             pc);
 }

@@ -109,11 +109,14 @@ put_continuation (void *cls,
 
   if (GNUNET_OK != status)
   {
-    FPRINTF (stderr, "ERROR: `%s'\n", msg);
+    FPRINTF (stderr,
+             "ERROR: `%s'\n",
+             msg);
   }
   else
   {
-    crc->api->estimate_size (crc->api->cls, &cs);
+    crc->api->estimate_size (crc->api->cls,
+                             &cs);
     GNUNET_assert (os <= cs);
     os = cs;
     stored_bytes += size;
@@ -184,22 +187,30 @@ static uint64_t guid;
 
 
 static int
-iterate_one_shot (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                  const void *data, enum GNUNET_BLOCK_Type type,
-                  uint32_t priority, uint32_t anonymity,
-                  struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+iterate_one_shot (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  uint32_t size,
+                  const void *data,
+                  enum GNUNET_BLOCK_Type type,
+                  uint32_t priority,
+                  uint32_t anonymity,
+                  struct GNUNET_TIME_Absolute expiration,
+                  uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
-  GNUNET_assert (key != NULL);
+  GNUNET_assert (NULL != key);
   guid = uid;
   crc->phase++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found result type=%u, priority=%u, size=%u, expire=%s, key %s\n",
-	      type, priority, size,
+	      (unsigned int) type,
+              (unsigned int) priority,
+              (unsigned int) size,
 	      GNUNET_STRINGS_absolute_time_to_string (expiration),
 	      GNUNET_h2s (key));
-  GNUNET_SCHEDULER_add_now (&test, crc);
+  GNUNET_SCHEDULER_add_now (&test,
+                            crc);
   return GNUNET_OK;
 }
 
@@ -219,11 +230,14 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "DATASTORE",
+                                             "DATABASE",
                                              &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                _("No `%s' specified for `%s' in configuration!\n"),
+                "DATABASE",
                 "DATASTORE");
     return;
   }
@@ -290,8 +304,16 @@ test (void *cls)
       break;
     }
     gen_key (5, &key);
-    crc->api->get_key (crc->api->cls, crc->offset++, &key, NULL,
-                       GNUNET_BLOCK_TYPE_ANY, &iterate_one_shot, crc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Looking for %s\n",
+                GNUNET_h2s (&key));
+    crc->api->get_key (crc->api->cls,
+                       crc->offset++,
+                       &key,
+                       NULL,
+                       GNUNET_BLOCK_TYPE_ANY,
+                       &iterate_one_shot,
+                       crc);
     break;
   case RP_UPDATE:
     crc->api->update (crc->api->cls,

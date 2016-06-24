@@ -215,7 +215,7 @@ unindex_process (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending REMOVE request to DATASTORE service\n");
   GNUNET_DATASTORE_remove (uc->dsh, &chk->query, size, data, -2, 1,
-                           GNUNET_CONSTANTS_SERVICE_TIMEOUT, &process_cont, uc);
+                           &process_cont, uc);
   uc->chk = *chk;
 }
 
@@ -552,7 +552,6 @@ process_kblock_for_unindex (void *cls,
                                      data,
 				     0 /* priority */,
                                      1 /* queue size */,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &continue_after_remove,
 				     uc);
   return;
@@ -563,7 +562,6 @@ process_kblock_for_unindex (void *cls,
 				      GNUNET_BLOCK_TYPE_FS_UBLOCK,
 				      0 /* priority */,
                                       1 /* queue size */,
-				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      &process_kblock_for_unindex,
 				      uc);
 }
@@ -615,7 +613,6 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
 				      GNUNET_BLOCK_TYPE_FS_UBLOCK,
 				      0 /* priority */,
                                       1 /* queue size */,
-				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      &process_kblock_for_unindex,
 				      uc);
 }

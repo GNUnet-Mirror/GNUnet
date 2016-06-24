@@ -445,7 +445,6 @@ request_cb (void *cls,
 				     ntohl (sqm->type),
 				     0 /* priority */,
 				     GSF_datastore_queue_size,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &handle_datastore_reply, sc);
   if (NULL == sc->qe)
   {

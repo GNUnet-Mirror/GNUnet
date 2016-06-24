@@ -193,10 +193,18 @@ run_continuation (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "PUT",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-    GNUNET_DATASTORE_put (datastore, 0, &crc->key, get_size (crc->i),
-                          get_data (crc->i), get_type (crc->i),
-                          get_priority (crc->i), get_anonymity (crc->i), 0,
-                          get_expiration (crc->i), 1, 1, TIMEOUT,
+    GNUNET_DATASTORE_put (datastore,
+                          0,
+                          &crc->key,
+                          get_size (crc->i),
+                          get_data (crc->i),
+                          get_type (crc->i),
+                          get_priority (crc->i),
+                          get_anonymity (crc->i),
+                          0,
+                          get_expiration (crc->i),
+                          1,
+                          1,
                           &check_success, crc);
     crc->i++;
     if (crc->i == ITERATIONS)
@@ -213,7 +221,8 @@ run_continuation (void *cls)
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1, TIMEOUT, &check_value,
+                              get_type (crc->i), 1, 1,
+                              &check_value,
                               crc);
     break;
   case RP_GET_FAIL:
@@ -221,7 +230,8 @@ run_continuation (void *cls)
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1, TIMEOUT, &check_nothing,
+                              get_type (crc->i), 1, 1,
+                              &check_nothing,
                               crc);
     break;
   case RP_DONE:
@@ -266,11 +276,18 @@ run (void *cls,
   now = GNUNET_TIME_absolute_get ();
   datastore = GNUNET_DATASTORE_connect (cfg);
   if (NULL ==
-      GNUNET_DATASTORE_put (datastore, 0, &zkey, 4, "TEST",
-                            GNUNET_BLOCK_TYPE_TEST, 0, 0, 0,
-                            GNUNET_TIME_relative_to_absolute
-                            (GNUNET_TIME_UNIT_SECONDS), 0, 1,
-                            GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
+      GNUNET_DATASTORE_put (datastore,
+                            0,
+                            &zkey,
+                            4,
+                            "TEST",
+                            GNUNET_BLOCK_TYPE_TEST,
+                            0, 0, 0,
+                            GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
+                            0,
+                            1,
+                            &run_tests,
+                            crc))
   {
     FPRINTF (stderr, "%s",  "Test 'put' operation failed.\n");
     GNUNET_free (crc);

@@ -523,7 +523,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
   {
     GNUNET_break (0);
     GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
+                             &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
   odb = (const struct OnDemandBlock *) data;
@@ -542,7 +542,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
                               ("# index blocks removed: original file inaccessible"),
                               1, GNUNET_YES);
     GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
+                             &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
   if ((NULL ==
@@ -560,7 +560,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
     if (fh != NULL)
       GNUNET_DISK_file_close (fh);
     GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
+                             &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
   GNUNET_DISK_file_close (fh);
@@ -574,7 +574,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
                 _("Indexed file `%s' changed at offset %llu\n"), fn,
                 (unsigned long long) off);
     GNUNET_DATASTORE_remove (dsh, key, size, data, -1, -1,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
+                             &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

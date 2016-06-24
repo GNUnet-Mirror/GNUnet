@@ -582,7 +582,6 @@ gather_migration_blocks (void *cls)
   value_found = GNUNET_NO;
   mig_qe =
     GNUNET_DATASTORE_get_for_replication (GSF_dsh, 0, UINT_MAX,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                           &process_migration_content, NULL);
   if (NULL == mig_qe)
     consider_gathering ();

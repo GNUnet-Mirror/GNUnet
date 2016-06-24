@@ -225,7 +225,6 @@ gather_dht_put_blocks (void *cls)
   po->dht_qe =
       GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, po->current_offset++, 0,
                                            UINT_MAX,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                            po->dht_put_type,
                                            &process_dht_put_content, po);
   if (NULL == po->dht_qe)

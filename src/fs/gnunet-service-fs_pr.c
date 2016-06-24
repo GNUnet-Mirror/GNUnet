@@ -1149,7 +1149,6 @@ handle_dht_reply (void *cls,
                               1 /* anonymity */ ,
                               0 /* replication */ ,
                               exp, 1 + prq.priority, MAX_DATASTORE_QUEUE,
-                              GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
       put_migration_continuation (pmc,
@@ -1472,7 +1471,6 @@ process_local_reply (void *cls,
                                     pr->public_data.options)) ? UINT_MAX :
                                   GSF_datastore_queue_size
                                   /* max queue size */ ,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
     if (NULL != pr->qe)
       return;                   /* we're done */
@@ -1492,7 +1490,7 @@ process_local_reply (void *cls,
   {
     GNUNET_break (0);
     GNUNET_DATASTORE_remove (GSF_dsh, key, size, data, -1, -1,
-                             GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
+                             NULL, NULL);
     pr->qe_start = GNUNET_TIME_absolute_get ();
     pr->warn_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
@@ -1512,7 +1510,6 @@ process_local_reply (void *cls,
                                     pr->public_data.options)) ? UINT_MAX :
                                   GSF_datastore_queue_size
                                   /* max queue size */ ,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
     if (NULL == pr->qe)
     {
@@ -1574,7 +1571,6 @@ process_local_reply (void *cls,
                                   public_data.options)) ? UINT_MAX :
                                 GSF_datastore_queue_size
                                 /* max queue size */ ,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
   /* check if we successfully queued another datastore request;
    * if so, return, otherwise call our continuation (if we have
@@ -1681,7 +1677,6 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                   public_data.options)) ? UINT_MAX :
                                 GSF_datastore_queue_size
                                 /* max queue size */ ,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
   if (NULL != pr->qe)
     return;
@@ -1795,7 +1790,6 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                               prq.priority, 1 /* anonymity */ ,
                               0 /* replication */ ,
                               expiration, 1 + prq.priority, MAX_DATASTORE_QUEUE,
-                              GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
       put_migration_continuation (pmc,

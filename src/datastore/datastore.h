@@ -106,12 +106,10 @@ struct ReleaseReserveMessage
  * Message to the datastore service asking about specific
  * content.
  */
-struct GetMessage
+struct GetKeyMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET.  Size
-   * can either be "sizeof(struct GetMessage)" or
-   * "sizeof(struct GetMessage) - sizeof(struct GNUNET_HashCode)"!
+   * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -126,10 +124,33 @@ struct GetMessage
   uint64_t offset GNUNET_PACKED;
 
   /**
-   * Desired key (optional).  Check the "size" of the
-   * header to see if the key is actually present.
+   * Desired key.
    */
   struct GNUNET_HashCode key;
+
+};
+
+
+/**
+ * Message to the datastore service asking about specific
+ * content.
+ */
+struct GetMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Desired content type.  (actually an enum GNUNET_BLOCK_Type)
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Offset of the result.
+   */
+  uint64_t offset GNUNET_PACKED;
 
 };
 

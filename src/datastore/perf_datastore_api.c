@@ -332,7 +332,6 @@ delete_value (void *cls,
                                           key,
                                           size,
                                           data, 1, 1,
-                                          TIMEOUT,
                                           &remove_next, crc));
 }
 
@@ -396,7 +395,6 @@ run_continuation (void *cls)
                                            (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
                                          1,
                                          1,
-                                         TIMEOUT,
                                          &check_success, crc));
     break;
   case RP_CUT:
@@ -404,7 +402,6 @@ run_continuation (void *cls)
     GNUNET_assert (NULL !=
                    GNUNET_DATASTORE_get_for_replication (datastore,
                                                          1, 1,
-                                                         TIMEOUT,
                                                          &delete_value,
                                                          crc));
     break;
@@ -466,7 +463,6 @@ run_continuation (void *cls)
                                            (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
                                          1,
                                          1,
-                                         TIMEOUT,
                                          &check_success, crc));
     break;
 
@@ -573,7 +569,6 @@ run (void *cls,
                             0, 0, 0,
                             GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
                             0, 1,
-                            TIMEOUT,
                             &run_tests, crc))
   {
     FPRINTF (stderr,
