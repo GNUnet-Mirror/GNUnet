@@ -89,6 +89,17 @@ SETUP_TIMEOUT = 5 m
 SHARED_SERVICES =
 
 
+[testbed-logger]
+AUTOSTART = NO
+@UNIXONLY@ PORT = 2102
+HOSTNAME = localhost
+BINARY = gnunet-service-testbed-logger
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-gnunet-testbed-logger.sock
+DIR = /tmp
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
+
+
 [testbed-barrier]
 AUTOSTART = NO
 @UNIXONLY@ PORT = 2103

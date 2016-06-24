@@ -5,7 +5,7 @@
 
 if HAVE_TESTING
  TESTING = testing
- TESTBED = testbed
+ TESTBED = testbed-logger testbed
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
 endif

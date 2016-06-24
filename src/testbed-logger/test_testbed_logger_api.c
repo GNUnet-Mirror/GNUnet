@@ -18,7 +18,7 @@
       Boston, MA 02110-1301, USA.
  */
 /**
- * @file testbed/test_testbed_logger_api.c
+ * @file testbed-logger/test_testbed_logger_api.c
  * @brief testcases for the testbed logger api
  * @author Sree Harsha Totakura
  */

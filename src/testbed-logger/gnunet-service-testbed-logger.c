@@ -19,7 +19,7 @@
 */
 
 /**
- * @file testbed/gnunet-service-testbed-logger.c
+ * @file testbed-logger/gnunet-service-testbed-logger.c
  * @brief service for collecting messages and writing to a file
  * @author Sree Harsha Totakura
  */

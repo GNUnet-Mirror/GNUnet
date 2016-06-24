@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testbed/testbed_logger_api.c
+ * @file testbed-logger/testbed_logger_api.c
  * @brief Client-side routines for communicating with the tesbted logger service
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */

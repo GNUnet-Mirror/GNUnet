@@ -27,7 +27,6 @@ endif
 libexec_PROGRAMS = \
   gnunet-service-testbed \
   gnunet-helper-testbed \
-  gnunet-service-testbed-logger \
   gnunet-daemon-testbed-blacklist \
   $(underlay_daemon) \
   $(latency_logger)
@@ -58,11 +57,6 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  libgnunettestbed.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
  $(LTLIBINTL) $(Z_LIBS)
-
-gnunet_service_testbed_logger_SOURCES = \
-  gnunet-service-testbed-logger.c
-gnunet_service_testbed_logger_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
@@ -97,8 +91,7 @@ gnunet_daemon_latency_logger_LDADD = $(XLIB) \
  $(LTLIBINTL) -lsqlite3
 
 lib_LTLIBRARIES = \
-  libgnunettestbed.la \
-  libgnunettestbedlogger.la
+  libgnunettestbed.la
 
 libgnunettestbed_la_SOURCES = \
   testbed_api.c testbed_api.h testbed.h \
@@ -125,15 +118,6 @@ libgnunettestbed_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:0:0
 
-libgnunettestbedlogger_la_SOURCES = \
-  testbed_logger_api.c
-libgnunettestbedlogger_la_LIBADD = $(XLIB) \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(LTLIBINTL)
-libgnunettestbedlogger_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS) \
- -version-info 0:0:0
-
 generate_underlay_topology_SOURCES = generate-underlay-topology.c
 generate_underlay_topology_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -142,7 +126,6 @@ generate_underlay_topology_LDADD = $(XLIB) \
 
 check_PROGRAMS = \
   test_testbed_api_hosts \
-  test_testbed_logger_api \
   test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
   test_testbed_api_2peers_1controller \
@@ -176,7 +159,6 @@ if ENABLE_TEST_RUN
  AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
  TESTS = \
   test_testbed_api \
-  test_testbed_logger_api \
   test_testbed_api_sd \
   test_testbed_api_operations \
   test_testbed_api_hosts \
@@ -218,13 +200,6 @@ test_testbed_api_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
  libgnunettestbed.la
-
-test_testbed_logger_api_SOURCES = \
- test_testbed_logger_api.c
-test_testbed_logger_api_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
- libgnunettestbedlogger.la
 
 test_testbed_api_sd_SOURCES = \
  test_testbed_api_sd.c
@@ -398,7 +373,6 @@ EXTRA_DIST = \
   test_testbed_api_statistics.conf \
   test_testbed_api_test_timeout.conf \
   test_testbed_api_template.conf \
-  test_testbed_logger_api.conf \
   test_testbed_api_testbed_run_topologyring.conf \
   test_testbed_api_testbed_run_topologyclique.conf \
   test_testbed_api_testbed_run_topologyline.conf \

@@ -66,7 +66,7 @@ gnunet_service_nse_LDADD = \
   $(GN_LIBINTL)
 if ENABLE_NSE_HISTOGRAM
   gnunet_service_nse_LDADD += \
-    $(top_builddir)/src/testbed/libgnunettestbedlogger.la
+    $(top_builddir)/src/testbed-logger/libgnunettestbedlogger.la
 endif
 
 
@@ -111,5 +111,3 @@ perf_kdf_LDADD = \
 EXTRA_DIST = \
   test_nse.conf \
   nse_profiler_test.conf
-
-

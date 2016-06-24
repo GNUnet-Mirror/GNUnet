@@ -1601,6 +1601,8 @@ src/statistics/statistics.conf
 src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
+src/testbed-logger/Makefile
+src/testbed-logger/testbed-logger.conf
 src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
