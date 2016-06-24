@@ -195,10 +195,10 @@ dispatch_buffer (struct GNUNET_TESTBED_LOGGER_Handle *h)
 
 /**
  * We got disconnected from the logger.  Stop logging.
-  *
+ *
  * @param cls the `struct GNUNET_TESTBED_LOGGER_Handle`
  * @param error error code
-  */
+ */
 static void
 mq_error_handler (void *cls,
                   enum GNUNET_MQ_Error error)

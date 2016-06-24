@@ -574,9 +574,8 @@ GNUNET_NAT_stun_handle_packet (const void *data,
  * You don't need to call anything else to check if the packet is valid,
  *
  * @param cls the NAT handle
- * @param data, packet
- * @param len, packet length
- *
+ * @param data packet
+ * @param len length of @a data
  * @return #GNUNET_NO if it can't decode, #GNUNET_YES if is a packet
  */
 int
