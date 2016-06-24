@@ -401,7 +401,7 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Updating value %llu adding %d to priority and maxing exp at %s\n",
-              uid, delta,
+              (unsigned long long)uid, delta,
 	      GNUNET_STRINGS_absolute_time_to_string (expire));
 
   struct GNUNET_MY_QueryParam params_update[] = {
@@ -419,7 +419,7 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to update value %llu\n",
-                uid);
+                (unsigned long long) uid);
   }
   cont (cont_cls, ret, NULL);
 }
