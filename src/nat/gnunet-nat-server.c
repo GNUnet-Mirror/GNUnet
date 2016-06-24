@@ -47,18 +47,25 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  *
  * @param dst_ipv4 IPv4 address to send the fake ICMP message
  * @param dport destination port to include in ICMP message
- * @param is_tcp mark for TCP (GNUNET_YES)  or UDP (GNUNET_NO)
+ * @param is_tcp mark for TCP (#GNUNET_YES)  or UDP (#GNUNET_NO)
  */
 static void
-try_anat (uint32_t dst_ipv4, uint16_t dport, int is_tcp)
+try_anat (uint32_t dst_ipv4,
+          uint16_t dport,
+          int is_tcp)
 {
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in sa;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking for connection reversal with %x and code %u\n",
-              (unsigned int) dst_ipv4, (unsigned int) dport);
-  h = GNUNET_NAT_register (cfg, is_tcp, dport, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+              (unsigned int) dst_ipv4,
+              (unsigned int) dport);
+  h = GNUNET_NAT_register (cfg,
+                           is_tcp,
+                           dport,
+                           0,
+                           NULL, NULL, NULL, NULL, NULL, NULL);
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -116,24 +123,29 @@ tcp_send (void *cls)
 
 
 /**
- * Try to send 'data' to the
- * IP 'dst_ipv4' at port 'dport' via TCP.
+ * Try to send @a data to the
+ * IP @a dst_ipv4' at port @a dport via TCP.
  *
  * @param dst_ipv4 target IP
  * @param dport target port
  * @param data data to send
  */
 static void
-try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
+try_send_tcp (uint32_t dst_ipv4,
+              uint16_t dport,
+              uint16_t data)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct sockaddr_in sa;
   struct TcpContext *ctx;
 
-  s = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
+  s = GNUNET_NETWORK_socket_create (AF_INET,
+                                    SOCK_STREAM,
+                                    0);
   if (NULL == s)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "socket");
     return;
   }
   memset (&sa, 0, sizeof (sa));
@@ -143,41 +155,54 @@ try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
 #endif
   sa.sin_addr.s_addr = dst_ipv4;
   sa.sin_port = htons (dport);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending TCP message to `%s'\n",
-              GNUNET_a2s ((struct sockaddr *) &sa, sizeof (sa)));
-  if ((GNUNET_OK !=
-       GNUNET_NETWORK_socket_connect (s, (const struct sockaddr *) &sa,
-                                      sizeof (sa))) && (errno != EINPROGRESS))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending TCP message to `%s'\n",
+              GNUNET_a2s ((struct sockaddr *) &sa,
+                          sizeof (sa)));
+  if ( (GNUNET_OK !=
+        GNUNET_NETWORK_socket_connect (s,
+                                       (const struct sockaddr *) &sa,
+                                       sizeof (sa))) &&
+       (errno != EINPROGRESS) )
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "connect");
     GNUNET_NETWORK_socket_close (s);
     return;
   }
   ctx = GNUNET_new (struct TcpContext);
   ctx->s = s;
   ctx->data = data;
-  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_SECONDS, s, &tcp_send, ctx);
+  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_SECONDS,
+                                  s,
+                                  &tcp_send,
+                                  ctx);
 }
 
 
 /**
- * Try to send 'data' to the
- * IP 'dst_ipv4' at port 'dport' via UDP.
+ * Try to send @a data to the
+ * IP @a dst_ipv4' at port @a dport via UDP.
  *
  * @param dst_ipv4 target IP
  * @param dport target port
  * @param data data to send
  */
 static void
-try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
+try_send_udp (uint32_t dst_ipv4,
+              uint16_t dport,
+              uint16_t data)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct sockaddr_in sa;
 
-  s = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  s = GNUNET_NETWORK_socket_create (AF_INET,
+                                    SOCK_DGRAM,
+                                    0);
   if (NULL == s)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "socket");
     return;
   }
   memset (&sa, 0, sizeof (sa));
@@ -187,12 +212,18 @@ try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
 #endif
   sa.sin_addr.s_addr = dst_ipv4;
   sa.sin_port = htons (dport);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending UDP packet to `%s'\n",
-              GNUNET_a2s ((struct sockaddr *) &sa, sizeof (sa)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending UDP packet to `%s'\n",
+              GNUNET_a2s ((struct sockaddr *) &sa,
+                          sizeof (sa)));
   if (-1 ==
-      GNUNET_NETWORK_socket_sendto (s, &data, sizeof (data),
-                                    (const struct sockaddr *) &sa, sizeof (sa)))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "sendto");
+      GNUNET_NETWORK_socket_sendto (s,
+                                    &data,
+                                    sizeof (data),
+                                    (const struct sockaddr *) &sa,
+                                    sizeof (sa)))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "sendto");
   GNUNET_NETWORK_socket_close (s);
 }
 
@@ -206,22 +237,31 @@ try_send_udp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
  * @param msg message with details about what to test
  */
 static void
-test (void *cls, struct GNUNET_SERVER_Client *client,
+test (void *cls,
+      struct GNUNET_SERVER_Client *client,
       const struct GNUNET_MessageHeader *msg)
 {
   const struct GNUNET_NAT_TestMessage *tm;
   uint16_t dport;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received test request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received test request\n");
   tm = (const struct GNUNET_NAT_TestMessage *) msg;
   dport = ntohs (tm->dport);
   if (0 == dport)
-    try_anat (tm->dst_ipv4, ntohs (tm->data), (int) ntohl (tm->is_tcp));
+    try_anat (tm->dst_ipv4,
+              ntohs (tm->data),
+              (int) ntohl (tm->is_tcp));
   else if (GNUNET_YES == ntohl (tm->is_tcp))
-    try_send_tcp (tm->dst_ipv4, dport, tm->data);
+    try_send_tcp (tm->dst_ipv4,
+                  dport,
+                  tm->data);
   else
-    try_send_udp (tm->dst_ipv4, dport, tm->data);
-  GNUNET_SERVER_receive_done (client, GNUNET_NO);
+    try_send_udp (tm->dst_ipv4,
+                  dport,
+                  tm->data);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_NO);
 }
 
 
@@ -247,7 +287,9 @@ shutdown_task (void *cls)
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
