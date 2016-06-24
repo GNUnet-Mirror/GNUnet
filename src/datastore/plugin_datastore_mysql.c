@@ -227,19 +227,11 @@ static int
 do_delete_entry (struct Plugin *plugin, unsigned long long uid)
 {
   int ret;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting value %llu from gn090 table\n",
-              uid);
-/*  ret = GNUNET_MYSQL_statement_run_prepared (plugin->mc,
-					                                   plugin->delete_entry_by_uid,
-                                             NULL,
-					                                   MYSQL_TYPE_LONGLONG,
-                                             &uid,
-                                             GNUNET_YES,
-                                              -1);
-
-*/
   uint64_t uid64 = (uint64_t) uid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deleting value %llu from gn090 table\n",
+              uid);
 
   struct GNUNET_MY_QueryParam params_delete[] = {
     GNUNET_MY_query_param_uint64 (&uid64),
@@ -268,21 +260,11 @@ do_delete_entry (struct Plugin *plugin, unsigned long long uid)
  * @return number of bytes used on disk
  */
 static void
-mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
+mysql_plugin_estimate_size (void *cls,
+                            unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
-//  MYSQL_BIND cbind[1];
   uint64_t total;
-//  long long total;
-/*
-  if (NULL == estimate)
-    return;
-  memset (cbind, 0, sizeof (cbind));
-  total = 0;
-  cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  cbind[0].buffer = &total;
-  cbind[0].is_unsigned = GNUNET_NO;
-*/
   struct GNUNET_MY_QueryParam params_get[] = {
     GNUNET_MY_query_param_end
   };
@@ -293,8 +275,6 @@ mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
   };
   int ret;
 
-//  if (GNUNET_OK ==
-//      GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->get_size, 1, cbind, NULL, NULL, -1))
   ret = GNUNET_MY_exec_prepared (plugin->mc, plugin->get_size, params_get);
   if (GNUNET_OK == ret)
     {
@@ -303,7 +283,6 @@ mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
         *estimate = (unsigned long long)total;
       }
     }
-    //*estimate = total;
   else
     *estimate = 0;
 }
@@ -325,42 +304,27 @@ mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param cont_cls continuation closure
  */
 static void
-mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                  const void *data, enum GNUNET_BLOCK_Type type,
-                  uint32_t priority, uint32_t anonymity, uint32_t replication,
-                  struct GNUNET_TIME_Absolute expiration, PluginPutCont cont,
+mysql_plugin_put (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  uint32_t size,
+                  const void *data,
+                  enum GNUNET_BLOCK_Type type,
+                  uint32_t priority,
+                  uint32_t anonymity,
+                  uint32_t replication,
+                  struct GNUNET_TIME_Absolute expiration,
+                  PluginPutCont cont,
                   void *cont_cls)
 {
   struct Plugin *plugin = cls;
   unsigned int irepl = replication;
   unsigned int ipriority = priority;
   unsigned int ianonymity = anonymity;
-//  unsigned long long lexpiration = expiration.abs_value_us;
   uint64_t lexpiration = expiration.abs_value_us;
-
-/*  unsigned long long lrvalue =
-      (unsigned long long) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                     UINT64_MAX);
-*/
-  uint64_t lrvalue =
-      (uint64_t) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                     UINT64_MAX);
-  unsigned long hashSize;
-  unsigned long hashSize2;
+  uint64_t lrvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                               UINT64_MAX);
   unsigned long lsize;
   struct GNUNET_HashCode vhash;
-
-  if (size > MAX_DATUM_SIZE)
-  {
-    GNUNET_break (0);
-    cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
-    return;
-  }
-  hashSize = sizeof (struct GNUNET_HashCode);
-  hashSize2 = sizeof (struct GNUNET_HashCode);
-  lsize = size;
-  GNUNET_CRYPTO_hash (data, size, &vhash);
-
   struct GNUNET_MY_QueryParam params_insert[] = {
     GNUNET_MY_query_param_uint32 (&irepl),
     GNUNET_MY_query_param_uint32 (&type),
@@ -368,28 +332,23 @@ mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     GNUNET_MY_query_param_uint32 (&ianonymity),
     GNUNET_MY_query_param_uint64 (&lexpiration),
     GNUNET_MY_query_param_uint64 (&lrvalue),
-    GNUNET_MY_query_param_fixed_size (key, hashSize),
-    GNUNET_MY_query_param_fixed_size (&vhash, hashSize2),
+    GNUNET_MY_query_param_auto_from_type (key),
+    GNUNET_MY_query_param_auto_from_type (&vhash),
     GNUNET_MY_query_param_fixed_size (data, lsize),
     GNUNET_MY_query_param_end
   };
-/*
-  if (GNUNET_OK !=
-      GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->insert_entry, NULL,
-                              MYSQL_TYPE_LONG, &irepl, GNUNET_YES,
-                              MYSQL_TYPE_LONG, &type, GNUNET_YES,
-                              MYSQL_TYPE_LONG, &ipriority, GNUNET_YES,
-                              MYSQL_TYPE_LONG, &ianonymity, GNUNET_YES,
-                              MYSQL_TYPE_LONGLONG, &lexpiration, GNUNET_YES,
-                              MYSQL_TYPE_LONGLONG, &lrvalue, GNUNET_YES,
-                              MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
-                              MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
-                              MYSQL_TYPE_BLOB, data, lsize, &lsize, -1))
+
+  if (size > MAX_DATUM_SIZE)
   {
-    cont (cont_cls, key, size, GNUNET_SYSERR, _("MySQL statement run failure"));
+    GNUNET_break (0);
+    cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
     return;
   }
-*/
+  lsize = size;
+  GNUNET_CRYPTO_hash (data,
+                      size,
+                      &vhash);
+
   if (GNUNET_OK !=
       GNUNET_MY_exec_prepared (plugin->mc,
                                plugin->insert_entry,
@@ -482,181 +441,79 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
  * @param stmt select statement to run
  * @param proc function to call on result
  * @param proc_cls closure for proc
- * @param ... arguments to initialize stmt
+ * @param params_select arguments to initialize stmt
  */
 static void
-execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt,
-                PluginDatumProcessor proc, void *proc_cls, ...)
+execute_select (struct Plugin *plugin,
+                struct GNUNET_MYSQL_StatementHandle *stmt,
+                PluginDatumProcessor proc,
+                void *proc_cls,
+                struct GNUNET_MY_QueryParam *params_select)
 {
-  va_list ap;
   int ret;
-  unsigned int type;
-//  unsigned int priority;
+  uint32_t type;
   uint32_t priority;
-  unsigned int anonymity;
-//  unsigned long long exp;
-  uint64_t exp;
-  size_t hashSize;
-//  unsigned long size;
-  size_t size;
+  uint32_t anonymity;
   uint64_t uid;
+  size_t value_size;
   void *value;
   struct GNUNET_HashCode key;
   struct GNUNET_TIME_Absolute expiration;
-  //MYSQL_BIND rbind[7];
-
-  hashSize = sizeof (struct GNUNET_HashCode);
-/*  memset (rbind, 0, sizeof (rbind));
-  rbind[0].buffer_type = MYSQL_TYPE_LONG;
-  rbind[0].buffer = &type;
-  rbind[0].is_unsigned = 1;
-  rbind[1].buffer_type = MYSQL_TYPE_LONG;
-  rbind[1].buffer = &priority;
-  rbind[1].is_unsigned = 1;
-  rbind[2].buffer_type = MYSQL_TYPE_LONG;
-  rbind[2].buffer = &anonymity;
-  rbind[2].is_unsigned = 1;
-  rbind[3].buffer_type = MYSQL_TYPE_LONGLONG;
-  rbind[3].buffer = &exp;
-  rbind[3].is_unsigned = 1;
-  rbind[4].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[4].buffer = &key;
-  rbind[4].buffer_length = hashSize;
-  rbind[4].length = &hashSize;
-  rbind[5].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[5].buffer = value;
-  rbind[5].buffer_length = size = sizeof (value);
-  rbind[5].length = &size;
-  rbind[6].buffer_type = MYSQL_TYPE_LONGLONG;
-  rbind[6].buffer = &uid;
-  rbind[6].is_unsigned = 1;
-*/
-  //  ret = GNUNET_MYSQL_statement_run_prepared_select_va (stmt, 7, rbind, NULL, NULL, ap);
-  va_start (ap, proc_cls);
-
-  int pc = 0;
-
-  struct GNUNET_MY_QueryParam *params_select = NULL;
-
-  unsigned int *param_long = NULL;
-  int param_is_unsigned;
-  unsigned long param_length;
-  unsigned long *length = NULL;
-
-  unsigned long long *param_longlong = NULL;
-  void *param_blob = NULL;
-
-  pc = mysql_stmt_param_count (stmt);
-  if (pc  > MAX_PARAM)
-  {
-    GNUNET_break (0);
-  }
-  
-//  enum enum_field_type ft;
-  int ft;
-  int j = 0;
-
-  ft = 0;
-
-  while ((pc > 0) && (-1 != (ft = va_arg(ap, int))))
-  {
-   switch (ft)
-   {
-    case MYSQL_TYPE_LONGLONG:
-      param_longlong = va_arg (ap, unsigned long long *);
-      param_is_unsigned = va_arg (ap, int);
-      params_select[j] = GNUNET_MY_query_param_uint64 (param_longlong);
-      break;
-
-    case MYSQL_TYPE_LONG:
-      param_long = va_arg (ap, unsigned int*);
-      param_is_unsigned = va_arg (ap, int);
-      params_select[j] = GNUNET_MY_query_param_uint32 (param_long);
-      break;
-
-    case MYSQL_TYPE_VAR_STRING:
-    case MYSQL_TYPE_STRING:
-    case MYSQL_TYPE_BLOB:
-      param_blob = va_arg (ap, void *);
-      param_length = va_arg (ap, unsigned long);
-      length = va_arg (ap, unsigned long *);
-      //params_select[j] = GNUNET_MY_query_param_fixed_size (param_blob, param_length);
-      params_select[j] = GNUNET_MY_query_param_auto_from_type(&key);
-
-      break;
-    default:
-      GNUNET_break(0);
-   }
-   pc--;
-   j++;
-  }
-
-/*
   struct GNUNET_MY_ResultSpec results_select[] = {
     GNUNET_MY_result_spec_uint32 (&type),
     GNUNET_MY_result_spec_uint32 (&priority),
     GNUNET_MY_result_spec_uint32 (&anonymity),
-    GNUNET_MY_result_spec_uint64 (&exp),
+    GNUNET_MY_result_spec_absolute_time (&expiration),
     GNUNET_MY_result_spec_auto_from_type (&key),
-    GNUNET_MY_result_spec_variable_size (&value, &size),
+    GNUNET_MY_result_spec_variable_size (&value, &value_size),
     GNUNET_MY_result_spec_uint64 (&uid),
-    GNUNET_MY_query_param_end
+    GNUNET_MY_result_spec_end
   };
-*/
-/* 
 
-  !!!! FAIL HERE FOR SELECT QUERY
-*/  ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params_select);
-
-  if(GNUNET_OK != ret)
+  ret = GNUNET_MY_exec_prepared (plugin->mc,
+                                 stmt,
+                                 params_select);
+  if (GNUNET_OK != ret)
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  
-/*  if (ret <= 0)
-  {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls,
+          NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
-  va_end (ap);
-
-/*
-  ret = GNUNET_MY_extract_result (stmt, results_select);
+  ret = GNUNET_MY_extract_result (stmt,
+                                  results_select);
   if (ret <= 0)
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls,
+          NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
-  GNUNET_assert (size <= sizeof (value));
-/*
-  if ((rbind[4].buffer_length != sizeof (struct GNUNET_HashCode)) ||
-      (hashSize != sizeof (struct GNUNET_HashCode)))
-  {
-
-  expiration.abs_value_us = exp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found %u-byte value under key `%s' with prio %u, anon %u, expire %s selecting from gn090 table\n",
-              (unsigned int) size, GNUNET_h2s (&key),
-	      priority, anonymity,
+              (unsigned int) value_size,
+              GNUNET_h2s (&key),
+	      (unsigned int) priority,
+              (unsigned int) anonymity,
 	      GNUNET_STRINGS_absolute_time_to_string (expiration));
-  GNUNET_assert (size < MAX_DATUM_SIZE);
-  ret =
-      proc (proc_cls, &key, size, value, type, priority, anonymity, expiration,
-            uid);
-*/
-
-/*  if (ret == GNUNET_NO)
+  GNUNET_assert (value_size < MAX_DATUM_SIZE);
+  ret = proc (proc_cls,
+              &key,
+              value_size,
+              value,
+              type,
+              priority,
+              anonymity,
+              expiration,
+              uid);
+  if (ret == GNUNET_NO)
   {
     do_delete_entry (plugin, uid);
-    if (size != 0)
-    plugin->env->duc (plugin->env->cls, -size);
+    if (0 != value_size)
+      plugin->env->duc (plugin->env->cls,
+                        - value_size);
   }
-*/  
 }
-
 
 
 /**
@@ -675,34 +532,24 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
  *     Use 0 for any type.
  * @param proc function to call on the matching value,
  *        with NULL for if no value matches
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
-mysql_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode * key,
-                      const struct GNUNET_HashCode * vhash,
-                      enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
+mysql_plugin_get_key (void *cls,
+                      uint64_t offset,
+                      const struct GNUNET_HashCode *key,
+                      const struct GNUNET_HashCode *vhash,
+                      enum GNUNET_BLOCK_Type type,
+                      PluginDatumProcessor proc,
                       void *proc_cls)
 {
   struct Plugin *plugin = cls;
   int ret;
-  //MYSQL_BIND cbind[1];
-  //long long total;
   uint64_t total;
   unsigned long hashSize;
   unsigned long hashSize2;
-  unsigned long long off;
 
-  GNUNET_assert (key != NULL);
-  GNUNET_assert (NULL != proc);
-  hashSize = sizeof (struct GNUNET_HashCode);
-  hashSize2 = sizeof (struct GNUNET_HashCode);
-//  memset (cbind, 0, sizeof (cbind));
   total = -1;
-/*  cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
-  cbind[0].buffer = &total;
-  cbind[0].is_unsigned = GNUNET_NO;
-*/
-
   struct GNUNET_MY_ResultSpec results_get[] = {
     GNUNET_MY_result_spec_uint64 (&total),
     GNUNET_MY_result_spec_end
@@ -712,15 +559,6 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode *
   {
     if (vhash != NULL)
     {
-/*      ret =
-	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
-                                         plugin->
-                                         count_entry_by_hash_vhash_and_type, 1,
-						    cbind, NULL, NULL, MYSQL_TYPE_BLOB, key, hashSize,
-                                         &hashSize, MYSQL_TYPE_BLOB, vhash,
-                                         hashSize2, &hashSize2, MYSQL_TYPE_LONG,
-                                         &type, GNUNET_YES, -1);
-*/
       struct GNUNET_MY_QueryParam params_get[] = {
         GNUNET_MY_query_param_fixed_size (key, hashSize),
         GNUNET_MY_query_param_fixed_size (vhash, hashSize2),
@@ -738,77 +576,54 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode *
     }
     else
     {
-/*      ret =
-	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
-                                         plugin->count_entry_by_hash_and_type,
-						    1, cbind, NULL, NULL, MYSQL_TYPE_BLOB, key,
-                                         hashSize, &hashSize, MYSQL_TYPE_LONG,
-                                         &type, GNUNET_YES, -1);
- */
-        struct GNUNET_MY_QueryParam params_get[] = {
-          GNUNET_MY_query_param_fixed_size (key, hashSize),
-          GNUNET_MY_query_param_uint32 (&type),
-          GNUNET_MY_query_param_end
-        };
+      struct GNUNET_MY_QueryParam params_get[] = {
+        GNUNET_MY_query_param_fixed_size (key, hashSize),
+        GNUNET_MY_query_param_uint32 (&type),
+        GNUNET_MY_query_param_end
+      };
 
-
-        ret =
-          GNUNET_MY_exec_prepared (plugin->mc,
-                                   plugin->count_entry_by_hash_and_type,
-                                   params_get);
-        ret =
-          GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_type,
-                                    results_get);
+      ret =
+        GNUNET_MY_exec_prepared (plugin->mc,
+                                 plugin->count_entry_by_hash_and_type,
+                                 params_get);
+      ret =
+        GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_type,
+                                  results_get);
     }
   }
   else
   {
     if (vhash != NULL)
     {
-/*      ret =
-	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
-                                         plugin->count_entry_by_hash_and_vhash,
-						    1, cbind, NULL, NULL, MYSQL_TYPE_BLOB, key,
-                                         hashSize, &hashSize, MYSQL_TYPE_BLOB,
-                                         vhash, hashSize2, &hashSize2, -1);
-*/
-         struct GNUNET_MY_QueryParam params_get[] = {
-          GNUNET_MY_query_param_fixed_size (key, hashSize),
-          GNUNET_MY_query_param_fixed_size (vhash, hashSize2),
-          GNUNET_MY_query_param_end
-        };
+      struct GNUNET_MY_QueryParam params_get[] = {
+        GNUNET_MY_query_param_fixed_size (key, hashSize),
+        GNUNET_MY_query_param_fixed_size (vhash, hashSize2),
+        GNUNET_MY_query_param_end
+      };
 
-
-        ret =
-  GNUNET_MY_exec_prepared (plugin->mc,
-                           plugin->count_entry_by_hash_and_vhash,
-                           params_get);
-        ret =
-  GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_vhash,
-                            results_get);
+      ret =
+        GNUNET_MY_exec_prepared (plugin->mc,
+                                 plugin->count_entry_by_hash_and_vhash,
+                                 params_get);
+      ret =
+        GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_vhash,
+                                  results_get);
     }
     else
     {
-/*      ret =
-	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->count_entry_by_hash, 1,
-						    cbind, NULL, NULL, MYSQL_TYPE_BLOB, key, hashSize,
-                                         &hashSize, -1);
-*/
-        struct GNUNET_MY_QueryParam params_get[] = {
-          GNUNET_MY_query_param_fixed_size (key, hashSize),
-          GNUNET_MY_query_param_end
-        };
+      struct GNUNET_MY_QueryParam params_get[] = {
+        GNUNET_MY_query_param_fixed_size (key, hashSize),
+        GNUNET_MY_query_param_end
+      };
 
-
-        ret =
-  GNUNET_MY_exec_prepared (plugin->mc,
-                           plugin->count_entry_by_hash,
-                           params_get);
-        ret =
-  GNUNET_MY_extract_result (plugin->count_entry_by_hash,
-                            results_get);
+      ret =
+        GNUNET_MY_exec_prepared (plugin->mc,
+                                 plugin->count_entry_by_hash,
+                                 params_get);
+      ret =
+        GNUNET_MY_extract_result (plugin->count_entry_by_hash,
+                                  results_get);
     }
-
   }
   if ((ret != GNUNET_OK) || (0 >= total))
   {
@@ -816,44 +631,71 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode *
     return;
   }
   offset = offset % total;
-  off = (unsigned long long) offset;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Obtaining %llu/%lld result for GET `%s'\n",
-              (unsigned long long) off,
+              (unsigned long long) offset,
               (unsigned long long) total,
               GNUNET_h2s (key));
   if (type != GNUNET_BLOCK_TYPE_ANY)
   {
     if (NULL != vhash)
     {
-      execute_select (plugin, plugin->select_entry_by_hash_vhash_and_type, proc,
-                      proc_cls, MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
-                      MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize,
-                      MYSQL_TYPE_LONG, &type, GNUNET_YES, MYSQL_TYPE_LONGLONG,
-                      &off, GNUNET_YES, -1);
+      struct GNUNET_MY_QueryParam params_select[] = {
+        GNUNET_MY_query_param_auto_from_type (key),
+        GNUNET_MY_query_param_auto_from_type (vhash),
+        GNUNET_MY_query_param_uint32 (&type),
+        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_end
+      };
+
+      execute_select (plugin,
+                      plugin->select_entry_by_hash_vhash_and_type,
+                      proc, proc_cls,
+                      params_select);
     }
     else
     {
-      execute_select (plugin, plugin->select_entry_by_hash_and_type, proc,
-                      proc_cls, MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
-                      MYSQL_TYPE_LONG, &type, GNUNET_YES, MYSQL_TYPE_LONGLONG,
-                      &off, GNUNET_YES, -1);
+      struct GNUNET_MY_QueryParam params_select[] = {
+        GNUNET_MY_query_param_auto_from_type (key),
+        GNUNET_MY_query_param_uint32 (&type),
+        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_end
+      };
+
+      execute_select (plugin,
+                      plugin->select_entry_by_hash_and_type,
+                      proc,  proc_cls,
+                      params_select);
     }
   }
   else
   {
     if (NULL != vhash)
     {
-      execute_select (plugin, plugin->select_entry_by_hash_and_vhash, proc,
-                      proc_cls, MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
-                      MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize,
-                      MYSQL_TYPE_LONGLONG, &off, GNUNET_YES, -1);
+      struct GNUNET_MY_QueryParam params_select[] = {
+        GNUNET_MY_query_param_auto_from_type (key),
+        GNUNET_MY_query_param_auto_from_type (vhash),
+        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_end
+      };
+
+      execute_select (plugin,
+                      plugin->select_entry_by_hash_and_vhash,
+                      proc, proc_cls,
+                      params_select);
     }
     else
     {
-      execute_select (plugin, plugin->select_entry_by_hash, proc, proc_cls,
-                      MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
-                      MYSQL_TYPE_LONGLONG, &off, GNUNET_YES, -1);
+      struct GNUNET_MY_QueryParam params_select[] = {
+        GNUNET_MY_query_param_auto_from_type (key),
+        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_end
+      };
+
+      execute_select (plugin,
+                      plugin->select_entry_by_hash,
+                      proc, proc_cls,
+                      params_select);
     }
   }
 }
@@ -875,19 +717,25 @@ mysql_plugin_get_zero_anonymity (void *cls, uint64_t offset,
                                  PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  unsigned long long rvalue =
-      (unsigned long long) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                     UINT64_MAX);
+  uint32_t typei = (uint32_t) type;
+  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                              UINT64_MAX);
+  struct GNUNET_MY_QueryParam params_zero_iter[] = {
+    GNUNET_MY_query_param_uint32 (&typei),
+    GNUNET_MY_query_param_uint64 (&rvalue),
+    GNUNET_MY_query_param_uint32 (&typei),
+    GNUNET_MY_query_param_uint64 (&rvalue),
+    GNUNET_MY_query_param_end
+  };
 
-  execute_select (plugin, plugin->zero_iter, proc, proc_cls, MYSQL_TYPE_LONG,
-                  &type, GNUNET_YES, MYSQL_TYPE_LONGLONG, &rvalue, GNUNET_YES,
-                  MYSQL_TYPE_LONG, &type, GNUNET_YES, MYSQL_TYPE_LONGLONG,
-                  &rvalue, GNUNET_YES, -1);
+  execute_select (plugin, plugin->zero_iter,
+                  proc, proc_cls,
+                  params_zero_iter);
 }
 
 
 /**
- * Context for 'repl_proc' function.
+ * Context for #repl_proc() function.
  */
 struct ReplCtx
 {
@@ -903,7 +751,7 @@ struct ReplCtx
   PluginDatumProcessor proc;
 
   /**
-   * Closure for proc.
+   * Closure for @e proc.
    */
   void *proc_cls;
 };
