@@ -9,7 +9,7 @@ pkgcfg_DATA = \
   arm.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -26,7 +26,7 @@ libgnunetarm_la_LIBADD = \
   $(GN_LIBINTL) $(XLIB)
 libgnunetarm_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-  -version-info 1:3:0
+  -version-info 2:0:0
 
 
 bin_PROGRAMS = \
@@ -39,14 +39,14 @@ libexec_PROGRAMS = \
  gnunet-service-arm
 
 gnunet_arm_SOURCES = \
- gnunet-arm.c         
+ gnunet-arm.c
 gnunet_arm_LDADD = \
   libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 gnunet_service_arm_SOURCES = \
- gnunet-service-arm.c 
+ gnunet-service-arm.c
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -54,7 +54,7 @@ gnunet_service_arm_LDADD = \
 mockup_service_SOURCES = \
   mockup-service.c
  mockup_service_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 
 check_PROGRAMS = \
@@ -76,7 +76,7 @@ test_arm_api_SOURCES = \
  test_arm_api.c
 test_arm_api_LDADD = \
   libgnunetarm.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_exponential_backoff_SOURCES = \
  test_exponential_backoff.c
@@ -88,7 +88,7 @@ test_gnunet_service_arm_SOURCES = \
  test_gnunet_service_arm.c
  test_gnunet_service_arm_LDADD = \
   libgnunetarm.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
@@ -102,4 +102,4 @@ test_gnunet_arm.py: test_gnunet_arm.py.in Makefile
 
 EXTRA_DIST = \
   test_arm_api_data.conf \
-  test_gnunet_arm.py.in 
+  test_gnunet_arm.py.in
