@@ -214,6 +214,7 @@ struct Plugin
 
 };
 
+#define MAX_PARAM 16
 
 /**
  * Delete an entry from the gn090 table.
@@ -534,7 +535,6 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   va_start (ap, proc_cls);
 
   int pc = 0;
-  pc = mysql_stmt_param_count (stmt);
 
   struct GNUNET_MY_QueryParam *params_select = NULL;
 
@@ -546,6 +546,12 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   unsigned long long *param_longlong = NULL;
   void *param_blob = NULL;
 
+  pc = mysql_stmt_param_count (stmt);
+  if (pc  > MAX_PARAM)
+  {
+    GNUNET_break (0);
+  }
+  
 //  enum enum_field_type ft;
   int ft;
   int j = 0;
@@ -556,26 +562,28 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   {
    switch (ft)
    {
-    case MYSQL_TYPE_LONG:
-      param_long = va_arg (ap, unsigned int*);
-      param_is_unsigned = va_arg (ap, int);
-      params_select[j] = GNUNET_MY_query_param_uint32 (param_long);
-      break;
-
     case MYSQL_TYPE_LONGLONG:
       param_longlong = va_arg (ap, unsigned long long *);
       param_is_unsigned = va_arg (ap, int);
       params_select[j] = GNUNET_MY_query_param_uint64 (param_longlong);
       break;
 
+    case MYSQL_TYPE_LONG:
+      param_long = va_arg (ap, unsigned int*);
+      param_is_unsigned = va_arg (ap, int);
+      params_select[j] = GNUNET_MY_query_param_uint32 (param_long);
+      break;
+
+    case MYSQL_TYPE_VAR_STRING:
+    case MYSQL_TYPE_STRING:
     case MYSQL_TYPE_BLOB:
       param_blob = va_arg (ap, void *);
       param_length = va_arg (ap, unsigned long);
       length = va_arg (ap, unsigned long *);
-      params_select[j] = GNUNET_MY_query_param_fixed_size (param_blob, param_length);
-      fprintf(stderr, "indice de segfault : %d\n", j);
-      break;
+      //params_select[j] = GNUNET_MY_query_param_fixed_size (param_blob, param_length);
+      params_select[j] = GNUNET_MY_query_param_auto_from_type(&key);
 
+      break;
     default:
       GNUNET_break(0);
    }
@@ -598,14 +606,20 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
 /* 
 
   !!!! FAIL HERE FOR SELECT QUERY
-  ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params_select);
+*/  ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params_select);
 
-  if (ret <= 0)
+  if(GNUNET_OK != ret)
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-*/
+  
+/*  if (ret <= 0)
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
+
   va_end (ap);
 
 /*
