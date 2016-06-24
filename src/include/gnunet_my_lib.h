@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012 GNUnet e.V.
+     Copyright (C) 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -476,7 +476,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
  */
 void
 GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
-                        MYSQL_BIND *qbind);
+                         MYSQL_BIND *qbind);
 
 
 /**
