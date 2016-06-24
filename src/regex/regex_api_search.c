@@ -41,7 +41,7 @@ struct GNUNET_REGEX_Search
   /**
    * Connection to the regex service.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Our configuration.
@@ -59,41 +59,43 @@ struct GNUNET_REGEX_Search
   void *callback_cls;
 
   /**
-   * Search message to transmit to the service.
+   * Search string to transmit to the service.
    */
-  struct RegexSearchMessage *msg;
+  char *string;
 };
 
 
 /**
- * We got a response or disconnect after asking regex
- * to do the search.  Handle it.
+ * (Re)connect to the REGEX service for the given search @a s.
  *
- * @param cls the `struct GNUNET_REGEX_Search` to retry
- * @param msg NULL on disconnect
+ * @param s context for the search search for
  */
 static void
-handle_search_response (void *cls,
-			const struct GNUNET_MessageHeader *msg);
+search_reconnect (struct GNUNET_REGEX_Search *s);
 
 
 /**
- * Try sending the search request to regex.  On
- * errors (i.e. regex died), try again.
+ * We got a response or disconnect after asking regex
+ * to do the search.  Check it is well-formed.
  *
- * @param s the search to retry
+ * @param cls the `struct GNUNET_REGEX_Search` to handle reply for
+ * @param result the message
+ * @return #GNUNET_SYSERR if @a rm is not well-formed.
  */
-static void
-retry_search (struct GNUNET_REGEX_Search *s)
+static int
+check_search_response (void *cls,
+                       const struct ResultMessage *result)
 {
-  GNUNET_assert (NULL != s->client);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (s->client,
-							  &s->msg->header,
-							  GNUNET_TIME_UNIT_FOREVER_REL,
-							  GNUNET_YES,
-							  &handle_search_response,
-							  s));
+  uint16_t size = ntohs (result->header.size) - sizeof (*result);
+  uint16_t gpl = ntohs (result->get_path_length);
+  uint16_t ppl = ntohs (result->put_path_length);
+
+  if (size != (gpl + ppl) * sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -102,55 +104,84 @@ retry_search (struct GNUNET_REGEX_Search *s)
  * to do the search.  Handle it.
  *
  * @param cls the `struct GNUNET_REGEX_Search` to handle reply for
- * @param msg NULL on disconnect, otherwise presumably a response
+ * @param result the message
  */
 static void
 handle_search_response (void *cls,
-			const struct GNUNET_MessageHeader *msg)
+			const struct ResultMessage *result)
 {
   struct GNUNET_REGEX_Search *s = cls;
-  const struct ResultMessage *result;
-  uint16_t size;
-  uint16_t gpl;
-  uint16_t ppl;
+  uint16_t gpl = ntohs (result->get_path_length);
+  uint16_t ppl = ntohs (result->put_path_length);
+  const struct GNUNET_PeerIdentity *pid;
 
-  if (NULL == msg)
-  {
-    GNUNET_CLIENT_disconnect (s->client);
-    s->client = GNUNET_CLIENT_connect ("regex", s->cfg);
-    retry_search (s);
+  pid = &result->id;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got regex result %s\n",
+       GNUNET_i2s (pid));
+  s->callback (s->callback_cls,
+               pid,
+               &pid[1],
+               gpl,
+               &pid[1 + gpl],
+               ppl);
+}
+
+
+/**
+ * We got a disconnect after asking regex to do the announcement.
+ * Retry.
+ *
+ * @param cls the `struct GNUNET_REGEX_Announcement` to retry
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_REGEX_Search *s = cls;
+
+  GNUNET_MQ_destroy (s->mq);
+  s->mq = NULL;
+  search_reconnect (s);
+}
+
+
+/**
+ * (Re)connect to the REGEX service for the given search @a s.
+ *
+ * @param s context for the search search for
+ */
+static void
+search_reconnect (struct GNUNET_REGEX_Search *s)
+{
+  GNUNET_MQ_hd_var_size (search_response,
+                         GNUNET_MESSAGE_TYPE_REGEX_RESULT,
+                         struct ResultMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_search_response_handler (s),
+    GNUNET_MQ_handler_end ()
+  };
+  size_t slen = strlen (s->string) + 1;
+  struct GNUNET_MQ_Envelope *env;
+  struct RegexSearchMessage *rsm;
+
+  GNUNET_assert (NULL == s->mq);
+  s->mq = GNUNET_CLIENT_connecT (s->cfg,
+                                 "regex",
+                                 handlers,
+                                 &mq_error_handler,
+                                 s);
+  if (NULL == s->mq)
     return;
-  }
-  size = ntohs (msg->size);
-  if ( (GNUNET_MESSAGE_TYPE_REGEX_RESULT == ntohs (msg->type)) &&
-       (size >= sizeof (struct ResultMessage)) )
-  {
-    result = (const struct ResultMessage *) msg;
-    gpl = ntohs (result->get_path_length);
-    ppl = ntohs (result->put_path_length);
-    if (size == (sizeof (struct ResultMessage) +
-		 (gpl + ppl) * sizeof (struct GNUNET_PeerIdentity)))
-    {
-      const struct GNUNET_PeerIdentity *pid;
-
-      GNUNET_CLIENT_receive (s->client,
-			     &handle_search_response, s,
-			     GNUNET_TIME_UNIT_FOREVER_REL);
-      pid = &result->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Got regex result %s\n",
-           GNUNET_i2s (pid));
-      s->callback (s->callback_cls,
-		   pid,
-		   &pid[1], gpl,
-		   &pid[1 + gpl], ppl);
-      return;
-    }
-  }
-  GNUNET_break (0);
-  GNUNET_CLIENT_disconnect (s->client);
-  s->client = GNUNET_CLIENT_connect ("regex", s->cfg);
-  retry_search (s);
+  env = GNUNET_MQ_msg_extra (rsm,
+                             slen,
+                             GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
+  memcpy (&rsm[1],
+          s->string,
+          slen);
+  GNUNET_MQ_send (s->mq,
+                  env);
 }
 
 
@@ -173,27 +204,31 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *callback_cls)
 {
   struct GNUNET_REGEX_Search *s;
-  size_t slen;
+  size_t slen = strlen (string) + 1;
 
+  if (slen + sizeof (struct RegexSearchMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Search string `%s' is too long!\n"),
+                string);
+    GNUNET_break (0);
+    return NULL;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Starting regex search for %s\n",
        string);
-  slen = strlen (string) + 1;
   s = GNUNET_new (struct GNUNET_REGEX_Search);
   s->cfg = cfg;
-  s->client = GNUNET_CLIENT_connect ("regex", cfg);
-  if (NULL == s->client)
+  s->string = GNUNET_strdup (string);
+  s->callback = callback;
+  s->callback_cls = callback_cls;
+  search_reconnect (s);
+  if (NULL == s->mq)
   {
+    GNUNET_free (s->string);
     GNUNET_free (s);
     return NULL;
   }
-  s->callback = callback;
-  s->callback_cls = callback_cls;
-  s->msg = GNUNET_malloc (sizeof (struct RegexSearchMessage) + slen);
-  s->msg->header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
-  s->msg->header.size = htons (sizeof (struct RegexSearchMessage) + slen);
-  memcpy (&s->msg[1], string, slen);
-  retry_search (s);
   return s;
 }
 
@@ -206,10 +241,10 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s)
 {
-  GNUNET_CLIENT_disconnect (s->client);
-  GNUNET_free (s->msg);
+  GNUNET_MQ_destroy (s->mq);
+  GNUNET_free (s->string);
   GNUNET_free (s);
 }
 
 
-/* end of regex_api.c */
+/* end of regex_api_search.c */
