@@ -865,4 +865,4 @@ GNUNET_MY_result_spec_uint64 (uint64_t *u64)
 }
 
 
-/* end of pq_result_helper.c */
+/* end of my_result_helper.c */

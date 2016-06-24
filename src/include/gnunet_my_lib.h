@@ -259,7 +259,7 @@ struct GNUNET_MY_ResultSpec
  *
  * @return array last entry for the result specification to use
  */
-#define GNUNET_MY_result_spec_end { NULL, NULL, NULL, 0, NULL, 0 }
+#define GNUNET_MY_result_spec_end { NULL, NULL, NULL, 0, NULL, 0, 0 }
 
 
 

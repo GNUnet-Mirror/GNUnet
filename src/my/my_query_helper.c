@@ -57,7 +57,6 @@ my_conv_fixed_size (void *cls,
                     MYSQL_BIND *qbind)
 {
   GNUNET_assert (1 == qp->num_params);
-
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = qp->data_len;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
@@ -90,29 +89,29 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 
 
 /**
-  * Generate query parameter for a string
-  *
-  *@param ptr pointer to the string query parameter to pass
-  */
+ * Generate query parameter for a string
+ *
+ * @param ptr pointer to the string query parameter to pass
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_string (const char *ptr)
 {
-  return GNUNET_MY_query_param_fixed_size(ptr,
-                                         strlen(ptr));
+  return GNUNET_MY_query_param_fixed_size (ptr,
+                                           strlen(ptr));
 }
 
 
 /**
-  * Function called to convert input argument into SQL parameters
-  *
-  *@param cls closure
-  *@param pq data about the query
+ * Function called to convert input argument into SQL parameters
+ *
+ * @param cls closure
+ * @param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error
-  */
+ * @return -1 on error
+ */
 static int
 my_conv_uint16 (void *cls,
-                const struct GNUNET_MY_QueryParam * qp,
+                const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
 {
   GNUNET_assert (1 == qp->num_params);
@@ -124,10 +123,10 @@ my_conv_uint16 (void *cls,
 
 
 /**
-  * Generate query parameter for an uint16_t in host byte order.
-  *
-  * @param x pointer to the query parameter to pass
-  */
+ * Generate query parameter for an uint16_t in host byte order.
+ *
+ * @param x pointer to the query parameter to pass
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint16 (const uint16_t *x)
 {
@@ -145,13 +144,13 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
 
 
 /**
-  * Function called to convert input argument into SQL parameters
-  *
-  *@param cls closure
-  *@param pq data about the query
+ * Function called to convert input argument into SQL parameters
+ *
+ * @param cls closure
+ * @param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error
-  */
+ * @return -1 on error
+ */
 static int
 my_conv_uint32 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
@@ -167,10 +166,10 @@ my_conv_uint32 (void *cls,
 
 
 /**
-  * Generate query parameter for an uint32_t in host byte order
-  *
-  *@param x pointer to the query parameter to pass
-  */
+ * Generate query parameter for an uint32_t in host byte order
+ *
+ * @param x pointer to the query parameter to pass
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint32 (const uint32_t *x)
 {
@@ -188,13 +187,13 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
 
 
 /**
-  * Function called to convert input argument into SQL parameters
-  *
-  *@param cls closure
-  *@param pq data about the query
+ * Function called to convert input argument into SQL parameters
+ *
+ * @param cls closure
+ * @param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error
-  */
+ * @return -1 on error
+ */
 static int
 my_conv_uint64 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
@@ -209,10 +208,10 @@ my_conv_uint64 (void *cls,
 
 
 /**
-  * Generate query parameter for an uint64_t in host byte order
-  *
-  *@param x pointer to the query parameter to pass
-  */
+ * Generate query parameter for an uint64_t in host byte order
+ *
+ * @param x pointer to the query parameter to pass
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_uint64 (const uint64_t *x)
 {
@@ -230,13 +229,13 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
 
 
 /**
-  * Function called to convert input argument into SQL parameters
-  *
-  *@param cls closure
-  *@param pq data about the query
+ * Function called to convert input argument into SQL parameters
+ *
+ * @param cls closure
+ * @param pq data about the query
  * @param qbind array of parameters to initialize
-  *@return -1 on error
-  */
+ * @return -1 on error
+ */
 static int
 my_conv_rsa_public_key (void *cls,
                         const struct GNUNET_MY_QueryParam *qp,
@@ -259,12 +258,12 @@ my_conv_rsa_public_key (void *cls,
 
 
 /**
-  * Generate query parameter for an RSA public key. The
-  * database must contain a BLOB type in the respective position.
-  *
-  * @param x the query parameter to pass
-  * @return array entry for the query parameters to use
-  */
+ * Generate query parameter for an RSA public key. The
+ * database must contain a BLOB type in the respective position.
+ *
+ * @param x the query parameter to pass
+ * @return array entry for the query parameters to use
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
@@ -311,12 +310,12 @@ my_conv_rsa_signature (void *cls,
 
 
 /**
-  * Generate query parameter for an RSA signature. The
-  * database must contain a BLOB type in the respective position
-  *
-  *@param x the query parameter to pass
-  *@return array entry for the query parameters to use
-  */
+ * Generate query parameter for an RSA signature. The
+ * database must contain a BLOB type in the respective position
+ *
+ * @param x the query parameter to pass
+ * @return array entry for the query parameters to use
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 {
@@ -333,12 +332,12 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 
 
 /**
-  * Generate query parameter for an absolute time value.
-  * The database must store a 64-bit integer.
-  *
-  *@param x pointer to the query parameter to pass
-  *@return array entry for the query parameters to use
-  */
+ * Generate query parameter for an absolute time value.
+ * The database must store a 64-bit integer.
+ *
+ * @param x pointer to the query parameter to pass
+ * @return array entry for the query parameters to use
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
 {
@@ -347,11 +346,11 @@ GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
 
 
 /**
-  * Generate query parameter for an absolute time value.
-  * The database must store a 64-bit integer.
-  *
-  *@param x pointer to the query parameter to pass
-  */
+ * Generate query parameter for an absolute time value.
+ * The database must store a 64-bit integer.
+ *
+ * @param x pointer to the query parameter to pass
+ */
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x)
 {
