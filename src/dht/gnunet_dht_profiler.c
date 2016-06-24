@@ -40,19 +40,6 @@
  */
 #define PUT_PROBABILITY 50
 
-#if ENABLE_MALICIOUS
-/**
- * Number of peers which should act as malicious peers
- */
-#define MALICIOUS_PROBABILITY 20
-
-/**
- * Context for a peer which should act maliciously.
- */
-struct MaliciousContext;
-#endif
-
-
 /**
  * Configuration
  */
@@ -88,69 +75,8 @@ struct Context
    */
   struct ActiveContext *ac;
 
-#if ENABLE_MALICIOUS
-  /**
-   * Malicious context; NULL if this peer is NOT malicious.
-   */
-  struct MaliciousContext *mc;
-#endif
 };
 
-
-#if ENABLE_MALICIOUS
-/**
- * Context for a peer which should act maliciously.
- */
-struct MaliciousContext
-{
-  /**
-   * The linked peer context
-   */
-  struct Context *ctx;
-
-  /**
-   * Handler to the DHT service
-   */
-  struct GNUNET_DHT_Handle *dht;
-
-  /**
-   * Handler to malicious api
-   */
-  struct GNUNET_DHT_ActMaliciousHandle *dht_malicious;
-};
-
-/**
- * List of all the malicious peers contexts.
- */
-struct Context **malicious_peer_contexts = NULL;
-
-/**
- * Context for a peer which should act maliciously.
- */
-struct Malicious_Context
-{
-  /**
-   * The linked peer context
-   */
-  struct Context *ctx;
-
-  /**
-   * Handler to the DHT service
-   */
-  struct GNUNET_DHT_Handle *dht;
-};
-
-/**
- * Array of malicious peers.
- */
-static struct MaliciousContext *a_mc;
-
-/**
- * Number or malicious peers.
- */
-static unsigned int n_malicious;
-
-#endif
 
 /**
  * Context for a peer which actively does DHT PUT/GET
@@ -906,122 +832,6 @@ start_profiling()
   }
 }
 
-#if ENABLE_MALICIOUS
-/**
- * Count of total number of malicious peers.
- */
-static unsigned int count_malicious;
-
-/**
- * Continuation of GNUNET_DHT_act_malicious
- * @param cls Malicious context
-  * @param success #GNUNET_OK if the ACT_MALICIOUS was transmitted,
- *                 #GNUNET_NO on timeout,
- *                 #GNUNET_SYSERR on disconnect from service
- *                 after the ACT_MALICIOUS message was transmitted
- *                 (so we don't know if it was received or not)
- */
-static void
-act_malicious_cont (void *cls, int success)
-{
-  struct MaliciousContext *mc = cls;
-  struct Context *ctx = mc->ctx;
-
-  GNUNET_TESTBED_operation_done (ctx->op);
-  ctx->op = NULL;
-  return;
-}
-
-
-/**
- * Call malicious API for all the malicious peers.
- * @param cls the malicious context.
- * @param op the operation that has been finished
- * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-static void
-dht_set_malicious(void *cls,
-                  struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result,
-                  const char *emsg)
-{
-  struct MaliciousContext *mc = cls;
-  struct Context *ctx = mc->ctx;
-
-  GNUNET_assert (NULL != ctx);
-  GNUNET_assert (NULL != ctx->op);
-  GNUNET_assert (ctx->op == op);
-  mc->dht = (struct GNUNET_DHT_Handle *) ca_result;
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection to DHT service failed: %s\n", emsg);
-    GNUNET_TESTBED_operation_done (ctx->op); /* Calls dht_disconnect_malicious() */
-    ctx->op = NULL;
-    return;
-  }
-  mc->dht_malicious = GNUNET_DHT_act_malicious(mc->dht, 1, act_malicious_cont, mc);
-}
-
-
-/**
- * Adapter function called to destroy a connection to
- * a service.
- *
- * @param cls the active context
- * @param op_result service handle returned from the connect adapter
- */
-static void
-dht_disconnect_malicious (void *cls, void *op_result)
-{
-  struct MaliciousContext *mc = cls;
-  count_malicious++;
-  GNUNET_assert (NULL != mc->dht);
-  GNUNET_assert (mc->dht == op_result);
-  GNUNET_DHT_disconnect (mc->dht);
-  mc->dht = NULL;
-  mc->ctx->op = NULL;
-  n_dht--;
-
-  if (0 != n_dht)
-    return;
-
-  if(n_malicious == count_malicious)
-  {
-    DEBUG("\n Call start_profiling()");
-    start_profiling();
-  }
-}
-
-
-/**
- * Set the malicious variable in peer malicious context.
- */
-static void
-set_malicious()
-{
-  unsigned int i;
-
-  DEBUG ("Setting %u peers malicious",
-         n_malicious);
-  for(i = 0; i < n_malicious; i++)
-  {
-    struct MaliciousContext *mc = &a_mc[i];
-    mc->ctx->op =
-        GNUNET_TESTBED_service_connect (mc->ctx,
-                                        mc->ctx->peer,
-                                        "dht",
-                                        &dht_set_malicious, mc,
-                                        &dht_connect,
-                                        &dht_disconnect_malicious,
-                                        mc);
-  }
-}
-
-#endif
-
-
 /**
  * Start collecting relevant statistics. If ENABLE_MALICIOUS set, first
  * set the malicious peers. If not, then start with PUT operation on active
@@ -1030,11 +840,7 @@ set_malicious()
 static void
 start_func()
 {
-#if ENABLE_MALICIOUS
-  set_malicious();
-#else
   start_profiling();
-#endif
 }
 
 
@@ -1308,49 +1114,11 @@ test_run (void *cls,
 
   a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
   ac_cnt = 0;
-
-#if ENABLE_MALICIOUS
-  unsigned int malicious_peers;
-  if(PUT_PROBABILITY + MALICIOUS_PROBABILITY > 100)
-  {
-    DEBUG ("Reduce either number of malicious peer or active peers. ");
-    GNUNET_SCHEDULER_shutdown ();
-    GNUNET_free (a_ctx);
-    return;
-  }
-
-  /* Select the peers which should act maliciously. */
-  n_malicious = num_peers * MALICIOUS_PROBABILITY / 100;
-
-  a_mc = GNUNET_malloc (n_malicious * sizeof (struct MaliciousContext));
-  malicious_peers = 0;
-
-  for (cnt = 0; cnt < num_peers && malicious_peers < n_malicious; cnt++)
-  {
-    if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
-        MALICIOUS_PROBABILITY)
-      continue;
-    a_ctx[cnt].mc = &a_mc[malicious_peers];
-    a_mc[malicious_peers].ctx = &a_ctx[cnt];
-    malicious_peers++;
-  }
-  n_malicious = malicious_peers;
-  INFO ("Malicious Peers: %u\n",malicious_peers);
-
-#endif
-
-  a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
-  ac_cnt = 0;
   for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
   {
     if ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
         PUT_PROBABILITY))
       continue;
-
-#if ENABLE_MALICIOUS
-    if(a_ctx[ac_cnt].mc != NULL)
-      continue;
-#endif
 
     a_ctx[cnt].ac = &a_ac[ac_cnt];
     a_ac[ac_cnt].ctx = &a_ctx[cnt];
