@@ -172,7 +172,7 @@ struct GNUNET_PEERINFO_NotifyContext;
  * changes.  Initially calls the given function for all known
  * peers and then only signals changes.
  *
- * If include_friend_only is set to GNUNET_YES peerinfo will include HELLO
+ * If @a include_friend_only is set to #GNUNET_YES peerinfo will include HELLO
  * messages which are intended for friend to friend mode and which do not
  * have to be gossiped. Otherwise these messages are skipped.
  *
