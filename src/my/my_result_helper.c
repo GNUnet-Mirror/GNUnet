@@ -46,6 +46,8 @@ pre_extract_varsize_blob (void *cls,
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -73,6 +75,8 @@ post_extract_varsize_blob (void *cls,
   void *buf;
   size_t size;
 
+  if (*results->is_null)
+    return GNUNET_SYSERR;
   size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
@@ -169,6 +173,8 @@ pre_extract_fixed_blob (void *cls,
   results[0].buffer_length = rs->dst_size;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -194,6 +200,8 @@ post_extract_fixed_blob (void *cls,
                          unsigned int column,
                          MYSQL_BIND *results)
 {
+  if (*results->is_null)
+    return GNUNET_SYSERR;
   if (rs->dst_size != rs->mysql_bind_output_length)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -249,6 +257,8 @@ pre_extract_rsa_public_key (void *cls,
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -279,6 +289,8 @@ post_extract_rsa_public_key  (void *cls,
   void *buf;
   size_t size;
 
+  if (*results->is_null)
+    return GNUNET_SYSERR;
   size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
@@ -379,6 +391,8 @@ pre_extract_rsa_signature (void *cls,
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -407,6 +421,8 @@ post_extract_rsa_signature (void *cls,
   void *buf;
   size_t size;
 
+  if (*results->is_null)
+    return GNUNET_SYSERR;
   size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
@@ -448,7 +464,7 @@ post_extract_rsa_signature (void *cls,
  */
 static void
 clean_rsa_signature (void *cls,
-          struct GNUNET_MY_ResultSpec *rs)
+                     struct GNUNET_MY_ResultSpec *rs)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
 
@@ -505,6 +521,8 @@ pre_extract_string (void * cls,
   results[0].buffer_length = 0;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -534,6 +552,11 @@ post_extract_string (void * cls,
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR;
+  if (*results->is_null)
+  {
+    rs->dst = NULL;
+    return GNUNET_OK;
+  }
 
   buf = GNUNET_malloc (size);
   results[0].buffer = buf;
@@ -627,6 +650,8 @@ pre_extract_uint16 (void *cls,
   results[0].buffer_length = rs->dst_size;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_SHORT;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -652,6 +677,8 @@ post_extract_uint16 (void *cls,
                      MYSQL_BIND *results)
 {
   if (rs->dst_size != rs->mysql_bind_output_length)
+    return GNUNET_SYSERR;
+  if (*results->is_null)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -702,6 +729,8 @@ pre_extract_uint32 (void *cls,
   results[0].buffer_length = rs->dst_size;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_LONG;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -728,7 +757,9 @@ post_extract_uint32 (void *cls,
                      MYSQL_BIND *results)
 {
   if (rs->dst_size != rs->mysql_bind_output_length)
-      return GNUNET_SYSERR;
+    return GNUNET_SYSERR;
+  if (*results->is_null)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -773,10 +804,14 @@ pre_extract_uint64 (void *cls,
                     unsigned int column,
                     MYSQL_BIND *results)
 {
+  if (sizeof (uint64_t) != rs->dst_size)
+    return GNUNET_SYSERR;
   results[0].buffer = rs->dst;
   results[0].buffer_length = rs->dst_size;
   results[0].length = &rs->mysql_bind_output_length;
   results[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  results[0].is_null = &rs->is_null;
+  rs->is_null = 0;
 
   return GNUNET_OK;
 }
@@ -801,7 +836,9 @@ post_extract_uint64 (void *cls,
                      unsigned int column,
                      MYSQL_BIND *results)
 {
-  if (rs->dst_size != rs->mysql_bind_output_length)
+  if (sizeof (uint64_t) != rs->dst_size)
+    return GNUNET_SYSERR;
+  if (*results->is_null)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }

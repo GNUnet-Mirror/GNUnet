@@ -246,6 +246,11 @@ struct GNUNET_MY_ResultSpec
    */
   unsigned long mysql_bind_output_length;
 
+  /**
+   * Memory for MySQL to notify us about NULL values.
+   */
+  my_bool is_null;
+
 };
 
 

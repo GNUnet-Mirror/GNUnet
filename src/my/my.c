@@ -75,9 +75,11 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
     if (mysql_stmt_bind_param (stmt,
                                qbind))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "my",
                        _("`%s' failed at %s:%d with error: %s\n"),
-                       "mysql_stmt_bind_param", __FILE__, __LINE__,
+                       "mysql_stmt_bind_param",
+                       __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MYSQL_statements_invalidate (mc);
       return GNUNET_SYSERR;
@@ -85,18 +87,17 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
 
     if (mysql_stmt_execute (stmt))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "my",
                        _("`%s' failed at %s:%d with error: %s\n"),
                        "mysql_stmt_execute", __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MYSQL_statements_invalidate (mc);
       return GNUNET_SYSERR;
     }
-
     GNUNET_MY_cleanup_query (params,
                              qbind);
   }
-
   return GNUNET_OK;
 }
 
@@ -125,7 +126,6 @@ GNUNET_MY_cleanup_query (struct GNUNET_MY_QueryParam *qp,
  * Extract results from a query result according to the given
  * specification.  Always fetches the next row.
  *
- *
  * @param sh statement that returned results
  * @param rs specification to extract for
  * @return
@@ -145,11 +145,13 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
   stmt = GNUNET_MYSQL_statement_get_stmt (sh);
   if (NULL == stmt)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                    ("`%s' failed at %s:%d with error: %s\n"),
-                       "mysql_stmt_bind_result", __FILE__, __LINE__,
-                       mysql_stmt_error (stmt));
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+  if (NULL == rs)
+  {
+    mysql_stmt_free_result (stmt);
+    return GNUNET_NO;
   }
 
   num_fields = 0;
@@ -187,25 +189,32 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
       }
       field_off += rp->num_fields;
     }
+
     if (mysql_stmt_bind_result (stmt, result))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "my",
-                       _("`%s' failed at %s:%d with error: %s\n"),
-                       "mysql_stmt_bind_result", __FILE__, __LINE__,
+                       _("%s failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_bind_result",
+                       __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       return GNUNET_SYSERR;
     }
-
+#if TEST_OPTIMIZATION
+    (void) mysql_stmt_store_result (stmt);
+#endif
     ret = mysql_stmt_fetch (stmt);
-
     if (MYSQL_NO_DATA == ret)
+    {
+      mysql_stmt_free_result (stmt);
       return GNUNET_NO;
-    if ((0 != ret ) && (MYSQL_DATA_TRUNCATED != ret))
+    }
+    if (1 == ret)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                        "my",
-                       _("mysql_stmt_fetch failed at %s:%d with error: %s\n"),
+                       _("%s failed at %s:%d with error: %s\n"),
+                       "mysql_stmt_fetch",
                        __FILE__, __LINE__,
                        mysql_stmt_error (stmt));
       GNUNET_MY_cleanup_result (rs);
@@ -235,7 +244,6 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
       field_off += rp->num_fields;
     }
   }
-  mysql_stmt_free_result (stmt);
   return GNUNET_OK;
 }
 
