@@ -156,7 +156,7 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
  * must always be a valid DNS reply and not a mutated DNS request.
  *
  * @param rh request that should now be answered
- * @param reply_length size of reply (uint16_t to force sane size)
+ * @param reply_length size of @a reply (uint16_t to force sane size)
  * @param reply reply data
  */
 void
@@ -169,9 +169,9 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
  * Connect to the service-dns
  *
  * @param cfg configuration to use
- * @param flags when to call rh
+ * @param flags when to call @a rh
  * @param rh function to call with DNS requests
- * @param rh_cls closure to pass to rh
+ * @param rh_cls closure to pass to @a rh
  * @return DNS handle
  */
 struct GNUNET_DNS_Handle *
