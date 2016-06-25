@@ -183,11 +183,10 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle;
  *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
-typedef void (*GNUNET_TESTBED_HostHabitableCallback) (void *cls,
-                                                      const struct
-                                                      GNUNET_TESTBED_Host
-                                                      *host,
-                                                      int status);
+typedef void
+(*GNUNET_TESTBED_HostHabitableCallback) (void *cls,
+                                         const struct GNUNET_TESTBED_Host *host,
+                                         int status);
 
 
 /**
@@ -419,8 +418,9 @@ struct GNUNET_TESTBED_EventInformation
  * @param cls closure
  * @param event information about the event
  */
-typedef void (*GNUNET_TESTBED_ControllerCallback)(void *cls,
-                                                  const struct GNUNET_TESTBED_EventInformation *event);
+typedef void
+(*GNUNET_TESTBED_ControllerCallback)(void *cls,
+                                     const struct GNUNET_TESTBED_EventInformation *event);
 
 
 /**
@@ -434,13 +434,14 @@ struct GNUNET_TESTBED_ControllerProc;
  *
  * @param cls the closure from GNUNET_TESTBED_controller_start()
  * @param cfg the configuration with which the controller has been started;
- *          NULL if status is not GNUNET_OK
- * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
+ *          NULL if status is not #GNUNET_OK
+ * @param status #GNUNET_OK if the startup is successfull; #GNUNET_SYSERR if not,
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
-typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
-                                                        const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                                        int status);
+typedef void
+(*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
+                                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                            int status);
 
 
 /**
@@ -531,8 +532,9 @@ struct GNUNET_TESTBED_HostRegistrationHandle;
  * @param cls the closure
  * @param emsg the error message; NULL if host registration is successful
  */
-typedef void (* GNUNET_TESTBED_HostRegistrationCompletion) (void *cls,
-                                                            const char *emsg);
+typedef void
+(* GNUNET_TESTBED_HostRegistrationCompletion) (void *cls,
+                                               const char *emsg);
 
 
 /**
@@ -579,11 +581,10 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
-                                                            struct
-                                                            GNUNET_TESTBED_Operation
-                                                            *op,
-                                                            const char *emsg);
+typedef void
+(*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
+                                               struct GNUNET_TESTBED_Operation *op,
+                                               const char *emsg);
 
 
 /**
@@ -652,9 +653,10 @@ GNUNET_TESTBED_get_slave_config (void *op_cls,
  *          creation
  * @param emsg NULL if peer is not NULL; else MAY contain the error description
  */
-typedef void (*GNUNET_TESTBED_PeerCreateCallback) (void *cls,
-                                                   struct GNUNET_TESTBED_Peer *peer,
-                                                   const char *emsg);
+typedef void
+(*GNUNET_TESTBED_PeerCreateCallback) (void *cls,
+                                      struct GNUNET_TESTBED_Peer *peer,
+                                      const char *emsg);
 
 
 /**
@@ -701,8 +703,9 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
  * @param cls the closure from GNUNET_TESTBED_peer_start/stop()
  * @param emsg NULL on success; otherwise an error description
  */
-typedef void (*GNUNET_TESTBED_PeerChurnCallback) (void *cls,
-                                                  const char *emsg);
+typedef void
+(*GNUNET_TESTBED_PeerChurnCallback) (void *cls,
+                                     const char *emsg);
 
 
 /**
@@ -780,13 +783,11 @@ struct GNUNET_TESTBED_PeerInformation
  * @param emsg error message if the operation has failed; will be NULL if the
  *          operation is successfull
  */
-typedef void (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
-                                                 struct GNUNET_TESTBED_Operation
-                                                 *op,
-                                                 const struct
-                                                 GNUNET_TESTBED_PeerInformation
-                                                 *pinfo,
-                                                 const char *emsg);
+typedef void
+(*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
+                                    struct GNUNET_TESTBED_Operation *op,
+                                    const struct GNUNET_TESTBED_PeerInformation *pinfo,
+                                    const char *emsg);
 
 
 /**
@@ -1208,8 +1209,9 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
  *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
-typedef void * (*GNUNET_TESTBED_ConnectAdapter)(void *cls,
-                                                const struct GNUNET_CONFIGURATION_Handle *cfg);
+typedef void *
+(*GNUNET_TESTBED_ConnectAdapter)(void *cls,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -1219,8 +1221,9 @@ typedef void * (*GNUNET_TESTBED_ConnectAdapter)(void *cls,
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-typedef void (*GNUNET_TESTBED_DisconnectAdapter)(void *cls,
-                                                 void *op_result);
+typedef void
+(*GNUNET_TESTBED_DisconnectAdapter)(void *cls,
+                                    void *op_result);
 
 
 /**
@@ -1232,14 +1235,11 @@ typedef void (*GNUNET_TESTBED_DisconnectAdapter)(void *cls,
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-typedef void (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
-                                                                 struct
-                                                                 GNUNET_TESTBED_Operation
-                                                                 *op,
-                                                                 void
-                                                                 *ca_result,
-                                                                 const char
-                                                                 *emsg );
+typedef void
+(*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
+                                                    struct GNUNET_TESTBED_Operation *op,
+                                                    void *ca_result,
+                                                    const char *emsg );
 
 
 /**
@@ -1308,15 +1308,16 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation);
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
-typedef int (*GNUNET_TESTBED_StatisticsIterator) (void *cls,
-                                                  const struct GNUNET_TESTBED_Peer *peer,
-                                                  const char *subsystem,
-                                                  const char *name,
-                                                  uint64_t value,
-                                                  int is_persistent);
+typedef int
+(*GNUNET_TESTBED_StatisticsIterator) (void *cls,
+                                      const struct GNUNET_TESTBED_Peer *peer,
+                                      const char *subsystem,
+                                      const char *name,
+                                      uint64_t value,
+                                      int is_persistent);
 
 
 /**
@@ -1524,17 +1525,17 @@ enum GNUNET_TESTBED_BarrierStatus
  * @param cls the closure given to GNUNET_TESTBED_barrier_init()
  * @param name the name of the barrier
  * @param barrier the barrier handle
- * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
- *   GNUNET_SYSERR upon error
- * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
+ * @param status status of the barrier; #GNUNET_OK if the barrier is crossed;
+ *   #GNUNET_SYSERR upon error
+ * @param emsg if the status were to be #GNUNET_SYSERR, this parameter has the
  *   error messsage
  */
-typedef void (*GNUNET_TESTBED_barrier_status_cb) (void *cls,
-                                                  const char *name,
-                                                  struct GNUNET_TESTBED_Barrier
-                                                  *barrier,
-                                                  enum GNUNET_TESTBED_BarrierStatus status,
-                                                  const char *emsg);
+typedef void
+(*GNUNET_TESTBED_barrier_status_cb) (void *cls,
+                                     const char *name,
+                                     struct GNUNET_TESTBED_Barrier *barrier,
+                                     enum GNUNET_TESTBED_BarrierStatus status,
+                                     const char *emsg);
 
 
 /**
@@ -1555,7 +1556,8 @@ struct GNUNET_TESTBED_Barrier *
 GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
                              const char *name,
                              unsigned int quorum,
-                             GNUNET_TESTBED_barrier_status_cb cb, void *cls);
+                             GNUNET_TESTBED_barrier_status_cb cb,
+                             void *cls);
 
 
 /**
@@ -1580,12 +1582,13 @@ struct GNUNET_TESTBED_BarrierWaitHandle;
  *
  * @param cls closure pointer given to GNUNET_TESTBED_barrier_wait()
  * @param name the barrier name
- * @param status GNUNET_SYSERR in case of error while waiting for the barrier;
- *   GNUNET_OK if the barrier is crossed
+ * @param status #GNUNET_SYSERR in case of error while waiting for the barrier;
+ *   #GNUNET_OK if the barrier is crossed
  */
-typedef void (*GNUNET_TESTBED_barrier_wait_cb) (void *cls,
-                                                const char *name,
-                                                int status);
+typedef void
+(*GNUNET_TESTBED_barrier_wait_cb) (void *cls,
+                                   const char *name,
+                                   int status);
 
 
 /**

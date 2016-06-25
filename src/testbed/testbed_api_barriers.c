@@ -206,7 +206,8 @@ handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     goto cleanup;
   }
   GNUNET_assert (NULL != barrier->cb);
-  if ((GNUNET_YES == barrier->echo) && (GNUNET_TESTBED_BARRIERSTATUS_CROSSED == status))
+  if ((GNUNET_YES == barrier->echo) &&
+      (GNUNET_TESTBED_BARRIERSTATUS_CROSSED == status))
     GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
   barrier->cb (barrier->cls, name, barrier, status, emsg);
   if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED == status)
@@ -270,7 +271,8 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
   barrier->echo = echo;
   (void) memcpy (&barrier->key, &key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (barrier_map, &barrier->key,
+                 GNUNET_CONTAINER_multihashmap_put (barrier_map,
+                                                    &barrier->key,
                                                     barrier,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   msize = name_len + sizeof (struct GNUNET_TESTBED_BarrierInit);
@@ -304,7 +306,8 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
                              unsigned int quorum,
                              GNUNET_TESTBED_barrier_status_cb cb, void *cls)
 {
-  return GNUNET_TESTBED_barrier_init_ (controller, name, quorum, cb, cls, GNUNET_YES);
+  return GNUNET_TESTBED_barrier_init_ (controller,
+                                       name, quorum, cb, cls, GNUNET_YES);
 }
 
 
@@ -399,7 +402,8 @@ destroy_handle (struct GNUNET_TESTBED_BarrierWaitHandle *h)
  * @param message received message; NULL on timeout or fatal error
  */
 static void
-receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
+receive_handler (void *cls,
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
   const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
@@ -524,7 +528,8 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   h->cls = cls;
   if (NULL == h->conn)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Unable to connect to local testbed-barrier service\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Unable to connect to local testbed-barrier service\n");
     destroy_handle (h);
     return NULL;
   }
