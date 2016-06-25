@@ -1407,7 +1407,7 @@ disk_utilization_change_cb (void *cls,
                 (long long) -delta);
     plugin->api->estimate_size (plugin->api->cls,
                                 &payload);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("New payload: %lld\n"),
                 (long long) payload);
      sync_stats ();
