@@ -234,7 +234,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                            field_off,
                            &result[field_off]))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "Post-conversion for MySQL result failed at offset %u\n",
                       i);
           mysql_stmt_free_result (stmt);
