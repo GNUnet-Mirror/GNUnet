@@ -2537,12 +2537,14 @@ GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
-  if (GNUNET_SYSERR == (use_cache = GNUNET_CONFIGURATION_get_value_yesno (c,
-                                             "gns",
-                                             "USE_CACHE")))
+  if (GNUNET_SYSERR == (use_cache =
+                        GNUNET_CONFIGURATION_get_value_yesno (c,
+                                                              "gns",
+                                                              "USE_CACHE")))
     use_cache = GNUNET_YES;
   if (GNUNET_NO == use_cache)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Namecache disabled\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Namecache disabled\n");
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (c,

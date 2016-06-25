@@ -706,9 +706,8 @@ send_lookup_response (void* cls,
   size_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending `%s' message with %d results\n",
-              "LOOKUP_RESULT",
-	      rd_count);
+	      "Sending LOOKUP_RESULT message with %u results\n",
+	      (unsigned int) rd_count);
 
   len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   rmsg = GNUNET_malloc (len + sizeof (struct GNUNET_GNS_ClientLookupResultMessage));
@@ -757,8 +756,7 @@ handle_lookup (void *cls,
   const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "LOOKUP");
+	      "Received LOOKUP message\n");
   msg_size = ntohs (message->size);
   if (msg_size < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
