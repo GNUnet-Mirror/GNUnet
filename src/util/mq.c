@@ -310,6 +310,35 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
 
 
 /**
+ * Send a copy of a message with the give message queue.
+ * Can be called repeatedly on the same envelope.
+ *
+ * @param mq message queue
+ * @param ev the envelope with the message to send.
+ */
+void
+GNUNET_MQ_send_copy (struct GNUNET_MQ_Handle *mq,
+                     const struct GNUNET_MQ_Envelope *ev)
+{
+  struct GNUNET_MQ_Envelope *env;
+  uint16_t msize;
+
+  msize = ntohs (ev->mh->size);
+  env = GNUNET_malloc (sizeof (struct GNUNET_MQ_Envelope) +
+                       msize);
+  env->mh = (struct GNUNET_MessageHeader *) &env[1];
+  env->sent_cb = ev->sent_cb;
+  env->sent_cls = ev->sent_cls;
+  memcpy (&env[1],
+          ev->mh,
+          msize);
+  GNUNET_MQ_send (mq,
+                  env);
+}
+
+
+
+/**
  * Task run to call the send implementation for the next queued
  * message, if any.  Only useful for implementing message queues,
  * results in undefined behavior if not used carefully.
