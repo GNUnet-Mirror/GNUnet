@@ -294,6 +294,35 @@ free_ze (struct GNUNET_NAMESTORE_ZoneIterator *ze)
 
 
 /**
+ * Check that @a rd_buf of lenght @a rd_len contains
+ * @a rd_count records.
+ *
+ * @param rd_len length of @a rd_buf
+ * @param rd_buf buffer with serialized records
+ * @param rd_count number of records expected
+ * @return #GNUNET_OK if @a rd_buf is well-formed
+ */
+static int
+check_rd (size_t rd_len,
+          const void *rd_buf,
+          unsigned int rd_count)
+{
+  struct GNUNET_GNSRECORD_Data rd[rd_count];
+
+  if (GNUNET_OK !=
+      GNUNET_GNSRECORD_records_deserialize (rd_len,
+                                            rd_buf,
+                                            rd_count,
+                                            rd))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle an incoming message of type
  * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
  *
@@ -341,15 +370,12 @@ check_lookup_result (void *cls,
                      const struct LabelLookupResponseMessage *msg)
 {
   const char *name;
-  const char *rd_tmp;
   size_t exp_msg_len;
   size_t msg_len;
   size_t name_len;
   size_t rd_len;
-  unsigned int rd_count;
 
   rd_len = ntohs (msg->rd_len);
-  rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
   exp_msg_len = sizeof (*msg) + name_len + rd_len;
@@ -367,28 +393,16 @@ check_lookup_result (void *cls,
   }
   if (GNUNET_NO == ntohs (msg->found))
   {
-    if (0 != rd_count)
+    if (0 != ntohs (msg->rd_count))
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
     return GNUNET_OK;
   }
-  rd_tmp = &name[name_len];
-  {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-
-    if (GNUNET_OK !=
-        GNUNET_GNSRECORD_records_deserialize (rd_len,
-                                              rd_tmp,
-                                              rd_count,
-                                              rd))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-  }
-  return GNUNET_OK;
+  return check_rd (rd_len,
+                   &name[name_len],
+                   ntohs (msg->rd_count));
 }
 
 
@@ -469,15 +483,11 @@ check_record_result (void *cls,
                      const struct RecordResultMessage *msg)
 {
   const char *name;
-  const char *rd_tmp;
-  size_t exp_msg_len;
   size_t msg_len;
   size_t name_len;
   size_t rd_len;
-  unsigned int rd_count;
 
   rd_len = ntohs (msg->rd_len);
-  rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
   if (0 != ntohs (msg->reserved))
@@ -485,8 +495,7 @@ check_record_result (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  exp_msg_len = sizeof (struct RecordResultMessage) + name_len + rd_len;
-  if (msg_len != exp_msg_len)
+  if (msg_len != sizeof (struct RecordResultMessage) + name_len + rd_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -498,21 +507,9 @@ check_record_result (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  rd_tmp = &name[name_len];
-  {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-
-    if (GNUNET_OK !=
-        GNUNET_GNSRECORD_records_deserialize(rd_len,
-                                             rd_tmp,
-                                             rd_count,
-                                             rd))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-  }
-  return GNUNET_OK;
+  return check_rd (rd_len,
+                   &name[name_len],
+                   ntohs (msg->rd_count));
 }
 
 
@@ -625,16 +622,18 @@ check_zone_to_name_response (void *cls,
 {
   size_t name_len;
   size_t rd_ser_len;
-  unsigned int rd_count;
   const char *name_tmp;
-  const char *rd_tmp;
 
   if (GNUNET_OK != ntohs (msg->res))
     return GNUNET_OK;
-
   name_len = ntohs (msg->name_len);
-  rd_count = ntohs (msg->rd_count);
   rd_ser_len = ntohs (msg->rd_len);
+  if (ntohs (msg->gns_header.header.size) !=
+      sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   name_tmp = (const char *) &msg[1];
   if ( (name_len > 0) &&
        ('\0' != name_tmp[name_len -1]) )
@@ -642,21 +641,9 @@ check_zone_to_name_response (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  rd_tmp = &name_tmp[name_len];
-  {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-
-    if (GNUNET_OK !=
-        GNUNET_GNSRECORD_records_deserialize (rd_ser_len,
-                                              rd_tmp,
-                                              rd_count,
-                                              rd))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-  }
-  return GNUNET_OK;
+  return check_rd (rd_ser_len,
+                   &name_tmp[name_len],
+                   ntohs (msg->rd_count));
 }
 
 
