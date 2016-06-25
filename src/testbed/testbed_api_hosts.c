@@ -202,8 +202,7 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_by_id_ (uint32_t id,
-                                   const struct GNUNET_CONFIGURATION_Handle
-                                   *cfg)
+                                   const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   return GNUNET_TESTBED_host_create_with_id (id, NULL, NULL, cfg, 0);
 }
@@ -395,7 +394,6 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
                                      *cfg,
                                      struct GNUNET_TESTBED_Host ***hosts)
 {
-  //struct GNUNET_TESTBED_Host **host_array;
   struct GNUNET_TESTBED_Host *starting_host;
   char *data;
   char *buf;

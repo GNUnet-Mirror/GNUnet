@@ -400,7 +400,7 @@ static unsigned int n_expired_opqs;
 /**
  * The id of the task to process the ready queue
  */
-struct GNUNET_SCHEDULER_Task * process_rq_task_id;
+struct GNUNET_SCHEDULER_Task *process_rq_task_id;
 
 
 /**

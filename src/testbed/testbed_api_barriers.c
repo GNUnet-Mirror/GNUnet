@@ -41,48 +41,6 @@
 #define LOG_DEBUG(...)                          \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
-/**
- * Handle for barrier
- */
-struct GNUNET_TESTBED_Barrier
-{
-  /**
-   * hashcode identifying this barrier in the hashmap
-   */
-  struct GNUNET_HashCode key;
-
-  /**
-   * The controller handle given while initiliasing this barrier
-   */
-  struct GNUNET_TESTBED_Controller *c;
-
-  /**
-   * The name of the barrier
-   */
-  char *name;
-
-  /**
-   * The continuation callback to call when we have a status update on this
-   */
-  GNUNET_TESTBED_barrier_status_cb cb;
-
-  /**
-   * the closure for the above callback
-   */
-  void *cls;
-
-  /**
-   * Should the barrier crossed status message be echoed back to the controller?
-   */
-  int echo;
-};
-
-
-/**
- * handle for hashtable of barrier handles
- */
-static struct GNUNET_CONTAINER_MultiHashMap *barrier_map;
-
 
 /**
  * Remove a barrier and it was the last one in the barrier hash map, destroy the
@@ -90,133 +48,23 @@ static struct GNUNET_CONTAINER_MultiHashMap *barrier_map;
  *
  * @param barrier the barrier to remove
  */
-static void
-barrier_remove (struct GNUNET_TESTBED_Barrier *barrier)
+void
+GNUNET_TESTBED_barrier_remove_ (struct GNUNET_TESTBED_Barrier *barrier)
 {
-  GNUNET_assert (NULL != barrier_map); /* No barriers present */
+  struct GNUNET_TESTBED_Controller *c = barrier->c;
+
+  GNUNET_assert (NULL != c->barrier_map); /* No barriers present */
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_remove (barrier_map,
+                 GNUNET_CONTAINER_multihashmap_remove (c->barrier_map,
                                                        &barrier->key,
                                                        barrier));
   GNUNET_free (barrier->name);
   GNUNET_free (barrier);
-  if (0 == GNUNET_CONTAINER_multihashmap_size (barrier_map))
+  if (0 == GNUNET_CONTAINER_multihashmap_size (c->barrier_map))
   {
-    GNUNET_CONTAINER_multihashmap_destroy (barrier_map);
-    barrier_map = NULL;
+    GNUNET_CONTAINER_multihashmap_destroy (c->barrier_map);
+    c->barrier_map = NULL;
   }
-}
-
-
-/**
- * Validate #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS message.
- *
- * @param cls the controller handle to determine the connection this message
- *   belongs to
- * @param msg the barrier status message
- * @return #GNUNET_OK if the message is valid; #GNUNET_SYSERR to tear it
- *   down signalling an error (message malformed)
- */
-int
-check_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                       const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
-{
-  uint16_t msize;
-  uint16_t name_len;
-  int status;
-  const char *name;
-  size_t emsg_len;
-
-  msize = ntohs (msg->header.size);
-  name = msg->data;
-  name_len = ntohs (msg->name_len);
-
-  if (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  if ('\0' != name[name_len])
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  status = ntohs (msg->status);
-  if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
-  {
-    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
-                        + 1); /* +1!? */
-    if (0 == emsg_len)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages
- *
- * @param c the controller handle to determine the connection this message
- *   belongs to
- * @param msg the barrier status message
- */
-void
-handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                        const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
-{
-  struct GNUNET_TESTBED_Barrier *barrier;
-  char *emsg;
-  const char *name;
-  struct GNUNET_HashCode key;
-  size_t emsg_len;
-  int status;
-  uint16_t msize;
-  uint16_t name_len;
-
-  emsg = NULL;
-  barrier = NULL;
-  msize = ntohs (msg->header.size);
-  name = msg->data;
-  name_len = ntohs (msg->name_len);
-  LOG_DEBUG ("Received BARRIER_STATUS msg\n");
-  status = ntohs (msg->status);
-  if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
-  {
-    status = -1;
-    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
-                        + 1);
-    emsg = GNUNET_malloc (emsg_len + 1);
-    memcpy (emsg,
-            msg->data + name_len + 1,
-            emsg_len);
-  }
-  if (NULL == barrier_map)
-  {
-    GNUNET_break_op (0);
-    goto cleanup;
-  }
-  GNUNET_CRYPTO_hash (name, name_len, &key);
-  barrier = GNUNET_CONTAINER_multihashmap_get (barrier_map, &key);
-  if (NULL == barrier)
-  {
-    GNUNET_break_op (0);
-    goto cleanup;
-  }
-  GNUNET_assert (NULL != barrier->cb);
-  if ((GNUNET_YES == barrier->echo) &&
-      (GNUNET_TESTBED_BARRIERSTATUS_CROSSED == status))
-    GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
-  barrier->cb (barrier->cls, name, barrier, status, emsg);
-  if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED == status)
-    return;           /* just initialised; skip cleanup */
-
- cleanup:
-  GNUNET_free_non_null (emsg);
-  if (NULL != barrier)
-    barrier_remove (barrier);
 }
 
 
@@ -254,10 +102,11 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
   name_len = strlen (name);
   GNUNET_assert (0 < name_len);
   GNUNET_CRYPTO_hash (name, name_len, &key);
-  if (NULL == barrier_map)
-    barrier_map = GNUNET_CONTAINER_multihashmap_create (3, GNUNET_YES);
+  if (NULL == controller->barrier_map)
+    controller->barrier_map = GNUNET_CONTAINER_multihashmap_create (3, GNUNET_YES);
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains (barrier_map, &key))
+      GNUNET_CONTAINER_multihashmap_contains (controller->barrier_map,
+                                              &key))
   {
     GNUNET_break (0);
     return NULL;
@@ -271,7 +120,7 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
   barrier->echo = echo;
   (void) memcpy (&barrier->key, &key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (barrier_map,
+                 GNUNET_CONTAINER_multihashmap_put (controller->barrier_map,
                                                     &barrier->key,
                                                     barrier,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
@@ -328,7 +177,7 @@ GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL);
   (void) memcpy (msg->name, barrier->name, strlen (barrier->name));
   GNUNET_TESTBED_queue_message_ (barrier->c, &msg->header);
-  barrier_remove (barrier);
+  GNUNET_TESTBED_barrier_remove_ (barrier);
 }
 
 

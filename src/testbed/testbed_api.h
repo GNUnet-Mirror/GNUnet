@@ -183,7 +183,8 @@ struct OperationContext
  *
  * @param cls closure
  */
-typedef void (*TESTBED_opcq_empty_cb) (void *cls);
+typedef void
+(*TESTBED_opcq_empty_cb) (void *cls);
 
 
 /**
@@ -274,6 +275,12 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_topology_config_operations;
 
   /**
+   * handle for hashtable of barrier handles, values are
+   * of type `struct GNUNET_TESTBED_Barrier`.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *barrier_map;
+
+  /**
    * The controller event mask
    */
   uint64_t event_mask;
@@ -289,6 +296,44 @@ struct GNUNET_TESTBED_Controller
   uint32_t operation_counter;
 
 };
+
+
+/**
+ * Handle for barrier
+ */
+struct GNUNET_TESTBED_Barrier
+{
+  /**
+   * hashcode identifying this barrier in the hashmap
+   */
+  struct GNUNET_HashCode key;
+
+  /**
+   * The controller handle given while initiliasing this barrier
+   */
+  struct GNUNET_TESTBED_Controller *c;
+
+  /**
+   * The name of the barrier
+   */
+  char *name;
+
+  /**
+   * The continuation callback to call when we have a status update on this
+   */
+  GNUNET_TESTBED_barrier_status_cb cb;
+
+  /**
+   * the closure for the above callback
+   */
+  void *cls;
+
+  /**
+   * Should the barrier crossed status message be echoed back to the controller?
+   */
+  int echo;
+};
+
 
 
 /**
@@ -458,35 +503,6 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_slave_config_ (void *op_cls,
                                   struct GNUNET_TESTBED_Controller *master,
                                   uint32_t slave_host_id);
-
-
-/**
- * Validate #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS message.
- *
- * @param cls the controller handle to determine the connection this message
- *   belongs to
- * @param msg the barrier status message
- * @return #GNUNET_OK if the message is valid; #GNUNET_SYSERR to tear it
- *   down signalling an error (message malformed)
- */
-int
-check_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                       const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
-
-
-/**
- * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages.  This
- * function is defined in @file testbed_api_barriers.c
- *
- * @param c the controller handle to determine the connection this message
- *   belongs to
- * @param msg the barrier status message
- */
-void
-handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                        const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
-
-
 
 
 #endif

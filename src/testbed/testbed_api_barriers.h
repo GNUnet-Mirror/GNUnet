@@ -24,6 +24,8 @@
  *   exposed as user API)
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
+#ifndef TESTBED_API_BARRIERS_H
+#define TESTBED_API_BARRIERS_H
 
 #include "gnunet_testbed_service.h"
 
@@ -40,7 +42,7 @@
  * @param cb the callback to call when the barrier is reached or upon error.
  *   Cannot be NULL.
  * @param cls closure for the above callback
- * @param echo GNUNET_YES to echo the barrier crossed status message back to the
+ * @param echo #GNUNET_YES to echo the barrier crossed status message back to the
  *   controller
  * @return barrier handle; NULL upon error
  */
@@ -48,5 +50,19 @@ struct GNUNET_TESTBED_Barrier *
 GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
                               const char *name,
                               unsigned int quorum,
-                              GNUNET_TESTBED_barrier_status_cb cb, void *cls,
+                              GNUNET_TESTBED_barrier_status_cb cb,
+                              void *cls,
                               int echo);
+
+
+/**
+ * Remove a barrier and it was the last one in the barrier hash map, destroy the
+ * hash map
+ *
+ * @param barrier the barrier to remove
+ */
+void
+GNUNET_TESTBED_barrier_remove_ (struct GNUNET_TESTBED_Barrier *barrier);
+
+
+#endif
