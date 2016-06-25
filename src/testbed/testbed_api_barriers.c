@@ -109,18 +109,63 @@ barrier_remove (struct GNUNET_TESTBED_Barrier *barrier)
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages
+ * Validate #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS message.
+ *
+ * @param cls the controller handle to determine the connection this message
+ *   belongs to
+ * @param msg the barrier status message
+ * @return #GNUNET_OK if the message is valid; #GNUNET_SYSERR to tear it
+ *   down signalling an error (message malformed)
+ */
+int
+check_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
+                       const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
+{
+  uint16_t msize;
+  uint16_t name_len;
+  int status;
+  const char *name;
+  size_t emsg_len;
+
+  msize = ntohs (msg->header.size);
+  name = msg->data;
+  name_len = ntohs (msg->name_len);
+
+  if (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ('\0' != name[name_len])
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  status = ntohs (msg->status);
+  if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
+  {
+    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
+                        + 1); /* +1!? */
+    if (0 == emsg_len)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages
  *
  * @param c the controller handle to determine the connection this message
  *   belongs to
  * @param msg the barrier status message
- * @return GNUNET_OK to keep the connection active; GNUNET_SYSERR to tear it
- *   down signalling an error
  */
-int
-GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                                       const struct GNUNET_TESTBED_BarrierStatusMsg
-                                       *msg)
+void
+handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
+                        const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
 {
   struct GNUNET_TESTBED_Barrier *barrier;
   char *emsg;
@@ -137,32 +182,16 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
   name = msg->data;
   name_len = ntohs (msg->name_len);
   LOG_DEBUG ("Received BARRIER_STATUS msg\n");
-  if (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  if ('\0' != name[name_len])
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   status = ntohs (msg->status);
   if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
   {
     status = -1;
     emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
                         + 1);
-    if (0 == emsg_len)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-    emsg_len++;
-    emsg = GNUNET_malloc (emsg_len);
-    emsg_len--;
-    emsg[emsg_len] = '\0';
-    (void) memcpy (emsg, msg->data + name_len + 1, emsg_len);
+    emsg = GNUNET_malloc (emsg_len + 1);
+    memcpy (emsg,
+            msg->data + name_len + 1,
+            emsg_len);
   }
   if (NULL == barrier_map)
   {
@@ -181,13 +210,12 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
   barrier->cb (barrier->cls, name, barrier, status, emsg);
   if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED == status)
-    return GNUNET_OK;           /* just initialised; skip cleanup */
+    return;           /* just initialised; skip cleanup */
 
  cleanup:
   GNUNET_free_non_null (emsg);
   if (NULL != barrier)
     barrier_remove (barrier);
-  return GNUNET_OK;
 }
 
 

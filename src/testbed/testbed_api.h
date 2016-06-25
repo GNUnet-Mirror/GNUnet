@@ -461,19 +461,30 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages.  This
+ * Validate #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS message.
+ *
+ * @param cls the controller handle to determine the connection this message
+ *   belongs to
+ * @param msg the barrier status message
+ * @return #GNUNET_OK if the message is valid; #GNUNET_SYSERR to tear it
+ *   down signalling an error (message malformed)
+ */
+int
+check_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
+                       const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages.  This
  * function is defined in @file testbed_api_barriers.c
  *
  * @param c the controller handle to determine the connection this message
  *   belongs to
  * @param msg the barrier status message
- * @return GNUNET_OK to keep the connection active; GNUNET_SYSERR to tear it
- *   down signalling an error
  */
-int
-GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                                       const struct GNUNET_TESTBED_BarrierStatusMsg
-                                       *msg);
+void
+handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
+                        const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
 
 
 

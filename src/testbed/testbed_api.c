@@ -26,8 +26,6 @@
  * @author Christian Grothoff
  * @author Sree Harsha Totakura
  */
-
-
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
@@ -241,7 +239,9 @@ exop_check (const struct GNUNET_TESTBED_Operation *const op)
   while (NULL != entry)
   {
     entry2 = entry->next;
-    GNUNET_CONTAINER_DLL_remove (exop_head, exop_tail, entry);
+    GNUNET_CONTAINER_DLL_remove (exop_head,
+                                 exop_tail,
+                                 entry);
     GNUNET_free (entry);
     entry = entry2;
   }
@@ -366,10 +366,11 @@ GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
  * @param msg the message
  */
 static void
-handle_forwarded_operation_msg (struct GNUNET_TESTBED_Controller *c,
+handle_forwarded_operation_msg (void *cls,
                                 struct OperationContext *opc,
                                 const struct GNUNET_MessageHeader *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct ForwardedOperationData *fo_data;
 
   fo_data = opc->data;
@@ -387,14 +388,12 @@ handle_forwarded_operation_msg (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
-                  const struct
-                  GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
+static void
+handle_opsuccess (void *cls,
+                  const struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   GNUNET_TESTBED_OperationCompletionCallback op_comp_cb;
   void *op_comp_cb_cls;
@@ -406,7 +405,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   event.op = opc->op;
@@ -418,11 +417,11 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   switch (opc->type)
   {
   case OP_FORWARDED:
-  {
-    handle_forwarded_operation_msg (c, opc,
-                                    (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
-  }
+    {
+      handle_forwarded_operation_msg (c, opc,
+                                      (const struct GNUNET_MessageHeader *) msg);
+      return;
+    }
     break;
   case OP_PEER_DESTROY:
   {
@@ -471,7 +470,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
-      return GNUNET_YES;
+      return;
   }
   else
     LOG_DEBUG ("Not calling callback\n");
@@ -479,7 +478,6 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     op_comp_cb (op_comp_cb_cls, event.op, NULL);
    /* You could have marked the operation as done by now */
   GNUNET_break (GNUNET_NO == exop_check (event.op));
-  return GNUNET_YES;
 }
 
 
@@ -489,20 +487,18 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handle
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
-                            const struct
-                            GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
+static void
+handle_peer_create_success (void *cls,
+                            const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   struct PeerCreateData *data;
   struct GNUNET_TESTBED_Peer *peer;
   struct GNUNET_TESTBED_Operation *op;
   GNUNET_TESTBED_PeerCreateCallback cb;
-  void *cls;
+  void *cb_cls;
   uint64_t op_id;
 
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage) ==
@@ -511,13 +507,13 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation context for PeerCreateSuccessEvent not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (OP_PEER_CREATE == opc->type);
   GNUNET_assert (NULL != opc->data);
@@ -528,17 +524,16 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   peer->state = TESTBED_PS_CREATED;
   GNUNET_TESTBED_peer_register_ (peer);
   cb = data->cb;
-  cls = data->cls;
+  cb_cls = data->cls;
   op = opc->op;
   GNUNET_free (opc->data);
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
   exop_insert (op);
   if (NULL != cb)
-    cb (cls, peer, NULL);
+    cb (cb_cls, peer, NULL);
    /* You could have marked the operation as done by now */
   GNUNET_break (GNUNET_NO == exop_check (op));
-  return GNUNET_YES;
 }
 
 
@@ -548,13 +543,12 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_peer_event (struct GNUNET_TESTBED_Controller *c,
+static void
+handle_peer_event (void *cls,
                    const struct GNUNET_TESTBED_PeerEventMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerEventData *data;
@@ -570,13 +564,13 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
   data = opc->data;
@@ -613,13 +607,12 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
-      return GNUNET_YES;
+      return;
   }
   if (NULL != pcc)
     pcc (pcc_cls, NULL);
    /* You could have marked the operation as done by now */
   GNUNET_break (GNUNET_NO == exop_check (event.op));
-  return GNUNET_YES;
 }
 
 
@@ -629,13 +622,12 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
+static void
+handle_peer_conevent (void *cls,
                       const struct GNUNET_TESTBED_ConnectionEventMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   struct OverlayConnectData *data;
   GNUNET_TESTBED_OperationCompletionCallback cb;
@@ -648,13 +640,13 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
   GNUNET_assert (NULL != (data = opc->data));
@@ -688,13 +680,12 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
-      return GNUNET_YES;
+      return;
   }
   if (NULL != cb)
     cb (cb_cls, opc->op, NULL);
    /* You could have marked the operation as done by now */
   GNUNET_break (GNUNET_NO == exop_check (event.op));
-  return GNUNET_YES;
 }
 
 
@@ -704,14 +695,13 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_peer_config (struct GNUNET_TESTBED_Controller *c,
+static void
+handle_peer_config (void *cls,
                     const struct
                     GNUNET_TESTBED_PeerConfigurationInformationMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerInfoData *data;
@@ -724,13 +714,13 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   data = opc->data;
   GNUNET_assert (NULL != data);
@@ -748,7 +738,8 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
     pinfo->result.id = GNUNET_new (struct GNUNET_PeerIdentity);
-    (void) memcpy (pinfo->result.id, &msg->peer_identity,
+    (void) memcpy (pinfo->result.id,
+                   &msg->peer_identity,
                    sizeof (struct GNUNET_PeerIdentity));
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
@@ -766,7 +757,6 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   /* We dont check whether the operation is marked as done here as the
      operation contains data (cfg/identify) which will be freed at a later point
   */
-  return GNUNET_YES;
 }
 
 
@@ -776,14 +766,12 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
-                      const struct GNUNET_TESTBED_OperationFailureEventMessage
-                      *msg)
+static void
+handle_op_fail_event (void *cls,
+                      const struct GNUNET_TESTBED_OperationFailureEventMessage *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   const char *emsg;
   uint64_t op_id;
@@ -794,13 +782,13 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
@@ -815,7 +803,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     if (NULL != data->cb)
       data->cb (data->cb_cls, opc->op, NULL, emsg);
     GNUNET_free (data);
-    return GNUNET_YES;          /* We do not call controller callback for peer info */
+    return;          /* We do not call controller callback for peer info */
   }
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   event.op = opc->op;
@@ -828,81 +816,80 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     exop_insert (event.op);
     c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
-      return GNUNET_YES;
+      return;
   }
   switch (opc->type)
   {
   case OP_PEER_CREATE:
-  {
-    struct PeerCreateData *data;
+    {
+      struct PeerCreateData *data;
 
-    data = opc->data;
-    GNUNET_free (data->peer);
-    if (NULL != data->cb)
-      data->cb (data->cls, NULL, emsg);
-    GNUNET_free (data);
-  }
+      data = opc->data;
+      GNUNET_free (data->peer);
+      if (NULL != data->cb)
+        data->cb (data->cls, NULL, emsg);
+      GNUNET_free (data);
+    }
     break;
   case OP_PEER_START:
   case OP_PEER_STOP:
-  {
-    struct PeerEventData *data;
+    {
+      struct PeerEventData *data;
 
-    data = opc->data;
-    if (NULL != data->pcc)
-      data->pcc (data->pcc_cls, emsg);
-    GNUNET_free (data);
-  }
+      data = opc->data;
+      if (NULL != data->pcc)
+        data->pcc (data->pcc_cls, emsg);
+      GNUNET_free (data);
+    }
     break;
   case OP_PEER_DESTROY:
     break;
   case OP_PEER_INFO:
     GNUNET_assert (0);
   case OP_OVERLAY_CONNECT:
-  {
-    struct OverlayConnectData *data;
+    {
+      struct OverlayConnectData *data;
 
-    data = opc->data;
-    GNUNET_TESTBED_operation_mark_failed (opc->op);
-    if (NULL != data->cb)
-      data->cb (data->cb_cls, opc->op, emsg);
-  }
+      data = opc->data;
+      GNUNET_TESTBED_operation_mark_failed (opc->op);
+      if (NULL != data->cb)
+        data->cb (data->cb_cls, opc->op, emsg);
+    }
     break;
   case OP_FORWARDED:
     GNUNET_assert (0);
   case OP_LINK_CONTROLLERS:    /* No secondary callback */
     break;
   case OP_SHUTDOWN_PEERS:
-  {
-    struct ShutdownPeersData *data;
+    {
+      struct ShutdownPeersData *data;
 
-    data = opc->data;
-    GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
-    opc->data = NULL;
-  }
+      data = opc->data;
+      GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
+      opc->data = NULL;
+    }
     break;
   case OP_MANAGE_SERVICE:
-  {
-    struct ManageServiceData *data = opc->data;
+    {
+      struct ManageServiceData *data = opc->data;
       GNUNET_TESTBED_OperationCompletionCallback cb;
-    void *cb_cls;
+      void *cb_cls;
 
-    GNUNET_assert (NULL != data);
-    cb = data->cb;
-    cb_cls = data->cb_cls;
-    GNUNET_free (data);
-    opc->data = NULL;
-    exop_insert (event.op);
-    if (NULL != cb)
-      cb (cb_cls, opc->op, emsg);
-    /* You could have marked the operation as done by now */
-    GNUNET_break (GNUNET_NO == exop_check (event.op));
-  }
+      GNUNET_assert (NULL != data);
+      cb = data->cb;
+      cb_cls = data->cb_cls;
+      GNUNET_free (data);
+      opc->data = NULL;
+      exop_insert (event.op);
+      if (NULL != cb)
+        cb (cb_cls, opc->op, emsg);
+      /* You could have marked the operation as done by now */
+      GNUNET_break (GNUNET_NO == exop_check (event.op));
+    }
     break;
   default:
     GNUNET_break (0);
   }
-  return GNUNET_YES;
 }
 
 
@@ -936,13 +923,12 @@ GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_slave_config (struct GNUNET_TESTBED_Controller *c,
+static void
+handle_slave_config (void *cls,
                      const struct GNUNET_TESTBED_SlaveConfiguration *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   uint64_t op_id;
   uint64_t mask;
@@ -952,12 +938,12 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_GET_SLAVE_CONFIG != opc->type)
   {
     GNUNET_break (0);
-    return GNUNET_YES;
+    return;
   }
   opc->state = OPC_STATE_FINISHED;
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
@@ -973,7 +959,6 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.emsg = NULL;
     c->cc (c->cc_cls, &event);
   }
-  return GNUNET_YES;
 }
 
 
@@ -983,14 +968,13 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handler
  * @param msg message received
- * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
- *           not
  */
-static int
-handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
+static void
+handle_link_controllers_result (void *cls,
                                 const struct
                                 GNUNET_TESTBED_ControllerLinkResponse *msg)
 {
+  struct GNUNET_TESTBED_Controller *c = cls;
   struct OperationContext *opc;
   struct ControllerLinkData *data;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -1003,18 +987,18 @@ handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
   if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
+    return;
   }
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
                                     (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
+    return;
   }
   if (OP_LINK_CONTROLLERS != opc->type)
   {
     GNUNET_break (0);
-    return GNUNET_YES;
+    return;
   }
   GNUNET_assert (NULL != (data = opc->data));
   host = GNUNET_TESTBED_host_lookup_by_id_ (data->host_id);
@@ -1059,7 +1043,6 @@ handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (emsg);
-  return GNUNET_YES;
 }
 
 
@@ -1097,77 +1080,80 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_assert (msize ==
                    sizeof (struct
                            GNUNET_TESTBED_GenericOperationSuccessEventMessage));
-    status =
-        handle_opsuccess (c,
-                          (const struct
-                           GNUNET_TESTBED_GenericOperationSuccessEventMessage *)
-                          msg);
+    handle_opsuccess (c,
+                      (const struct
+                       GNUNET_TESTBED_GenericOperationSuccessEventMessage *)
+                      msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT:
     GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
-    status =
-        handle_op_fail_event (c,
-                              (const struct
-                               GNUNET_TESTBED_OperationFailureEventMessage *)
-                              msg);
+    handle_op_fail_event (c,
+                          (const struct
+                           GNUNET_TESTBED_OperationFailureEventMessage *)
+                          msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS:
     GNUNET_assert (msize ==
                    sizeof (struct
                            GNUNET_TESTBED_PeerCreateSuccessEventMessage));
-    status =
-        handle_peer_create_success (c,
-                                    (const struct
-                                     GNUNET_TESTBED_PeerCreateSuccessEventMessage
-                                     *) msg);
+    handle_peer_create_success (c,
+                                (const struct
+                                 GNUNET_TESTBED_PeerCreateSuccessEventMessage
+                                 *) msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT:
     GNUNET_assert (msize == sizeof (struct GNUNET_TESTBED_PeerEventMessage));
-    status =
-        handle_peer_event (c,
-                           (const struct GNUNET_TESTBED_PeerEventMessage *)
-                           msg);
+    handle_peer_event (c,
+                       (const struct GNUNET_TESTBED_PeerEventMessage *)
+                       msg);
 
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION:
     GNUNET_assert (msize >=
                    sizeof (struct
                            GNUNET_TESTBED_PeerConfigurationInformationMessage));
-    status =
-        handle_peer_config (c,
-                            (const struct
-                             GNUNET_TESTBED_PeerConfigurationInformationMessage
-                             *) msg);
+    handle_peer_config (c,
+                        (const struct
+                         GNUNET_TESTBED_PeerConfigurationInformationMessage
+                         *) msg);
+    status = GNUNET_YES;
+
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT:
     GNUNET_assert (msize ==
                    sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
-    status =
-        handle_peer_conevent (c,
-                              (const struct
-                               GNUNET_TESTBED_ConnectionEventMessage *) msg);
+    handle_peer_conevent (c,
+                          (const struct
+                           GNUNET_TESTBED_ConnectionEventMessage *) msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION:
     GNUNET_assert (msize > sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
-    status =
-        handle_slave_config (c,
-                             (const struct GNUNET_TESTBED_SlaveConfiguration *)
-                             msg);
+    handle_slave_config (c,
+                         (const struct GNUNET_TESTBED_SlaveConfiguration *)
+                         msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT:
-    status =
-        handle_link_controllers_result (c,
-                                        (const struct
-                                         GNUNET_TESTBED_ControllerLinkResponse
-                                         *) msg);
+    handle_link_controllers_result (c,
+                                    (const struct
+                                     GNUNET_TESTBED_ControllerLinkResponse
+                                     *) msg);
+    status = GNUNET_YES;
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS:
-    status =
-        GNUNET_TESTBED_handle_barrier_status_ (c,
-                                               (const struct
-                                                GNUNET_TESTBED_BarrierStatusMsg *)
-                                               msg);
+    status = check_barrier_status_ (c,
+                                    (const struct GNUNET_TESTBED_BarrierStatusMsg *) msg);
+    if (GNUNET_OK == status)
+      handle_barrier_status_ (c,
+                              (const struct
+                               GNUNET_TESTBED_BarrierStatusMsg *)
+                              msg);
     break;
   default:
     GNUNET_assert (0);
