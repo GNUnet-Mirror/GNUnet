@@ -311,7 +311,7 @@ check_identity_result_code (void *cls,
 
   if (0 == size)
     return GNUNET_OK;
-  if ('\0' != str[size - sizeof (*rcm) - 1])
+  if ('\0' != str[size - 1])
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
