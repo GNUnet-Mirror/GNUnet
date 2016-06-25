@@ -688,7 +688,7 @@ sighandler_shutdown ()
 
 
 /**
- * Check if the system is still life. Trigger shutdown if we
+ * Check if the system is still alive. Trigger shutdown if we
  * have tasks, but none of them give us lifeness.
  *
  * @return #GNUNET_OK to continue the main loop,
