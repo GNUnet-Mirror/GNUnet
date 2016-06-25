@@ -477,11 +477,11 @@ static int
 check_identity_set_default (void *cls,
                             const struct GNUNET_IDENTITY_SetDefaultMessage *sdm)
 {
-  uint16_t size = ntohs (sdm->header.size);
+  uint16_t size = ntohs (sdm->header.size) - sizeof (*sdm);
   uint16_t name_len = ntohs (sdm->name_len);
   const char *str = (const char *) &sdm[1];
 
-  if ( (size != name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) ||
+  if ( (size != name_len) ||
        ( (0 != name_len) &&
          ('\0' != str[name_len - 1]) ) )
   {
