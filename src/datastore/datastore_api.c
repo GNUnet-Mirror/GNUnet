@@ -267,6 +267,8 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
                                h->queue_tail,
                                qe);
   h->queue_size--;
+  if (NULL != qe->env)
+    GNUNET_MQ_discard (qe->env);
   GNUNET_free (qe);
 }
 
