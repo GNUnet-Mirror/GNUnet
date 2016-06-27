@@ -280,7 +280,6 @@ check_statistics (void *cls)
       GNUNET_STATISTICS_get_cancel (download_stats);
     download_stats =
         GNUNET_STATISTICS_get (learn_peer.stats, "hostlist", stat,
-                               GNUNET_TIME_UNIT_MINUTES,
                                &process_downloads_done, &process_downloads,
                                &learn_peer);
     if (NULL != urisrecv_stat)
@@ -288,7 +287,6 @@ check_statistics (void *cls)
     urisrecv_stat =
         GNUNET_STATISTICS_get (learn_peer.stats, "hostlist",
                                gettext_noop ("# advertised hostlist URIs"),
-                               GNUNET_TIME_UNIT_MINUTES,
                                &process_uris_recv_done, &process_uris_recv,
                                &learn_peer);
   }
@@ -300,7 +298,7 @@ check_statistics (void *cls)
     advsent_stat =
         GNUNET_STATISTICS_get (adv_peer.stats, "hostlist",
                                gettext_noop ("# hostlist advertisements send"),
-                               GNUNET_TIME_UNIT_MINUTES, &process_adv_sent_done,
+                               &process_adv_sent_done,
                                &process_adv_sent, NULL);
   }
   check_task =
