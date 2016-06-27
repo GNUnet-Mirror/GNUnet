@@ -92,6 +92,7 @@ iterate_cb (void *cls,
     GNUNET_PEERSTORE_disconnect (h,
 				 GNUNET_NO);
     GNUNET_SCHEDULER_shutdown ();
+    return;
   }
   rec_val = record->value;
   GNUNET_break (0 == strcmp (rec_val, val));
@@ -159,7 +160,6 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   cfg = c;
-  GNUNET_assert (NULL != h);
   memset (&pid, 1, sizeof (pid));
   test1 ();
 }
