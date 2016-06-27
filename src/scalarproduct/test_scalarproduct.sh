@@ -25,13 +25,15 @@ echo "Waiting for peers to start..."
 sleep 5
 echo "Running test..."
 
+which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
+
 # get bob's peer ID, necessary for alice
-PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
+PEERIDBOB=`${DO_TIMEOUT} gnunet-peerinfo -qs $CFGBOB`
 
 #GNUNET_LOG=';;;;DEBUG'
-gnunet-scalarproduct $CFGBOB $INPUTBOB &
+${DO_TIMEOUT} gnunet-scalarproduct $CFGBOB $INPUTBOB &
 #GNUNET_LOG=';;;;DEBUG'
-RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
+RESULT=`${DO_TIMEOUT} gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
 
 # terminate the testbed
 kill $PID
@@ -44,4 +46,3 @@ else
 	echo "Result $RESULT, expected $EXPECTED - NOTOK"
 	exit 1
 fi
-

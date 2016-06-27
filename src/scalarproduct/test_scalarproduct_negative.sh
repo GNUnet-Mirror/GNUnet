@@ -11,6 +11,8 @@ PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
 CFGALICE="-c $PREFIX/0/config"
 CFGBOB="-c $PREFIX/1/config"
 
+which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
+
 # launch two peers in line topology non-interactively
 #
 # interactive mode would terminate the test immediately
@@ -23,12 +25,12 @@ PID=$!
 sleep 5
 
 # get bob's peer ID, necessary for alice
-PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
+PEERIDBOB=`${DO_TIMEOUT} gnunet-peerinfo -qs $CFGBOB`
 
 #GNUNET_LOG=';;;;DEBUG'
-gnunet-scalarproduct $CFGBOB $INPUTBOB &
+${DO_TIMEOUT} gnunet-scalarproduct $CFGBOB $INPUTBOB &
 #RESULT=`GNUNET_LOG=';;;;DEBUG'
-RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
+RESULT=`${DO_TIMEOUT} gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
 
 # terminate the testbed
 kill $PID
