@@ -460,6 +460,8 @@ prepare_client_end_notification (struct BobServiceSession *session)
   struct ClientResponseMessage *msg;
   struct GNUNET_MQ_Envelope *e;
 
+  if (NULL == session->client_mq)
+    return; /* no client left to be notified */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending session-end notification with status %d to client for session %s\n",
               session->status,
