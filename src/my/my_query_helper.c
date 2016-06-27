@@ -89,6 +89,29 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 
 
 /**
+ * Function called to convert input argument into SQL parameters.
+ *
+ * @param cls closure
+ * @param pq data about the query
+ * @param qbind array of parameters to initialize
+ * @return -1 on error
+ */
+static int
+my_conv_string (void *cls,
+                const struct GNUNET_MY_QueryParam *qp,
+                MYSQL_BIND *qbind)
+{
+  GNUNET_assert (1 == qp->num_params);
+
+  qbind->buffer = (void *) qp->data;
+  qbind->buffer_length = qp->data_len;
+  qbind->buffer_type = MYSQL_TYPE_STRING;
+
+  return 1;
+}
+
+
+/**
  * Generate query parameter for a string
  *
  * @param ptr pointer to the string query parameter to pass
@@ -96,8 +119,15 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
 struct GNUNET_MY_QueryParam
 GNUNET_MY_query_param_string (const char *ptr)
 {
-  return GNUNET_MY_query_param_fixed_size (ptr,
-                                           strlen(ptr));
+  struct GNUNET_MY_QueryParam qp = {
+    .conv = &my_conv_string,
+    .cleaner = NULL,
+    .conv_cls = NULL,
+    .num_params = 1,
+    .data = ptr,
+    .data_len = strlen (ptr)
+  };
+  return qp;
 }
 
 

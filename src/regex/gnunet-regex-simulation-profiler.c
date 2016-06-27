@@ -316,10 +316,10 @@ do_abort (void *cls)
  */
 static void
 regex_iterator (void *cls,
-		            const struct GNUNET_HashCode *key,
-		            const char *proof,
+		const struct GNUNET_HashCode *key,
+		const char *proof,
                 int accepting,
-		            unsigned int num_edges,
+		unsigned int num_edges,
                 const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
@@ -334,7 +334,7 @@ regex_iterator (void *cls,
   {
     struct GNUNET_MY_QueryParam params_select[] = {
       GNUNET_MY_query_param_auto_from_type (key),
-      GNUNET_MY_query_param_fixed_size(edges[i].label, strlen (edges[i].label)),
+      GNUNET_MY_query_param_string (edges[i].label),
       GNUNET_MY_query_param_end
     };
 
@@ -370,13 +370,14 @@ regex_iterator (void *cls,
 
     if (-1 != total && total > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Total: %llu (%s, %s)\n", (unsigned long long)total,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Total: %llu (%s, %s)\n", 
+		  (unsigned long long)total,
                   GNUNET_h2s (key), edges[i].label);
     }
 
     struct GNUNET_MY_QueryParam params_stmt[] = {
       GNUNET_MY_query_param_auto_from_type (&key),
-      GNUNET_MY_query_param_fixed_size (edges[i].label, strlen (edges[i].label)),
+      GNUNET_MY_query_param_string (edges[i].label),
       GNUNET_MY_query_param_auto_from_type (&edges[i].destination),
       GNUNET_MY_query_param_uint32 (&iaccepting),
       GNUNET_MY_query_param_end
@@ -392,8 +393,12 @@ regex_iterator (void *cls,
       char *key_str = GNUNET_strdup (GNUNET_h2s (key));
       char *to_key_str = GNUNET_strdup (GNUNET_h2s (&edges[i].destination));
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Merged (%s, %s, %s, %i)\n", key_str,
-                  edges[i].label, to_key_str, accepting);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Merged (%s, %s, %s, %i)\n", 
+		  key_str,
+                  edges[i].label, 
+		  to_key_str, 
+		  accepting);
+
       GNUNET_free (key_str);
       GNUNET_free (to_key_str);
       num_merged_transitions++;
@@ -416,7 +421,7 @@ regex_iterator (void *cls,
   {
     struct GNUNET_MY_QueryParam params_stmt[] = {
       GNUNET_MY_query_param_auto_from_type (key),
-      GNUNET_MY_query_param_fixed_size (NULL, 0),
+      GNUNET_MY_query_param_string (""),
       GNUNET_MY_query_param_auto_from_type (NULL),
       GNUNET_MY_query_param_uint32 (&iaccepting),
       GNUNET_MY_query_param_end
