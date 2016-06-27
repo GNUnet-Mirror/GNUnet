@@ -48,6 +48,11 @@ extern struct GNUNET_BLOCK_Context *GDS_block_context;
 extern struct GNUNET_STATISTICS_Handle *GDS_stats;
 
 /**
+ * Handle to our server.
+ */
+extern struct GNUNET_SERVER_Handle *GDS_server;
+
+/**
  * Our HELLO
  */
 extern struct GNUNET_MessageHeader *GDS_my_hello;

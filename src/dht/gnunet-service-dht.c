@@ -57,6 +57,11 @@ struct GNUNET_BLOCK_Context *GDS_block_context;
 const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
 
 /**
+ * Handle to our server.
+ */
+struct GNUNET_SERVER_Handle *GDS_server;
+
+/**
  * Our HELLO
  */
 struct GNUNET_MessageHeader *GDS_my_hello;
@@ -140,10 +145,13 @@ shutdown_task (void *cls)
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GDS_cfg = c;
+  GDS_server = server;
+  GNUNET_SERVER_suspend (server);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION", &hello_expiration))
   {
@@ -155,7 +163,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
   GDS_HELLO_init ();
-  GDS_CLIENTS_init (server);
   if (GNUNET_OK != GDS_NEIGHBOURS_init ())
   {
     shutdown_task (NULL);

@@ -974,7 +974,7 @@ process_pending_messages (struct ClientList *client)
 
 
 /**
- * Closure for 'forward_reply'
+ * Closure for #forward_reply()
  */
 struct ForwardReplyContext
 {
@@ -1000,7 +1000,7 @@ struct ForwardReplyContext
   size_t data_size;
 
   /**
-   * Do we need to copy 'pm' because it was already used?
+   * Do we need to copy @a pm because it was already used?
    */
   int do_copy;
 
@@ -1015,11 +1015,13 @@ struct ForwardReplyContext
  * @param cls the 'struct ForwardReplyContext'
  * @param key current key
  * @param value value in the hash map, a ClientQueryRecord
- * @return GNUNET_YES (we should continue to iterate),
- *         if the result is mal-formed, GNUNET_NO
+ * @return #GNUNET_YES (we should continue to iterate),
+ *         if the result is mal-formed, #GNUNET_NO
  */
 static int
-forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
+forward_reply (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
 {
   struct ForwardReplyContext *frc = cls;
   struct ClientQueryRecord *record = value;
@@ -1167,12 +1169,11 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   struct GNUNET_PeerIdentity *paths;
   size_t msize;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "reply for key %s\n",
-       GNUNET_h2s (key));
-
   if (NULL == GNUNET_CONTAINER_multihashmap_get (forward_map, key))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No matching client for reply for key %s\n",
+         GNUNET_h2s (key));
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop
                               ("# REPLIES ignored for CLIENTS (no match)"), 1,
@@ -1184,10 +1185,13 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
       (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not pass reply to client, message too big!\n"));
+    GNUNET_break (0);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Forwarding reply for key %s to client\n",
+       GNUNET_h2s (key));
+
   pm = GNUNET_malloc (msize + sizeof (struct PendingMessage));
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   pm->msg = &reply->header;
@@ -1210,7 +1214,9 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   frc.data = data;
   frc.data_size = data_size;
   frc.type = type;
-  GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, key, &forward_reply,
+  GNUNET_CONTAINER_multihashmap_get_multiple (forward_map,
+                                              key,
+                                              &forward_reply,
                                               &frc);
 
   if (GNUNET_NO == frc.do_copy)
@@ -1309,7 +1315,7 @@ GDS_CLIENTS_process_get (uint32_t options,
  * @param exp Expiration time of the data.
  * @param key Key of the data.
  * @param data Pointer to the result data.
- * @param size Number of bytes in data.
+ * @param size Number of bytes in @a data.
  */
 void
 GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
@@ -1452,7 +1458,8 @@ GDS_CLIENTS_process_put (uint32_t options,
       msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
       if (path_length > 0)
       {
-        memcpy (msg_path, path,
+        memcpy (msg_path,
+                path,
                 path_length * sizeof (struct GNUNET_PeerIdentity));
       }
       mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
@@ -1472,7 +1479,7 @@ GDS_CLIENTS_process_put (uint32_t options,
  * @param server the initialized server
  */
 void
-GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
+GDS_CLIENTS_init ()
 {
   static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
     {&handle_dht_local_put, NULL,
@@ -1492,10 +1499,15 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN, 0},
     {NULL, NULL, 0, 0}
   };
+
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   retry_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  GNUNET_SERVER_add_handlers (server, plugin_handlers);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
+  GNUNET_SERVER_resume (GDS_server);
+  GNUNET_SERVER_add_handlers (GDS_server,
+                              plugin_handlers);
+  GNUNET_SERVER_disconnect_notify (GDS_server,
+                                   &handle_client_disconnect,
+                                   NULL);
 }
 
 

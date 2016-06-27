@@ -993,6 +993,10 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   }
   if (NULL == handle->mq)
     return NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending PUT for %s to DHT via %p\n",
+       GNUNET_h2s (key),
+       handle);
   ph = GNUNET_new (struct GNUNET_DHT_PutHandle);
   ph->dht_handle = handle;
   ph->cont = cont;

@@ -133,11 +133,9 @@ GDS_CLIENTS_process_put (uint32_t options,
 
 /**
  * Initialize client subsystem.
- *
- * @param server the initialized server
  */
 void
-GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server);
+GDS_CLIENTS_init (void);
 
 
 /**

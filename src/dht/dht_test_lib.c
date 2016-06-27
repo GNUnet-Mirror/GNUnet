@@ -118,7 +118,8 @@ dht_connect_cb (void *cls,
 
   if (NULL != emsg)
   {
-    fprintf (stderr, "Failed to connect to DHT service: %s\n",
+    fprintf (stderr,
+             "Failed to connect to DHT service: %s\n",
 	     emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -134,7 +135,7 @@ dht_connect_cb (void *cls,
 		 ctx,
 		 ctx->num_peers,
 		 ctx->peers,
-		 ctx->dhts);		
+		 ctx->dhts);
 }
 
 
@@ -203,8 +204,10 @@ GNUNET_DHT_TEST_run (const char *testname,
 
   ctx = GNUNET_new (struct GNUNET_DHT_TEST_Context);
   ctx->num_peers = num_peers;
-  ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));
-  ctx->dhts = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));
+  ctx->ops = GNUNET_new_array (num_peers,
+                               struct GNUNET_TESTBED_Operation *);
+  ctx->dhts = GNUNET_new_array (num_peers,
+                                struct GNUNET_DHT_Handle *);
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
   (void) GNUNET_TESTBED_test_run (testname,
