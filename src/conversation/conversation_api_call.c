@@ -154,7 +154,7 @@ struct GNUNET_CONVERSATION_Call
  * @param call call to reconnect
  */
 static void
-reconnect_call (struct GNUNET_CONVERSATION_Call *call);
+fail_call (struct GNUNET_CONVERSATION_Call *call);
 
 
 /**
@@ -198,11 +198,11 @@ handle_call_suspend (void *cls,
   {
   case CS_LOOKUP:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_RINGING:
     GNUNET_break_op (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_SUSPENDED_CALLER:
     call->state = CS_SUSPENDED_BOTH;
@@ -243,11 +243,11 @@ handle_call_resume (void *cls,
   {
   case CS_LOOKUP:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_RINGING:
     GNUNET_break_op (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_SUSPENDED_CALLER:
     GNUNET_break_op (0);
@@ -292,7 +292,7 @@ handle_call_picked_up (void *cls,
   {
   case CS_LOOKUP:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_RINGING:
     call->state = CS_ACTIVE;
@@ -308,7 +308,7 @@ handle_call_picked_up (void *cls,
   case CS_SUSPENDED_BOTH:
   case CS_ACTIVE:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call);
@@ -335,7 +335,7 @@ handle_call_hangup (void *cls,
   {
   case CS_LOOKUP:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_RINGING:
   case CS_SUSPENDED_CALLER:
@@ -386,11 +386,11 @@ handle_call_audio (void *cls,
   {
   case CS_LOOKUP:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_RINGING:
     GNUNET_break (0);
-    reconnect_call (call);
+    fail_call (call);
     break;
   case CS_SUSPENDED_CALLER:
     /* can happen: we suspended, other peer did not yet
@@ -482,17 +482,17 @@ call_error_handler (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               _("Connection to conversation service lost, trying to reconnect\n"));
-  reconnect_call (call);
+  fail_call (call);
 }
 
 
 /**
- * The call got disconnected, reconnect to the service.
+ * The call got disconnected, destroy the handle.
  *
  * @param call call to reconnect
  */
 static void
-reconnect_call (struct GNUNET_CONVERSATION_Call *call)
+fail_call (struct GNUNET_CONVERSATION_Call *call)
 {
   if (CS_ACTIVE == call->state)
   {

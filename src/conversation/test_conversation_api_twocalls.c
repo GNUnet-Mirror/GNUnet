@@ -73,7 +73,9 @@ static GNUNET_MICROPHONE_RecordedDataCallback phone_rdc;
 
 static void *phone_rdc_cls;
 
-static struct GNUNET_SCHEDULER_Task * phone_task;
+static struct GNUNET_SCHEDULER_Task *phone_task;
+
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Variable for recognizing caller1
@@ -338,14 +340,33 @@ static struct GNUNET_MICROPHONE_Handle phone_mic = {
 
 
 /**
- * Signature of the main function of a task.
+ * Function run on timeout.
  *
  * @param cls closure
  */
 static void
 end_test (void *cls)
 {
+  timeout_task = NULL;
+  fprintf (stderr,
+           "Timeout!\n");
   GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Function run on shutdown.
+ *
+ * @param cls closure
+ */
+static void
+do_shutdown (void *cls)
+{
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
   if (NULL != op)
   {
     GNUNET_IDENTITY_cancel (op);
@@ -485,6 +506,11 @@ call_event_handler (void *cls,
     break;
   case GNUNET_CONVERSATION_EC_CALL_ERROR:
     GNUNET_break (0);
+    if (0 == strcmp (cid, "call1"))
+      call1 = NULL;
+    else
+      call2 = NULL;
+    GNUNET_SCHEDULER_shutdown ();
     break;
   }
 }
@@ -592,8 +618,11 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   cfg = c;
-  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test,
-                                NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                               &end_test,
+                                               NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   id = GNUNET_IDENTITY_connect (cfg,
                                 &identity_cb,
                                 NULL);

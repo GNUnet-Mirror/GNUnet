@@ -67,9 +67,9 @@ static GNUNET_MICROPHONE_RecordedDataCallback call_rdc;
 
 static void *call_rdc_cls;
 
-static struct GNUNET_SCHEDULER_Task * phone_task;
+static struct GNUNET_SCHEDULER_Task *phone_task;
 
-static struct GNUNET_SCHEDULER_Task * call_task;
+static struct GNUNET_SCHEDULER_Task *call_task;
 
 
 static void
@@ -347,11 +347,14 @@ phone_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
     GNUNET_break (caller == active_caller);
     active_caller = NULL;
-    ok = 0;
+    if (1 == ok)
+      ok = 0;
     GNUNET_SCHEDULER_shutdown ();
     break;
   default:
-    fprintf (stderr, "Unexpected phone code: %d\n", code);
+    fprintf (stderr,
+             "Unexpected phone code: %d\n",
+             code);
     break;
   }
 }
@@ -376,12 +379,21 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
     call = NULL;
+    ok = 2;
+    GNUNET_break (0);
     fprintf (stderr, "Unexpected call code: %d\n", code);
     break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
-  case GNUNET_CONVERSATION_EC_CALL_ERROR:
+    GNUNET_break (0);
     fprintf (stderr, "Unexpected call code: %d\n", code);
+    ok = 2;
+    break;
+  case GNUNET_CONVERSATION_EC_CALL_ERROR:
+    GNUNET_break (0);
+    fprintf (stderr, "Unexpected call code: %d\n", code);
+    call = NULL;
+    ok = 2;
     break;
   }
 }
