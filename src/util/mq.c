@@ -225,6 +225,9 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
       {
 	/* Too small, or not an exact size and
 	   no 'mv' handler to check rest */
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Received malformed message of type %u\n",
+                    (unsigned int) handler->type);
 	GNUNET_MQ_inject_error (mq,
 				GNUNET_MQ_ERROR_MALFORMED);
 	break;
@@ -239,6 +242,9 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
       else
       {
 	/* Message rejected by check routine */
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Received malformed message of type %u\n",
+                    (unsigned int) handler->type);
 	GNUNET_MQ_inject_error (mq,
 				GNUNET_MQ_ERROR_MALFORMED);
       }
