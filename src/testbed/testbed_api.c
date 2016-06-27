@@ -1552,20 +1552,20 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
   GNUNET_MQ_hd_var_size (barrier_status,
                          GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
                          const struct GNUNET_TESTBED_BarrierStatusMsg);
-   struct GNUNET_TESTBED_Controller *controller
-     = GNUNET_new (struct GNUNET_TESTBED_Controller);
-   struct GNUNET_MQ_MessageHandler handlers[] = {
-     make_add_host_confirm_handler (controller),
-     make_peer_conevent_handler (controller),
-     make_opsuccess_handler (controller),
-     make_op_fail_event_handler (controller),
-     make_peer_create_success_handler (controller),
-     make_peer_event_handler (controller),
-     make_peer_config_handler (controller),
-     make_slave_config_handler (controller),
-     make_link_controllers_result_handler (controller),
-     make_barrier_status_handler (controller),
-     GNUNET_MQ_handler_end ()
+  struct GNUNET_TESTBED_Controller *controller
+    = GNUNET_new (struct GNUNET_TESTBED_Controller);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_add_host_confirm_handler (controller),
+    make_peer_conevent_handler (controller),
+    make_opsuccess_handler (controller),
+    make_op_fail_event_handler (controller),
+    make_peer_create_success_handler (controller),
+    make_peer_event_handler (controller),
+    make_peer_config_handler (controller),
+    make_slave_config_handler (controller),
+    make_link_controllers_result_handler (controller),
+    make_barrier_status_handler (controller),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_TESTBED_InitMessage *msg;
   struct GNUNET_MQ_Envelope *env;

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2015 GNUnet e.V.
+     Copyright (C) 2009-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -58,7 +58,7 @@ static const struct GNUNET_CONFIGURATION_Handle *resolver_cfg;
  * Our connection to the resolver service, created on-demand, but then
  * persists until error or shutdown.
  */
-static struct GNUNET_CLIENT_Connection *client;
+static struct GNUNET_MQ_Handle *mq;
 
 /**
  * Head of DLL of requests.
@@ -252,12 +252,12 @@ GNUNET_RESOLVER_disconnect ()
 {
   GNUNET_assert (NULL == req_head);
   GNUNET_assert (NULL == req_tail);
-  if (NULL != client)
+  if (NULL != mq)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Disconnecting from DNS service\n");
-    GNUNET_CLIENT_disconnect (client);
-    client = NULL;
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
   }
   if (NULL != r_task)
   {
@@ -282,7 +282,8 @@ GNUNET_RESOLVER_disconnect ()
  */
 static char *
 no_resolve (int af,
-	    const void *ip, socklen_t ip_len)
+	    const void *ip,
+            socklen_t ip_len)
 {
   char buf[INET6_ADDRSTRLEN];
 
@@ -326,81 +327,110 @@ reconnect (void);
 
 
 /**
- * Process pending requests to the resolver.
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls NULL
+ * @param error error code
  */
 static void
-process_requests (void);
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
+{
+  GNUNET_break (0);
+  GNUNET_MQ_destroy (mq);
+  mq = NULL;
+  reconnect ();
+}
 
 
 /**
- * Process response with a hostname for a DNS lookup.
+ * Task executed on system shutdown.
+ */
+static void
+shutdown_task (void *cls)
+{
+  s_task = NULL;
+  GNUNET_RESOLVER_disconnect ();
+  backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+}
+
+
+/**
+ * Process pending requests to the resolver.
+ */
+static void
+process_requests ()
+{
+  struct GNUNET_RESOLVER_GetMessage *msg;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
+
+  if (NULL == mq)
+  {
+    reconnect ();
+    return;
+  }
+  if (NULL == rh)
+  {
+    /* nothing to do, release socket really soon if there is nothing
+     * else happening... */
+    s_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                    &shutdown_task,
+                                    NULL);
+    return;
+  }
+  if (GNUNET_NO != rh->was_transmitted)
+    return;                     /* waiting for reply */
+  env = GNUNET_MQ_msg_extra (msg,
+                             rh->data_len,
+                             GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
+  msg->direction = htonl (rh->direction);
+  msg->af = htonl (rh->af);
+  memcpy (&msg[1],
+          &rh[1],
+          rh->data_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting DNS resolution request to DNS service\n");
+  GNUNET_MQ_send (mq,
+                  env);
+  rh->was_transmitted = GNUNET_YES;
+}
+
+
+/**
+ * Check validity of response with a hostname for a DNS lookup.
  *
- * @param cls our `struct GNUNET_RESOLVER_RequestHandle *` context
- * @param msg message with the hostname, NULL on error
+ * @param cls NULL
+ * @param msg message with the hostname
+ */
+static int
+check_response (void *cls,
+                const struct GNUNET_MessageHeader *msg)
+{
+  /* implemented in #handle_response() for now */
+  return GNUNET_OK;
+}
+
+
+/**
+ * Check validity of response with a hostname for a DNS lookup.
+ * NOTE: right now rather messy, might want to use different
+ * message types for different response formats in the future.
+ *
+ * @param cls NULL
+ * @param msg message with the response
  */
 static void
 handle_response (void *cls,
                  const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_RESOLVER_RequestHandle *rh = cls;
+  struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
   uint16_t size;
   char *nret;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receiving response from DNS service\n");
-  if (NULL == msg)
-  {
-    char buf[INET6_ADDRSTRLEN];
-
-    if (NULL != rh->name_callback)
-      LOG (GNUNET_ERROR_TYPE_INFO,
-           _("Timeout trying to resolve IP address `%s'.\n"),
-           inet_ntop (rh->af,
-                      (const void *) &rh[1],
-                      buf,
-                      sizeof(buf)));
-    else
-      LOG (GNUNET_ERROR_TYPE_INFO,
-           _("Timeout trying to resolve hostname `%s'.\n"),
-           (const char *) &rh[1]);
-    /* check if request was canceled */
-    if (GNUNET_SYSERR != rh->was_transmitted)
-    {
-      if (NULL != rh->name_callback)
-      {
-        /* no reverse lookup was successful, return IP as string */
-        if (GNUNET_NO == rh->received_response)
-        {
-          nret = no_resolve (rh->af,
-                             &rh[1],
-                             rh->data_len);
-          rh->name_callback (rh->cls, nret);
-          GNUNET_free (nret);
-        }
-        /* finally, make termination call */
-        rh->name_callback (rh->cls,
-                           NULL);
-      }
-      if (NULL != rh->addr_callback)
-        rh->addr_callback (rh->cls,
-                           NULL,
-                           0);
-    }
-    rh->was_transmitted = GNUNET_NO;
-    GNUNET_RESOLVER_request_cancel (rh);
-    GNUNET_CLIENT_disconnect (client);
-    client = NULL;
-    reconnect ();
-    return;
-  }
-  if (GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE != ntohs (msg->type))
-  {
-    GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (client);
-    client = NULL;
-    reconnect ();
-    return;
-  }
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
@@ -449,8 +479,8 @@ handle_response (void *cls,
                            NULL);
       rh->was_transmitted = GNUNET_NO;
       GNUNET_RESOLVER_request_cancel (rh);
-      GNUNET_CLIENT_disconnect (client);
-      client = NULL;
+      GNUNET_MQ_destroy (mq);
+      mq = NULL;
       reconnect ();
       return;
     }
@@ -507,8 +537,8 @@ handle_response (void *cls,
                            0);
       rh->was_transmitted = GNUNET_NO;
       GNUNET_RESOLVER_request_cancel (rh);
-      GNUNET_CLIENT_disconnect (client);
-      client = NULL;
+      GNUNET_MQ_destroy (mq);
+      mq = NULL;
       reconnect ();
       return;
     }
@@ -519,10 +549,6 @@ handle_response (void *cls,
                          sa,
                          salen);
   }
-  GNUNET_CLIENT_receive (client,
-                         &handle_response,
-                         rh,
-                         GNUNET_TIME_absolute_get_remaining (rh->timeout));
 }
 
 
@@ -652,75 +678,6 @@ loopback_resolution (void *cls)
 
 
 /**
- * Task executed on system shutdown.
- */
-static void
-shutdown_task (void *cls)
-{
-  s_task = NULL;
-  GNUNET_RESOLVER_disconnect ();
-  backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-}
-
-
-/**
- * Process pending requests to the resolver.
- */
-static void
-process_requests ()
-{
-  struct GNUNET_RESOLVER_GetMessage *msg;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-  struct GNUNET_RESOLVER_RequestHandle *rh;
-
-  if (NULL == client)
-  {
-    reconnect ();
-    return;
-  }
-  rh = req_head;
-  if (NULL == rh)
-  {
-    /* nothing to do, release socket really soon if there is nothing
-     * else happening... */
-    s_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &shutdown_task,
-                                      NULL);
-    return;
-  }
-  if (GNUNET_NO != rh->was_transmitted)
-    return;                     /* waiting for reply */
-  msg = (struct GNUNET_RESOLVER_GetMessage *) buf;
-  msg->header.size =
-      htons (sizeof (struct GNUNET_RESOLVER_GetMessage) + rh->data_len);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
-  msg->direction = htonl (rh->direction);
-  msg->af = htonl (rh->af);
-  memcpy (&msg[1],
-          &rh[1],
-          rh->data_len);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting DNS resolution request to DNS service\n");
-  if (GNUNET_OK !=
-      GNUNET_CLIENT_transmit_and_get_response (client,
-                                               &msg->header,
-                                               GNUNET_TIME_absolute_get_remaining (rh->timeout),
-                                               GNUNET_YES,
-                                               &handle_response,
-                                               rh))
-  {
-    GNUNET_CLIENT_disconnect (client);
-    client = NULL;
-    GNUNET_break (0);
-    reconnect ();
-    return;
-  }
-  rh->was_transmitted = GNUNET_YES;
-}
-
-
-/**
  * Now try to reconnect to the resolver service.
  *
  * @param cls NULL
@@ -728,14 +685,25 @@ process_requests ()
 static void
 reconnect_task (void *cls)
 {
+  GNUNET_MQ_hd_var_size (response,
+                         GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE,
+                         struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+     make_response_handler (NULL),
+     GNUNET_MQ_handler_end ()
+  };
+
   r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to DNS service\n");
-  client = GNUNET_CLIENT_connect ("resolver",
-                                  resolver_cfg);
-  if (NULL == client)
+  mq = GNUNET_CLIENT_connecT (resolver_cfg,
+                              "resolver",
+                              handlers,
+                              &mq_error_handler,
+                              NULL);
+  if (NULL == mq)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Failed to connect, will try again later\n");
@@ -756,7 +724,7 @@ reconnect ()
 
   if (NULL != r_task)
     return;
-  GNUNET_assert (NULL == client);
+  GNUNET_assert (NULL == mq);
   if (NULL != (rh = req_head))
   {
     switch (rh->was_transmitted)
@@ -803,10 +771,45 @@ handle_lookup_timeout (void *cls)
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
 
   rh->task = NULL;
-  rh->addr_callback (rh->cls,
-                     NULL,
-                     0);
+  if (GNUNET_NO == rh->direction)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Timeout trying to resolve hostname `%s'.\n"),
+         (const char *) &rh[1]);
+    if (NULL != rh->addr_callback)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
+  }
+  else
+  {
+    char buf[INET6_ADDRSTRLEN];
+
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Timeout trying to resolve IP address `%s'.\n"),
+         inet_ntop (rh->af,
+                    (const void *) &rh[1],
+                    buf,
+                    sizeof(buf)));
+    if (GNUNET_NO == rh->received_response)
+    {
+      char *nret;
+
+      nret = no_resolve (rh->af,
+                         &rh[1],
+                         rh->data_len);
+      if (NULL != rh->name_callback)
+        rh->name_callback (rh->cls, nret);
+      GNUNET_free (nret);
+    }
+    /* finally, make termination call */
+    if (NULL != rh->name_callback)
+      rh->name_callback (rh->cls,
+                         NULL);
+  }
+  rh->was_transmitted = GNUNET_NO;
   GNUNET_RESOLVER_request_cancel (rh);
+  process_requests ();
 }
 
 
@@ -916,6 +919,11 @@ numeric_reverse (void *cls)
   }
   rh->name_callback (rh->cls,
                      NULL);
+  if (NULL != rh->task)
+  {
+    GNUNET_SCHEDULER_cancel (rh->task);
+    rh->task = NULL;
+  }
   GNUNET_free (rh);
 }
 
@@ -972,15 +980,21 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   rh->cls = cls;
   rh->af = sa->sa_family;
   rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  memcpy (&rh[1], ip, ip_len);
+  memcpy (&rh[1],
+          ip,
+          ip_len);
   rh->data_len = ip_len;
   rh->direction = GNUNET_YES;
   rh->received_response = GNUNET_NO;
   if (GNUNET_NO == do_resolve)
   {
-    rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse, rh);
+    rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse,
+                                         rh);
     return rh;
   }
+  rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                           &handle_lookup_timeout,
+                                           rh);
   GNUNET_CONTAINER_DLL_insert_tail (req_head,
                                     req_tail,
                                     rh);
