@@ -455,8 +455,6 @@ core_connect (void *cls,
 
   GNUNET_assert (NULL == neighbor->connections);
   neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
-  GNUNET_assert (NULL != neighbor->connections);
-
   GNUNET_STATISTICS_update (stats,
                             "# peers",
                             1,
@@ -501,11 +499,14 @@ core_disconnect (void *cls,
          "DISCONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
   direct_path = pop_direct_path (p);
-  GNUNET_CONTAINER_multihashmap_iterate (p->connections,
-                                         &notify_broken,
-                                         p);
-  GNUNET_CONTAINER_multihashmap_destroy (p->connections);
-  p->connections = NULL;
+  if (NULL != p->connections)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (p->connections,
+                                           &notify_broken,
+                                           p);
+    GNUNET_CONTAINER_multihashmap_destroy (p->connections);
+    p->connections = NULL;
+  }
   if (NULL != p->core_transmit)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
@@ -774,6 +775,7 @@ peer_destroy (struct CadetPeer *peer)
   {
     GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (peer->connections));
     GNUNET_CONTAINER_multihashmap_destroy (peer->connections);
+    peer->connections = NULL;
   }
   if (NULL != peer->hello_offer)
   {
@@ -818,6 +820,7 @@ shutdown_peer (void *cls,
 {
   struct CadetPeer *p = value;
   struct CadetTunnel *t = p->tunnel;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  shutting down %s\n", GCP_2s (p));
   if (NULL != t)
     GCT_destroy (t);
