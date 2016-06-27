@@ -70,6 +70,11 @@ static struct GNUNET_OS_Process current_process;
  */
 static struct GNUNET_SCHEDULER_Task *pch;
 
+/**
+ * Handle for the #shutdown_pch() Task.
+ */
+static struct GNUNET_SCHEDULER_Task *spch;
+
 
 /**
  * This handler is called on shutdown to remove the #pch.
@@ -80,7 +85,7 @@ static void
 shutdown_pch (void *cls)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
-    
+
   GNUNET_SCHEDULER_cancel (pch);
   pch = NULL;
   GNUNET_DISK_file_close (control_pipe);
@@ -114,6 +119,8 @@ parent_control_handler (void *cls)
 	 "Closing control pipe\n");
     GNUNET_DISK_file_close (control_pipe);
     control_pipe = NULL;
+    GNUNET_SCHEDULER_cancel (spch);
+    spch = NULL;
     return;
   }
   pipe_fd = getenv (GNUNET_OS_CONTROL_PIPE);
@@ -205,8 +212,8 @@ GNUNET_OS_install_parent_control_handler (void *cls)
 					control_pipe,
 					&parent_control_handler,
 					control_pipe);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_pch,
-				 control_pipe);
+  spch = GNUNET_SCHEDULER_add_shutdown (&shutdown_pch,
+                                        control_pipe);
   putenv (GNUNET_OS_CONTROL_PIPE "=");
 }
 
@@ -1858,7 +1865,7 @@ cmd_read (void *cls)
     cmd->off -= (end + 1 - cmd->buf);
     end = memchr (cmd->buf, '\n', cmd->off);
   }
-  cmd->rtask 
+  cmd->rtask
     = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
                                       (cmd->timeout),
 				      cmd->r,
