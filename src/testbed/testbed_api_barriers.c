@@ -56,19 +56,9 @@ struct GNUNET_TESTBED_BarrierWaitHandle
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * The client connection
+   * The testbed-barrier service message queue.
    */
-  struct GNUNET_CLIENT_Connection *conn;
-
-  /**
-   * Transmit handle
-   */
-  struct GNUNET_CLIENT_TransmitHandle *tx;
-
-  /**
-   * The message to transmit with tx
-   */
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * The barrier wait callback
@@ -76,11 +66,30 @@ struct GNUNET_TESTBED_BarrierWaitHandle
   GNUNET_TESTBED_barrier_wait_cb cb;
 
   /**
-   * The closure for the above callback
+   * The closure for @e cb.
    */
-  void *cls;
+  void *cb_cls;
 };
 
+
+
+/**
+ * Check if barrier status message is well-formed.
+ *
+ * @param cls closure
+ * @param msg received message
+ * @return #GNUNET_OK if the message is well-formed.
+ */
+static int
+check_status (void *cls,
+              const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
+{
+  /* FIXME: this fails to actually check that the message
+     follows the protocol spec (0-terminations!).  However,
+     not critical as #handle_status() doesn't interpret the
+     variable-size part anyway right now. */
+  return GNUNET_OK;
+}
 
 
 /**
@@ -88,86 +97,61 @@ struct GNUNET_TESTBED_BarrierWaitHandle
  * from the service.
  *
  * @param cls closure
- * @param message received message; NULL on timeout or fatal error
+ * @param msg received message
  */
 static void
-receive_handler (void *cls,
-                 const struct GNUNET_MessageHeader *message)
+handle_status (void *cls,
+               const struct GNUNET_TESTBED_BarrierStatusMsg *msg)
 {
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
-  const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
-  uint16_t msize;
 
-  if (NULL == message)
-  {
-    GNUNET_break_op (0);
-    goto fail;
-  }
-  if (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS != ntohs (message->type))
-  {
-    GNUNET_break_op (0);
-    goto fail;
-  }
-  msize = ntohs (message->size);
-  if (msize <= sizeof (struct GNUNET_TESTBED_BarrierStatusMsg))
-  {
-    GNUNET_break_op (0);
-    goto fail;
-  }
-  msg = (const struct GNUNET_TESTBED_BarrierStatusMsg *) message;
   switch (ntohs (msg->status))
   {
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
-    goto fail;
+    h->cb (h->cb_cls,
+           h->name,
+           GNUNET_SYSERR);
+    break;
   case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
+    h->cb (h->cb_cls,
+           h->name,
+           GNUNET_SYSERR);
     GNUNET_break (0);
-    goto fail;
+    break;
   case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
-    h->cb (h->cls, h->name, GNUNET_OK);
-    goto destroy;
+    h->cb (h->cb_cls,
+           h->name,
+           GNUNET_OK);
+    break;
   default:
     GNUNET_break_op (0);
+    h->cb (h->cb_cls,
+           h->name,
+           GNUNET_SYSERR);
+    break;
   }
-
- fail:
-  h->cb (h->cls, h->name, GNUNET_SYSERR);
-
- destroy:
   GNUNET_TESTBED_barrier_wait_cancel (h);
 }
 
 
 /**
- * Function called to notify a client about the connection
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the connection was closed for
- * writing in the meantime.
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
  *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @param cls closure with the `struct GNUNET_TESTBED_BarrierWaitHandle *`
+ * @param error error code
  */
-static size_t
-transmit_notify (void *cls, size_t size, void *buf)
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
-  uint16_t msize;
 
-  h->tx = NULL;
-  if ((0 == size) || (NULL == buf))
-  {
-    h->cb (h->cls, h->name, GNUNET_SYSERR);
-    GNUNET_TESTBED_barrier_wait_cancel (h);
-    return 0;
-  }
-  msize = htons (h->msg->size);
-  GNUNET_assert (msize <= size);
-  (void) memcpy (buf, h->msg, msize);
-  GNUNET_free (h->msg);
-  h->msg = NULL;
-  GNUNET_CLIENT_receive (h->conn, &receive_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
-  return msize;
+  h->cb (h->cb_cls,
+         h->name,
+         GNUNET_SYSERR);
+  GNUNET_TESTBED_barrier_wait_cancel (h);
 }
 
 
@@ -178,64 +162,74 @@ transmit_notify (void *cls, size_t size, void *buf)
  *
  * @param name the name of the barrier
  * @param cb the barrier wait callback
- * @param cls the closure for the above callback
+ * @param cb_cls the closure for @a cb
  * @return barrier wait handle which can be used to cancel the waiting at
  *   anytime before the callback is called.  NULL upon error.
  */
 struct GNUNET_TESTBED_BarrierWaitHandle *
 GNUNET_TESTBED_barrier_wait (const char *name,
                              GNUNET_TESTBED_barrier_wait_cb cb,
-                             void *cls)
+                             void *cb_cls)
 {
+  GNUNET_MQ_hd_var_size (status,
+                         GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
+                         struct GNUNET_TESTBED_BarrierStatusMsg);
+  struct GNUNET_TESTBED_BarrierWaitHandle *h
+    = GNUNET_new (struct GNUNET_TESTBED_BarrierWaitHandle);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_status_handler (h),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TESTBED_BarrierWait *msg;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TESTBED_BarrierWaitHandle *h;
-  char *cfg_filename;
+  const char *cfg_filename;
   size_t name_len;
-  uint16_t msize;
 
   GNUNET_assert (NULL != cb);
-  GNUNET_assert (NULL != name);
   cfg_filename = getenv (ENV_TESTBED_CONFIG);
   if (NULL == cfg_filename)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Are you running under testbed?\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Are you running under testbed?\n");
+    GNUNET_free (h);
     return NULL;
   }
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_filename))
+  h->cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_load (h->cfg,
+                                 cfg_filename))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Unable to load configuration from file `%s'\n",
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Unable to load configuration from file `%s'\n",
          cfg_filename);
-    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_CONFIGURATION_destroy (h->cfg);
+    GNUNET_free (h);
     return NULL;
   }
-  h = GNUNET_new (struct GNUNET_TESTBED_BarrierWaitHandle);
   h->name = GNUNET_strdup (name);
-  h->cfg = cfg;
-  h->conn = GNUNET_CLIENT_connect ("testbed-barrier", h->cfg);
   h->cb = cb;
-  h->cls = cls;
-  if (NULL == h->conn)
+  h->cb_cls = cb_cls;
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "testbed-barrier",
+                                 handlers,
+                                 &mq_error_handler,
+                                 h);
+  if (NULL == h->mq)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Unable to connect to local testbed-barrier service\n");
     GNUNET_TESTBED_barrier_wait_cancel (h);
     return NULL;
   }
-  name_len = strlen (name);
-  msize = sizeof (struct GNUNET_TESTBED_BarrierWait) + name_len;
-  msg = GNUNET_malloc (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT);
-  msg->header.size = htons (msize);
-  (void) memcpy (msg->name, name, name_len);
-  h->msg = &msg->header;
-  h->tx =
-      GNUNET_CLIENT_notify_transmit_ready (h->conn, msize,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO,
-                                           &transmit_notify,
-                                           h);
+  name_len = strlen (name); /* NOTE: unusual to not have 0-termination, change? */
+  env = GNUNET_MQ_msg_extra (msg,
+                             name_len,
+                             GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT);
+  memcpy (msg->name,
+          name,
+          name_len);
+  GNUNET_MQ_send (h->mq,
+                  env);
   return h;
 }
 
@@ -248,13 +242,12 @@ GNUNET_TESTBED_barrier_wait (const char *name,
 void
 GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h)
 {
+  if (NULL != h->mq)
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
   GNUNET_free (h->name);
-  if (NULL != h->tx)
-    GNUNET_CLIENT_notify_transmit_ready_cancel (h->tx);
-  if (NULL != h->conn)
-    GNUNET_CLIENT_disconnect (h->conn);
-  if (NULL != h->msg)
-    GNUNET_free (h->msg);
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
 }

@@ -90,7 +90,7 @@ static struct GNUNET_ARM_Handle *arm_handle;
 /**
  * Abort task identifier
  */
-static struct GNUNET_SCHEDULER_Task * abort_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
 
 /**
  * The testing result
@@ -103,25 +103,25 @@ static int result;
  */
 enum Test
 {
-    /**
-     * Test cases which are not covered by the below ones
-     */
+  /**
+   * Test cases which are not covered by the below ones
+   */
   OTHER,
 
-    /**
-     * Test where we get a peer config from controller
-     */
+  /**
+   * Test where we get a peer config from controller
+   */
   PEER_GETCONFIG,
 
-    /**
-     * Test where we connect to a service running on the peer
-     */
+  /**
+   * Test where we connect to a service running on the peer
+   */
   PEER_SERVICE_CONNECT,
 
-    /**
-     * Test where we get a peer's identity from controller
-     */
-  PEER_DESTROY,
+  /**
+   * Test where we get a peer's identity from controller
+   */
+  PEER_DESTROY
 };
 
 /**
@@ -197,7 +197,8 @@ do_abort (void *cls)
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-arm_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+arm_connect_adapter (void *cls,
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   FAIL_TEST (NULL == cls, return NULL);
   FAIL_TEST (OTHER == sub_test, return NULL);
@@ -215,7 +216,8 @@ arm_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param op_result service handle returned from the connect adapter
  */
 static void
-arm_disconnect_adapter (void *cls, void *op_result)
+arm_disconnect_adapter (void *cls,
+                        void *op_result)
 {
   FAIL_TEST (NULL != op_result, return);
   FAIL_TEST (op_result == arm_handle, return);
@@ -238,8 +240,10 @@ arm_disconnect_adapter (void *cls, void *op_result)
  *          operation has executed successfully.
  */
 static void
-service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                         void *ca_result, const char *emsg)
+service_connect_comp_cb (void *cls,
+                         struct GNUNET_TESTBED_Operation *op,
+                         void *ca_result,
+                         const char *emsg)
 {
   switch (sub_test)
   {
@@ -268,7 +272,8 @@ service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  *          operation is successfull
  */
 static void
-peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
+peerinfo_cb (void *cb_cls,
+             struct GNUNET_TESTBED_Operation *op,
              const struct GNUNET_TESTBED_PeerInformation *pinfo,
              const char *emsg)
 {
@@ -299,7 +304,8 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
  * @param event information about the event
  */
 static void
-controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
+controller_cb (void *cls,
+               const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
   {
@@ -365,7 +371,9 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
  * @param emsg NULL if peer is not NULL; else MAY contain the error description
  */
 static void
-peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
+peer_create_cb (void *cls,
+                struct GNUNET_TESTBED_Peer *peer,
+                const char *emsg)
 {
   struct GNUNET_TESTBED_Peer **peer_ptr;
 
@@ -374,7 +382,10 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   FAIL_TEST (NULL != peer_ptr, return);
   *peer_ptr = peer;
   GNUNET_TESTBED_operation_done (operation);
-  operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
+  operation = GNUNET_TESTBED_peer_start (NULL,
+                                         peer,
+                                         NULL,
+                                         NULL);
   FAIL_TEST (NULL != operation, return);
 }
 
@@ -386,12 +397,16 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
  * @param emsg the error message; NULL if host registration is successful
  */
 static void
-registration_comp (void *cls, const char *emsg)
+registration_comp (void *cls,
+                   const char *emsg)
 {
   FAIL_TEST (cls == neighbour, return);
   reg_handle = NULL;
   operation =
-      GNUNET_TESTBED_peer_create (controller, host, cfg, &peer_create_cb,
+      GNUNET_TESTBED_peer_create (controller,
+                                  host,
+                                  cfg,
+                                  &peer_create_cb,
                                   &peer);
   FAIL_TEST (NULL != operation, return);
 }
@@ -402,12 +417,14 @@ registration_comp (void *cls, const char *emsg)
  *
  * @param cls the closure from GNUNET_TESTBED_controller_start()
  * @param cfg the configuration with which the controller has been started;
- *          NULL if status is not GNUNET_OK
- * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
+ *          NULL if status is not #GNUNET_OK
+ * @param status #GNUNET_OK if the startup is successfull; #GNUNET_SYSERR if not,
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
 static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int status)
+status_cb (void *cls,
+           const struct GNUNET_CONFIGURATION_Handle *cfg_,
+           int status)
 {
   uint64_t event_mask;
 
@@ -440,12 +457,14 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int status
  * Main run function.
  *
  * @param cls NULL
- * @param args arguments passed to GNUNET_PROGRAM_run
+ * @param args arguments passed to #GNUNET_PROGRAM_run()
  * @param cfgfile the path to configuration file
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   cfg = GNUNET_CONFIGURATION_dup (config);

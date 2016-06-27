@@ -1549,7 +1549,7 @@ typedef void
  *   GNUNET_TESTBED_barrier_reached().
  * @param cb the callback to call when the barrier is reached or upon error.
  *   Cannot be NULL.
- * @param cls closure for the above callback
+ * @param cb_cls closure for @a cb
  * @return barrier handle
  */
 struct GNUNET_TESTBED_Barrier *
@@ -1557,7 +1557,7 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
                              const char *name,
                              unsigned int quorum,
                              GNUNET_TESTBED_barrier_status_cb cb,
-                             void *cls);
+                             void *cb_cls);
 
 
 /**

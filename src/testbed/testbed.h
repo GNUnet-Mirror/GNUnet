@@ -877,8 +877,8 @@ struct GNUNET_TESTBED_BarrierStatusMsg
   uint16_t name_len GNUNET_PACKED;
 
   /**
-   * the barrier name (NULL terminated) concatenated with an error message (NULL
-   * terminated) if the status were to indicate an error
+   * the barrier name (0-terminated) concatenated with an error message
+   * (0-terminated) if the status were to indicate an error
    */
   char data[0];
 };
