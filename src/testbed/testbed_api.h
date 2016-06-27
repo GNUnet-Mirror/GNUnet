@@ -105,33 +105,28 @@ enum OperationType
 };
 
 
-/**
- * The message queue for sending messages to the controller service
- */
-struct MessageQueue;
-
 
 /**
  * Enumeration of states of OperationContext
  */
 enum OperationContextState
 {
-    /**
-     * The initial state where the associated operation has just been created
-     * and is waiting in the operation queues to be started
-     */
+  /**
+   * The initial state where the associated operation has just been created
+   * and is waiting in the operation queues to be started
+   */
   OPC_STATE_INIT = 0,
 
-    /**
-     * The operation has been started. It may occupy some resources which are to
-     * be freed if cancelled.
-     */
+  /**
+   * The operation has been started. It may occupy some resources which are to
+   * be freed if cancelled.
+   */
   OPC_STATE_STARTED,
 
-    /**
-     * The operation has finished. The end results of this operation may occupy
-     * some resources which are to be freed by operation_done
-     */
+  /**
+   * The operation has finished. The end results of this operation may occupy
+   * some resources which are to be freed by operation_done
+   */
   OPC_STATE_FINISHED
 };
 
@@ -219,24 +214,9 @@ struct GNUNET_TESTBED_Controller
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * The client connection handle to the controller service
+   * The message queue to the controller service
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * The head of the message queue
-   */
-  struct MessageQueue *mq_head;
-
-  /**
-   * The tail of the message queue
-   */
-  struct MessageQueue *mq_tail;
-
-  /**
-   * The client transmit handle
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * The host registration handle; NULL if no current registration requests are
@@ -284,11 +264,6 @@ struct GNUNET_TESTBED_Controller
    * The controller event mask
    */
   uint64_t event_mask;
-
-  /**
-   * Did we start the receive loop yet?
-   */
-  int in_receive;
 
   /**
    * The operation id counter. use current value and increment
@@ -341,6 +316,7 @@ struct GNUNET_TESTBED_Barrier
  *
  * @param controller the handle to the controller
  * @param msg the message to queue
+ * @deprecated
  */
 void
 GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
@@ -382,7 +358,8 @@ GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
  * @return the size of the xconfig
  */
 size_t
-GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
+GNUNET_TESTBED_compress_config_ (const char *config,
+                                 size_t size,
                                  char **xconfig);
 
 
@@ -397,7 +374,8 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  */
 char *
 GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              size_t *size, size_t *xsize);
+                              size_t *size,
+                              size_t *xsize);
 
 
 /**
@@ -414,9 +392,9 @@ GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
-GNUNET_TESTBED_create_helper_init_msg_ (const char *cname, const char *hostname,
-                                        const struct GNUNET_CONFIGURATION_Handle
-                                        *cfg);
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+                                        const char *hostname,
+                                        const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -434,8 +412,8 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname, const char *hostname,
  *           operation
  */
 struct OperationContext *
-GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
-                                       *controller, uint64_t operation_id,
+GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller *controller,
+                                       uint64_t operation_id,
                                        const struct GNUNET_MessageHeader *msg,
                                        GNUNET_CLIENT_MessageHandler cc,
                                        void *cc_cls);
@@ -453,8 +431,8 @@ GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
 /**
  * Generates configuration by uncompressing configuration in given message. The
  * given message should be of the following types:
- * GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
- * GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
+ * #GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
  *
  * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration
@@ -471,9 +449,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg);
  * @return the error message
  */
 const char *
-GNUNET_TESTBED_parse_error_string_ (const struct
-                                    GNUNET_TESTBED_OperationFailureEventMessage
-                                    *msg);
+GNUNET_TESTBED_parse_error_string_ (const struct GNUNET_TESTBED_OperationFailureEventMessage *msg);
 
 
 /**

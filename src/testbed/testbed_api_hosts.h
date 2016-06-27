@@ -24,12 +24,39 @@
  * @author Christian Grothoff
  */
 
-#ifndef NEW_TESTING_API_HOSTS_H
-#define NEW_TESTING_API_HOSTS_H
+#ifndef TESTBED_API_HOSTS_H
+#define TESTBED_API_HOSTS_H
 
 //#include "gnunet_testbed_service.h"
 //#include "testbed_helper.h"
 #include "testbed.h"
+
+
+/**
+ * handle for host registration
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle
+{
+  /**
+   * The host being registered
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The controller at which this host is being registered
+   */
+  struct GNUNET_TESTBED_Controller *c;
+
+  /**
+   * The Registartion completion callback
+   */
+  GNUNET_TESTBED_HostRegistrationCompletion cc;
+
+  /**
+   * The closure for above callback
+   */
+  void *cc_cls;
+};
 
 
 /**
@@ -161,22 +188,6 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 void
 GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
                                struct GNUNET_TESTBED_Operation *op);
-
-
-/**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
- * controller (testbed service)
- *
- * @param c the controller handler
- * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
- *           not
- */
-int
-GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
-                                            const struct
-                                            GNUNET_TESTBED_HostConfirmedMessage
-                                            *msg);
 
 
 /**

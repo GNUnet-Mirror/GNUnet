@@ -1385,33 +1385,6 @@ GNUNET_TESTBED_is_host_habitable_cancel (struct
 
 
 /**
- * handle for host registration
- */
-struct GNUNET_TESTBED_HostRegistrationHandle
-{
-  /**
-   * The host being registered
-   */
-  struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The controller at which this host is being registered
-   */
-  struct GNUNET_TESTBED_Controller *c;
-
-  /**
-   * The Registartion completion callback
-   */
-  GNUNET_TESTBED_HostRegistrationCompletion cc;
-
-  /**
-   * The closure for above callback
-   */
-  void *cc_cls;
-};
-
-
-/**
  * Register a host with the controller
  *
  * @param controller the controller handle
@@ -1533,63 +1506,6 @@ GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
 {
   GNUNET_TESTBED_operation_queue_insert_
       (h->opq_parallel_overlay_connect_operations, op);
-}
-
-
-/**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
- * controller (testbed service)
- *
- * @param c the controller handler
- * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
- *           not
- */
-int
-GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
-                                            const struct
-                                            GNUNET_TESTBED_HostConfirmedMessage
-                                            *msg)
-{
-  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
-  char *emsg;
-  uint16_t msg_size;
-
-  rh = c->rh;
-  if (NULL == rh)
-  {
-    return GNUNET_OK;
-  }
-  if (GNUNET_TESTBED_host_get_id_ (rh->host) != ntohl (msg->host_id))
-  {
-    LOG_DEBUG ("Mismatch in host id's %u, %u of host confirm msg\n",
-               GNUNET_TESTBED_host_get_id_ (rh->host), ntohl (msg->host_id));
-    return GNUNET_OK;
-  }
-  c->rh = NULL;
-  msg_size = ntohs (msg->header.size);
-  if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
-  {
-    LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
-    GNUNET_TESTBED_mark_host_registered_at_ (rh->host, c);
-    rh->cc (rh->cc_cls, NULL);
-    GNUNET_free (rh);
-    return GNUNET_OK;
-  }
-  /* We have an error message */
-  emsg = (char *) &msg[1];
-  if ('\0' !=
-      emsg[msg_size - sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
-  {
-    GNUNET_break (0);
-    GNUNET_free (rh);
-    return GNUNET_NO;
-  }
-  LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding host %u failed with error: %s\n"),
-       ntohl (msg->host_id), emsg);
-  rh->cc (rh->cc_cls, emsg);
-  GNUNET_free (rh);
-  return GNUNET_OK;
 }
 
 

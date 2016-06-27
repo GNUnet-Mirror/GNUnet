@@ -1716,12 +1716,6 @@ rocc_hello_sent_cb (void *cls)
                                   rocc);
     return;
   }
-  if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
   rocc->tcc.cgh_p2_ats =
     GST_connection_pool_get_handle (rocc->peer->id,
                                     rocc->peer->details.local.cfg,
@@ -1752,7 +1746,8 @@ attempt_connect_task (void *cls)
   rocc->ohh =
       GNUNET_TRANSPORT_offer_hello (rocc->tcc.th_,
                                     rocc->hello,
-                                    rocc_hello_sent_cb, rocc);
+                                    &rocc_hello_sent_cb,
+                                    rocc);
   if (NULL == rocc->ohh)
     rocc->attempt_connect_task_id =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
