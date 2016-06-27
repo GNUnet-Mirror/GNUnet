@@ -140,6 +140,11 @@ struct GNUNET_MQ_Handle
    * @e assoc_map
    */
   uint32_t assoc_id;
+
+  /**
+   * Number of entries we have in the envelope-DLL.
+   */
+  unsigned int queue_length;
 };
 
 
@@ -264,20 +269,41 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
 {
   if (NULL == mq->error_handler)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "mq: got error %d, but no handler installed\n",
-                (int) error);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Got error %d, but no handler installed\n",
+         (int) error);
     return;
   }
-  mq->error_handler (mq->error_handler_cls, error);
+  mq->error_handler (mq->error_handler_cls,
+                     error);
 }
 
 
+/**
+ * Discard the message queue message, free all
+ * allocated resources. Must be called in the event
+ * that a message is created but should not actually be sent.
+ *
+ * @param mqm the message to discard
+ */
 void
 GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm)
 {
   GNUNET_assert (NULL == mqm->parent_queue);
   GNUNET_free (mqm);
+}
+
+
+/**
+ * Obtain the current length of the message queue.
+ *
+ * @param mq queue to inspect
+ * @return number of queued, non-transmitted messages
+ */
+unsigned int
+GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq)
+{
+  return mq->queue_length;
 }
 
 
@@ -302,6 +328,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
     GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head,
                                       mq->envelope_tail,
                                       ev);
+    mq->queue_length++;
     return;
   }
   mq->current_envelope = ev;
@@ -367,6 +394,7 @@ impl_send_continue (void *cls)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                  mq->envelope_tail,
                                  mq->current_envelope);
+    mq->queue_length--;
     mq->send_impl (mq,
 		   mq->current_envelope->mh,
 		   mq->impl_state);
@@ -876,8 +904,10 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 				 mq->envelope_tail,
 				 ev);
+    mq->queue_length--;
     GNUNET_MQ_discard (ev);
   }
+  GNUNET_assert (0 == mq->queue_length);
   if (NULL != mq->current_envelope)
   {
     /* we can only discard envelopes that
@@ -956,6 +986,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
+      mq->queue_length--;
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);
@@ -967,6 +998,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 				 mq->envelope_tail,
 				 ev);
+    mq->queue_length--;
   }
 
   ev->parent_queue = NULL;

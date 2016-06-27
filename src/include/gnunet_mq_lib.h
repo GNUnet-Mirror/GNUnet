@@ -433,6 +433,16 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
 
 
 /**
+ * Obtain the current length of the message queue.
+ *
+ * @param mq queue to inspect
+ * @return number of queued, non-transmitted messages
+ */
+unsigned int
+GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq);
+
+
+/**
  * Send a message with the give message queue.
  * May only be called once per message.
  *
