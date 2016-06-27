@@ -719,12 +719,14 @@ send_find_peer_message (void *cls)
     /* If we are finding many peers already, no need to send out our request right now! */
     find_peer_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                      &send_find_peer_message, NULL);
+                                      &send_find_peer_message,
+                                      NULL);
     newly_found_peers = 0;
     return;
   }
   bcc.bf_mutator =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                UINT32_MAX);
   bcc.bloom =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
@@ -732,7 +734,8 @@ send_find_peer_message (void *cls)
                                          &add_known_to_bloom,
                                          &bcc);
   GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# FIND PEER messages initiated"), 1,
+                            gettext_noop ("# FIND PEER messages initiated"),
+                            1,
                             GNUNET_NO);
   peer_bf =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
@@ -819,8 +822,8 @@ handle_core_connect (void *cls,
     update_connect_preferences ();
     newly_found_peers++;
   }
-  if (1 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers) &&
-      (GNUNET_YES != disable_try_connect))
+  if ( (1 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers)) &&
+       (GNUNET_YES != disable_try_connect))
   {
     /* got a first connection, good time to start with FIND PEER requests... */
     GNUNET_assert (NULL == find_peer_task);
@@ -870,7 +873,8 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (all_connected_peers,
                                                        peer,
                                                        to_remove));
-  if (0 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers))
+  if ( (0 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers) &&
+        (GNUNET_YES != disable_try_connect)) )
   {
     GNUNET_SCHEDULER_cancel (find_peer_task);
     find_peer_task = NULL;
@@ -2522,11 +2526,7 @@ GDS_NEIGHBOURS_done ()
   all_desired_peers = NULL;
   GNUNET_ATS_connectivity_done (ats_ch);
   ats_ch = NULL;
-  if (NULL != find_peer_task)
-  {
-    GNUNET_SCHEDULER_cancel (find_peer_task);
-    find_peer_task = NULL;
-  }
+  GNUNET_assert (NULL == find_peer_task);
 }
 
 
