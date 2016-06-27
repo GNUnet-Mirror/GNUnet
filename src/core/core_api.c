@@ -332,6 +332,9 @@ handle_mq_error (void *cls,
 {
   struct GNUNET_CORE_Handle *h = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MQ ERROR: %d\n",
+              error);
   reconnect_later (h);
 }
 
@@ -707,12 +710,13 @@ handle_send_ready (void *cls,
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) th->cork);
   sm->reserved = htonl (0);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Calling get_message with buffer of %u bytes\n",
+              (unsigned int) th->msize);
   ret = th->get_message (th->get_message_cls,
                          th->msize,
                          &sm[1]);
   sm->header.size = htons (ret + sizeof (struct SendMessage));
-  th->msize = ret;
-  // GNUNET_assert (ret == th->msize); /* NOTE: API change! */
   delay = GNUNET_TIME_absolute_get_duration (th->request_time);
   overdue = GNUNET_TIME_absolute_get_duration (th->deadline);
   if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
@@ -887,6 +891,11 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to CORE service\n");
   reconnect (h);
+  if (NULL == h->mq)
+  {
+    GNUNET_CORE_disconnect (h);
+    return NULL;
+  }
   return h;
 }
 
