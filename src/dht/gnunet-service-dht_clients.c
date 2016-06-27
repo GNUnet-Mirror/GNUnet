@@ -782,7 +782,8 @@ remove_by_unique_id (void *cls, const struct GNUNET_HashCode * key, void *value)
  *
  */
 static void
-handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_get_stop (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientGetStopMessage *dht_stop_msg =
@@ -795,7 +796,8 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received GET STOP request for %s from local client %p\n",
-       client, GNUNET_h2s (&dht_stop_msg->key));
+       GNUNET_h2s (&dht_stop_msg->key),
+       client);
   ctx.client = find_active_client (client);
   ctx.unique_id = dht_stop_msg->unique_id;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, &dht_stop_msg->key,
