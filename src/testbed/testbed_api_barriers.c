@@ -82,25 +82,6 @@ struct GNUNET_TESTBED_BarrierWaitHandle
 };
 
 
-/**
- * Function to destroy barrier wait handle
- *
- * @param h the handle to destroy
- */
-static void
-destroy_handle (struct GNUNET_TESTBED_BarrierWaitHandle *h)
-{
-  GNUNET_free (h->name);
-  if (NULL != h->tx)
-    GNUNET_CLIENT_notify_transmit_ready_cancel (h->tx);
-  if (NULL != h->conn)
-    GNUNET_CLIENT_disconnect (h->conn);
-  if (NULL != h->msg)
-    GNUNET_free (h->msg);
-  GNUNET_CONFIGURATION_destroy (h->cfg);
-  GNUNET_free (h);
-}
-
 
 /**
  * Type of a function to call when we receive a message
@@ -139,8 +120,8 @@ receive_handler (void *cls,
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
     goto fail;
   case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
-    GNUNET_break (0);           /* FIXME */
-    goto destroy;
+    GNUNET_break (0);
+    goto fail;
   case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
     h->cb (h->cls, h->name, GNUNET_OK);
     goto destroy;
@@ -152,7 +133,7 @@ receive_handler (void *cls,
   h->cb (h->cls, h->name, GNUNET_SYSERR);
 
  destroy:
-  destroy_handle (h);
+  GNUNET_TESTBED_barrier_wait_cancel (h);
 }
 
 
@@ -176,7 +157,8 @@ transmit_notify (void *cls, size_t size, void *buf)
   h->tx = NULL;
   if ((0 == size) || (NULL == buf))
   {
-    destroy_handle (h);
+    h->cb (h->cls, h->name, GNUNET_SYSERR);
+    GNUNET_TESTBED_barrier_wait_cancel (h);
     return 0;
   }
   msize = htons (h->msg->size);
@@ -238,7 +220,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Unable to connect to local testbed-barrier service\n");
-    destroy_handle (h);
+    GNUNET_TESTBED_barrier_wait_cancel (h);
     return NULL;
   }
   name_len = strlen (name);
@@ -266,7 +248,15 @@ GNUNET_TESTBED_barrier_wait (const char *name,
 void
 GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h)
 {
-  destroy_handle (h);
+  GNUNET_free (h->name);
+  if (NULL != h->tx)
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->tx);
+  if (NULL != h->conn)
+    GNUNET_CLIENT_disconnect (h->conn);
+  if (NULL != h->msg)
+    GNUNET_free (h->msg);
+  GNUNET_CONFIGURATION_destroy (h->cfg);
+  GNUNET_free (h);
 }
 
 /* end of testbed_api_barriers.c */
