@@ -23,6 +23,7 @@
  * @brief Regex profiler that dumps all DFAs into a database instead of
  *        using the DHT (with cadet).
  * @author Maximilian Szengel
+ * @author Christophe Genevey
  *
  */
 
@@ -30,6 +31,7 @@
 #include "gnunet_util_lib.h"
 #include "regex_internal_lib.h"
 #include "gnunet_mysql_lib.h"
+#include "gnunet_my_lib.h"
 #include <mysql/mysql.h>
 
 /**
@@ -302,25 +304,6 @@ do_abort (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-
-/**
- * Dummy function for prepared select. Always returns #GNUNET_OK.
- *
- * @param cls closure
- * @param num_values number of values.
- * @param values returned values from select stmt.
- *
- * @return #GNUNET_OK
- */
-static int
-return_ok (void *cls,
-	   unsigned int num_values,
-	   MYSQL_BIND * values)
-{
-  return GNUNET_OK;
-}
-
-
 /**
  * Iterator over all states that inserts each state into the MySQL db.
  *
@@ -333,49 +316,54 @@ return_ok (void *cls,
  */
 static void
 regex_iterator (void *cls,
-		const struct GNUNET_HashCode *key,
-		const char *proof,
+		            const struct GNUNET_HashCode *key,
+		            const char *proof,
                 int accepting,
-		unsigned int num_edges,
+		            unsigned int num_edges,
                 const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
   int result;
-  unsigned long k_length;
-  unsigned long e_length;
-  unsigned long d_length;
-  MYSQL_BIND rbind[1];
-  unsigned long long total;
+
+  uint32_t iaccepting = (uint32_t)accepting;
+  uint64_t total;
 
   GNUNET_assert (NULL != mysql_ctx);
 
   for (i = 0; i < num_edges; i++)
   {
-    k_length = sizeof (struct GNUNET_HashCode);
-    e_length = strlen (edges[i].label);
-    d_length = sizeof (struct GNUNET_HashCode);
-    memset (rbind, 0, sizeof (rbind));
-    total = -1;
-    rbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
-    rbind[0].buffer = &total;
-    rbind[0].is_unsigned = GNUNET_YES;
+    struct GNUNET_MY_QueryParam params_select[] = {
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_fixed_size(edges[i].label, strlen (edges[i].label)),
+      GNUNET_MY_query_param_end
+    };
 
-    result =
-        GNUNET_MYSQL_statement_run_prepared_select (select_stmt_handle, 1,
-                                                    rbind, &return_ok, NULL,
-                                                    MYSQL_TYPE_BLOB, key,
-                                                    sizeof (struct
-                                                            GNUNET_HashCode),
-                                                    &k_length,
-                                                    MYSQL_TYPE_STRING,
-                                                    edges[i].label,
-                                                    strlen (edges[i].label),
-                                                    &e_length, -1);
+    struct GNUNET_MY_ResultSpec results_select[] = {
+      GNUNET_MY_result_spec_uint64 (&total),
+      GNUNET_MY_result_spec_end
+    };
+
+    result = 
+      GNUNET_MY_exec_prepared (mysql_ctx,
+                              select_stmt_handle,
+                              params_select);
 
     if (GNUNET_SYSERR == result)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error executing prepared mysql select statement\n");
+      GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+      return;
+    }
+
+    result = 
+      GNUNET_MY_extract_result (select_stmt_handle,
+                                results_select);
+
+    if (GNUNET_SYSERR == result)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error extracting result mysql select statement\n");
       GNUNET_SCHEDULER_add_now (&do_abort, NULL);
       return;
     }
@@ -386,18 +374,18 @@ regex_iterator (void *cls,
                   GNUNET_h2s (key), edges[i].label);
     }
 
-    result =
-        GNUNET_MYSQL_statement_run_prepared (stmt_handle, NULL,
-                                             MYSQL_TYPE_BLOB, key,
-                                             sizeof (struct GNUNET_HashCode),
-                                             &k_length, MYSQL_TYPE_STRING,
-                                             edges[i].label,
-                                             strlen (edges[i].label), &e_length,
-                                             MYSQL_TYPE_BLOB,
-                                             &edges[i].destination,
-                                             sizeof (struct GNUNET_HashCode),
-                                             &d_length, MYSQL_TYPE_LONG,
-                                             &accepting, GNUNET_YES, -1);
+    struct GNUNET_MY_QueryParam params_stmt[] = {
+      GNUNET_MY_query_param_auto_from_type (&key),
+      GNUNET_MY_query_param_fixed_size (edges[i].label, strlen (edges[i].label)),
+      GNUNET_MY_query_param_auto_from_type (&edges[i].destination),
+      GNUNET_MY_query_param_uint32 (&iaccepting),
+      GNUNET_MY_query_param_end
+    };
+
+    result = 
+      GNUNET_MY_exec_prepared (mysql_ctx,
+                              stmt_handle,
+                              params_stmt);
 
     if (0 == result)
     {
@@ -426,19 +414,18 @@ regex_iterator (void *cls,
 
   if (0 == num_edges)
   {
-    k_length = sizeof (struct GNUNET_HashCode);
-    e_length = 0;
-    d_length = 0;
+    struct GNUNET_MY_QueryParam params_stmt[] = {
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_fixed_size (NULL, 0),
+      GNUNET_MY_query_param_auto_from_type (NULL),
+      GNUNET_MY_query_param_uint32 (&iaccepting),
+      GNUNET_MY_query_param_end
+    };
 
-    result =
-        GNUNET_MYSQL_statement_run_prepared (stmt_handle, NULL,
-                                             MYSQL_TYPE_BLOB, key,
-                                             sizeof (struct GNUNET_HashCode),
-                                             &k_length, MYSQL_TYPE_STRING, NULL,
-                                             0, &e_length, MYSQL_TYPE_BLOB,
-                                             NULL, 0, &d_length,
-                                             MYSQL_TYPE_LONG, &accepting,
-                                             GNUNET_YES, -1);
+    result = 
+      GNUNET_MY_exec_prepared(mysql_ctx,
+                              stmt_handle,
+                              params_stmt);
 
     if (1 != result && 0 != result)
     {

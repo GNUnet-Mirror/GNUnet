@@ -94,6 +94,7 @@ gnunet_regex_simulation_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetregex_internal.a \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/my/libgnunetmy.la \
   $(top_builddir)/src/mysql/libgnunetmysql.la
 endif
 
