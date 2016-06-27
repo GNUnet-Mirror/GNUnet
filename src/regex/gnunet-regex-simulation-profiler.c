@@ -370,7 +370,7 @@ regex_iterator (void *cls,
 
     if (-1 != total && total > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Total: %llu (%s, %s)\n", total,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Total: %llu (%s, %s)\n", (unsigned long long)total,
                   GNUNET_h2s (key), edges[i].label);
     }
 
