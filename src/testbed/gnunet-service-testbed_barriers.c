@@ -26,7 +26,7 @@
 
 #include "gnunet-service-testbed.h"
 #include "gnunet-service-testbed_barriers.h"
-#include "testbed_api_barriers.h"
+#include "testbed_api.h"
 
 
 /**

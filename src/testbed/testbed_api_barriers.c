@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2008--2013 GNUnet e.V.
+  Copyright (C) 2008--2013, 2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -23,11 +23,9 @@
  * @brief API implementation for testbed barriers
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
-
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api.h"
-#include "testbed_api_barriers.h"
 
 /**
  * Logging shorthand

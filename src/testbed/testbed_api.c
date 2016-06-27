@@ -36,7 +36,6 @@
 
 #include "testbed.h"
 #include "testbed_api.h"
-#include "testbed_api_barriers.h"
 #include "testbed_api_hosts.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_operations.h"

@@ -505,5 +505,42 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
                                   uint32_t slave_host_id);
 
 
+
+/**
+ * Initialise a barrier and call the given callback when the required percentage
+ * of peers (quorum) reach the barrier OR upon error.
+ *
+ * @param controller the handle to the controller
+ * @param name identification name of the barrier
+ * @param quorum the percentage of peers that is required to reach the barrier.
+ *   Peers signal reaching a barrier by calling
+ *   GNUNET_TESTBED_barrier_reached().
+ * @param cb the callback to call when the barrier is reached or upon error.
+ *   Cannot be NULL.
+ * @param cls closure for the above callback
+ * @param echo #GNUNET_YES to echo the barrier crossed status message back to the
+ *   controller
+ * @return barrier handle; NULL upon error
+ */
+struct GNUNET_TESTBED_Barrier *
+GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
+                              const char *name,
+                              unsigned int quorum,
+                              GNUNET_TESTBED_barrier_status_cb cb,
+                              void *cls,
+                              int echo);
+
+
+/**
+ * Remove a barrier and it was the last one in the barrier hash map, destroy the
+ * hash map
+ *
+ * @param barrier the barrier to remove
+ */
+void
+GNUNET_TESTBED_barrier_remove_ (struct GNUNET_TESTBED_Barrier *barrier);
+
+
+
 #endif
 /* end of testbed_api.h */
