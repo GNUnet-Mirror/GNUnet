@@ -1722,7 +1722,6 @@ rocc_hello_sent_cb (void *cls)
                                     GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY,
                                     &occ_cache_get_handle_ats_rocc_cb,
                                     rocc, NULL, NULL, NULL);
-
 }
 
 
