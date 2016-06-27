@@ -175,7 +175,7 @@ check_edge (void *cls,
   struct CheckEdgeContext *ctx = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "edge %.*s [%u]: %sn",
+	      "edge %.*s [%u]: %s\n",
               (int) len,
               token,
               (unsigned int) len,
