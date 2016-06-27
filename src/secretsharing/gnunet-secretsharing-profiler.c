@@ -304,7 +304,7 @@ secret_ready_cb (void *cls,
                  struct GNUNET_SECRETSHARING_Share *my_share,
                  struct GNUNET_SECRETSHARING_PublicKey *public_key,
                  unsigned int num_ready_peers,
-                 struct GNUNET_PeerIdentity *ready_peers)
+                 const struct GNUNET_PeerIdentity *ready_peers)
 {
   struct GNUNET_SECRETSHARING_Session **sp = cls;
   unsigned int n = sp - session_handles;

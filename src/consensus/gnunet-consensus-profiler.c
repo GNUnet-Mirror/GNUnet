@@ -98,7 +98,7 @@ controller_cb (void *cls,
 
 
 static void
-statistics_done_db (void *cls,
+statistics_done_cb (void *cls,
                     struct
                     GNUNET_TESTBED_Operation
                     *op,
@@ -108,6 +108,7 @@ statistics_done_db (void *cls,
   GNUNET_TESTBED_operation_done (op);
   if (NULL != statistics_file)
     fclose (statistics_file);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got statistics, shutting down\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -162,7 +163,7 @@ destroy (void *cls)
       statistics_file = fopen (statistics_filename, "w");
     GNUNET_TESTBED_get_statistics (num_peers, peers, NULL, NULL,
                                    statistics_cb,
-                                   statistics_done_db,
+                                   statistics_done_cb,
                                    NULL);
   }
 }
@@ -182,7 +183,7 @@ conclude_cb (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "consensus %d done\n",
-              chp - consensus_handles);
+              (int) (chp - consensus_handles));
   GNUNET_SCHEDULER_add_now (destroy, *chp);
 }
 
@@ -349,6 +350,8 @@ static void
 disconnect_adapter(void *cls, void *op_result)
 {
   /* FIXME: what to do here? */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "disconnect adapter called\n");
 }
 
 

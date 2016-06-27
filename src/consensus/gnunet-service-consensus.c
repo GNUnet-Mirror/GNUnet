@@ -1339,8 +1339,7 @@ commit_set (struct ConsensusSession *session,
       case EVILNESS_SLACK:
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "P%u: evil peer: slacking\n",
-                    session->local_peer_idx,
-                    evil.num);
+                    (unsigned int) session->local_peer_idx);
         /* Do nothing. */
         break;
       case EVILNESS_NONE:
@@ -1671,7 +1670,7 @@ try_finish_step_early (struct Step *step)
 #ifdef GNUNET_EXTRA_LOGGING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Decreased pending_prereq to %u for step `%s'.\n",
-                step->subordinates[i]->pending_prereq,
+                (unsigned int) step->subordinates[i]->pending_prereq,
                 step->subordinates[i]->debug_name);
 
 #endif
@@ -1706,7 +1705,7 @@ finish_step (struct Step *step)
 #ifdef GNUNET_EXTRA_LOGGING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Decreased pending_prereq to %u for step `%s'.\n",
-                step->subordinates[i]->pending_prereq,
+                (unsigned int) step->subordinates[i]->pending_prereq,
                 step->subordinates[i]->debug_name);
 
 #endif
@@ -2699,7 +2698,7 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
     arrange_peers (&p1, &p2, n);
     task = ((struct TaskEntry) {
       .step = step,
-      .key = (struct TaskKey) { PHASE_KIND_GRADECAST_LEADER, p1, p2, rep, lead},
+      .key = (struct TaskKey) { PHASE_KIND_GRADECAST_LEADER, p1, p2, rep, lead },
       .start = task_start_reconcile,
       .cancel = task_cancel_reconcile,
     });
@@ -2807,9 +2806,6 @@ construct_task_graph (struct ConsensusSession *session)
 
   uint16_t me = session->local_peer_idx;
 
-  uint16_t p1;
-  uint16_t p2;
-
   /* The task we're currently setting up. */
   struct TaskEntry task;
 
@@ -2841,6 +2837,9 @@ construct_task_graph (struct ConsensusSession *session)
 
   for (i = 0; i < n; i++)
   {
+    uint16_t p1;
+    uint16_t p2;
+
     p1 = me;
     p2 = i;
     arrange_peers (&p1, &p2, n);
@@ -2957,8 +2956,8 @@ initialize_session (struct ConsensusSession *session,
   session->conclude_deadline = GNUNET_TIME_absolute_ntoh (join_msg->deadline);
   session->conclude_start = GNUNET_TIME_absolute_ntoh (join_msg->start);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus with timeout %ums created\n",
-              (GNUNET_TIME_absolute_get_difference (session->conclude_start, session->conclude_deadline)).rel_value_us / 1000);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus with timeout %llums created\n",
+              (long long) (GNUNET_TIME_absolute_get_difference (session->conclude_start, session->conclude_deadline)).rel_value_us / 1000);
 
   session->local_peer_idx = get_peer_idx (&my_peer, session);
   GNUNET_assert (-1 != session->local_peer_idx);
@@ -3173,11 +3172,11 @@ client_conclude (void *cls,
 static void
 shutdown_task (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "shutting down\n");
   while (NULL != sessions_head)
     destroy_session (sessions_head);
 
-  GNUNET_STATISTICS_destroy (statistics, GNUNET_YES);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled shutdown request\n");
+  GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
 }
 
 
