@@ -443,7 +443,7 @@ GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Send a message with the give message queue.
+ * Send a message with the given message queue.
  * May only be called once per message.
  *
  * @param mq message queue
@@ -455,7 +455,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Send a copy of a message with the give message queue.
+ * Send a copy of a message with the given message queue.
  * Can be called repeatedly on the same envelope.
  *
  * @param mq message queue
