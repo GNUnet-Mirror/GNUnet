@@ -240,7 +240,6 @@ GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_assert (NULL != cfg);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   resolver_cfg = cfg;
-  (void) check_config ();
 }
 
 
@@ -873,6 +872,11 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
                                            rh);
       return rh;
     }
+  if (GNUNET_OK != check_config ())
+  {
+    GNUNET_free (rh);
+    return NULL;
+  }
   rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
                                            &handle_lookup_timeout,
                                            rh);
