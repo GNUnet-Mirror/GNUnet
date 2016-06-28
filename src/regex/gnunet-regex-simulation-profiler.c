@@ -423,7 +423,7 @@ regex_iterator (void *cls,
     struct GNUNET_MY_QueryParam params_stmt[] = {
       GNUNET_MY_query_param_auto_from_type (key),
       GNUNET_MY_query_param_string (""),
-      GNUNET_MY_query_param_auto_from_type (NULL),
+      GNUNET_MY_query_param_fixed_size (NULL, 0),
       GNUNET_MY_query_param_uint32 (&iaccepting),
       GNUNET_MY_query_param_end
     };
