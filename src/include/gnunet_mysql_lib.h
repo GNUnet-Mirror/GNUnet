@@ -137,69 +137,6 @@ GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,
 			    const char *sql);
 
 
-/**
- * Run a prepared SELECT statement.
- *
- * @param sh handle to SELECT statment
- * @param result_size number of elements in results array
- * @param results pointer to already initialized MYSQL_BIND
- *        array (of sufficient size) for passing results
- * @param processor function to call on each result
- * @param processor_cls extra argument to processor
- * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise
- *         the number of successfully affected (or queried) rows
- */
-int
-GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_StatementHandle *sh,
-					    unsigned int result_size, MYSQL_BIND * results,
-					    GNUNET_MYSQL_DataProcessor processor,
-					    void *processor_cls, ...);
-
-
-/**
- * Run a prepared SELECT statement.
- *
- * @param s statement to run
- * @param result_size number of elements in results array
- * @param results pointer to already initialized MYSQL_BIND
- *        array (of sufficient size) for passing results
- * @param processor function to call on each result
- * @param processor_cls extra argument to processor
- * @param ap pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise
- *         the number of successfully affected (or queried) rows
- */
-int
-GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_StatementHandle *s,
-					       unsigned int result_size,
-					       MYSQL_BIND * results,
-					       GNUNET_MYSQL_DataProcessor processor,
-					       void *processor_cls,
-					       va_list ap);
-
-
-/**
- * Run a prepared statement that does NOT produce results.
- *
- * @param sh handle to statment
- * @param insert_id NULL or address where to store the row ID of whatever
- *        was inserted (only for INSERT statements!)
- * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise
- *         the number of successfully affected rows
- */
-int
-GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_StatementHandle *sh,
-				     unsigned long long *insert_id, ...);
-
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
