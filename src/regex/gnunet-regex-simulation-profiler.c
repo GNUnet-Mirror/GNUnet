@@ -18,6 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 
+
 /**
  * @file regex/gnunet-regex-simulation-profiler.c
  * @brief Regex profiler that dumps all DFAs into a database instead of
@@ -422,15 +423,15 @@ regex_iterator (void *cls,
     struct GNUNET_MY_QueryParam params_stmt[] = {
       GNUNET_MY_query_param_auto_from_type (key),
       GNUNET_MY_query_param_string (""),
-      GNUNET_MY_query_param_auto_from_type (NULL),
+      GNUNET_MY_query_param_auto_from_type (""),
       GNUNET_MY_query_param_uint32 (&iaccepting),
       GNUNET_MY_query_param_end
     };
 
     result = 
-      GNUNET_MY_exec_prepared(mysql_ctx,
-                              stmt_handle,
-                              params_stmt);
+      GNUNET_MY_exec_prepared (mysql_ctx,
+			       stmt_handle,
+			       params_stmt);
 
     if (1 != result && 0 != result)
     {
