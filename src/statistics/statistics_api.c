@@ -307,21 +307,21 @@ update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
 
 
 /**
- * Schedule the next action to be performed.
- *
- * @param cls statistics handle to reconnect
- */
-static void
-schedule_action (void *cls);
-
-
-/**
  * Reconnect at a later time, respecting back-off.
  *
  * @param h statistics handle
  */
 static void
 reconnect_later (struct GNUNET_STATISTICS_Handle *h);
+
+
+/**
+ * Schedule the next action to be performed.
+ *
+ * @param cls statistics handle to reconnect
+ */
+static void
+schedule_action (void *cls);
 
 
 /**
@@ -786,6 +786,9 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle)
                                              2,
                                              c->subsystem,
                                              c->name));
+  GNUNET_MQ_notify_sent (env,
+                         &schedule_action,
+                         handle);
   GNUNET_MQ_send (handle->mq,
                   env);
 }
@@ -819,6 +822,9 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle)
                                              2,
                                              handle->current->subsystem,
                                              handle->current->name));
+  GNUNET_MQ_notify_sent (env,
+                         &schedule_action,
+                         handle);
   GNUNET_MQ_send (handle->mq,
                   env);
   GNUNET_assert (NULL == handle->current->cont);
@@ -1001,6 +1007,8 @@ schedule_action (void *cls)
     reconnect_later (h);
     return;
   }
+  if (0 < GNUNET_MQ_get_length (h->mq) )
+    return; /* Wait for queue to be reduced more */
   /* schedule next action */
   while (NULL == h->current)
   {
@@ -1018,6 +1026,9 @@ schedule_action (void *cls)
       h->do_destroy = GNUNET_SYSERR; /* in 'TEST' mode */
       env = GNUNET_MQ_msg (hdr,
                            GNUNET_MESSAGE_TYPE_TEST);
+      GNUNET_MQ_notify_sent (env,
+                             &schedule_action,
+                             h);
       GNUNET_MQ_send (h->mq,
                       env);
       return;
