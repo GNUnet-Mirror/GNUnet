@@ -7935,7 +7935,7 @@ msgstr "medir cómo de rápido recibimos datos de todos los pares (hasta CTRL-C)
 
 #: src/transport/gnunet-transport.c:1978
 #, fuzzy
-msgid "disconnect to a peer"
+msgid "disconnect from a peer"
 msgstr "conectar a un par"
 
 #: src/transport/gnunet-transport.c:1981

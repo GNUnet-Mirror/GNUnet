@@ -7666,7 +7666,7 @@ msgid "measure how fast we are receiving data from all peers (until CTRL-C)"
 msgstr ""
 
 #: src/transport/gnunet-transport.c:1978
-msgid "disconnect to a peer"
+msgid "disconnect from a peer"
 msgstr "Verbindung zu einem Knoten trennen"
 
 #: src/transport/gnunet-transport.c:1981

@@ -7813,7 +7813,7 @@ msgstr ""
 
 #: src/transport/gnunet-transport.c:1978
 #, fuzzy
-msgid "disconnect to a peer"
+msgid "disconnect from a peer"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
 #: src/transport/gnunet-transport.c:1981

@@ -1975,7 +1975,7 @@ main (int argc, char * const *argv)
       gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
       0, &GNUNET_GETOPT_set_one, &benchmark_receive },
     { 'D', "disconnect",
-      NULL, gettext_noop ("disconnect to a peer"), 0,
+      NULL, gettext_noop ("disconnect from a peer"), 0,
       &GNUNET_GETOPT_set_one, &do_disconnect },
     { 'd', "validation", NULL,
       gettext_noop ("print information for all pending validations "),
