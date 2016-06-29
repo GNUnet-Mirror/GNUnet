@@ -651,9 +651,12 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
  * @return context that can be used to control the search
  */
 static struct GNUNET_FS_SearchContext *
-search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
-              uint32_t anonymity, enum GNUNET_FS_SearchOptions options,
-              void *cctx, struct GNUNET_FS_SearchResult *psearch);
+search_start (struct GNUNET_FS_Handle *h,
+              const struct GNUNET_FS_Uri *uri,
+              uint32_t anonymity,
+              enum GNUNET_FS_SearchOptions options,
+              void *cctx,
+              struct GNUNET_FS_SearchResult *psearch);
 
 
 /**
@@ -957,7 +960,8 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc);
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
+receive_results (void *cls,
+                 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   const struct ClientPutMessage *cm;
@@ -971,13 +975,16 @@ receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   msize = ntohs (msg->size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Receiving %u bytes of result from fs service\n", msize);
+              "Receiving %u bytes of result from fs service\n",
+              msize);
   cm = (const struct ClientPutMessage *) msg;
   process_result (sc, ntohl (cm->type),
                   GNUNET_TIME_absolute_ntoh (cm->expiration), &cm[1],
                   msize - sizeof (struct ClientPutMessage));
   /* continue receiving */
-  GNUNET_CLIENT_receive (sc->client, &receive_results, sc,
+  GNUNET_CLIENT_receive (sc->client,
+                         &receive_results,
+                         sc,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -993,7 +1000,7 @@ schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc);
 
 
 /**
- * Closure for 'build_result_set'.
+ * Closure for #build_result_set().
  */
 struct MessageBuilderContext
 {
@@ -1094,7 +1101,9 @@ find_result_set (void *cls,
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_search_request (void *cls, size_t size, void *buf)
+transmit_search_request (void *cls,
+                         size_t size,
+                         void *buf)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct MessageBuilderContext mbc;
