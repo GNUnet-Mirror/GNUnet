@@ -267,10 +267,12 @@ do_report (void *cls)
   fancy =
     GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
 				    1000000LL / del.rel_value_us);
-  FPRINTF (stdout, "Download speed was %s/s\n", fancy);
+  FPRINTF (stdout,
+           "Download speed was %s/s\n",
+           fancy);
   GNUNET_free (fancy);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
-	      (unsigned long long) FILESIZE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Finished download, shutting down\n");
   sm = GNUNET_new (struct StatMaster);
   sm->op =
     GNUNET_TESTBED_service_connect (NULL,
@@ -291,7 +293,7 @@ do_download (void *cls,
   int anonymity;
 
   if (NULL == uri)
-    {
+  {
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during upload attempt, shutting down with error\n");
