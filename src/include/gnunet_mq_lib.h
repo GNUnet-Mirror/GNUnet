@@ -118,6 +118,12 @@ GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
 
 
 /**
+ * Opaque handle to an envelope.
+ */
+struct GNUNET_MQ_Envelope;
+
+
+/**
  * Implementation of the #GNUNET_MQ_msg_nested_mh macro.
  *
  * @param mhp pointer to the message header pointer that will be changed to allocate at
@@ -137,11 +143,6 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
  * Opaque handle to a message queue.
  */
 struct GNUNET_MQ_Handle;
-
-/**
- * Opaque handle to an envelope.
- */
-struct GNUNET_MQ_Envelope;
 
 
 /**
