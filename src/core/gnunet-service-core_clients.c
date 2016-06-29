@@ -401,7 +401,14 @@ handle_client_send_request (void *cls,
   {
     /* dequeue and recycle memory from pending request, there can only
        be at most one per client and peer */
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# dequeuing CAR (duplicate request)"), 1,
+                              GNUNET_NO);
     GSC_SESSIONS_dequeue_request (car);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmission request to `%s' was a duplicate!\n",
+                GNUNET_i2s (&req->peer));
   }
   car->target = req->peer;
   car->received_time = GNUNET_TIME_absolute_get ();

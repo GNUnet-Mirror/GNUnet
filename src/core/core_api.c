@@ -411,7 +411,7 @@ handle_init_reply (void *cls,
  */
 static void
 handle_connect_notify (void *cls,
-                       const struct ConnectNotifyMessage * cnm)
+                       const struct ConnectNotifyMessage *cnm)
 {
   struct GNUNET_CORE_Handle *h = cls;
   struct PeerRecord *pr;
@@ -713,6 +713,18 @@ handle_send_ready (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Calling get_message with buffer of %u bytes\n",
               (unsigned int) th->msize);
+  /* FIXME: this is ugly and a bit brutal, but "get_message"
+     may call GNUNET_CORE_notify_transmit_ready() which
+     may call GNUNET_MQ_send() as well, and we MUST get this
+     message out before the next SEND_REQUEST.  So we queue
+     it (even though incomplete) and then---relying on MQ being
+     nice and not actually touching 'env' until much later---
+     fill it afterwards.  This is horrible style, and once
+     the core_api abandons GNUNET_CORE_notify_transmit_ready
+     in favor of an MQ-style API, this hack should no longer
+     be required */
+  GNUNET_MQ_send (h->mq,
+                  env);
   ret = th->get_message (th->get_message_cls,
                          th->msize,
                          &sm[1]);
@@ -737,8 +749,6 @@ handle_send_ready (void *cls,
          GNUNET_STRINGS_relative_time_to_string (delay,
                                                  GNUNET_YES),
          (th->cork) ? " (corked)" : "");
-  GNUNET_MQ_send (h->mq,
-                  env);
 }
 
 
@@ -838,13 +848,13 @@ reconnect (struct GNUNET_CORE_Handle *h)
  * @param inbound_notify function to call for all inbound messages, can be NULL
  * @param inbound_hdr_only set to #GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
- *                can be used to improve efficiency, ignored if @a inbound_notify is NULLL
+ *                can be used to improve efficiency, ignored if @a inbound_notify is NULL
  * @param outbound_notify function to call for all outbound messages, can be NULL
  * @param outbound_hdr_only set to #GNUNET_YES if outbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message
- *                can be used to improve efficiency, ignored if @a outbound_notify is NULLL
+ *                can be used to improve efficiency, ignored if @a outbound_notify is NULL
  * @param handlers callbacks for messages we care about, NULL-terminated
- * @return handle to the core service (only useful for disconnect until 'init' is called);
+ * @return handle to the core service (only useful for disconnect until @a init is called);
  *                NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
