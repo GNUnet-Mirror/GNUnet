@@ -162,7 +162,7 @@ struct ServerClientSocketState
   /**
    * Active transmission request to the client.
    */
-  struct GNUNET_SERVER_TransmitHandle* th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 };
 
 
@@ -644,7 +644,6 @@ server_client_send_impl (struct GNUNET_MQ_Handle *mq,
   struct ServerClientSocketState *state = impl_state;
 
   GNUNET_assert (NULL != mq);
-  GNUNET_assert (NULL != state);
   state->th = GNUNET_SERVER_notify_transmit_ready (state->client,
 						   ntohs (msg->size),
 						   GNUNET_TIME_UNIT_FOREVER_REL,

@@ -337,7 +337,6 @@ static void
 mq_error_handler (void *cls,
                   enum GNUNET_MQ_Error error)
 {
-  GNUNET_break (0);
   GNUNET_MQ_destroy (mq);
   mq = NULL;
   reconnect ();
