@@ -34,8 +34,9 @@ static int special_ret = 0;
  * @param message the actual message
  */
 static void
-handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
-                 const struct GNUNET_MessageHeader *message)
+handle_stop (void *cls,
+             struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Initiating shutdown as requested by client.\n"));
@@ -49,7 +50,8 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
