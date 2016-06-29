@@ -274,9 +274,12 @@ shutdown_task (void *cls)
   }
   while (NULL != (clh = clh_head))
   {
-    GNUNET_SERVER_client_set_user_context (clh->client, NULL);
+    GNUNET_SERVER_client_set_user_context (clh->client,
+                                           NULL);
     GNS_resolver_lookup_cancel (clh->lookup);
-    GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
+    GNUNET_CONTAINER_DLL_remove (clh_head,
+                                 clh_tail,
+                                 clh);
     GNUNET_free (clh);
   }
 
@@ -303,7 +306,8 @@ shutdown_task (void *cls)
   }
   if (NULL != statistics)
   {
-    GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (statistics,
+                               GNUNET_NO);
     statistics = NULL;
   }
   if (NULL != zone_publish_task)
@@ -353,6 +357,7 @@ static void
 publish_zone_dht_next (void *cls)
 {
   zone_publish_task = NULL;
+  GNUNET_assert (NULL != namestore_iter);
   GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
 }
 
@@ -401,6 +406,7 @@ dht_put_continuation (void *cls,
                            "Current zone iteration interval (ms)",
                            next_put_interval.rel_value_us / 1000LL,
                            GNUNET_NO);
+    GNUNET_assert (NULL == zone_publish_task);
     zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
                                                       &publish_zone_dht_next,
                                                       NULL);
@@ -584,6 +590,7 @@ put_gns_record (void *cls,
                            "Number of public records in DHT",
                            last_num_public_records,
                            GNUNET_NO);
+    GNUNET_assert (NULL == zone_publish_task);
     if (0 == num_public_records)
       zone_publish_task = GNUNET_SCHEDULER_add_delayed (put_interval,
 							&publish_zone_dht_start,
@@ -601,6 +608,7 @@ put_gns_record (void *cls,
   /* We got a set of records to publish */
   if (0 == rd_public_count)
   {
+    GNUNET_assert (NULL == zone_publish_task);
     zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_next,
                                                    NULL);
     return;
@@ -633,6 +641,7 @@ publish_zone_dht_start (void *cls)
 	      "Starting DHT zone update!\n");
   /* start counting again */
   num_public_records = 0;
+  GNUNET_assert (NULL == namestore_iter);
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
       NULL, /* All zones */
       &put_gns_record, NULL );
@@ -846,6 +855,7 @@ notify_client_disconnect (void *cls,
 static void
 monitor_sync_event (void *cls)
 {
+  GNUNET_assert (NULL == zone_publish_task);
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
 						NULL);
 }
