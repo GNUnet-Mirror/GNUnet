@@ -811,9 +811,12 @@ check_request (void *cls,
 {
   const struct GNUNET_MessageHeader *context_msg;
 
+  if (ntohs (msg->header.size) == sizeof (*msg))
+    return GNUNET_OK; /* no context message is OK */
   context_msg = GNUNET_MQ_extract_nested_mh (msg);
   if (NULL == context_msg)
   {
+    /* malformed context message is NOT ok */
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
