@@ -1027,6 +1027,8 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->priority = priority;
   th->msize = notify_size;
   th->cork = cork;
+  if (NULL == handle->mq)
+    return th; /* see #4588 (hack until we transition core fully to MQ) */
   env = GNUNET_MQ_msg (smr,
                        GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->priority = htonl ((uint32_t) th->priority);
