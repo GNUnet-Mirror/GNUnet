@@ -742,7 +742,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
 
 
 /**
- * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
+ * Callbacks of this type are called by #GNUNET_TESTBED_is_host_habitable to
  * inform whether the given host is habitable or not. The Handle returned by
  * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
  *
@@ -778,7 +778,7 @@ host_habitable_cb (void *cls,
  * Main run function.
  *
  * @param cls NULL
- * @param args arguments passed to GNUNET_PROGRAM_run
+ * @param args arguments passed to #GNUNET_PROGRAM_run()
  * @param cfgfile the path to configuration file
  * @param cfg the configuration file handle
  */
