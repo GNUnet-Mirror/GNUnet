@@ -1729,7 +1729,7 @@ do_mal_round (void *cls)
      * That is one push per round as it will ignore more.
      */
     (void) Peers_issue_peer_liveliness_check (&attacked_peer);
-    if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
+    if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_ONLINE))
       send_push (&attacked_peer);
   }
 
