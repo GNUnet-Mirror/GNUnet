@@ -211,8 +211,6 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_RPS_Handle *h)
 {
-  struct GNUNET_CLIENT_Connection *conn;
-
   GNUNET_MQ_hd_var_size (reply,
                          GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
                          struct GNUNET_RPS_CS_ReplyMessage);
