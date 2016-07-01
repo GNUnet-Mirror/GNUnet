@@ -1741,7 +1741,7 @@ do_mal_round (void *cls)
     if (GNUNET_YES == Peers_check_peer_known (&attacked_peer))
     {
       (void) Peers_issue_peer_liveliness_check (&attacked_peer);
-      if (GNUNET_YES == Peers_check_peer_valid (&attacked_peer))
+      if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_ONLINE))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Goding to send push to attacked peer (%s)\n",
