@@ -712,8 +712,11 @@ insert_in_sampler (void *cls,
 }
 
 /**
- * @brief If @a peer was unknown, check liveliness and insert it in view and
- *        sampler
+ * @brief This is called on peers from external sources (cadet, peerinfo, ...)
+ *        If the peer is not known, liveliness check is issued and it is
+ *        scheduled to be inserted in sampler and view.
+ *
+ * "External sources" refer to every source except the gossip.
  *
  * @param peer peer to insert
  */
