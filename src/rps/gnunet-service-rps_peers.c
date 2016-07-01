@@ -509,6 +509,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
                                    GNUNET_RPS_CADET_PORT,
                                    GNUNET_CADET_OPTION_RELIABLE);
   }
+  GNUNET_assert (NULL != peer_ctx->send_channel);
   return peer_ctx->send_channel;
 }
 
@@ -597,24 +598,32 @@ check_peer_live (struct PeerContext *peer_ctx)
        "Get informed about peer %s getting live\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
-  if (NULL == peer_ctx->transmit_handle &&
-      NULL == peer_ctx->send_channel)
+  if (NULL != peer_ctx->transmit_handle)
   {
-    (void) get_channel (&peer_ctx->peer_id);
-    peer_ctx->transmit_handle =
-        GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
-                                            GNUNET_NO,
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            sizeof (struct GNUNET_MessageHeader),
-                                            cadet_notify_transmit_ready_cb,
-                                            peer_ctx);
-  }
-  else if (NULL != peer_ctx->transmit_handle)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Already waiting for notification\n");
-  else if (NULL != peer_ctx->send_channel)
+    return;
+  }
+  if (NULL != peer_ctx->send_channel)
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Already have established channel to peer\n");
+    return;
+  }
+  (void) get_channel (&peer_ctx->peer_id);
+  peer_ctx->transmit_handle =
+      GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
+                                          GNUNET_NO,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          sizeof (struct GNUNET_MessageHeader),
+                                          cadet_notify_transmit_ready_cb,
+                                          peer_ctx);
+  if (NULL == peer_ctx->transmit_handle)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Cadet was not able to queue the request (insufficient memory)\n");
+    GNUNET_break (0);
+  }
 }
 
 /**
