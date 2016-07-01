@@ -16,6 +16,8 @@ ROUNDINTERVAL = 30 s
 
 # This is the file in which valid peers are stored
 FILENAME_VALID_PEERS = $GNUNET_DATA_HOME/rps/valid_peers.txt
+# Disable storage of valid peers
+#FILENAME_VALID_PEERS = DISABLE
 
 # This is the 'estimate' in the beginning.
 # This determines the size of the peers we keep in memory

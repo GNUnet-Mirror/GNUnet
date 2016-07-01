@@ -782,10 +782,26 @@ store_valid_peers ()
 {
   struct GNUNET_DISK_FileHandle *fh;
   uint32_t number_written_peers;
+  int ret;
 
-  if (GNUNET_OK !=
-      GNUNET_DISK_directory_create_for_file (filename_valid_peers))
+  if (0 == strncmp ("DISABLE", filename_valid_peers, 7))
   {
+    return;
+  }
+
+  ret = GNUNET_DISK_directory_create_for_file (filename_valid_peers);
+  if (GNUNET_SYSERR == ret)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Not able to create directory for file `%s'\n",
+        filename_valid_peers);
+    GNUNET_break (0);
+  }
+  else if (GNUNET_NO == ret)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Directory for file `%s' exists but is not writable for us\n",
+        filename_valid_peers);
     GNUNET_break (0);
   }
   fh = GNUNET_DISK_file_open (filename_valid_peers,
@@ -871,6 +887,11 @@ restore_valid_peers ()
   char *iter_buf;
   const char *str_repr;
   const struct GNUNET_PeerIdentity *peer;
+
+  if (0 == strncmp ("DISABLE", filename_valid_peers, 7))
+  {
+    return;
+  }
 
   if (GNUNET_OK != GNUNET_DISK_file_test (filename_valid_peers))
   {
