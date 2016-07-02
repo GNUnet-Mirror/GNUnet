@@ -127,7 +127,7 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext 
                                const char *value)
 {
   struct GNUNET_CONTAINER_MetaData **mm = scls;
-#if HAVE_EXTRACTOR_H
+#if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
   enum EXTRACTOR_MetaType type;
   const char *typename;
   const char *typename_i18n;
@@ -147,7 +147,7 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext 
    */
   /*tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), locale_charset ());*/
   tmp = GNUNET_strdup (value);
-#if HAVE_EXTRACTOR_H
+#if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
   type = EXTRACTOR_metatype_get_max ();
   while (type > 0)
   {

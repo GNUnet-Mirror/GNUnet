@@ -72,13 +72,17 @@ static struct GNUNET_SCHEDULER_Task *tt;
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @return 0 to continue extracting, 1 to abort
  */
 static int
-item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
-              const char *data, size_t data_size)
+item_printer (void *cls,
+              const char *plugin_name,
+              enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format,
+              const char *data_mime_type,
+              const char *data,
+              size_t data_size)
 {
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))

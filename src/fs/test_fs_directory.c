@@ -99,7 +99,7 @@ testDirectory (unsigned int i)
     {
       GNUNET_snprintf (txt, sizeof (txt), "%u -- %u\n", p, q);
       GNUNET_CONTAINER_meta_data_insert (mds[p], "<test>",
-#if HAVE_EXTRACTOR_H
+#if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
                                          q % EXTRACTOR_metatype_get_max (),
 #else
                                          q % 128,
