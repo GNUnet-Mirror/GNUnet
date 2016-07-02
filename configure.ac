@@ -727,6 +727,8 @@ fi
 if test $gl_libunistring_hexversion -le 2305; then
  AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])
 fi
+AC_CHECK_HEADERS([unistr.h],,AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
+
 # restore LIBS
 LIBS=$SAVE_LIBS
 

@@ -89,11 +89,9 @@ GNUNET_decompress (const char *input,
                    size_t output_size);
 
 
-#if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
+#if HAVE_EXTRACTOR_H
 
 #include <extractor.h>
-
-
 
 #else
 
