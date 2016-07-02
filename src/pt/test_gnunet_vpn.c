@@ -47,11 +47,11 @@ static struct GNUNET_VPN_Handle *vpn;
 
 static struct MHD_Daemon *mhd;
 
-static struct GNUNET_SCHEDULER_Task * mhd_task_id;
+static struct GNUNET_SCHEDULER_Task *mhd_task_id;
 
-static struct GNUNET_SCHEDULER_Task * curl_task_id;
+static struct GNUNET_SCHEDULER_Task *curl_task_id;
 
-static struct GNUNET_SCHEDULER_Task * ctrl_c_task_id;
+static struct GNUNET_SCHEDULER_Task *timeout_task_id;
 
 static struct GNUNET_VPN_RedirectionRequest *rr;
 
@@ -100,9 +100,14 @@ copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 
 
 static int
-mhd_ahc (void *cls, struct MHD_Connection *connection, const char *url,
-         const char *method, const char *version, const char *upload_data,
-         size_t * upload_data_size, void **unused)
+mhd_ahc (void *cls,
+         struct MHD_Connection *connection,
+         const char *url,
+         const char *method,
+         const char *version,
+         const char *upload_data,
+         size_t * upload_data_size,
+         void **unused)
 {
   static int ptr;
   struct MHD_Response *response;
@@ -130,22 +135,22 @@ mhd_ahc (void *cls, struct MHD_Connection *connection, const char *url,
 
 
 static void
-do_shutdown ()
+do_shutdown (void *cls)
 {
-  if (mhd_task_id != NULL)
+  if (NULL != mhd_task_id)
   {
     GNUNET_SCHEDULER_cancel (mhd_task_id);
     mhd_task_id = NULL;
   }
-  if (curl_task_id != NULL)
+  if (NULL != curl_task_id)
   {
     GNUNET_SCHEDULER_cancel (curl_task_id);
     curl_task_id = NULL;
   }
-  if (ctrl_c_task_id != NULL)
+  if (NULL != timeout_task_id)
   {
-    GNUNET_SCHEDULER_cancel (ctrl_c_task_id);
-    ctrl_c_task_id = NULL;
+    GNUNET_SCHEDULER_cancel (timeout_task_id);
+    timeout_task_id = NULL;
   }
   if (NULL != mhd)
   {
@@ -220,7 +225,7 @@ curl_main (void *cls)
       global_ret = 3;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
-    do_shutdown ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max));
@@ -259,19 +264,26 @@ allocation_cb (void *cls, int af, const void *address)
   rr = NULL;
   if (src_af != af)
   {
-    fprintf (stderr, "VPN failed to allocate appropriate address\n");
+    fprintf (stderr,
+             "VPN failed to allocate appropriate address\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (AF_INET6 == af)
     GNUNET_asprintf (&url,
                      "http://[%s]:%u/hello_world",
-                     inet_ntop (af, address, ips, sizeof (ips)),
+                     inet_ntop (af,
+                                address,
+                                ips,
+                                sizeof (ips)),
                      (unsigned int) PORT);
   else
     GNUNET_asprintf (&url,
                      "http://%s:%u/hello_world",
-                     inet_ntop (af, address, ips, sizeof (ips)),
+                     inet_ntop (af,
+                                address,
+                                ips,
+                                sizeof (ips)),
                      (unsigned int) PORT);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
@@ -312,10 +324,10 @@ mhd_task (void *cls)
 
 
 static void
-ctrl_c_shutdown (void *cls)
+do_timeout (void *cls)
 {
-  ctrl_c_task_id = NULL;
-  do_shutdown ();
+  timeout_task_id = NULL;
+  GNUNET_SCHEDULER_shutdown ();
   GNUNET_break (0);
   global_ret = 1;
 }
@@ -392,8 +404,12 @@ run (void *cls,
   rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr,
                                   GNUNET_TIME_UNIT_FOREVER_ABS, &allocation_cb,
                                   NULL);
-  ctrl_c_task_id =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &ctrl_c_shutdown, NULL);
+  timeout_task_id =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &do_timeout,
+                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
 }
 
 
@@ -409,7 +425,8 @@ main (int argc, char *const *argv)
 #ifndef MINGW
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "access",
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "access",
                               "/dev/net/tun");
     fprintf (stderr,
              "WARNING: System unable to run test, skipping.\n");

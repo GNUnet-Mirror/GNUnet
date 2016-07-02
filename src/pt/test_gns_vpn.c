@@ -54,6 +54,8 @@ static struct GNUNET_SCHEDULER_Task *mhd_task_id;
 
 static struct GNUNET_SCHEDULER_Task *curl_task_id;
 
+static struct GNUNET_SCHEDULER_Task *timeout_task;
+
 static struct GNUNET_IDENTITY_Handle *identity;
 
 static struct GNUNET_NAMESTORE_QueueEntry *qe;
@@ -142,15 +144,20 @@ mhd_ahc (void *cls,
 static void
 do_shutdown (void *cls)
 {
-  if (mhd_task_id != NULL)
+  if (NULL != mhd_task_id)
   {
     GNUNET_SCHEDULER_cancel (mhd_task_id);
     mhd_task_id = NULL;
   }
-  if (curl_task_id != NULL)
+  if (NULL != curl_task_id)
   {
     GNUNET_SCHEDULER_cancel (curl_task_id);
     curl_task_id = NULL;
+  }
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
   }
   if (NULL != mhd)
   {
@@ -169,6 +176,14 @@ do_shutdown (void *cls)
   }
   GNUNET_free_non_null (url);
   url = NULL;
+}
+
+
+static void
+do_timeout (void *cls)
+{
+  timeout_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -236,7 +251,8 @@ curl_main ()
       GNUNET_break (0);
       global_ret = 3;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Download complete, shutting down!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -622,9 +638,11 @@ run (void *cls,
     NULL
   };
   GNUNET_TESTING_peer_get_identity (peer, &id);
-  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                &do_shutdown,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                               &do_timeout,
+                                               NULL);
   bin = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
   GNUNET_asprintf (&bin_identity,
                    "%s/%s",
