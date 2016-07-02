@@ -824,7 +824,7 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
 
   GNUNET_MQ_destroy (h->mq);
   h->mq = NULL;
-  for (ze = h->z_head; NULL != ze; ze = ze->next)
+  while (NULL != (ze = h->z_head))
   {
     /* FIXME: This does not allow clients to distinguish
        iteration error from successful termination! */
@@ -832,7 +832,7 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
       ze->proc (ze->proc_cls, NULL, NULL, 0, NULL);
     free_ze (ze);
   }
-  for (qe = h->op_head; NULL != qe; qe = qe->next)
+  while (NULL != (qe = h->op_head))
   {
     /* FIXME: This does not allow clients to distinguish
        iteration error from successful termination! */
