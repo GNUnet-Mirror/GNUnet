@@ -548,11 +548,14 @@ put_gns_record (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Got disconnected from namestore database, retrying.\n");
+    namestore_iter = NULL;
     if (NULL != zone_publish_task)
     {
       GNUNET_SCHEDULER_cancel (zone_publish_task);
       zone_publish_task = NULL;
     }
+    zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
+                                                  NULL);
     return;
   }
   if (NULL == label)
