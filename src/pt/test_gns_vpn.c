@@ -725,14 +725,14 @@ main (int argc, char *const *argv)
     fprintf (stderr,
 	     "Executable iptables not found in approved directories: %s, skipping\n",
 	     strerror (errno));
-    return 0;
+    return 77;
   }
 
   if (0 != fork_and_exec (sbin_iptables, iptables_args))
   {
     fprintf (stderr,
              "Failed to run `iptables -t mangle -L -v'. Skipping test.\n");
-    return 0;
+    return 77;
   }
 
   if (0 != ACCESS ("/dev/net/tun", R_OK))
@@ -742,7 +742,7 @@ main (int argc, char *const *argv)
 			      "/dev/net/tun");
     fprintf (stderr,
 	     "WARNING: System unable to run test, skipping.\n");
-    return 0;
+    return 77;
   }
 
   bin_vpn = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
@@ -765,7 +765,7 @@ main (int argc, char *const *argv)
     GNUNET_free (bin_exit);
     GNUNET_free (bin_dns);
     GNUNET_free (srv_dns);
-    return 0;
+    return 77;
   }
   GNUNET_free (bin_vpn);
   GNUNET_free (bin_exit);
@@ -782,7 +782,7 @@ main (int argc, char *const *argv)
              (0 == (S_ISUID & s.st_mode)) || (0 != getuid()) );
     GNUNET_free (bin_dns);
     GNUNET_free (srv_dns);
-    return 0;
+    return 77;
   }
   if ( (0 != stat (srv_dns, &s)) ||
        (my_gid == s.st_gid) ||
@@ -796,7 +796,7 @@ main (int argc, char *const *argv)
              (0 == (S_ISGID & s.st_mode)) );
     GNUNET_free (bin_dns);
     GNUNET_free (srv_dns);
-    return 0;
+    return 77;
   }
   GNUNET_free (bin_dns);
   GNUNET_free (srv_dns);
@@ -815,7 +815,7 @@ main (int argc, char *const *argv)
   {
     fprintf (stderr,
 	     "Required address families not supported by this system, skipping test.\n");
-    return 0;
+    return 77;
   }
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
