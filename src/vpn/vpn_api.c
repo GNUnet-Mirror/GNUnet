@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012 Christian Grothoff
+     Copyright (C) 2012, 2016 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -108,7 +108,7 @@ struct GNUNET_VPN_RedirectionRequest
   GNUNET_VPN_AllocationCallback cb;
 
   /**
-   * Closure for 'cb'.
+   * Closure for @e cb.
    */
   void *cb_cls;
 
@@ -138,7 +138,7 @@ struct GNUNET_VPN_RedirectionRequest
   int result_af;
 
   /**
-   * Address family of 'addr'.  AF_INET or AF_INET6.
+   * Address family of @e addr.  AF_INET or AF_INET6.
    */
   int addr_af;
 
@@ -236,7 +236,7 @@ receive_response (void *cls,
 /**
  * We're ready to transmit a request to the VPN service. Do it.
  *
- * @param cls the 'struct GNUNET_VPN_Handle*'
+ * @param cls the `struct GNUNET_VPN_Handle*`
  * @param size number of bytes available in buf
  * @param buf where to copy the request
  * @return number of bytes copied to 'buf'
@@ -443,7 +443,7 @@ GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr)
  * @param expiration_time at what time should the redirection expire?
  *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to cancel the request (means the callback won't be
  *         invoked anymore; the mapping may or may not be established
  *         anyway)
@@ -491,7 +491,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
  * @param expiration_time at what time should the redirection expire?
  *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to cancel the request (means the callback won't be
  *         invoked anymore; the mapping may or may not be established
  *         anyway)
