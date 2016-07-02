@@ -230,7 +230,7 @@ static struct GNUNET_TIME_Relative zone_publish_time_window;
 /**
  * zone publish task
  */
-static struct GNUNET_SCHEDULER_Task * zone_publish_task;
+static struct GNUNET_SCHEDULER_Task *zone_publish_task;
 
 /**
  * #GNUNET_YES if zone has never been published before
@@ -542,6 +542,19 @@ put_gns_record (void *cls,
   struct GNUNET_GNSRECORD_Data rd_public[rd_count];
   unsigned int rd_public_count;
 
+  if ( (NULL == key) &&
+       (NULL == label) &&
+       (0 == rd_count) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got disconnected from namestore database, retrying.\n");
+    if (NULL != zone_publish_task)
+    {
+      GNUNET_SCHEDULER_cancel (zone_publish_task);
+      zone_publish_task = NULL;
+    }
+    return;
+  }
   if (NULL == label)
   {
     /* we're done with one iteration, calculate when to do the next one */
@@ -568,7 +581,7 @@ put_gns_record (void *cls,
           GNUNET_TIME_relative_divide (min_relative_record_time, 4),
           zone_publish_time_window_default);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
-          num_public_records);
+                                                  num_public_records);
     }
     /* reset for next iteration */
     min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -577,7 +590,8 @@ put_gns_record (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Zone iteration finished. Adjusted zone iteration interval to %s\n",
-		GNUNET_STRINGS_relative_time_to_string (put_interval, GNUNET_YES));
+		GNUNET_STRINGS_relative_time_to_string (put_interval,
+                                                        GNUNET_YES));
     GNUNET_STATISTICS_set (statistics,
                            "Current zone iteration interval (in ms)",
                            put_interval.rel_value_us / 1000LL,
@@ -642,9 +656,11 @@ publish_zone_dht_start (void *cls)
   /* start counting again */
   num_public_records = 0;
   GNUNET_assert (NULL == namestore_iter);
-  namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-      NULL, /* All zones */
-      &put_gns_record, NULL );
+  namestore_iter
+    = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
+                                             NULL, /* All zones */
+                                             &put_gns_record,
+                                             NULL);
 }
 
 
