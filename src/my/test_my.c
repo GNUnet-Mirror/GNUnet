@@ -225,7 +225,7 @@ run_queries (struct GNUNET_MYSQL_Context *context)
 
 
 int
-main (int argc, const char * const argv[])
+main (int argc, const char *const argv[])
 {
   struct GNUNET_CONFIGURATION_Handle *config;
   struct GNUNET_MYSQL_Context *context;
@@ -236,14 +236,15 @@ main (int argc, const char * const argv[])
                     NULL);
 
   config = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_parse (config, "test_my.conf"))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_parse (config, "test_my.conf"))
   {
     fprintf (stderr, "Failed to parse configuaration\n");
     return 1;
   }
 
   context = GNUNET_MYSQL_context_create (config,
-                                        "datastore-mysql");
+                                         "datastore-mysql");
   if (NULL == context)
   {
     fprintf(stderr, "Failed to connect to database\n");
@@ -251,29 +252,30 @@ main (int argc, const char * const argv[])
   }
 
   (void) GNUNET_MYSQL_statement_run (context,
-                                    "DROP TABLE test_my2;");
+                                     "DROP TABLE test_my2;");
 
-  if (GNUNET_OK != GNUNET_MYSQL_statement_run (context,
-                                              "CREATE TABLE IF NOT EXISTS test_my2("
-                                              " pub BLOB NOT NULL"
-                                              ",sig BLOB NOT NULL"
-                                              ",abs_time BIGINT NOT NULL"
-                                              ",forever BIGINT NOT NULL"
-                                              ",abs_time_nbo BIGINT NOT NULL"
-                                              ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
-                                              ",vsize BLOB NOT NULL"
-                                              ",str BLOB NOT NULL"
-                                              ",u16 SMALLINT NOT NULL"
-                                              ",u32 INT NOT NULL"
-                                              ",u64 BIGINT NOT NULL"
-                                              ")"))
+  if (GNUNET_OK !=
+      GNUNET_MYSQL_statement_run (context,
+                                  "CREATE TABLE IF NOT EXISTS test_my2("
+                                  " pub BLOB NOT NULL"
+                                  ",sig BLOB NOT NULL"
+                                  ",abs_time BIGINT NOT NULL"
+                                  ",forever BIGINT NOT NULL"
+                                  ",abs_time_nbo BIGINT NOT NULL"
+                                  ",hash BLOB NOT NULL CHECK(LENGTH(hash)=64)"
+                                  ",vsize BLOB NOT NULL"
+                                  ",str BLOB NOT NULL"
+                                  ",u16 SMALLINT NOT NULL"
+                                  ",u32 INT NOT NULL"
+                                  ",u64 BIGINT NOT NULL"
+                                  ")"))
   {
     fprintf (stderr,
-            "Failed to create table \n");
+            "Failed to create table. Database likely not setup correctly.\n");
     GNUNET_MYSQL_statements_invalidate (context);
     GNUNET_MYSQL_context_destroy (context);
 
-    return 1;
+    return 77;
   }
 
   ret = run_queries (context);
