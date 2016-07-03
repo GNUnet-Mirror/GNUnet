@@ -2171,15 +2171,27 @@ struct GNUNET_FS_DownloadContext *
 GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
                           const struct GNUNET_FS_Uri *uri,
                           const struct GNUNET_CONTAINER_MetaData *meta,
-                          const char *filename, const char *tempname,
-                          uint64_t offset, uint64_t length, uint32_t anonymity,
-                          enum GNUNET_FS_DownloadOptions options, void *cctx,
+                          const char *filename,
+                          const char *tempname,
+                          uint64_t offset,
+                          uint64_t length,
+                          uint32_t anonymity,
+                          enum GNUNET_FS_DownloadOptions options,
+                          void *cctx,
                           struct GNUNET_FS_DownloadContext *parent)
 {
   struct GNUNET_FS_DownloadContext *dc;
 
-  dc = create_download_context (h, uri, meta, filename, tempname,
-				offset, length, anonymity, options, cctx);
+  dc = create_download_context (h,
+                                uri,
+                                meta,
+                                filename,
+                                tempname,
+				offset,
+                                length,
+                                anonymity,
+                                options,
+                                cctx);
   if (NULL == dc)
     return NULL;
   dc->parent = parent;
@@ -2230,8 +2242,10 @@ struct GNUNET_FS_DownloadContext *
 GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
                                       struct GNUNET_FS_SearchResult *sr,
                                       const char *filename,
-                                      const char *tempname, uint64_t offset,
-                                      uint64_t length, uint32_t anonymity,
+                                      const char *tempname,
+                                      uint64_t offset,
+                                      uint64_t length,
+                                      uint32_t anonymity,
                                       enum GNUNET_FS_DownloadOptions options,
                                       void *cctx)
 {
@@ -2242,8 +2256,16 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
     GNUNET_break (0);
     return NULL;
   }
-  dc = create_download_context (h, sr->uri, sr->meta, filename, tempname,
-				offset, length, anonymity, options, cctx);
+  dc = create_download_context (h,
+                                sr->uri,
+                                sr->meta,
+                                filename,
+                                tempname,
+				offset,
+                                length,
+                                anonymity,
+                                options,
+                                cctx);
   if (NULL == dc)
     return NULL;
   dc->search = sr;
@@ -2271,8 +2293,11 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_assert (NULL == dc->job_queue);
   GNUNET_assert (NULL != dc->active);
   dc->job_queue =
-      GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
-                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
+      GNUNET_FS_queue_ (dc->h,
+                        &activate_fs_download,
+                        &deactivate_fs_download,
+                        dc,
+                        (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
 			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
 			? GNUNET_FS_QUEUE_PRIORITY_NORMAL
 			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
@@ -2290,8 +2315,9 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 void
 GNUNET_FS_download_suspend (struct GNUNET_FS_DownloadContext *dc)
 {
-	deactivate_fs_download(dc);
+  deactivate_fs_download(dc);
 }
+
 
 /**
  * Resume a suspended download.
@@ -2301,17 +2327,19 @@ GNUNET_FS_download_suspend (struct GNUNET_FS_DownloadContext *dc)
 void
 GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
 {
-    struct GNUNET_FS_ProgressInfo pi;
+  struct GNUNET_FS_ProgressInfo pi;
 
-    pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
-    GNUNET_FS_download_make_status_ (&pi, dc);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
+  GNUNET_FS_download_make_status_ (&pi, dc);
 
-    dc->job_queue =
-      GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
-                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
-			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
-			? GNUNET_FS_QUEUE_PRIORITY_NORMAL
-			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
+  dc->job_queue =
+    GNUNET_FS_queue_ (dc->h,
+                      &activate_fs_download,
+                      &deactivate_fs_download,
+                      dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
+                      (0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+                      ? GNUNET_FS_QUEUE_PRIORITY_NORMAL
+                      : GNUNET_FS_QUEUE_PRIORITY_PROBE);
 
 }
 
@@ -2323,7 +2351,8 @@ GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
  * @param do_delete delete files of incomplete downloads
  */
 void
-GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
+GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
+                         int do_delete)
 {
   struct GNUNET_FS_ProgressInfo pi;
   int have_children;
@@ -2357,7 +2386,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   while (NULL != dc->child_head)
     GNUNET_FS_download_stop (dc->child_head, do_delete);
   if (NULL != dc->parent)
-    GNUNET_CONTAINER_DLL_remove (dc->parent->child_head, dc->parent->child_tail,
+    GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
+                                 dc->parent->child_tail,
                                  dc);
   if (NULL != dc->serialization)
     GNUNET_FS_remove_sync_file_ (dc->h,
@@ -2385,7 +2415,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
     {
       if ( (0 != UNLINK (dc->filename)) &&
 	   (ENOENT != errno) )
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                  "unlink",
                                   dc->filename);
     }
     GNUNET_free (dc->filename);
@@ -2395,7 +2426,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   if (NULL != dc->temp_filename)
   {
     if (0 != UNLINK (dc->temp_filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink",
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "unlink",
                                 dc->temp_filename);
     GNUNET_free (dc->temp_filename);
   }
