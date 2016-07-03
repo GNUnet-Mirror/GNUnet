@@ -1435,7 +1435,7 @@ struct GNUNET_FS_UnindexContext
    * Connection to the FS service, only valid during the
    * #UNINDEX_STATE_FS_NOTIFY phase.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Connection to the datastore service, only valid during the
