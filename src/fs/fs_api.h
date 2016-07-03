@@ -1571,7 +1571,7 @@ struct GNUNET_FS_SearchContext
   /**
    * Connection to the FS service.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Pointer we keep for the client.
@@ -1619,18 +1619,6 @@ struct GNUNET_FS_SearchContext
    * artificial delay when trying to reconnect to the FS service.
    */
   struct GNUNET_SCHEDULER_Task *task;
-
-  /**
-   * How many of the entries in the search request
-   * map have been passed to the service so far?
-   */
-  unsigned int search_request_map_offset;
-
-  /**
-   * How many of the keywords in the KSK
-   * map have been passed to the service so far?
-   */
-  unsigned int keyword_offset;
 
   /**
    * Anonymity level for the search.

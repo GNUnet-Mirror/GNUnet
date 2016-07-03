@@ -2869,7 +2869,7 @@ signal_search_resume (struct GNUNET_FS_SearchContext *sc)
   pi.status = GNUNET_FS_STATUS_SEARCH_RESUME;
   pi.value.search.specifics.resume.message = sc->emsg;
   pi.value.search.specifics.resume.is_paused =
-      (NULL == sc->client) ? GNUNET_YES : GNUNET_NO;
+      (NULL == sc->mq) ? GNUNET_YES : GNUNET_NO;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                          &signal_result_resume, sc);
