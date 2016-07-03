@@ -1203,11 +1203,6 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_FS_Handle *h;
 
   /**
-   * Connection to FS service (only used for LOC URI signing).
-   */
-  struct GNUNET_CLIENT_Connection *fs_client;
-
-  /**
    * Our top-level activity entry (if we are top-level, otherwise NULL).
    */
   struct TopLevelActivity *top;
@@ -1242,7 +1237,7 @@ struct GNUNET_FS_PublishContext
    * Our own message queue for the FS service; only briefly used when
    * we start to index a file, otherwise NULL.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Current position in the file-tree for the upload.
