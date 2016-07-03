@@ -368,7 +368,7 @@ probe_ping_task_cb (void *cls)
   struct GNUNET_FS_SearchResult *sr;
 
   for (sr = h->probes_head; NULL != sr; sr = sr->next)
-    if (NULL != sr->probe_ctx->client)
+    if (NULL != sr->probe_ctx->mq)
       signal_probe_result (sr);
   h->probe_ping_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_FS_PROBE_UPDATE_FREQUENCY,

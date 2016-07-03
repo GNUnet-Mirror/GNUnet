@@ -110,8 +110,11 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void
-unindex_progress (void *cls, uint64_t offset, const void *pt_block,
-                  size_t pt_size, unsigned int depth)
+unindex_progress (void *cls,
+                  uint64_t offset,
+                  const void *pt_block,
+                  size_t pt_size,
+                  unsigned int depth)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;

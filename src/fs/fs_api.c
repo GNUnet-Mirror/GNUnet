@@ -49,14 +49,8 @@
 static void
 start_job (struct GNUNET_FS_QueueEntry *qe)
 {
-  GNUNET_assert (NULL == qe->client);
-  qe->client = GNUNET_CLIENT_connect ("fs", qe->h->cfg);
-  if (NULL == qe->client)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  qe->start (qe->cls, qe->client);
+  qe->active = GNUNET_YES;
+  qe->start (qe->cls);
   qe->start_times++;
   qe->h->active_blocks += qe->blocks;
   qe->h->active_downloads++;
@@ -84,7 +78,7 @@ start_job (struct GNUNET_FS_QueueEntry *qe)
 static void
 stop_job (struct GNUNET_FS_QueueEntry *qe)
 {
-  qe->client = NULL;
+  qe->active = GNUNET_NO;
   qe->stop (qe->cls);
   GNUNET_assert (0 < qe->h->active_downloads);
   qe->h->active_downloads--;
@@ -97,9 +91,13 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
 	      "Stopping job %p (%u active)\n",
 	      qe,
 	      qe->h->active_downloads);
-  GNUNET_CONTAINER_DLL_remove (qe->h->running_head, qe->h->running_tail, qe);
-  GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head, qe->h->pending_tail,
-                                     qe->h->pending_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (qe->h->running_head,
+                               qe->h->running_tail,
+                               qe);
+  GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head,
+                                     qe->h->pending_tail,
+                                     qe->h->pending_tail,
+                                     qe);
 }
 
 
@@ -328,8 +326,9 @@ process_job_queue (void *cls)
  */
 struct GNUNET_FS_QueueEntry *
 GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
-                  GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop, void *cls,
+                  GNUNET_SCHEDULER_TaskCallback start,
+                  GNUNET_SCHEDULER_TaskCallback stop,
+                  void *cls,
                   unsigned int blocks,
 		  enum GNUNET_FS_QueuePriority priority)
 {
@@ -369,13 +368,16 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Dequeueing job %p\n",
 	      qe);
-  if (NULL != qe->client)
+  if (GNUNET_YES == qe->active)
     stop_job (qe);
-  GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+                               h->pending_tail,
+                               qe);
   GNUNET_free (qe);
   if (NULL != h->queue_job)
     GNUNET_SCHEDULER_cancel (h->queue_job);
-  h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
+  h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue,
+                                           h);
 }
 
 
@@ -397,7 +399,9 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
   ret = GNUNET_new (struct TopLevelActivity);
   ret->ssf = ssf;
   ret->ssf_cls = ssf_cls;
-  GNUNET_CONTAINER_DLL_insert (h->top_head, h->top_tail, ret);
+  GNUNET_CONTAINER_DLL_insert (h->top_head,
+                               h->top_tail,
+                               ret);
   return ret;
 }
 
@@ -412,7 +416,9 @@ void
 GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
                    struct TopLevelActivity *top)
 {
-  GNUNET_CONTAINER_DLL_remove (h->top_head, h->top_tail, top);
+  GNUNET_CONTAINER_DLL_remove (h->top_head,
+                               h->top_tail,
+                               top);
   GNUNET_free (top);
 }
 
@@ -2531,8 +2537,7 @@ signal_download_resume (struct GNUNET_FS_DownloadContext *dc)
     signal_download_resume (dcc);
     dcc = dcc->next;
   }
-  if (NULL != dc->pending_head)
-    GNUNET_FS_download_start_downloading_ (dc);
+  GNUNET_FS_download_start_downloading_ (dc);
 }
 
 
@@ -2815,12 +2820,16 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   if (NULL != dn)
   {
     if (GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES))
-      GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
+      GNUNET_DISK_directory_scan (dn,
+                                  &deserialize_subdownload,
+                                  dc);
     GNUNET_free (dn);
   }
   if (NULL != parent)
   {
-    GNUNET_CONTAINER_DLL_insert (parent->child_head, parent->child_tail, dc);
+    GNUNET_CONTAINER_DLL_insert (parent->child_head,
+                                 parent->child_tail,
+                                 dc);
   }
   if (NULL != search)
   {
@@ -2830,11 +2839,14 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   if ((NULL == parent) && (NULL == search))
   {
     dc->top =
-        GNUNET_FS_make_top (dc->h, &GNUNET_FS_download_signal_suspend_, dc);
+        GNUNET_FS_make_top (dc->h,
+                            &GNUNET_FS_download_signal_suspend_,
+                            dc);
     signal_download_resume (dc);
   }
   GNUNET_free (uris);
-  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
+  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_,
+                                       dc);
   return;
 cleanup:
   GNUNET_free_non_null (uris);

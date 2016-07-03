@@ -410,27 +410,6 @@ struct GNUNET_FS_FileInformation
 
 
 /**
- * The job is now ready to run and should use the given client
- * handle to communicate with the FS service.
- *
- * @param cls closure
- * @param client handle to use for FS communication
- */
-typedef void
-(*GNUNET_FS_QueueStart) (void *cls,
-                         struct GNUNET_CLIENT_Connection *client);
-
-
-/**
- * The job must now stop to run and should destry the client handle as
- * soon as possible (ideally prior to returning).
- */
-typedef void
-(*GNUNET_FS_QueueStop) (void *cls);
-
-
-
-/**
  * Priorities for the queue.
  */
 enum GNUNET_FS_QueuePriority
@@ -465,12 +444,12 @@ struct GNUNET_FS_QueueEntry
   /**
    * Function to call when the job is started.
    */
-  GNUNET_FS_QueueStart start;
+  GNUNET_SCHEDULER_TaskCallback start;
 
   /**
    * Function to call when the job needs to stop (or is done / dequeued).
    */
-  GNUNET_FS_QueueStop stop;
+  GNUNET_SCHEDULER_TaskCallback stop;
 
   /**
    * Closure for start and stop.
@@ -483,9 +462,9 @@ struct GNUNET_FS_QueueEntry
   struct GNUNET_FS_Handle *h;
 
   /**
-   * Client handle, or NULL if job is not running.
+   * Message queue handle, or NULL if job is not running.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Time the job was originally queued.
@@ -517,6 +496,11 @@ struct GNUNET_FS_QueueEntry
    * How often have we (re)started this download?
    */
   unsigned int start_times;
+
+  /**
+   * #GNUNET_YES if the job is active now.
+   */
+  int active;
 
 };
 
@@ -658,8 +642,8 @@ struct GNUNET_FS_SearchResult
  */
 struct GNUNET_FS_QueueEntry *
 GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
-                  GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop,
+                  GNUNET_SCHEDULER_TaskCallback start,
+                  GNUNET_SCHEDULER_TaskCallback stop,
                   void *cls,
                   unsigned int blocks,
 		  enum GNUNET_FS_QueuePriority priority);
@@ -1221,7 +1205,7 @@ struct GNUNET_FS_PublishContext
   /**
    * Connection to FS service (only used for LOC URI signing).
    */
-  struct GNUNET_CLIENT_Handle *fs_client;
+  struct GNUNET_CLIENT_Connection *fs_client;
 
   /**
    * Our top-level activity entry (if we are top-level, otherwise NULL).
@@ -1255,7 +1239,7 @@ struct GNUNET_FS_PublishContext
   char *serialization;
 
   /**
-   * Our own client handle for the FS service; only briefly used when
+   * Our own message queue for the FS service; only briefly used when
    * we start to index a file, otherwise NULL.
    */
   struct GNUNET_CLIENT_Connection *client;
@@ -1740,15 +1724,6 @@ enum BlockRequestState
  */
 struct DownloadRequest
 {
-  /**
-   * While pending, we keep all download requests in a doubly-linked list.
-   */
-  struct DownloadRequest *next;
-
-  /**
-   * While pending, we keep all download requests in a doubly-linked list.
-   */
-  struct DownloadRequest *prev;
 
   /**
    * Parent in the CHK-tree.
@@ -1774,7 +1749,7 @@ struct DownloadRequest
   uint64_t offset;
 
   /**
-   * Number of entries in 'children' array.
+   * Number of entries in @e children array.
    */
   unsigned int num_children;
 
@@ -1792,11 +1767,6 @@ struct DownloadRequest
    * State in the FSM.
    */
   enum BlockRequestState state;
-
-  /**
-   * #GNUNET_YES if this entry is in the pending list.
-   */
-  int is_pending;
 
 };
 
@@ -1838,7 +1808,7 @@ struct GNUNET_FS_DownloadContext
   /**
    * Connection to the FS service.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Parent download (used when downloading files
@@ -1917,12 +1887,6 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_FS_QueueEntry *job_queue;
 
   /**
-   * Non-NULL if we are currently having a request for
-   * transmission pending with the client handle.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
    * Tree encoder used for the reconstruction.
    */
   struct GNUNET_FS_TreeEncoder *te;
@@ -1938,16 +1902,6 @@ struct GNUNET_FS_DownloadContext
    * is the hash of the encryped block (aka query).
    */
   struct GNUNET_CONTAINER_MultiHashMap *active;
-
-  /**
-   * Head of linked list of pending requests.
-   */
-  struct DownloadRequest *pending_head;
-
-  /**
-   * Head of linked list of pending requests.
-   */
-  struct DownloadRequest *pending_tail;
 
   /**
    * Top-level download request.
@@ -2027,11 +1981,6 @@ struct GNUNET_FS_DownloadContext
    * child-downloads have also completed (and signalled completion).
    */
   int has_finished;
-
-  /**
-   * Have we started the receive continuation yet?
-   */
-  int in_receive;
 
   /**
    * Are we ready to issue requests (reconstructions are finished)?
