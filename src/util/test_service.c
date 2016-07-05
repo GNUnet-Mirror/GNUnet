@@ -175,8 +175,10 @@ static void
 runner6 (void *cls, struct GNUNET_SERVER_Handle *server,
          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initializing v6 service\n");
-  GNUNET_SERVER_add_handlers (server, myhandlers);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initializing v6 service\n");
+  GNUNET_SERVER_add_handlers (server,
+                              myhandlers);
   GNUNET_CLIENT_service_test ("test_service6", cfg, GNUNET_TIME_UNIT_SECONDS,
                               &ready6, (void *) cfg);
 }
@@ -206,13 +208,18 @@ check6 ()
 
 
 static void
-start_stop_main (void *cls, char *const *args, const char *cfgfile,
+start_stop_main (void *cls,
+                 char *const *args,
+                 const char *cfgfile,
                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ret = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service using start method\n");
-  sctx = GNUNET_SERVICE_start ("test_service", cfg, GNUNET_SERVICE_OPTION_NONE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting service using start method\n");
+  sctx = GNUNET_SERVICE_start ("test_service",
+                               cfg,
+                               GNUNET_SERVICE_OPTION_NONE);
   GNUNET_assert (NULL != sctx);
   runner (cls, GNUNET_SERVICE_get_server (sctx), cfg);
   *ret = 0;

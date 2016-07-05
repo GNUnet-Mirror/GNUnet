@@ -29,7 +29,7 @@
 
 #define MYNAME "test_client"
 
-static struct GNUNET_CLIENT_Connection *client;
+static struct GNUNET_MQ_Handle *mq;
 
 static struct GNUNET_SERVER_Handle *server;
 
@@ -43,6 +43,7 @@ struct CopyContext
   struct GNUNET_MessageHeader *cpy;
 };
 
+
 static size_t
 copy_msg (void *cls, size_t size, void *buf)
 {
@@ -55,7 +56,8 @@ copy_msg (void *cls, size_t size, void *buf)
   GNUNET_SERVER_receive_done (ctx->client, GNUNET_OK);
   GNUNET_free (cpy);
   GNUNET_free (ctx);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message bounced back to client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Message bounced back to client\n");
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -64,7 +66,8 @@ copy_msg (void *cls, size_t size, void *buf)
  * Callback that just bounces the message back to the sender.
  */
 static void
-echo_cb (void *cls, struct GNUNET_SERVER_Client *client,
+echo_cb (void *cls,
+         struct GNUNET_SERVER_Client *client,
          const struct GNUNET_MessageHeader *message)
 {
   struct CopyContext *cc;
@@ -93,34 +96,35 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 static void
-recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
+handle_bounce (void *cls,
+               const struct GNUNET_MessageHeader *got)
 {
   int *ok = cls;
-  struct GNUNET_MessageHeader msg;
 
-  GNUNET_assert (got != NULL);  /* timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving bounce, checking content\n");
-  msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
-  GNUNET_CLIENT_disconnect (client);
-  client = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Receiving bounce, checking content\n");
+  GNUNET_assert (NULL != got);
+  GNUNET_MQ_destroy (mq);
+  mq = NULL;
   GNUNET_SERVER_destroy (server);
   server = NULL;
   *ok = 0;
 }
 
 
-static size_t
-make_msg (void *cls, size_t size, void *buf)
+/**
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_STATISTICS_Handle *`
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  struct GNUNET_MessageHeader *msg = buf;
-
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating message for transmission\n");
-  return sizeof (struct GNUNET_MessageHeader);
+  GNUNET_assert (0); /* should never happen */
 }
 
 
@@ -130,9 +134,22 @@ task (void *cls)
   struct sockaddr_in sa;
   struct sockaddr *sap[2];
   socklen_t slens[2];
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
+  GNUNET_MQ_hd_fixed_size (bounce,
+                           MY_TYPE,
+                           struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler chandlers[] = {
+    make_bounce_handler (cls),
+    GNUNET_MQ_handler_end ()
+  };
 
   /* test that ill-configured client fails instantly */
-  GNUNET_assert (NULL == GNUNET_CLIENT_connect ("invalid-service", cfg));
+  GNUNET_assert (NULL == GNUNET_CLIENT_connecT (cfg,
+                                                "invalid-service",
+                                                NULL,
+                                                &mq_error_handler,
+                                                NULL));
 
   /* test IPC between client and server */
   sap[0] = (struct sockaddr *) &sa;
@@ -148,23 +165,21 @@ task (void *cls)
   server =
       GNUNET_SERVER_create (NULL, NULL, sap, slens,
                             GNUNET_TIME_relative_multiply
-                            (GNUNET_TIME_UNIT_MILLISECONDS, 10000), GNUNET_NO);
+                            (GNUNET_TIME_UNIT_SECONDS, 10), GNUNET_NO);
   GNUNET_assert (server != NULL);
   handlers[0].callback_cls = cls;
   handlers[1].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
-  client = GNUNET_CLIENT_connect (MYNAME, cfg);
-  GNUNET_assert (client != NULL);
-  GNUNET_assert (NULL !=
-                 GNUNET_CLIENT_notify_transmit_ready (client,
-                                                      sizeof (struct
-                                                              GNUNET_MessageHeader),
-                                                      GNUNET_TIME_UNIT_SECONDS,
-                                                      GNUNET_NO, &make_msg,
-                                                      NULL));
-  GNUNET_CLIENT_receive (client, &recv_bounce, cls,
-                         GNUNET_TIME_relative_multiply
-                         (GNUNET_TIME_UNIT_MILLISECONDS, 10000));
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              MYNAME,
+                              chandlers,
+                              &mq_error_handler,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
