@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2013 GNUnet e.V.
+     Copyright (C) 2009, 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -37,16 +37,16 @@ static struct GNUNET_SERVICE_Context *sctx;
 
 static int ok = 1;
 
-static struct GNUNET_CLIENT_Connection *client;
+static struct GNUNET_MQ_Handle *mq;
 
 
 static void
 do_stop (void *cls)
 {
-  if (NULL != client)
+  if (NULL != mq)
   {
-    GNUNET_CLIENT_disconnect (client);
-    client = NULL;
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
   }
   if (NULL != sctx)
   {
@@ -60,49 +60,33 @@ do_stop (void *cls)
 }
 
 
-static size_t
-build_msg (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg = buf;
-
-  if (size < sizeof (struct GNUNET_MessageHeader))
-  {
-    /* timeout */
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
-    ok = 1;
-    return 0;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected, transmitting\n");
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
 static void
 ready (void *cls,
        int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
   GNUNET_assert (GNUNET_YES == result);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
-  client = GNUNET_CLIENT_connect ("test_service", cfg);
-  GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client connecting, waiting to transmit\n");
-  GNUNET_CLIENT_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, NULL);
+              "Service confirmed running\n");
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test_service",
+                              NULL,
+                              NULL,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *sc,
+recv_cb (void *cls,
+         struct GNUNET_SERVER_Client *sc,
          const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (NULL != message);
@@ -120,11 +104,14 @@ static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
 
 
 static void
-runner (void *cls, struct GNUNET_SERVER_Handle *server,
+runner (void *cls,
+        struct GNUNET_SERVER_Handle *server,
         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service initializing\n");
-  GNUNET_SERVER_add_handlers (server, myhandlers);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Service initializing\n");
+  GNUNET_SERVER_add_handlers (server,
+                              myhandlers);
   GNUNET_CLIENT_service_test ("test_service", cfg, GNUNET_TIME_UNIT_SECONDS,
                               &ready, (void *) cfg);
 }
@@ -158,21 +145,28 @@ ready6 (void *cls,
 	int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 ready\n");
   GNUNET_assert (GNUNET_YES == result);
-  client = GNUNET_CLIENT_connect ("test_service6", cfg);
-  GNUNET_assert (client != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 client connected\n");
-  GNUNET_CLIENT_notify_transmit_ready (client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "V6 ready\n");
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test_service6",
+                              NULL,
+                              NULL,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
 static void
-runner6 (void *cls, struct GNUNET_SERVER_Handle *server,
+runner6 (void *cls,
+         struct GNUNET_SERVER_Handle *server,
          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

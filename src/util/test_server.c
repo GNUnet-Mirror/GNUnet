@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2014 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -52,7 +52,7 @@ static struct GNUNET_SERVER_Handle *server;
 /**
  * Handle for the client.
  */
-static struct GNUNET_CLIENT_Connection *cc;
+static struct GNUNET_MQ_Handle *mq;
 
 /**
  * Handle of the server for the client.
@@ -81,7 +81,7 @@ finish_up (void *cls)
   GNUNET_assert (7 == ok);
   ok = 0;
   GNUNET_SERVER_destroy (server);
-  GNUNET_CLIENT_disconnect (cc);
+  GNUNET_MQ_destroy (mq);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
@@ -106,32 +106,6 @@ recv_fin_cb (void *cls,
 
 
 /**
- * The client connected to the server and is now allowed
- * to send a second message.  We send one.
- *
- * @param cls NULL
- * @param size number of bytes that can be transmitted
- * @param buf where to copy the message
- * @return number of bytes copied to @a buf
- */
-static size_t
-transmit_second_message (void *cls,
-                         size_t size,
-                         void *buf)
-{
-  struct GNUNET_MessageHeader msg;
-
-  GNUNET_assert (5 == ok);
-  ok = 6;
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  msg.type = htons (MY_TYPE2);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
-/**
  * We have received the reply from the server, check that we are at
  * the right stage and queue the next message to the server.  Cleans
  * up #argclient.
@@ -140,18 +114,18 @@ transmit_second_message (void *cls,
  * @param msg message we got from the server
  */
 static void
-first_reply_handler (void *cls,
-                     const struct GNUNET_MessageHeader *msg)
+handle_reply (void *cls,
+              const struct GNUNET_MessageHeader *msg)
 {
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *m;
+
   GNUNET_assert (4 == ok);
-  ok = 5;
-  GNUNET_assert (NULL !=
-                 GNUNET_CLIENT_notify_transmit_ready (cc,
-                                                      sizeof (struct GNUNET_MessageHeader),
-                                                      TIMEOUT,
-                                                      GNUNET_YES,
-                                                      &transmit_second_message,
-                                                      NULL));
+  ok = 6;
+  env = GNUNET_MQ_msg (m,
+                       MY_TYPE2);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
@@ -210,37 +184,9 @@ recv_cb (void *cls,
   GNUNET_assert (NULL !=
                  GNUNET_SERVER_notify_transmit_ready (client,
                                                       ntohs (message->size),
-                                                      TIMEOUT, &reply_msg,
+                                                      TIMEOUT,
+                                                      &reply_msg,
                                                       NULL));
-}
-
-
-/**
- * The client connected to the server and is now allowed
- * to send a first message.  We transmit a simple message,
- * ask for a second transmission and get ready to receive
- * a response.
- *
- * @param cls NULL
- * @param size number of bytes that can be transmitted
- * @param buf where to copy the message
- * @return number of bytes copied to @a buf
- */
-static size_t
-transmit_initial_message (void *cls,
-                          size_t size,
-                          void *buf)
-{
-  struct GNUNET_MessageHeader msg;
-
-  GNUNET_assert (1 == ok);
-  ok = 2;
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
-  GNUNET_CLIENT_receive (cc, &first_reply_handler, NULL, TIMEOUT);
-  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -252,6 +198,22 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&recv_fin_cb, NULL, MY_TYPE2, sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
+
+
+/**
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_STATISTICS_Handle *`
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
+{
+  GNUNET_assert (0); /* should never happen */
+}
 
 
 /**
@@ -267,6 +229,16 @@ task (void *cls)
   struct sockaddr_in sa;
   struct sockaddr *sap[2];
   socklen_t slens[2];
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
+  GNUNET_MQ_hd_fixed_size (reply,
+                           MY_TYPE,
+                           struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler chandlers[] = {
+    make_reply_handler (cls),
+    GNUNET_MQ_handler_end ()
+  };
+
 
   sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
@@ -296,15 +268,17 @@ task (void *cls)
                                          "resolver",
                                          "HOSTNAME",
                                          "localhost");
-  cc = GNUNET_CLIENT_connect ("test-server", cfg);
-  GNUNET_assert (cc != NULL);
-  GNUNET_assert (NULL !=
-                 GNUNET_CLIENT_notify_transmit_ready (cc,
-                                                      sizeof (struct
-                                                              GNUNET_MessageHeader),
-                                                      TIMEOUT, GNUNET_YES,
-                                                      &transmit_initial_message,
-                                                      NULL));
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test-server",
+                              chandlers,
+                              &mq_error_handler,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  ok = 2;
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
