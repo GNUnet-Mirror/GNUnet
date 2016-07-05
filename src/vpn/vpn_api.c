@@ -41,12 +41,7 @@ struct GNUNET_VPN_Handle
   /**
    * Connection to VPN service.
    */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Active transmission request.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Head of list of active redirection requests.
@@ -61,7 +56,7 @@ struct GNUNET_VPN_Handle
   /**
    * Identifier of a reconnect task.
    */
-  struct GNUNET_SCHEDULER_Task * rt;
+  struct GNUNET_SCHEDULER_Task *rt;
 
   /**
    * How long do we wait until we try to reconnect?
@@ -160,35 +155,20 @@ reconnect (struct GNUNET_VPN_Handle *vh);
 
 
 /**
- * Function called when we receive a message from the VPN service.
+ * Check a #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP message from the
+ * VPN service.
  *
  * @param cls the `struct GNUNET_VPN_Handle`
- * @param msg message received, NULL on timeout or fatal error
+ * @param rm message received
+ * @return #GNUNET_OK if @a rm is well-formed
  */
-static void
-receive_response (void *cls,
-		  const struct GNUNET_MessageHeader* msg)
+static int
+check_use_ip (void *cls,
+              const struct RedirectToIpResponseMessage *rm)
 {
-  struct GNUNET_VPN_Handle *vh = cls;
-  const struct RedirectToIpResponseMessage *rm;
-  struct GNUNET_VPN_RedirectionRequest *rr;
-  size_t msize;
   size_t alen;
   int af;
 
-  if (NULL == msg)
-  {
-    reconnect (vh);
-    return;
-  }
-  if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP) ||
-       (sizeof (struct RedirectToIpResponseMessage) > (msize = ntohs (msg->size))) )
-  {
-    GNUNET_break (0);
-    reconnect (vh);
-    return;
-  }
-  rm = (const struct RedirectToIpResponseMessage *) msg;
   af = (int) ntohl (rm->result_af);
   switch (af)
   {
@@ -203,19 +183,34 @@ receive_response (void *cls,
     break;
   default:
     GNUNET_break (0);
-    reconnect (vh);
-    return;
+    return GNUNET_SYSERR;
   }
-  if ( (msize != alen + sizeof (struct RedirectToIpResponseMessage)) ||
+  if ( (ntohs (rm->header.size) != alen + sizeof (*rm)) ||
        (0 == rm->request_id) )
   {
     GNUNET_break (0);
-    reconnect (vh);
-    return;
+    return GNUNET_SYSERR;
   }
-  GNUNET_CLIENT_receive (vh->client,
-			 &receive_response, vh,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP message from the
+ * VPN service.
+ *
+ * @param cls the `struct GNUNET_VPN_Handle`
+ * @param rm message received
+ */
+static void
+handle_use_ip (void *cls,
+               const struct RedirectToIpResponseMessage *rm)
+{
+  struct GNUNET_VPN_Handle *vh = cls;
+  struct GNUNET_VPN_RedirectionRequest *rr;
+  int af;
+
+  af = (int) ntohl (rm->result_af);
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
   {
     if (rr->request_id == rm->request_id)
@@ -234,59 +229,32 @@ receive_response (void *cls,
 
 
 /**
- * We're ready to transmit a request to the VPN service. Do it.
+ * Add a request to our request queue and transmit it.
  *
- * @param cls the `struct GNUNET_VPN_Handle*`
- * @param size number of bytes available in buf
- * @param buf where to copy the request
- * @return number of bytes copied to 'buf'
+ * @param rr request to queue and transmit.
  */
-static size_t
-transmit_request (void *cls,
-		  size_t size,
-		  void *buf)
+static void
+send_request (struct GNUNET_VPN_RedirectionRequest *rr)
 {
-  struct GNUNET_VPN_Handle *vh = cls;
-  struct GNUNET_VPN_RedirectionRequest *rr;
-  struct RedirectToIpRequestMessage rip;
-  struct RedirectToServiceRequestMessage rs;
-  char *cbuf;
+  struct GNUNET_VPN_Handle *vh = rr->vh;
+  struct RedirectToIpRequestMessage *rip;
+  struct RedirectToServiceRequestMessage *rs;
+  struct GNUNET_MQ_Envelope *env;
   size_t alen;
-  size_t ret;
 
-  vh->th = NULL;
-  /* find a pending request */
-  rr = vh->rr_head;
-  while ( (NULL != rr) &&
-	  (0 != rr->request_id) )
-    rr = rr->next;
-  if (NULL == rr)
-    return 0;
-  if (0 == size)
-  {
-    reconnect (vh);
-    return 0;
-  }
-
-  /* if first request, start receive loop */
-  if (0 == vh->request_id_gen)
-    GNUNET_CLIENT_receive (vh->client,
-			   &receive_response, vh,
-			   GNUNET_TIME_UNIT_FOREVER_REL);
+  if (NULL == vh->mq)
+    return;
   if (NULL == rr->addr)
   {
-    ret = sizeof (struct RedirectToServiceRequestMessage);
-    GNUNET_assert (ret <= size);
-    rs.header.size = htons ((uint16_t) ret);
-    rs.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE);
-    rs.reserved = htonl (0);
-    rs.expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
-    rs.protocol = htonl (rr->protocol);
-    rs.result_af = htonl (rr->result_af);
-    rs.target = rr->peer;
-    rs.service_descriptor = rr->serv;
-    rs.request_id = rr->request_id = ++vh->request_id_gen;
-    memcpy (buf, &rs, sizeof (struct RedirectToServiceRequestMessage));
+    env = GNUNET_MQ_msg (rs,
+                         GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE);
+    rs->reserved = htonl (0);
+    rs->expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
+    rs->protocol = htonl (rr->protocol);
+    rs->result_af = htonl (rr->result_af);
+    rs->target = rr->peer;
+    rs->service_descriptor = rr->serv;
+    rs->request_id = rr->request_id = ++vh->request_id_gen;
   }
   else
   {
@@ -300,58 +268,40 @@ transmit_request (void *cls,
       break;
     default:
       GNUNET_assert (0);
-      return 0;
+      return;
     }
-    ret = alen + sizeof (struct RedirectToIpRequestMessage);
-    GNUNET_assert (ret <= size);
-    rip.header.size = htons ((uint16_t) ret);
-    rip.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP);
-    rip.reserved = htonl (0);
-    rip.expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
-    rip.result_af = htonl (rr->result_af);
-    rip.addr_af = htonl (rr->addr_af);
-    rip.request_id = rr->request_id = ++vh->request_id_gen;
-    cbuf = buf;
-    memcpy (cbuf, &rip, sizeof (struct RedirectToIpRequestMessage));
-    memcpy (&cbuf[sizeof (struct RedirectToIpRequestMessage)], rr->addr, alen);
+    env = GNUNET_MQ_msg_extra (rip,
+                               alen,
+                               GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP);
+    rip->reserved = htonl (0);
+    rip->expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
+    rip->result_af = htonl (rr->result_af);
+    rip->addr_af = htonl (rr->addr_af);
+    rip->request_id = rr->request_id = ++vh->request_id_gen;
+    memcpy (&rip[1],
+            rr->addr,
+            alen);
   }
-  /* test if there are more pending requests */
-  while ( (NULL != rr) &&
-	  (0 != rr->request_id) )
-    rr = rr->next;
-  if (NULL != rr)
-    vh->th = GNUNET_CLIENT_notify_transmit_ready (vh->client,
-						  sizeof (struct RedirectToServiceRequestMessage),
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  GNUNET_NO,
-						  &transmit_request,
-						  vh);
-  return ret;
+  GNUNET_MQ_send (vh->mq,
+                  env);
 }
 
 
 /**
- * Add a request to our request queue and transmit it.
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
  *
- * @param rr request to queue and transmit.
+ * @param cls closure with the `struct GNUNET_VPN_Handle *`
+ * @param error error code
  */
 static void
-queue_request (struct GNUNET_VPN_RedirectionRequest *rr)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  struct GNUNET_VPN_Handle *vh;
+  struct GNUNET_VPN_Handle *vh = cls;
 
-  vh = rr->vh;
-  GNUNET_CONTAINER_DLL_insert_tail (vh->rr_head,
-				    vh->rr_tail,
-				    rr);
-  if ( (NULL == vh->th) &&
-       (NULL != vh->client) )
-    vh->th = GNUNET_CLIENT_notify_transmit_ready (vh->client,
-						  sizeof (struct RedirectToServiceRequestMessage),
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  GNUNET_NO,
-						  &transmit_request,
-						  vh);
+  reconnect (vh);
 }
 
 
@@ -364,18 +314,25 @@ static void
 connect_task (void *cls)
 {
   struct GNUNET_VPN_Handle *vh = cls;
+  GNUNET_MQ_hd_var_size (use_ip,
+                         GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP,
+                         struct RedirectToIpResponseMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_use_ip_handler (cls),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_VPN_RedirectionRequest *rr;
 
   vh->rt = NULL;
-  vh->client = GNUNET_CLIENT_connect ("vpn", vh->cfg);
-  GNUNET_assert (NULL != vh->client);
-  GNUNET_assert (NULL == vh->th);
-  if (NULL != vh->rr_head)
-    vh->th = GNUNET_CLIENT_notify_transmit_ready (vh->client,
-						  sizeof (struct RedirectToServiceRequestMessage),
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  GNUNET_NO,
-						  &transmit_request,
-						  vh);
+  vh->mq = GNUNET_CLIENT_connecT (vh->cfg,
+                                  "vpn",
+                                  handlers,
+                                  &mq_error_handler,
+                                  vh);
+  if (NULL == vh->mq)
+    return;
+  for (rr = vh->rr_head; NULL != rr; rr = rr->next)
+    send_request (rr);
 }
 
 
@@ -389,13 +346,8 @@ reconnect (struct GNUNET_VPN_Handle *vh)
 {
   struct GNUNET_VPN_RedirectionRequest *rr;
 
-  if (NULL != vh->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (vh->th);
-    vh->th = NULL;
-  }
-  GNUNET_CLIENT_disconnect (vh->client);
-  vh->client = NULL;
+  GNUNET_MQ_destroy (vh->mq);
+  vh->mq = NULL;
   vh->request_id_gen = 0;
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
     rr->request_id = 0;
@@ -469,7 +421,10 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
   rr->expiration_time = expiration_time;
   rr->result_af = result_af;
   rr->protocol = protocol;
-  queue_request (rr);
+  GNUNET_CONTAINER_DLL_insert_tail (vh->rr_head,
+				    vh->rr_tail,
+				    rr);
+  send_request (rr);
   return rr;
 }
 
@@ -485,7 +440,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
  *
  * @param vh VPN handle
  * @param result_af desired address family for the returned allocation
- * @param addr_af address family for 'addr', AF_INET or AF_INET6
+ * @param addr_af address family for @a addr, AF_INET or AF_INET6
  * @param addr destination IP address on the Internet; destination
  *             port is to be taken from the VPN packet itself
  * @param expiration_time at what time should the redirection expire?
@@ -528,8 +483,13 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
   rr->expiration_time = expiration_time;
   rr->result_af = result_af;
   rr->addr_af = addr_af;
-  memcpy (&rr[1], addr, alen);
-  queue_request (rr);
+  memcpy (&rr[1],
+          addr,
+          alen);
+  GNUNET_CONTAINER_DLL_insert_tail (vh->rr_head,
+				    vh->rr_tail,
+				    rr);
+  send_request (rr);
   return rr;
 }
 
@@ -543,12 +503,12 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
 struct GNUNET_VPN_Handle *
 GNUNET_VPN_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_VPN_Handle *vh;
+  struct GNUNET_VPN_Handle *vh
+    = GNUNET_new (struct GNUNET_VPN_Handle);
 
-  vh = GNUNET_new (struct GNUNET_VPN_Handle);
   vh->cfg = cfg;
-  vh->client = GNUNET_CLIENT_connect ("vpn", cfg);
-  if (NULL == vh->client)
+  connect_task (vh);
+  if (NULL == vh->mq)
   {
     GNUNET_free (vh);
     return NULL;
@@ -566,15 +526,10 @@ void
 GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh)
 {
   GNUNET_assert (NULL == vh->rr_head);
-  if (NULL != vh->th)
+  if (NULL != vh->mq)
   {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (vh->th);
-    vh->th = NULL;
-  }
-  if (NULL != vh->client)
-  {
-    GNUNET_CLIENT_disconnect (vh->client);
-    vh->client = NULL;
+    GNUNET_MQ_destroy (vh->mq);
+    vh->mq = NULL;
   }
   if (NULL != vh->rt)
   {
