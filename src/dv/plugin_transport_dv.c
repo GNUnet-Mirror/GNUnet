@@ -519,11 +519,9 @@ handle_dv_disconnect (void *cls,
  * Clean up the pending request, and call continuations.
  *
  * @param cls closure
- * @param ok #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static void
-send_finished (void *cls,
-	       int ok)
+send_finished (void *cls)
 {
   struct PendingRequest *pr = cls;
   struct GNUNET_ATS_Session *session = pr->session;
@@ -535,7 +533,7 @@ send_finished (void *cls,
   if (NULL != pr->transmit_cont)
     pr->transmit_cont (pr->transmit_cont_cls,
 		       &session->sender,
-		       ok,
+		       GNUNET_OK,
                        pr->size, 0);
   GNUNET_free (pr);
 }

@@ -230,7 +230,7 @@ struct DirectNeighbor
    * ID of the task we use to (periodically) update our consensus
    * with this peer.  Used if we are the initiating peer.
    */
-  struct GNUNET_SCHEDULER_Task * initiate_task;
+  struct GNUNET_SCHEDULER_Task *initiate_task;
 
   /**
    * At what offset are we, with respect to inserting our own routes
@@ -1905,7 +1905,8 @@ handle_dv_route_message (void *cls,
  * @param message the actual message
  */
 static void
-handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dv_send_message (void *cls,
+                        struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   struct Route *route;

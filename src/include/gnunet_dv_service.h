@@ -45,10 +45,11 @@
  * @param distance distance to the peer
  * @param network the peer is located in
  */
-typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
-					  const struct GNUNET_PeerIdentity *peer,
-					  uint32_t distance,
-                                          enum GNUNET_ATS_Network_Type network);
+typedef void
+(*GNUNET_DV_ConnectCallback)(void *cls,
+                             const struct GNUNET_PeerIdentity *peer,
+                             uint32_t distance,
+                             enum GNUNET_ATS_Network_Type network);
 
 
 /**
@@ -60,10 +61,11 @@ typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
  * @param distance new distance to the peer
  * @param network this network will be used to reach the next hop
  */
-typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
-						  const struct GNUNET_PeerIdentity *peer,
-						  uint32_t distance,
-                                                  enum GNUNET_ATS_Network_Type network);
+typedef void
+(*GNUNET_DV_DistanceChangedCallback)(void *cls,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     uint32_t distance,
+                                     enum GNUNET_ATS_Network_Type network);
 
 
 /**
@@ -73,8 +75,9 @@ typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
  * @param cls closure
  * @param peer peer that disconnected
  */
-typedef void (*GNUNET_DV_DisconnectCallback)(void *cls,
-					     const struct GNUNET_PeerIdentity *peer);
+typedef void
+(*GNUNET_DV_DisconnectCallback)(void *cls,
+                                const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -86,10 +89,11 @@ typedef void (*GNUNET_DV_DisconnectCallback)(void *cls,
  * @param distance how far did the message travel
  * @param msg actual message payload
  */
-typedef void (*GNUNET_DV_MessageReceivedCallback)(void *cls,
-						  const struct GNUNET_PeerIdentity *sender,
-						  uint32_t distance,
-						  const struct GNUNET_MessageHeader *msg);
+typedef void
+(*GNUNET_DV_MessageReceivedCallback)(void *cls,
+                                     const struct GNUNET_PeerIdentity *sender,
+                                     uint32_t distance,
+                                     const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -97,10 +101,9 @@ typedef void (*GNUNET_DV_MessageReceivedCallback)(void *cls,
  * message has been successful.
  *
  * @param cls closure
- * @param ok GNUNET_OK on success, GNUNET_SYSERR on error
  */
-typedef void (*GNUNET_DV_MessageSentCallback)(void *cls,
-					      int ok);
+typedef void
+(*GNUNET_DV_MessageSentCallback)(void *cls);
 
 
 /**

@@ -308,7 +308,7 @@ cleanup_send_cb (void *cls,
   while (NULL != (th = peer->head))
   {
     GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, th);
-    th->cb (th->cb_cls, GNUNET_SYSERR);
+    th->cb (th->cb_cls);
     GNUNET_free (th);
   }
   GNUNET_free (peer);
@@ -416,7 +416,7 @@ handle_message_receipt (void *cls,
         GNUNET_CONTAINER_DLL_remove (sh->th_head,
                                      sh->th_tail,
                                      th);
-        th->cb (th->cb_cls, GNUNET_SYSERR);
+        th->cb (th->cb_cls);
         GNUNET_free (th);
       }
     }
@@ -473,10 +473,7 @@ handle_message_receipt (void *cls,
       GNUNET_CONTAINER_DLL_remove (peer->head,
                                    peer->tail,
                                    th);
-      th->cb (th->cb_cls,
-              (ntohs (ack->header.type) == GNUNET_MESSAGE_TYPE_DV_SEND_ACK)
-              ? GNUNET_OK
-              : GNUNET_SYSERR);
+      th->cb (th->cb_cls);
       GNUNET_free (th);
       break;
     }
