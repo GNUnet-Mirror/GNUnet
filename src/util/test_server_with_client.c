@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 GNUnet e.V.
+     Copyright (C) 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,11 +33,12 @@
 
 static struct GNUNET_SERVER_Handle *server;
 
-static struct GNUNET_CLIENT_Connection *client;
+static struct GNUNET_MQ_Handle *mq;
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ok;
+
 
 static void
 send_done (void *cls)
@@ -51,7 +52,8 @@ send_done (void *cls)
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
+recv_cb (void *cls,
+         struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   void *addr;
@@ -60,7 +62,9 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
   struct sockaddr_in *have;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVER_client_get_address (argclient, &addr, &addrlen));
+                 GNUNET_SERVER_client_get_address (argclient,
+                                                   &addr,
+                                                   &addrlen));
 
   GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
   have = addr;
@@ -79,12 +83,14 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
     ok++;
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 50),
-                                  &send_done, argclient);
+                                  &send_done,
+                                  argclient);
     break;
   case 4:
     ok++;
-    GNUNET_CLIENT_disconnect (client);
-    GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
+    GNUNET_MQ_destroy (mq);
+    GNUNET_SERVER_receive_done (argclient,
+                                GNUNET_OK);
     break;
   default:
     GNUNET_assert (0);
@@ -111,31 +117,14 @@ clean_up (void *cls)
  * @param client identification of the client
  */
 static void
-notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+notify_disconnect (void *cls,
+                   struct GNUNET_SERVER_Client *client)
 {
   if (client == NULL)
     return;
   GNUNET_assert (ok == 5);
   ok = 0;
   GNUNET_SCHEDULER_add_now (&clean_up, NULL);
-}
-
-
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg;
-
-  GNUNET_assert (size >= 256);
-  GNUNET_assert (1 == ok);
-  ok++;
-  msg = buf;
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  msg++;
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  return 2 * sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -151,6 +140,8 @@ task (void *cls)
   struct sockaddr_in sa;
   struct sockaddr *sap[2];
   socklen_t slens[2];
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
   sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
@@ -175,12 +166,21 @@ task (void *cls)
   GNUNET_CONFIGURATION_set_value_string (cfg, "test", "HOSTNAME", "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-  client = GNUNET_CLIENT_connect ("test", cfg);
-  GNUNET_assert (client != NULL);
-  GNUNET_CLIENT_notify_transmit_ready (client, 256,
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_MILLISECONDS, 250),
-                                       GNUNET_NO, &notify_ready, NULL);
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test",
+                              NULL,
+                              NULL,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  ok = 2;
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 

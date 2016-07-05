@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,7 +33,7 @@
 
 static struct GNUNET_SERVER_Handle *server;
 
-static struct GNUNET_CLIENT_Connection *cc;
+static struct GNUNET_MQ_Handle *mq;
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -46,7 +46,7 @@ finish_up (void *cls)
   GNUNET_assert (ok == 5);
   ok = 0;
   GNUNET_SERVER_destroy (server);
-  GNUNET_CLIENT_disconnect (cc);
+  GNUNET_MQ_destroy (mq);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
@@ -96,27 +96,14 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 };
 
 
-static size_t
-transmit_initial_message (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader msg;
-
-  GNUNET_assert (ok == 1);
-  ok = 2;
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  msg.type = htons (MY_TYPE);
-  msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
 static void
 task (void *cls)
 {
   struct sockaddr_in sa;
   struct sockaddr *sap[2];
   socklen_t slens[2];
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
   sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
@@ -138,15 +125,17 @@ task (void *cls)
                                          "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-  cc = GNUNET_CLIENT_connect ("test-server", cfg);
-  GNUNET_assert (cc != NULL);
-  GNUNET_assert (NULL !=
-                 GNUNET_CLIENT_notify_transmit_ready (cc,
-                                                      sizeof (struct
-                                                              GNUNET_MessageHeader),
-                                                      TIMEOUT, GNUNET_YES,
-                                                      &transmit_initial_message,
-                                                      NULL));
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test-server",
+                              NULL,
+                              NULL,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  ok = 2;
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 

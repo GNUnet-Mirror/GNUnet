@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 GNUnet e.V.
+     Copyright (C) 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 
 static struct GNUNET_SERVER_Handle *server;
 
-static struct GNUNET_CLIENT_Connection *client;
+static struct GNUNET_MQ_Handle *mq;
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -65,7 +65,7 @@ recv_cb (void *cls,
     break;
   case 4:
     ok++;
-    GNUNET_CLIENT_disconnect (client);
+    GNUNET_MQ_destroy (mq);
     GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
     break;
   default:
@@ -104,24 +104,6 @@ notify_disconnect (void *cls,
 }
 
 
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg;
-
-  GNUNET_assert (size >= 256);
-  GNUNET_assert (1 == ok);
-  ok++;
-  msg = buf;
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  msg++;
-  msg->type = htons (MY_TYPE);
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  return 2 * sizeof (struct GNUNET_MessageHeader);
-}
-
-
 static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {&recv_cb, NULL, MY_TYPE, sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
@@ -135,6 +117,8 @@ task (void *cls)
   const char *unixpath = "/tmp/testsock";
   struct sockaddr *sap[2];
   socklen_t slens[2];
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
@@ -160,13 +144,21 @@ task (void *cls)
   GNUNET_CONFIGURATION_set_value_string (cfg, "test", "UNIXPATH", unixpath);
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-
-  client = GNUNET_CLIENT_connect ("test", cfg);
-  GNUNET_assert (client != NULL);
-  GNUNET_CLIENT_notify_transmit_ready (client, 256,
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_MILLISECONDS, 250),
-                                       GNUNET_NO, &notify_ready, NULL);
+  mq = GNUNET_CLIENT_connecT (cfg,
+                              "test",
+                              NULL,
+                              NULL,
+                              NULL);
+  GNUNET_assert (NULL != mq);
+  ok = 2;
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
+  env = GNUNET_MQ_msg (msg,
+                       MY_TYPE);
+  GNUNET_MQ_send (mq,
+                  env);
 }
 
 
