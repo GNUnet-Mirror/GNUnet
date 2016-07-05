@@ -149,11 +149,6 @@ struct PendingMessage
    */
   struct GNUNET_PeerIdentity next_target;
 
-  /**
-   * Unique ID of the message.
-   */
-  uint32_t uid;
-
 };
 
 
@@ -480,33 +475,6 @@ send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 
 
 /**
- * Give an (N)ACK message to the plugin, we transmitted a message for it.
- *
- * @param target peer that received the message
- * @param uid plugin-chosen UID for the message
- * @param nack #GNUNET_NO to send ACK, #GNUNET_YES to send NACK
- */
-static void
-send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
-		    uint32_t uid,
-		    int nack)
-{
-  struct GNUNET_DV_AckMessage ack_msg;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Delivering ACK for message to peer `%s'\n",
-              GNUNET_i2s (target));
-  ack_msg.header.size = htons (sizeof (ack_msg));
-  ack_msg.header.type = htons ((GNUNET_YES == nack)
-			       ? GNUNET_MESSAGE_TYPE_DV_SEND_NACK
-			       : GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
-  ack_msg.uid = htonl (uid);
-  ack_msg.target = *target;
-  send_control_to_plugin (&ack_msg.header);
-}
-
-
-/**
  * Send a DISTANCE_CHANGED message to the plugin.
  *
  * @param peer peer with a changed distance
@@ -613,16 +581,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 				 dn->pm_tail,
                                  pending);
     memcpy (&cbuf[off], pending->msg, msize);
-    if (0 != pending->uid)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Acking transmission of %u bytes to %s with plugin\n",
-                  (unsigned int) msize,
-                  GNUNET_i2s (&pending->next_target));
-      send_ack_to_plugin (&pending->next_target,
-			  pending->uid,
-			  GNUNET_NO);
-    }
     GNUNET_free (pending);
     off += msize;
   }
@@ -649,7 +607,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
  *
  * @param target where to send the message
  * @param distance distance to the @a sender
- * @param uid unique ID for the message
  * @param sender original sender of the message
  * @param actual_target ultimate recipient for the message
  * @param payload payload of the message
@@ -657,7 +614,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 static void
 forward_payload (struct DirectNeighbor *target,
 		 uint32_t distance,
-		 uint32_t uid,
 		 const struct GNUNET_PeerIdentity *sender,
 		 const struct GNUNET_PeerIdentity *actual_target,
 		 const struct GNUNET_MessageHeader *payload)
@@ -667,7 +623,6 @@ forward_payload (struct DirectNeighbor *target,
   size_t msize;
 
   if ( (target->pm_queue_size >= MAX_QUEUE_SIZE) &&
-       (0 == uid) &&
        (0 != memcmp (sender,
 		     &my_identity,
 		     sizeof (struct GNUNET_PeerIdentity))) )
@@ -686,7 +641,6 @@ forward_payload (struct DirectNeighbor *target,
   }
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   pm->next_target = target->peer;
-  pm->uid = uid;
   pm->msg = (const struct GNUNET_MessageHeader *) &pm[1];
   rm = (struct RouteMessage *) &pm[1];
   rm->header.size = htons ((uint16_t) msize);
@@ -1888,7 +1842,6 @@ handle_dv_route_message (void *cls,
 	      GNUNET_i2s (&neighbor->peer));
   forward_payload (neighbor,
 		   distance + 1,
-		   0,
 		   &rm->sender,
 		   &rm->target,
 		   payload);
@@ -1920,7 +1873,6 @@ handle_dv_send_message (void *cls,
     return;
   }
   msg = (const struct GNUNET_DV_SendMessage *) message;
-  GNUNET_break (0 != ntohl (msg->uid));
   payload = (const struct GNUNET_MessageHeader *) &msg[1];
   if (ntohs (message->size) != sizeof (struct GNUNET_DV_SendMessage) + ntohs (payload->size))
   {
@@ -1940,7 +1892,6 @@ handle_dv_send_message (void *cls,
     GNUNET_STATISTICS_update (stats,
 			      "# local messages discarded (no route)",
 			      1, GNUNET_NO);
-    send_ack_to_plugin (&msg->target, ntohl (msg->uid), GNUNET_YES);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1952,7 +1903,6 @@ handle_dv_send_message (void *cls,
 
   forward_payload (route->next_hop,
 		   0 /* first hop, distance is zero */,
-		   htonl (msg->uid),
 		   &my_identity,
 		   &msg->target,
 		   payload);

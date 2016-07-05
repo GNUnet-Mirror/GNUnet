@@ -45,51 +45,6 @@ struct Plugin;
 
 
 /**
- * An active request for transmission via DV.
- */
-struct PendingRequest
-{
-
-  /**
-   * This is a DLL.
-   */
-  struct PendingRequest *next;
-
-  /**
-   * This is a DLL.
-   */
-  struct PendingRequest *prev;
-
-  /**
-   * Continuation function to call once the transmission buffer
-   * has again space available.  NULL if there is no
-   * continuation to call.
-   */
-  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
-
-  /**
-   * Closure for @e transmit_cont.
-   */
-  void *transmit_cont_cls;
-
-  /**
-   * Transmission handle from DV client library.
-   */
-  struct GNUNET_DV_TransmitHandle *th;
-
-  /**
-   * Session of this request.
-   */
-  struct GNUNET_ATS_Session *session;
-
-  /**
-   * Number of bytes to transmit.
-   */
-  size_t size;
-};
-
-
-/**
  * Session handle for connections.
  */
 struct GNUNET_ATS_Session
@@ -98,16 +53,6 @@ struct GNUNET_ATS_Session
    * Pointer to the global plugin struct.
    */
   struct Plugin *plugin;
-
-  /**
-   * Head of pending requests.
-   */
-  struct PendingRequest *pr_head;
-
-  /**
-   * Tail of pending requests.
-   */
-  struct PendingRequest *pr_tail;
 
   /**
    * Address we use for the other peer.
@@ -449,7 +394,6 @@ static void
 free_session (struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = session->plugin;
-  struct PendingRequest *pr;
 
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
@@ -469,20 +413,6 @@ free_session (struct GNUNET_ATS_Session *session)
 			      session->address,
 			      session);
     session->active = GNUNET_NO;
-  }
-  while (NULL != (pr = session->pr_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (session->pr_head,
-				 session->pr_tail,
-				 pr);
-    GNUNET_DV_send_cancel (pr->th);
-    pr->th = NULL;
-    if (NULL != pr->transmit_cont)
-      pr->transmit_cont (pr->transmit_cont_cls,
-			 &session->sender,
-			 GNUNET_SYSERR,
-                         pr->size, 0);
-    GNUNET_free (pr);
   }
   GNUNET_HELLO_address_free (session->address);
   GNUNET_free (session);
@@ -515,31 +445,6 @@ handle_dv_disconnect (void *cls,
 
 
 /**
- * Function called once the delivery of a message has been successful.
- * Clean up the pending request, and call continuations.
- *
- * @param cls closure
- */
-static void
-send_finished (void *cls)
-{
-  struct PendingRequest *pr = cls;
-  struct GNUNET_ATS_Session *session = pr->session;
-
-  pr->th = NULL;
-  GNUNET_CONTAINER_DLL_remove (session->pr_head,
-			       session->pr_tail,
-			       pr);
-  if (NULL != pr->transmit_cont)
-    pr->transmit_cont (pr->transmit_cont_cls,
-		       &session->sender,
-		       GNUNET_OK,
-                       pr->size, 0);
-  GNUNET_free (pr);
-}
-
-
-/**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.
  *
@@ -565,10 +470,10 @@ dv_plugin_send (void *cls,
                 size_t msgbuf_size,
                 unsigned int priority,
                 struct GNUNET_TIME_Relative timeout,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                GNUNET_TRANSPORT_TransmitContinuation cont,
+                void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  struct PendingRequest *pr;
   const struct GNUNET_MessageHeader *msg;
   struct GNUNET_MessageHeader *box;
 
@@ -585,20 +490,13 @@ dv_plugin_send (void *cls,
     memcpy (&box[1], msgbuf, msgbuf_size);
     msg = box;
   }
-  pr = GNUNET_new (struct PendingRequest);
-  pr->transmit_cont = cont;
-  pr->transmit_cont_cls = cont_cls;
-  pr->session = session;
-  pr->size = msgbuf_size;
-  GNUNET_CONTAINER_DLL_insert_tail (session->pr_head,
-				    session->pr_tail,
-				    pr);
-
-  pr->th = GNUNET_DV_send (plugin->dvh,
-			   &session->sender,
-			   msg,
-			   &send_finished,
-			   pr);
+  GNUNET_DV_send (plugin->dvh,
+                  &session->sender,
+                  msg);
+  cont (cont_cls,
+        &session->sender,
+        GNUNET_OK,
+        msgbuf_size, 0);
   GNUNET_free_non_null (box);
   return 0; /* DV */
 }
@@ -618,26 +516,11 @@ dv_plugin_disconnect_peer (void *cls,
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session;
-  struct PendingRequest *pr;
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       target);
   if (NULL == session)
     return; /* nothing to do */
-  while (NULL != (pr = session->pr_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (session->pr_head,
-				 session->pr_tail,
-				 pr);
-    GNUNET_DV_send_cancel (pr->th);
-    pr->th = NULL;
-    if (NULL != pr->transmit_cont)
-      pr->transmit_cont (pr->transmit_cont_cls,
-			 &session->sender,
-			 GNUNET_SYSERR,
-                         pr->size, 0);
-    GNUNET_free (pr);
-  }
   session->active = GNUNET_NO;
 }
 
@@ -655,22 +538,6 @@ static int
 dv_plugin_disconnect_session (void *cls,
                               struct GNUNET_ATS_Session *session)
 {
-  struct PendingRequest *pr;
-
-  while (NULL != (pr = session->pr_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (session->pr_head,
-				 session->pr_tail,
-				 pr);
-    GNUNET_DV_send_cancel (pr->th);
-    pr->th = NULL;
-    if (NULL != pr->transmit_cont)
-      pr->transmit_cont (pr->transmit_cont_cls,
-			 &session->sender,
-			 GNUNET_SYSERR,
-                         pr->size, 0);
-    GNUNET_free (pr);
-  }
   session->active = GNUNET_NO;
   return GNUNET_OK;
 }
@@ -691,9 +558,11 @@ dv_plugin_disconnect_session (void *cls,
  * @param asc_cls closure for @a asc
  */
 static void
-dv_plugin_address_pretty_printer (void *cls, const char *type,
+dv_plugin_address_pretty_printer (void *cls,
+                                  const char *type,
                                   const void *addr,
-                                  size_t addrlen, int numeric,
+                                  size_t addrlen,
+                                  int numeric,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_TRANSPORT_AddressStringCallback asc,
                                   void *asc_cls)

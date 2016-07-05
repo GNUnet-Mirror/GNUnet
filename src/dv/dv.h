@@ -126,34 +126,9 @@ struct GNUNET_DV_SendMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unique ID for this message, for confirm callback, must never be zero.
+   * Reserved for alignment. 0.
    */
-  uint32_t uid GNUNET_PACKED;
-
-  /**
-   * The (actual) target of the message
-   */
-  struct GNUNET_PeerIdentity target;
-
-};
-
-
-/**
- * Message from service to DV plugin, saying that a
- * SEND request was handled.
- */
-struct GNUNET_DV_AckMessage
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_DV_SEND_ACK or
-   * #GNUNET_MESSAGE_TYPE_DV_SEND_NACK.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Which message is being acknowledged?
-   */
-  uint32_t uid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * The (actual) target of the message

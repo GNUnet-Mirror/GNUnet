@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -153,27 +153,12 @@ struct GNUNET_DV_TransmitHandle;
  * @param sh service handle
  * @param target intended recpient
  * @param msg message payload
- * @param cb function to invoke when done
- * @param cb_cls closure for 'cb'
  * @return handle to cancel the operation
  */
-struct GNUNET_DV_TransmitHandle *
+void
 GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 		const struct GNUNET_PeerIdentity *target,
-		const struct GNUNET_MessageHeader *msg,
-		GNUNET_DV_MessageSentCallback cb,
-		void *cb_cls);
-
-
-/**
- * Abort send operation (naturally, the message may have
- * already been transmitted; this only stops the 'cb'
- * from being called again).
- *
- * @param th send operation to cancel
- */
-void
-GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th);
+		const struct GNUNET_MessageHeader *msg);
 
 
 #endif
