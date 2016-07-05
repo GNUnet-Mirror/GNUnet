@@ -1059,7 +1059,7 @@ handle_cadet_pickup_message (void *cls,
 {
   struct Channel *ch = *channel_ctx;
   struct Line *line;
-  struct ClientPhonePickupMessage pick;
+  struct ClientPhonePickedupMessage pick;
 
   if (NULL == ch)
   {
@@ -1093,7 +1093,6 @@ handle_cadet_pickup_message (void *cls,
   }
   pick.header.size = htons (sizeof (pick));
   pick.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
-  pick.cid = ch->cid;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending PICKED UP message to client\n");
   GNUNET_SERVER_notification_context_unicast (nc,
