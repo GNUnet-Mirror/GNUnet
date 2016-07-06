@@ -111,7 +111,7 @@ mq_error_handler (void *cls,
  * from the service.
  *
  * @param cls closure
- * @param cklient_msg message received
+ * @param client_msg message received
  */
 static void
 handle_estimate (void *cls,
