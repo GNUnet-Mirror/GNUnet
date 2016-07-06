@@ -37,6 +37,53 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
+/**
+ * Current state of a validation process.
+ *
+ * FIXME: what state is used to indicate that a validation
+ * was successful? If that is clarified/determined, "UGH" in
+ * ~gnunetpeerinfogtk.c:1103 should be resolved.
+ */
+enum GNUNET_TRANSPORT_ValidationState
+{
+  /**
+   * Undefined state
+   *
+   * Used for final callback indicating operation done
+   */
+  GNUNET_TRANSPORT_VS_NONE,
+
+  /**
+   * Fresh validation entry
+   *
+   * Entry was just created, no validation process was executed
+   */
+  GNUNET_TRANSPORT_VS_NEW,
+
+  /**
+   * Updated validation entry
+   *
+   * This is an update for an existing validation entry
+   */
+  GNUNET_TRANSPORT_VS_UPDATE,
+
+  /**
+   * Timeout for validation entry
+   *
+   * A timeout occured during the validation process
+   */
+  GNUNET_TRANSPORT_VS_TIMEOUT,
+
+  /**
+   * Validation entry is removed
+   *
+   * The validation entry is getting removed due to a failed validation
+   */
+  GNUNET_TRANSPORT_VS_REMOVE
+};
+
+
+
 
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until
@@ -385,12 +432,6 @@ validation_entry_changed (struct ValidationEntry *ve,
                           enum GNUNET_TRANSPORT_ValidationState state)
 {
   ve->state = state;
-  GST_clients_broadcast_validation_notification (&ve->address->peer,
-                                                 ve->address,
-                                                 ve->send_time,
-                                                 ve->valid_until,
-                                                 ve->next_validation,
-                                                 state);
 }
 
 
@@ -1732,75 +1773,5 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
   }
 }
 
-
-/**
- * Closure for the validation_entries_iterate function.
- */
-struct ValidationIteratorContext
-{
-  /**
-   * Function to call on each validation entry
-   */
-  GST_ValidationChangedCallback cb;
-
-  /**
-   * Closure for @e cb.
-   */
-  void *cb_cls;
-};
-
-
-/**
- * Function called on each entry in the validation map.
- * Passes the information from the validation entry to
- * the callback given in the closure.
- *
- * @param cls the `struct ValidationIteratorContext`
- * @param key peer this is about
- * @param value the `struct ValidationEntry`
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-validation_entries_iterate (void *cls,
-			    const struct GNUNET_PeerIdentity *key,
-			    void *value)
-{
-  struct ValidationIteratorContext *ic = cls;
-  struct ValidationEntry *ve = value;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Notifying about validation entry for peer `%s' address `%s' \n",
-	      GNUNET_i2s (&ve->address->peer),
-	      GST_plugins_a2s (ve->address));
-  ic->cb (ic->cb_cls,
-	  ve->address,
-	  ve->send_time,
-	  ve->valid_until,
-	  ve->next_validation,
-	  ve->state);
-  return GNUNET_OK;
-}
-
-
-/**
- * Iterate over all iteration entries
- *
- * @param cb function to call
- * @param cb_cls closure for @a cb
- */
-void
-GST_validation_iterate (GST_ValidationChangedCallback cb,
-                        void *cb_cls)
-{
-  struct ValidationIteratorContext ic;
-
-  if (NULL == validation_map)
-    return; /* can happen during shutdown */
-  ic.cb = cb;
-  ic.cb_cls = cb_cls;
-  GNUNET_CONTAINER_multipeermap_iterate (validation_map,
-                                         &validation_entries_iterate,
-                                         &ic);
-}
 
 /* end of file gnunet-service-transport_validation.c */

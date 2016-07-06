@@ -1341,17 +1341,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC 385
 
 /**
- * Request to monitor address validations by a peer or all peers.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST 386
-
-/**
- * Response to #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST
- * request to iterate over all known addresses.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE 387
-
-/**
  * Request to start monitoring the connection state of plugins.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START 388

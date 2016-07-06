@@ -166,8 +166,8 @@ libgnunettransport_la_SOURCES = \
   transport_api_blacklist.c \
   transport_api_address_to_string.c \
   transport_api_monitor_peers.c \
-  transport_api_monitor_plugins.c \
-  transport_api_monitor_validation.c
+  transport_api_monitor_plugins.c
+
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \

@@ -87,11 +87,6 @@ struct ValidationResolutionContext
   struct GNUNET_TIME_Absolute next_validation;
 
   /**
-   * state of validation process
-   */
-  enum GNUNET_TRANSPORT_ValidationState state;
-
-  /**
    * Tranport conversion handle
    */
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
@@ -296,11 +291,6 @@ static int benchmark_receive;
 static int iterate_connections;
 
 /**
- * Option -d.
- */
-static int iterate_validation;
-
-/**
  * Option -a.
  */
 static int iterate_all;
@@ -319,11 +309,6 @@ static int monitor_connects;
  * Option -m.
  */
 static int monitor_connections;
-
-/**
- * Option -f.
- */
-static int monitor_validation;
 
 /**
  * Option -P.
@@ -384,11 +369,6 @@ static struct GNUNET_CONTAINER_MultiPeerMap *monitored_plugins;
  * Handle if we are monitoring peers at the transport level.
  */
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
-
-/**
- * Handle if we are monitoring transport validation activity.
- */
-static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vic;
 
 /**
  * Handle if we are monitoring plugin session activity.
@@ -506,11 +486,6 @@ shutdown_task (void *cls)
   {
     GNUNET_TRANSPORT_monitor_peers_cancel (pic);
     pic = NULL;
-  }
-  if (NULL != vic)
-  {
-    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vic);
-    vic = NULL;
   }
   if (NULL != pm)
   {
@@ -726,217 +701,6 @@ result_callback (void *cls,
 
   display_test_result (tc,
 		       result);
-}
-
-
-/**
- * Resolve address we got a validation state for to a string.
- *
- * @param address the address itself
- * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
- * @param last_validation when was the address validated last
- * @param valid_until until when is the address valid
- * @param next_validation when will we try to revalidate the address next
- * @param state where are we in the validation state machine
- */
-static void
-resolve_validation_address (const struct GNUNET_HELLO_Address *address,
-                            int numeric,
-                            struct GNUNET_TIME_Absolute last_validation,
-                            struct GNUNET_TIME_Absolute valid_until,
-                            struct GNUNET_TIME_Absolute next_validation,
-                            enum GNUNET_TRANSPORT_ValidationState state);
-
-
-/**
- * Function to call with a textual representation of an address.  This
- * function will be called several times with different possible
- * textual representations, and a last time with @a address being NULL
- * to signal the end of the iteration.  Note that @a address NULL
- * always is the last call, regardless of the value in @a res.
- *
- * @param cls closure
- * @param address NULL on end of iteration,
- *        otherwise 0-terminated printable UTF-8 string,
- *        in particular an empty string if @a res is #GNUNET_NO
- * @param res result of the address to string conversion:
- *        if #GNUNET_OK: conversion successful
- *        if #GNUNET_NO: address was invalid (or not supported)
- *        if #GNUNET_SYSERR: communication error (IPC error)
- */
-static void
-process_validation_string (void *cls,
-                           const char *address,
-                           int res)
-{
-  struct ValidationResolutionContext *vc = cls;
-  char *s_valid;
-  char *s_last;
-  char *s_next;
-
-  if (NULL != address)
-  {
-    if (GNUNET_SYSERR == res)
-    {
-      FPRINTF (stderr,
-               "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
-               GNUNET_i2s (&vc->addrcp->peer),
-               vc->addrcp->transport_name,
-               (unsigned int) vc->addrcp->address_length);
-    }
-    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->valid_until.abs_value_us)
-      s_valid = GNUNET_strdup ("never");
-    else
-      s_valid = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->valid_until));
-
-    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->last_validation.abs_value_us)
-      s_last = GNUNET_strdup ("never");
-    else
-      s_last = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->last_validation));
-
-    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->next_validation.abs_value_us)
-      s_next = GNUNET_strdup ("never");
-    else
-      s_next = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->next_validation));
-
-    FPRINTF (stdout,
-             _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
-             GNUNET_i2s (&vc->addrcp->peer),
-             (GNUNET_OK == res) ? address : "<invalid address>",
-             (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
-             "Valid until    : ", s_valid,
-             "Last validation: ",s_last,
-             "Next validation: ", s_next);
-    GNUNET_free (s_valid);
-    GNUNET_free (s_last);
-    GNUNET_free (s_next);
-    vc->printed = GNUNET_YES;
-    return;
-  }
-  /* last call, we are done */
-  GNUNET_assert (address_resolutions > 0);
-  address_resolutions--;
-  if ( (GNUNET_SYSERR == res) &&
-       (GNUNET_NO == vc->printed))
-  {
-    if (numeric == GNUNET_NO)
-    {
-      /* Failed to resolve address, try numeric lookup
-         (note: this should be unnecessary, as
-         transport should fallback to numeric lookup
-         internally if DNS takes too long anyway) */
-      resolve_validation_address (vc->addrcp,
-                                  GNUNET_NO,
-                                  vc->last_validation,
-                                  vc->valid_until,
-                                  vc->next_validation,
-                                  vc->state);
-    }
-    else
-    {
-      FPRINTF (stdout,
-               _("Peer `%s' %s `%s' \n"),
-               GNUNET_i2s (&vc->addrcp->peer),
-               "<unable to resolve address>",
-               GNUNET_TRANSPORT_vs2s (vc->state));
-    }
-  }
-  GNUNET_free (vc->transport);
-  GNUNET_free (vc->addrcp);
-  GNUNET_CONTAINER_DLL_remove (vc_head, vc_tail, vc);
-  GNUNET_free (vc);
-  if ((0 == address_resolutions) && (iterate_validation))
-  {
-    if (NULL != op_timeout)
-    {
-      GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = NULL;
-    }
-    ret = 0;
-    GNUNET_SCHEDULER_shutdown ();
-  }
-}
-
-
-/**
- * Resolve address we got a validation state for to a string.
- *
- * @param address the address itself
- * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
- * @param last_validation when was the address validated last
- * @param valid_until until when is the address valid
- * @param next_validation when will we try to revalidate the address next
- * @param state where are we in the validation state machine
- */
-static void
-resolve_validation_address (const struct GNUNET_HELLO_Address *address,
-                            int numeric,
-                            struct GNUNET_TIME_Absolute last_validation,
-                            struct GNUNET_TIME_Absolute valid_until,
-                            struct GNUNET_TIME_Absolute next_validation,
-                            enum GNUNET_TRANSPORT_ValidationState state)
-{
-  struct ValidationResolutionContext *vc;
-
-  vc = GNUNET_new (struct ValidationResolutionContext);
-  GNUNET_assert(NULL != vc);
-  GNUNET_CONTAINER_DLL_insert(vc_head, vc_tail, vc);
-  address_resolutions++;
-
-  vc->transport = GNUNET_strdup(address->transport_name);
-  vc->addrcp = GNUNET_HELLO_address_copy (address);
-  vc->printed = GNUNET_NO;
-  vc->state = state;
-  vc->last_validation = last_validation;
-  vc->valid_until = valid_until;
-  vc->next_validation = next_validation;
-
-  /* Resolve address to string */
-  vc->asc = GNUNET_TRANSPORT_address_to_string (cfg,
-                                                address,
-                                                numeric,
-                                                RESOLUTION_TIMEOUT,
-                                                &process_validation_string, vc);
-}
-
-
-/**
- * Resolve address we got a validation state for to a string.
- *
- * @param cls NULL
- * @param address the address itself
- * @param last_validation when was the address validated last
- * @param valid_until until when is the address valid
- * @param next_validation when will we try to revalidate the address next
- * @param state where are we in the validation state machine
- */
-static void
-process_validation_cb (void *cls,
-                       const struct GNUNET_HELLO_Address *address,
-                       struct GNUNET_TIME_Absolute last_validation,
-                       struct GNUNET_TIME_Absolute valid_until,
-                       struct GNUNET_TIME_Absolute next_validation,
-                       enum GNUNET_TRANSPORT_ValidationState state)
-{
-  if (NULL == address)
-  {
-    if (monitor_validation)
-    {
-      FPRINTF (stdout,
-               "%s",
-               _("Monitor disconnected from transport service. Reconnecting.\n"));
-      return;
-    }
-    vic = NULL;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  resolve_validation_address (address,
-                              numeric,
-                              last_validation,
-                              valid_until,
-                              next_validation,
-                              state);
 }
 
 
@@ -1784,7 +1548,7 @@ testservice_task (void *cls,
 
   counter = benchmark_send + benchmark_receive + iterate_connections
       + monitor_connections + monitor_connects + do_disconnect +
-      + iterate_validation + monitor_validation + monitor_plugins;
+      monitor_plugins;
 
   if (1 < counter)
   {
@@ -1901,20 +1665,6 @@ testservice_task (void *cls,
                                            &plugin_monitoring_cb,
                                            NULL);
   }
-  else if (iterate_validation) /* -d: Print information about validations */
-  {
-    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
-                                                       (NULL == cpid) ? NULL : &pid,
-                                                       GNUNET_YES, TIMEOUT,
-                                                       &process_validation_cb, (void *) cfg);
-  }
-  else if (monitor_validation) /* -f: Print information about validations continuously */
-  {
-    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
-                                                       (NULL == cpid) ? NULL : &pid,
-                                                       GNUNET_NO, TIMEOUT,
-                                                       &process_validation_cb, (void *) cfg);
-  }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
     monitor_connect_counter = 0;
@@ -1985,12 +1735,6 @@ main (int argc,
     { 'D', "disconnect",
       NULL, gettext_noop ("disconnect from a peer"), 0,
       &GNUNET_GETOPT_set_one, &do_disconnect },
-    { 'd', "validation", NULL,
-      gettext_noop ("print information for all pending validations "),
-      0, &GNUNET_GETOPT_set_one, &iterate_validation },
-    { 'f', "monitorvalidation", NULL,
-      gettext_noop ("print information for all pending validations continuously"),
-      0, &GNUNET_GETOPT_set_one, &monitor_validation },
     { 'i', "information", NULL,
       gettext_noop ("provide information about all current connections (once)"),
       0, &GNUNET_GETOPT_set_one, &iterate_connections },
