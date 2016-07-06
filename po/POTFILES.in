@@ -277,6 +277,7 @@ src/pq/pq_result_helper.c
 src/psyc/gnunet-service-psyc.c
 src/psyc/psyc_api.c
 src/psycstore/gnunet-service-psycstore.c
+src/psycstore/plugin_psycstore_mysql.c
 src/psycstore/plugin_psycstore_sqlite.c
 src/psycstore/psycstore_api.c
 src/psycutil/psyc_env.c
