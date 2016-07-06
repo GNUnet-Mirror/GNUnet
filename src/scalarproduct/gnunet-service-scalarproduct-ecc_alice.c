@@ -472,7 +472,7 @@ compute_scalar_product (struct AliceServiceSession *session,
   ai_bi = GNUNET_CRYPTO_ecc_dlog (edc,
                                   g_ai_bi);
   gcry_mpi_point_release (g_ai_bi);
-  if (MAX_RESULT == ai_bi)
+  if (INT_MAX == ai_bi)
   {
     /* result too big */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

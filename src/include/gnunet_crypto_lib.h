@@ -1030,7 +1030,7 @@ GNUNET_CRYPTO_kdf_v (void *result,
 void
 GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
                            gcry_mpi_t n,
-                           const void *xts,  size_t xts_len, 
+                           const void *xts,  size_t xts_len,
                            const void *skm,  size_t skm_len,
                            const char *ctx);
 
@@ -1348,7 +1348,7 @@ struct GNUNET_CRYPTO_EccPoint
  *
  * @param max maximum value the factor can be
  * @param mem memory to use (should be smaller than @a max), must not be zero.
- * @return @a max if dlog failed, otherwise the factor
+ * @return NULL on error
  */
 struct GNUNET_CRYPTO_EccDlogContext *
 GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
@@ -1361,7 +1361,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
  *
  * @param dlc precalculated values, determine range of factors
  * @param input point on the curve to factor
- * @return `dlc->max` if dlog failed, otherwise the factor
+ * @return INT_MAX if dlog failed, otherwise the factor
  */
 int
 GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,

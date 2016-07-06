@@ -151,7 +151,7 @@ GNUNET_CRYPTO_ecc_bin_to_point (struct GNUNET_CRYPTO_EccDlogContext *edc,
  *
  * @param max maximum value the factor can be
  * @param mem memory to use (should be smaller than @a max), must not be zero.
- * @return @a max if dlog failed, otherwise the factor
+ * @return NULL on error
  */
 struct GNUNET_CRYPTO_EccDlogContext *
 GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
@@ -219,7 +219,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
  *
  * @param edc precalculated values, determine range of factors
  * @param input point on the curve to factor
- * @return `edc->max` if dlog failed, otherwise the factor
+ * @return INT_MAX if dlog failed, otherwise the factor
  */
 int
 GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
@@ -237,7 +237,7 @@ GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
   GNUNET_assert (NULL != g);
   q = gcry_mpi_point_new (0);
 
-  res = edc->max;
+  res = INT_MAX;
   for (i=0;i<=edc->max/edc->mem;i++)
   {
     if (0 == i)
