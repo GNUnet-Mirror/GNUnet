@@ -529,7 +529,7 @@ GNUNET_DISK_mkdtemp (const char *t)
   char *fn;
   mode_t omask;
 
-  omask = umask (S_IWGRP | S_IWOTH | SIRGRP | S_IROTH);
+  omask = umask (S_IWGRP | S_IWOTH | S_IRGRP | S_IROTH);
   fn = mktemp_name (t);
   if (fn != mkdtemp (fn))
   {
@@ -593,7 +593,7 @@ GNUNET_DISK_mktemp (const char *t)
   char *fn;
   mode_t omask;
 
-  omask = umask (S_IWGRP | S_IWOTH | SIRGRP | S_IROTH);
+  omask = umask (S_IWGRP | S_IWOTH | S_IRGRP | S_IROTH);
   fn = mktemp_name (t);
   if (-1 == (fd = mkstemp (fn)))
   {

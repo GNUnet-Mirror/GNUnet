@@ -353,8 +353,8 @@ read_host_file (const char *fn,
     return;
   size_total = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Read %u bytes from `%s'\n",
-              size_total,
+              "Read %d bytes from `%s'\n",
+              (int) size_total,
               fn);
   if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
