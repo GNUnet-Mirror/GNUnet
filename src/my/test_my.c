@@ -103,7 +103,10 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   if (NULL == statements_handle_insert)
   {
     fprintf (stderr, "Failed to prepared statement INSERT\n");
-     return 1;
+    GNUNET_CRYPTO_rsa_signature_free (sig);
+    GNUNET_CRYPTO_rsa_private_key_free (priv);
+    GNUNET_CRYPTO_rsa_public_key_free (pub);
+    return 1;
   }
 
   struct GNUNET_MY_QueryParam params_insert[] = {
@@ -126,6 +129,9 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                           params_insert))
   {
       fprintf (stderr, "Failed to execute prepared statement INSERT\n");
+      GNUNET_CRYPTO_rsa_signature_free (sig);
+      GNUNET_CRYPTO_rsa_private_key_free (priv);
+      GNUNET_CRYPTO_rsa_public_key_free (pub);
       return 1;
   }
 
@@ -147,6 +153,9 @@ run_queries (struct GNUNET_MYSQL_Context *context)
   if (NULL == statements_handle_select)
   {
     fprintf(stderr, "Failed to prepared statement SELECT\n");
+    GNUNET_CRYPTO_rsa_signature_free (sig);
+    GNUNET_CRYPTO_rsa_private_key_free (priv);
+    GNUNET_CRYPTO_rsa_public_key_free (pub);
     return 1;
   }
 
@@ -159,6 +168,9 @@ run_queries (struct GNUNET_MYSQL_Context *context)
                                             params_select))
   {
     fprintf (stderr, "Failed to execute prepared statement SELECT\n");
+    GNUNET_CRYPTO_rsa_signature_free (sig);
+    GNUNET_CRYPTO_rsa_private_key_free (priv);
+    GNUNET_CRYPTO_rsa_public_key_free (pub);
     return 1;
   }
 

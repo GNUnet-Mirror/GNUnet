@@ -56,9 +56,12 @@ plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN)
 
 libgnunet_plugin_psycstore_sqlite_la_SOURCES = \
-  plugin_psycstore_sqlite.c
+  plugin_psycstore_sqlite.c \
+  plugin_psycstore_mysql.c
 libgnunet_plugin_psycstore_sqlite_la_LIBADD = \
   libgnunetpsycstore.la  \
+  $(top_builddir)/src/my/libgnunetmy.la \
+  $(top_builddir)/src/mysql/libgnunetmysql.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
@@ -95,3 +98,4 @@ test_plugin_psycstore_sqlite_SOURCES = \
 test_plugin_psycstore_sqlite_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
