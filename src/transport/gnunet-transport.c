@@ -1875,8 +1875,11 @@ testservice_task (void *cls,
   }
   else if (iterate_connections) /* -i: List information about peers once */
   {
-    pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
-        GNUNET_YES, TIMEOUT, &process_peer_iteration_cb, (void *) cfg);
+    pic = GNUNET_TRANSPORT_monitor_peers (cfg,
+                                          (NULL == cpid) ? NULL : &pid,
+                                          GNUNET_YES,
+                                          &process_peer_iteration_cb,
+                                          (void *) cfg);
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout,
                                                NULL);
@@ -1888,8 +1891,8 @@ testservice_task (void *cls,
     pic = GNUNET_TRANSPORT_monitor_peers (cfg,
 					  (NULL == cpid) ? NULL : &pid,
                                           GNUNET_NO,
-					  TIMEOUT,
-                                          &process_peer_monitoring_cb, NULL);
+                                          &process_peer_monitoring_cb,
+                                          NULL);
   }
   else if (monitor_plugins) /* -P: List information about plugins continuously */
   {
@@ -1933,7 +1936,7 @@ testservice_task (void *cls,
     GNUNET_break(0);
     return;
   }
-  
+
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
@@ -1959,12 +1962,17 @@ run (void *cls,
     do_test_configuration (cfg);
     return;
   }
-  GNUNET_CLIENT_service_test ("transport", cfg, GNUNET_TIME_UNIT_SECONDS,
-      &testservice_task, (void *) cfg);
+  GNUNET_CLIENT_service_test ("transport",
+                              cfg,
+                              GNUNET_TIME_UNIT_SECONDS,
+                              &testservice_task,
+                              (void *) cfg);
 }
 
+
 int
-main (int argc, char * const *argv)
+main (int argc,
+      char * const *argv)
 {
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {

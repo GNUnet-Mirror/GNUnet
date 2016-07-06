@@ -1298,7 +1298,7 @@ clients_handle_monitor_peers (void *cls,
     GNUNET_SERVER_transmit_context_append_data (tc,
                                                 NULL,
                                                 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END);
   }
   GNUNET_SERVER_transmit_context_run (tc,
                                       GNUNET_TIME_UNIT_FOREVER_REL);

@@ -1369,6 +1369,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC 390
 
+/**
+ * Response to #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END
+ * terminating list of replies.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END 391
+
 
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages

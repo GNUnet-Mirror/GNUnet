@@ -608,7 +608,6 @@ typedef void
  *      NULL for all peers
  * @param one_shot #GNUNET_YES to return the current state and then end (with NULL+NULL),
  *                 #GNUNET_NO to monitor peers continuously
- * @param timeout how long is the lookup allowed to take at most
  * @param peer_callback function to call with the results
  * @param peer_callback_cls closure for @a peer_callback
  */
@@ -616,7 +615,6 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext *
 GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const struct GNUNET_PeerIdentity *peer,
                                 int one_shot,
-                                struct GNUNET_TIME_Relative timeout,
                                 GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
                                 void *peer_callback_cls);
 

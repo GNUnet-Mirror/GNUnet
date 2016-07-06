@@ -450,14 +450,22 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
                                             NULL);
-  pmc_p1 = GNUNET_TRANSPORT_monitor_peers (p1->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor1_cb, NULL);
+  pmc_p1 = GNUNET_TRANSPORT_monitor_peers (p1->cfg,
+                                           NULL,
+                                           GNUNET_NO,
+                                           &monitor1_cb,
+                                           NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
 
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
                                             NULL);
-  pmc_p2 = GNUNET_TRANSPORT_monitor_peers (p2->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor2_cb, NULL);
+  pmc_p2 = GNUNET_TRANSPORT_monitor_peers (p2->cfg,
+                                           NULL,
+                                           GNUNET_NO,
+                                           &monitor2_cb,
+                                           NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
   if ((p1 == NULL) || (p2 == NULL))
   {
