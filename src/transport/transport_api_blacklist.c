@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010-2014 GNUnet e.V.
+     Copyright (C) 2010-2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -40,17 +40,12 @@ struct GNUNET_TRANSPORT_Blacklist
   /**
    * Connection to transport service.
    */
-  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Pending handle for the current request.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
    * Function to call for determining if a peer is allowed
@@ -62,11 +57,6 @@ struct GNUNET_TRANSPORT_Blacklist
    * Closure for @e cb.
    */
   void *cb_cls;
-
-  /**
-   * Peer currently under consideration.
-   */
-  struct GNUNET_PeerIdentity peer;
 
 };
 
@@ -81,82 +71,44 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
- * Send our reply to a blacklisting request.
- *
- * @param br our overall context
- */
-static void
-reply (struct GNUNET_TRANSPORT_Blacklist *br);
-
-
-/**
  * Handle blacklist queries.
  *
  * @param cls our overall handle
- * @param msg query
+ * @param bm query
  */
 static void
-query_handler (void *cls,
-               const struct GNUNET_MessageHeader *msg)
+handle_query (void *cls,
+              const struct BlacklistMessage *bm)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
-  const struct BlacklistMessage *bm;
+  struct GNUNET_MQ_Envelope *env;
+  struct BlacklistMessage *res;
 
-  GNUNET_assert (NULL != br);
-  if ((NULL == msg) ||
-      (ntohs (msg->size) != sizeof (struct BlacklistMessage)) ||
-      (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY))
-  {
-    reconnect (br);
-    return;
-  }
-  bm = (const struct BlacklistMessage *) msg;
   GNUNET_break (0 == ntohl (bm->is_allowed));
-  br->peer = bm->peer;
-  reply (br);
+  env = GNUNET_MQ_msg (res,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY);
+  res->is_allowed = htonl (br->cb (br->cb_cls,
+                                   &bm->peer));
+  res->peer = bm->peer;
+  GNUNET_MQ_send (br->mq,
+                  env);
 }
 
-
 /**
- * Receive blacklist queries from transport service.
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
  *
- * @param br overall handle
+ * @param cls closure with the `struct GNUNET_TRANSPORT_Blacklist *`
+ * @param error error code
  */
 static void
-receive (struct GNUNET_TRANSPORT_Blacklist *br)
-{
-  GNUNET_CLIENT_receive (br->client, &query_handler, br,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
- * Transmit the blacklist initialization request to the service.
- *
- * @param cls closure with `struct GNUNET_TRANSPORT_Blacklist *`
- * @param size number of bytes available in @a buf
- * @param buf where the callee should write the message
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_blacklist_init (void *cls,
-                         size_t size,
-                         void *buf)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
-  struct GNUNET_MessageHeader req;
 
-  br->th = NULL;
-  if (NULL == buf)
-  {
-    reconnect (br);
-    return 0;
-  }
-  req.size = htons (sizeof (struct GNUNET_MessageHeader));
-  req.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
-  memcpy (buf, &req, sizeof (req));
-  receive (br);
-  return sizeof (req);
+  reconnect (br);
 }
 
 
@@ -168,72 +120,29 @@ transmit_blacklist_init (void *cls,
 static void
 reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  if (NULL != br->client)
-    GNUNET_CLIENT_disconnect (br->client);
-  br->client = GNUNET_CLIENT_connect ("transport", br->cfg);
-  GNUNET_assert (NULL != br->client);
-  br->th =
-      GNUNET_CLIENT_notify_transmit_ready (br->client,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_YES, &transmit_blacklist_init,
-                                           br);
-}
+  GNUNET_MQ_hd_fixed_size (query,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY,
+                           struct BlacklistMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_query_handler (br),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *req;
 
-
-/**
- * Transmit the blacklist response to the service.
- *
- * @param cls closure with `struct GNUNET_TRANSPORT_Blacklist *`
- * @param size number of bytes available in @a buf
- * @param buf where the callee should write the message
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_blacklist_reply (void *cls,
-                          size_t size,
-                          void *buf)
-{
-  struct GNUNET_TRANSPORT_Blacklist *br = cls;
-  struct BlacklistMessage req;
-
-  br->th = NULL;
-  if (NULL == buf)
-  {
-    reconnect (br);
-    return 0;
-  }
-  req.header.size = htons (sizeof (req));
-  req.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY);
-  req.is_allowed = htonl (br->cb (br->cb_cls, &br->peer));
-  req.peer = br->peer;
-  memcpy (buf, &req, sizeof (req));
-  br->th = NULL;
-  receive (br);
-  return sizeof (req);
-}
-
-
-/**
- * Send our reply to a blacklisting request.
- *
- * @param br our overall context
- */
-static void
-reply (struct GNUNET_TRANSPORT_Blacklist *br)
-{
-  GNUNET_assert (NULL == br->th);
-  br->th =
-      GNUNET_CLIENT_notify_transmit_ready (br->client,
-                                           sizeof (struct BlacklistMessage),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_blacklist_reply,
-                                           br);
-  if (NULL == br->th)
-  {
-    reconnect (br);
+  if (NULL != br->mq)
+    GNUNET_MQ_destroy (br->mq);
+  br->mq = GNUNET_CLIENT_connecT (br->cfg,
+                                  "transport",
+                                  handlers,
+                                  &mq_error_handler,
+                                  br);
+  if (NULL == br->mq)
     return;
-  }
+  env = GNUNET_MQ_msg (req,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
+  GNUNET_MQ_send (br->mq,
+                  env);
 }
 
 
@@ -256,24 +165,19 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_TRANSPORT_BlacklistCallback cb,
                             void *cb_cls)
 {
-  struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_TRANSPORT_Blacklist *ret;
+  struct GNUNET_TRANSPORT_Blacklist *br;
 
-  client = GNUNET_CLIENT_connect ("transport", cfg);
-  if (NULL == client)
+  br = GNUNET_new (struct GNUNET_TRANSPORT_Blacklist);
+  br->cfg = cfg;
+  br->cb = cb;
+  br->cb_cls = cb_cls;
+  reconnect (br);
+  if (NULL == br->mq)
+  {
+    GNUNET_free (br);
     return NULL;
-  ret = GNUNET_new (struct GNUNET_TRANSPORT_Blacklist);
-  ret->client = client;
-  ret->cfg = cfg;
-  ret->cb = cb;
-  ret->cb_cls = cb_cls;
-  ret->th =
-      GNUNET_CLIENT_notify_transmit_ready (client,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_YES, &transmit_blacklist_init,
-                                           ret);
-  return ret;
+  }
+  return br;
 }
 
 
@@ -286,12 +190,7 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  if (NULL != br->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (br->th);
-    br->th = NULL;
-  }
-  GNUNET_CLIENT_disconnect (br->client);
+  GNUNET_MQ_destroy (br->mq);
   GNUNET_free (br);
 }
 
