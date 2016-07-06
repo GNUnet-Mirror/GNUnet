@@ -3671,13 +3671,17 @@ run (void *cls,
 
   if (GNUNET_YES == ipv6_enabled)
   {
+    ipv6addr = NULL;
     if ( (GNUNET_SYSERR ==
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6ADDR",
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                 "exit",
+                                                 "IPV6ADDR",
 						 &ipv6addr) ||
 	  (1 != inet_pton (AF_INET6, ipv6addr, &exit_ipv6addr))) )
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6ADDR");
       GNUNET_SCHEDULER_shutdown ();
+      GNUNET_free_non_null (ipv6addr);
       return;
     }
     exit_argv[3] = ipv6addr;
@@ -3710,6 +3714,7 @@ run (void *cls,
   }
   if (GNUNET_YES == ipv4_enabled)
   {
+    ipv4addr = NULL;
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
 						 &ipv4addr) ||
@@ -3717,6 +3722,7 @@ run (void *cls,
       {
 	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4ADDR");
 	GNUNET_SCHEDULER_shutdown ();
+        GNUNET_free_non_null (ipv4addr);
 	return;
       }
     exit_argv[5] = ipv4addr;

@@ -322,7 +322,7 @@ check_arm_list_result (void *cls,
 {
   const char *pos = (const char *) &lres[1];
   uint16_t rcount = ntohs (lres->count);
-  uint16_t msize = ntohs (lres->arm_msg.header.size);
+  uint16_t msize = ntohs (lres->arm_msg.header.size) - sizeof (*lres);
   uint16_t size_check;
 
   size_check = 0;
@@ -355,7 +355,7 @@ handle_arm_list_result (void *cls,
   uint16_t rcount = ntohs (lres->count);
   const char *list[rcount];
   const char *pos = (const char *) &lres[1];
-  uint16_t msize = ntohs (lres->arm_msg.header.size);
+  uint16_t msize = ntohs (lres->arm_msg.header.size) - sizeof (*lres);
   struct GNUNET_ARM_Operation *op;
   uint16_t size_check;
   uint64_t id;

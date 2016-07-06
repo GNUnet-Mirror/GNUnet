@@ -315,7 +315,7 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->iterate_all_zones);
   if (NULL != plugin->zone_to_name)
     sqlite3_finalize (plugin->zone_to_name);
-  if (NULL != plugin->zone_to_name)
+  if (NULL != plugin->lookup_label)
     sqlite3_finalize (plugin->lookup_label);
   result = sqlite3_close (plugin->dbh);
   if (result == SQLITE_BUSY)

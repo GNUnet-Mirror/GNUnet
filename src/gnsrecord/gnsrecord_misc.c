@@ -185,7 +185,7 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
       /* We have a shadow record */
       if (0 != (rd[c2].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
       {
-        rt_shadow.rel_value_us = rd[2].expiration_time;
+        rt_shadow.rel_value_us = rd[c2].expiration_time;
         at_shadow = GNUNET_TIME_relative_to_absolute (rt_shadow);
       }
       else

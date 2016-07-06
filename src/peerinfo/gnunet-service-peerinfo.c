@@ -338,12 +338,12 @@ read_host_file (const char *fn,
                 struct ReadHostFileContext *r)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-  unsigned int size_total;
+  ssize_t size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
-  unsigned read_pos;
+  size_t read_pos;
   int size_hello;
 
   r->friend_only_hello = NULL;
@@ -1005,6 +1005,7 @@ discard_hosts_helper (void *cls,
 	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
 				  GNUNET_ERROR_TYPE_BULK,
                                   "unlink", fn);
+      GNUNET_free (writebuffer);
       return GNUNET_OK;
     }
     new_hello = GNUNET_HELLO_iterate_addresses (hello,
@@ -1028,11 +1029,13 @@ discard_hosts_helper (void *cls,
 
   if (0 < write_pos)
   {
-      GNUNET_DISK_fn_write (fn, writebuffer,write_pos,
-                            GNUNET_DISK_PERM_USER_READ |
-                            GNUNET_DISK_PERM_USER_WRITE |
-                            GNUNET_DISK_PERM_GROUP_READ |
-                            GNUNET_DISK_PERM_OTHER_READ);
+    GNUNET_DISK_fn_write (fn,
+                          writebuffer,
+                          write_pos,
+                          GNUNET_DISK_PERM_USER_READ |
+                          GNUNET_DISK_PERM_USER_WRITE |
+                          GNUNET_DISK_PERM_GROUP_READ |
+                          GNUNET_DISK_PERM_OTHER_READ);
   }
   else if (0 != UNLINK (fn))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |

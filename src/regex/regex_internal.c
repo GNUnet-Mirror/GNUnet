@@ -2037,9 +2037,9 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
 	      /* same edge, but targets definitively different, so we're different
 		 as well */
 	      if (t1->to_state->marked > t2->to_state->marked)
-		idx1 = t1->to_state->marked * state_cnt + t2->to_state->marked;
+		idx1 = (unsigned long long) t1->to_state->marked * state_cnt + t2->to_state->marked;
 	      else
-		idx1 = t2->to_state->marked * state_cnt + t1->to_state->marked;
+		idx1 = (unsigned long long) t2->to_state->marked * state_cnt + t1->to_state->marked;
 	      if (0 != (table[idx1 / 32] & (1 << (idx1 % 32))))
 	      {
 		table[idx / 32] |= (1 << (idx % 32));
@@ -2066,7 +2066,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
     for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
     {
       s2_next = s2->next;
-      idx = s1->marked * state_cnt + s2->marked;
+      idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
       if (0 == (table[idx / 32] & (1 << (idx % 32))))
         automaton_merge_states (ctx, a, s1, s2);
     }

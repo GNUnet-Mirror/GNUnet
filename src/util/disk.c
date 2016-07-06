@@ -527,14 +527,18 @@ char *
 GNUNET_DISK_mkdtemp (const char *t)
 {
   char *fn;
+  mode_t omask;
 
+  omask = umask (S_IWGRP | S_IWOTH | SIRGRP | S_IROTH);
   fn = mktemp_name (t);
   if (fn != mkdtemp (fn))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "mkstemp", fn);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "mkdtemp", fn);
     GNUNET_free (fn);
+    umask (omask);
     return NULL;
   }
+  umask (omask);
   return fn;
 }
 
@@ -587,14 +591,18 @@ GNUNET_DISK_mktemp (const char *t)
 {
   int fd;
   char *fn;
+  mode_t omask;
 
+  omask = umask (S_IWGRP | S_IWOTH | SIRGRP | S_IROTH);
   fn = mktemp_name (t);
   if (-1 == (fd = mkstemp (fn)))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "mkstemp", fn);
     GNUNET_free (fn);
+    umask (omask);
     return NULL;
   }
+  umask (omask);
   if (0 != CLOSE (fd))
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "close", fn);
   return fn;

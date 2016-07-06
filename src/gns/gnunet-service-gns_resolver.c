@@ -1323,6 +1323,7 @@ handle_gns2dns_result (void *cls,
   /* expand authority chain */
   ac = GNUNET_new (struct AuthorityChain);
   ac->rh = rh;
+  GNUNET_assert (strlen (rh->g2dc->ns) <= GNUNET_DNSPARSER_MAX_NAME_LENGTH);
   strcpy (ac->authority_info.dns_authority.name,
           rh->g2dc->ns);
   memcpy (&ac->authority_info.dns_authority.dns_ip,

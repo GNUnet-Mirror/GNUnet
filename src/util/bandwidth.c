@@ -177,7 +177,7 @@ update_excess (struct GNUNET_BANDWIDTH_Tracker *av)
        500000LL) / 1000000LL;
   current_consumption = av->consumption_since_last_update__ - delta_avail;
   /* negative current_consumption means that we have savings */
-  max_carry = av->available_bytes_per_s__ * av->max_carry_s__;
+  max_carry = (uint64_t) av->available_bytes_per_s__ * av->max_carry_s__;
   if (max_carry < GNUNET_SERVER_MAX_MESSAGE_SIZE)
     max_carry = GNUNET_SERVER_MAX_MESSAGE_SIZE;
   left_bytes = max_carry + current_consumption;

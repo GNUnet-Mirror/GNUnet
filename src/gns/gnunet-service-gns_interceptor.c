@@ -261,6 +261,8 @@ reply_to_dns (void *cls, uint32_t rd_count,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Error converting GNS response to DNS response!\n"));
+      if (GNUNET_NO == ret)
+        GNUNET_free (buf);
     }
     else
     {

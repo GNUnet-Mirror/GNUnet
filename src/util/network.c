@@ -166,6 +166,12 @@ GNUNET_NETWORK_unix_precheck (const struct sockaddr_un *un)
   int ret;
 
   s = socket (AF_UNIX, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "Failed to open AF_UNIX socket");
+    return;
+  }
   ret = connect (s,
                  (struct sockaddr *) un,
                  sizeof (struct sockaddr_un));

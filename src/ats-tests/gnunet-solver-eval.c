@@ -65,6 +65,7 @@ create_experiment ()
   return e;
 }
 
+
 static void
 free_experiment (struct Experiment *e)
 {
@@ -92,9 +93,11 @@ free_experiment (struct Experiment *e)
   GNUNET_free (e);
 }
 
+
 static int
-load_episode (struct Experiment *e, struct Episode *cur,
-    struct GNUNET_CONFIGURATION_Handle *cfg)
+load_episode (struct Experiment *e,
+              struct Episode *cur,
+              struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_ATS_TEST_Operation *o;
   char *sec_name;
@@ -186,8 +189,12 @@ load_episode (struct Experiment *e, struct Episode *cur,
     }
     if (o->dest_id > (e->num_slaves - 1))
     {
-      fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
-          o->dest_id, op_counter, op, cur->id);
+      fprintf (stderr,
+               "Invalid destination %llu in operation %u `%s' in episode %u\n",
+               o->dest_id,
+               op_counter,
+               op,
+               cur->id);
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (sec_name);
@@ -197,9 +204,13 @@ load_episode (struct Experiment *e, struct Episode *cur,
     GNUNET_free (op_name);
 
     GNUNET_asprintf(&op_name, "op-%u-type", op_counter);
-    if ( (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string(cfg,
-            sec_name, op_name, &type)) &&
-        ((STOP_SEND != o->type) || (STOP_PREFERENCE != o->type)))
+    if ( (GNUNET_SYSERR !=
+          GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                sec_name,
+                                                op_name,
+                                                &type)) &&
+         (STOP_SEND != o->type) &&
+         (STOP_PREFERENCE != o->type) )
     {
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
@@ -249,8 +260,11 @@ load_episode (struct Experiment *e, struct Episode *cur,
 
       /* Get max rate */
       GNUNET_asprintf(&op_name, "op-%u-max-rate", op_counter);
-      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-          sec_name, op_name, &o->max_rate))
+      if (GNUNET_SYSERR ==
+          GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                 sec_name,
+                                                 op_name,
+                                                 &o->max_rate))
       {
         if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
             (GNUNET_ATS_TEST_TG_RANDOM == o->gen_type) ||

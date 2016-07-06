@@ -239,7 +239,6 @@ task (void *cls)
     GNUNET_MQ_handler_end ()
   };
 
-
   sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
   sap[1] = NULL;

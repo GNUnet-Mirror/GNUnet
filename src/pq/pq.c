@@ -119,15 +119,13 @@ GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs)
 
 /**
  * Extract results from a query result according to the given
- * specification.  If colums are NULL, the destination is not
- * modified, and #GNUNET_NO is returned.
+ * specification.
  *
  * @param result result to process
  * @param[in,out] rs result specification to extract for
  * @param row row from the result to extract
  * @return
  *   #GNUNET_YES if all results could be extracted
- *   #GNUNET_NO if at least one result was NULL
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
@@ -136,7 +134,6 @@ GNUNET_PQ_extract_result (PGresult *result,
 			  int row)
 {
   unsigned int i;
-  int had_null = GNUNET_NO;
   int ret;
 
   for (i=0; NULL != rs[i].conv; i++)
@@ -150,7 +147,7 @@ GNUNET_PQ_extract_result (PGresult *result,
 		      spec->fname,
 		      &spec->dst_size,
 		      spec->dst);
-    if (GNUNET_SYSERR == ret)
+    if (GNUNET_OK != ret)
     {
       GNUNET_PQ_cleanup_result (rs);
       return GNUNET_SYSERR;
@@ -158,8 +155,6 @@ GNUNET_PQ_extract_result (PGresult *result,
     if (NULL != spec->result_size)
       *spec->result_size = spec->dst_size;
   }
-  if (GNUNET_YES == had_null)
-    return GNUNET_NO;
   return GNUNET_OK;
 }
 

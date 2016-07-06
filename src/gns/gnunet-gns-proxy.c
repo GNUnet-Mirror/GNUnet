@@ -409,7 +409,7 @@ enum SocksPhase
   SOCKS5_SOCKET_WITH_MHD,
 
   /**
-   * We've finished receiving upload data from MHD.
+   * We've started receiving upload data from MHD.
    */
   SOCKS5_SOCKET_UPLOAD_STARTED,
 
@@ -1230,7 +1230,7 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
 		"Completed CURL UPLOAD\n");
     return 0; /* upload finished, can now download */
   }
-  if ( (SOCKS5_SOCKET_UPLOAD_STARTED != s5r->state) ||
+  if ( (SOCKS5_SOCKET_UPLOAD_STARTED != s5r->state) &&
        (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
   {
     GNUNET_break (0);

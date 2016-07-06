@@ -442,15 +442,12 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
 
 /**
  * Extract results from a query result according to the given specification.
- * If colums are NULL, the destination is not modified, and #GNUNET_NO
- * is returned.
  *
  * @param result result to process
  * @param[in,out] rs result specification to extract for
  * @param row row from the result to extract
  * @return
  *   #GNUNET_YES if all results could be extracted
- *   #GNUNET_NO if at least one result was NULL
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int

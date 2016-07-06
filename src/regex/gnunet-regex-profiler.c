@@ -1231,41 +1231,55 @@ load_search_strings (const char *filename,
                 "Could not find search strings file %s\n", filename);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &filesize, GNUNET_YES, GNUNET_YES))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (filename,
+                             &filesize,
+                             GNUNET_YES,
+                             GNUNET_YES))
     filesize = 0;
   if (0 == filesize)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Search strings file %s is empty.\n", filename);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Search strings file %s is empty.\n",
+                filename);
     return GNUNET_SYSERR;
   }
-  data = GNUNET_malloc (filesize);
-  if (filesize != GNUNET_DISK_fn_read (filename, data, filesize))
+  data = GNUNET_malloc (filesize + 1);
+  if (filesize != GNUNET_DISK_fn_read (filename,
+                                       data,
+                                       filesize))
   {
     GNUNET_free (data);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not read search strings file %s.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Could not read search strings file %s.\n",
          filename);
     return GNUNET_SYSERR;
   }
   buf = data;
   offset = 0;
   str_cnt = 0;
-  while (offset < (filesize - 1) && str_cnt < limit)
+  while ( (offset < (filesize - 1)) && (str_cnt < limit) )
   {
     offset++;
-    if (((data[offset] == '\n')) && (buf != &data[offset]))
+    if ( ((data[offset] == '\n')) &&
+         (buf != &data[offset]) )
     {
       data[offset] = '\0';
       str_cnt++;
       buf = &data[offset + 1];
     }
-    else if ((data[offset] == '\n') || (data[offset] == '\0'))
+    else if ( (data[offset] == '\n') ||
+              (data[offset] == '\0') )
       buf = &data[offset + 1];
   }
   *strings = GNUNET_malloc (sizeof (char *) * str_cnt);
   offset = 0;
   for (i = 0; i < str_cnt; i++)
   {
-    GNUNET_asprintf (&(*strings)[i], "%s%s", regex_prefix, &data[offset]);
+    GNUNET_asprintf (&(*strings)[i],
+                     "%s%s",
+                     regex_prefix,
+                     &data[offset]);
     offset += strlen (&data[offset]) + 1;
   }
   GNUNET_free (data);

@@ -76,7 +76,7 @@ main (int argc, char *argv[])
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
 						  GNUNET_YES));
   GAUGER ("NSE", "Proof-of-work hashing",
-          1024 / (1 +
+          1024LL / (1LL +
 		  GNUNET_TIME_absolute_get_duration
 		  (start).rel_value_us / 1000LL), "hashes/ms");
   return 0;

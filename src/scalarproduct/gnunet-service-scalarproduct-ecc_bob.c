@@ -357,7 +357,7 @@ destroy_service_session (struct BobServiceSession *s)
     gcry_mpi_point_release (s->prod_g_i_b_i);
     s->prod_g_i_b_i = NULL;
   }
-  if (NULL != s->prod_g_i_b_i)
+  if (NULL != s->prod_h_i_b_i)
   {
     gcry_mpi_point_release (s->prod_h_i_b_i);
     s->prod_h_i_b_i = NULL;

@@ -686,7 +686,7 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
        }
        else
        {
-         mlt->total_throughput_send = 0;
+         mlt->total_throughput_recv = 0;
          //mlt->total_throughput_recv = prev_log_mlt->total_throughput_recv; /* no msgs received */
        }
      }
