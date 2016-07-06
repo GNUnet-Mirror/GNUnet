@@ -609,7 +609,7 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                "LINE");
     return NULL;
   }
-  if (line >= (1 << 31))
+  if (line >= HIGH_BIT)
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "CONVERSATION",

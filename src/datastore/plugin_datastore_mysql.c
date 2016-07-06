@@ -990,6 +990,7 @@ mysql_plugin_get_keys (void *cls,
     proc (proc_cls, NULL, 0);
     return;
   }
+  memset (&last, 0, sizeof (last)); /* make static analysis happy */
   ret = GNUNET_YES;
   cnt = 0;
   while (ret == GNUNET_YES)

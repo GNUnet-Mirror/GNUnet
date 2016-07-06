@@ -693,7 +693,7 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
      else
      {
        mlt->total_throughput_send = mult * mlt->total_bytes_sent;
-       mlt->total_throughput_send = mult * mlt->total_bytes_received;
+       mlt->total_throughput_recv = mult * mlt->total_bytes_received;
      }
 
     if (GNUNET_YES == l->verbose)

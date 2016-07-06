@@ -211,14 +211,13 @@ run (void *cls,
   GNUNET_asprintf (&fname,
                    "%s/blacklist",
                    shome);
-  GNUNET_free (fname);
   if (GNUNET_YES == GNUNET_DISK_file_test (fname))
   {
     mode = ACCESS_DENY;
     setup_ac (shome, c);
   }
   GNUNET_free (shome);
-  return;
+  GNUNET_free (fname);
 }
 
 

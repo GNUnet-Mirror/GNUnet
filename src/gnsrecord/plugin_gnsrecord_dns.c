@@ -265,7 +265,7 @@ dns_value_to_string (void *cls,
  * @return the value, 0 if not found
  */
 static unsigned int
-rfc4394_mnemonic_to_value (const char *mnemonic)
+rfc4398_mnemonic_to_value (const char *mnemonic)
 {
   static struct {
     const char *mnemonic;
@@ -425,7 +425,7 @@ dns_string_to_value (void *cls,
       sdup = GNUNET_strdup (s);
       typep = strtok (sdup, " ");
       if ( (NULL == typep) ||
-           ( (0 == (type = rfc4394_mnemonic_to_value (typep))) &&
+           ( (0 == (type = rfc4398_mnemonic_to_value (typep))) &&
              ( (1 != SSCANF (typep,
                              "%u",
                              &type)) ||
@@ -444,6 +444,7 @@ dns_string_to_value (void *cls,
         GNUNET_free (sdup);
         return GNUNET_SYSERR;
       }
+      alg = 0;
       algp = strtok (NULL, " ");
       if ( (NULL == algp) ||
            ( (0 == (type = rfc4034_mnemonic_to_value (typep))) &&

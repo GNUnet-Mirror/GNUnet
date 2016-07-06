@@ -253,6 +253,7 @@ find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh)
   static uint32_t off;
   uint32_t i;
 
+  GNUNET_assert (0 != sh->session_array_size);
   i = 0;
   while ( ( (NOT_FOUND == off) ||
             (NULL != sh->session_array[off % sh->session_array_size]) ) &&

@@ -57,10 +57,12 @@ static int opt_plot;
  */
 static int opt_verbose;
 
-struct GNUNET_SCHEDULER_Task * timeout_task;
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
-struct Experiment *e;
-struct LoggingHandle *l;
+static struct Experiment *e;
+
+static struct LoggingHandle *l;
+
 
 static void
 evaluate (struct GNUNET_TIME_Relative duration_total)
@@ -125,11 +127,16 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
   }
 }
 
+
 static void
-do_shutdown ()
+do_shutdown (void *cls)
 {
   fprintf (stderr, "Shutdown\n");
-  /* timeout */
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
   if (NULL != l)
   {
     GNUNET_ATS_TEST_logging_stop (l);
@@ -153,9 +160,17 @@ do_shutdown ()
 
 
 static void
+do_timeout (void *cls)
+{
+  timeout_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+static void
 transport_recv_cb (void *cls,
-                   const struct GNUNET_PeerIdentity * peer,
-                   const struct GNUNET_MessageHeader * message)
+                   const struct GNUNET_PeerIdentity *peer,
+                   const struct GNUNET_MessageHeader *message)
 {
 
 }
@@ -175,19 +190,19 @@ log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
 }
 
+
 static void
-experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,int success)
+experiment_done_cb (struct Experiment *e,
+                    struct GNUNET_TIME_Relative duration,int success)
 {
   if (GNUNET_OK == success)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment done successful in %s\n",
-        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Experiment done successful in %s\n",
+                GNUNET_STRINGS_relative_time_to_string (duration,
+                                                        GNUNET_YES));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
-  if (NULL != timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = NULL;
-  }
+
   /* Stop logging */
   GNUNET_ATS_TEST_logging_stop (l);
 
@@ -200,21 +215,9 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   evaluate (duration);
   if (opt_log)
     GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file, opt_plot);
-
-  if (NULL != l)
-  {
-    GNUNET_ATS_TEST_logging_stop (l);
-    GNUNET_ATS_TEST_logging_clean_up (l);
-    l = NULL;
-  }
-
-  /* Clean up experiment */
-  GNUNET_ATS_TEST_experimentation_stop (e);
-  e = NULL;
-
-  /* Shutdown topology */
-  GNUNET_ATS_TEST_shutdown_topology ();
+  GNUNET_SCHEDULER_shutdown ();
 }
+
 
 static void
 episode_done_cb (struct Episode *ep)
@@ -222,9 +225,10 @@ episode_done_cb (struct Episode *ep)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Episode %u done\n", ep->id);
 }
 
+
 static void topology_setup_done (void *cls,
-    struct BenchmarkPeer *masters,
-    struct BenchmarkPeer *slaves)
+                                 struct BenchmarkPeer *masters,
+                                 struct BenchmarkPeer *slaves)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
 
@@ -309,9 +313,14 @@ static void topology_setup_done (void *cls,
   }
 #endif
 
-  timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_UNIT_MINUTES,
-      e->max_duration), &do_shutdown, NULL);
+  timeout_task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_UNIT_MINUTES,
+                                                              e->max_duration),
+                                    &do_timeout,
+                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
+
 
 static void
 parse_args (int argc, char *argv[])
@@ -325,6 +334,7 @@ parse_args (int argc, char *argv[])
   {
     if ((c < (argc - 1)) && (0 == strcmp (argv[c], "-e")))
     {
+      GNUNET_free_non_null (opt_exp_file);
       opt_exp_file = GNUNET_strdup ( argv[c + 1]);
     }
     if (0 == strcmp (argv[c], "-l"))
@@ -341,6 +351,7 @@ parse_args (int argc, char *argv[])
     }
   }
 }
+
 
 int
 main (int argc, char *argv[])

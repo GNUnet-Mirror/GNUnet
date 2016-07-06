@@ -449,7 +449,7 @@ op_register_element (struct Operation *op,
 
 static void
 salt_key (const struct IBF_Key *k_in,
-          uint32_t salt, 
+          uint32_t salt,
           struct IBF_Key *k_out)
 {
   int s = salt % 64;
@@ -462,7 +462,7 @@ salt_key (const struct IBF_Key *k_in,
 
 static void
 unsalt_key (const struct IBF_Key *k_in,
-            uint32_t salt, 
+            uint32_t salt,
             struct IBF_Key *k_out)
 {
   int s = salt % 64;
@@ -752,6 +752,7 @@ handle_p2p_strata_estimator (void *cls,
   {
     /* decompression failed */
     fail_union_operation (op);
+    strata_estimator_destroy (remote_se);
     return GNUNET_SYSERR;
   }
   GNUNET_assert (NULL != op->state->se);

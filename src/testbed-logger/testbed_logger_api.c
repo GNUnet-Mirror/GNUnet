@@ -312,7 +312,7 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
   h->cb = cb;
   h->cb_cls = cb_cls;
   if ( (NULL == h->mq) ||
-       (NULL == h->buf) )
+       (0 == h->buse) )
   {
     trigger_flush_notification (h);
     return;

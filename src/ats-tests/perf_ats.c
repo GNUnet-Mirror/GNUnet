@@ -137,14 +137,12 @@ evaluate ()
   double kb_recv_percent;
   unsigned int rtt;
 
-  duration = (perf_duration.rel_value_us / (1000 * 1000));
+  duration = 1 + (perf_duration.rel_value_us / (1000 * 1000));
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     mp = &mps[c_m];
-    if (NULL == mp)
-      continue;
     fprintf (stderr,
-        _("Master [%u]: sent: %u KiB in %u sec. = %u KiB/s, received: %u KiB in %u sec. = %u KiB/s\n"),
+             "Master [%u]: sent: %u KiB in %u sec. = %u KiB/s, received: %u KiB in %u sec. = %u KiB/s\n",
         mp->no, mp->total_bytes_sent / 1024, duration,
         (mp->total_bytes_sent / 1024) / duration,
         mp->total_bytes_received / 1024, duration,
@@ -153,8 +151,6 @@ evaluate ()
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
       p = &mp->partners[c_s];
-      if (NULL == p)
-        continue;
       kb_sent_sec = 0;
       kb_recv_sec = 0;
       kb_sent_percent = 0.0;

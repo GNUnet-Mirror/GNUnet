@@ -464,17 +464,17 @@ start_process (struct ServiceList *sl,
     fin_options = GNUNET_strdup (final_option);
     /* replace '{}' with service name */
     while (NULL != (optpos = strstr (fin_options, "{}")))
-      {
-        /* terminate string at opening parenthesis */
-        *optpos = 0;
-        GNUNET_asprintf (&new_options,
-                         "%s%s%s",
-                         fin_options,
-                         sl->name,
-                         optpos + 2);
-        GNUNET_free (fin_options);
-        fin_options = new_options;
-      }
+    {
+      /* terminate string at opening parenthesis */
+      *optpos = 0;
+      GNUNET_asprintf (&new_options,
+                       "%s%s%s",
+                       fin_options,
+                       sl->name,
+                       optpos + 2);
+      GNUNET_free (fin_options);
+      fin_options = new_options;
+    }
     if (NULL != options)
     {
       /* combine "fin_options" with "options" */

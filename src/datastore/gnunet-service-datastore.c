@@ -37,6 +37,11 @@
 #define MAX_PENDING 1024
 
 /**
+ * Limit size of bloom filter to 2 GB.
+ */
+#define MAX_BF_SIZE ((uint32_t) (1LL << 31))
+
+/**
  * How long are we at most keeping "expired" content
  * past the expiration date in the database?
  */
@@ -184,7 +189,7 @@ static unsigned long long payload;
  * Identity of the task that is used to delete
  * expired content.
  */
-static struct GNUNET_SCHEDULER_Task * expired_kill_task;
+static struct GNUNET_SCHEDULER_Task *expired_kill_task;
 
 /**
  * Minimum time that content should have to not be discarded instantly
@@ -537,7 +542,8 @@ transmit_callback (void *cls, size_t size, void *buf)
  * @param msg message to transmit, will be freed!
  */
 static void
-transmit (struct GNUNET_SERVER_Client *client, struct GNUNET_MessageHeader *msg)
+transmit (struct GNUNET_SERVER_Client *client,
+          struct GNUNET_MessageHeader *msg)
 {
   struct TransmitCallbackContext *tcc;
 
@@ -611,14 +617,18 @@ transmit_status (struct GNUNET_SERVER_Client *client, int code, const char *msg)
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
- *         GNUNET_NO to delete the item and continue (if supported)
+ * @return #GNUNET_SYSERR to abort the iteration, #GNUNET_OK to continue,
+ *         #GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-transmit_item (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+transmit_item (void *cls,
+               const struct GNUNET_HashCode *key,
+               uint32_t size,
+               const void *data,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
+               uint32_t anonymity,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct GNUNET_SERVER_Client *client = cls;
@@ -1798,12 +1808,17 @@ run (void *cls,
     return;
   }
   stats = GNUNET_STATISTICS_create ("datastore", cfg);
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# quota"), quota, GNUNET_NO);
-  cache_size = quota / 8;       /* Or should we make this an option? */
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# cache size"), cache_size,
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("# quota"),
+                         quota,
                          GNUNET_NO);
-  if (quota / (32 * 1024LL) > (1 << 31))
-    bf_size = (1 << 31);          /* absolute limit: ~2 GB, beyond that BF just won't help anyway */
+  cache_size = quota / 8;       /* Or should we make this an option? */
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("# cache size"),
+                         cache_size,
+                         GNUNET_NO);
+  if (quota / (32 * 1024LL) > MAX_BF_SIZE)
+    bf_size = MAX_BF_SIZE;
   else
     bf_size = quota / (32 * 1024LL);         /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;

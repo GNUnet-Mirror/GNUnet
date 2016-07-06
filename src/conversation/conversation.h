@@ -40,6 +40,14 @@ extern "C"
 
 
 /**
+ * Highest bit in a 32-bit unsigned integer,
+ * bit set if we are making an outgoing call,
+ * bit unset for local lines.
+ */
+#define HIGH_BIT ((uint32_t) (1LL << 31))
+
+
+/**
  * Message to transmit the audio (between client and helpers).
  */
 struct AudioMessage

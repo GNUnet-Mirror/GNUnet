@@ -2010,7 +2010,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
       if ( (s1->accepting && !s2->accepting) ||
 	   (!s1->accepting && s2->accepting) )
       {
-	idx = s1->marked * state_cnt + s2->marked;
+	idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
         table[idx / 32] |= (1 << (idx % 32));
       }
 
@@ -2023,7 +2023,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
     {
       for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
       {
-	idx = s1->marked * state_cnt + s2->marked;
+	idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
         if (0 != (table[idx / 32] & (1 << (idx % 32))))
           continue;
         num_equal_edges = 0;

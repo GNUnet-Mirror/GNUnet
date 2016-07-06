@@ -285,7 +285,7 @@ handle_client_register_message (void *cls,
   GNUNET_CONTAINER_DLL_insert (lines_head,
                                lines_tail,
                                line);
-  line->local_line = ntohl (msg->line) & (~ (1 << 31));
+  line->local_line = ntohl (msg->line) & (~ HIGH_BIT);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -703,7 +703,7 @@ handle_client_call_message (void *cls,
   }
   line = GNUNET_new (struct Line);
   line->client = client;
-  line->local_line = (local_line_cnt++) | (1 << 31);
+  line->local_line = (local_line_cnt++) | HIGH_BIT;
   GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_CONTAINER_DLL_insert (lines_head,

@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != m) GNUNET_CONTAINER_multipeermap_destroy(m); return 1; }
+#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != m) GNUNET_CONTAINER_multipeermap_destroy(m); if (NULL != iter) GNUNET_CONTAINER_multipeermap_iterator_destroy (iter); return 1; }
 #define CHECK(c) { if (! (c)) ABORT(); }
 
 static int
@@ -36,7 +36,7 @@ testMap (int i)
   struct GNUNET_CONTAINER_MultiPeerMap *m;
   struct GNUNET_PeerIdentity k1;
   struct GNUNET_PeerIdentity k2;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *iter;
+  struct GNUNET_CONTAINER_MultiPeerMapIterator *iter = NULL;
   struct GNUNET_PeerIdentity key_ret;
   const char *ret;
   int j;
@@ -97,7 +97,7 @@ testMap (int i)
   for (j = 0; j < GNUNET_CONTAINER_multipeermap_size (m); j++)
     CHECK (GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (iter, NULL, NULL));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multipeermap_iterator_next (iter, NULL, NULL));
-  GNUNET_free (iter);
+  GNUNET_CONTAINER_multipeermap_iterator_destroy (iter);
 
   GNUNET_CONTAINER_multipeermap_destroy (m);
   return 0;
