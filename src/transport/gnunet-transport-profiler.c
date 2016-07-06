@@ -225,9 +225,10 @@ shutdown_task (void *cls)
 
       avg_duration += icur->dur.rel_value_us / (1000);
       avg_rate  += icur->rate;
-      iterations ++;
+      iterations++;
     }
-
+    if (0 == iterations)
+      iterations = 1; /* avoid division by zero */
     /* Calculate average rate */
     avg_rate /= iterations;
     /* Calculate average duration */
@@ -254,17 +255,27 @@ shutdown_task (void *cls)
     stddev_duration = sqrtf(stddev_duration);
 
     /* Output */
-    FPRINTF (stdout, _("%u;%u;%llu;%llu;%.2f;%.2f"),benchmark_count, benchmark_size,
-        avg_duration, (unsigned long long) stddev_duration, avg_rate, stddev_rate);
+    FPRINTF (stdout,
+             "%u;%u;%llu;%llu;%.2f;%.2f",
+             benchmark_count,
+             benchmark_size,
+             avg_duration,
+             (unsigned long long) stddev_duration,
+             avg_rate,
+             stddev_rate);
 
     inext = ihead;
     while (NULL != (icur = inext))
     {
       inext = icur->next;
-      GNUNET_CONTAINER_DLL_remove (ihead, itail, icur);
+      GNUNET_CONTAINER_DLL_remove (ihead,
+                                   itail,
+                                   icur);
 
-      FPRINTF (stdout, _(";%llu;%.2f"),
-          (long long unsigned int) (icur->dur.rel_value_us / 1000), icur->rate);
+      FPRINTF (stdout,
+               ";%llu;%.2f",
+               (long long unsigned int) (icur->dur.rel_value_us / 1000),
+               icur->rate);
 
       GNUNET_free (icur);
     }
@@ -274,13 +285,13 @@ shutdown_task (void *cls)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     FPRINTF (stdout,
-             _("Received %llu bytes/s (%llu bytes in %s)\n"),
+             "Received %llu bytes/s (%llu bytes in %s)\n",
              1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
              traffic_received,
              GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
 #endif
-  FPRINTF (stdout, _("\n"));
+  FPRINTF (stdout, "\n");
 }
 
 static void
@@ -333,7 +344,7 @@ transmit_data (void *cls,
   }
   if (verbosity > 0)
     if (itail->msgs_sent % 10 == 0 )
-    FPRINTF (stdout, _("."));
+    FPRINTF (stdout, ".");
   return size;
 }
 
@@ -353,8 +364,10 @@ iteration_start ()
 
     if (verbosity > 0)
       FPRINTF (stdout,
-          _("\nStarting benchmark to `%s', starting to send %u messages in %u byte blocks\n"),
-          GNUNET_i2s (&pid), benchmark_count, benchmark_size);
+               "\nStarting benchmark to `%s', starting to send %u messages in %u byte blocks\n",
+               GNUNET_i2s (&pid),
+               benchmark_count,
+               benchmark_size);
     if (NULL == th)
       th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid, benchmark_size,
           GNUNET_TIME_UNIT_FOREVER_REL, &transmit_data, NULL );
@@ -401,15 +414,15 @@ notify_connect (void *cls,
                    sizeof(struct GNUNET_PeerIdentity)))
   {
     FPRINTF (stdout,
-             _("Connected to different peer `%s'\n"),
+             "Connected to different peer `%s'\n",
              GNUNET_i2s (&pid));
     return;
   }
 
   if (verbosity > 0)
     FPRINTF (stdout,
-        _("Successfully connected to `%s'\n"),
-        GNUNET_i2s (&pid));
+             "Successfully connected to `%s'\n",
+             GNUNET_i2s (&pid));
   iteration_start ();
 }
 
@@ -429,7 +442,8 @@ notify_disconnect (void *cls,
     return;
   if (GNUNET_YES == benchmark_running)
   {
-    FPRINTF (stdout, _("Disconnected from peer `%s' while benchmarking\n"),
+    FPRINTF (stdout,
+             "Disconnected from peer `%s' while benchmarking\n",
         GNUNET_i2s (&pid));
     return;
   }
@@ -454,7 +468,7 @@ notify_receive (void *cls,
       return;
     if (verbosity > 0)
       FPRINTF (stdout,
-               _("Received %u bytes from %s\n"),
+               "Received %u bytes from %s\n",
                (unsigned int) ntohs (message->size),
                GNUNET_i2s (peer));
     return;
@@ -470,7 +484,7 @@ blacklist_cb (void *cls,
   {
     if (verbosity > 0)
       FPRINTF (stdout,
-               _("Denying connection to `%s'\n"),
+               "Denying connection to `%s'\n",
                GNUNET_i2s (peer));
     return GNUNET_SYSERR;
   }
@@ -494,26 +508,31 @@ testservice_task (void *cls, int result)
 
   if (GNUNET_YES != result)
   {
-    FPRINTF (stderr, _("Service `%s' is not running\n"), "transport");
+    FPRINTF (stderr,
+             "TRANSPORT service is not running\n");
     return;
   }
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE <= benchmark_size)
   {
-    FPRINTF (stderr, _("Message size too big!\n"));
+    FPRINTF (stderr,
+             "Message size too big!\n");
     return;
   }
 
   if (NULL == cpid)
   {
-    FPRINTF (stderr, _("No peer identity given\n"));
+    FPRINTF (stderr,
+             "No peer identity given\n");
     return;
   }
   if ((GNUNET_OK !=
        GNUNET_CRYPTO_eddsa_public_key_from_string (cpid, strlen (cpid),
                                                    &pid.public_key)))
   {
-    FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
+    FPRINTF (stderr,
+             "Failed to parse peer identity `%s'\n",
+             cpid);
     return;
   }
 
@@ -521,25 +540,28 @@ testservice_task (void *cls, int result)
   {
     if (verbosity > 0)
       FPRINTF (stderr,
-        _("Trying to send %u messages with size %u to peer `%s'\n"),
-          benchmark_count, benchmark_size, GNUNET_i2s (&pid));
+               "Trying to send %u messages with size %u to peer `%s'\n",
+               benchmark_count, benchmark_size,
+               GNUNET_i2s (&pid));
   }
   else if (1 == benchmark_receive)
   {
     FPRINTF (stderr,
-        _("Trying to receive messages from peer `%s'\n"),
-        GNUNET_i2s (&pid));
+             "Trying to receive messages from peer `%s'\n",
+             GNUNET_i2s (&pid));
   }
   else
   {
-    FPRINTF (stderr, _("No operation given\n"));
+    FPRINTF (stderr,
+             "No operation given\n");
     return;
   }
 
   ats = GNUNET_ATS_connectivity_init (cfg);
   if (NULL == ats)
   {
-    FPRINTF (stderr, "%s", _("Failed to connect to ATS service\n"));
+    FPRINTF (stderr,
+             "Failed to connect to ATS service\n");
     ret = 1;
     return;
   }
@@ -550,7 +572,8 @@ testservice_task (void *cls, int result)
                                      &notify_disconnect);
   if (NULL == handle)
   {
-    FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
+    FPRINTF (stderr,
+             "Failed to connect to transport service\n");
     GNUNET_ATS_connectivity_done (ats);
     ats = NULL;
     ret = 1;
@@ -583,8 +606,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
-  GNUNET_CLIENT_service_test ("transport", cfg, GNUNET_TIME_UNIT_SECONDS,
-      &testservice_task, (void *) cfg);
+  GNUNET_CLIENT_service_test ("transport",
+                              cfg,
+                              GNUNET_TIME_UNIT_SECONDS,
+                              &testservice_task,
+                              (void *) cfg);
 }
 
 

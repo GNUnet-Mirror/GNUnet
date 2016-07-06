@@ -3059,7 +3059,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
                          "%s:%u/%s",
                          tmp,
                          (uint16_t) port,
-                         (NULL == pos_url) ? "" : pos_url);
+                         pos_url);
       }
       else
         GNUNET_asprintf (&plugin->external_hostname,

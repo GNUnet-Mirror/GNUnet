@@ -859,7 +859,6 @@ run (void *cls,
   }
 
   max_fd_rlimit = 0;
-  max_fd_cfg = 0;
 #if HAVE_GETRLIMIT
   struct rlimit r_file;
   if (0 == getrlimit (RLIMIT_NOFILE, &r_file))
@@ -872,10 +871,12 @@ run (void *cls,
   }
   max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */
 #endif
-  GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-                                         "transport",
-                                         "MAX_FD",
-                                         &max_fd_cfg);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+                                             "transport",
+                                             "MAX_FD",
+                                             &max_fd_cfg))
+    max_fd_cfg = max_fd_rlimit;
 
   if (max_fd_cfg > max_fd_rlimit)
     max_fd = max_fd_cfg;
@@ -886,7 +887,9 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
-             max_fd, (max_fd / 3), (max_fd / 3) * 2);
+              max_fd,
+              (max_fd / 3),
+              (max_fd / 3) * 2);
 
   friend_only = GNUNET_CONFIGURATION_get_value_yesno (GST_cfg,
                                                       "topology",

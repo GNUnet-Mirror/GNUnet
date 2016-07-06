@@ -605,6 +605,7 @@ decrypt_session_destroy (struct DecryptSession *ds)
   GNUNET_free (ds);
 }
 
+
 static void
 keygen_info_destroy (struct KeygenPeerInfo *info)
 {
@@ -621,7 +622,7 @@ keygen_info_destroy (struct KeygenPeerInfo *info)
   if (NULL != info->preshare_commitment)
   {
     gcry_mpi_release (info->preshare_commitment);
-    info->presecret_commitment = NULL;
+    info->preshare_commitment = NULL;
   }
 }
 

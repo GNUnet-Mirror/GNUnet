@@ -196,7 +196,8 @@ load_episode (struct Experiment *e,
     GNUNET_asprintf(&op_name, "op-%u-type", op_counter);
     if ( (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string(cfg,
             sec_name, op_name, &type)) &&
-        ((STOP_SEND != o->type) || (STOP_PREFERENCE != o->type)))
+         (STOP_SEND != o->type) &&
+         (STOP_PREFERENCE != o->type) )
     {
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
