@@ -399,10 +399,10 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
 /**
  * Cancel request for address conversion.
  *
- * @param pic the context handle
+ * @param alc the context handle
  */
 void
-GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStringContext *pic);
+GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStringContext *alc);
 
 
 /* *********************** Monitoring ************************** */
