@@ -225,18 +225,38 @@ database_setup (struct Plugin *plugin)
         break;
       line = strtok (NULL, "\n");
       entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
-      sscanf (rvalue, "%lu", &entry->rvalue);
-      sscanf (record_count, "%u", &entry->record_count);
+      if (1 != sscanf (rvalue, "%lu", &entry->rvalue))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Error parsing entry\n");
+        GNUNET_free (entry);
+        break;
+      }
+      if (1 != sscanf (record_count, "%u", &entry->record_count))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Error parsing entry\n");
+        GNUNET_free (entry);
+        break;
+      }
       entry->label = GNUNET_strdup (label);
       record_data_size = GNUNET_STRINGS_base64_decode (record_data_b64,
                                                        strlen (record_data_b64),
                                                        &record_data);
       entry->record_data = 
         GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * entry->record_count);
-      GNUNET_GNSRECORD_records_deserialize (record_data_size,
-                                            record_data,
-                                            entry->record_count,
-                                            entry->record_data);
+      if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize (record_data_size,
+                                                             record_data,
+                                                             entry->record_count,
+                                                             entry->record_data))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Unable to deserialize record %s\n", label);
+        GNUNET_free (entry->label);
+        GNUNET_free (entry);
+        GNUNET_free (record_data);
+        break;
+      }
       GNUNET_free (record_data);
       GNUNET_STRINGS_base64_decode (zone_private_key,
                                     strlen (zone_private_key),
@@ -291,7 +311,7 @@ store_and_free_entries (void *cls,
                                 &zone_private_key);
   GNUNET_asprintf (&rvalue, "%lu", entry->rvalue);
   GNUNET_asprintf (&record_count, "%u", entry->record_count);
-  
+
   data_size = GNUNET_GNSRECORD_records_get_size (entry->record_count,
                                                  entry->record_data);
   char data[data_size];
@@ -301,6 +321,9 @@ store_and_free_entries (void *cls,
                                                        data))
   {
     GNUNET_break (0);
+    GNUNET_free (zone_private_key);
+    GNUNET_free (rvalue);
+    GNUNET_free (record_count);
     return GNUNET_SYSERR;
   }
   GNUNET_STRINGS_base64_encode (data,
@@ -468,7 +491,7 @@ namestore_lookup_records (void *cls,
                       key_len,
                       &hkey);
   GNUNET_free (key);
-  
+
   entry = GNUNET_CONTAINER_multihashmap_get (plugin->hm, &hkey);
 
   if (NULL == entry)
