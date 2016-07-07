@@ -1242,16 +1242,43 @@ handle_barrier_status (void *cls,
   emsg = NULL;
   barrier = NULL;
   msize = ntohs (msg->header.size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_BarrierStatusMsg))
+  {
+    GNUNET_break_op (0);
+    goto cleanup;
+  }
   name = msg->data;
   name_len = ntohs (msg->name_len);
+  if (name_len >=  //name_len is strlen(barrier_name)
+      (msize - ((sizeof msg->header) + sizeof (msg->status)) )   )
+  {
+    GNUNET_break_op (0);
+    goto cleanup;
+  }
+  if ('\0' != name[name_len])
+  {
+    GNUNET_break_op (0);
+    goto cleanup;
+  }
   LOG_DEBUG ("Received BARRIER_STATUS msg\n");
   status = ntohs (msg->status);
   if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
   {
     status = -1;
-    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
-                        + 1);
-    emsg = GNUNET_malloc (emsg_len + 1);
+    //unlike name_len, emsg_len includes the trailing zero
+    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg)
+                        + (name_len + 1));
+    if (0 == emsg_len)
+    {
+      GNUNET_break_op (0);
+      goto cleanup;
+    }
+    if ('\0' != (msg->data[(name_len + 1) + (emsg_len - 1)]))
+    {
+      GNUNET_break_op (0);
+      goto cleanup;
+    }
+    emsg = GNUNET_malloc (emsg_len);
     memcpy (emsg,
             msg->data + name_len + 1,
             emsg_len);
