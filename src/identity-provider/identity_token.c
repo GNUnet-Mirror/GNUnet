@@ -424,6 +424,9 @@ token_parse (const char* raw_data,
   GNUNET_asprintf (&tmp_buf, "%s", raw_data);
   ecdh_pubkey_str = strtok (tmp_buf, ",");
   enc_token_str = strtok (NULL, ",");
+  
+  GNUNET_assert (NULL != ecdh_pubkey_str);
+  GNUNET_assert (NULL != enc_token_str);
 
   GNUNET_STRINGS_string_to_data (ecdh_pubkey_str,
                                  strlen (ecdh_pubkey_str),
@@ -547,6 +550,7 @@ token_to_string (const struct IdentityToken *token,
     GNUNET_free (signature_target);
     GNUNET_free (payload_str);
     GNUNET_free (payload_base64);
+    GNUNET_free (header_base64);
     GNUNET_free (purpose);
     return GNUNET_SYSERR;
   }

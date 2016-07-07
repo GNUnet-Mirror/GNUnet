@@ -33,6 +33,11 @@ run (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_EcdsaSignature sig;
+  
+  GNUNET_assert (NULL != header_b64);
+  GNUNET_assert (NULL != payload_b64);
+  GNUNET_assert (NULL != signature_b32);
+  
   //Decode payload
   GNUNET_STRINGS_base64_decode (payload_b64,
                                 strlen (payload_b64),
@@ -54,16 +59,25 @@ run (void *cls,
   purpose->size = htonl(sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + strlen (data));
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
   memcpy (&purpose[1], data, strlen(data));
+  GNUNET_free (data);
+  GNUNET_free (header_b64);
+  GNUNET_free (header_b64);
 
+  if (print_token)
+    printf ("Token:\nHeader:\t\t%s\nPayload:\t%s\n", header, payload);
+  GNUNET_free (header);
+  GNUNET_free (payload);
   
   payload_json = json_loads (payload, 0, &error);
   if ((NULL == payload_json) || !json_is_object (payload_json))
   {
+    GNUNET_free (val);
     return;
   }
   keystring_json =  json_object_get (payload_json, "iss");
   if (!json_is_string (keystring_json))
   {
+    GNUNET_free (val);
     return;
   }
   keystring = json_string_value (keystring_json);
@@ -71,6 +85,7 @@ run (void *cls,
                                                                strlen (keystring),
                                                                &key))
   {
+    GNUNET_free (val);
     return;
   }
   GNUNET_STRINGS_string_to_data (signature_b32,
@@ -78,19 +93,17 @@ run (void *cls,
                                 &sig,
                                 sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
   
-  if (print_token) {
-    printf ("Token:\nHeader:\t\t%s\nPayload:\t%s\nSignature:\t%s\n", header, payload, keystring);
-  }
+  if (print_token) 
+    printf ("Signature:\t%s\n", keystring);
   
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN,
                                               purpose,
                                               &sig,
                                               &key))
-  {
     printf("Signature not OK!\n");
-    return;
-  }
-  printf("Signature OK!\n");
+  else
+    printf("Signature OK!\n");
+  GNUNET_free (val);
   return;
 }
 int

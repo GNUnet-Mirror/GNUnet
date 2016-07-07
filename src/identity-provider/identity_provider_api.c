@@ -511,6 +511,7 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle
   slen = strlen (ticket_str) + 1;
   if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage))
   {
+    GNUNET_free (ticket_str);
     GNUNET_break (0);
     return NULL;
   }

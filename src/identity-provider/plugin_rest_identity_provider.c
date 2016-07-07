@@ -583,7 +583,7 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Request nonce: %s\n",
 	      nonce_str);
-  sscanf (nonce_str, "%"SCNu64, &nonce);
+  GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &nonce));
 
   //Get expiration for token from URL parameter
   GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_EXP_STRING,

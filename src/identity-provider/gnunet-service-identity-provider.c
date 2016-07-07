@@ -365,13 +365,13 @@ handle_token_update (void *cls)
   {
     if (0 == strcmp (attr->name, "exp"))
     {
-      sscanf (attr->val_head->value,
+      GNUNET_assert (1 == sscanf (attr->val_head->value,
               "%"SCNu64,
-              &token_exp.abs_value_us);
+              &token_exp.abs_value_us));
     } else if (0 == strcmp (attr->name, "nbf")) {
-      sscanf (attr->val_head->value,
+      GNUNET_assert (1 == sscanf (attr->val_head->value,
               "%"SCNu64,
-              &token_nbf.abs_value_us);
+              &token_nbf.abs_value_us));
     }
   }
   token_rel_exp = GNUNET_TIME_absolute_get_difference (token_nbf, token_exp);
@@ -598,7 +598,7 @@ token_collect (void *cls,
 
   //Get metadata and decrypt token
   ecdhe_privkey = *((struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data);
-  aud_key = (struct GNUNET_CRYPTO_EcdsaPublicKey *)&ecdhe_privkey+sizeof(struct GNUNET_CRYPTO_EcdhePrivateKey);
+  aud_key = (struct GNUNET_CRYPTO_EcdsaPublicKey *)&(&ecdhe_privkey)[1];
   scopes = GNUNET_strdup ((char*) aud_key+sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
   token_parse2 (token_record->data,
@@ -698,10 +698,10 @@ attribute_collect (void *cls,
                                    val);
     }
   }
-  GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
                                      &key,
                                      attr,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_NAMESTORE_zone_iterator_next (ns_it);
   return;
 }
@@ -1177,7 +1177,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
                 "Number of tokens %d != 2.",
                 rd_count);
     cleanup_exchange_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, handle);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
 
@@ -1362,6 +1362,8 @@ find_existing_token (void *cls,
                 tmp2,
                 tmp);
     GNUNET_free (tmp_scopes);
+    GNUNET_free (tmp2);
+    GNUNET_free (tmp);
     GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
     return;
   }
@@ -1389,7 +1391,8 @@ find_existing_token (void *cls,
   GNUNET_free (tmp_scopes);
   //All scopes in token are also in request. Now
   //Check length
-  if (GNUNET_CONTAINER_multihashmap_size (handle->attr_map) == scope_count_token)
+  if ((NULL != handle->attr_map) &&
+      (GNUNET_CONTAINER_multihashmap_size (handle->attr_map) == scope_count_token))
   {
     //We have an existing token
     handle->label = GNUNET_strdup (lbl);
