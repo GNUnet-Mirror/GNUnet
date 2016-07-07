@@ -159,8 +159,8 @@ database_setup (struct Plugin *plugin)
         break;
       line = strtok (NULL, "\n");
       entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
-      GNUNET_CRYPTO_hash_from_string (query,
-                                      &entry->query);
+      GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_hash_from_string (query,
+                                        &entry->query));
       GNUNET_STRINGS_base64_decode (block,
                                     strlen (block),
                                     &block_buffer);
