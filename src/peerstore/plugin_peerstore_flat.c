@@ -337,11 +337,13 @@ database_setup (struct Plugin *plugin)
   char *afsdir;
   char *key;
   char *sub_system;
-  char *peer_id;
+  const char *peer_id;
+  char *peer;
   char *value;
   char *expiry;
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_PEERSTORE_Record *entry;
+  struct GNUNET_HashCode hkey;
   size_t size;
   char *buffer;
   char *line;
@@ -416,8 +418,8 @@ database_setup (struct Plugin *plugin)
       sub_system = strtok (line, ",");
       if (NULL == sub_system)
         break;
-      peer_id = strtok (NULL, ",");
-      if (NULL == peer_id)
+      peer = strtok (NULL, ",");
+      if (NULL == peer)
         break;
       key = strtok (NULL, ",");
       if (NULL == key)
@@ -431,14 +433,30 @@ database_setup (struct Plugin *plugin)
       entry = GNUNET_new (struct GNUNET_PEERSTORE_Record);
       entry->sub_system = GNUNET_strdup (sub_system);
       entry->key = GNUNET_strdup (key);
-      GNUNET_STRINGS_base64_decode (peer_id,
-                                    strlen (peer_id),
+      GNUNET_STRINGS_base64_decode (peer,
+                                    strlen (peer),
                                     (char**)&entry->peer);
       entry->value_size = GNUNET_STRINGS_base64_decode (value,
                                                         strlen (value),
                                                         (char**)&entry->value);
-      GNUNET_STRINGS_fancy_time_to_absolute (expiry,
-                                             entry->expiry);
+      if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_time_to_absolute (expiry,
+                                             entry->expiry))
+      {
+        GNUNET_free (entry->sub_system);
+        GNUNET_free (entry->key);
+        GNUNET_free (entry->peer);
+        GNUNET_free (entry);
+        break;
+      }
+      peer_id = GNUNET_i2s (entry->peer);
+      GNUNET_CRYPTO_hash (peer_id,
+                          strlen (peer_id),
+                          &hkey);
+
+      GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                         &hkey,
+                                         entry,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
     }
   }
