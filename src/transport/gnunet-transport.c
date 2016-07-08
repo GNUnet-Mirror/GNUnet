@@ -1668,7 +1668,10 @@ testservice_task (void *cls,
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
     monitor_connect_counter = 0;
-    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL,
+    handle = GNUNET_TRANSPORT_connect (cfg,
+                                       NULL,
+                                       NULL,
+                                       NULL,
                                        &monitor_notify_connect,
                                        &monitor_notify_disconnect);
     if (NULL == handle)

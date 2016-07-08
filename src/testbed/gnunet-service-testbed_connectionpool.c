@@ -550,10 +550,15 @@ opstart_get_handle_transport (void *cls)
   struct PooledConnection *entry = cls;
 
   GNUNET_assert (NULL != entry);
-  LOG_DEBUG ("Opening a transport connection to peer %u\n", entry->index);
+  LOG_DEBUG ("Opening a transport connection to peer %u\n",
+             entry->index);
   entry->handle_transport =
-      GNUNET_TRANSPORT_connect (entry->cfg, NULL, entry, NULL,
-                                &transport_peer_connect_notify_cb, NULL);
+      GNUNET_TRANSPORT_connect (entry->cfg,
+                                NULL,
+                                entry,
+                                NULL,
+                                &transport_peer_connect_notify_cb,
+                                NULL);
   if (NULL == entry->handle_transport)
   {
     GNUNET_break (0);
