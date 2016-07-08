@@ -674,7 +674,7 @@ GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 static struct ConfigSection *
 find_section (const struct GNUNET_CONFIGURATION_Handle *cfg,
-             const char *section)
+              const char *section)
 {
   struct ConfigSection *pos;
 
