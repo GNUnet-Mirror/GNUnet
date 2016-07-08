@@ -93,12 +93,12 @@ struct HttpAddress
    * Address options
    * see `enum HttpAddressOptions`
    */
-  uint32_t options;
+  uint32_t options GNUNET_PACKED;
 
   /**
    * Length of URL located after struct
    */
-  uint32_t urlen;
+  uint32_t urlen GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END
