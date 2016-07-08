@@ -257,8 +257,8 @@ write_continuation (void *cls,
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# Blocks transferred via cadet"), 1,
 			    GNUNET_NO);
-  GNUNET_memcpy (buf, &wqi[1], ret);
   ret = wqi->msize;
+  GNUNET_memcpy (buf, &wqi[1], ret);
   GNUNET_free (wqi);
   continue_writing (sc);
   return ret;
