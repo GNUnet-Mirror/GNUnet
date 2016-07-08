@@ -60,8 +60,6 @@ static struct PeerContext *p2;
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
-
 static char *cfg_file_p1;
 
 static char *cfg_file_p2;
@@ -97,11 +95,6 @@ end ()
     die_task = NULL;
   }
 
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
-
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
 
@@ -135,9 +128,6 @@ end_badly (void *cls)
   }
   if (cc != NULL)
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   if (p2 != NULL)
@@ -175,9 +165,6 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                 GNUNET_i2s (peer));
     disconnects++;
   }
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
 }
 
 
