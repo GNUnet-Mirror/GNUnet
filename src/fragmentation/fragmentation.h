@@ -44,18 +44,18 @@ struct FragmentHeader
   /**
    * Unique fragment ID.
    */
-  uint32_t fragment_id;
+  uint32_t fragment_id GNUNET_PACKED;
 
   /**
    * Total message size of the original message.
    */
-  uint16_t total_size;
+  uint16_t total_size GNUNET_PACKED;
 
   /**
    * Absolute offset (in bytes) of this fragment in the original
    * message.  Will be a multiple of the MTU.
    */
-  uint16_t offset;
+  uint16_t offset GNUNET_PACKED;
 
 };
 
@@ -74,14 +74,14 @@ struct FragmentAcknowledgement
   /**
    * Unique fragment ID.
    */
-  uint32_t fragment_id;
+  uint32_t fragment_id GNUNET_PACKED;
 
   /**
    * Bits that are being acknowledged, in big-endian.
    * (bits that are set correspond to fragments that
    * have not yet been received).
    */
-  uint64_t bits;
+  uint64_t bits GNUNET_PACKED;
 
 };
 GNUNET_NETWORK_STRUCT_END

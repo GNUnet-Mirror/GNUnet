@@ -187,7 +187,7 @@ transmit_next (void *cls)
     return;                     /* all done */
   /* calculate delay */
   wrap = 0;
-  while (0 == (fc->acks & (1LL << fc->next_transmission)))
+  while (0 == (fc->acks & (1LLU << fc->next_transmission)))
   {
     fc->next_transmission = (fc->next_transmission + 1) % 64;
     wrap |= (0 == fc->next_transmission);
@@ -218,7 +218,7 @@ transmit_next (void *cls)
   }
   fc->next_transmission = (fc->next_transmission + 1) % 64;
   wrap |= (0 == fc->next_transmission);
-  while (0 == (fc->acks & (1LL << fc->next_transmission)))
+  while (0 == (fc->acks & (1LLU << fc->next_transmission)))
   {
     fc->next_transmission = (fc->next_transmission + 1) % 64;
     wrap |= (0 == fc->next_transmission);
@@ -348,7 +348,7 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   if (bits == 64)
     fc->acks_mask = UINT64_MAX; /* set all 64 bit */
   else
-    fc->acks_mask = (1LL << bits) - 1;  /* set lowest 'bits' bit */
+    fc->acks_mask = (1LLU << bits) - 1;  /* set lowest 'bits' bit */
   fc->acks = fc->acks_mask;
   fc->task = GNUNET_SCHEDULER_add_now (&transmit_next, fc);
   return fc;
