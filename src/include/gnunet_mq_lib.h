@@ -536,6 +536,18 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
 
 
 /**
+ * Change the closure argument in all of the `handlers` of the
+ * @a mq.
+ *
+ * @param mq to modify
+ * @param handlers_cls new closure to use
+ */
+void
+GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
+                                void *handlers_cls);
+
+
+/**
  * Call a callback once the envelope has been sent, that is,
  * sending it can not be canceled anymore.
  * There can be only one notify sent callback per envelope.

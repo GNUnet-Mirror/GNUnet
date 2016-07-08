@@ -473,6 +473,26 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
 
 
 /**
+ * Change the closure argument in all of the `handlers` of the
+ * @a mq.
+ *
+ * @param mq to modify
+ * @param handlers_cls new closure to use
+ */
+void
+GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
+                                void *handlers_cls)
+{
+  unsigned int i;
+
+  if (NULL == mq->handlers)
+    return;
+  for (i=0;NULL != mq->handlers[i].cb; i++)
+    mq->handlers[i].cls = handlers_cls;
+}
+
+
+/**
  * Get the message that should currently be sent.
  * Fails if there is no current message.
  * Only useful for implementing message queues,
@@ -662,8 +682,8 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client)
   mq->impl_state = scss;
   scss->client = client;
   GNUNET_SERVER_client_keep (client);
-  mq->send_impl = server_client_send_impl;
-  mq->destroy_impl = server_client_destroy_impl;
+  mq->send_impl = &server_client_send_impl;
+  mq->destroy_impl = &server_client_destroy_impl;
   return mq;
 }
 
