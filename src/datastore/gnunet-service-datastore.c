@@ -1605,7 +1605,7 @@ process_stat_done (void *cls,
                 "Failed to obtain value from statistics service, recomputing it\n");
     plugin->api->estimate_size (plugin->api->cls,
                                 &payload);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("New payload: %lld\n"),
                 (long long) payload);
 
