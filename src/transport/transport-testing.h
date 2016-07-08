@@ -169,6 +169,7 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
   int p2_c;
 };
 
+
 struct GNUNET_TRANSPORT_TESTING_handle
 {
   /**
@@ -279,12 +280,14 @@ void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                                struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
 
+
 /**
  * Clean up the transport testing
  * @param tth transport testing handle
  */
 void
 GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth);
+
 
 /**
  * Initialize the transport testing
@@ -293,9 +296,6 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth);
 struct GNUNET_TRANSPORT_TESTING_handle *
 GNUNET_TRANSPORT_TESTING_init (void);
 
-/*
- * Some utility functions
- */
 
 /**
  * Extracts the test filename from an absolute file name and removes the extension
@@ -305,6 +305,7 @@ GNUNET_TRANSPORT_TESTING_init (void);
 void
 GNUNET_TRANSPORT_TESTING_get_test_name (const char *file,
                                         char **dest);
+
 
 /**
  * This function takes the filename (e.g. argv[0), removes a "lt-"-prefix and
