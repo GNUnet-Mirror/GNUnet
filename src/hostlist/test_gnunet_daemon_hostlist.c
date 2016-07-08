@@ -147,7 +147,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->th =
       GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
   GNUNET_free (binary);
 }
 

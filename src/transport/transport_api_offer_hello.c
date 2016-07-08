@@ -23,31 +23,23 @@
  * @brief library to offer HELLOs to transport service
  * @author Christian Grothoff
  */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
+#include "gnunet_protocols.h"
+#include "gnunet_transport_service.h"
+
 
 /**
  * Entry in linked list for all offer-HELLO requests.
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle
 {
-  /**
-   * For the DLL.
-   */
-  struct GNUNET_TRANSPORT_OfferHelloHandle *prev;
-
-  /**
-   * For the DLL.
-   */
-  struct GNUNET_TRANSPORT_OfferHelloHandle *next;
 
   /**
    * Transport service handle we use for transmission.
    */
-  struct GNUNET_TRANSPORT_Handle *th;
-
-  /**
-   * Transmission handle for this request.
-   */
-  struct GNUNET_TRANSPORT_TransmitHandle *tth;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Function to call once we are done.
@@ -59,12 +51,23 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
    */
   void *cls;
 
-  /**
-   * The HELLO message to be transmitted.
-   */
-  struct GNUNET_MessageHeader *msg;
 };
 
+
+/**
+ * Done sending HELLO message to the service, notify application.
+ *
+ * @param cls the handle for the operation
+ */
+static void
+finished_hello (void *cls)
+{
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh = cls;
+
+  if (NULL != ohh->cont)
+    ohh->cont (ohh->cls);
+  GNUNET_TRANSPORT_offer_hello_cancel (ohh);
+}
 
 
 /**
@@ -72,7 +75,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
  * the transport service may just ignore this message if the HELLO is
  * malformed or useless due to our local configuration.
  *
- * @param handle connection to transport service
+ * @param cfg configuration
  * @param hello the hello message
  * @param cont continuation to call when HELLO has been sent,
  * 	tc reason #GNUNET_SCHEDULER_REASON_TIMEOUT for fail
@@ -83,46 +86,43 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
-GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_MessageHeader *hello,
                               GNUNET_SCHEDULER_TaskCallback cont,
                               void *cont_cls)
 {
-  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh
+    = GNUNET_new (struct GNUNET_TRANSPORT_OfferHelloHandle);
+  struct GNUNET_MQ_Envelope *env;
   struct GNUNET_PeerIdentity peer;
-  uint16_t size;
 
-  if (NULL == handle->mq)
-    return NULL;
-  GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
-  size = ntohs (hello->size);
-  GNUNET_break (size >= sizeof (struct GNUNET_MessageHeader));
   if (GNUNET_OK !=
       GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello,
                            &peer))
   {
     GNUNET_break (0);
+    GNUNET_free (ohh);
     return NULL;
   }
-
-  msg = GNUNET_malloc (size);
-  memcpy (msg, hello, size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Offering HELLO message of `%s' to transport for validation.\n",
-       GNUNET_i2s (&peer));
-  ohh = GNUNET_new (struct GNUNET_TRANSPORT_OfferHelloHandle);
-  ohh->th = handle;
+  ohh->mq = GNUNET_CLIENT_connecT (cfg,
+                                   "transport",
+                                   NULL,
+                                   NULL,
+                                   ohh);
+  if (NULL == ohh->mq)
+  {
+    GNUNET_free (ohh);
+    return NULL;
+  }
   ohh->cont = cont;
   ohh->cls = cont_cls;
-  ohh->msg = msg;
-  ohh->tth = schedule_control_transmit (handle,
-                                        size,
-                                        &send_hello,
-                                        ohh);
-  GNUNET_CONTAINER_DLL_insert (handle->oh_head,
-                               handle->oh_tail,
-                               ohh);
+  GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
+  env = GNUNET_MQ_msg_copy (hello);
+  GNUNET_MQ_notify_sent (env,
+                         &finished_hello,
+                         ohh);
+  GNUNET_MQ_send (ohh->mq,
+                  env);
   return ohh;
 }
 
@@ -135,13 +135,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 void
 GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *ohh)
 {
-  struct GNUNET_TRANSPORT_Handle *th = ohh->th;
-
-  cancel_control_transmit (ohh->th, ohh->tth);
-  GNUNET_CONTAINER_DLL_remove (th->oh_head,
-                               th->oh_tail,
-                               ohh);
-  GNUNET_free (ohh->msg);
+  GNUNET_MQ_destroy (ohh->mq);
   GNUNET_free (ohh);
 }
 

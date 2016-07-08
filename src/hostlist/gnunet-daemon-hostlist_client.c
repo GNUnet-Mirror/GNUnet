@@ -142,6 +142,14 @@ struct Hostlist
 };
 
 
+struct HelloOffer
+{
+  struct HelloOffer *next;
+  struct HelloOffer *prev;
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
+};
+
+
 /**
  * Our configuration.
  */
@@ -151,11 +159,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Statistics handle.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
-
-/**
- * Transport handle.
- */
-static struct GNUNET_TRANSPORT_Handle *transport;
 
 /**
  * Proxy hostname or ip we are using (can be NULL).
@@ -312,6 +315,25 @@ static unsigned int stat_hellos_obtained;
  */
 static unsigned int stat_connection_count;
 
+static struct HelloOffer *ho_head;
+
+static struct HelloOffer *ho_tail;
+
+
+/**
+ * Hello offer complete. Clean up.
+ */
+static void
+done_offer_hello (void *cls)
+{
+  struct HelloOffer *ho = cls;
+
+  GNUNET_CONTAINER_DLL_remove (ho_head,
+                               ho_tail,
+                               ho);
+  GNUNET_free (ho);
+}
+
 
 /**
  * Process downloaded bits by calling callback on each HELLO.
@@ -331,6 +353,7 @@ callback_download (void *ptr,
   static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const char *cbuf = ptr;
   const struct GNUNET_MessageHeader *msg;
+  struct HelloOffer *ho;
   size_t total;
   size_t cpy;
   size_t left;
@@ -390,7 +413,22 @@ callback_download (void *ptr,
                                 ("# valid HELLOs downloaded from hostlist servers"),
                                 1, GNUNET_NO);
       stat_hellos_obtained++;
-      GNUNET_TRANSPORT_offer_hello (transport, msg, NULL, NULL);
+
+      ho = GNUNET_new (struct HelloOffer);
+      ho->ohh = GNUNET_TRANSPORT_offer_hello (cfg,
+                                              msg,
+                                              &done_offer_hello,
+                                              ho);
+      if (NULL == ho->ohh)
+      {
+        GNUNET_free (ho);
+      }
+      else
+      {
+        GNUNET_CONTAINER_DLL_insert (ho_head,
+                                     ho_tail,
+                                     ho);
+      }
     }
     else
     {
@@ -405,7 +443,9 @@ callback_download (void *ptr,
       stat_hellos_obtained++;
       return total;
     }
-    memmove (download_buffer, &download_buffer[msize], download_pos - msize);
+    memmove (download_buffer,
+             &download_buffer[msize],
+             download_pos - msize);
     download_pos -= msize;
   }
   return total;
@@ -1532,13 +1572,6 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
-  if (NULL == transport)
-  {
-    GNUNET_break (0);
-    curl_global_cleanup ();
-    return GNUNET_SYSERR;
-  }
   cfg = c;
   stats = st;
 
@@ -1687,8 +1720,18 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
+  struct HelloOffer *ho;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
+  while (NULL != (ho = ho_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ho_head,
+                                 ho_tail,
+                                 ho);
+    GNUNET_TRANSPORT_offer_hello_cancel (ho->ohh);
+    GNUNET_free (ho);
+  }
   if (NULL != sget)
   {
     GNUNET_STATISTICS_get_cancel (sget);
@@ -1724,11 +1767,6 @@ GNUNET_HOSTLIST_client_stop ()
     GNUNET_SCHEDULER_cancel (ti_check_download);
     ti_check_download = NULL;
     curl_global_cleanup ();
-  }
-  if (NULL != transport)
-  {
-    GNUNET_TRANSPORT_disconnect (transport);
-    transport = NULL;
   }
   GNUNET_free_non_null (proxy);
   proxy = NULL;

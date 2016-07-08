@@ -142,11 +142,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_CORE_Handle *handle;
 
 /**
- * Handle to the TRANSPORT service.
- */
-static struct GNUNET_TRANSPORT_Handle *transport;
-
-/**
  * Handle to the ATS service.
  */
 static struct GNUNET_ATS_ConnectivityHandle *ats;
@@ -178,6 +173,11 @@ static struct GNUNET_TRANSPORT_Blacklist *blacklist;
  * peer connectivity suggestions.
  */
 static struct GNUNET_SCHEDULER_Task *add_task;
+
+/**
+ * Active HELLO offering to transport service.
+ */
+static struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
 
 /**
  * Flag to disallow non-friend connections (pure F2F mode).
@@ -1008,6 +1008,16 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Hello offer complete. Clean up.
+ */
+static void
+done_offer_hello (void *cls)
+{
+  oh = NULL;
+}
+
+
+/**
  * This function is called whenever an encrypted HELLO message is
  * received.
  *
@@ -1055,11 +1065,12 @@ handle_encrypted_hello (void *cls,
         (friend_count < minimum_friend_count))
       return GNUNET_OK;
   }
-  if (NULL != transport)
-    GNUNET_TRANSPORT_offer_hello (transport,
-                                  message,
-                                  NULL,
-                                  NULL);
+  if (NULL != oh)
+    GNUNET_TRANSPORT_offer_hello_cancel (oh);
+  oh = GNUNET_TRANSPORT_offer_hello (cfg,
+                                     message,
+                                     &done_offer_hello,
+                                     NULL);
   return GNUNET_OK;
 }
 
@@ -1136,11 +1147,6 @@ cleaning_task (void *cls)
     GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
     peerinfo_notify = NULL;
   }
-  if (NULL != transport)
-  {
-    GNUNET_TRANSPORT_disconnect (transport);
-    transport = NULL;
-  }
   if (NULL != handle)
   {
     GNUNET_CORE_disconnect (handle);
@@ -1151,6 +1157,11 @@ cleaning_task (void *cls)
   {
     GNUNET_SCHEDULER_cancel (add_task);
     add_task = NULL;
+  }
+  if (NULL != oh)
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (oh);
+    oh = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &free_peer,
@@ -1223,12 +1234,6 @@ run (void *cls,
                                             &blacklist_check,
                                             NULL);
   ats = GNUNET_ATS_connectivity_init (cfg);
-  transport = GNUNET_TRANSPORT_connect (cfg,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL);
   handle =
       GNUNET_CORE_connect (cfg, NULL,
                            &core_init,
@@ -1239,14 +1244,6 @@ run (void *cls,
                            handlers);
   GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
 				 NULL);
-  if (NULL == transport)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to `%s' service.\n"),
-                "transport");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
   if (NULL == handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

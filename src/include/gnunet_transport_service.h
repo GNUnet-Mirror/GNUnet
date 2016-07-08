@@ -66,12 +66,6 @@ typedef void
 
 
 /**
- * Opaque handle to the service.
- */
-struct GNUNET_TRANSPORT_Handle;
-
-
-/**
  * Function called to notify transport users that another
  * peer connected to us.
  *
@@ -81,6 +75,7 @@ struct GNUNET_TRANSPORT_Handle;
 typedef void
 (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                    const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Function called to notify transport users that another
@@ -288,13 +283,13 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
  * Obtain updates on changes to the HELLO message for this peer. The callback
  * given in this function is never called synchronously.
  *
- * @param handle connection to transport service
+ * @param cfg configuration
  * @param rec function to call with the HELLO
  * @param rec_cls closure for @a rec
  * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_GetHelloHandle *
-GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_get_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls);
 
@@ -319,7 +314,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  * the transport service may just ignore this message if the HELLO is
  * malformed or useless due to our local configuration.
  *
- * @param handle connection to transport service
+ * @param cfg configuration
  * @param hello the hello message
  * @param cont continuation to call when HELLO has been sent,
  *      tc reason #GNUNET_SCHEDULER_REASON_TIMEOUT for fail
@@ -330,7 +325,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
-GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_MessageHeader *hello,
                               GNUNET_SCHEDULER_TaskCallback cont,
                               void *cont_cls);

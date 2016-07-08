@@ -246,7 +246,7 @@ offer_hello (void *cls)
   if (NULL != cc->oh)
     GNUNET_TRANSPORT_offer_hello_cancel (cc->oh);
   cc->oh =
-    GNUNET_TRANSPORT_offer_hello (cc->p1->th,
+    GNUNET_TRANSPORT_offer_hello (cc->p1->cfg,
                                   (const struct GNUNET_MessageHeader *) cc->p2->hello,
                                   &hello_offered,
                                   cc);
@@ -380,7 +380,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     return NULL;
   }
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->th,
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
                                        &get_hello,
                                        p);
   GNUNET_assert (p->ghh != NULL);
@@ -465,7 +465,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct PeerContext *p,
                                     &notify_disconnect);
   GNUNET_assert (NULL != p->th);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->th,
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
                                        &get_hello,
                                        p);
   GNUNET_assert (NULL != p->ghh);

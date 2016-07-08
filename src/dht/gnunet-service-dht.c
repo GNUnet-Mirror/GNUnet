@@ -67,11 +67,6 @@ struct GNUNET_SERVER_Handle *GDS_server;
 struct GNUNET_MessageHeader *GDS_my_hello;
 
 /**
- * Handle to the transport service, for getting our hello
- */
-struct GNUNET_TRANSPORT_Handle *GDS_transport_handle;
-
-/**
  * Handle to get our current HELLO.
  */
 static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
@@ -111,11 +106,6 @@ shutdown_task (void *cls)
   {
     GNUNET_TRANSPORT_get_hello_cancel (ghh);
     ghh = NULL;
-  }
-  if (GDS_transport_handle != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (GDS_transport_handle);
-    GDS_transport_handle = NULL;
   }
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
@@ -170,15 +160,9 @@ run (void *cls,
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
-  GDS_transport_handle =
-      GNUNET_TRANSPORT_connect (GDS_cfg, NULL, NULL, NULL, NULL, NULL);
-  if (GDS_transport_handle == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Failed to connect to transport service!\n"));
-    return;
-  }
-  ghh = GNUNET_TRANSPORT_get_hello (GDS_transport_handle, &process_hello, NULL);
+  ghh = GNUNET_TRANSPORT_get_hello (GDS_cfg,
+                                    &process_hello,
+                                    NULL);
 }
 
 

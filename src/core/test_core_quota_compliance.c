@@ -547,14 +547,14 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   p->hello = GNUNET_malloc (ntohs (message->size));
   memcpy (p->hello, message, ntohs (message->size));
   if ((p == &p1) && (p2.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p1.cfg, message, NULL, NULL);
 
   if ((p == &p1) && (p2.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p1.cfg, p2.hello, NULL, NULL);
   if ((p == &p2) && (p1.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p2.cfg, p1.hello, NULL, NULL);
 }
 
 
@@ -579,7 +579,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (p->th != NULL);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
   GNUNET_free (binary);
 }
 

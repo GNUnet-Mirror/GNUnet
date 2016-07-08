@@ -34,25 +34,20 @@
 
 
 /**
- * Linked list of functions to call whenever our HELLO is updated.
+ * Functions to call with this peer's HELLO.
  */
 struct GNUNET_TRANSPORT_GetHelloHandle
 {
 
   /**
-   * This is a doubly linked list.
+   * Our configuration.
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *next;
-
-  /**
-   * This is a doubly linked list.
-   */
-  struct GNUNET_TRANSPORT_GetHelloHandle *prev;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Transport handle.
    */
-  struct GNUNET_TRANSPORT_Handle *handle;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Callback to call once we got our HELLO.
@@ -60,34 +55,158 @@ struct GNUNET_TRANSPORT_GetHelloHandle
   GNUNET_TRANSPORT_HelloUpdateCallback rec;
 
   /**
+   * Closure for @e rec.
+   */
+  void *rec_cls;
+
+  /**
    * Task for calling the HelloUpdateCallback when we already have a HELLO
    */
   struct GNUNET_SCHEDULER_Task *notify_task;
 
   /**
-   * Closure for @e rec.
+   * ID of the task trying to reconnect to the service.
    */
-  void *rec_cls;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Delay until we try to reconnect.
+   */
+  struct GNUNET_TIME_Relative reconnect_delay;
 
 };
 
 
+/**
+ * Function we use for checking incoming HELLO messages.
+ *
+ * @param cls closure, a `struct GNUNET_TRANSPORT_Handle *`
+ * @param msg message received
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_hello (void *cls,
+             const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_PeerIdentity me;
+
+  if (GNUNET_OK !=
+      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg,
+                           &me))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Receiving (my own) HELLO message (%u bytes), I am `%s'.\n",
+              (unsigned int) ntohs (msg->size),
+              GNUNET_i2s (&me));
+  return GNUNET_OK;
+}
+
 
 /**
- * Task to call the HelloUpdateCallback of the GetHelloHandle
+ * Function we use for handling incoming HELLO messages.
  *
- * @param cls the `struct GNUNET_TRANSPORT_GetHelloHandle`
+ * @param cls closure, a `struct GNUNET_TRANSPORT_GetHelloHandle *`
+ * @param msg message received
  */
 static void
-call_hello_update_cb_async (void *cls)
+handle_hello (void *cls,
+              const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
 
-  GNUNET_assert (NULL != ghh->handle->my_hello);
-  GNUNET_assert (NULL != ghh->notify_task);
-  ghh->notify_task = NULL;
   ghh->rec (ghh->rec_cls,
-            ghh->handle->my_hello);
+            msg);
+}
+
+
+/**
+ * Function that will schedule the job that will try
+ * to connect us again to the client.
+ *
+ * @param ghh transport service to reconnect
+ */
+static void
+schedule_reconnect (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
+
+
+/**
+ * Generic error handler, called with the appropriate
+ * error code and the same closure specified at the creation of
+ * the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_TRANSPORT_Handle *`
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Error receiving from transport service, disconnecting temporarily.\n");
+  GNUNET_MQ_destroy (ghh->mq);
+  ghh->mq = NULL;
+  schedule_reconnect (ghh);
+}
+
+
+/**
+ * Try again to connect to transport service.
+ *
+ * @param cls the handle to the transport service
+ */
+static void
+reconnect (void *cls)
+{
+  GNUNET_MQ_hd_var_size (hello,
+                         GNUNET_MESSAGE_TYPE_HELLO,
+                         struct GNUNET_MessageHeader);
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_hello_handler (ghh),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Envelope *env;
+  struct StartMessage *s;
+
+  ghh->reconnect_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to transport service.\n");
+  GNUNET_assert (NULL == ghh->mq);
+  ghh->mq = GNUNET_CLIENT_connecT (ghh->cfg,
+                                   "transport",
+                                   handlers,
+                                   &mq_error_handler,
+                                   ghh);
+  if (NULL == ghh->mq)
+    return;
+  env = GNUNET_MQ_msg (s,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_START);
+  s->options = htonl (0);
+  GNUNET_MQ_send (ghh->mq,
+                  env);
+}
+
+
+/**
+ * Function that will schedule the job that will try
+ * to connect us again to the client.
+ *
+ * @param ghh transport service to reconnect
+ */
+static void
+schedule_reconnect (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
+{
+  ghh->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (ghh->reconnect_delay,
+                                    &reconnect,
+                                    ghh);
+  ghh->reconnect_delay = GNUNET_TIME_STD_BACKOFF (ghh->reconnect_delay);
 }
 
 
@@ -95,7 +214,7 @@ call_hello_update_cb_async (void *cls)
  * Obtain the HELLO message for this peer.  The callback given in this function
  * is never called synchronously.
  *
- * @param handle connection to transport service
+ * @param cfg configuration
  * @param rec function to call with the HELLO, sender will be our peer
  *            identity; message and sender will be NULL on timeout
  *            (handshake with transport service pending/failed).
@@ -104,23 +223,23 @@ call_hello_update_cb_async (void *cls)
  * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_GetHelloHandle *
-GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_get_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls)
 {
-  struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
 
-  hwl = GNUNET_new (struct GNUNET_TRANSPORT_GetHelloHandle);
-  hwl->rec = rec;
-  hwl->rec_cls = rec_cls;
-  hwl->handle = handle;
-  GNUNET_CONTAINER_DLL_insert (handle->hwl_head,
-                               handle->hwl_tail,
-                               hwl);
-  if (NULL != handle->my_hello)
-    hwl->notify_task = GNUNET_SCHEDULER_add_now (&call_hello_update_cb_async,
-                                                 hwl);
-  return hwl;
+  ghh = GNUNET_new (struct GNUNET_TRANSPORT_GetHelloHandle);
+  ghh->rec = rec;
+  ghh->rec_cls = rec_cls;
+  ghh->cfg = cfg;
+  reconnect (ghh);
+  if (NULL == ghh->mq)
+  {
+    GNUNET_free (ghh);
+    return NULL;
+  }
+  return ghh;
 }
 
 
@@ -132,15 +251,13 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
 void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 {
-  struct GNUNET_TRANSPORT_Handle *handle = ghh->handle;
-
-  if (NULL != ghh->notify_task)
-    GNUNET_SCHEDULER_cancel (ghh->notify_task);
-  GNUNET_CONTAINER_DLL_remove (handle->hwl_head,
-                               handle->hwl_tail,
-                               ghh);
+  if (NULL != ghh->mq)
+  {
+    GNUNET_MQ_destroy (ghh->mq);
+    ghh->mq = NULL;
+  }
   GNUNET_free (ghh);
 }
 
 
-/* end of transport_api_hello.c */
+/* end of transport_api_get_hello.c */

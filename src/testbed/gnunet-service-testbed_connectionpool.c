@@ -463,7 +463,8 @@ connection_ready (void *cls)
           entry->handle_core,
           entry->handle_transport,
           entry->handle_ats_connectivity,
-          entry->peer_identity);
+          entry->peer_identity,
+          entry->cfg);
 }
 
 

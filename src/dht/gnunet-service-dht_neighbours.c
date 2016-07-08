@@ -592,13 +592,11 @@ try_connect (const struct GNUNET_PeerIdentity *pid,
                                                       ci,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
-  if ( (NULL != GDS_transport_handle) &&
-       (NULL != ci->oh) &&
+  if ( (NULL != ci->oh) &&
        (NULL != h) )
     GNUNET_TRANSPORT_offer_hello_cancel (ci->oh);
-  if ( (NULL != GDS_transport_handle) &&
-       (NULL != h) )
-    ci->oh = GNUNET_TRANSPORT_offer_hello (GDS_transport_handle,
+  if (NULL != h)
+    ci->oh = GNUNET_TRANSPORT_offer_hello (GDS_cfg,
                                            h,
                                            &offer_hello_done,
                                            ci);

@@ -65,9 +65,9 @@ process_hello (void *cls,
               "Received (my) `%s' from transport service\n", "HELLO");
   GNUNET_assert (message != NULL);
   if ((p == &p1) && (p2.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
+    GNUNET_TRANSPORT_offer_hello (p1.cfg, message, NULL, NULL);
 }
 
 
@@ -280,7 +280,7 @@ setup_peer (struct PeerContext *p,
   GNUNET_assert (NULL != p->th);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
   GNUNET_free (binary);
 }
 

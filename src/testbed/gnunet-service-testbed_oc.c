@@ -49,6 +49,11 @@ struct ConnectivitySuggestContext
   struct GNUNET_TRANSPORT_Handle *th_;
 
   /**
+   * Configuration of the peer from cache. Do not free!
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
    * The GetCacheHandle for the peer2's transport handle
    * (used to offer the HELLO to the peer).
    */
@@ -699,13 +704,15 @@ overlay_connect_notify (void *cls,
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
  * @param ac the handle to ATS. Can be NULL if it is not requested
  * @param my_identity the identity of our peer
+ * @param cfg configuration of the peer
  */
 static void
 occ_cache_get_handle_ats_occ_cb (void *cls,
                                  struct GNUNET_CORE_Handle *ch,
                                  struct GNUNET_TRANSPORT_Handle *th,
                                  struct GNUNET_ATS_ConnectivityHandle *ac,
-                                 const struct GNUNET_PeerIdentity *my_identity)
+                                 const struct GNUNET_PeerIdentity *my_identity,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
@@ -754,7 +761,8 @@ occ_cache_get_handle_ats_rocc_cb (void *cls,
                                   struct GNUNET_CORE_Handle *ch,
                                   struct GNUNET_TRANSPORT_Handle *th,
                                   struct GNUNET_ATS_ConnectivityHandle *ac,
-                                  const struct GNUNET_PeerIdentity *my_identity)
+                                  const struct GNUNET_PeerIdentity *my_identity,
+                                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
@@ -896,7 +904,7 @@ send_hello (void *cls)
              other_peer_str);
   GNUNET_free (other_peer_str);
   lp2c->ohh =
-      GNUNET_TRANSPORT_offer_hello (lp2c->tcc.th_,
+      GNUNET_TRANSPORT_offer_hello (lp2c->tcc.cfg,
                                     occ->hello,
                                     occ_hello_sent_cb,
                                     occ);
@@ -922,13 +930,15 @@ send_hello (void *cls)
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
  * @param ac the handle to ATS. Can be NULL if it is not requested
  * @param ignore_ peer identity which is ignored in this callback
- */
+ * @param cfg configuration of the peer
+*/
 static void
 p2_transport_connect_cache_callback (void *cls,
                                      struct GNUNET_CORE_Handle *ch,
                                      struct GNUNET_TRANSPORT_Handle *th,
                                      struct GNUNET_ATS_ConnectivityHandle *ac,
-                                     const struct GNUNET_PeerIdentity *ignore_)
+                                     const struct GNUNET_PeerIdentity *ignore_,
+                                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
 
@@ -945,6 +955,7 @@ p2_transport_connect_cache_callback (void *cls,
     return;
   }
   occ->p2ctx.local.tcc.th_ = th;
+  occ->p2ctx.local.tcc.cfg = cfg;
   GNUNET_asprintf (&occ->emsg,
                    "0x%llx: Timeout while offering HELLO to %s",
                    occ->op_id,
@@ -1068,7 +1079,8 @@ p1_transport_connect_cache_callback (void *cls,
                                      struct GNUNET_CORE_Handle *ch,
                                      struct GNUNET_TRANSPORT_Handle *th,
                                      struct GNUNET_ATS_ConnectivityHandle *ac,
-                                     const struct GNUNET_PeerIdentity *ignore_)
+                                     const struct GNUNET_PeerIdentity *ignore_,
+                                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
 
@@ -1092,7 +1104,7 @@ p1_transport_connect_cache_callback (void *cls,
                    "0x%llx: Timeout while acquiring HELLO of peer %s",
                    occ->op_id,
                    GNUNET_i2s (&occ->peer_identity));
-  occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p1th_,
+  occ->ghh = GNUNET_TRANSPORT_get_hello (cfg,
                                          &hello_update_cb,
                                          occ);
 }
@@ -1112,7 +1124,8 @@ occ_cache_get_handle_core_cb (void *cls,
                               struct GNUNET_CORE_Handle *ch,
                               struct GNUNET_TRANSPORT_Handle *th,
                               struct GNUNET_ATS_ConnectivityHandle *ac,
-                              const struct GNUNET_PeerIdentity *my_identity)
+                              const struct GNUNET_PeerIdentity *my_identity,
+                              const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
   const struct GNUNET_MessageHeader *hello;
@@ -1743,7 +1756,7 @@ attempt_connect_task (void *cls)
              GNUNET_i2s (&rocc->a_id),
              rocc->peer->id);
   rocc->ohh =
-      GNUNET_TRANSPORT_offer_hello (rocc->tcc.th_,
+      GNUNET_TRANSPORT_offer_hello (rocc->tcc.cfg,
                                     rocc->hello,
                                     &rocc_hello_sent_cb,
                                     rocc);
@@ -1772,7 +1785,8 @@ rocc_cache_get_handle_transport_cb (void *cls,
                                     struct GNUNET_CORE_Handle *ch,
                                     struct GNUNET_TRANSPORT_Handle *th,
                                     struct GNUNET_ATS_ConnectivityHandle *ac,
-                                    const struct GNUNET_PeerIdentity *ignore_)
+                                    const struct GNUNET_PeerIdentity *ignore_,
+                                    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
@@ -1783,6 +1797,7 @@ rocc_cache_get_handle_transport_cb (void *cls,
     return;
   }
   rocc->tcc.th_ = th;
+  rocc->tcc.cfg = cfg;
   if (GNUNET_YES ==
       GNUNET_TRANSPORT_check_peer_connected (rocc->tcc.th_,
                                              &rocc->a_id))

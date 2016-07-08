@@ -85,13 +85,15 @@ GST_connection_pool_destroy (void);
  * @param ac the handle to ATS, can be NULL if it is not requested
  * @param peer_id the identity of the peer. Will be NULL if ch is NULL. In other
  *          cases, its value being NULL means that CORE connection has failed.
+ * @param cfg configuration of the peer
  */
 typedef void
 (*GST_connection_pool_connection_ready_cb) (void *cls,
                                             struct GNUNET_CORE_Handle *ch,
                                             struct GNUNET_TRANSPORT_Handle *th,
                                             struct GNUNET_ATS_ConnectivityHandle *ac,
-                                            const struct GNUNET_PeerIdentity *peer_id);
+                                            const struct GNUNET_PeerIdentity *peer_id,
+                                            const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

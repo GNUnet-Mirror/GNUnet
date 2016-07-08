@@ -50,49 +50,41 @@ extern "C"
 
 
 /**
- * Function called by the transport for each received message.
- *
- * @param cls closure
- * @param peer (claimed) identity of the other peer
- * @param message the message
- */
-typedef void
-(*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const struct GNUNET_MessageHeader *message);
-
-
-/**
  * Opaque handle to the service.
  */
-struct GNUNET_TRANSPORT_Handle;
+struct GNUNET_TRANSPORT_CoreHandle;
 
 
 /**
- * Function called to notify CORE service that another
- * @a peer connected to us.
+ * Function called to notify transport users that another
+ * peer connected to us.
  *
  * @param cls closure
- * @param peer the peer that connected, never NULL
- * @param mq message queue for sending messages to this peer
+ * @param peer the peer that connected
+ * @param mq message queue to use to transmit to @a peer
+ * @return closure to use in MQ handlers
  */
-typedef void
-(*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
+typedef void *
+(*GNUNET_TRANSPORT_NotifyConnecT) (void *cls,
                                    const struct GNUNET_PeerIdentity *peer,
                                    struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Function called to notify CORE service that another
- * @a peer disconnected from us.  The associated message
- * queue must not be used henceforth.
+ * Function called to notify transport users that another peer
+ * disconnected from us.  The message queue that was given to the
+ * connect notification will be destroyed and must not be used
+ * henceforth.
  *
- * @param cls closure
- * @param peer the peer that disconnected, never NULL
+ * @param cls closure from #GNUNET_TRANSPORT_connecT
+ * @param peer the peer that disconnected
+ * @param handlers_cls closure of the handlers, was returned from the
+ *                    connect notification callback
  */
 typedef void
-(*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
-                                      const struct GNUNET_PeerIdentity *peer);
+(*GNUNET_TRANSPORT_NotifyDisconnecT) (void *cls,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      void *handler_cls);
 
 
 /**
@@ -108,34 +100,41 @@ typedef void
  *
  * @param cls the closure
  * @param neighbour peer that we have excess bandwidth to
+ * @param handlers_cls closure of the handlers, was returned from the
+ *                    connect notification callback
  */
 typedef void
-(*GNUNET_TRANSPORT_NotifyExcessBandwidth)(void *cls,
-                                          const struct GNUNET_PeerIdentity *neighbour);
+(*GNUNET_TRANSPORT_NotifyExcessBandwidtH)(void *cls,
+                                          const struct GNUNET_PeerIdentity *neighbour,
+                                          void *handlers_cls);
+
 
 
 /**
- * Connect to the transport service.
+ * Connect to the transport service.  Note that the connection may
+ * complete (or fail) asynchronously.
  *
  * @param cfg configuration to use
- * @param self our own identity (if API should check that it matches
+ * @param self our own identity (API should check that it matches
  *             the identity found by transport), or NULL (no check)
- * @param cls closure for the callbacks
- * @param rec_handlers NULL-terminated array of handlers for incoming
- *                     messages, or NULL
+ * @param handlers array of message handlers; note that the
+ *                 closures provided will be ignored and replaced
+ *                 with the respective return value from @a nc
+ * @param handlers array with handlers to call when we receive messages, or NULL
+ * @param cls closure for the @a nc, @a nd and @a neb callbacks
  * @param nc function to call on connect events, or NULL
  * @param nd function to call on disconnect events, or NULL
- * @param neb function to call if we have excess bandwidth to a peer
+ * @param neb function to call if we have excess bandwidth to a peer, or NULL
  * @return NULL on error
  */
-struct GNUNET_TRANSPORT_Handle *
+struct GNUNET_TRANSPORT_CoreHandle *
 GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_PeerIdentity *self,
+                               const struct GNUNET_MQ_MessageHandler *handlers,
                                void *cls,
-                               GNUNET_MQ_MessageHandler *rec_handlers,
-                               GNUNET_TRANSPORT_NotifyConnect nc,
-                               GNUNET_TRANSPORT_NotifyDisconnect nd,
-                               GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
+                               GNUNET_TRANSPORT_NotifyConnecT nc,
+                               GNUNET_TRANSPORT_NotifyDisconnecT nd,
+                               GNUNET_TRANSPORT_NotifyExcessBandwidtH neb);
 
 
 /**
@@ -144,22 +143,19 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle handle returned from connect
  */
 void
-GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
+GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
 
 
 /**
- * Checks if a given peer is connected to us. Convenience
- * API in case a client does not track connect/disconnect
- * events internally.
+ * Checks if a given peer is connected to us and get the message queue.
  *
  * @param handle connection to transport service
  * @param peer the peer to check
- * @return #GNUNET_YES (connected) or #GNUNET_NO (disconnected)
+ * @return NULL if disconnected, otherwise message queue for @a peer
  */
-int
-GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
-                                       const struct GNUNET_PeerIdentity *peer);
-
+struct GNUNET_MQ_Handle *
+GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
+                              const struct GNUNET_PeerIdentity *peer);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

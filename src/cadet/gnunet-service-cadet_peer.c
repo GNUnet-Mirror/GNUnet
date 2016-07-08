@@ -245,14 +245,14 @@ static unsigned long long drop_percent;
 static struct GNUNET_CORE_Handle *core_handle;
 
 /**
+ * Our configuration;
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Handle to communicate with ATS.
  */
 static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
-
-/**
- * Handle to try to start new connections.
- */
-static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
 /**
  * Shutdown falg.
@@ -557,6 +557,7 @@ core_init (void *cls,
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
   static int i = 0;
 
+  cfg = c;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
   if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
   {
@@ -1841,24 +1842,6 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                      NULL,      /* Don't notify about all outbound messages */
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_yesno (c, "CADET", "DISABLE_TRY_CONNECT"))
-  {
-    transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id, NULL, /* cls */
-                                                 /* Notify callbacks */
-                                                 NULL, NULL, NULL);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
-    LOG (GNUNET_ERROR_TYPE_WARNING, "*  DISABLE TRYING CONNECT in config  *\n");
-    LOG (GNUNET_ERROR_TYPE_WARNING, "*  Use this only for test purposes.  *\n");
-    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
-    transport_handle = NULL;
-  }
-
-
-
   if (NULL == core_handle)
   {
     GNUNET_break (0);
@@ -1885,11 +1868,6 @@ GCP_shutdown (void)
   {
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
-  }
-  if (NULL != transport_handle)
-  {
-    GNUNET_TRANSPORT_disconnect (transport_handle);
-    transport_handle = NULL;
   }
   if (NULL != ats_ch)
   {
@@ -2591,7 +2569,10 @@ GCP_try_connect (struct CadetPeer *peer)
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_MessageHeader *mh;
 
-  if (NULL == transport_handle)
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "CADET",
+                                            "DISABLE_TRY_CONNECT"))
     return;
   GCC_check_connections ();
   if (GNUNET_YES == GCP_is_neighbor (peer))
@@ -2606,7 +2587,7 @@ GCP_try_connect (struct CadetPeer *peer)
     GNUNET_TRANSPORT_offer_hello_cancel (peer->hello_offer);
     peer->hello_offer = NULL;
   }
-  peer->hello_offer = GNUNET_TRANSPORT_offer_hello (transport_handle,
+  peer->hello_offer = GNUNET_TRANSPORT_offer_hello (cfg,
                                                     mh,
                                                     &hello_offer_done,
                                                     peer);

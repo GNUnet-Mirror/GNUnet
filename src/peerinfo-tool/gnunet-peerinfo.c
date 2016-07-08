@@ -183,11 +183,6 @@ static struct GNUNET_SCHEDULER_Task * tt;
 static struct GNUNET_TRANSPORT_GetHelloHandle *gh;
 
 /**
- * Connection to transport service.
- */
-static struct GNUNET_TRANSPORT_Handle *transport;
-
-/**
  * Current iterator context (if active, otherwise NULL).
  */
 static struct GNUNET_PEERINFO_IteratorContext *pic;
@@ -641,11 +636,6 @@ shutdown_task (void *cls)
     GNUNET_TRANSPORT_get_hello_cancel (gh);
     gh = NULL;
   }
-  if (NULL != transport)
-  {
-    GNUNET_TRANSPORT_disconnect (transport);
-    transport = NULL;
-  }
   while (NULL != (pc = pc_head))
   {
     GNUNET_CONTAINER_DLL_remove (pc_head,
@@ -702,8 +692,6 @@ hello_callback (void *cls,
                                       &my_peer_identity));
   GNUNET_TRANSPORT_get_hello_cancel (gh);
   gh = NULL;
-  GNUNET_TRANSPORT_disconnect (transport);
-  transport = NULL;
   if (NULL != dump_hello)
     dump_my_hello ();
   tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
@@ -740,11 +728,7 @@ testservice_task (void *cls,
        (GNUNET_YES == get_uri) ||
        (NULL != dump_hello) )
   {
-    transport = GNUNET_TRANSPORT_connect (cfg,
-                                          NULL,
-                                          NULL,
-                                          NULL, NULL, NULL);
-    gh = GNUNET_TRANSPORT_get_hello (transport,
+    gh = GNUNET_TRANSPORT_get_hello (cfg,
                                      &hello_callback,
                                      NULL);
   }
