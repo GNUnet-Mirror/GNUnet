@@ -541,6 +541,15 @@ init_notify (void *cls,
 
 
 static void
+offer_hello_done (void *cls)
+{
+  struct PeerContext *p = cls;
+
+  p->oh = NULL;
+}
+
+
+static void
 process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
@@ -551,16 +560,26 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   p->hello = GNUNET_malloc (ntohs (message->size));
   GNUNET_memcpy (p->hello, message, ntohs (message->size));
   if ((p == &p1) && (NULL == p2.oh))
-    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
+    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg,
+                                          message,
+                                          &offer_hello_done,
+                                          &p2);
   if ((p == &p2) && (NULL == p1.oh))
-    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, message, NULL, NULL);
+    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, message,
+                                          &offer_hello_done,
+                                          &p1);
 
   if ((p == &p1) && (p2.hello != NULL) && (NULL == p1.oh))
-    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, p2.hello, NULL, NULL);
+    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg,
+                                          p2.hello,
+                                          &offer_hello_done,
+                                          &p1);
   if ((p == &p2) && (p1.hello != NULL) && (NULL == p2.oh) )
-    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg, p1.hello, NULL, NULL);
+    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg,
+                                          p1.hello,
+                                          &offer_hello_done,
+                                          &p2);
 }
-
 
 
 static void
