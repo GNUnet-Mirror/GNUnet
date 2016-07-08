@@ -1712,7 +1712,6 @@ static void
 rocc_hello_sent_cb (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rocc->ohh = NULL;
   GNUNET_assert (NULL == rocc->attempt_connect_task_id);
@@ -1720,15 +1719,6 @@ rocc_hello_sent_cb (void *cls)
              rocc->op_id,
              GNUNET_i2s (&rocc->a_id),
              rocc->peer->id);
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
-  {
-    GNUNET_break (0);
-    rocc->attempt_connect_task_id =
-        GNUNET_SCHEDULER_add_now (&attempt_connect_task,
-                                  rocc);
-    return;
-  }
   rocc->tcc.cgh_p2_ats =
     GST_connection_pool_get_handle (rocc->peer->id,
                                     rocc->peer->details.local.cfg,
