@@ -74,7 +74,7 @@ static struct sqlite3 *db;
  * The blacklist handle we obtain from transport when we register ourselves for
  * access control
  */
-struct GNUNET_TRANSPORT_Blacklist *bh;
+static struct GNUNET_TRANSPORT_Blacklist *bh;
 
 /**
  * The hostkeys file
