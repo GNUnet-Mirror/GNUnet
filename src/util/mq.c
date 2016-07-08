@@ -827,11 +827,11 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
   if (NULL != handlers)
   {
     for (i=0;NULL != handlers[i].cb; i++) ;
-    mq->handlers = GNUNET_new_array (i,
+    mq->handlers = GNUNET_new_array (i + 1,
 				     struct GNUNET_MQ_MessageHandler);
     GNUNET_memcpy (mq->handlers,
-	    handlers,
-	    i * sizeof (struct GNUNET_MQ_MessageHandler));
+                   handlers,
+                   i * sizeof (struct GNUNET_MQ_MessageHandler));
   }
   mq->error_handler = error_handler;
   mq->error_handler_cls = error_handler_cls;
