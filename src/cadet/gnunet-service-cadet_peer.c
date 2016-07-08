@@ -557,7 +557,6 @@ core_init (void *cls,
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
   static int i = 0;
 
-  cfg = c;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
   if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
   {
@@ -1804,6 +1803,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
 void
 GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  cfg = c;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GCP_init\n");
   in_shutdown = GNUNET_NO;
