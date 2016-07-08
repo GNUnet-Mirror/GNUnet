@@ -796,27 +796,13 @@ occ_hello_sent_cb (void *cls)
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   struct Peer *peer2;
-  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
   GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
   GNUNET_assert (NULL != occ->timeout_task);
   lp2c = &occ->p2ctx.local;
   lp2c->ohh = NULL;
 
   GNUNET_assert (NULL == occ->send_hello_task);
-  if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
-  {
-    GNUNET_free_non_null (occ->emsg);
-    GNUNET_asprintf (&occ->emsg,
-                     "0x%llx: Timeout while offering HELLO to other peer",
-                     occ->op_id);
-    occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello,
-                                                     occ);
-    return;
-  }
-  if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
-    return;
   GNUNET_free_non_null (occ->emsg);
 
   GNUNET_asprintf (&occ->emsg,
@@ -906,7 +892,7 @@ send_hello (void *cls)
   lp2c->ohh =
       GNUNET_TRANSPORT_offer_hello (lp2c->tcc.cfg,
                                     occ->hello,
-                                    occ_hello_sent_cb,
+                                    &occ_hello_sent_cb,
                                     occ);
   if (NULL == lp2c->ohh)
   {
