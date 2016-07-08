@@ -70,8 +70,8 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CORE_Handle *ch;
   struct GNUNET_CORE_TransmitHandle *nth;
+  struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_STATISTICS_Handle *stats;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
@@ -122,11 +122,15 @@ terminate_peer (struct PeerContext *p)
     GNUNET_CORE_disconnect (p->ch);
     p->ch = NULL;
   }
-  if (NULL != p->th)
+  if (NULL != p->ghh)
   {
     GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
-    GNUNET_TRANSPORT_disconnect (p->th);
-    p->th = NULL;
+    p->ghh = NULL;
+  }
+  if (NULL != p->oh)
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (p->oh);
+    p->oh = NULL;
   }
   if (NULL != p->ats_sh)
   {
@@ -546,15 +550,15 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   GNUNET_memcpy (p->hello, message, ntohs (message->size));
-  if ((p == &p1) && (p2.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
-  if ((p == &p2) && (p1.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.cfg, message, NULL, NULL);
+  if ((p == &p1) && (NULL == p2.oh))
+    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
+  if ((p == &p2) && (NULL == p1.oh))
+    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, message, NULL, NULL);
 
-  if ((p == &p1) && (p2.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.cfg, p2.hello, NULL, NULL);
-  if ((p == &p2) && (p1.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.cfg, p1.hello, NULL, NULL);
+  if ((p == &p1) && (p2.hello != NULL) && (NULL == p1.oh))
+    p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, p2.hello, NULL, NULL);
+  if ((p == &p2) && (p1.hello != NULL) && (NULL == p2.oh) )
+    p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg, p1.hello, NULL, NULL);
 }
 
 
@@ -575,8 +579,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->stats = GNUNET_STATISTICS_create ("core", p->cfg);
   GNUNET_assert (p->stats != NULL);
-  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
-  GNUNET_assert (p->th != NULL);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
