@@ -251,6 +251,11 @@ GNUNET_TRANSPORT_get_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 {
+  if (NULL != ghh->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (ghh->reconnect_task);
+    ghh->reconnect_task = NULL;
+  }
   if (NULL != ghh->mq)
   {
     GNUNET_MQ_destroy (ghh->mq);
