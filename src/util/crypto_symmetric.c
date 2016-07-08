@@ -158,7 +158,8 @@ GNUNET_CRYPTO_symmetric_encrypt (const void *block,
  *         this size should be the same as @c size.
  */
 ssize_t
-GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
+GNUNET_CRYPTO_symmetric_decrypt (const void *block,
+                                 size_t size,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
                                  const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result)
@@ -190,8 +191,10 @@ GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
  */
 void
 GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-                             const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                             const void *salt, size_t salt_len, ...)
+                                   const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                                   const void *salt,
+                                   size_t salt_len,
+                                   ...)
 {
   va_list argp;
 
@@ -212,8 +215,10 @@ GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationV
  */
 void
 GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-                               const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                               const void *salt, size_t salt_len, va_list argp)
+                                     const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                                     const void *salt,
+                                     size_t salt_len,
+                                     va_list argp)
 {
   char aes_salt[salt_len + 4];
   char twofish_salt[salt_len + 4];
@@ -222,14 +227,20 @@ GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializatio
   memcpy (&aes_salt[salt_len], "AES!", 4);
   memcpy (twofish_salt, salt, salt_len);
   memcpy (&twofish_salt[salt_len], "FISH", 4);
-  GNUNET_CRYPTO_kdf_v (iv->aes_iv, sizeof (iv->aes_iv),
-                       aes_salt, salt_len + 4,
-                       skey->aes_key, sizeof (skey->aes_key),
+  GNUNET_CRYPTO_kdf_v (iv->aes_iv,
+                       sizeof (iv->aes_iv),
+                       aes_salt,
+                       salt_len + 4,
+                       skey->aes_key,
+                       sizeof (skey->aes_key),
                        argp);
-  GNUNET_CRYPTO_kdf_v (iv->twofish_iv, sizeof (iv->twofish_iv),
-                       twofish_salt, salt_len + 4,
-                       skey->twofish_key, sizeof (skey->twofish_key),
+  GNUNET_CRYPTO_kdf_v (iv->twofish_iv,
+                       sizeof (iv->twofish_iv),
+                       twofish_salt,
+                       salt_len + 4,
+                       skey->twofish_key,
+                       sizeof (skey->twofish_key),
                        argp);
 }
 
-/* end of crypto_aes.c */
+/* end of crypto_symmetric.c */
