@@ -245,7 +245,8 @@ heap_plugin_put (void *cls,
   GNUNET_array_grow (val->path_info,
 		     val->path_info_len,
 		     path_info_len);
-  memcpy (val->path_info, path_info,
+  memcpy (val->path_info,
+          path_info,
 	  path_info_len * sizeof (struct GNUNET_PeerIdentity));
   (void) GNUNET_CONTAINER_multihashmap_put (plugin->map,
 					    &val->key,

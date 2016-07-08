@@ -506,7 +506,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
     if (n == 64)
       mc->bits = UINT64_MAX;    /* set all 64 bit */
     else
-      mc->bits = (1LL << n) - 1;        /* set lowest 'bits' bit */
+      mc->bits = (1LLU << n) - 1;        /* set lowest 'bits' bit */
     if (dc->list_size >= dc->num_msgs)
       discard_oldest_mc (dc);
     GNUNET_CONTAINER_DLL_insert (dc->head,
@@ -516,9 +516,9 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   }
 
   /* copy data to 'mc' */
-  if (0 != (mc->bits & (1LL << bit)))
+  if (0 != (mc->bits & (1LLU << bit)))
   {
-    mc->bits -= 1LL << bit;
+    mc->bits -= 1LLU << bit;
     mbuf = (char *) &mc[1];
     memcpy (&mbuf[bit * (dc->mtu - sizeof (struct FragmentHeader))], &fh[1],
             ntohs (msg->size) - sizeof (struct FragmentHeader));
@@ -543,7 +543,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   /* count number of missing fragments after the current one */
   bc = 0;
   for (b = bit; b < 64; b++)
-    if (0 != (mc->bits & (1LL << b)))
+    if (0 != (mc->bits & (1LLU << b)))
       bc++;
     else
       bc = 0;

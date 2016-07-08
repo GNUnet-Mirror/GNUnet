@@ -63,7 +63,7 @@ struct GNUNET_STATISTICS_ReplyMessage
  * Flag for the `struct GNUNET_STATISTICS_ReplyMessage` UID only.
  * Note that other messages use #GNUNET_STATISTICS_SETFLAG_PERSISTENT.
  */
-#define GNUNET_STATISTICS_PERSIST_BIT (1<<31)
+#define GNUNET_STATISTICS_PERSIST_BIT ((uint32_t) (1LLU<<31))
 
 /**
  * The value being set is an absolute change.
