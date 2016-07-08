@@ -116,7 +116,7 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   }
   /* serialize */
   rd_count_nbo = htonl (rd_count);
-  memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
+  GNUNET_memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
   GNUNET_assert (payload_len ==
 		 GNUNET_GNSRECORD_records_serialize (rd_count, rdc,
 						     payload_len, &payload[sizeof (uint32_t)]));
@@ -212,7 +212,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
 		  GNUNET_CRYPTO_symmetric_decrypt (&block[1], payload_len,
 					     &skey, &iv,
 					     payload));
-    memcpy (&rd_count,
+    GNUNET_memcpy (&rd_count,
 	    payload,
 	    sizeof (uint32_t));
     rd_count = ntohl (rd_count);

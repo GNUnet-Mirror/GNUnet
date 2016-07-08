@@ -277,7 +277,7 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   else
     ret = rs->dnsout6;
   GNUNET_assert (NULL != ret);
-  memcpy (&rs->addr,
+  GNUNET_memcpy (&rs->addr,
 	  sa,
 	  sa_len);
   rs->addrlen = sa_len;
@@ -367,7 +367,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 		ctx->dns_exit);
     return NULL;
   }
-  memcpy (&rs->addr,
+  GNUNET_memcpy (&rs->addr,
 	  sa,
 	  salen);
   rs->addrlen = salen;

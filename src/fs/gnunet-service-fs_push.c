@@ -238,7 +238,7 @@ transmit_message (void *cls,
   }
   msize = ntohs (msg->header.size);
   GNUNET_assert (msize <= buf_size);
-  memcpy (buf, msg, msize);
+  GNUNET_memcpy (buf, msg, msize);
   GNUNET_free (msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Pushing %u bytes to %s\n",
@@ -274,7 +274,7 @@ transmit_content (struct MigrationReadyPeer *peer,
   msg->header.size = htons (msize);
   msg->type = htonl (block->type);
   msg->expiration = GNUNET_TIME_absolute_hton (block->expiration);
-  memcpy (&msg[1], &block[1], block->size);
+  GNUNET_memcpy (&msg[1], &block[1], block->size);
   peer->msg = msg;
   for (i = 0; i < MIGRATION_LIST_SIZE; i++)
   {
@@ -541,7 +541,7 @@ process_migration_content (void *cls,
   mb->expiration = expiration;
   mb->size = size;
   mb->type = type;
-  memcpy (&mb[1], data, size);
+  GNUNET_memcpy (&mb[1], data, size);
   GNUNET_CONTAINER_DLL_insert_after (mig_head,
                                      mig_tail,
                                      mig_tail,

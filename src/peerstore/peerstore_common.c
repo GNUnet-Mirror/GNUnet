@@ -47,11 +47,11 @@ PEERSTORE_hash_key (const char *sub_system,
   totalsize = sssize + psize + ksize;
   block = GNUNET_malloc (totalsize);
   blockptr = block;
-  memcpy (blockptr, sub_system, sssize);
+  GNUNET_memcpy (blockptr, sub_system, sssize);
   blockptr += sssize;
-  memcpy (blockptr, peer, psize);
+  GNUNET_memcpy (blockptr, peer, psize);
   blockptr += psize;
-  memcpy (blockptr, key, ksize);
+  GNUNET_memcpy (blockptr, key, ksize);
   GNUNET_CRYPTO_hash (block, totalsize, ret);
   GNUNET_free (block);
 }
@@ -106,11 +106,11 @@ PEERSTORE_create_record_message (const char *sub_system,
   srm->sub_system_size = htons (ss_size);
   srm->value_size = htons (value_size);
   dummy = &srm[1];
-  memcpy (dummy, sub_system, ss_size);
+  GNUNET_memcpy (dummy, sub_system, ss_size);
   dummy += ss_size;
-  memcpy (dummy, key, key_size);
+  GNUNET_memcpy (dummy, key, key_size);
   dummy += key_size;
-  memcpy (dummy, value, value_size);
+  GNUNET_memcpy (dummy, value, value_size);
   return srm;
 }
 
@@ -166,11 +166,11 @@ PEERSTORE_create_record_mq_envelope (const char *sub_system,
   srm->value_size = htons (value_size);
   srm->options = htonl (options);
   dummy = &srm[1];
-  memcpy (dummy, sub_system, ss_size);
+  GNUNET_memcpy (dummy, sub_system, ss_size);
   dummy += ss_size;
-  memcpy (dummy, key, key_size);
+  GNUNET_memcpy (dummy, key, key_size);
   dummy += key_size;
-  memcpy (dummy, value, value_size);
+  GNUNET_memcpy (dummy, value, value_size);
   return ev;
 }
 
@@ -222,7 +222,7 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
   {
     record->peer = GNUNET_new (struct GNUNET_PeerIdentity);
 
-    memcpy (record->peer, &srm->peer, sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_memcpy (record->peer, &srm->peer, sizeof (struct GNUNET_PeerIdentity));
   }
   record->expiry = GNUNET_new (struct GNUNET_TIME_Absolute);
 
@@ -241,7 +241,7 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
   if (value_size > 0)
   {
     record->value = GNUNET_malloc (value_size);
-    memcpy (record->value, dummy, value_size);
+    GNUNET_memcpy (record->value, dummy, value_size);
   }
   record->value_size = value_size;
   return record;

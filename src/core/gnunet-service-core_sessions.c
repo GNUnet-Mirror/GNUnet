@@ -747,7 +747,7 @@ try_transmission (struct Session *session)
     while ( (NULL != (pos = session->sme_head)) &&
             (used + pos->size <= msize) )
     {
-      memcpy (&pbuf[used], &pos[1], pos->size);
+      GNUNET_memcpy (&pbuf[used], &pos[1], pos->size);
       used += pos->size;
       GNUNET_CONTAINER_DLL_remove (session->sme_head,
                                    session->sme_tail,
@@ -797,7 +797,7 @@ do_restart_typemap_message (void *cls,
 
   size = ntohs (hdr->size);
   sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) + size);
-  memcpy (&sme[1], hdr, size);
+  GNUNET_memcpy (&sme[1], hdr, size);
   sme->size = size;
   sme->priority = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
   GNUNET_CONTAINER_DLL_insert (session->sme_head,
@@ -871,7 +871,7 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
     return;
   msize = ntohs (msg->size);
   sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) + msize);
-  memcpy (&sme[1], msg, msize);
+  GNUNET_memcpy (&sme[1], msg, msize);
   sme->size = msize;
   sme->priority = priority;
   if (GNUNET_YES == cork)

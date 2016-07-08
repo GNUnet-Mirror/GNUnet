@@ -660,7 +660,7 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
   res->result_code = GNUNET_htonll (result_code);
   res->op_id = op_id;
   if (0 < data_size)
-    memcpy (&res[1], data, data_size);
+    GNUNET_memcpy (&res[1], data, data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "%p Sending result to client for operation #%" PRIu64 ": "
@@ -1166,7 +1166,7 @@ app_place_add (const char *app_id,
 
   size_t app_id_size = strlen (app_id) + 1;
   void *app_id_value = GNUNET_malloc (app_id_size);
-  memcpy (app_id_value, app_id, app_id_size);
+  GNUNET_memcpy (app_id_value, app_id, app_id_size);
 
   if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (place_apps, &app_id_hash, app_id_value,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
@@ -1630,7 +1630,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     if (0 < relay_size)
     {
       gst->relays = GNUNET_malloc (relay_size);
-      memcpy (gst->relays, relays, relay_size);
+      GNUNET_memcpy (gst->relays, relays, relay_size);
     }
 
     gst->join_flags = ntohl (greq->flags);
@@ -1805,11 +1805,11 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
   greq->relay_count = rec->relay_count;
 
   void *p = &greq[1];
-  memcpy (p, gcls->app_id, app_id_size);
+  GNUNET_memcpy (p, gcls->app_id, app_id_size);
   p += app_id_size;
-  memcpy (p, relays, relay_size);
+  GNUNET_memcpy (p, relays, relay_size);
   p += relay_size;
-  memcpy (p, gcls->join_msg, join_msg_size);
+  GNUNET_memcpy (p, gcls->join_msg, join_msg_size);
 
   client_recv_guest_enter (NULL, gcls->client, &greq->header);
 
@@ -1867,13 +1867,13 @@ client_recv_guest_enter_by_name (void *cls, struct GNUNET_SERVER_Client *client,
 
   uint16_t app_id_size = strlen (app_id) + 1;
   gcls->app_id = GNUNET_malloc (app_id_size);
-  memcpy (gcls->app_id, app_id, app_id_size);
+  GNUNET_memcpy (gcls->app_id, app_id, app_id_size);
 
   uint16_t password_size = strlen (password);
   if (0 < password_size++)
   {
     gcls->password = GNUNET_malloc (password_size);
-    memcpy (gcls->password, password, password_size);
+    GNUNET_memcpy (gcls->password, password, password_size);
   }
 
   GNUNET_GNS_lookup (gns, gns_name, &greq->ego_pub_key,
@@ -1953,7 +1953,7 @@ app_notify_ego (struct Ego *ego, struct GNUNET_SERVER_Client *client)
   emsg->header.size = htons (sizeof (*emsg) + name_size);
 
   GNUNET_CRYPTO_ecdsa_key_get_public (&ego->key, &emsg->ego_pub_key);
-  memcpy (&emsg[1], ego->name, name_size);
+  GNUNET_memcpy (&emsg[1], ego->name, name_size);
 
   client_send_msg (client, &emsg->header);
   GNUNET_free (emsg);
@@ -2043,7 +2043,7 @@ client_recv_app_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
   struct Client *ctx = GNUNET_new (struct Client);
   ctx->app_id = GNUNET_malloc (app_id_size);
-  memcpy (ctx->app_id, app_id, app_id_size);
+  GNUNET_memcpy (ctx->app_id, app_id, app_id_size);
 
   GNUNET_SERVER_client_set_user_context (client, ctx);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2319,7 +2319,7 @@ psyc_transmit_notify_data (void *cls, uint16_t *data_size, void *data)
                 plc, pdata_size);
 
     *data_size = pdata_size;
-    memcpy (data, &pmsg[1], *data_size);
+    GNUNET_memcpy (data, &pmsg[1], *data_size);
     ret = GNUNET_NO;
     break;
 
@@ -2454,7 +2454,7 @@ psyc_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
     *full_value_size = ntohl (pmod->value_size);
     *oper = pmod->oper;
     *data_size = mod_size;
-    memcpy (data, &pmod[1], mod_size);
+    GNUNET_memcpy (data, &pmod[1], mod_size);
     ret = GNUNET_NO;
     break;
   }
@@ -2480,7 +2480,7 @@ psyc_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
                 "%p psyc_transmit_notify_mod: sending %u bytes.\n", plc, mod_size);
 
     *data_size = mod_size;
-    memcpy (data, &pmsg[1], *data_size);
+    GNUNET_memcpy (data, &pmsg[1], *data_size);
     ret = GNUNET_NO;
     break;
   }
@@ -2760,7 +2760,7 @@ psyc_transmit_queue_message (struct Place *plc,
 
   struct FragmentTransmitQueue *
     tmit_frag = GNUNET_malloc (sizeof (*tmit_frag) + data_size);
-  memcpy (&tmit_frag[1], data, data_size);
+  GNUNET_memcpy (&tmit_frag[1], data, data_size);
   tmit_frag->next_part = (struct GNUNET_MessageHeader *) &tmit_frag[1];
   tmit_frag->client = client;
   tmit_frag->size = data_size;
@@ -2893,7 +2893,7 @@ psyc_recv_history_message (void *cls, const struct GNUNET_PSYC_MessageHeader *ms
   res->op_id = opcls->op_id;
   res->result_code = GNUNET_htonll (GNUNET_OK);
 
-  memcpy (&res[1], msg, size);
+  GNUNET_memcpy (&res[1], msg, size);
 
   /** @todo FIXME: send only to requesting client */
   place_send_msg (plc, &res->header);
@@ -3001,7 +3001,7 @@ psyc_recv_state_var (void *cls,
   res->op_id = opcls->op_id;
   res->result_code = GNUNET_htonll (GNUNET_OK);
 
-  memcpy (&res[1], mod, size);
+  GNUNET_memcpy (&res[1], mod, size);
 
   /** @todo FIXME: send only to requesting client */
   place_send_msg (plc, &res->header);
@@ -3139,7 +3139,7 @@ client_recv_zone_add_place (void *cls, struct GNUNET_SERVER_Client *client,
   rec->place_pub_key = preq->place_pub_key;
   rec->origin = this_peer;
   rec->relay_count = preq->relay_count;
-  memcpy (&rec[1], relays, relay_size);
+  GNUNET_memcpy (&rec[1], relays, relay_size);
 
   rd.data = rec;
   rd.data_size = sizeof (*rec) + relay_size;
@@ -3439,7 +3439,7 @@ identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
     ego->key = *(GNUNET_IDENTITY_ego_get_private_key (id_ego));
     size_t name_size = strlen (name) + 1;
     ego->name = GNUNET_malloc (name_size);
-    memcpy (ego->name, name, name_size);
+    GNUNET_memcpy (ego->name, name, name_size);
 
     GNUNET_CONTAINER_multihashmap_put (egos, &ego_pub_hash, ego,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);

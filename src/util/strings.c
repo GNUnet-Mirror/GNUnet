@@ -79,7 +79,7 @@ GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
     if (buffer != NULL)
     {
       GNUNET_assert (needed + slen <= size);
-      memcpy (&buffer[needed], s, slen);
+      GNUNET_memcpy (&buffer[needed], s, slen);
     }
     needed += slen;
     count--;
@@ -412,7 +412,7 @@ GNUNET_STRINGS_conv (const char *input,
   if (0 == strcmp (output_charset, "UTF-8"))
   {
     ret = GNUNET_malloc (u8_string_length + 1);
-    memcpy (ret, u8_string, u8_string_length);
+    GNUNET_memcpy (ret, u8_string, u8_string_length);
     ret[u8_string_length] = '\0';
     free (u8_string);
     return ret;
@@ -428,7 +428,7 @@ GNUNET_STRINGS_conv (const char *input,
     goto fail;
   }
   ret = GNUNET_malloc (encoded_string_length + 1);
-  memcpy (ret, encoded_string, encoded_string_length);
+  GNUNET_memcpy (ret, encoded_string, encoded_string_length);
   ret[encoded_string_length] = '\0';
   free (encoded_string);
   return ret;
@@ -437,7 +437,7 @@ GNUNET_STRINGS_conv (const char *input,
        _("Character sets requested were `%s'->`%s'\n"),
        "UTF-8", output_charset);
   ret = GNUNET_malloc (len + 1);
-  memcpy (ret, input, len);
+  GNUNET_memcpy (ret, input, len);
   ret[len] = '\0';
   return ret;
 }
@@ -500,7 +500,7 @@ GNUNET_STRINGS_utf8_tolower (const char *input,
 
   tmp_in = u8_tolower ((uint8_t*)input, strlen ((char *) input),
                        NULL, UNINORM_NFD, NULL, &len);
-  memcpy(output, tmp_in, len);
+  GNUNET_memcpy(output, tmp_in, len);
   output[len] = '\0';
   free(tmp_in);
 }
@@ -522,7 +522,7 @@ GNUNET_STRINGS_utf8_toupper(const char *input,
 
   tmp_in = u8_toupper ((uint8_t*)input, strlen ((char *) input),
                        NULL, UNINORM_NFD, NULL, &len);
-  memcpy (output, tmp_in, len);
+  GNUNET_memcpy (output, tmp_in, len);
   output[len] = '\0';
   free (tmp_in);
 }
@@ -1073,7 +1073,7 @@ GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
   if (scheme_part)
   {
     *scheme_part = GNUNET_malloc (post_scheme_part - path + 1);
-    memcpy (*scheme_part, path, post_scheme_part - path);
+    GNUNET_memcpy (*scheme_part, path, post_scheme_part - path);
     (*scheme_part)[post_scheme_part - path] = '\0';
   }
   if (path_part)
@@ -1222,7 +1222,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 
   if (addrlen < 6)
     return GNUNET_SYSERR;
-  memcpy (zbuf, zt_addr, addrlen);
+  GNUNET_memcpy (zbuf, zt_addr, addrlen);
   if ('[' != zbuf[0])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

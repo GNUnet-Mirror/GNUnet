@@ -767,7 +767,7 @@ change_service (struct GNUNET_ARM_Handle *h,
                              type);
   msg->reserved = htonl (0);
   msg->request_id = GNUNET_htonll (op->id);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           service_name,
           slen);
   GNUNET_MQ_send (h->mq,

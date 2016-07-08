@@ -432,7 +432,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     len = GNUNET_asprintf (&cbuf, "[%s]\n", sec->name);
     GNUNET_assert (0 < len);
-    memcpy (mem + c_size, cbuf, len);
+    GNUNET_memcpy (mem + c_size, cbuf, len);
     c_size += len;
     GNUNET_free (cbuf);
     for (ent = sec->entries; NULL != ent; ent = ent->next)
@@ -449,12 +449,12 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
         }
 	len = GNUNET_asprintf (&cbuf, "%s = %s\n", ent->key, val);
 	GNUNET_free (val);
-	memcpy (mem + c_size, cbuf, len);
+	GNUNET_memcpy (mem + c_size, cbuf, len);
 	c_size += len;
 	GNUNET_free (cbuf);
       }
     }
-    memcpy (mem + c_size, "\n", 1);
+    GNUNET_memcpy (mem + c_size, "\n", 1);
     c_size ++;
     sec = sec->next;
   }
@@ -1291,7 +1291,7 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cf
     dup = expand_dollar (cfg, dup, 0);
     len = strlen (dup) + 1;
     orig = GNUNET_realloc (orig, i + len);
-    memcpy (orig + i, dup, len);
+    GNUNET_memcpy (orig + i, dup, len);
     GNUNET_free (dup);
   }
   return orig;

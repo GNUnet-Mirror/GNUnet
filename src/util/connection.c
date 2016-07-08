@@ -372,7 +372,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
 #if HAVE_SOCKADDR_IN_SIN_LEN
     v4->sin_len = (u_char) sizeof (struct sockaddr_in);
 #endif
-    memcpy (&v4->sin_addr,
+    GNUNET_memcpy (&v4->sin_addr,
             &((char *) &v6->sin6_addr)[sizeof (struct in6_addr) -
                                        sizeof (struct in_addr)],
             sizeof (struct in_addr));
@@ -383,7 +383,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
   else
   {
     uaddr = GNUNET_malloc (addrlen);
-    memcpy (uaddr, addr, addrlen);
+    GNUNET_memcpy (uaddr, addr, addrlen);
   }
   gcp = NULL;
   gc.uid = 0;
@@ -479,7 +479,7 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *connection,
   if ((NULL == connection->addr) || (0 == connection->addrlen))
     return GNUNET_NO;
   *addr = GNUNET_malloc (connection->addrlen);
-  memcpy (*addr, connection->addr, connection->addrlen);
+  GNUNET_memcpy (*addr, connection->addr, connection->addrlen);
   *addrlen = connection->addrlen;
   return GNUNET_OK;
 }
@@ -726,7 +726,7 @@ connect_probe_continuation (void *cls)
   connection->sock = ap->sock;
   GNUNET_assert (NULL == connection->addr);
   connection->addr = GNUNET_malloc (ap->addrlen);
-  memcpy (connection->addr, ap->addr, ap->addrlen);
+  GNUNET_memcpy (connection->addr, ap->addr, ap->addrlen);
   connection->addrlen = ap->addrlen;
   GNUNET_free (ap);
   /* cancel all other attempts */
@@ -781,7 +781,7 @@ try_connect_using_address (void *cls,
        connection->port);
   ap = GNUNET_malloc (sizeof (struct AddressProbe) + addrlen);
   ap->addr = (const struct sockaddr *) &ap[1];
-  memcpy (&ap[1], addr, addrlen);
+  GNUNET_memcpy (&ap[1], addr, addrlen);
   ap->addrlen = addrlen;
   ap->connection = connection;
 
@@ -976,7 +976,7 @@ GNUNET_CONNECTION_connect_socket (struct GNUNET_NETWORK_Handle *s,
   }
   connection = GNUNET_CONNECTION_create_from_existing (s);
   connection->addr = GNUNET_malloc (addrlen);
-  memcpy (connection->addr, serv_addr, addrlen);
+  GNUNET_memcpy (connection->addr, serv_addr, addrlen);
   connection->addrlen = addrlen;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Trying to connect to `%s' (%p)\n",

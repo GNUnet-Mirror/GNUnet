@@ -866,7 +866,7 @@ send_hello_thru_rocc (struct OverlayConnectContext *occ)
   msg->peer = htonl (occ->other_peer_id);
   msg->operation_id = GNUNET_htonll (occ->op_id);
   msg->peer_identity = occ->peer_identity;
-  memcpy (msg->hello,
+  GNUNET_memcpy (msg->hello,
           occ->hello,
           hello_size);
   GNUNET_TESTBED_queue_message_ (occ->p2ctx.remote.p2c,
@@ -1053,7 +1053,7 @@ hello_update_cb (void *cls,
              GNUNET_i2s (&occ->peer_identity));
   occ->hello = GNUNET_malloc (msize);
   GST_cache_add_hello (occ->peer->id, hello);
-  memcpy (occ->hello, hello, msize);
+  GNUNET_memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
   GST_connection_pool_get_handle_done (occ->cgh_p1th);
@@ -1895,7 +1895,7 @@ GST_handle_remote_overlay_connect (void *cls,
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
   rocc->hello = GNUNET_malloc (hsize);
-  memcpy (rocc->hello, msg->hello, hsize);
+  GNUNET_memcpy (rocc->hello, msg->hello, hsize);
   rocc->tcc.cgh_p2_th =
       GST_connection_pool_get_handle (peer_id,
                                       rocc->peer->details.local.cfg,

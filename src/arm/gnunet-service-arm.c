@@ -289,7 +289,7 @@ write_result (void *cls, size_t size, void *buf)
   msg->arm_msg.header.type = htons (msg->arm_msg.header.type);
   msg->result = htonl (msg->result);
   msg->arm_msg.request_id = GNUNET_htonll (msg->arm_msg.request_id);
-  memcpy (buf, msg, msize);
+  GNUNET_memcpy (buf, msg, msize);
   GNUNET_free (msg);
   return msize;
 }
@@ -324,7 +324,7 @@ write_list_result (void *cls, size_t size, void *buf)
   msg->arm_msg.request_id = GNUNET_htonll (msg->arm_msg.request_id);
   msg->count = htons (msg->count);
 
-  memcpy (buf, msg, rslt_size);
+  GNUNET_memcpy (buf, msg, rslt_size);
   GNUNET_free (msg);
   return rslt_size;
 }
@@ -388,7 +388,7 @@ broadcast_status (const char *name,
   msg->header.size = htons (sizeof (struct GNUNET_ARM_StatusMessage) + namelen + 1);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ARM_STATUS);
   msg->status = htonl ((uint32_t) (status));
-  memcpy ((char *) &msg[1], name, namelen + 1);
+  GNUNET_memcpy ((char *) &msg[1], name, namelen + 1);
 
   if (NULL == unicast)
     GNUNET_SERVER_notification_context_broadcast (notifier,

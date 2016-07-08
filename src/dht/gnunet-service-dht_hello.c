@@ -86,7 +86,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   hm = GNUNET_CONTAINER_multipeermap_get (peer_to_hello, peer);
   GNUNET_free_non_null (hm);
   hm = GNUNET_malloc (GNUNET_HELLO_size (hello));
-  memcpy (hm, hello, GNUNET_HELLO_size (hello));
+  GNUNET_memcpy (hm, hello, GNUNET_HELLO_size (hello));
   GNUNET_assert (GNUNET_SYSERR !=
                  GNUNET_CONTAINER_multipeermap_put (peer_to_hello,
                                                     peer, hm,

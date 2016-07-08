@@ -346,7 +346,7 @@ send_next_message (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending message of type %d to identity provider service\n",
        ntohs (op->msg->type));
-  memcpy (buf, op->msg, ret);
+  GNUNET_memcpy (buf, op->msg, ret);
   if ( (NULL == op->iss_cb) &&
        (NULL == op->ex_cb) )
   {
@@ -474,7 +474,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   im->aud_key = *aud_key;
   im->nonce = htonl (nonce);
   im->expiration = GNUNET_TIME_absolute_hton (expiration);
-  memcpy (&im[1], scopes, slen);
+  GNUNET_memcpy (&im[1], scopes, slen);
   op->msg = &im->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
 				    id->op_tail,
@@ -526,7 +526,7 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle
   em->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage) +
                            slen);
   em->aud_privkey = *aud_privkey;
-  memcpy (&em[1], ticket_str, slen);
+  GNUNET_memcpy (&em[1], ticket_str, slen);
   GNUNET_free (ticket_str);
   op->msg = &em->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,

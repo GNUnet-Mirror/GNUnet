@@ -76,7 +76,7 @@ buffer_init (struct Buffer *buf,
   if (data_size > alloc_size)
     alloc_size = data_size;
   buf->data = GNUNET_malloc (alloc_size);
-  memcpy (buf->data, data, data_size);
+  GNUNET_memcpy (buf->data, data, data_size);
   return GNUNET_OK;
 }
 
@@ -122,12 +122,12 @@ buffer_append (struct Buffer *buf,
     if (new_size > max_size)
       return GNUNET_NO;
     new_buf = GNUNET_malloc (new_size);
-    memcpy (new_buf, buf->data, buf->fill);
+    GNUNET_memcpy (new_buf, buf->data, buf->fill);
     GNUNET_free (buf->data);
     buf->data = new_buf;
     buf->alloc = new_size;
   }
-  memcpy (buf->data + buf->fill, data, data_size);
+  GNUNET_memcpy (buf->data + buf->fill, data, data_size);
   buf->fill += data_size;
   return GNUNET_OK;
 }

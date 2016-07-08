@@ -124,7 +124,7 @@ GNUNET_xmemdup_ (const void *buf,
   ret = &((size_t *) ret)[1];
   mem_used += size;
 #endif
-  memcpy (ret, buf, size);
+  GNUNET_memcpy (ret, buf, size);
   return ret;
 }
 
@@ -249,7 +249,7 @@ GNUNET_xfree_ (void *ptr,
 
     for (i=0;i<s/8;i++)
       base[i] = baadfood;
-    memcpy (&base[s/8], &baadfood, s % 8);
+    GNUNET_memcpy (&base[s/8], &baadfood, s % 8);
   }
 #endif
 #endif
@@ -280,7 +280,7 @@ GNUNET_xstrdup_ (const char *str,
   res = GNUNET_xmalloc_ (slen,
 			 filename,
 			 linenumber);
-  memcpy (res,
+  GNUNET_memcpy (res,
 	  str,
 	  slen);
   return res;
@@ -329,7 +329,7 @@ GNUNET_xstrndup_ (const char *str,
   res = GNUNET_xmalloc_ (len + 1,
 			 filename,
 			 linenumber);
-  memcpy (res, str, len);
+  GNUNET_memcpy (res, str, len);
   /* res[len] = '\0'; 'malloc' zeros out anyway */
   return res;
 }
@@ -371,7 +371,7 @@ GNUNET_xgrow_ (void **old,
     if (*oldCount > newCount)
       *oldCount = newCount;     /* shrink is also allowed! */
     if (NULL != *old)
-      memcpy (tmp, *old, elementSize * (*oldCount));
+      GNUNET_memcpy (tmp, *old, elementSize * (*oldCount));
   }
 
   if (*old != NULL)
@@ -450,7 +450,7 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   ret = GNUNET_malloc (msize);
-  memcpy (ret, msg, msize);
+  GNUNET_memcpy (ret, msg, msize);
   return ret;
 }
 

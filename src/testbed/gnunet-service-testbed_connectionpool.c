@@ -629,7 +629,7 @@ core_startup_cb (void *cls,
   }
   GNUNET_assert (NULL == entry->peer_identity);
   entry->peer_identity = GNUNET_new (struct GNUNET_PeerIdentity);
-  memcpy (entry->peer_identity,
+  GNUNET_memcpy (entry->peer_identity,
           my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   if (0 == entry->demand)

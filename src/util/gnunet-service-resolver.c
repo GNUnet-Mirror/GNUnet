@@ -267,7 +267,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   {
     pos = GNUNET_malloc (sizeof (struct IPCache) + ip_len);
     pos->ip = &pos[1];
-    memcpy (&pos[1], ip, ip_len);
+    GNUNET_memcpy (&pos[1], ip, ip_len);
     pos->last_request = now;
     pos->last_refresh = now;
     pos->ip_len = ip_len;

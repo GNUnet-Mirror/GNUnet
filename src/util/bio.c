@@ -155,7 +155,7 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
     {
       if (min > len - pos)
         min = len - pos;
-      memcpy (&dst[pos], &h->buffer[h->pos], min);
+      GNUNET_memcpy (&dst[pos], &h->buffer[h->pos], min);
       h->pos += min;
       pos += min;
     }
@@ -481,7 +481,7 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
     min = h->size - h->have;
     if (min > n - pos)
       min = n - pos;
-    memcpy (&h->buffer[h->have], &src[pos], min);
+    GNUNET_memcpy (&h->buffer[h->have], &src[pos], min);
     pos += min;
     h->have += min;
     if (pos == n)

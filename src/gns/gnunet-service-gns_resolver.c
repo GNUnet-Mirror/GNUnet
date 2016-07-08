@@ -741,7 +741,7 @@ add_dns_result (struct GNS_ResolverHandle *rh,
   res->data_size = data_size;
   res->record_type = record_type;
   res->data = &res[1];
-  memcpy (&res[1], data, data_size);
+  GNUNET_memcpy (&res[1], data, data_size);
   GNUNET_CONTAINER_DLL_insert (rh->dns_result_head,
 			       rh->dns_result_tail,
 			       res);
@@ -1280,7 +1280,7 @@ handle_gns2dns_result (void *cls,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v4.sin_len = (u_char) sa_len;
 #endif
-      memcpy (&v4.sin_addr,
+      GNUNET_memcpy (&v4.sin_addr,
               rd[j].data,
               sizeof (struct in_addr));
       sa = (struct sockaddr *) &v4;
@@ -1302,7 +1302,7 @@ handle_gns2dns_result (void *cls,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v6.sin6_len = (u_char) sa_len;
 #endif
-      memcpy (&v6.sin6_addr,
+      GNUNET_memcpy (&v6.sin6_addr,
               rd[j].data,
               sizeof (struct in6_addr));
       sa = (struct sockaddr *) &v6;
@@ -1326,7 +1326,7 @@ handle_gns2dns_result (void *cls,
   GNUNET_assert (strlen (rh->g2dc->ns) <= GNUNET_DNSPARSER_MAX_NAME_LENGTH);
   strcpy (ac->authority_info.dns_authority.name,
           rh->g2dc->ns);
-  memcpy (&ac->authority_info.dns_authority.dns_ip,
+  GNUNET_memcpy (&ac->authority_info.dns_authority.dns_ip,
           sa,
           sa_len);
   /* for DNS recursion, the label is the full DNS name,
@@ -1682,7 +1682,7 @@ handle_gns_resolution_result (void *cls,
 	    GNUNET_break_op (0);
 	    break;
 	  }
-	  memcpy (&pub, rd[i].data, rd[i].data_size);
+	  GNUNET_memcpy (&pub, rd[i].data, rd[i].data_size);
           rd_off++;
           if (GNUNET_GNSRECORD_TYPE_PKEY != rh->record_type)
           {
@@ -1798,7 +1798,7 @@ handle_gns_resolution_result (void *cls,
       ac->gns_authority = GNUNET_YES;
       ac->suggested_shortening_label = NULL;
       ac->shortening_started = GNUNET_NO;
-      memcpy (&ac->authority_info.gns_authority,
+      GNUNET_memcpy (&ac->authority_info.gns_authority,
 	      rd[i].data,
 	      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
       ac->label = resolver_lookup_get_next_label (rh);

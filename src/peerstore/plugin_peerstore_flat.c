@@ -294,10 +294,10 @@ peerstore_flat_store_record (void *cls, const char *sub_system,
   entry->sub_system = GNUNET_strdup (sub_system);
   entry->key = GNUNET_strdup (key);
   entry->value = GNUNET_malloc (size);
-  memcpy (entry->value, value, size);
+  GNUNET_memcpy (entry->value, value, size);
   entry->value_size = size;
   entry->peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  memcpy (entry->peer, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (entry->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   entry->expiry = GNUNET_new (struct GNUNET_TIME_Absolute);
   entry->expiry->abs_value_us = expiry.abs_value_us;
 

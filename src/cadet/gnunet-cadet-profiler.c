@@ -621,7 +621,7 @@ tmt_rdy_pong (void *cls, size_t size, void *buf)
     return 0;
   }
   pong = (struct CadetPingMessage *) buf;
-  memcpy (pong, ping, sizeof (*ping));
+  GNUNET_memcpy (pong, ping, sizeof (*ping));
   pong->header.type = htons (PONG);
 
   GNUNET_free (ping);

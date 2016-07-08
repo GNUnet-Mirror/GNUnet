@@ -190,7 +190,7 @@ send_result_code (struct GNUNET_SERVER_Client *client,
   rcm->header.size = htons (sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) + elen);
   rcm->result_code = htonl (result_code);
   if (0 < elen)
-    memcpy (&rcm[1], emsg, elen);
+    GNUNET_memcpy (&rcm[1], emsg, elen);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,
@@ -219,7 +219,7 @@ create_update_message (struct Ego *ego)
   um->name_len = htons (name_len);
   um->end_of_list = htons (GNUNET_NO);
   um->private_key = *ego->pk;
-  memcpy (&um[1], ego->identifier, name_len);
+  GNUNET_memcpy (&um[1], ego->identifier, name_len);
   return um;
 }
 
@@ -245,7 +245,7 @@ create_set_default_message (struct Ego *ego,
   sdm->name_len = htons (name_len);
   sdm->reserved = htons (0);
   sdm->private_key = *ego->pk;
-  memcpy (&sdm[1], servicename, name_len);
+  GNUNET_memcpy (&sdm[1], servicename, name_len);
   return sdm;
 }
 

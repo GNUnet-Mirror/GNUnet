@@ -356,7 +356,7 @@ do_align:
       delta =
           GNUNET_MIN (sizeof (struct GNUNET_MessageHeader) -
                       (mst->pos - mst->off), size);
-      memcpy (&ibuf[mst->pos], buf, delta);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
       mst->pos += delta;
       buf += delta;
       size -= delta;
@@ -409,7 +409,7 @@ do_align:
         fprintf (stderr, "The size of the buffer will be exceeded!\n");
         return GNUNET_SYSERR;
       }
-      memcpy (&ibuf[mst->pos], buf, delta);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
       mst->pos += delta;
       buf += delta;
       size -= delta;
@@ -486,7 +486,7 @@ do_align:
          "Assertion failed\n");
       exit (1);
     }
-    memcpy (&ibuf[mst->pos], buf, size);
+    GNUNET_memcpy (&ibuf[mst->pos], buf, size);
     mst->pos += size;
   }
   return ret;
@@ -727,7 +727,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
     }
 
     /* save the device address */
-    memcpy (&dev->pl_mac, &addr.btAddr, sizeof (BTH_ADDR));
+    GNUNET_memcpy (&dev->pl_mac, &addr.btAddr, sizeof (BTH_ADDR));
 
     /* set the address information */
     memset (&addr_info, 0, sizeof (CSADDR_INFO));
@@ -1073,7 +1073,7 @@ read_from_the_socket (void *sock,
     count -= sizeof(uint32_t);
   }
 
-  memcpy (buf, tmpbuf, count);
+  GNUNET_memcpy (buf, tmpbuf, count);
 
   return count;
 }
@@ -1190,7 +1190,7 @@ open_device (struct HardwareInfos *dev)
         /**
          * Copy the MAC address to the device structure
          */
-        memcpy (&dev->pl_mac, &dev_info.bdaddr, sizeof (bdaddr_t));
+        GNUNET_memcpy (&dev->pl_mac, &dev_info.bdaddr, sizeof (bdaddr_t));
 
         /* Check if the interface is up */
         if (hci_test_bit (HCI_UP, (void *) &dev_info.flags) == 0)
@@ -1306,7 +1306,7 @@ mac_set (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
   taIeeeHeader->addr3 = mac_bssid_gnunet;
 
   #ifdef MINGW
-    memcpy (&taIeeeHeader->addr2, &dev->pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+    GNUNET_memcpy (&taIeeeHeader->addr2, &dev->pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   #else
     taIeeeHeader->addr2 = dev->pl_mac;
   #endif
@@ -1403,13 +1403,13 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
     exit (1);
   }
   header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
-  memcpy (&write_pout.buf, &header->frame, sendsize);
+  GNUNET_memcpy (&write_pout.buf, &header->frame, sendsize);
   blueheader = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &write_pout.buf;
 
   /* payload contains MAC address, but we don't trust it, so we'll
   * overwrite it with OUR MAC address to prevent mischief */
   mac_set (blueheader, dev);
-  memcpy (&blueheader->addr1, &header->frame.addr1,
+  GNUNET_memcpy (&blueheader->addr1, &header->frame.addr1,
           sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   write_pout.size = sendsize;
 }
@@ -1515,7 +1515,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 
           ba2str (&(devices +i)->bdaddr, addr);
           fprintf (stderr, "LOG : %s was added to the list\n", addr); //FIXME debugging message
-          memcpy (&(neighbours.devices[neighbours.size++]), &(devices + i)->bdaddr, sizeof (bdaddr_t));
+          GNUNET_memcpy (&(neighbours.devices[neighbours.size++]), &(devices + i)->bdaddr, sizeof (bdaddr_t));
         }
       }
 
@@ -1536,7 +1536,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
       {
 
         memset (&addr_rc.rc_bdaddr, 0, sizeof (addr_rc.rc_bdaddr));
-        memcpy (&addr_rc.rc_bdaddr, &(neighbours.devices[neighbours.pos]), sizeof (addr_rc.rc_bdaddr));
+        GNUNET_memcpy (&addr_rc.rc_bdaddr, &(neighbours.devices[neighbours.pos]), sizeof (addr_rc.rc_bdaddr));
 
         addr_rc.rc_channel = get_channel (dev, addr_rc.rc_bdaddr);
 
@@ -1572,7 +1572,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
           {
             fprintf (stderr, "LOG : Removes %d device from the list\n", neighbours.pos);
             /* Remove the device from the list */
-            memcpy (&neighbours.devices[neighbours.pos], &neighbours.devices[neighbours.size - 1], sizeof (bdaddr_t));
+            GNUNET_memcpy (&neighbours.devices[neighbours.pos], &neighbours.devices[neighbours.size - 1], sizeof (bdaddr_t));
             memset (&neighbours.devices[neighbours.size - 1], 0, sizeof (bdaddr_t));
             neighbours.fds[neighbours.pos] = neighbours.fds[neighbours.size - 1];
             neighbours.fds[neighbours.size - 1] = -1;
@@ -1759,8 +1759,8 @@ main (int argc, char *argv[])
 
       macmsg.hdr.size = htons (sizeof (macmsg));
       macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-      memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
-      memcpy (write_std.buf, &macmsg, sizeof (macmsg));
+      GNUNET_memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+      GNUNET_memcpy (write_std.buf, &macmsg, sizeof (macmsg));
       write_std.size = sizeof (macmsg);
     }
 
@@ -1869,7 +1869,7 @@ main (int argc, char *argv[])
               return -1;
             }
 
-            memcpy (&addr.rc_bdaddr, &frame->addr1, sizeof (bdaddr_t));
+            GNUNET_memcpy (&addr.rc_bdaddr, &frame->addr1, sizeof (bdaddr_t));
             addr.rc_family = AF_BLUETOOTH;
             addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
 
@@ -1913,7 +1913,7 @@ main (int argc, char *argv[])
                 if (neighbours.size < MAX_PORTS)
                 {
                   neighbours.fds[neighbours.size] = sendsocket;
-                  memcpy (&(neighbours.devices[neighbours.size++]), &addr.rc_bdaddr, sizeof (bdaddr_t));
+                  GNUNET_memcpy (&(neighbours.devices[neighbours.size++]), &addr.rc_bdaddr, sizeof (bdaddr_t));
                 }
                 else
                 {
@@ -2196,8 +2196,8 @@ main (int argc, char *argv[])
 
       macmsg.hdr.size = htons (sizeof (macmsg));
       macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-      memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress_Copy));
-      memcpy (write_std.buf, &macmsg, sizeof (macmsg));
+      GNUNET_memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress_Copy));
+      GNUNET_memcpy (write_std.buf, &macmsg, sizeof (macmsg));
       write_std.size = sizeof (macmsg);
     }
 

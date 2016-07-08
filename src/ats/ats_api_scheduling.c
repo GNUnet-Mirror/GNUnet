@@ -496,11 +496,11 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
        ar->session,
        ar->slot);
   pm = (char *) &m[1];
-  memcpy (pm,
+  GNUNET_memcpy (pm,
           ar->address->address,
           ar->address->address_length);
   if (NULL != ar->address->transport_name)
-    memcpy (&pm[ar->address->address_length],
+    GNUNET_memcpy (&pm[ar->address->address_length],
             ar->address->transport_name,
             namelen);
   GNUNET_MQ_send (sh->mq, ev);

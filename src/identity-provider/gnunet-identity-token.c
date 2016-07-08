@@ -58,7 +58,7 @@ run (void *cls,
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose*)val;
   purpose->size = htonl(sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + strlen (data));
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
-  memcpy (&purpose[1], data, strlen(data));
+  GNUNET_memcpy (&purpose[1], data, strlen(data));
   GNUNET_free (data);
   GNUNET_free (header_b64);
   GNUNET_free (header_b64);

@@ -71,7 +71,7 @@ strata_estimator_write (const struct StrataEstimator *se,
                                 &cbuf,
                                 &nsize))
     {
-      memcpy (buf, cbuf, nsize);
+      GNUNET_memcpy (buf, cbuf, nsize);
       osize = nsize;
       GNUNET_free (cbuf);
     }

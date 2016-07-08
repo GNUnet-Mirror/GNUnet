@@ -274,7 +274,7 @@ data_ready (void *cls, size_t size, void *buf)
   msg = buf;
   msg->size = htons (total_size);
   msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_CLI);
-  memcpy (&msg[1], cls, data_size);
+  GNUNET_memcpy (&msg[1], cls, data_size);
   if (GNUNET_NO == echo)
   {
     listen_stdio ();

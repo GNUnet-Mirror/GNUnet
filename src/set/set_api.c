@@ -664,9 +664,9 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   mqm = GNUNET_MQ_msg_extra (msg, element->size,
                              GNUNET_MESSAGE_TYPE_SET_ADD);
   msg->element_type = htons (element->element_type);
-  memcpy (&msg[1],
-          element->data,
-          element->size);
+  GNUNET_memcpy (&msg[1],
+                 element->data,
+                 element->size);
   GNUNET_MQ_notify_sent (mqm,
                          cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);
@@ -706,9 +706,9 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
                              element->size,
                              GNUNET_MESSAGE_TYPE_SET_REMOVE);
   msg->element_type = htons (element->element_type);
-  memcpy (&msg[1],
-          element->data,
-          element->size);
+  GNUNET_memcpy (&msg[1],
+                 element->data,
+                 element->size);
   GNUNET_MQ_notify_sent (mqm,
                          cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);
@@ -1134,7 +1134,7 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element)
   copy->size = element->size;
   copy->element_type = element->element_type;
   copy->data = &copy[1];
-  memcpy ((void *) copy->data, element->data, copy->size);
+  GNUNET_memcpy (copy->data, element->data, copy->size);
 
   return copy;
 }

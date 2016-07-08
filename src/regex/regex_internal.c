@@ -645,7 +645,7 @@ sb_realloc (struct StringBuffer *ret,
   old = ret->abuf;
   ret->abuf = GNUNET_malloc (nlen);
   ret->blen = nlen;
-  memcpy (ret->abuf,
+  GNUNET_memcpy (ret->abuf,
 	  ret->sbuf,
 	  ret->slen);
   ret->sbuf = ret->abuf;
@@ -668,7 +668,7 @@ sb_append (struct StringBuffer *ret,
   ret->null_flag = GNUNET_NO;
   if (ret->blen < sarg->slen + ret->slen)
     sb_realloc (ret, ret->blen + sarg->slen + 128);
-  memcpy (&ret->sbuf[ret->slen],
+  GNUNET_memcpy (&ret->sbuf[ret->slen],
 	  sarg->sbuf,
 	  sarg->slen);
   ret->slen += sarg->slen;
@@ -692,7 +692,7 @@ sb_append_cstr (struct StringBuffer *ret,
   ret->null_flag = GNUNET_NO;
   if (ret->blen < cstr_len + ret->slen)
     sb_realloc (ret, ret->blen + cstr_len + 128);
-  memcpy (&ret->sbuf[ret->slen],
+  GNUNET_memcpy (&ret->sbuf[ret->slen],
 	  cstr,
 	  cstr_len);
   ret->slen += cstr_len;
@@ -871,7 +871,7 @@ sb_strdup (struct StringBuffer *out,
   }
   out->sbuf = out->abuf;
   out->slen = in->slen;
-  memcpy (out->sbuf, in->sbuf, out->slen);
+  GNUNET_memcpy (out->sbuf, in->sbuf, out->slen);
 }
 
 
@@ -899,7 +899,7 @@ sb_strdup_cstr (struct StringBuffer *out,
 		       out->slen);
   }
   out->sbuf = out->abuf;
-  memcpy (out->sbuf, cstr, out->slen);
+  GNUNET_memcpy (out->sbuf, cstr, out->slen);
 }
 
 
@@ -1067,7 +1067,7 @@ remove_epsilon (const struct StringBuffer *str,
     }
     ret->sbuf = ret->abuf;
     ret->slen = str->slen - 3;
-    memcpy (ret->sbuf, &str->sbuf[2], ret->slen);
+    GNUNET_memcpy (ret->sbuf, &str->sbuf[2], ret->slen);
     return;
   }
   sb_strdup (ret, str);
@@ -1417,12 +1417,12 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
 
       length_l = length;
       temp_a.sbuf = temp_a.abuf;
-      memcpy (temp_a.sbuf, R_last_kj->sbuf, length_l);
+      GNUNET_memcpy (temp_a.sbuf, R_last_kj->sbuf, length_l);
       temp_a.slen = length_l;
 
       length_r = R_last_kj->slen - length;
       temp_b.sbuf = temp_b.abuf;
-      memcpy (temp_b.sbuf, &R_last_kj->sbuf[length], length_r);
+      GNUNET_memcpy (temp_b.sbuf, &R_last_kj->sbuf[length], length_r);
       temp_b.slen = length_r;
 
       /* e|(ab)+ = (ab)* */
@@ -3569,7 +3569,7 @@ store_all_states (void *cls,
   tmp->num_edges = num_edges;
   edges_size = sizeof (struct REGEX_BLOCK_Edge) * num_edges;
   tmp->edges = GNUNET_malloc (edges_size);
-  memcpy(tmp->edges, edges, edges_size);
+  GNUNET_memcpy(tmp->edges, edges, edges_size);
   GNUNET_CONTAINER_multihashmap_put (hm, key, tmp,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 }

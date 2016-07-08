@@ -396,7 +396,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);
   GNUNET_assert (NULL != mc);
-  memcpy (hmac->bits, mc, sizeof (hmac->bits));
+  GNUNET_memcpy (hmac->bits, mc, sizeof (hmac->bits));
 }
 
 
@@ -461,7 +461,7 @@ GNUNET_CRYPTO_hash_context_finish (struct GNUNET_HashContext *hc,
 
   GNUNET_assert (NULL != res);
   if (NULL != r_hash)
-    memcpy (r_hash,
+    GNUNET_memcpy (r_hash,
             res,
             sizeof (struct GNUNET_HashCode));
   GNUNET_CRYPTO_hash_context_abort (hc);

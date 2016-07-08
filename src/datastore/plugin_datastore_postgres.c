@@ -946,7 +946,7 @@ postgres_plugin_get_keys (void *cls,
     if (sizeof (struct GNUNET_HashCode) !=
 	PQgetlength (res, i, 0))
     {
-      memcpy (&key,
+      GNUNET_memcpy (&key,
 	      PQgetvalue (res, i, 0),
 	      sizeof (struct GNUNET_HashCode));
       proc (proc_cls, &key, 1);

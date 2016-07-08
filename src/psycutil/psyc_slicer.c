@@ -309,7 +309,7 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
       meth = (struct GNUNET_PSYC_MessageMethod *) pmsg;
     slicer->method_name_size = ntohs (meth->header.size) - sizeof (*meth);
     slicer->method_name = GNUNET_malloc (slicer->method_name_size);
-    memcpy (slicer->method_name, &meth[1], slicer->method_name_size);
+    GNUNET_memcpy (slicer->method_name, &meth[1], slicer->method_name_size);
      slicer->message_id = message_id;
   }
   else
@@ -335,7 +335,7 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
     slicer->mod_oper = mod->oper;
     slicer->mod_name_size = ntohs (mod->name_size);
     slicer->mod_name = GNUNET_malloc (slicer->mod_name_size);
-    memcpy (slicer->mod_name, &mod[1], slicer->mod_name_size);
+    GNUNET_memcpy (slicer->mod_name, &mod[1], slicer->mod_name_size);
     slicer->mod_value = (char *) &mod[1] + slicer->mod_name_size;
     slicer->mod_full_value_size = ntohs (mod->value_size);
     slicer->mod_value_remaining = slicer->mod_full_value_size;
@@ -351,7 +351,7 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
     }
     slicer->mod_value_remaining -= slicer->mod_value_size;
     char *name = GNUNET_malloc (slicer->mod_name_size);
-    memcpy (name, slicer->mod_name, slicer->mod_name_size);
+    GNUNET_memcpy (name, slicer->mod_name, slicer->mod_name_size);
     do
     {
       struct GNUNET_HashCode key;
@@ -371,7 +371,7 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
   /* try-and-slice method */
 
   char *name = GNUNET_malloc (slicer->method_name_size);
-  memcpy (name, slicer->method_name, slicer->method_name_size);
+  GNUNET_memcpy (name, slicer->method_name, slicer->method_name_size);
   do
   {
     struct GNUNET_HashCode key;

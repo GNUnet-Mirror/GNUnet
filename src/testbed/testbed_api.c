@@ -812,7 +812,7 @@ handle_peer_config (void *cls,
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
     pinfo->result.id = GNUNET_new (struct GNUNET_PeerIdentity);
-    (void) memcpy (pinfo->result.id,
+    GNUNET_memcpy (pinfo->result.id,
                    &msg->peer_identity,
                    sizeof (struct GNUNET_PeerIdentity));
     break;
@@ -1143,9 +1143,9 @@ handle_link_controllers_result (void *cls,
     emsg = GNUNET_malloc (ntohs (msg->header.size)
                           - sizeof (struct
                                     GNUNET_TESTBED_ControllerLinkResponse) + 1);
-    memcpy (emsg, &msg[1], ntohs (msg->header.size)
-                          - sizeof (struct
-                                    GNUNET_TESTBED_ControllerLinkResponse));
+    GNUNET_memcpy (emsg,
+                   &msg[1],
+                   ntohs (msg->header.size)- sizeof (struct GNUNET_TESTBED_ControllerLinkResponse));
     event.details.operation_finished.emsg = emsg;
   }
   else
@@ -1279,9 +1279,9 @@ handle_barrier_status (void *cls,
       goto cleanup;
     }
     emsg = GNUNET_malloc (emsg_len);
-    memcpy (emsg,
-            msg->data + name_len + 1,
-            emsg_len);
+    GNUNET_memcpy (emsg,
+                   msg->data + name_len + 1,
+                   emsg_len);
   }
   if (NULL == c->barrier_map)
   {
@@ -1332,7 +1332,7 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
   env = GNUNET_MQ_msg_extra (m2,
                              size - sizeof (*m2),
                              type);
-  memcpy (m2, msg, size);
+  GNUNET_memcpy (m2, msg, size);
   GNUNET_free (msg);
   GNUNET_MQ_send (controller->mq,
                   env);
@@ -1370,9 +1370,9 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller *control
   env = GNUNET_MQ_msg_extra (m2,
                              size - sizeof (*m2),
                              type);
-  memcpy (m2,
-          msg,
-          size);
+  GNUNET_memcpy (m2,
+                 msg,
+                 size);
   GNUNET_MQ_send (controller->mq,
                   env);
   data = GNUNET_new (struct ForwardedOperationData);
@@ -1668,9 +1668,9 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                              GNUNET_MESSAGE_TYPE_TESTBED_INIT);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
-  memcpy (&msg[1],
-          controller_hostname,
-          slen);
+  GNUNET_memcpy (&msg[1],
+                 controller_hostname,
+                 slen);
   GNUNET_MQ_send (controller->mq,
                   env);
   return controller;
@@ -2392,7 +2392,7 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
   barrier->cb = cb;
   barrier->cls = cls;
   barrier->echo = echo;
-  (void) memcpy (&barrier->key, &key, sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&barrier->key, &key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (controller->barrier_map,
                                                     &barrier->key,
@@ -2403,9 +2403,9 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
                              name_len,
                              GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT);
   msg->quorum = (uint8_t) quorum;
-  memcpy (msg->name,
-          barrier->name,
-          name_len);
+  GNUNET_memcpy (msg->name,
+                 barrier->name,
+                 name_len);
   GNUNET_MQ_send (barrier->c->mq,
                   env);
   return barrier;
@@ -2453,9 +2453,9 @@ GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier)
   env = GNUNET_MQ_msg_extra (msg,
                              slen,
                              GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL);
-  memcpy (msg->name,
-          barrier->name,
-          slen);
+  GNUNET_memcpy (msg->name,
+                 barrier->name,
+                 slen);
   GNUNET_MQ_send (barrier->c->mq,
                   env);
   GNUNET_TESTBED_barrier_remove_ (barrier);

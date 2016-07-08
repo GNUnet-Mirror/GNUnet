@@ -313,7 +313,7 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (n);
     msg_sent = n;
-    memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
     ret += sizeof (struct TestMessage);
     memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
     ret += s - sizeof (struct TestMessage);

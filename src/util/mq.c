@@ -362,7 +362,7 @@ GNUNET_MQ_send_copy (struct GNUNET_MQ_Handle *mq,
   env->mh = (struct GNUNET_MessageHeader *) &env[1];
   env->sent_cb = ev->sent_cb;
   env->sent_cls = ev->sent_cls;
-  memcpy (&env[1],
+  GNUNET_memcpy (&env[1],
           ev->mh,
           msize);
   GNUNET_MQ_send (mq,
@@ -460,7 +460,7 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
     for (i=0;NULL != handlers[i].cb; i++) ;
     mq->handlers = GNUNET_new_array (i + 1,
 				     struct GNUNET_MQ_MessageHandler);
-    memcpy (mq->handlers,
+    GNUNET_memcpy (mq->handlers,
 	    handlers,
 	    i * sizeof (struct GNUNET_MQ_MessageHandler));
   }
@@ -564,7 +564,7 @@ GNUNET_MQ_msg_copy (const struct GNUNET_MessageHeader *hdr)
 
   mqm = GNUNET_malloc (sizeof (*mqm) + size);
   mqm->mh = (struct GNUNET_MessageHeader *) &mqm[1];
-  memcpy (mqm->mh,
+  GNUNET_memcpy (mqm->mh,
           hdr,
           size);
   return mqm;
@@ -599,7 +599,7 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
     return NULL;
 
   mqm = GNUNET_MQ_msg_ (mhp, size, type);
-  memcpy ((char *) mqm->mh + base_size,
+  GNUNET_memcpy ((char *) mqm->mh + base_size,
 	  nested_mh,
 	  ntohs (nested_mh->size));
 
@@ -628,7 +628,7 @@ transmit_queued (void *cls,
   GNUNET_assert (NULL != buf);
   msg_size = ntohs (msg->size);
   GNUNET_assert (size >= msg_size);
-  memcpy (buf, msg, msg_size);
+  GNUNET_memcpy (buf, msg, msg_size);
   state->th = NULL;
 
   GNUNET_MQ_impl_send_continue (mq);
@@ -756,7 +756,7 @@ connection_client_transmit_queued (void *cls,
 
   msg_size = ntohs (msg->size);
   GNUNET_assert (size >= msg_size);
-  memcpy (buf, msg, msg_size);
+  GNUNET_memcpy (buf, msg, msg_size);
   state->th = NULL;
 
   GNUNET_MQ_impl_send_continue (mq);
@@ -829,7 +829,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
     for (i=0;NULL != handlers[i].cb; i++) ;
     mq->handlers = GNUNET_new_array (i,
 				     struct GNUNET_MQ_MessageHandler);
-    memcpy (mq->handlers,
+    GNUNET_memcpy (mq->handlers,
 	    handlers,
 	    i * sizeof (struct GNUNET_MQ_MessageHandler));
   }

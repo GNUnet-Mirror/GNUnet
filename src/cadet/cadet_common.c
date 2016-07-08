@@ -81,7 +81,7 @@ const struct GNUNET_HashCode *
 GC_h2hc (const struct GNUNET_CADET_Hash *id)
 {
   static struct GNUNET_HashCode hc;
-  memcpy (&hc, id, sizeof (*id));
+  GNUNET_memcpy (&hc, id, sizeof (*id));
 
   return &hc;
 }
@@ -92,7 +92,7 @@ GC_h2s (const struct GNUNET_CADET_Hash *id)
 {
   static char s[53];
 
-  memcpy (s, GNUNET_h2s_full (GC_h2hc (id)), 52);
+  GNUNET_memcpy (s, GNUNET_h2s_full (GC_h2hc (id)), 52);
   s[52] = '\0';
 
   return s;

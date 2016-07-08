@@ -102,7 +102,7 @@ copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 
   if (cbc->pos + size * nmemb > sizeof(cbc->buf))
     return 0;                   /* overflow */
-  memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
+  GNUNET_memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
   cbc->pos += size * nmemb;
   return size * nmemb;
 }

@@ -103,8 +103,8 @@ verifyCrypto ()
   res = NULL;
   ret = 0;
 
-  memcpy (key.aes_key, raw_key_aes, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  memcpy (key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  GNUNET_memcpy (key.aes_key, raw_key_aes, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  GNUNET_memcpy (key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
       GNUNET_CRYPTO_symmetric_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                        (const struct

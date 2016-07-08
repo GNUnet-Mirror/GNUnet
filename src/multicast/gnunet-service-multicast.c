@@ -727,7 +727,7 @@ cadet_notify_transmit_ready (void *cls, size_t buf_size, void *buf)
   struct Channel *chn = tcls->chn;
   uint16_t msg_size = ntohs (tcls->msg->size);
   GNUNET_assert (msg_size <= buf_size);
-  memcpy (buf, tcls->msg, msg_size);
+  GNUNET_memcpy (buf, tcls->msg, msg_size);
   GNUNET_free (tcls);
 
   if (0 == chn->msgs_pending)
@@ -1051,7 +1051,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     req->peer = this_peer;
     GNUNET_CRYPTO_ecdsa_key_get_public (&mem->priv_key, &req->member_pub_key);
     if (0 < join_msg_size)
-      memcpy (&req[1], join_msg, join_msg_size);
+      GNUNET_memcpy (&req[1], join_msg, join_msg_size);
 
     req->member_pub_key = mem->pub_key;
     req->purpose.size = htonl (msg_size
@@ -1092,7 +1092,7 @@ client_send_join_decision (struct Member *mem,
   { /* Member admitted, store join_decision. */
     uint16_t dcsn_size = ntohs (dcsn->header.size);
     mem->join_dcsn = GNUNET_malloc (dcsn_size);
-    memcpy (mem->join_dcsn, dcsn, dcsn_size);
+    GNUNET_memcpy (mem->join_dcsn, dcsn, dcsn_size);
   }
   else
   { /* Refused entry, but replay would be still possible for past members. */
@@ -1620,7 +1620,7 @@ cadet_recv_join_decision (void *cls,
   struct MulticastJoinDecisionMessageHeader *
     hdcsn = GNUNET_malloc (sizeof (*hdcsn) + size);
   hdcsn->peer = chn->peer;
-  memcpy (&hdcsn[1], dcsn, sizeof (*hdcsn) + size);
+  GNUNET_memcpy (&hdcsn[1], dcsn, sizeof (*hdcsn) + size);
 
   struct Member *mem = (struct Member *) chn->grp;
   client_send_join_decision (mem, hdcsn);
@@ -1745,8 +1745,8 @@ cadet_recv_replay_request (void *cls,
   }
   struct Channel *chn = *ctx;
 
-  memcpy (&rep, m, sizeof (rep));
-  memcpy (&rep.member_pub_key, &chn->member_pub_key, sizeof (chn->member_pub_key));
+  GNUNET_memcpy (&rep, m, sizeof (rep));
+  GNUNET_memcpy (&rep.member_pub_key, &chn->member_pub_key, sizeof (chn->member_pub_key));
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,

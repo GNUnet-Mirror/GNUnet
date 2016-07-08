@@ -209,7 +209,7 @@ send_client_removed_element (struct Operation *op,
   rm->result_status = htons (GNUNET_SET_STATUS_OK);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
-  memcpy (&rm[1],
+  GNUNET_memcpy (&rm[1],
           element->data,
           element->size);
   GNUNET_MQ_send (op->spec->set->client_mq,
@@ -483,7 +483,7 @@ send_bloomfilter (struct Operation *op)
       ev = GNUNET_MQ_msg_extra (msg,
                                 chunk_size,
                                 GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
-      memcpy (&msg[1],
+      GNUNET_memcpy (&msg[1],
               &bf_data[offset],
               chunk_size);
       offset += chunk_size;
@@ -567,7 +567,7 @@ send_remaining_elements (void *cls)
   rm->result_status = htons (GNUNET_SET_STATUS_OK);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
-  memcpy (&rm[1],
+  GNUNET_memcpy (&rm[1],
           element->data,
           element->size);
   GNUNET_MQ_notify_sent (ev,
@@ -744,7 +744,7 @@ handle_p2p_bf (void *cls,
         return;
       }
     }
-    memcpy (&op->state->bf_data[op->state->bf_data_offset],
+    GNUNET_memcpy (&op->state->bf_data[op->state->bf_data_offset],
             (const char*) &msg[1],
             chunk_size);
     op->state->bf_data_offset += chunk_size;

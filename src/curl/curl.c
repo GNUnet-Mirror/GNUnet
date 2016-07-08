@@ -255,7 +255,7 @@ download_cb (char *bufptr,
   db->buf = GNUNET_realloc (db->buf,
                             db->buf_size + msize);
   buf = db->buf + db->buf_size;
-  memcpy (buf, bufptr, msize);
+  GNUNET_memcpy (buf, bufptr, msize);
   db->buf_size += msize;
   return msize;
 }

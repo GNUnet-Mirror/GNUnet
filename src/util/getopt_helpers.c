@@ -129,7 +129,7 @@ OUTER:
         if (isspace ((unsigned char) trans[j]))
         {
           scp = GNUNET_malloc (j - p + 1);
-          memcpy (scp, &trans[p], j - p);
+          GNUNET_memcpy (scp, &trans[p], j - p);
           scp[j - p] = '\0';
           printf ("%s\n%*s", scp, BORDER + 2, "");
           GNUNET_free (scp);
@@ -140,7 +140,7 @@ OUTER:
       }
       /* could not find space to break line */
       scp = GNUNET_malloc (78 - slen + 1);
-      memcpy (scp, &trans[p], 78 - slen);
+      GNUNET_memcpy (scp, &trans[p], 78 - slen);
       scp[78 - slen] = '\0';
       printf ("%s\n%*s", scp, BORDER + 2, "");
       GNUNET_free (scp);

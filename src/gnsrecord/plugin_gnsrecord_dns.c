@@ -361,7 +361,7 @@ dns_string_to_value (void *cls,
       return GNUNET_SYSERR;
     }
     *data = GNUNET_new (struct in_addr);
-    memcpy (*data, &value_a, sizeof (value_a));
+    GNUNET_memcpy (*data, &value_a, sizeof (value_a));
     *data_size = sizeof (value_a);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_NS:
@@ -383,7 +383,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, nsbuf, off);
+      GNUNET_memcpy (*data, nsbuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -405,7 +405,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, cnamebuf, off);
+      GNUNET_memcpy (*data, cnamebuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_CERT:
@@ -491,7 +491,7 @@ dns_string_to_value (void *cls,
         }
         *data_size = off;
         *data = GNUNET_malloc (off);
-        memcpy (*data, certbuf, off);
+        GNUNET_memcpy (*data, certbuf, off);
       }
       GNUNET_free (cert_data);
       return GNUNET_OK;
@@ -546,7 +546,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, soabuf, off);
+      GNUNET_memcpy (*data, soabuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_PTR:
@@ -568,7 +568,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, ptrbuf, off);
+      GNUNET_memcpy (*data, ptrbuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_MX:
@@ -606,7 +606,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, mxbuf, off);
+      GNUNET_memcpy (*data, mxbuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_SRV:
@@ -649,7 +649,7 @@ dns_string_to_value (void *cls,
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, srvbuf, off);
+      GNUNET_memcpy (*data, srvbuf, off);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_TXT:
@@ -666,7 +666,7 @@ dns_string_to_value (void *cls,
     }
     *data = GNUNET_new (struct in6_addr);
     *data_size = sizeof (struct in6_addr);
-    memcpy (*data, &value_aaaa, sizeof (value_aaaa));
+    GNUNET_memcpy (*data, &value_aaaa, sizeof (value_aaaa));
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TLSA:
     {

@@ -257,7 +257,8 @@ write_continuation (void *cls,
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# Blocks transferred via cadet"), 1,
 			    GNUNET_NO);
-  memcpy (buf, &wqi[1], ret = wqi->msize);
+  GNUNET_memcpy (buf, &wqi[1], ret);
+  ret = wqi->msize;
   GNUNET_free (wqi);
   continue_writing (sc);
   return ret;
@@ -400,7 +401,7 @@ handle_datastore_reply (void *cls,
   srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_CADET_REPLY);
   srm->type = htonl (type);
   srm->expiration = GNUNET_TIME_absolute_hton (expiration);
-  memcpy (&srm[1], data, size);
+  GNUNET_memcpy (&srm[1], data, size);
   sc->reply_size = msize;
   GNUNET_CONTAINER_DLL_insert (sc->wqi_head,
 			       sc->wqi_tail,

@@ -328,7 +328,7 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
                              GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
   resp->drop_flag = htonl (2);
   resp->request_id = rh->request_id;
-  memcpy (&resp[1],
+  GNUNET_memcpy (&resp[1],
           reply,
           reply_length);
   GNUNET_MQ_send (rh->dh->mq,

@@ -157,12 +157,12 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
     return 0;
   exp = GNUNET_TIME_absolute_hton (expiration);
   alen = htons ((uint16_t) address->address_length);
-  memcpy (target, address->transport_name, slen);
-  memcpy (&target[slen], &alen, sizeof (uint16_t));
+  GNUNET_memcpy (target, address->transport_name, slen);
+  GNUNET_memcpy (&target[slen], &alen, sizeof (uint16_t));
   slen += sizeof (uint16_t);
-  memcpy (&target[slen], &exp, sizeof (struct GNUNET_TIME_AbsoluteNBO));
+  GNUNET_memcpy (&target[slen], &exp, sizeof (struct GNUNET_TIME_AbsoluteNBO));
   slen += sizeof (struct GNUNET_TIME_AbsoluteNBO);
-  memcpy (&target[slen], address->address, address->address_length);
+  GNUNET_memcpy (&target[slen], address->address, address->address_length);
   slen += address->address_length;
   return slen;
 }
@@ -208,7 +208,7 @@ get_hello_address_size (const char *buf,
     GNUNET_break_op (0);
     return 0;
   }
-  memcpy (&alen, pos, sizeof (uint16_t));
+  GNUNET_memcpy (&alen, pos, sizeof (uint16_t));
   alen = ntohs (alen);
   *ralen = alen;
   slen += alen + sizeof (uint16_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
@@ -269,7 +269,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
   hello->header.size = htons (sizeof (struct GNUNET_HELLO_Message) + used);
   hello->friend_only = htonl (friend_only);
   hello->publicKey = *public_key;
-  memcpy (&hello[1],
+  GNUNET_memcpy (&hello[1],
           buffer,
           used);
   return hello;
@@ -312,7 +312,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   if (return_modified)
   {
     ret = GNUNET_malloc (msize);
-    memcpy (ret,
+    GNUNET_memcpy (ret,
             msg,
             msize);
   }
@@ -332,8 +332,8 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
       GNUNET_free_non_null (ret);
       return NULL;
     }
-    /* need memcpy() due to possibility of misalignment */
-    memcpy (&expire,
+    /* need GNUNET_memcpy() due to possibility of misalignment */
+    GNUNET_memcpy (&expire,
             &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
             sizeof (struct GNUNET_TIME_AbsoluteNBO));
     address.address = &inptr[esize - alen];
@@ -349,7 +349,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
          (NULL != ret) )
     {
       /* copy address over */
-      memcpy (woff,
+      GNUNET_memcpy (woff,
               inptr,
               esize);
       woff += esize;
@@ -1021,7 +1021,7 @@ add_address_to_uri (void *cls,
 
   addr_dup = GNUNET_strdup (addr);
   if (NULL != (pos = strstr (addr_dup, "_server")))
-    memcpy (pos,
+    GNUNET_memcpy (pos,
             client_str,
             strlen (client_str)); /* Replace all server addresses with client addresses */
 

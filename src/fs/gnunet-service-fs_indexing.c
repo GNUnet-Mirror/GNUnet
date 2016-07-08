@@ -193,7 +193,7 @@ read_index_list ()
     pos = GNUNET_malloc (sizeof (struct IndexInfo) + slen);
     pos->file_id = hc;
     pos->filename = (const char *) &pos[1];
-    memcpy (&pos[1], fname, slen);
+    GNUNET_memcpy (&pos[1], fname, slen);
     if (GNUNET_SYSERR ==
         GNUNET_CONTAINER_multihashmap_put (ifm, &pos->file_id, pos,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
@@ -334,7 +334,7 @@ GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
   slen = strlen (fn) + 1;
   ii = GNUNET_malloc (sizeof (struct IndexInfo) + slen);
   ii->filename = (const char *) &ii[1];
-  memcpy (&ii[1], fn, slen);
+  GNUNET_memcpy (&ii[1], fn, slen);
   ii->file_id = ism->file_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for file `%s'\n",
               "START_INDEX", ii->filename);
@@ -398,7 +398,7 @@ GNUNET_FS_handle_index_list_get (void *cls, struct GNUNET_SERVER_Client *client,
     iim->header.size = htons (slen + sizeof (struct IndexInfoMessage));
     iim->reserved = 0;
     iim->file_id = pos->file_id;
-    memcpy (&iim[1], fn, slen);
+    GNUNET_memcpy (&iim[1], fn, slen);
     GNUNET_SERVER_transmit_context_append_message (tc, &iim->header);
   }
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,

@@ -2162,8 +2162,8 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
   aa->addr_len = plugin_addr_len;
   aa->addr = &aa[1];
   aa->plugin = (char *) &aa[1] + plugin_addr_len;
-  memcpy (&aa[1], plugin_addr, plugin_addr_len);
-  memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
+  GNUNET_memcpy (&aa[1], plugin_addr, plugin_addr_len);
+  GNUNET_memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
   aa->session_id = session_id;
 
   return aa;

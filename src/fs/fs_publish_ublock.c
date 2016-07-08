@@ -224,9 +224,9 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   ub_plain = GNUNET_malloc (size);
   kbe = (char *) &ub_plain[1];
   if (NULL != ulabel)
-    memcpy (kbe, ulabel, ulen);
+    GNUNET_memcpy (kbe, ulabel, ulen);
   kbe += ulen;
-  memcpy (kbe, uris, slen);
+  GNUNET_memcpy (kbe, uris, slen);
   kbe += slen;
   GNUNET_free (uris);
   sptr = kbe;

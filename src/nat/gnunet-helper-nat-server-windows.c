@@ -284,7 +284,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   icmp_echo.type = ICMP_ECHO;
@@ -294,7 +294,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   icmp_echo.checksum =
       htons (calc_checksum
              ((uint16_t *) & icmp_echo, sizeof (struct icmp_echo_header)));
-  memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
+  GNUNET_memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
   off += sizeof (struct icmp_echo_header);
 
   memset (&dst, 0, sizeof (dst));
@@ -377,10 +377,10 @@ process_icmp_response ()
     return;
   }
   off = 0;
-  memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
+  GNUNET_memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
   off += sizeof (struct ip_header);
-  memcpy (&source_ip, &ip_pkt.src_ip, sizeof (source_ip));
-  memcpy (&icmp_ttl, &buf[off], sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&source_ip, &ip_pkt.src_ip, sizeof (source_ip));
+  GNUNET_memcpy (&icmp_ttl, &buf[off], sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
   if ((ICMP_TIME_EXCEEDED != icmp_ttl.type) || (0 != icmp_ttl.code))
   {
@@ -388,7 +388,7 @@ process_icmp_response ()
     return;
   }
   /* skip 2nd IP header */
-  memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
+  GNUNET_memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   switch (ip_pkt.proto)
@@ -403,7 +403,7 @@ process_icmp_response ()
       return;
     }
     /* grab ICMP ECHO content */
-    memcpy (&icmp_echo, &buf[off], sizeof (struct icmp_echo_header));
+    GNUNET_memcpy (&icmp_echo, &buf[off], sizeof (struct icmp_echo_header));
     port = (uint16_t) ntohl (icmp_echo.reserved);
     break;
   case IPPROTO_UDP:
@@ -415,7 +415,7 @@ process_icmp_response ()
       return;
     }
     /* grab UDP content */
-    memcpy (&udp_pkt, &buf[off], sizeof (struct udp_header));
+    GNUNET_memcpy (&udp_pkt, &buf[off], sizeof (struct udp_header));
     port = ntohs (udp_pkt.length);
     break;
   default:

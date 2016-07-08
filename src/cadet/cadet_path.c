@@ -110,7 +110,7 @@ path_duplicate (const struct CadetPeerPath *path)
   unsigned int i;
 
   aux = path_new (path->length);
-  memcpy (aux->peers,
+  GNUNET_memcpy (aux->peers,
 	  path->peers,
 	  path->length * sizeof (GNUNET_PEER_Id));
   for (i = 0; i < aux->length; i++)

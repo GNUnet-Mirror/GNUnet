@@ -223,10 +223,10 @@ GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializatio
   char aes_salt[salt_len + 4];
   char twofish_salt[salt_len + 4];
 
-  memcpy (aes_salt, salt, salt_len);
-  memcpy (&aes_salt[salt_len], "AES!", 4);
-  memcpy (twofish_salt, salt, salt_len);
-  memcpy (&twofish_salt[salt_len], "FISH", 4);
+  GNUNET_memcpy (aes_salt, salt, salt_len);
+  GNUNET_memcpy (&aes_salt[salt_len], "AES!", 4);
+  GNUNET_memcpy (twofish_salt, salt, salt_len);
+  GNUNET_memcpy (&twofish_salt[salt_len], "FISH", 4);
   GNUNET_CRYPTO_kdf_v (iv->aes_iv,
                        sizeof (iv->aes_iv),
                        aes_salt,

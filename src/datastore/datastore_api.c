@@ -974,7 +974,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->uid = GNUNET_htonll (0);
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->key = *key;
-  memcpy (&dm[1],
+  GNUNET_memcpy (&dm[1],
           data,
           size);
   qc.sc.cont = cont;
@@ -1248,7 +1248,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   dm->uid = GNUNET_htonll (0);
   dm->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_ZERO_ABS);
   dm->key = *key;
-  memcpy (&dm[1],
+  GNUNET_memcpy (&dm[1],
           data,
           size);
 

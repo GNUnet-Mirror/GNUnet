@@ -136,7 +136,7 @@ GSC_TYPEMAP_compute_type_map_message ()
   {
     /* compression failed, use uncompressed map */
     dlen = sizeof (my_type_map);
-    memcpy (tmp, &my_type_map, sizeof (my_type_map));
+    GNUNET_memcpy (tmp, &my_type_map, sizeof (my_type_map));
     hdr->type = htons (GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP);
   }
   else
@@ -174,7 +174,7 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
       return NULL;
     }
     ret = GNUNET_new (struct GSC_TypeMap);
-    memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
+    GNUNET_memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
     return ret;
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
     GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# type maps received"),
@@ -319,7 +319,7 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
 
   ret = GNUNET_new (struct GSC_TypeMap);
   if (NULL != tmap)
-    memcpy (ret, tmap, sizeof (struct GSC_TypeMap));
+    GNUNET_memcpy (ret, tmap, sizeof (struct GSC_TypeMap));
   for (i = 0; i < tcnt; i++)
     ret->bits[types[i] / 32] |= (1 << (types[i] % 32));
   return ret;

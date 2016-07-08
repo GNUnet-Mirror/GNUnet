@@ -240,7 +240,7 @@ process_payload (const struct GNUNET_HELLO_Address *address,
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->peer = address->peer;
-  memcpy (&im[1], message, ntohs (message->size));
+  GNUNET_memcpy (&im[1], message, ntohs (message->size));
   GST_clients_broadcast (&im->header, GNUNET_YES);
   return ret;
 }

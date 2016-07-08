@@ -326,7 +326,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   if (NULL != target)
   {
     pr->public_data.target = (struct GNUNET_PeerIdentity *) eptr;
-    memcpy (eptr,
+    GNUNET_memcpy (eptr,
             target,
             sizeof (struct GNUNET_PeerIdentity));
   }
@@ -357,7 +357,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
     pr->replies_seen_size = replies_seen_count;
     pr->replies_seen =
         GNUNET_malloc (sizeof (struct GNUNET_HashCode) * pr->replies_seen_size);
-    memcpy (pr->replies_seen,
+    GNUNET_memcpy (pr->replies_seen,
             replies_seen,
             replies_seen_count * sizeof (struct GNUNET_HashCode));
     pr->replies_seen_count = replies_seen_count;
@@ -472,7 +472,7 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
     if (replies_seen_count + pr->replies_seen_count > pr->replies_seen_size)
       GNUNET_array_grow (pr->replies_seen, pr->replies_seen_size,
                          replies_seen_count + pr->replies_seen_count);
-    memcpy (&pr->replies_seen[pr->replies_seen_count], replies_seen,
+    GNUNET_memcpy (&pr->replies_seen[pr->replies_seen_count], replies_seen,
             sizeof (struct GNUNET_HashCode) * replies_seen_count);
     pr->replies_seen_count += replies_seen_count;
     refresh_bloomfilter (pr);
@@ -595,7 +595,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
                                                               (char *) &ext[k],
                                                               bf_size));
-  memcpy (buf, gm, msize);
+  GNUNET_memcpy (buf, gm, msize);
   return msize;
 }
 
@@ -1186,7 +1186,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   {
     GNUNET_assert (0 != pr->sender_pid);
     GNUNET_PEER_resolve (pr->sender_pid, &pi);
-    memcpy (&buf[xquery_size], &pi, sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_memcpy (&buf[xquery_size], &pi, sizeof (struct GNUNET_PeerIdentity));
     xquery_size += sizeof (struct GNUNET_PeerIdentity);
   }
   pr->gh =

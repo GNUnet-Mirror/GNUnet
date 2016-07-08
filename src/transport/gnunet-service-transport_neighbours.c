@@ -1766,7 +1766,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
   mq = GNUNET_malloc (sizeof (struct MessageQueue) + msg_size);
   mq->cont = cont;
   mq->cont_cls = cont_cls;
-  memcpy (&mq[1], msg, msg_size);
+  GNUNET_memcpy (&mq[1], msg, msg_size);
   mq->message_buf = (const char *) &mq[1];
   mq->message_buf_size = msg_size;
   mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);

@@ -385,7 +385,7 @@ GNUNET_DNSPARSER_parse_query (const char *udp_payload,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  memcpy (&ql, &udp_payload[*off], sizeof (ql));
+  GNUNET_memcpy (&ql, &udp_payload[*off], sizeof (ql));
   *off += sizeof (ql);
   q->type = ntohs (ql.type);
   q->dns_traffic_class = ntohs (ql.dns_traffic_class);
@@ -428,7 +428,7 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
     *off = old_off;
     return NULL;
   }
-  memcpy (&soa_bin,
+  GNUNET_memcpy (&soa_bin,
 	  &udp_payload[*off],
 	  sizeof (struct GNUNET_TUN_DnsSoaRecord));
   soa->serial = ntohl (soa_bin.serial);
@@ -465,7 +465,7 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
     GNUNET_break_op (0);
     return NULL;
   }
-  memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));
+  GNUNET_memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));
   (*off) += sizeof (uint16_t);
   mx = GNUNET_new (struct GNUNET_DNSPARSER_MxRecord);
   mx->preference = ntohs (mxpref);
@@ -504,7 +504,7 @@ GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
   old_off = *off;
   if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > udp_payload_length)
     return NULL;
-  memcpy (&srv_bin,
+  GNUNET_memcpy (&srv_bin,
 	  &udp_payload[*off],
 	  sizeof (struct GNUNET_TUN_DnsSrvRecord));
   (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
@@ -547,7 +547,7 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
     GNUNET_break_op (0);
     return NULL;
   }
-  memcpy (&dcert, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsCertRecord));
+  GNUNET_memcpy (&dcert, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsCertRecord));
   (*off) += sizeof (struct GNUNET_TUN_DnsCertRecord);
   cert = GNUNET_new (struct GNUNET_DNSPARSER_CertRecord);
   cert->cert_type = ntohs (dcert.cert_type);
@@ -555,7 +555,7 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
   cert->algorithm = dcert.algorithm;
   cert->certificate_size = udp_payload_length - (*off);
   cert->certificate_data = GNUNET_malloc (cert->certificate_size);
-  memcpy (cert->certificate_data,
+  GNUNET_memcpy (cert->certificate_data,
           &udp_payload[*off],
           cert->certificate_size);
   (*off) += cert->certificate_size;
@@ -598,7 +598,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  memcpy (&rl, &udp_payload[*off], sizeof (rl));
+  GNUNET_memcpy (&rl, &udp_payload[*off], sizeof (rl));
   (*off) += sizeof (rl);
   r->type = ntohs (rl.type);
   r->dns_traffic_class = ntohs (rl.dns_traffic_class);
@@ -659,7 +659,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   default:
     r->data.raw.data = GNUNET_malloc (data_len);
     r->data.raw.data_len = data_len;
-    memcpy (r->data.raw.data, &udp_payload[*off], data_len);
+    GNUNET_memcpy (r->data.raw.data, &udp_payload[*off], data_len);
     break;
   }
   (*off) += data_len;
@@ -838,7 +838,7 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       goto fail; /* segment too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
-    memcpy (&dst[pos], idna_name, len);
+    GNUNET_memcpy (&dst[pos], idna_name, len);
     pos += len;
     idna_name += len + 1; /* also skip dot */
   }
@@ -887,7 +887,7 @@ GNUNET_DNSPARSER_builder_add_query (char *dst,
     return ret;
   ql.type = htons (query->type);
   ql.dns_traffic_class = htons (query->dns_traffic_class);
-  memcpy (&dst[*off], &ql, sizeof (ql));
+  GNUNET_memcpy (&dst[*off], &ql, sizeof (ql));
   (*off) += sizeof (ql);
   return GNUNET_OK;
 }
@@ -916,7 +916,7 @@ GNUNET_DNSPARSER_builder_add_mx (char *dst,
   if (*off + sizeof (uint16_t) > dst_len)
     return GNUNET_NO;
   mxpref = htons (mx->preference);
-  memcpy (&dst[*off], &mxpref, sizeof (mxpref));
+  GNUNET_memcpy (&dst[*off], &mxpref, sizeof (mxpref));
   (*off) += sizeof (mxpref);
   return GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, mx->mxhost);
 }
@@ -954,9 +954,9 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
   dcert.cert_type = htons ((uint16_t) cert->cert_type);
   dcert.cert_tag = htons ((uint16_t) cert->cert_tag);
   dcert.algorithm = (uint8_t) cert->algorithm;
-  memcpy (&dst[*off], &dcert, sizeof (dcert));
+  GNUNET_memcpy (&dst[*off], &dcert, sizeof (dcert));
   (*off) += sizeof (dcert);
-  memcpy (&dst[*off], cert->certificate_data, cert->certificate_size);
+  GNUNET_memcpy (&dst[*off], cert->certificate_data, cert->certificate_size);
   (*off) += cert->certificate_size;
   return GNUNET_OK;
 }
@@ -999,7 +999,7 @@ GNUNET_DNSPARSER_builder_add_soa (char *dst,
   sd.retry = htonl (soa->retry);
   sd.expire = htonl (soa->expire);
   sd.minimum = htonl (soa->minimum_ttl);
-  memcpy (&dst[*off], &sd, sizeof (sd));
+  GNUNET_memcpy (&dst[*off], &sd, sizeof (sd));
   (*off) += sizeof (sd);
   return GNUNET_OK;
 }
@@ -1031,7 +1031,7 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
   sd.prio = htons (srv->priority);
   sd.weight = htons (srv->weight);
   sd.port = htons (srv->port);
-  memcpy (&dst[*off], &sd, sizeof (sd));
+  GNUNET_memcpy (&dst[*off], &sd, sizeof (sd));
   (*off) += sizeof (sd);
   if (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
 				    dst_len,
@@ -1100,7 +1100,7 @@ add_record (char *dst,
       ret = GNUNET_NO;
       break;
     }
-    memcpy (&dst[pos], record->data.raw.data, record->data.raw.data_len);
+    GNUNET_memcpy (&dst[pos], record->data.raw.data, record->data.raw.data_len);
     pos += record->data.raw.data_len;
     ret = GNUNET_OK;
     break;
@@ -1121,7 +1121,7 @@ add_record (char *dst,
   rl.dns_traffic_class = htons (record->dns_traffic_class);
   rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL); /* in seconds */
   rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine))));
-  memcpy (&dst[*off], &rl, sizeof (struct GNUNET_TUN_DnsRecordLine));
+  GNUNET_memcpy (&dst[*off], &rl, sizeof (struct GNUNET_TUN_DnsRecordLine));
   *off = pos;
   return GNUNET_OK;
 }
@@ -1219,11 +1219,11 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   if (GNUNET_YES == trc)
     dns.flags.message_truncated = 1;
-  memcpy (tmp, &dns, sizeof (struct GNUNET_TUN_DnsHeader));
+  GNUNET_memcpy (tmp, &dns, sizeof (struct GNUNET_TUN_DnsHeader));
 
   *buf = GNUNET_malloc (off);
   *buf_length = off;
-  memcpy (*buf, tmp, off);
+  GNUNET_memcpy (*buf, tmp, off);
   if (GNUNET_YES == trc)
     return GNUNET_NO;
   return GNUNET_OK;

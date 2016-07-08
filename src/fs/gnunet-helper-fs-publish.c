@@ -129,7 +129,7 @@ add_to_md (void *cls,
        ('\0' != data[data_len - 1]) )
   {
     char zdata[data_len + 1];
-    memcpy (zdata, data, data_len);
+    GNUNET_memcpy (zdata, data, data_len);
     zdata[data_len] = '\0';
     (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
 					      data_mime_type, zdata, data_len + 1);
@@ -419,7 +419,7 @@ extract_files (struct ScanTreeNode *item)
     char buf[size + slen];
     char *dst = &buf[slen];
 
-    memcpy (buf, item->filename, slen);
+    GNUNET_memcpy (buf, item->filename, slen);
     size = GNUNET_CONTAINER_meta_data_serialize (meta,
 						 &dst, size,
 						 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);

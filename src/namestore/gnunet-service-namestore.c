@@ -428,7 +428,9 @@ lookup_nick_it (void *cls,
     {
       (*res) = GNUNET_malloc (rd[c].data_size + sizeof (struct GNUNET_GNSRECORD_Data));
       (*res)->data = &(*res)[1];
-      memcpy ((char *)(*res)->data, rd[c].data, rd[c].data_size);
+      GNUNET_memcpy ((void *) (*res)->data,
+                     rd[c].data,
+                     rd[c].data_size);
       (*res)->data_size = rd[c].data_size;
       (*res)->expiration_time = rd[c].expiration_time;
       (*res)->flags = rd[c].flags;
@@ -513,7 +515,9 @@ merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
     (*rd_res)[c] = rd2[c];
     (*rd_res)[c].data = (void *) &data[data_offset];
     // WTF?
-    memcpy ((void *) (*rd_res)[c].data, rd2[c].data, rd2[c].data_size);
+    GNUNET_memcpy ((void *) (*rd_res)[c].data,
+                   rd2[c].data,
+                   rd2[c].data_size);
     data_offset += (*rd_res)[c].data_size;
   }
   record_offset = rdc2;
@@ -523,9 +527,9 @@ merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
     (*rd_res)[c+record_offset].expiration_time = latest_expiration;
     (*rd_res)[c+record_offset].data = (void *) &data[data_offset];
     // WTF?
-    memcpy ((void *) (*rd_res)[c+record_offset].data,
-            nick_rd[c].data,
-            nick_rd[c].data_size);
+    GNUNET_memcpy ((void *) (*rd_res)[c+record_offset].data,
+                   nick_rd[c].data,
+                   nick_rd[c].data_size);
     data_offset += (*rd_res)[c+record_offset].data_size;
   }
   GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
@@ -591,7 +595,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   zir_msg->rd_len = htons (rd_ser_len);
   zir_msg->private_key = *zone_key;
   name_tmp = (char *) &zir_msg[1];
-  memcpy (name_tmp, name, name_len);
+  GNUNET_memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
   GNUNET_GNSRECORD_records_serialize (res_count, res, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -893,8 +897,8 @@ handle_record_lookup (void *cls,
     llr_msg->found = ntohs (GNUNET_YES);
   else
     llr_msg->found = ntohs (GNUNET_NO);
-  memcpy (&llr_msg[1], name_tmp, name_len);
-  memcpy (&res_name[name_len], rlc.res_rd, rlc.rd_ser_len);
+  GNUNET_memcpy (&llr_msg[1], name_tmp, name_len);
+  GNUNET_memcpy (&res_name[name_len], rlc.res_rd, rlc.rd_ser_len);
 
   GNUNET_SERVER_notification_context_unicast (snc, client, &llr_msg->gns_header.header,
       GNUNET_NO);
@@ -1153,7 +1157,7 @@ handle_zone_to_name_it (void *cls,
   ztnr_msg->zone = *zone_key;
   name_tmp = (char *) &ztnr_msg[1];
   if (NULL != name)
-    memcpy (name_tmp, name, name_len);
+    GNUNET_memcpy (name_tmp, name, name_len);
   rd_tmp = &name_tmp[name_len];
   GNUNET_GNSRECORD_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
   ztn_ctx->success = GNUNET_OK;

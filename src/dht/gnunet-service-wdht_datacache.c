@@ -87,10 +87,10 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
     GNUNET_break (0);
     return;
   }
-  memcpy (path,
+  GNUNET_memcpy (path,
           put_path,
           put_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&path[put_path_length],
+  GNUNET_memcpy (&path[put_path_length],
           get_path,
           get_path_length * sizeof (struct GNUNET_PeerIdentity));
   /* Put size is actual data size plus struct overhead plus path length (if any) */

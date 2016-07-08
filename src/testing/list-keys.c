@@ -72,7 +72,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       PRINTF ("Max keys %u reached\n", nmax);
       break;
     }
-    (void) memcpy (&pkey, data + (cnt * GNUNET_TESTING_HOSTKEYFILESIZE),
+    GNUNET_memcpy (&pkey,
+                   data + (cnt * GNUNET_TESTING_HOSTKEYFILESIZE),
                    GNUNET_TESTING_HOSTKEYFILESIZE);
     GNUNET_CRYPTO_eddsa_key_get_public (&pkey, &id.public_key);
     PRINTF ("Key %u: %s\n", cnt, GNUNET_i2s_full (&id));
@@ -98,7 +99,7 @@ int main (int argc, char *argv[])
 
   result = GNUNET_SYSERR;
   nkeys = 10;
-  ret = 
+  ret =
       GNUNET_PROGRAM_run (argc, argv, "list-keys", "Lists the peer IDs corresponding to the given keys file\n",
                           option, &run, NULL);
   if (GNUNET_OK != ret)

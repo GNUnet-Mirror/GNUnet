@@ -328,7 +328,7 @@ namecache_cache_block (void *cls,
   }
   entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
   entry->block = GNUNET_malloc (block_size);
-  memcpy (entry->block, block, block_size);
+  GNUNET_memcpy (entry->block, block, block_size);
   GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, &query);
   if (GNUNET_OK != 
       GNUNET_CONTAINER_multihashmap_put (plugin->hm,

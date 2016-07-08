@@ -572,11 +572,11 @@ send_controller_link_response (struct GNUNET_SERVER_Client *client,
   msg->config_size = htons ((uint16_t) config_size);
   if (NULL != xconfig)
   {
-    memcpy (&msg[1], xconfig, xconfig_size);
+    GNUNET_memcpy (&msg[1], xconfig, xconfig_size);
     GNUNET_free (xconfig);
   }
   if (NULL != emsg)
-    memcpy (&msg[1], emsg, strlen (emsg));
+    GNUNET_memcpy (&msg[1], emsg, strlen (emsg));
   GST_queue_message (client, &msg->header);
 }
 

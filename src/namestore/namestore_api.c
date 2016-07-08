@@ -992,7 +992,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   msg->private_key = *pkey;
 
   name_tmp = (char *) &msg[1];
-  memcpy (name_tmp,
+  GNUNET_memcpy (name_tmp,
           label,
           name_len);
   rd_ser = &name_tmp[name_len];
@@ -1095,7 +1095,7 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.r_id = htonl (qe->op_id);
   msg->zone = *pkey;
   msg->label_len = htonl (label_len);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           label,
           label_len);
   if (NULL == h->mq)

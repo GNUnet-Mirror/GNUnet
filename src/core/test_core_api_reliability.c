@@ -194,7 +194,7 @@ transmit_ready (void *cls,
     hdr.header.size = htons (s);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
-    memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
     ret += sizeof (struct TestMessage);
     memset (&cbuf[ret], tr_n, s - sizeof (struct TestMessage));
     ret += s - sizeof (struct TestMessage);

@@ -172,7 +172,7 @@ add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
   {
     cnt = GNUNET_malloc (sizeof (struct KeywordCounter) + klen);
     cnt->value = (const char *) &cnt[1];
-    memcpy (&cnt[1], keyword, klen);
+    GNUNET_memcpy (&cnt[1], keyword, klen);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multihashmap_put (mcm,
 						      &hc, cnt,

@@ -581,7 +581,7 @@ GNUNET_FS_data_reader_copy_ (void *cls,
     GNUNET_free_non_null (data);
     return 0;
   }
-  memcpy (buf, &data[offset], max);
+  GNUNET_memcpy (buf, &data[offset], max);
   return max;
 }
 

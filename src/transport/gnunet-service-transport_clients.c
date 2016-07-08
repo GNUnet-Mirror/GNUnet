@@ -421,7 +421,7 @@ transmit_to_client_callback (void *cls,
                                  tc->message_queue_tail,
                                  q);
     tc->message_count--;
-    memcpy (&cbuf[tsize], msg, msize);
+    GNUNET_memcpy (&cbuf[tsize], msg, msize);
     GNUNET_free (q);
     tsize += msize;
   }
@@ -476,7 +476,7 @@ unicast (struct TransportClient *tc,
   msize = ntohs (msg->size);
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   q = GNUNET_malloc (sizeof (struct ClientMessageQueueEntry) + msize);
-  memcpy (&q[1], msg, msize);
+  GNUNET_memcpy (&q[1], msg, msize);
   GNUNET_CONTAINER_DLL_insert_tail (tc->message_queue_head,
                                     tc->message_queue_tail,
                                     q);
@@ -883,7 +883,7 @@ transmit_address_to_client (void *cls,
   atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
   atsm->res = htonl (GNUNET_YES);
   atsm->addr_len = htonl (slen);
-  memcpy (&atsm[1],
+  GNUNET_memcpy (&atsm[1],
           buf,
           slen);
   GNUNET_SERVER_transmit_context_append_message (actx->tc,
@@ -1023,8 +1023,8 @@ compose_address_iterate_response_message (const struct GNUNET_PeerIdentity *peer
   {
     msg->local_address_info = htonl((uint32_t) address->local_info);
     addr = (char *) &msg[1];
-    memcpy (addr, address->address, alen);
-    memcpy (&addr[alen], address->transport_name, tlen);
+    GNUNET_memcpy (addr, address->address, alen);
+    GNUNET_memcpy (&addr[alen], address->transport_name, tlen);
   }
   return msg;
 }
@@ -1232,11 +1232,11 @@ plugin_session_info_cb (void *cls,
   msg->plugin_name_len = htons (slen);
   msg->plugin_address_len = htons (alen);
   name = (char *) &msg[1];
-  memcpy (name,
+  GNUNET_memcpy (name,
           info->address->transport_name,
           slen);
   addr = &name[slen];
-  memcpy (addr,
+  GNUNET_memcpy (addr,
           info->address->address,
           alen);
   if (NULL != sync_client)

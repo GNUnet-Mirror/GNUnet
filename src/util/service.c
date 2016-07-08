@@ -756,7 +756,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
         GNUNET_assert (sizeof (struct sockaddr_in) == pos->ai_addrlen);
         saddrlens[i] = pos->ai_addrlen;
         saddrs[i] = GNUNET_malloc (saddrlens[i]);
-        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        GNUNET_memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
         ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
       }
       else
@@ -765,7 +765,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
         GNUNET_assert (sizeof (struct sockaddr_in6) == pos->ai_addrlen);
         saddrlens[i] = pos->ai_addrlen;
         saddrs[i] = GNUNET_malloc (saddrlens[i]);
-        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        GNUNET_memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
         ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
       }
       i++;
@@ -1191,7 +1191,7 @@ service_task (void *cls)
 							 sctx);
   }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
-  memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
+  GNUNET_memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
   while (NULL != sctx->my_handlers[i].callback)
     sctx->my_handlers[i++].callback_cls = sctx;
@@ -1603,7 +1603,7 @@ GNUNET_SERVICE_start (const char *service_name,
                                      sctx->match_gid);
 #endif
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
-  memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
+  GNUNET_memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
   while ((sctx->my_handlers[i].callback != NULL))
     sctx->my_handlers[i++].callback_cls = sctx;

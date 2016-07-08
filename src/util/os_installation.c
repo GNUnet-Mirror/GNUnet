@@ -289,7 +289,7 @@ get_path_from_module_filename ()
     GNUNET_assert (0);
 
   upath = GNUNET_malloc (u8_string_length + 1);
-  memcpy (upath, u8_string, u8_string_length);
+  GNUNET_memcpy (upath, u8_string, u8_string_length);
   upath[u8_string_length] = '\0';
 
   free (u8_string);

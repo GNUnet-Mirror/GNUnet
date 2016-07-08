@@ -738,7 +738,7 @@ http_server_plugin_send (void *cls,
   msg->buf = (char *) &msg[1];
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
-  memcpy (msg->buf,
+  GNUNET_memcpy (msg->buf,
           msgbuf,
           msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (session->msg_head,
@@ -1554,7 +1554,7 @@ server_send_callback (void *cls,
     /* sending */
     bytes_read = GNUNET_MIN (msg->size - msg->pos,
                              max);
-    memcpy (buf, &msg->buf[msg->pos], bytes_read);
+    GNUNET_memcpy (buf, &msg->buf[msg->pos], bytes_read);
     msg->pos += bytes_read;
 
     /* removing message */
@@ -2650,7 +2650,7 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
         GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
         saddrlens[i] = pos->ai_addrlen;
         saddrs[i] = GNUNET_malloc (saddrlens[i]);
-        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        GNUNET_memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
         ((struct sockaddr_in *) saddrs[i])->sin_port = htons (port);
       }
       else
@@ -2659,7 +2659,7 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
         GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in6));
         saddrlens[i] = pos->ai_addrlen;
         saddrs[i] = GNUNET_malloc (saddrlens[i]);
-        memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
+        GNUNET_memcpy (saddrs[i], pos->ai_addr, saddrlens[i]);
         ((struct sockaddr_in6 *) saddrs[i])->sin6_port = htons (port);
       }
       i++;
@@ -2852,7 +2852,7 @@ server_notify_external_hostname (void *cls)
   ext_addr->options = htonl (plugin->options);
   ext_addr->urlen = htonl (urlen);
   ext_addr_len = sizeof (struct HttpAddress) + urlen;
-  memcpy (&ext_addr[1], url, urlen);
+  GNUNET_memcpy (&ext_addr[1], url, urlen);
   GNUNET_free (url);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -76,7 +76,7 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
       /* remove the quotes, keep the '+' */
       val = GNUNET_malloc (slen - 1);
       val[0] = '+';
-      memcpy (&val[1], &value[2], slen - 3);
+      GNUNET_memcpy (&val[1], &value[2], slen - 3);
       val[slen - 2] = '\0';
     }
     else
@@ -92,7 +92,7 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
       /* remove the quotes, add a space */
       val = GNUNET_malloc (slen);
       val[0] = ' ';
-      memcpy (&val[1], &value[1], slen - 2);
+      GNUNET_memcpy (&val[1], &value[1], slen - 2);
       val[slen - 1] = '\0';
     }
     else

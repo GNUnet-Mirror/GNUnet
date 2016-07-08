@@ -412,7 +412,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
     lookup_msg->have_key = htons (GNUNET_YES);
     lookup_msg->shorten_key = *shorten_zone_key;
   }
-  memcpy (&lookup_msg[1],
+  GNUNET_memcpy (&lookup_msg[1],
           name,
           nlen);
   GNUNET_CONTAINER_DLL_insert (handle->lookup_head,

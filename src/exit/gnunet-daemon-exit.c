@@ -491,14 +491,14 @@ transmit_reply_to_cadet (void *cls,
   GNUNET_assert (ret <= size);
   hdr.size = htons (ret);
   hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET);
-  memcpy (&dns, ts->specifics.dns.reply, sizeof (dns));
+  GNUNET_memcpy (&dns, ts->specifics.dns.reply, sizeof (dns));
   dns.id = ts->specifics.dns.original_id;
   off = 0;
-  memcpy (&cbuf[off], &hdr, sizeof (hdr));
+  GNUNET_memcpy (&cbuf[off], &hdr, sizeof (hdr));
   off += sizeof (hdr);
-  memcpy (&cbuf[off], &dns, sizeof (dns));
+  GNUNET_memcpy (&cbuf[off], &dns, sizeof (dns));
   off += sizeof (dns);
-  memcpy (&cbuf[off], &ts->specifics.dns.reply[sizeof (dns)], ts->specifics.dns.reply_length - sizeof (dns));
+  GNUNET_memcpy (&cbuf[off], &ts->specifics.dns.reply[sizeof (dns)], ts->specifics.dns.reply_length - sizeof (dns));
   off += ts->specifics.dns.reply_length - sizeof (dns);
   GNUNET_free (ts->specifics.dns.reply);
   ts->specifics.dns.reply = NULL;
@@ -539,7 +539,7 @@ process_dns_result (void *cls,
   GNUNET_free_non_null (ts->specifics.dns.reply);
   ts->specifics.dns.reply = GNUNET_malloc (r);
   ts->specifics.dns.reply_length = r;
-  memcpy (ts->specifics.dns.reply, dns, r);
+  GNUNET_memcpy (ts->specifics.dns.reply, dns, r);
   if (NULL != ts->th)
     GNUNET_CADET_notify_transmit_ready_cancel (ts->th);
   ts->th = GNUNET_CADET_notify_transmit_ready (ts->channel,
@@ -602,7 +602,7 @@ receive_dns_request (void *cls GNUNET_UNUSED,
   ts->specifics.dns.my_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 						   UINT16_MAX + 1);
   channels[ts->specifics.dns.my_id] = ts;
-  memcpy (buf, dns, dlen);
+  GNUNET_memcpy (buf, dns, dlen);
   dout = (struct GNUNET_TUN_DnsHeader *) buf;
   dout->id = ts->specifics.dns.my_id;
   ts->specifics.dns.rs = GNUNET_DNSSTUB_resolve2 (dnsstub,
@@ -636,34 +636,34 @@ hash_redirect_info (struct GNUNET_HashCode *hash,
   switch (ri->remote_address.af)
   {
   case AF_INET:
-    memcpy (off, &ri->remote_address.address.ipv4, sizeof (struct in_addr));
+    GNUNET_memcpy (off, &ri->remote_address.address.ipv4, sizeof (struct in_addr));
     off += sizeof (struct in_addr);
     break;
   case AF_INET6:
-    memcpy (off, &ri->remote_address.address.ipv6, sizeof (struct in6_addr));
+    GNUNET_memcpy (off, &ri->remote_address.address.ipv6, sizeof (struct in6_addr));
     off += sizeof (struct in_addr);
     break;
   default:
     GNUNET_assert (0);
   }
-  memcpy (off, &ri->remote_address.port, sizeof (uint16_t));
+  GNUNET_memcpy (off, &ri->remote_address.port, sizeof (uint16_t));
   off += sizeof (uint16_t);
   switch (ri->local_address.af)
   {
   case AF_INET:
-    memcpy (off, &ri->local_address.address.ipv4, sizeof (struct in_addr));
+    GNUNET_memcpy (off, &ri->local_address.address.ipv4, sizeof (struct in_addr));
     off += sizeof (struct in_addr);
     break;
   case AF_INET6:
-    memcpy (off, &ri->local_address.address.ipv6, sizeof (struct in6_addr));
+    GNUNET_memcpy (off, &ri->local_address.address.ipv6, sizeof (struct in6_addr));
     off += sizeof (struct in_addr);
     break;
   default:
     GNUNET_assert (0);
   }
-  memcpy (off, &ri->local_address.port, sizeof (uint16_t));
+  GNUNET_memcpy (off, &ri->local_address.port, sizeof (uint16_t));
   off += sizeof (uint16_t);
-  memcpy (off, &ri->remote_address.proto, sizeof (uint8_t));
+  GNUNET_memcpy (off, &ri->remote_address.proto, sizeof (uint8_t));
   /* off += sizeof (uint8_t); */
 }
 
@@ -746,8 +746,8 @@ find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 {
   char key[sizeof (struct GNUNET_HashCode) + sizeof (uint16_t)];
 
-  memcpy (&key[0], &destination_port, sizeof (uint16_t));
-  memcpy (&key[sizeof(uint16_t)], desc, sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&key[0], &destination_port, sizeof (uint16_t));
+  GNUNET_memcpy (&key[sizeof(uint16_t)], desc, sizeof (struct GNUNET_HashCode));
   return GNUNET_CONTAINER_multihashmap_get (service_map,
 					    (struct GNUNET_HashCode *) key);
 }
@@ -794,8 +794,8 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 
   GNUNET_TUN_service_name_to_hash (name, &desc);
   service->name = GNUNET_strdup (name);
-  memcpy (&key[0], &destination_port, sizeof (uint16_t));
-  memcpy (&key[sizeof(uint16_t)], &desc, sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&key[0], &destination_port, sizeof (uint16_t));
+  GNUNET_memcpy (&key[sizeof(uint16_t)], &desc, sizeof (struct GNUNET_HashCode));
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (service_map,
 					 (struct GNUNET_HashCode *) key,
@@ -841,7 +841,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_assert (size >= tnq->len);
-  memcpy (buf, tnq->payload, tnq->len);
+  GNUNET_memcpy (buf, tnq->payload, tnq->len);
   size = tnq->len;
   GNUNET_CONTAINER_DLL_remove (s->specifics.tcp_udp.head,
 			       s->specifics.tcp_udp.tail,
@@ -1067,7 +1067,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   i2v->header.size = htons ((uint16_t) mlen);
   i2v->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN);
   i2v->af = htonl (af);
-  memcpy (&i2v->icmp_header,
+  GNUNET_memcpy (&i2v->icmp_header,
 	  icmp,
 	  pktlen);
   send_packet_to_cadet_channel (state, tnq);
@@ -1144,7 +1144,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   urm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY);
   urm->source_port = htons (0);
   urm->destination_port = htons (0);
-  memcpy (&urm[1],
+  GNUNET_memcpy (&urm[1],
 	  &udp[1],
 	  pktlen - sizeof (struct GNUNET_TUN_UdpHeader));
   send_packet_to_cadet_channel (state, tnq);
@@ -1212,7 +1212,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   }
   /* mug port numbers and crc to avoid information leakage;
      sender will need to lookup the correct values anyway */
-  memcpy (buf, tcp, pktlen);
+  GNUNET_memcpy (buf, tcp, pktlen);
   mtcp = (struct GNUNET_TUN_TcpHeader *) buf;
   mtcp->source_port = 0;
   mtcp->destination_port = 0;
@@ -1232,7 +1232,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   tdm->header.size = htons ((uint16_t) mlen);
   tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN);
   tdm->reserved = htonl (0);
-  memcpy (&tdm->tcp_header,
+  GNUNET_memcpy (&tdm->tcp_header,
 	  buf,
 	  pktlen);
   send_packet_to_cadet_channel (state, tnq);
@@ -1630,7 +1630,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
       GNUNET_TUN_calculate_udp4_checksum (pkt4,
 					  pkt4_udp,
 					  payload, payload_length);
-      memcpy (&pkt4_udp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt4_udp[1], payload, payload_length);
     }
     break;
   case IPPROTO_TCP:
@@ -1644,7 +1644,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
 					  pkt4_tcp,
 					  payload,
 					  payload_length);
-      memcpy (&pkt4_tcp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt4_tcp[1], payload, payload_length);
     }
     break;
   default:
@@ -1719,14 +1719,14 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 					  pkt6_udp,
 					  payload,
 					  payload_length);
-      memcpy (&pkt6_udp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt6_udp[1], payload, payload_length);
     }
     break;
   case IPPROTO_TCP:
     {
       struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt6[1];
 
-      /* memcpy first here as some TCP header fields are initialized this way! */
+      /* GNUNET_memcpy first here as some TCP header fields are initialized this way! */
       *pkt6_tcp = *tcp_header;
       pkt6_tcp->source_port = htons (src_address->port);
       pkt6_tcp->destination_port = htons (dst_address->port);
@@ -1734,7 +1734,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 					  pkt6_tcp,
 					  payload,
 					  payload_length);
-      memcpy (&pkt6_tcp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt6_tcp[1], payload, payload_length);
     }
     break;
   default:
@@ -2226,7 +2226,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
       break;
     }
     *icmp = *icmp_header;
-    memcpy (&icmp[1],
+    GNUNET_memcpy (&icmp[1],
 	    payload,
 	    payload_length);
     GNUNET_TUN_calculate_icmp_checksum (icmp,

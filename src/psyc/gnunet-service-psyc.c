@@ -677,7 +677,7 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
   res->result_code = GNUNET_htonll (result_code);
   res->op_id = op_id;
   if (0 < data_size)
-    memcpy (&res[1], data, data_size);
+    GNUNET_memcpy (&res[1], data, data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "%p Sending result to client for operation #%" PRIu64 ": "
@@ -771,7 +771,7 @@ mcast_recv_join_request (void *cls,
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST);
   req->slave_pub_key = *slave_pub_key;
   if (0 < join_msg_size)
-    memcpy (&req[1], join_msg, join_msg_size);
+    GNUNET_memcpy (&req[1], join_msg, join_msg_size);
 
   struct JoinMemTestClosure *jcls = GNUNET_malloc (sizeof (*jcls));
   jcls->slave_pub_key = *slave_pub_key;
@@ -812,7 +812,7 @@ mcast_recv_join_decision (void *cls, int is_admitted,
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
   dcsn->is_admitted = htonl (is_admitted);
   if (0 < join_resp_size)
-    memcpy (&dcsn[1], join_resp, join_resp_size);
+    GNUNET_memcpy (&dcsn[1], join_resp, join_resp_size);
 
   client_send_msg (chn, &dcsn->header);
 
@@ -962,7 +962,7 @@ psyc_msg_init (struct GNUNET_PSYC_MessageHeader *pmsg,
   pmsg->fragment_offset = mmsg->fragment_offset;
   pmsg->flags = htonl (flags);
 
-  memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
+  GNUNET_memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
 }
 
 
@@ -1029,7 +1029,7 @@ client_send_mcast_req (struct Master *mst,
   pmsg->fragment_offset = req->fragment_offset;
   pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
   pmsg->slave_pub_key = req->member_pub_key;
-  memcpy (&pmsg[1], &req[1], size - sizeof (*req));
+  GNUNET_memcpy (&pmsg[1], &req[1], size - sizeof (*req));
 
   client_send_msg (chn, &pmsg->header);
 
@@ -1100,7 +1100,7 @@ fragment_queue_insert (struct Channel *chn,
     cache_entry = GNUNET_new (struct RecvCacheEntry);
     cache_entry->ref_count = 1;
     cache_entry->mmsg = GNUNET_malloc (size);
-    memcpy (cache_entry->mmsg, mmsg, size);
+    GNUNET_memcpy (cache_entry->mmsg, mmsg, size);
     GNUNET_CONTAINER_multihashmap_put (chan_msgs, &frag_id_hash, cache_entry,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
@@ -1784,7 +1784,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
         join_msg = (struct GNUNET_PSYC_Message *) (((char *) &req[1]) + relay_size);
       join_msg_size = ntohs (join_msg->header.size);
       slv->join_msg = GNUNET_malloc (join_msg_size);
-      memcpy (slv->join_msg, join_msg, join_msg_size);
+      GNUNET_memcpy (slv->join_msg, join_msg, join_msg_size);
     }
     if (sizeof (*req) + relay_size + join_msg_size != req_size)
     {
@@ -1802,7 +1802,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     if (0 < slv->relay_count)
     {
       slv->relays = GNUNET_malloc (relay_size);
-      memcpy (slv->relays, &req[1], relay_size);
+      GNUNET_memcpy (slv->relays, &req[1], relay_size);
     }
 
     chn = &slv->chn;
@@ -1994,7 +1994,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
               "%p transmit_notify: sending %u bytes.\n", chn, tmit_msg->size);
 
   *data_size = tmit_msg->size;
-  memcpy (data, &tmit_msg[1], *data_size);
+  GNUNET_memcpy (data, &tmit_msg[1], *data_size);
 
   int ret
     = (tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
@@ -2203,7 +2203,7 @@ queue_message (struct Channel *chn,
 {
   struct TransmitMessage *
     tmit_msg = GNUNET_malloc (sizeof (*tmit_msg) + data_size);
-  memcpy (&tmit_msg[1], data, data_size);
+  GNUNET_memcpy (&tmit_msg[1], data, data_size);
   tmit_msg->client = client;
   tmit_msg->size = data_size;
   tmit_msg->first_ptype = first_ptype;
@@ -2390,7 +2390,7 @@ store_recv_fragment_history (void *cls,
 
   pmsg = (struct GNUNET_PSYC_MessageHeader *) &res[1];
   GNUNET_PSYC_message_header_init (pmsg, mmsg, flags | GNUNET_PSYC_MESSAGE_HISTORIC);
-  memcpy (&res[1], pmsg, psize);
+  GNUNET_memcpy (&res[1], pmsg, psize);
 
   /** @todo FIXME: send only to requesting client */
   client_send_msg (chn, &res->header);
@@ -2510,8 +2510,8 @@ store_recv_state_var (void *cls, const char *name,
     mod->name_size = htons (name_size);
     mod->value_size = htonl (value_size);
     mod->oper = htons (GNUNET_PSYC_OP_ASSIGN);
-    memcpy (&mod[1], name, name_size);
-    memcpy (((char *) &mod[1]) + name_size, value, value_size);
+    GNUNET_memcpy (&mod[1], name, name_size);
+    GNUNET_memcpy (((char *) &mod[1]) + name_size, value, value_size);
   }
   else /* Continuation */
   {
@@ -2524,7 +2524,7 @@ store_recv_state_var (void *cls, const char *name,
     mod = (struct GNUNET_MessageHeader *) &res[1];
     mod->size = htons (sizeof (*mod) + value_size);
     mod->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT);
-    memcpy (&mod[1], value, value_size);
+    GNUNET_memcpy (&mod[1], value, value_size);
   }
 
   // FIXME: client might have been disconnected

@@ -453,29 +453,29 @@ get_channel_key_from_ips (int af,
   /* the GNUnet hashmap only uses the first sizeof(unsigned int) of the hash,
      so we put the ports in there (and hope for few collisions) */
   off = (char*) key;
-  memcpy (off, &source_port, sizeof (uint16_t));
+  GNUNET_memcpy (off, &source_port, sizeof (uint16_t));
   off += sizeof (uint16_t);
-  memcpy (off, &destination_port, sizeof (uint16_t));
+  GNUNET_memcpy (off, &destination_port, sizeof (uint16_t));
   off += sizeof (uint16_t);
   switch (af)
   {
   case AF_INET:
-    memcpy (off, source_ip, sizeof (struct in_addr));
+    GNUNET_memcpy (off, source_ip, sizeof (struct in_addr));
     off += sizeof (struct in_addr);
-    memcpy (off, destination_ip, sizeof (struct in_addr));
+    GNUNET_memcpy (off, destination_ip, sizeof (struct in_addr));
     off += sizeof (struct in_addr);
     break;
   case AF_INET6:
-    memcpy (off, source_ip, sizeof (struct in6_addr));
+    GNUNET_memcpy (off, source_ip, sizeof (struct in6_addr));
     off += sizeof (struct in6_addr);
-    memcpy (off, destination_ip, sizeof (struct in6_addr));
+    GNUNET_memcpy (off, destination_ip, sizeof (struct in6_addr));
     off += sizeof (struct in6_addr);
     break;
   default:
     GNUNET_assert (0);
     break;
   }
-  memcpy (off, &protocol, sizeof (uint8_t));
+  GNUNET_memcpy (off, &protocol, sizeof (uint8_t));
   /* off += sizeof (uint8_t);  */
 }
 
@@ -518,7 +518,7 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
   res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
   res->result_af = htonl (result_af);
   res->request_id = request_id;
-  memcpy (&res[1], addr, rlen);
+  GNUNET_memcpy (&res[1], addr, rlen);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
@@ -618,7 +618,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 			       ts->tmq_tail,
 			       tnq);
   ts->tmq_length--;
-  memcpy (buf, tnq->msg, tnq->len);
+  GNUNET_memcpy (buf, tnq->msg, tnq->len);
   ret = tnq->len;
   GNUNET_free (tnq);
   if (NULL != (tnq = ts->tmq_head))
@@ -1162,7 +1162,7 @@ route_packet (struct DestinationEntry *destination,
       usm->source_port = (ntohs (udp->source_port) < 32000) ? udp->source_port : 0;
       usm->destination_port = udp->destination_port;
       usm->service_descriptor = destination->details.service_destination.service_descriptor;
-      memcpy (&usm[1],
+      GNUNET_memcpy (&usm[1],
 	      &udp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_UdpHeader));
     }
@@ -1204,7 +1204,7 @@ route_packet (struct DestinationEntry *destination,
       default:
 	GNUNET_assert (0);
       }
-      memcpy (payload,
+      GNUNET_memcpy (payload,
 	      &udp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_UdpHeader));
     }
@@ -1232,7 +1232,7 @@ route_packet (struct DestinationEntry *destination,
 	tsm->reserved = htonl (0);
 	tsm->service_descriptor = destination->details.service_destination.service_descriptor;
 	tsm->tcp_header = *tcp;
-	memcpy (&tsm[1],
+	GNUNET_memcpy (&tsm[1],
 		&tcp[1],
 		payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
       }
@@ -1273,7 +1273,7 @@ route_packet (struct DestinationEntry *destination,
 	default:
 	  GNUNET_assert (0);
 	}
-	memcpy (payload,
+	GNUNET_memcpy (payload,
 		&tcp[1],
 		payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
       }
@@ -1297,7 +1297,7 @@ route_packet (struct DestinationEntry *destination,
       tdm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT);
       tdm->reserved = htonl (0);
       tdm->tcp_header = *tcp;
-      memcpy (&tdm[1],
+      GNUNET_memcpy (&tdm[1],
 	      &tcp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
      }
@@ -1379,7 +1379,7 @@ route_packet (struct DestinationEntry *destination,
       tnq->len = mlen;
       ism->header.size = htons ((uint16_t) mlen);
       /* finally, copy payload (if there is any left...) */
-      memcpy (&ism[1],
+      GNUNET_memcpy (&ism[1],
 	      &icmp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_IcmpHeader));
     }
@@ -1532,7 +1532,7 @@ route_packet (struct DestinationEntry *destination,
       default:
 	GNUNET_assert (0);
       }
-      memcpy (payload,
+      GNUNET_memcpy (payload,
 	      &icmp[1],
 	      payload_length - sizeof (struct GNUNET_TUN_IcmpHeader));
     }
@@ -1799,7 +1799,7 @@ receive_icmp_back (void *cls,
 					   &ts->destination_ip.v4,
 					   &ts->source_ip.v4);
 	*icmp = i2v->icmp_header;
-	memcpy (&icmp[1],
+	GNUNET_memcpy (&icmp[1],
 		&i2v[1],
 		mlen);
 	/* For some ICMP types, we need to adjust (make up) the payload here.
@@ -1936,7 +1936,7 @@ receive_icmp_back (void *cls,
 					   &ts->destination_ip.v6,
 					   &ts->source_ip.v6);
 	*icmp = i2v->icmp_header;
-	memcpy (&icmp[1],
+	GNUNET_memcpy (&icmp[1],
 		&i2v[1],
 		mlen);
 
@@ -2152,7 +2152,7 @@ receive_udp_back (void *cls,
 					    udp,
 					    &reply[1],
 					    mlen);
-	memcpy (&udp[1],
+	GNUNET_memcpy (&udp[1],
 		&reply[1],
 		mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
@@ -2196,7 +2196,7 @@ receive_udp_back (void *cls,
 	GNUNET_TUN_calculate_udp6_checksum (ipv6,
 					    udp,
 					    &reply[1], mlen);
-	memcpy (&udp[1],
+	GNUNET_memcpy (&udp[1],
 		&reply[1],
 		mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
@@ -2302,7 +2302,7 @@ receive_tcp_back (void *cls,
 					    tcp,
 					    &data[1],
 					    mlen);
-	memcpy (&tcp[1],
+	GNUNET_memcpy (&tcp[1],
 		&data[1],
 		mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
@@ -2341,7 +2341,7 @@ receive_tcp_back (void *cls,
 					    tcp,
 					    &data[1],
 					    mlen);
-	memcpy (&tcp[1],
+	GNUNET_memcpy (&tcp[1],
 		&data[1],
 		mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
@@ -2683,7 +2683,7 @@ service_redirect_to_ip (void *cls,
   de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_NO;
   de->details.exit_destination.af = addr_af;
-  memcpy (&de->details.exit_destination.ip,
+  GNUNET_memcpy (&de->details.exit_destination.ip,
 	  &msg[1],
 	  alen);
   get_destination_key_from_ip (result_af,

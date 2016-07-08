@@ -486,7 +486,7 @@ notify_ready (void *cls, size_t size, void *buf)
   hdr.header.size = htons (MSIZE);
   hdr.header.type = htons (MTYPE);
   hdr.num = htonl (counter++);
-  memcpy (&cbuf[0], &hdr, sizeof(struct TestMessage));
+  GNUNET_memcpy (&cbuf[0], &hdr, sizeof(struct TestMessage));
   memset (&cbuf[sizeof(struct TestMessage)], '0', MSIZE - sizeof(struct TestMessage));
 
   char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));

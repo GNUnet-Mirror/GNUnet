@@ -103,12 +103,12 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
 
   struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
-  memcpy (&macmsg.mac,
+  GNUNET_memcpy (&macmsg.mac,
           (char *) mac,
           sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-  memcpy (buffer,
+  GNUNET_memcpy (buffer,
           &macmsg,
           sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
@@ -150,11 +150,11 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   newheader.header.size = htons (payload_size + sizeof (newheader));
   newheader.header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
   newheader.frame = in->frame;
-  memcpy (write_pout->buf + write_pout->size,
+  GNUNET_memcpy (write_pout->buf + write_pout->size,
 	  &newheader,
 	  sizeof (newheader));
   write_pout->size += sizeof (newheader);
-  memcpy (write_pout->buf + write_pout->size,
+  GNUNET_memcpy (write_pout->buf + write_pout->size,
 	  &in[1],
 	  payload_size);
   write_pout->size += payload_size;
@@ -181,7 +181,7 @@ file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     FPRINTF (stderr, "%s", "Packet too big for buffer\n");
     exit (1);
   }
-  memcpy (write_std->buf + write_std->size, hdr, sendsize);
+  GNUNET_memcpy (write_std->buf + write_std->size, hdr, sendsize);
   write_std->size += sendsize;
   return GNUNET_OK;
 }

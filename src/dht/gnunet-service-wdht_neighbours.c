@@ -761,12 +761,12 @@ forward_message_on_trail (struct FriendInfo *next_target,
   new_path = (struct GNUNET_PeerIdentity *) &trm[1];
   if (have_path)
   {
-    memcpy (new_path,
+    GNUNET_memcpy (new_path,
             path,
             path_length * sizeof (struct GNUNET_PeerIdentity));
     new_path[path_length] = *predecessor;
   }
-  memcpy (&new_path[plen],
+  GNUNET_memcpy (&new_path[plen],
           payload,
           payload_len);
   GNUNET_MQ_send (next_target->mq,

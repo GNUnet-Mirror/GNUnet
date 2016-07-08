@@ -291,7 +291,7 @@ send_get (struct GNUNET_DHT_GetHandle *gh)
   get_msg->type = htonl (gh->type);
   get_msg->key = gh->key;
   get_msg->unique_id = gh->unique_id;
-  memcpy (&get_msg[1],
+  GNUNET_memcpy (&get_msg[1],
           &gh[1],
           gh->xquery_size);
   GNUNET_MQ_send (h->mq,
@@ -332,7 +332,7 @@ send_get_known_results (struct GNUNET_DHT_GetHandle *gh,
                                GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN);
     msg->key = gh->key;
     msg->unique_id = gh->unique_id;
-    memcpy (&msg[1],
+    GNUNET_memcpy (&msg[1],
 	    &gh->seen_results[transmission_offset],
 	    sizeof (struct GNUNET_HashCode) * delta);
     GNUNET_MQ_send (h->mq,
@@ -1014,7 +1014,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg->unique_id = ph->unique_id;
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   put_msg->key = *key;
-  memcpy (&put_msg[1],
+  GNUNET_memcpy (&put_msg[1],
           data,
           size);
   GNUNET_MQ_send (handle->mq,
@@ -1098,7 +1098,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   gh->desired_replication_level = desired_replication_level;
   gh->type = type;
   gh->options = options;
-  memcpy (&gh[1],
+  GNUNET_memcpy (&gh[1],
           xquery,
           xquery_size);
   GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
@@ -1135,7 +1135,7 @@ GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
     GNUNET_array_grow (get_handle->seen_results,
 		       get_handle->seen_results_size,
 		       needed);
-  memcpy (&get_handle->seen_results[get_handle->seen_results_end],
+  GNUNET_memcpy (&get_handle->seen_results[get_handle->seen_results_end],
 	  results,
 	  num_results * sizeof (struct GNUNET_HashCode));
   get_handle->seen_results_end += num_results;

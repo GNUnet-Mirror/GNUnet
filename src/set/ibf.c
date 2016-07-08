@@ -291,15 +291,15 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
 
   /* copy keys */
   key_dst = (struct IBF_Key *) buf;
-  memcpy (key_dst, ibf->key_sum + start, count * sizeof *key_dst);
+  GNUNET_memcpy (key_dst, ibf->key_sum + start, count * sizeof *key_dst);
   key_dst += count;
   /* copy key hashes */
   key_hash_dst = (struct IBF_KeyHash *) key_dst;
-  memcpy (key_hash_dst, ibf->key_hash_sum + start, count * sizeof *key_hash_dst);
+  GNUNET_memcpy (key_hash_dst, ibf->key_hash_sum + start, count * sizeof *key_hash_dst);
   key_hash_dst += count;
   /* copy counts */
   count_dst = (struct IBF_Count *) key_hash_dst;
-  memcpy (count_dst, ibf->count + start, count * sizeof *count_dst);
+  GNUNET_memcpy (count_dst, ibf->count + start, count * sizeof *count_dst);
 }
 
 
@@ -323,15 +323,15 @@ ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct Invertib
 
   /* copy keys */
   key_src = (struct IBF_Key *) buf;
-  memcpy (ibf->key_sum + start, key_src, count * sizeof *key_src);
+  GNUNET_memcpy (ibf->key_sum + start, key_src, count * sizeof *key_src);
   key_src += count;
   /* copy key hashes */
   key_hash_src = (struct IBF_KeyHash *) key_src;
-  memcpy (ibf->key_hash_sum + start, key_hash_src, count * sizeof *key_hash_src);
+  GNUNET_memcpy (ibf->key_hash_sum + start, key_hash_src, count * sizeof *key_hash_src);
   key_hash_src += count;
   /* copy counts */
   count_src = (struct IBF_Count *) key_hash_src;
-  memcpy (ibf->count + start, count_src, count * sizeof *count_src);
+  GNUNET_memcpy (ibf->count + start, count_src, count * sizeof *count_src);
 }
 
 

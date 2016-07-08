@@ -240,7 +240,7 @@ handle_lookup_block_response (void *cls,
                                  sizeof (struct GNUNET_TIME_AbsoluteNBO) +
                                  sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
     block->expiration_time = msg->expire;
-    memcpy (&block[1],
+    GNUNET_memcpy (&block[1],
             &msg[1],
             size);
     if (GNUNET_OK !=
@@ -505,7 +505,7 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
   msg->expire = block->expiration_time;
   msg->signature = block->signature;
   msg->derived_key = block->derived_key;
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           &block[1],
           blen);
   GNUNET_MQ_send (h->mq,

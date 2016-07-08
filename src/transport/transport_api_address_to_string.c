@@ -233,10 +233,10 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   msg->addrlen = htons ((uint16_t) alen);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
   addrbuf = (char *) &msg[1];
-  memcpy (addrbuf,
+  GNUNET_memcpy (addrbuf,
           address->address,
           alen);
-  memcpy (&addrbuf[alen],
+  GNUNET_memcpy (&addrbuf[alen],
           address->transport_name,
           slen);
   GNUNET_MQ_send (alc->mq,

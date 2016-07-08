@@ -378,7 +378,7 @@ request_done (struct RequestRecord *rr)
 	tun.proto = htons (ETH_P_IPV4);
       else
 	tun.proto = htons (ETH_P_IPV6);
-      memcpy (&buf[off], &tun, sizeof (struct GNUNET_TUN_Layer2PacketHeader));
+      GNUNET_memcpy (&buf[off], &tun, sizeof (struct GNUNET_TUN_Layer2PacketHeader));
       off += sizeof (struct GNUNET_TUN_Layer2PacketHeader);
     }
 
@@ -397,7 +397,7 @@ request_done (struct RequestRecord *rr)
 					   reply_len - off - sizeof (struct GNUNET_TUN_IPv4Header),
 					   &dst->sin_addr,
 					   &src->sin_addr);
-	memcpy (&buf[off], &ip4, sizeof (ip4));
+	GNUNET_memcpy (&buf[off], &ip4, sizeof (ip4));
 	off += sizeof (ip4);
       }
       break;
@@ -413,7 +413,7 @@ request_done (struct RequestRecord *rr)
 					   reply_len - sizeof (struct GNUNET_TUN_IPv6Header),
 					   &dst->sin6_addr,
 					   &src->sin6_addr);
-	memcpy (&buf[off], &ip6, sizeof (ip6));
+	GNUNET_memcpy (&buf[off], &ip6, sizeof (ip6));
 	off += sizeof (ip6);
       }
       break;
@@ -438,13 +438,13 @@ request_done (struct RequestRecord *rr)
 					    &udp,
 					    rr->payload,
 					    rr->payload_length);
-      memcpy (&buf[off], &udp, sizeof (udp));
+      GNUNET_memcpy (&buf[off], &udp, sizeof (udp));
       off += sizeof (udp);
     }
 
     /* now DNS payload */
     {
-      memcpy (&buf[off], rr->payload, rr->payload_length);
+      GNUNET_memcpy (&buf[off], rr->payload, rr->payload_length);
       off += rr->payload_length;
     }
     /* final checks & sending */
@@ -490,7 +490,7 @@ send_request_to_client (struct RequestRecord *rr,
   req->header.size = htons (sizeof (buf));
   req->reserved = htonl (0);
   req->request_id = rr->request_id;
-  memcpy (&req[1], rr->payload, rr->payload_length);
+  GNUNET_memcpy (&req[1], rr->payload, rr->payload_length);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
 					      &req->header,
@@ -723,7 +723,7 @@ process_dns_result (void *cls,
        (unsigned long long) rr->request_id);
   GNUNET_free_non_null (rr->payload);
   rr->payload = GNUNET_malloc (r);
-  memcpy (rr->payload, dns, r);
+  GNUNET_memcpy (rr->payload, dns, r);
   rr->payload_length = r;
   next_phase (rr);
 }
@@ -825,7 +825,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
 		  "Changing DNS reply according to client specifications\n");
       rr->payload = GNUNET_malloc (msize);
       rr->payload_length = msize;
-      memcpy (rr->payload, &resp[1], msize);
+      GNUNET_memcpy (rr->payload, &resp[1], msize);
       if (rr->phase == RP_QUERY)
       {
 	/* clear wait list, we're moving to MODIFY phase next */
@@ -1000,7 +1000,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   }
   rr->payload = GNUNET_malloc (msize);
   rr->payload_length = msize;
-  memcpy (rr->payload, dns, msize);
+  GNUNET_memcpy (rr->payload, dns, msize);
   rr->request_id = dns->id | (request_id_gen << 16);
   request_id_gen++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,

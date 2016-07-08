@@ -399,7 +399,7 @@ postgres_plugin_del (void *cls)
   }
   size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
   oid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
-  memcpy (&key, PQgetvalue (res, 0, 2), sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&key, PQgetvalue (res, 0, 2), sizeof (struct GNUNET_HashCode));
   PQclear (res);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_delete_by_rowid (plugin->dbh,

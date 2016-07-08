@@ -151,7 +151,7 @@ process_header (ogg_packet *op)
 
   if (op->bytes < sizeof (header))
     return NULL;
-  memcpy (&header, op->packet, sizeof (header));
+  GNUNET_memcpy (&header, op->packet, sizeof (header));
   header.preskip = GNUNET_le16toh (header.preskip);
   header.sampling_rate = GNUNET_le32toh (header.sampling_rate);
   header.gain = GNUNET_le16toh (header.gain);
@@ -565,7 +565,7 @@ stdin_receiver (void *cls,
     /*Get the ogg buffer for writing*/
     data = ogg_sync_buffer (&oy, payload_len);
     /*Read bitstream from input file*/
-    memcpy (data, (const unsigned char *) &audio[1], payload_len);
+    GNUNET_memcpy (data, (const unsigned char *) &audio[1], payload_len);
     ogg_sync_wrote (&oy, payload_len);
 
     ogg_demux_and_decode ();
@@ -796,7 +796,7 @@ main (int argc, char *argv[])
     if (read_pure_ogg)
     {
       char *data = ogg_sync_buffer (&oy, ret);
-      memcpy (data, readbuf, ret);
+      GNUNET_memcpy (data, readbuf, ret);
       ogg_sync_wrote (&oy, ret);
       ogg_demux_and_decode ();
     }

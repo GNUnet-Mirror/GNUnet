@@ -923,7 +923,7 @@ t_hmac (const void *plaintext, size_t size,
                                  NULL);
   /* Two step: CADET_Hash is only 256 bits, HashCode is 512. */
   GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
-  memcpy (hmac, &hash, sizeof (*hmac));
+  GNUNET_memcpy (hmac, &hash, sizeof (*hmac));
 }
 
 
@@ -1885,7 +1885,7 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
   tqd = GNUNET_malloc (sizeof (struct CadetTunnelDelayed) + size);
 
   tqd->t = t;
-  memcpy (&tqd[1], msg, size);
+  GNUNET_memcpy (&tqd[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tqd);
   return tqd;
 }
@@ -2246,7 +2246,7 @@ send_kx (struct CadetTunnel *t,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
       GNUNET_assert (0);
   }
-  memcpy (&msg[1], message, size);
+  GNUNET_memcpy (&msg[1], message, size);
 
   fwd = GCC_is_origin (c, GNUNET_YES);
 

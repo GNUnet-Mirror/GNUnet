@@ -498,8 +498,9 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   if (NULL == starting_host)
     return 0;
   *hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * count);
-  memcpy (*hosts, &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
-          sizeof (struct GNUNET_TESTBED_Host *) * count);
+  GNUNET_memcpy (*hosts,
+                 &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
+                 sizeof (struct GNUNET_TESTBED_Host *) * count);
   return count;
 }
 
@@ -1454,14 +1455,14 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != username)
   {
     msg->username_length = htons (username_length);
-    ptr = memcpy (ptr, username, username_length);
+    GNUNET_memcpy (ptr, username, username_length);
     ptr += username_length;
   }
   msg->hostname_length = htons (hostname_length);
-  ptr = memcpy (ptr, hostname, hostname_length);
+  GNUNET_memcpy (ptr, hostname, hostname_length);
   ptr += hostname_length;
   msg->config_size = htons (config_size);
-  ptr = memcpy (ptr, cconfig, cc_size);
+  GNUNET_memcpy (ptr, cconfig, cc_size);
   ptr += cc_size;
   GNUNET_assert ((ptr - (void *) msg) == msg_size);
   GNUNET_free (cconfig);

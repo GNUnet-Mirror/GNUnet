@@ -3484,7 +3484,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   GCC_check_connections ();
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
-  memcpy (data, message, size);
+  GNUNET_memcpy (data, message, size);
   type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",

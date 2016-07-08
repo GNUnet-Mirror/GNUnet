@@ -96,7 +96,7 @@ extract_varsize_blob (void *cls,
   *dst_size = len;
   idst = GNUNET_malloc (len);
   *((void **) dst) = idst;
-  memcpy (idst,
+  GNUNET_memcpy (idst,
 	  res,
 	  len);
   return GNUNET_OK;
@@ -181,7 +181,7 @@ extract_fixed_blob (void *cls,
 		    row,
 		    fnum);
   GNUNET_assert (NULL != res);
-  memcpy (dst,
+  GNUNET_memcpy (dst,
 	  res,
 	  len);
   return GNUNET_OK;

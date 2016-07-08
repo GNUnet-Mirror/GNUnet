@@ -1257,7 +1257,7 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op)
   queues = GNUNET_malloc (ms);
   /* Cloning is needed as the operation be released by waiting operations and
      hence its nqueues memory ptr will be freed */
-  GNUNET_assert (NULL != (queues = memcpy (queues, op->queues, ms)));
+  GNUNET_memcpy (queues, op->queues, ms);
   for (i = 0; i < nqueues; i++)
     recheck_waiting (queues[i]);
   GNUNET_free (queues);

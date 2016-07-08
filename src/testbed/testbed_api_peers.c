@@ -122,7 +122,7 @@ opstart_peer_create (void *cls)
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
   msg->peer_id = htonl (data->peer->unique_id);
   msg->config_size = htons ((uint16_t) c_size);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           xconfig,
           xc_size);
   GNUNET_MQ_send (opc->c->mq,
@@ -489,7 +489,7 @@ opstart_peer_reconfigure (void *cls)
   msg->peer_id = htonl (data->peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->config_size = htons (data->cfg_size);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           xconfig,
           xc_size);
   GNUNET_free (xconfig);
@@ -898,7 +898,7 @@ opstart_manage_service (void *cls)
   msg->peer_id = htonl (data->peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->start = (uint8_t) data->start;
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           data->service_name,
           xlen);
   GNUNET_free (data->service_name);

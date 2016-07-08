@@ -225,7 +225,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   env = GNUNET_MQ_msg_extra (msg,
                              name_len,
                              GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT);
-  memcpy (msg->name,
+  GNUNET_memcpy (msg->name,
           name,
           name_len);
   GNUNET_MQ_send (h->mq,

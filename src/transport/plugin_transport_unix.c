@@ -563,7 +563,7 @@ unix_address_to_sockaddr (const char *unixpath,
   slen = strlen (unixpath);
   if (slen >= sizeof (un->sun_path))
     slen = sizeof (un->sun_path) - 1;
-  memcpy (un->sun_path, unixpath, slen);
+  GNUNET_memcpy (un->sun_path, unixpath, slen);
   un->sun_path[slen] = '\0';
   slen = sizeof (struct sockaddr_un);
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1054,7 +1054,7 @@ unix_plugin_do_read (struct Plugin *plugin)
   ua_len = sizeof (struct UnixAddress) + strlen (un.sun_path) + 1;
   ua = GNUNET_malloc (ua_len);
   ua->addrlen = htonl (strlen (&un.sun_path[0]) +1);
-  memcpy (&ua[1], &un.sun_path[0], strlen (un.sun_path) + 1);
+  GNUNET_memcpy (&ua[1], &un.sun_path[0], strlen (un.sun_path) + 1);
   if (is_abstract)
     ua->options = htonl(UNIX_OPTIONS_USE_ABSTRACT_SOCKETS);
   else
@@ -1069,7 +1069,7 @@ unix_plugin_do_read (struct Plugin *plugin)
     return;
   }
   msgbuf = (char *) &msg[1];
-  memcpy (&sender,
+  GNUNET_memcpy (&sender,
           &msg->sender,
           sizeof (struct GNUNET_PeerIdentity));
   offset = 0;
@@ -1333,9 +1333,9 @@ unix_plugin_send (void *cls,
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
   message->header.size = htons (ssize);
   message->header.type = htons (0);
-  memcpy (&message->sender, plugin->env->my_identity,
+  GNUNET_memcpy (&message->sender, plugin->env->my_identity,
           sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&message[1], msgbuf, msgbuf_size);
+  GNUNET_memcpy (&message[1], msgbuf, msgbuf_size);
   wrapper = GNUNET_new (struct UNIXMessageWrapper);
   wrapper->msg = message;
   wrapper->msgsize = ssize;
@@ -1598,7 +1598,7 @@ unix_plugin_string_to_address (void *cls,
   ua = GNUNET_malloc (ua_size);
   ua->options = htonl (options);
   ua->addrlen = htonl (strlen (address) + 1);
-  memcpy (&ua[1], address, strlen (address) + 1);
+  GNUNET_memcpy (&ua[1], address, strlen (address) + 1);
   GNUNET_free (plugin);
 
   (*buf) = ua;
@@ -1626,7 +1626,7 @@ address_notification (void *cls)
   ua->options = htonl (plugin->myoptions);
   ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
   unix_path = (char *) &ua[1];
-  memcpy (unix_path, plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
+  GNUNET_memcpy (unix_path, plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
 
   plugin->address_update_task = NULL;
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
@@ -1852,7 +1852,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
   ua = GNUNET_malloc (len);
   ua->options = htonl (plugin->myoptions);
   ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
-  memcpy (&ua[1],
+  GNUNET_memcpy (&ua[1],
           plugin->unix_socket_path,
           strlen (plugin->unix_socket_path) + 1);
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,

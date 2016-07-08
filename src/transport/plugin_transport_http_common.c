@@ -263,7 +263,7 @@ http_common_plugin_dnsresult_to_address (const char *plugin,
       dnsresult, saddr->port, saddr->path);
   if (strlen (res) + 1 < 500)
   {
-    memcpy (rbuf, res, strlen (res) + 1);
+    GNUNET_memcpy (rbuf, res, strlen (res) + 1);
     GNUNET_free(res);
     return rbuf;
   }
@@ -581,7 +581,7 @@ http_common_plugin_address_to_url (void *cls,
   if (addr_str[ntohl (address->urlen) - 1] != '\0')
     return NULL;
 
-  memcpy (rbuf,
+  GNUNET_memcpy (rbuf,
           &address[1],
           ntohl (address->urlen));
   return rbuf;
@@ -623,7 +623,7 @@ http_common_plugin_address_to_string (const char *plugin,
       &address[1]);
   if (strlen (res) + 1 < 500)
   {
-    memcpy (rbuf, res, strlen (res) + 1);
+    GNUNET_memcpy (rbuf, res, strlen (res) + 1);
     GNUNET_free(res);
     return rbuf;
   }
@@ -702,7 +702,7 @@ http_common_plugin_string_to_address (void *cls,
   a = GNUNET_malloc (sizeof (struct HttpAddress) + urlen);
   a->options = htonl (options);
   a->urlen = htonl (urlen);
-  memcpy (&a[1], address, urlen);
+  GNUNET_memcpy (&a[1], address, urlen);
 
   (*buf) = a;
   (*added) = sizeof(struct HttpAddress) + urlen;
@@ -737,7 +737,7 @@ http_common_address_from_socket (const char *protocol,
   address = GNUNET_malloc (sizeof (struct HttpAddress) + len);
   address->options = htonl (HTTP_OPTIONS_NONE);
   address->urlen = htonl (len);
-  memcpy (&address[1], res, len);
+  GNUNET_memcpy (&address[1], res, len);
   GNUNET_free(res);
   return address;
 }

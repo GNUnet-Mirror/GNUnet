@@ -240,7 +240,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   join_msg->start = GNUNET_TIME_absolute_hton (start);
   join_msg->deadline = GNUNET_TIME_absolute_hton (deadline);
   join_msg->num_peers = htonl (num_peers);
-  memcpy(&join_msg[1],
+  GNUNET_memcpy(&join_msg[1],
 	 peers,
 	 num_peers * sizeof (struct GNUNET_PeerIdentity));
 
@@ -282,7 +282,7 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
   ev = GNUNET_MQ_msg_extra (element_msg, element->size,
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT);
 
-  memcpy (&element_msg[1], element->data, element->size);
+  GNUNET_memcpy (&element_msg[1], element->data, element->size);
 
   if (NULL != idc)
   {

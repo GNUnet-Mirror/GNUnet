@@ -110,7 +110,7 @@ process_if (void *cls,
     return GNUNET_OK;
   GNUNET_free_non_null (data->addr);
   data->addr = GNUNET_malloc (addrlen);
-  memcpy (data->addr, addr, addrlen);
+  GNUNET_memcpy (data->addr, addr, addrlen);
   data->addrlen = addrlen;
   if (isDefault)
     return GNUNET_SYSERR;

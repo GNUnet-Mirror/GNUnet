@@ -570,10 +570,10 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
     for (i = s->cadet_transmitted_element_count, j = 0; i < s->cadet_transmitted_element_count + todo_count; i++)
     {
       //r[i][p] and r[i][q]
-      memcpy (&payload[j++],
+      GNUNET_memcpy (&payload[j++],
               &s->r[i],
               sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-      memcpy (&payload[j++],
+      GNUNET_memcpy (&payload[j++],
               &s->r_prime[i],
               sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
     }
@@ -627,10 +627,10 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
               (unsigned int) s->used_element_count);
 
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-  memcpy (&payload[0],
+  GNUNET_memcpy (&payload[0],
           &s->s,
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  memcpy (&payload[1],
+  GNUNET_memcpy (&payload[1],
           &s->s_prime,
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
 
@@ -639,10 +639,10 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
   for (i = 0; i < s->cadet_transmitted_element_count; i++)
   {
     //k[i][p] and k[i][q]
-    memcpy (&payload[i * 2],
+    GNUNET_memcpy (&payload[i * 2],
             &s->r[i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-    memcpy (&payload[i * 2 + 1],
+    GNUNET_memcpy (&payload[i * 2 + 1],
             &s->r_prime[i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
@@ -991,7 +991,7 @@ handle_alices_cryptodata_message (void *cls,
   if (NULL == s->e_a)
     s->e_a = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) *
                             max);
-  memcpy (&s->e_a[s->cadet_received_element_count],
+  GNUNET_memcpy (&s->e_a[s->cadet_received_element_count],
           payload,
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * contained_elements);
   s->cadet_received_element_count += contained_elements;
@@ -1262,7 +1262,7 @@ GSS_handle_bob_client_message_multipart (void *cls,
   for (i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
@@ -1387,7 +1387,7 @@ GSS_handle_bob_client_message (void *cls,
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==

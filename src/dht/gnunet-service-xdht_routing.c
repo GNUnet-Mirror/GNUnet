@@ -263,10 +263,10 @@ GDS_ROUTING_test_print (void)
     {
       FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->trail_id = %s"),
               __FILE__, __func__,__LINE__, GNUNET_h2s(&trail->trail_id));
-      memcpy (&print_peer, &trail->next_hop, sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_memcpy (&print_peer, &trail->next_hop, sizeof (struct GNUNET_PeerIdentity));
       FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->next_hop = %s"),
               __FILE__, __func__,__LINE__, GNUNET_i2s(&print_peer));
-      memcpy (&print_peer, &trail->prev_hop, sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_memcpy (&print_peer, &trail->prev_hop, sizeof (struct GNUNET_PeerIdentity));
       FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->prev_hop = %s"),
               __FILE__, __func__,__LINE__, GNUNET_i2s(&print_peer));
     }

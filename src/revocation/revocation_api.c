@@ -386,8 +386,8 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
            sizeof (pow)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
-  memcpy (buf, &pow, sizeof (pow));
-  memcpy (&buf[sizeof (pow)], key,
+  GNUNET_memcpy (buf, &pow, sizeof (pow));
+  GNUNET_memcpy (&buf[sizeof (pow)], key,
           sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=

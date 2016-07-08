@@ -288,10 +288,10 @@ handle_search_result (void *cls,
   result->put_path_length = htons ((uint16_t) put_path_length);
   result->id = *id;
   gp = &result->id;
-  memcpy (&gp[1],
+  GNUNET_memcpy (&gp[1],
 	  get_path,
 	  get_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&gp[1 + get_path_length],
+  GNUNET_memcpy (&gp[1 + get_path_length],
 	  put_path,
 	  put_path_length * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_SERVER_notification_context_unicast (nc,

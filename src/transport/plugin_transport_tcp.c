@@ -601,7 +601,7 @@ tcp_nat_port_map_callback (void *cls,
   case AF_INET6:
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in6));
     memset (&t6, 0, sizeof(t6));
-    memcpy (&t6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
+    GNUNET_memcpy (&t6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
         sizeof(struct in6_addr));
     t6.options = htonl (plugin->myoptions);
     t6.t6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
@@ -656,7 +656,7 @@ tcp_plugin_address_to_string (void *cls,
     af = AF_INET6;
     port = ntohs (t6->t6_port);
     options = ntohl (t6->options);
-    memcpy (&a6, &t6->ipv6_addr, sizeof(a6));
+    GNUNET_memcpy (&a6, &t6->ipv6_addr, sizeof(a6));
     sb = &a6;
     break;
   case sizeof(struct IPv4TcpAddress):
@@ -664,7 +664,7 @@ tcp_plugin_address_to_string (void *cls,
     af = AF_INET;
     port = ntohs (t4->t4_port);
     options = ntohl (t4->options);
-    memcpy (&a4, &t4->ipv4_addr, sizeof(a4));
+    GNUNET_memcpy (&a4, &t4->ipv4_addr, sizeof(a4));
     sb = &a4;
     break;
   default:
@@ -1053,7 +1053,7 @@ create_session (struct Plugin *plugin,
 		      sizeof (struct WelcomeMessage));
   pm->msg = (const char *) &pm[1];
   pm->message_size = sizeof(struct WelcomeMessage);
-  memcpy (&pm[1],
+  GNUNET_memcpy (&pm[1],
           &plugin->my_welcome,
           sizeof(struct WelcomeMessage));
   pm->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -1219,8 +1219,8 @@ do_transmit (void *cls,
          tcp_plugin_address_to_string (session->plugin,
                                        session->address->address,
                                        session->address->address_length));
-    /* FIXME: this memcpy can be up to 7% of our total runtime */
-    memcpy (cbuf,
+    /* FIXME: this GNUNET_memcpy can be up to 7% of our total runtime */
+    GNUNET_memcpy (cbuf,
             pos->msg,
             pos->message_size);
     cbuf += pos->message_size;
@@ -1335,7 +1335,7 @@ tcp_plugin_send (void *cls,
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char *) &pm[1];
-  memcpy (&pm[1], msgbuf, msgbuf_size);
+  GNUNET_memcpy (&pm[1], msgbuf, msgbuf_size);
   pm->message_size = msgbuf_size;
   pm->timeout = GNUNET_TIME_relative_to_absolute (to);
   pm->transmit_cont = cont;
@@ -1625,7 +1625,7 @@ tcp_plugin_get_session (void *cls,
     a6.sin6_port = t6->t6_port;
     if (t6->t6_port == 0)
       is_natd = GNUNET_YES;
-    memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
+    GNUNET_memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
     sb = &a6;
     sbs = sizeof(a6);
   }
@@ -1958,7 +1958,7 @@ tcp_plugin_address_pretty_printer (void *cls,
     memset (&a6, 0, sizeof(a6));
     a6.sin6_family = AF_INET6;
     a6.sin6_port = t6->t6_port;
-    memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
+    GNUNET_memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
     port = ntohs (t6->t6_port);
     options = ntohl (t6->options);
     sb = &a6;
@@ -2228,7 +2228,7 @@ handle_tcp_nat_probe (void *cls,
     t6 = GNUNET_new (struct IPv6TcpAddress);
     t6->options = htonl (TCP_OPTIONS_NONE);
     t6->t6_port = s6->sin6_port;
-    memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
+    GNUNET_memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
     session->address = GNUNET_HELLO_address_allocate (&tcp_nat_probe->clientIdentity,
                                                       PLUGIN_NAME,
                                                       &t6,
@@ -2349,7 +2349,7 @@ handle_tcp_welcome (void *cls,
         memset (&t6, '\0', sizeof (t6));
         t6.options = htonl (TCP_OPTIONS_NONE);
         t6.t6_port = s6->sin6_port;
-        memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
+        GNUNET_memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
                                                  PLUGIN_NAME,
                                                  &t6,
@@ -2649,7 +2649,7 @@ notify_send_probe (void *cls,
     return 0;
   }
   GNUNET_assert(size >= sizeof(tcp_probe_ctx->message));
-  memcpy (buf,
+  GNUNET_memcpy (buf,
 	  &tcp_probe_ctx->message,
 	  sizeof(tcp_probe_ctx->message));
   GNUNET_SERVER_connect_socket (tcp_probe_ctx->plugin->server,
@@ -2758,7 +2758,7 @@ tcp_plugin_get_network_for_address (void *cls,
 #endif
     a6.sin6_family = AF_INET6;
     a6.sin6_port = t6->t6_port;
-    memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
+    GNUNET_memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof(struct in6_addr));
     sb = &a6;
     sbs = sizeof(a6);
   }
@@ -3075,7 +3075,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 					   GNUNET_YES);
   }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
-  memcpy (plugin->handlers, my_handlers, sizeof(my_handlers));
+  GNUNET_memcpy (plugin->handlers, my_handlers, sizeof(my_handlers));
   for (i = 0;i < sizeof(my_handlers) / sizeof(struct GNUNET_SERVER_MessageHandler);i++)
     plugin->handlers[i].callback_cls = plugin;
 

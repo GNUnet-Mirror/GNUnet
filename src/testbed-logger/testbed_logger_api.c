@@ -179,7 +179,7 @@ dispatch_buffer (struct GNUNET_TESTBED_LOGGER_Handle *h)
   env = GNUNET_MQ_msg_extra (msg,
                              h->buse,
                              GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           h->buf,
           h->buse);
   h->bwrote += h->buse;
@@ -284,7 +284,7 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
   {
     size_t fit_size = GNUNET_MIN (size,
                                   BUFFER_SIZE - h->buse);
-    memcpy (&h->buf[h->buse],
+    GNUNET_memcpy (&h->buf[h->buse],
             data,
             fit_size);
     h->buse += fit_size;

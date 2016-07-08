@@ -201,7 +201,7 @@ GNUNET_NETWORK_unix_precheck (const struct sockaddr_un *un)
 
 
 #ifndef FD_COPY
-#define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
+#define FD_COPY(s, d) do { GNUNET_memcpy ((d), (s), sizeof (fd_set)); } while (0)
 #endif
 
 
@@ -546,7 +546,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     return GNUNET_SYSERR;
 #ifndef MINGW
   desc->addr = GNUNET_malloc (address_len);
-  memcpy (desc->addr, address, address_len);
+  GNUNET_memcpy (desc->addr, address, address_len);
   desc->addrlen = address_len;
 #endif
   return GNUNET_OK;
@@ -1210,7 +1210,7 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
     GNUNET_array_grow (to->handles,
                        to->handles_size,
                        from->handles_pos * 2);
-  memcpy (to->handles,
+  GNUNET_memcpy (to->handles,
           from->handles,
           from->handles_pos * sizeof (struct GNUNET_NETWORK_Handle *));
   to->handles_pos = from->handles_pos;

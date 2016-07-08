@@ -691,7 +691,7 @@ udp_plugin_get_network_for_address (void *cls,
 #endif
     a6.sin6_family = AF_INET6;
     a6.sin6_port = u6->u6_port;
-    memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof(struct in6_addr));
+    GNUNET_memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof(struct in6_addr));
     sb = &a6;
     sbs = sizeof(a6);
   }
@@ -1891,7 +1891,7 @@ enqueue_fragment (void *cls,
   udpw->frag_ctx = frag_ctx;
   udpw->qc = &qc_fragment_sent;
   udpw->qc_cls = plugin;
-  memcpy (udpw->msg_buf,
+  GNUNET_memcpy (udpw->msg_buf,
           msg,
           msg_len);
   enqueue (plugin,
@@ -2094,10 +2094,10 @@ udp_plugin_send (void *cls,
     udpw->frag_ctx = NULL;
     udpw->qc = &qc_message_sent;
     udpw->qc_cls = plugin;
-    memcpy (udpw->msg_buf,
+    GNUNET_memcpy (udpw->msg_buf,
             udp,
             sizeof (struct UDPMessage));
-    memcpy (&udpw->msg_buf[sizeof(struct UDPMessage)],
+    GNUNET_memcpy (&udpw->msg_buf[sizeof(struct UDPMessage)],
             msgbuf,
             msgbuf_size);
     enqueue (plugin,
@@ -2120,7 +2120,7 @@ udp_plugin_send (void *cls,
     /* fragmented message */
     if (NULL != s->frag_ctx)
       return GNUNET_SYSERR;
-    memcpy (&udp[1],
+    GNUNET_memcpy (&udp[1],
             msgbuf,
             msgbuf_size);
     frag_ctx = GNUNET_new (struct UDP_FragmentationContext);
@@ -2944,7 +2944,7 @@ ack_proc (void *cls,
   udp_ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK);
   udp_ack->delay = htonl (delay);
   udp_ack->sender = *plugin->env->my_identity;
-  memcpy (&udp_ack[1],
+  GNUNET_memcpy (&udp_ack[1],
           msg,
           ntohs (msg->size));
   enqueue (plugin,
@@ -2994,7 +2994,7 @@ read_process_fragment (struct Plugin *plugin,
   {
     /* Create a new defragmentation context */
     d_ctx = GNUNET_malloc (sizeof (struct DefragContext) + udp_addr_len);
-    memcpy (&d_ctx[1],
+    GNUNET_memcpy (&d_ctx[1],
             udp_addr,
             udp_addr_len);
     d_ctx->udp_addr = (const union UdpAddress *) &d_ctx[1];

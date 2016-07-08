@@ -654,7 +654,7 @@ find_subsystem_entry (struct ClientEntry *ce,
   slen = strlen (service) + 1;
   se = GNUNET_malloc (sizeof (struct SubsystemEntry) +
                       slen);
-  memcpy (&se[1],
+  GNUNET_memcpy (&se[1],
           service,
           slen);
   se->service = (const char *) &se[1];
@@ -805,7 +805,7 @@ handle_set (void *cls,
   /* not found, create a new entry */
   nlen = strlen (name) + 1;
   pos = GNUNET_malloc (sizeof (struct StatsEntry) + nlen);
-  memcpy (&pos[1],
+  GNUNET_memcpy (&pos[1],
           name,
           nlen);
   pos->name = (const char *) &pos[1];
@@ -895,7 +895,7 @@ handle_watch (void *cls,
     nlen = strlen (name) + 1;
     pos = GNUNET_malloc (sizeof (struct StatsEntry) +
                          nlen);
-    memcpy (&pos[1], name, nlen);
+    GNUNET_memcpy (&pos[1], name, nlen);
     pos->name = (const char *) &pos[1];
     pos->subsystem = se;
     GNUNET_CONTAINER_DLL_insert (se->stat_head,

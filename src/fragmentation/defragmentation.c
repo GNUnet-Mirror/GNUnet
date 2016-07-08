@@ -520,7 +520,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   {
     mc->bits -= 1LLU << bit;
     mbuf = (char *) &mc[1];
-    memcpy (&mbuf[bit * (dc->mtu - sizeof (struct FragmentHeader))], &fh[1],
+    GNUNET_memcpy (&mbuf[bit * (dc->mtu - sizeof (struct FragmentHeader))], &fh[1],
             ntohs (msg->size) - sizeof (struct FragmentHeader));
     mc->last_update = now;
     if (bit < mc->last_bit)

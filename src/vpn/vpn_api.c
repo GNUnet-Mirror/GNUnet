@@ -278,7 +278,7 @@ send_request (struct GNUNET_VPN_RedirectionRequest *rr)
     rip->result_af = htonl (rr->result_af);
     rip->addr_af = htonl (rr->addr_af);
     rip->request_id = rr->request_id = ++vh->request_id_gen;
-    memcpy (&rip[1],
+    GNUNET_memcpy (&rip[1],
             rr->addr,
             alen);
   }
@@ -483,7 +483,7 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
   rr->expiration_time = expiration_time;
   rr->result_af = result_af;
   rr->addr_af = addr_af;
-  memcpy (&rr[1],
+  GNUNET_memcpy (&rr[1],
           addr,
           alen);
   GNUNET_CONTAINER_DLL_insert_tail (vh->rr_head,

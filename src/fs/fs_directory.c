@@ -142,7 +142,7 @@ find_full_data (void *cls, const char *plugin_name,
     if (data_len > 0)
     {
       gfdc->data = GNUNET_malloc (data_len);
-      memcpy (gfdc->data, data, data_len);
+      GNUNET_memcpy (gfdc->data, data, data_len);
     }
     return 1;
   }
@@ -199,7 +199,7 @@ GNUNET_FS_directory_list_contents (size_t size, const void *data,
   pos = offset;
   if (offset == 0)
   {
-    memcpy (&mdSize, &cdata[8], sizeof (uint32_t));
+    GNUNET_memcpy (&mdSize, &cdata[8], sizeof (uint32_t));
     mdSize = ntohl (mdSize);
     if (mdSize > size - 8 - sizeof (uint32_t))
     {
@@ -260,7 +260,7 @@ GNUNET_FS_directory_list_contents (size_t size, const void *data,
       return GNUNET_NO;         /* illegal in directory! */
     }
 
-    memcpy (&mdSize, &cdata[pos], sizeof (uint32_t));
+    GNUNET_memcpy (&mdSize, &cdata[pos], sizeof (uint32_t));
     mdSize = ntohl (mdSize);
     pos += sizeof (uint32_t);
     if (pos + mdSize > size)
@@ -434,7 +434,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
   e = GNUNET_malloc (sizeof (struct BuilderEntry) + slen + mds +
                      sizeof (uint32_t));
   ser = (char *) &e[1];
-  memcpy (ser, uris, slen);
+  GNUNET_memcpy (ser, uris, slen);
   GNUNET_free (uris);
   sptr = &ser[slen + sizeof (uint32_t)];
   ret =
@@ -447,7 +447,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
   else
     mds = ret;
   big = htonl (mds);
-  memcpy (&ser[slen], &big, sizeof (uint32_t));
+  GNUNET_memcpy (&ser[slen], &big, sizeof (uint32_t));
   e->len = slen + sizeof (uint32_t) + mds;
   e->next = bld->head;
   bld->head = e;
@@ -608,7 +608,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
     return GNUNET_SYSERR;
   }
   *rdata = data;
-  memcpy (data, GNUNET_DIRECTORY_MAGIC, strlen (GNUNET_DIRECTORY_MAGIC));
+  GNUNET_memcpy (data, GNUNET_DIRECTORY_MAGIC, strlen (GNUNET_DIRECTORY_MAGIC));
   off = strlen (GNUNET_DIRECTORY_MAGIC);
 
   sptr = &data[off + sizeof (uint32_t)];
@@ -618,7 +618,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
                                             GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
   GNUNET_assert (ret != -1);
   big = htonl (ret);
-  memcpy (&data[off], &big, sizeof (uint32_t));
+  GNUNET_memcpy (&data[off], &big, sizeof (uint32_t));
   off += sizeof (uint32_t) + ret;
   for (j = 0; j < bld->count; j++)
   {
@@ -626,7 +626,7 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
     psize = off;
     off += sizes[i];
     off = do_align (psize, off);
-    memcpy (&data[off - sizes[i]], &(bes[i])[1], sizes[i]);
+    GNUNET_memcpy (&data[off - sizes[i]], &(bes[i])[1], sizes[i]);
     GNUNET_free (bes[i]);
   }
   GNUNET_free_non_null (sizes);

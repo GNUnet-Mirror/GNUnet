@@ -476,7 +476,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   copy = GNUNET_malloc (sizeof (struct Result) + size);
   copy->size = size;
   copy->data = &copy[1];
-  memcpy (&copy[1], block, size);
+  GNUNET_memcpy (&copy[1], block, size);
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CONTAINER_multihashmap_put (info->dht_get_results,
 						   key, copy,

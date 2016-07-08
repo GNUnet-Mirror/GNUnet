@@ -386,7 +386,7 @@ sqlite_plugin_del (void *cls)
   }
   rowid = sqlite3_column_int64 (stmt, 0);
   GNUNET_assert (sqlite3_column_bytes (stmt, 1) == sizeof (struct GNUNET_HashCode));
-  memcpy (&hc, sqlite3_column_blob (stmt, 1), sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&hc, sqlite3_column_blob (stmt, 1), sizeof (struct GNUNET_HashCode));
   dsize = sqlite3_column_bytes (stmt, 2);
   if (SQLITE_OK != sqlite3_finalize (stmt))
     LOG_SQLITE (plugin->dbh,

@@ -152,7 +152,7 @@ do_align:
       delta =
           GNUNET_MIN (sizeof (struct GNUNET_MessageHeader) -
                       (mst->pos - mst->off), size);
-      memcpy (&ibuf[mst->pos], buf, delta);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
       mst->pos += delta;
       buf += delta;
       size -= delta;
@@ -194,7 +194,7 @@ do_align:
     {
       delta = GNUNET_MIN (want - (mst->pos - mst->off), size);
       GNUNET_assert (mst->pos + delta <= mst->curr_buf);
-      memcpy (&ibuf[mst->pos], buf, delta);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
       mst->pos += delta;
       buf += delta;
       size -= delta;
@@ -281,7 +281,7 @@ copy:
       mst->curr_buf = size + mst->pos;
     }
     GNUNET_assert (size + mst->pos <= mst->curr_buf);
-    memcpy (&ibuf[mst->pos], buf, size);
+    GNUNET_memcpy (&ibuf[mst->pos], buf, size);
     mst->pos += size;
   }
   if (purge)

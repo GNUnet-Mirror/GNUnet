@@ -284,7 +284,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   msg->session_id = *session_id;
   msg->start = GNUNET_TIME_absolute_hton (start);
   msg->deadline = GNUNET_TIME_absolute_hton (deadline);
-  memcpy (&msg[1], peers, num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&msg[1], peers, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (s->mq, ev);
 

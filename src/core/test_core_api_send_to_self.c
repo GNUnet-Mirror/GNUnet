@@ -133,7 +133,7 @@ init (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Correctly connected to CORE; we are the peer %s.\n",
               GNUNET_i2s (my_identity));
-  memcpy (&myself,
+  GNUNET_memcpy (&myself,
           my_identity,
           sizeof (struct GNUNET_PeerIdentity));
 }

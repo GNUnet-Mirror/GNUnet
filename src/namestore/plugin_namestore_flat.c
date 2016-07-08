@@ -263,8 +263,8 @@ database_setup (struct Plugin *plugin)
                                     (char**)&entry->private_key);
       key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
       key = GNUNET_malloc (strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-      memcpy (key, label, strlen (label));
-      memcpy (key+strlen(label),
+      GNUNET_memcpy (key, label, strlen (label));
+      GNUNET_memcpy (key+strlen(label),
               entry->private_key,
               sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
       GNUNET_CRYPTO_hash (key,
@@ -413,8 +413,8 @@ namestore_store_records (void *cls,
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   key = GNUNET_malloc (key_len);
-  memcpy (key, label, strlen (label));
-  memcpy (key+strlen(label),
+  GNUNET_memcpy (key, label, strlen (label));
+  GNUNET_memcpy (key+strlen(label),
           zone_key,
           sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
   GNUNET_CRYPTO_hash (key,
@@ -430,7 +430,7 @@ namestore_store_records (void *cls,
     GNUNET_asprintf (&entry->label,
                      label,
                      strlen (label));
-    memcpy (entry->private_key,
+    GNUNET_memcpy (entry->private_key,
             zone_key,
             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
     entry->rvalue = rvalue;
@@ -443,7 +443,7 @@ namestore_store_records (void *cls,
       entry->record_data[i].flags = rd[i].flags;
       entry->record_data[i].data_size = rd[i].data_size;
       entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
-      memcpy ((char*)entry->record_data[i].data, rd[i].data, rd[i].data_size);
+      GNUNET_memcpy ((char*)entry->record_data[i].data, rd[i].data, rd[i].data_size);
     }
     return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                               &hkey,
@@ -483,8 +483,8 @@ namestore_lookup_records (void *cls,
   }
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   key = GNUNET_malloc (key_len);
-  memcpy (key, label, strlen (label));
-  memcpy (key+strlen(label),
+  GNUNET_memcpy (key, label, strlen (label));
+  GNUNET_memcpy (key+strlen(label),
           zone,
           sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
   GNUNET_CRYPTO_hash (key,

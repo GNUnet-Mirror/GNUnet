@@ -894,7 +894,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   else
     ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
   ntm->peer = *sender;
-  memcpy (&ntm[1],
+  GNUNET_memcpy (&ntm[1],
           msg,
           msize);
   send_to_all_clients (sender,

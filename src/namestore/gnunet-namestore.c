@@ -536,7 +536,7 @@ get_existing_record (void *cls,
     break;
   }
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
-  memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
+  GNUNET_memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
   rde = &rdn[0];
   rde->data = data;
   rde->data_size = data_size;

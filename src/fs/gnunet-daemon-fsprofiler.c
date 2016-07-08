@@ -246,7 +246,7 @@ make_file (uint64_t length,
   for (i=0;i<length; i+=8)
   {
     xor = length ^ kval ^ (uint64_t) (i / 32 / 1024);
-    memcpy (&data[i], &xor, GNUNET_MIN (length - i, sizeof (uint64_t)));
+    GNUNET_memcpy (&data[i], &xor, GNUNET_MIN (length - i, sizeof (uint64_t)));
   }
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
   bo.anonymity_level = (uint32_t) anonymity_level;

@@ -239,7 +239,7 @@ announce_id (void *cls)
   GNUNET_STATISTICS_update (stats, "# DHT announce",
                             1, GNUNET_NO);
   memset (&phash, 0, sizeof (phash));
-  memcpy (&phash, &my_full_id, sizeof (my_full_id));
+  GNUNET_memcpy (&phash, &my_full_id, sizeof (my_full_id));
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
@@ -352,7 +352,7 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
        GNUNET_i2s (peer_id));
   GNUNET_STATISTICS_update (stats, "# DHT search", 1, GNUNET_NO);
   memset (&phash, 0, sizeof (phash));
-  memcpy (&phash, peer_id, sizeof (*peer_id));
+  GNUNET_memcpy (&phash, peer_id, sizeof (*peer_id));
   h = GNUNET_new (struct GCD_search_handle);
   h->peer_id = GNUNET_PEER_intern (peer_id);
   h->callback = callback;

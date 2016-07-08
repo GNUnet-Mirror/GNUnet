@@ -772,6 +772,17 @@ GNUNET_ntoh_double (double d);
 #define GNUNET_new(type) (type *) GNUNET_malloc (sizeof (type))
 
 /**
+ * Call memcpy() but check for @a n being 0 first. In the latter
+ * case, it is now safe to pass NULL for @a src or @a dst.
+ * Unlike traditional memcpy(), returns nothing.
+ *
+ * @param dst destination of the copy, may be NULL if @a n is zero
+ * @param src source of the copy, may be NULL if @a n is zero
+ * @param n number of bytes to copy
+ */
+#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
+
+/**
  * @ingroup memory
  * Allocate a size @a n array with structs or unions of the given @a type.
  * Wrapper around #GNUNET_malloc that returns a pointer
@@ -879,12 +890,12 @@ GNUNET_ntoh_double (double d);
  *
  * static void push(struct foo * elem) {
  *   GNUNET_array_grow(myVector, myVecLen, myVecLen+1);
- *   memcpy(&myVector[myVecLen-1], elem, sizeof(struct foo));
+ *   GNUNET_memcpy(&myVector[myVecLen-1], elem, sizeof(struct foo));
  * }
  *
  * static void pop(struct foo * elem) {
  *   if (myVecLen == 0) die();
- *   memcpy(elem, myVector[myVecLen-1], sizeof(struct foo));
+ *   GNUNET_memcpy(elem, myVector[myVecLen-1], sizeof(struct foo));
  *   GNUNET_array_grow(myVector, myVecLen, myVecLen-1);
  * }
  * </pre>

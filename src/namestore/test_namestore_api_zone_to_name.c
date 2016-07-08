@@ -199,7 +199,7 @@ run (void *cls,
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   rd.flags = 0;
-  memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+  GNUNET_memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 

@@ -218,7 +218,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   msg->fragment_offset = GNUNET_htonll (0);
   msg->flags = htonl (GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT);
 
-  memcpy (&msg[1], &channel_pub_key, sizeof (channel_pub_key));
+  GNUNET_memcpy (&msg[1], &channel_pub_key, sizeof (channel_pub_key));
 
   msg->purpose.size = htonl (ntohs (msg->header.size)
                              - sizeof (msg->header)
@@ -272,7 +272,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_MULTICAST_MessageHeader *msg1
     = GNUNET_malloc (sizeof (*msg1) + sizeof (channel_pub_key));
 
-  memcpy (msg1, msg, sizeof (*msg1) + sizeof (channel_pub_key));
+  GNUNET_memcpy (msg1, msg, sizeof (*msg1) + sizeof (channel_pub_key));
 
   msg1->fragment_id = GNUNET_htonll (INT64_MAX);
   msg1->fragment_offset = GNUNET_htonll (32768);

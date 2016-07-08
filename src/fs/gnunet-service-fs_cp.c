@@ -780,7 +780,7 @@ copy_reply (void *cls,
   {
     GNUNET_assert (buf_size >= ntohs (pm->header.size));
     size = ntohs (pm->header.size);
-    memcpy (buf, pm, size);
+    GNUNET_memcpy (buf, pm, size);
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# replies transmitted to other peers"),
                               1,
@@ -1005,7 +1005,7 @@ handle_p2p_reply (void *cls,
   pm->header.size = htons (msize);
   pm->type = htonl (type);
   pm->expiration = GNUNET_TIME_absolute_hton (expiration);
-  memcpy (&pm[1], data, data_len);
+  GNUNET_memcpy (&pm[1], data, data_len);
   if ( (UINT32_MAX != reply_anonymity_level) &&
        (0 != reply_anonymity_level) &&
        (GNUNET_YES == GSF_enable_randomized_delays) )
@@ -1908,7 +1908,7 @@ create_migration_stop_message (void *cls,
   msm.duration =
       GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining
                                  (cp->last_migration_block));
-  memcpy (buf, &msm, sizeof (struct MigrationStopMessage));
+  GNUNET_memcpy (buf, &msm, sizeof (struct MigrationStopMessage));
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# migration stop messages sent"),
                             1, GNUNET_NO);

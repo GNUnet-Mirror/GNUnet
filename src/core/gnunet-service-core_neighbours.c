@@ -261,7 +261,7 @@ transmit_ready (void *cls,
   overdue = GNUNET_TIME_absolute_get_duration (m->deadline);
   cbuf = buf;
   GNUNET_assert (size >= m->size);
-  memcpy (cbuf,
+  GNUNET_memcpy (cbuf,
           &m[1],
           m->size);
   ret = m->size;
@@ -521,7 +521,7 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   me = GNUNET_malloc (sizeof (struct NeighbourMessageEntry) + msize);
   me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
   me->size = msize;
-  memcpy (&me[1],
+  GNUNET_memcpy (&me[1],
           msg,
           msize);
   GNUNET_CONTAINER_DLL_insert_tail (n->message_head,

@@ -283,7 +283,7 @@ send_next_message (void *cls, size_t buf_size, void *buf)
   uint16_t size = ntohs (mqi->msg->size);
   mgr->client_tmit = NULL;
   GNUNET_assert (size <= buf_size);
-  memcpy (buf, mqi->msg, size);
+  GNUNET_memcpy (buf, mqi->msg, size);
 
   GNUNET_CONTAINER_DLL_remove (mgr->tmit_head,
 			       mgr->tmit_tail,

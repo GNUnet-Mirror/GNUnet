@@ -922,7 +922,7 @@ attempt_read_tap (struct io_facility * input_facility,
                 hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
                 size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
 
-                memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+                GNUNET_memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
                         input_facility->buffer_size);
 
@@ -978,7 +978,7 @@ attempt_read_tap (struct io_facility * input_facility,
                 hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
                 size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
 
-                memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+                GNUNET_memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
                         input_facility->buffer_size);
 
@@ -1012,7 +1012,7 @@ attempt_read_tap (struct io_facility * input_facility,
       hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
       size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
 
-      memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+      GNUNET_memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
               input_facility->buffer,
               input_facility->buffer_size);
 
@@ -1105,7 +1105,7 @@ partial_read_iostate_ready:
              * send it our via STDOUT. Is that possible at the moment? */
 
                 /* hand over this buffers content and strip gnunet message header */
-                memcpy (output_facility->buffer,
+                GNUNET_memcpy (output_facility->buffer,
                         input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
                 output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);
@@ -1169,7 +1169,7 @@ partial_read_iostate_ready:
                  IOSTATE_WAITING == output_facility->facility_state)
                 && input_facility->buffer_size > sizeof(struct GNUNET_MessageHeader))
               { /* hand over this buffers content and strip gnunet message header */
-                memcpy (output_facility->buffer,
+                GNUNET_memcpy (output_facility->buffer,
                         input_facility->buffer + sizeof(struct GNUNET_MessageHeader),
                         input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader));
                 output_facility->buffer_size = input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader);
@@ -1196,7 +1196,7 @@ partial_read_iostate_ready:
       }
       return TRUE;
     case IOSTATE_RESUME: /* Our buffer was filled already but our write facility was busy. */
-      memcpy (output_facility->buffer,
+      GNUNET_memcpy (output_facility->buffer,
               input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
               input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
       output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);

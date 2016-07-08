@@ -132,11 +132,11 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
     rec.flags = htonl (rd[i].flags);
     if (off + sizeof (rec) > dest_size)
       return -1;
-    memcpy (&dest[off], &rec, sizeof (rec));
+    GNUNET_memcpy (&dest[off], &rec, sizeof (rec));
     off += sizeof (rec);
     if (off + rd[i].data_size > dest_size)
       return -1;
-    memcpy (&dest[off], rd[i].data, rd[i].data_size);
+    GNUNET_memcpy (&dest[off], rd[i].data, rd[i].data_size);
     off += rd[i].data_size;
   }
   return off;
@@ -167,7 +167,7 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
   {
     if (off + sizeof (rec) > len)
       return GNUNET_SYSERR;
-    memcpy (&rec, &src[off], sizeof (rec));
+    GNUNET_memcpy (&rec, &src[off], sizeof (rec));
     dest[i].expiration_time = GNUNET_ntohll (rec.expiration_time);
     dest[i].data_size = ntohl ((uint32_t) rec.data_size);
     dest[i].record_type = ntohl (rec.record_type);

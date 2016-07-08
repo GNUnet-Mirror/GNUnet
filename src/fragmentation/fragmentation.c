@@ -232,7 +232,7 @@ transmit_next (void *cls)
   fh->fragment_id = htonl (fc->fragment_id);
   fh->total_size = fc->msg->size;       /* already in big-endian */
   fh->offset = htons ((fc->mtu - sizeof (struct FragmentHeader)) * bit);
-  memcpy (&fh[1], &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))],
+  GNUNET_memcpy (&fh[1], &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))],
           fsize - sizeof (struct FragmentHeader));
   if (NULL != fc->tracker)
     GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);
@@ -339,7 +339,7 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   fc->fragment_id =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 UINT32_MAX);
-  memcpy (&fc[1], msg, size);
+  GNUNET_memcpy (&fc[1], msg, size);
   bits =
       (size + mtu - sizeof (struct FragmentHeader) - 1) / (mtu -
                                                            sizeof (struct

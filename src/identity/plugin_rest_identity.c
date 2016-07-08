@@ -517,7 +517,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
   term_data[handle->data_size] = '\0';
-  memcpy (term_data, handle->data, handle->data_size);
+  GNUNET_memcpy (term_data, handle->data, handle->data_size);
   data_js = json_loads (term_data,
                         JSON_DECODE_ANY,
                         &err);
@@ -646,7 +646,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   }
 
   term_data[handle->data_size] = '\0';
-  memcpy (term_data, handle->data, handle->data_size);
+  GNUNET_memcpy (term_data, handle->data, handle->data_size);
   data_js = json_loads (term_data,
                         JSON_DECODE_ANY,
                         &err);

@@ -364,7 +364,7 @@ make_peer (uint32_t pid,
   memset (pk,
           (int) pid,
           sizeof (struct GNUNET_PeerIdentity));
-  memcpy (pk,
+  GNUNET_memcpy (pk,
           &pid,
           sizeof (uint32_t));
 }

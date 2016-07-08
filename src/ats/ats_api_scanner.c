@@ -239,8 +239,8 @@ interface_proc (void *cls,
 #endif
     network4.sin_addr.s_addr = (addr4->sin_addr.s_addr & netmask4->sin_addr.s_addr);
 
-    memcpy (net->netmask, netmask4, sizeof (struct sockaddr_in));
-    memcpy (net->network, &network4, sizeof (struct sockaddr_in));
+    GNUNET_memcpy (net->netmask, netmask4, sizeof (struct sockaddr_in));
+    GNUNET_memcpy (net->network, &network4, sizeof (struct sockaddr_in));
   }
 
   if (addr->sa_family == AF_INET6)
@@ -268,8 +268,8 @@ interface_proc (void *cls,
     for (c = 0; c < 4; c++)
       net_elem[c] = addr_elem[c] & mask_elem[c];
 
-    memcpy (net->netmask, netmask6, sizeof (struct sockaddr_in6));
-    memcpy (net->network, &network6, sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (net->netmask, netmask6, sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (net->network, &network6, sizeof (struct sockaddr_in6));
   }
   if (NULL == net)
     return GNUNET_OK; /* odd / unsupported address family */

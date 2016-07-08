@@ -178,7 +178,7 @@ record (void *cls,
 	      (unsigned int) data_size);
   rec = GNUNET_malloc (sizeof (struct Recording) + data_size);
   rec->size = data_size;
-  memcpy (&rec[1], data, data_size);
+  GNUNET_memcpy (&rec[1], data, data_size);
   GNUNET_CONTAINER_DLL_insert_tail (rec_head,
 				    rec_tail,
 				    rec);

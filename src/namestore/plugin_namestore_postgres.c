@@ -228,7 +228,7 @@ namestore_postgres_store_records (void *cls,
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
-      memcpy (&pkey,
+      GNUNET_memcpy (&pkey,
               rd[i].data,
               rd[i].data_size);
       break;
@@ -363,7 +363,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     struct GNUNET_GNSRECORD_Data rd[record_count];
     char buf[label_len + 1];
 
-    memcpy (buf, label, label_len);
+    GNUNET_memcpy (buf, label, label_len);
     buf[label_len] = '\0';
     if (GNUNET_OK !=
 	GNUNET_GNSRECORD_records_deserialize (data_size, data,

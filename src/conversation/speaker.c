@@ -141,7 +141,7 @@ play (void *cls,
   am = (struct AudioMessage *) buf;
   am->header.size = htons (sizeof (struct AudioMessage) + data_size);
   am->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
-  memcpy (&am[1], data, data_size);
+  GNUNET_memcpy (&am[1], data, data_size);
   (void) GNUNET_HELPER_send (spe->playback_helper,
 			     &am->header,
 			     GNUNET_NO,

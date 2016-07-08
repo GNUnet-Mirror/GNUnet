@@ -283,7 +283,7 @@ struct P2PPendingMessage
   /**
    * Actual message to be sent, allocated at the end of the struct:
    * // msg = (cast) &pm[1];
-   * // memcpy (&pm[1], data, len);
+   * // GNUNET_memcpy (&pm[1], data, len);
    */
   const struct GNUNET_MessageHeader *msg;
 
@@ -993,7 +993,7 @@ core_transmit_notify (void *cls,
                 "Transmitting message of type %u to %s\n",
                 ntohs (pending->msg->type),
                 GNUNET_i2s (&peer->id));
-    memcpy (&cbuf[off],
+    GNUNET_memcpy (&cbuf[off],
             pending->msg,
             msize);
     off += msize;
@@ -1560,9 +1560,9 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                                                               DHT_BLOOM_SIZE));
     ppm->key = *key;
     pp = (struct GNUNET_PeerIdentity *) &ppm[1];
-    memcpy (pp, put_path,
+    GNUNET_memcpy (pp, put_path,
             sizeof (struct GNUNET_PeerIdentity) * put_path_length);
-    memcpy (&pp[put_path_length],
+    GNUNET_memcpy (&pp[put_path_length],
             data,
             data_size);
     GNUNET_CONTAINER_DLL_insert_tail (target->head,
@@ -1693,7 +1693,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                                                               DHT_BLOOM_SIZE));
     pgm->key = *key;
     xq = (char *) &pgm[1];
-    memcpy (xq, xquery, xquery_size);
+    GNUNET_memcpy (xq, xquery, xquery_size);
     if (NULL != reply_bf)
       GNUNET_assert (GNUNET_OK ==
                      GNUNET_CONTAINER_bloomfilter_get_raw_data (reply_bf,
@@ -1804,13 +1804,13 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
   prm->expiration_time = GNUNET_TIME_absolute_hton (expiration_time);
   prm->key = *key;
   paths = (struct GNUNET_PeerIdentity *) &prm[1];
-  memcpy (paths,
+  GNUNET_memcpy (paths,
           put_path,
           put_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&paths[put_path_length],
+  GNUNET_memcpy (&paths[put_path_length],
           get_path,
           get_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&paths[put_path_length + get_path_length],
+  GNUNET_memcpy (&paths[put_path_length + get_path_length],
           data,
           data_size);
   GNUNET_CONTAINER_DLL_insert (pi->head,
@@ -1983,7 +1983,7 @@ handle_dht_p2p_put (void *cls,
     /* extend 'put path' by sender */
     if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
     {
-      memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
       pp[putlen] = *peer;
       putlen++;
     }
@@ -2401,7 +2401,7 @@ handle_dht_p2p_result (void *cls,
   {
     struct GNUNET_PeerIdentity xget_path[get_path_length + 1];
 
-    memcpy (xget_path,
+    GNUNET_memcpy (xget_path,
             get_path,
             get_path_length * sizeof (struct GNUNET_PeerIdentity));
     xget_path[get_path_length] = *peer;
@@ -2429,8 +2429,8 @@ handle_dht_p2p_result (void *cls,
     {
       struct GNUNET_PeerIdentity xput_path[get_path_length + 1 + put_path_length];
 
-      memcpy (xput_path, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
-      memcpy (&xput_path[put_path_length],
+      GNUNET_memcpy (xput_path, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_memcpy (&xput_path[put_path_length],
 	      xget_path,
 	      get_path_length * sizeof (struct GNUNET_PeerIdentity));
 

@@ -151,7 +151,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
     return 0;
   GNUNET_assert (ntohs (mq_entry->msg->size) <= size);
   size = ntohs (mq_entry->msg->size);
-  memcpy (buf, mq_entry->msg, size);
+  GNUNET_memcpy (buf, mq_entry->msg, size);
   GNUNET_free (mq_entry->msg);
   GNUNET_SERVER_client_drop (mq_entry->client);
   GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);
@@ -249,7 +249,7 @@ GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
   msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
   msg->operation_id = GNUNET_htonll (operation_id);
   if (0 != emsg_len)
-    memcpy (&msg[1], emsg, emsg_len);
+    GNUNET_memcpy (&msg[1], emsg, emsg_len);
   GST_queue_message (client, &msg->header);
 }
 
@@ -435,7 +435,7 @@ parse_shared_services (char *ss_str, struct GNUNET_CONFIGURATION_Handle *cfg)
 #define GROW_SS                                 \
   do {                                          \
     GNUNET_array_grow (slist, n, n+1);                                  \
-    (void) memcpy (&slist[n - 1], &ss,                                  \
+    GNUNET_memcpy (&slist[n - 1], &ss,                                  \
                    sizeof (struct GNUNET_TESTING_SharedService));       \
   } while (0)
 
@@ -649,7 +649,7 @@ handle_add_host (void *cls,
     GNUNET_TESTBED_host_destroy (host);
     reply_size += strlen (emsg) + 1;
     reply = GNUNET_malloc (reply_size);
-    memcpy (&reply[1], emsg, strlen (emsg) + 1);
+    GNUNET_memcpy (&reply[1], emsg, strlen (emsg) + 1);
   }
   else
   {

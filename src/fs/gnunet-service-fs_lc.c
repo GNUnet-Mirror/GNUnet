@@ -274,7 +274,7 @@ client_response_handler (void *cls,
     pm->last_transmission = GNUNET_TIME_absolute_hton (last_transmission);
     pm->num_transmissions = htonl (prd->num_transmissions);
     pm->respect_offered = htonl (prd->respect_offered);
-    memcpy (&pm[1], data, data_len);
+    GNUNET_memcpy (&pm[1], data, data_len);
     GSF_local_client_transmit_ (lc, &pm->header);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -436,7 +436,7 @@ transmit_to_client (void *cls,
   msize = 0;
   while ((NULL != (res = lc->res_head)) && (res->msize <= size))
   {
-    memcpy (&cbuf[msize], &res[1], res->msize);
+    GNUNET_memcpy (&cbuf[msize], &res[1], res->msize);
     msize += res->msize;
     size -= res->msize;
     GNUNET_CONTAINER_DLL_remove (lc->res_head, lc->res_tail, res);
@@ -470,7 +470,7 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
   res = GNUNET_malloc (sizeof (struct ClientResponse) + msize);
   res->lc = lc;
   res->msize = msize;
-  memcpy (&res[1],
+  GNUNET_memcpy (&res[1],
           msg,
           msize);
   GNUNET_CONTAINER_DLL_insert_tail (lc->res_head,

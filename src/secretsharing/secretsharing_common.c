@@ -61,19 +61,19 @@ GNUNET_SECRETSHARING_share_read (const void *data,
   n = share->num_peers * sizeof (struct GNUNET_PeerIdentity);
   share->peers = GNUNET_new_array (share->num_peers,
                                    struct GNUNET_PeerIdentity);
-  memcpy (share->peers, p, n);
+  GNUNET_memcpy (share->peers, p, n);
   p += n;
 
   n = share->num_peers * sizeof (struct GNUNET_SECRETSHARING_FieldElement);
   share->sigmas = GNUNET_new_array (share->num_peers,
                                     struct GNUNET_SECRETSHARING_FieldElement);
-  memcpy (share->sigmas, p, n);
+  GNUNET_memcpy (share->sigmas, p, n);
   p += n;
 
   n = share->num_peers * sizeof (uint16_t);
   share->original_indices = GNUNET_new_array (share->num_peers,
                                               uint16_t);
-  memcpy (share->original_indices, p, n);
+  GNUNET_memcpy (share->original_indices, p, n);
 
   return share;
 }
@@ -126,15 +126,15 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
   p = (void *) &sh[1];
 
   n = share->num_peers * sizeof (struct GNUNET_PeerIdentity);
-  memcpy (p, share->peers, n);
+  GNUNET_memcpy (p, share->peers, n);
   p += n;
 
   n = share->num_peers * sizeof (struct GNUNET_SECRETSHARING_FieldElement);
-  memcpy (p, share->sigmas, n);
+  GNUNET_memcpy (p, share->sigmas, n);
   p += n;
 
   n = share->num_peers * sizeof (uint16_t);
-  memcpy (p, share->original_indices, n);
+  GNUNET_memcpy (p, share->original_indices, n);
 
   return GNUNET_OK;
 }

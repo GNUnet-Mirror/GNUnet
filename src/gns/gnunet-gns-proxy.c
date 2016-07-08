@@ -804,7 +804,7 @@ mhd_content_cb (void *cls,
 		"Completed MHD download\n");
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
-  memcpy (buf, s5r->io_buf, bytes_to_copy);
+  GNUNET_memcpy (buf, s5r->io_buf, bytes_to_copy);
   memmove (s5r->io_buf,
 	   &s5r->io_buf[bytes_to_copy],
 	   s5r->io_len - bytes_to_copy);
@@ -1099,7 +1099,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
                     _("Cookie domain `%s' supplied by server is invalid\n"),
 		    tok);
       }
-      memcpy (new_cookie_hdr + offset, tok, strlen (tok));
+      GNUNET_memcpy (new_cookie_hdr + offset, tok, strlen (tok));
       offset += strlen (tok);
       new_cookie_hdr[offset++] = ';';
     }
@@ -1188,7 +1188,7 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
 		"Pausing CURL download, not enough space\n");
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
   }
-  memcpy (&s5r->io_buf[s5r->io_len],
+  GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
 	  ptr,
 	  total);
   s5r->io_len += total;
@@ -1238,7 +1238,7 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
   }
   to_copy = GNUNET_MIN (s5r->io_len,
 			len);
-  memcpy (buf, s5r->io_buf, to_copy);
+  GNUNET_memcpy (buf, s5r->io_buf, to_copy);
   memmove (s5r->io_buf,
 	   &s5r->io_buf[to_copy],
 	   s5r->io_len - to_copy);
@@ -1681,7 +1681,7 @@ create_response (void *cls,
   {
     left = GNUNET_MIN (*upload_data_size,
 		       sizeof (s5r->io_buf) - s5r->io_len);
-    memcpy (&s5r->io_buf[s5r->io_len],
+    GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
 	    upload_data,
 	    left);
     s5r->io_len += left;
@@ -2383,7 +2383,7 @@ handle_gns_result (void *cls,
 	got_ip = GNUNET_YES;
       	in = (struct sockaddr_in *) &s5r->destination_address;
 	in->sin_family = AF_INET;
-	memcpy (&in->sin_addr,
+	GNUNET_memcpy (&in->sin_addr,
 		r->data,
 		r->data_size);
 	in->sin_port = htons (s5r->port);
@@ -2410,7 +2410,7 @@ handle_gns_result (void *cls,
 	got_ip = GNUNET_YES;
       	in = (struct sockaddr_in6 *) &s5r->destination_address;
 	in->sin6_family = AF_INET6;
-	memcpy (&in->sin6_addr,
+	GNUNET_memcpy (&in->sin6_addr,
 		r->data,
 		r->data_size);
 	in->sin6_port = htons (s5r->port);
@@ -2444,7 +2444,7 @@ handle_gns_result (void *cls,
         GNUNET_free_non_null (s5r->dane_data);
         s5r->dane_data_len = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
         s5r->dane_data = GNUNET_malloc (s5r->dane_data_len);
-        memcpy (s5r->dane_data,
+        GNUNET_memcpy (s5r->dane_data,
                 &box[1],
                 s5r->dane_data_len);
         break;

@@ -86,7 +86,7 @@ core_mq_ntr (void *cls, size_t size,
     GNUNET_MQ_inject_error (mq, GNUNET_MQ_ERROR_WRITE);
     return 0;
   }
-  memcpy (buf, mh, msg_size);
+  GNUNET_memcpy (buf, mh, msg_size);
   GNUNET_MQ_impl_send_continue (mq);
   return msg_size;
 }

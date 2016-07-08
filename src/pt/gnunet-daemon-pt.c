@@ -544,11 +544,11 @@ vpn_allocation_callback (void *cls,
   {
   case GNUNET_DNSPARSER_TYPE_A:
     GNUNET_assert (AF_INET == af);
-    memcpy (rc->rec->data.raw.data, address, sizeof (struct in_addr));
+    GNUNET_memcpy (rc->rec->data.raw.data, address, sizeof (struct in_addr));
     break;
   case GNUNET_DNSPARSER_TYPE_AAAA:
     GNUNET_assert (AF_INET6 == af);
-    memcpy (rc->rec->data.raw.data, address, sizeof (struct in6_addr));
+    GNUNET_memcpy (rc->rec->data.raw.data, address, sizeof (struct in6_addr));
     break;
   default:
     GNUNET_assert (0);
@@ -776,7 +776,7 @@ transmit_dns_request_to_cadet (void *cls,
     return 0;
   }
   GNUNET_assert (GNUNET_NO == rc->was_transmitted);
-  memcpy (buf, rc->cadet_message, mlen);
+  GNUNET_memcpy (buf, rc->cadet_message, mlen);
   GNUNET_CONTAINER_DLL_remove (exit->transmit_queue_head,
 			       exit->transmit_queue_tail,
 			       rc);
@@ -896,7 +896,7 @@ dns_pre_request_handler (void *cls,
     GNUNET_DNS_request_drop (rh);
     return;
   }
-  memcpy (&dns, request, sizeof (dns));
+  GNUNET_memcpy (&dns, request, sizeof (dns));
   mlen = sizeof (struct GNUNET_MessageHeader) + request_length;
   exit = choose_exit ();
   GNUNET_assert (NULL != exit);
@@ -912,8 +912,8 @@ dns_pre_request_handler (void *cls,
   rc->mlen = mlen;
   hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET);
   hdr.size = htons (mlen);
-  memcpy (&rc[1], &hdr, sizeof (struct GNUNET_MessageHeader));
-  memcpy (&(((char*)&rc[1])[sizeof (struct GNUNET_MessageHeader)]),
+  GNUNET_memcpy (&rc[1], &hdr, sizeof (struct GNUNET_MessageHeader));
+  GNUNET_memcpy (&(((char*)&rc[1])[sizeof (struct GNUNET_MessageHeader)]),
 	  request,
 	  request_length);
   GNUNET_CONTAINER_DLL_insert_tail (exit->transmit_queue_head,
@@ -957,7 +957,7 @@ receive_dns_response (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  memcpy (&dns, &message[1], sizeof (dns));
+  GNUNET_memcpy (&dns, &message[1], sizeof (dns));
   for (rc = exit->receive_queue_head; NULL != rc; rc = rc->next)
   {
     GNUNET_assert (GNUNET_YES == rc->was_transmitted);

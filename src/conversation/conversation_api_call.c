@@ -177,7 +177,7 @@ transmit_call_audio (void *cls,
   e = GNUNET_MQ_msg_extra (am,
                            data_size,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
-  memcpy (&am[1], data, data_size);
+  GNUNET_memcpy (&am[1], data, data_size);
   GNUNET_MQ_send (call->mq, e);
 }
 
@@ -442,7 +442,7 @@ handle_gns_response (void *cls,
         GNUNET_break_op (0);
         continue;
       }
-      memcpy (&call->phone_record,
+      GNUNET_memcpy (&call->phone_record,
               rd[i].data,
               rd[i].data_size);
       e = GNUNET_MQ_msg (ccm, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);

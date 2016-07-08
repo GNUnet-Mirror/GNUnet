@@ -321,7 +321,7 @@ iterate_cb (void *cls,
   if (bytes_free < (strlen (name) + strlen (pkey) + 40))
   {
     new_buf = GNUNET_malloc (zr->buf_len * 2);
-    memcpy (new_buf, zr->zoneinfo, zr->write_offset);
+    GNUNET_memcpy (new_buf, zr->zoneinfo, zr->write_offset);
     GNUNET_free (zr->zoneinfo);
     zr->zoneinfo = new_buf;
     zr->buf_len *= 2;
@@ -456,7 +456,7 @@ post_iterator (void *cls,
     {
       if (size + off >= sizeof(request->domain_name))
 	size = sizeof (request->domain_name) - off - 1;
-      memcpy (&request->domain_name[off],
+      GNUNET_memcpy (&request->domain_name[off],
 	      data,
 	      size);
       request->domain_name[size+off] = '\0';
@@ -466,7 +466,7 @@ post_iterator (void *cls,
     {
       if (size + off >= sizeof(request->public_key))
 	size = sizeof (request->public_key) - off - 1;
-      memcpy (&request->public_key[off],
+      GNUNET_memcpy (&request->public_key[off],
 	      data,
 	      size);
       request->public_key[size+off] = '\0';

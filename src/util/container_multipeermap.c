@@ -248,7 +248,7 @@ idx_of (const struct GNUNET_CONTAINER_MultiPeerMap *map,
   unsigned int kx;
 
   GNUNET_assert (NULL != map);
-  memcpy (&kx, key, sizeof (kx));
+  GNUNET_memcpy (&kx, key, sizeof (kx));
   return kx % map->map_length;
 }
 

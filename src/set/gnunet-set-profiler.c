@@ -241,7 +241,7 @@ set_insert_iterator (void *cls,
   el = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) +
                       sizeof (struct GNUNET_HashCode));
   el->element_type = 0;
-  memcpy (&el[1], key, sizeof *key);
+  GNUNET_memcpy (&el[1], key, sizeof *key);
   el->data = &el[1];
   el->size = sizeof *key;
   GNUNET_SET_add_element (set, el, NULL, NULL);

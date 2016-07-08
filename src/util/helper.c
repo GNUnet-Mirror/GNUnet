@@ -669,7 +669,7 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
   mlen = ntohs (msg->size);
   sh = GNUNET_malloc (sizeof (struct GNUNET_HELPER_SendHandle) + mlen);
   sh->msg = (const struct GNUNET_MessageHeader*) &sh[1];
-  memcpy (&sh[1], msg, mlen);
+  GNUNET_memcpy (&sh[1], msg, mlen);
   sh->h = h;
   sh->cont = cont;
   sh->cont_cls = cont_cls;

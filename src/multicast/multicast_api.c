@@ -205,7 +205,7 @@ group_send_connect_msg (struct GNUNET_MULTICAST_Group *grp)
 {
   uint16_t cmsg_size = ntohs (grp->connect_msg->size);
   struct GNUNET_MessageHeader *cmsg = GNUNET_malloc (cmsg_size);
-  memcpy (cmsg, grp->connect_msg, cmsg_size);
+  GNUNET_memcpy (cmsg, grp->connect_msg, cmsg_size);
   GNUNET_CLIENT_MANAGER_transmit_now (grp->client, cmsg);
   GNUNET_free (cmsg);
 }
@@ -625,9 +625,9 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
   dcsn->is_admitted = htonl (is_admitted);
   dcsn->relay_count = htonl (relay_count);
   if (0 < relay_size)
-    memcpy (&dcsn[1], relays, relay_size);
+    GNUNET_memcpy (&dcsn[1], relays, relay_size);
   if (0 < join_resp_size)
-    memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
+    GNUNET_memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
 
   GNUNET_CLIENT_MANAGER_transmit (grp->client, &hdcsn->header);
   GNUNET_free (hdcsn);
@@ -670,7 +670,7 @@ GNUNET_MULTICAST_replay_response (struct GNUNET_MULTICAST_ReplayHandle *rh,
   if (GNUNET_MULTICAST_REC_OK == ec)
   {
     GNUNET_assert (NULL != msg);
-    memcpy (&res[1], msg, msg_size);
+    GNUNET_memcpy (&res[1], msg, msg_size);
   }
 
   GNUNET_CLIENT_MANAGER_transmit (rh->grp->client, &res->header);
@@ -781,7 +781,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   start->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START);
   start->header.size = htons (sizeof (*start));
   start->max_fragment_id = max_fragment_id;
-  memcpy (&start->group_key, priv_key, sizeof (*priv_key));
+  GNUNET_memcpy (&start->group_key, priv_key, sizeof (*priv_key));
 
   grp->connect_msg = (struct GNUNET_MessageHeader *) start;
   grp->is_origin = GNUNET_YES;
@@ -1024,9 +1024,9 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   join->origin = *origin;
   join->relay_count = ntohl (relay_count);
   if (0 < relay_size)
-    memcpy (&join[1], relays, relay_size);
+    GNUNET_memcpy (&join[1], relays, relay_size);
   if (0 < join_msg_size)
-    memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
+    GNUNET_memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
 
   grp->connect_msg = (struct GNUNET_MessageHeader *) join;
   grp->is_origin = GNUNET_NO;

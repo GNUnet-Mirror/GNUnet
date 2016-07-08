@@ -1046,10 +1046,10 @@ fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
   msg->header.size = htons (sizeof (*msg) + data_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->hop_counter = htonl ((uint32_t) sqlite3_column_int64 (stmt, 0));
-  memcpy (&msg->signature,
+  GNUNET_memcpy (&msg->signature,
           sqlite3_column_blob (stmt, 1),
           sqlite3_column_bytes (stmt, 1));
-  memcpy (&msg->purpose,
+  GNUNET_memcpy (&msg->purpose,
           sqlite3_column_blob (stmt, 2),
           sqlite3_column_bytes (stmt, 2));
   msg->fragment_id = GNUNET_htonll (sqlite3_column_int64 (stmt, 3));
@@ -1057,7 +1057,7 @@ fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
   msg->message_id = GNUNET_htonll (sqlite3_column_int64 (stmt, 5));
   msg->group_generation = GNUNET_htonll (sqlite3_column_int64 (stmt, 6));
   msg->flags = htonl (sqlite3_column_int64 (stmt, 7));
-  memcpy (&msg[1], sqlite3_column_blob (stmt, 9), data_size);
+  GNUNET_memcpy (&msg[1], sqlite3_column_blob (stmt, 9), data_size);
 
   return cb (cb_cls, (void *) msg, sqlite3_column_int64 (stmt, 8));
 }

@@ -90,7 +90,7 @@ GNUNET_CRYPTO_mpi_print_unsigned (void *buf,
     rsize = (nbits+7)/8;
     if (rsize > size)
       rsize = size;
-    memcpy (buf, p, rsize);
+    GNUNET_memcpy (buf, p, rsize);
     if (rsize < size)
       memset (buf+rsize, 0, size - rsize);
   }

@@ -500,7 +500,7 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
 
       if (!use_enum2)
       {
-        memcpy (&r->address, unicast->Address.lpSockaddr,
+        GNUNET_memcpy (&r->address, unicast->Address.lpSockaddr,
             unicast->Address.iSockaddrLength);
         memset (&r->mask, 0, sizeof (struct sockaddr));
         mask_length = ((IP_ADAPTER_UNICAST_ADDRESS_VISTA *) unicast)->
@@ -520,7 +520,7 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
           struct sockaddr_in6 *b = (struct sockaddr_in6 *) &r->broadcast;
           for (i = 0; i < mask_length; i++)
             ((unsigned char *) &m->sin6_addr)[i / 8] |= 0x80 >> (i % 8);
-          memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
+          GNUNET_memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
           for (i = mask_length; i < 128; i++)
             ((unsigned char *) &b->sin6_addr)[i / 8] |= 0x80 >> (i % 8);
         }
@@ -534,14 +534,14 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
           for (i = 0; !found && i < interfaces4_len / sizeof (INTERFACE_INFO); i++)
           {
             struct sockaddr_in *m = (struct sockaddr_in *) &r->mask;
-            if (memcpy (&interfaces4[i].iiAddress.Address,
+            if (GNUNET_memcpy (&interfaces4[i].iiAddress.Address,
                 unicast->Address.lpSockaddr,
                 unicast->Address.iSockaddrLength) != 0)
               continue;
             found = 1;
-            memcpy (&r->address, &interfaces4[i].iiAddress.Address,
+            GNUNET_memcpy (&r->address, &interfaces4[i].iiAddress.Address,
                 sizeof (struct sockaddr_in));
-            memcpy (&r->mask, &interfaces4[i].iiNetmask.Address,
+            GNUNET_memcpy (&r->mask, &interfaces4[i].iiNetmask.Address,
                 sizeof (struct sockaddr_in));
             for (mask_length = 0;
                 ((unsigned char *) &m->sin_addr)[mask_length / 8] &
@@ -557,12 +557,12 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
               interfaces6 != NULL && !found && i < interfaces6->iAddressCount;
               i++)
           {
-            if (memcpy (interfaces6->Address[i].lpSockaddr,
+            if (GNUNET_memcpy (interfaces6->Address[i].lpSockaddr,
                 unicast->Address.lpSockaddr,
                 unicast->Address.iSockaddrLength) != 0)
               continue;
             found = 1;
-            memcpy (&r->address, interfaces6->Address[i].lpSockaddr,
+            GNUNET_memcpy (&r->address, interfaces6->Address[i].lpSockaddr,
                 sizeof (struct sockaddr_in6));
             /* TODO: Find a way to reliably get network mask for IPv6 on XP */
             memset (&r->mask, 0, sizeof (struct sockaddr));
@@ -582,7 +582,7 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
          * falling under netmask to 1,
          * so we get, 192.168.0.255 from, say, 192.168.0.43 with mask == 24.
          */
-        memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
+        GNUNET_memcpy (&r->broadcast, &r->address, unicast->Address.iSockaddrLength);
         for (i = mask_length; i < 32; i++)
           ((unsigned char *) &m->sin_addr)[i / 8] |= 0x80 >> (i % 8);
         r->flags |= ENUMNICS3_BCAST_OK;

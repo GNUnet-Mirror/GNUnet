@@ -379,7 +379,7 @@ copy_message (const struct GNUNET_CADET_Data *msg, uint32_t mid,
   copy->mid = mid;
   copy->rel = rel;
   copy->type = GNUNET_MESSAGE_TYPE_CADET_DATA;
-  memcpy (&copy[1], msg, size);
+  GNUNET_memcpy (&copy[1], msg, size);
 
   return copy;
 }
@@ -1232,7 +1232,7 @@ channel_save_copy (struct CadetChannel *ch,
   copy->mid = mid;
   copy->rel = rel;
   copy->type = type;
-  memcpy (&copy[1], msg, size);
+  GNUNET_memcpy (&copy[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
   ch->pending_messages++;
 
@@ -1772,7 +1772,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   payload = (struct GNUNET_CADET_Data *) cbuf;
   payload->mid = htonl (rel->mid_send);
   rel->mid_send++;
-  memcpy (&payload[1], message, size);
+  GNUNET_memcpy (&payload[1], message, size);
   payload->header.size = htons (p2p_size);
   payload->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA);
   payload->chid = htonl (ch->gid);

@@ -380,7 +380,7 @@ block_reader (void *cls,
   {
     pt_size = GNUNET_MIN (max, p->data.dir.dir_size - offset);
     dd = p->data.dir.dir_data;
-    memcpy (buf, &dd[offset], pt_size);
+    GNUNET_memcpy (buf, &dd[offset], pt_size);
   }
   else
   {
@@ -903,7 +903,7 @@ hash_for_index_cb (void *cls,
                 p->filename);
   }
   ism->file_id = *res;
-  memcpy (&ism[1],
+  GNUNET_memcpy (&ism[1],
           fn,
           slen);
   GNUNET_free (fn);

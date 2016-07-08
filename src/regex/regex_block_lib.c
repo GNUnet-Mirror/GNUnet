@@ -448,17 +448,17 @@ REGEX_BLOCK_create (const char *proof,
   block->num_edges = htons (num_edges);
   block->num_destinations = htons (unique_destinations);
   dests = (struct GNUNET_HashCode *) &block[1];
-  memcpy (dests, destinations, sizeof (struct GNUNET_HashCode) * unique_destinations);
+  GNUNET_memcpy (dests, destinations, sizeof (struct GNUNET_HashCode) * unique_destinations);
   edgeinfos = (struct EdgeInfo *) &dests[unique_destinations];
   aux = (char *) &edgeinfos[num_edges];
   off = len;
-  memcpy (aux, proof, len);
+  GNUNET_memcpy (aux, proof, len);
   for (i=0;i<num_edges;i++)
   {
     slen = strlen (edges[i].label);
     edgeinfos[i].token_length = htons ((uint16_t) slen);
     edgeinfos[i].destination_index = htons (destination_indices[i]);
-    memcpy (&aux[off],
+    GNUNET_memcpy (&aux[off],
 	    edges[i].label,
 	    slen);
     off += slen;

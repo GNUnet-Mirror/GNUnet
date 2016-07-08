@@ -894,7 +894,7 @@ GNUNET_TRANSPORT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
     for (i=0;NULL != handlers[i].cb; i++) ;
     h->handlers = GNUNET_new_array (i + 1,
                                     struct GNUNET_MQ_MessageHandler);
-    memcpy (h->handlers,
+    GNUNET_memcpy (h->handlers,
 	    handlers,
 	    i * sizeof (struct GNUNET_MQ_MessageHandler));
   }

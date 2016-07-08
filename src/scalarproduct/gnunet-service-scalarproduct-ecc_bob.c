@@ -966,7 +966,7 @@ GSS_handle_bob_client_message_multipart (void *cls,
   for (i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
@@ -1091,7 +1091,7 @@ GSS_handle_bob_client_message (void *cls,
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==

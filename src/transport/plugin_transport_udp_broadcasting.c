@@ -226,7 +226,7 @@ prepare_beacon (struct Plugin *plugin,
   msg->sender = *(plugin->env->my_identity);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON);
-  memcpy (&msg[1], hello, hello_size);
+  GNUNET_memcpy (&msg[1], hello, hello_size);
   return msg_size;
 }
 
@@ -435,7 +435,7 @@ iface_proc (void *cls,
   ba = GNUNET_new (struct BroadcastAddress);
   ba->plugin = plugin;
   ba->addr = GNUNET_malloc (addrlen);
-  memcpy (ba->addr, broadcast_addr, addrlen);
+  GNUNET_memcpy (ba->addr, broadcast_addr, addrlen);
   ba->addrlen = addrlen;
 
   if ( (GNUNET_YES == plugin->enable_ipv4) &&

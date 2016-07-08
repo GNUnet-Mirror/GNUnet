@@ -722,7 +722,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
     return NULL;
   }
   private_key = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
-  memcpy (private_key,
+  GNUNET_memcpy (private_key,
 	  system->hostkeys_data +
 	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
 	  GNUNET_TESTING_HOSTKEYFILESIZE);
@@ -1296,14 +1296,14 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
 {
   if (NULL != peer->id)
   {
-    memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
     return;
   }
   peer->id = GNUNET_new (struct GNUNET_PeerIdentity);
   GNUNET_free (GNUNET_TESTING_hostkey_get (peer->system,
 							  peer->key_number,
 							  peer->id));
-  memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
 }
 
 
@@ -1724,7 +1724,7 @@ GNUNET_TESTING_get_testname_from_underscore (const char *argv0)
   char *ret;
   char *dot;
 
-  memcpy (sbuf, argv0, slen);
+  GNUNET_memcpy (sbuf, argv0, slen);
   ret = strrchr (sbuf, '_');
   if (NULL == ret)
     return NULL;

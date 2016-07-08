@@ -349,7 +349,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
   struct TransmitClosure *tmit = cls;
   uint16_t size = tmit->size < *data_size ? tmit->size : *data_size;
   *data_size = size;
-  memcpy (data, tmit->data, size);
+  GNUNET_memcpy (data, tmit->data, size);
 
   tmit->size -= size;
   tmit->data += size;

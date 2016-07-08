@@ -891,7 +891,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->handlers = GNUNET_new_array (hcnt + 1,
                                   struct GNUNET_CORE_MessageHandler);
   if (NULL != handlers)
-    memcpy (h->handlers,
+    GNUNET_memcpy (h->handlers,
             handlers,
             hcnt * sizeof (struct GNUNET_CORE_MessageHandler));
   h->hcnt = hcnt;

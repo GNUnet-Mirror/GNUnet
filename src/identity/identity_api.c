@@ -688,7 +688,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *h,
                              GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT);
   gdm->name_len = htons (slen);
   gdm->reserved = htons (0);
-  memcpy (&gdm[1],
+  GNUNET_memcpy (&gdm[1],
           service_name,
           slen);
   GNUNET_MQ_send (h->mq,
@@ -740,7 +740,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *h,
   sdm->name_len = htons (slen);
   sdm->reserved = htons (0);
   sdm->private_key = *ego->pk;
-  memcpy (&sdm[1],
+  GNUNET_memcpy (&sdm[1],
           service_name,
           slen);
   GNUNET_MQ_send (h->mq,
@@ -793,7 +793,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   pk = GNUNET_CRYPTO_ecdsa_key_create ();
   crm->private_key = *pk;
   GNUNET_free (pk);
-  memcpy (&crm[1],
+  GNUNET_memcpy (&crm[1],
           name,
           slen);
   GNUNET_MQ_send (h->mq,
@@ -850,10 +850,10 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *h,
   grm->old_name_len = htons (slen_old);
   grm->new_name_len = htons (slen_new);
   dst = (char *) &grm[1];
-  memcpy (dst,
+  GNUNET_memcpy (dst,
           old_name,
           slen_old);
-  memcpy (&dst[slen_old],
+  GNUNET_memcpy (&dst[slen_old],
           new_name,
           slen_new);
   GNUNET_MQ_send (h->mq,
@@ -902,7 +902,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *h,
                              GNUNET_MESSAGE_TYPE_IDENTITY_DELETE);
   gdm->name_len = htons (slen);
   gdm->reserved = htons (0);
-  memcpy (&gdm[1],
+  GNUNET_memcpy (&gdm[1],
           name,
           slen);
   GNUNET_MQ_send (h->mq,

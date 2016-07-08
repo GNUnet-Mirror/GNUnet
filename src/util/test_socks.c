@@ -51,7 +51,7 @@ copy_msg (void *cls, size_t size, void *buf)
 
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) == ntohs (cpy->size));
   GNUNET_assert (size >= ntohs (cpy->size));
-  memcpy (buf, cpy, ntohs (cpy->size));
+  GNUNET_memcpy (buf, cpy, ntohs (cpy->size));
   GNUNET_SERVER_receive_done (ctx->client, GNUNET_OK);
   GNUNET_free (cpy);
   GNUNET_free (ctx);
@@ -76,7 +76,7 @@ echo_cb (void *cls, struct GNUNET_SERVER_Client *client,
   cc = GNUNET_new (struct CopyContext);
   cc->client = client;
   cpy = GNUNET_malloc (ntohs (message->size));
-  memcpy (cpy, message, ntohs (message->size));
+  GNUNET_memcpy (cpy, message, ntohs (message->size));
   cc->cpy = cpy;
   GNUNET_assert (NULL !=
                  GNUNET_SERVER_notify_transmit_ready (client,

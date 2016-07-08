@@ -326,7 +326,7 @@ transmit_message (void *cls,
          "Copying message of type %u and size %u from pending queue to transmission buffer\n",
          ntohs (pml->msg->type),
          msize);
-    memcpy (&cbuf[ret], pml->msg, msize);
+    GNUNET_memcpy (&cbuf[ret], pml->msg, msize);
     ret += msize;
     size -= msize;
     GNUNET_free (pml);
@@ -391,7 +391,7 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
        ntohs (msg->type),
        ntohs (msg->size),
        (unsigned int) nc->queue_length);
-  memcpy (&pml[1], msg, size);
+  GNUNET_memcpy (&pml[1], msg, size);
   /* append */
   GNUNET_CONTAINER_DLL_insert_tail (client->pending_head,
                                     client->pending_tail,

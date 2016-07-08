@@ -334,7 +334,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     hdr.header.size = htons (MESSAGESIZE);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
-    memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
     ret += sizeof (struct TestMessage);
     memset (&cbuf[ret], tr_n, MESSAGESIZE - sizeof (struct TestMessage));
     ret += MESSAGESIZE - sizeof (struct TestMessage);
@@ -545,7 +545,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
               "Received (my) `%s' from transport service\n", "HELLO");
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
-  memcpy (p->hello, message, ntohs (message->size));
+  GNUNET_memcpy (p->hello, message, ntohs (message->size));
   if ((p == &p1) && (p2.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p2.cfg, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))

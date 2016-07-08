@@ -87,7 +87,7 @@ transmit_response (void *cls, size_t size, void *buf)
     msize = size;
   else
     msize = tc->total - tc->off;
-  memcpy (buf, &tc->buf[tc->off], msize);
+  GNUNET_memcpy (buf, &tc->buf[tc->off], msize);
   tc->off += msize;
   if (tc->total == tc->off)
   {
@@ -160,7 +160,7 @@ GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
   tc->total += size;
   msg->size = htons (size);
   msg->type = htons (type);
-  memcpy (&msg[1], data, length);
+  GNUNET_memcpy (&msg[1], data, length);
 }
 
 
@@ -186,7 +186,7 @@ GNUNET_SERVER_transmit_context_append_message (struct
   tc->buf = GNUNET_realloc (tc->buf, tc->total + size);
   m = (struct GNUNET_MessageHeader *) &tc->buf[tc->total];
   tc->total += size;
-  memcpy (m, msg, size);
+  GNUNET_memcpy (m, msg, size);
 }
 
 

@@ -204,8 +204,8 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
       GNUNET_malloc ((cnt +
                       1) * sizeof (struct GNUNET_GETOPT_CommandLineOption) +
                      sizeof (defoptions));
-  memcpy (allopts, defoptions, sizeof (defoptions));
-  memcpy (&allopts
+  GNUNET_memcpy (allopts, defoptions, sizeof (defoptions));
+  GNUNET_memcpy (&allopts
           [sizeof (defoptions) /
            sizeof (struct GNUNET_GETOPT_CommandLineOption)], options,
           (cnt + 1) * sizeof (struct GNUNET_GETOPT_CommandLineOption));

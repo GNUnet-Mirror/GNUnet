@@ -1410,7 +1410,7 @@ send_callback (void *cls, size_t size, void *buf)
       mh = (const struct GNUNET_MessageHeader *) &th[1];
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  cadet internal traffic, type %s\n",
            GC_m2s (ntohs (mh->type)));
-      memcpy (cbuf, &th[1], th->size);
+      GNUNET_memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
     GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= psize);
@@ -1478,7 +1478,7 @@ send_packet (struct GNUNET_CADET_Handle *h,
   th->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   th->size = msize;
   th->channel = channel;
-  memcpy (&th[1], msg, msize);
+  GNUNET_memcpy (&th[1], msg, msize);
   add_to_queue (h, th);
   if (NULL != h->th)
     return;
@@ -2098,7 +2098,7 @@ cadet_mq_ntr (void *cls, size_t size,
   }
   msize = ntohs (msg->size);
   GNUNET_assert (msize <= size);
-  memcpy (buf, msg, msize);
+  GNUNET_memcpy (buf, msg, msize);
   GNUNET_MQ_impl_send_continue (mq);
   return msize;
 }

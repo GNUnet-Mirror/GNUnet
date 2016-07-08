@@ -238,7 +238,7 @@ transmit_phone_audio (void *cls,
                            data_size,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   am->cid = caller->cid;
-  memcpy (&am[1], data, data_size);
+  GNUNET_memcpy (&am[1], data, data_size);
   GNUNET_MQ_send (phone->mq, e);
 }
 

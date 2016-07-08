@@ -89,10 +89,10 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
   addr->local_info = local_info;
   end = (char *) &addr[1];
   addr->transport_name = &end[address_length];
-  memcpy (end,
+  GNUNET_memcpy (end,
           address,
           address_length);
-  memcpy (&end[address_length],
+  GNUNET_memcpy (&end[address_length],
           transport_name,
           slen);
   return addr;

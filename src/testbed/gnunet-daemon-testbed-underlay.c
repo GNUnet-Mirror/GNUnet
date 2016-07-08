@@ -170,7 +170,7 @@ get_identity (unsigned int offset, struct GNUNET_PeerIdentity *id)
 
   if (offset >= num_hostkeys)
     return GNUNET_SYSERR;
-  (void) memcpy (&private_key,
+  GNUNET_memcpy (&private_key,
                  hostkeys_data + (offset * GNUNET_TESTING_HOSTKEYFILESIZE),
                  GNUNET_TESTING_HOSTKEYFILESIZE);
   GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id->public_key);

@@ -663,7 +663,7 @@ send_strata_estimator (struct Operation *op)
   ev = GNUNET_MQ_msg_header_extra (strata_msg,
                                    len,
                                    type);
-  memcpy (&strata_msg[1],
+  GNUNET_memcpy (&strata_msg[1],
           buf,
           len);
   GNUNET_free (buf);
@@ -973,7 +973,7 @@ decode_and_send (struct Operation *op)
                                 sizeof (struct IBF_Key),
                                 GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY);
       msg->salt = htonl (op->state->salt_receive);
-      memcpy (&msg[1],
+      GNUNET_memcpy (&msg[1],
               &key,
               sizeof (struct IBF_Key));
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1141,7 +1141,7 @@ send_client_element (struct Operation *op,
   rm->result_status = htons (status);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
-  memcpy (&rm[1], element->data, element->size);
+  GNUNET_memcpy (&rm[1], element->data, element->size);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
 }
 
@@ -1239,7 +1239,7 @@ handle_p2p_elements (void *cls,
 
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ElementMessage);
   ee = GNUNET_malloc (sizeof (struct ElementEntry) + element_size);
-  memcpy (&ee[1], &emsg[1], element_size);
+  GNUNET_memcpy (&ee[1], &emsg[1], element_size);
   ee->element.size = element_size;
   ee->element.data = &ee[1];
   ee->element.element_type = ntohs (emsg->element_type);
@@ -1397,7 +1397,7 @@ handle_p2p_demand (void *cls,
       return;
     }
     ev = GNUNET_MQ_msg_extra (emsg, ee->element.size, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS);
-    memcpy (&emsg[1], ee->element.data, ee->element.size);
+    GNUNET_memcpy (&emsg[1], ee->element.data, ee->element.size);
     emsg->reserved = htons (0);
     emsg->element_type = htons (ee->element.element_type);
     LOG (GNUNET_ERROR_TYPE_DEBUG,

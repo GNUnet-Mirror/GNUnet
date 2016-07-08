@@ -282,7 +282,7 @@ transmit_ready_cb (void *cls, size_t size, void *buf)
   msg = mq->msg;
   wrote = ntohs (msg->size);
   GNUNET_assert (size >= wrote);
-  (void) memcpy (buf, msg, wrote);
+  GNUNET_memcpy (buf, msg, wrote);
   GNUNET_CONTAINER_DLL_remove (ctx->mq_head, ctx->mq_tail, mq);
   GNUNET_free (mq->msg);
   GNUNET_free (mq);
@@ -418,9 +418,9 @@ send_client_status_msg (struct GNUNET_SERVER_Client *client,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS);
   msg->status = htons (status);
   msg->name_len = htons ((uint16_t) name_len);
-  (void) memcpy (msg->data, name, name_len);
+  GNUNET_memcpy (msg->data, name, name_len);
   if (NULL != emsg)
-    (void) memcpy (msg->data + name_len + 1, emsg, strlen (emsg));
+    GNUNET_memcpy (msg->data + name_len + 1, emsg, strlen (emsg));
   GST_queue_message (client, &msg->header);
 }
 
@@ -481,7 +481,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   name_len = msize - sizeof (struct GNUNET_TESTBED_BarrierWait);
   name = GNUNET_malloc (name_len + 1);
   name[name_len] = '\0';
-  (void) memcpy (name, msg->name, name_len);
+  GNUNET_memcpy (name, msg->name, name_len);
   LOG_DEBUG ("Received BARRIER_WAIT for barrier `%s'\n", name);
   GNUNET_CRYPTO_hash (name, name_len, &key);
   GNUNET_free (name);
@@ -734,7 +734,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (const struct GNUNET_TESTBED_BarrierInit *) message;
   name_len = (size_t) msize - sizeof (struct GNUNET_TESTBED_BarrierInit);
   name = GNUNET_malloc (name_len + 1);
-  (void) memcpy (name, msg->name, name_len);
+  GNUNET_memcpy (name, msg->name, name_len);
   GNUNET_CRYPTO_hash (name, name_len, &hash);
   LOG_DEBUG ("Received BARRIER_INIT for barrier `%s'\n", name);
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
@@ -747,7 +747,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   barrier = GNUNET_new (struct Barrier);
-  (void) memcpy (&barrier->hash, &hash, sizeof (struct GNUNET_HashCode));
+  GNUNET_memcpy (&barrier->hash, &hash, sizeof (struct GNUNET_HashCode));
   barrier->quorum = msg->quorum;
   barrier->name = name;
   barrier->mc = client;
@@ -836,7 +836,7 @@ GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (const struct GNUNET_TESTBED_BarrierCancel *) message;
   name_len = msize - sizeof (struct GNUNET_TESTBED_BarrierCancel);
   name = GNUNET_malloc (name_len + 1);
-  (void) memcpy (name, msg->name, name_len);
+  GNUNET_memcpy (name, msg->name, name_len);
   GNUNET_CRYPTO_hash (name, name_len, &hash);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
   {

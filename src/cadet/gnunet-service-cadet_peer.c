@@ -604,7 +604,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  memcpy (buf, msg, total_size);
+  GNUNET_memcpy (buf, msg, total_size);
   GNUNET_free (cls);
   return total_size;
 }
@@ -2518,7 +2518,7 @@ GCP_set_hello (struct CadetPeer *peer,
   {
     size = GNUNET_HELLO_size (hello);
     peer->hello = GNUNET_malloc (size);
-    memcpy (peer->hello, hello, size);
+    GNUNET_memcpy (peer->hello, hello, size);
   }
   else
   {

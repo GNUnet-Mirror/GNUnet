@@ -102,7 +102,7 @@ getPRK (gcry_md_hd_t mac, const void *xts, size_t xts_len, const void *skm,
   ret = doHMAC (mac, xts, xts_len, skm, skm_len);
   if (ret == NULL)
     return GNUNET_SYSERR;
-  memcpy (prk, ret, gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
+  GNUNET_memcpy (prk, ret, gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
 
   return GNUNET_YES;
 }
@@ -198,7 +198,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
       size_t len;
 
       len = va_arg (args, size_t);
-      memcpy (dst, ctx, len);
+      GNUNET_memcpy (dst, ctx, len);
       dst += len;
     }
     va_end (args);
@@ -212,14 +212,14 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
       hc = doHMAC (prf, prk, xtr_len, &plain[k], ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
-      memcpy (result, hc, k);
+      GNUNET_memcpy (result, hc, k);
       result += k;
     }
 
     /* K(i+1) */
     for (i = 1; i < t; i++)
     {
-      memcpy (plain, result - k, k);
+      GNUNET_memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
@@ -228,7 +228,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
-      memcpy (result, hc, k);
+      GNUNET_memcpy (result, hc, k);
       result += k;
     }
 
@@ -237,7 +237,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
     {
       if (t > 0)
       {
-        memcpy (plain, result - k, k);
+        GNUNET_memcpy (plain, result - k, k);
         i++;
       }
       memset (plain + k + ctx_len, i, 1);
@@ -251,7 +251,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
         hc = doHMAC (prf, prk, xtr_len, plain + k, plain_len - k);
       if (hc == NULL)
         goto hkdf_error;
-      memcpy (result, hc, d);
+      GNUNET_memcpy (result, hc, d);
     }
 #if DEBUG_HKDF
     dump ("result", result - k, out_len);

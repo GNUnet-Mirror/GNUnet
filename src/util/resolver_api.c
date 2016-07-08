@@ -387,7 +387,7 @@ process_requests ()
                              GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
   msg->direction = htonl (rh->direction);
   msg->af = htonl (rh->af);
-  memcpy (&msg[1],
+  GNUNET_memcpy (&msg[1],
           &rh[1],
           rh->data_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -845,7 +845,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
   rh->af = af;
   rh->addr_callback = callback;
   rh->cls = callback_cls;
-  memcpy (&rh[1],
+  GNUNET_memcpy (&rh[1],
           hostname,
           slen);
   rh->data_len = slen;
@@ -983,7 +983,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   rh->cls = cls;
   rh->af = sa->sa_family;
   rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  memcpy (&rh[1],
+  GNUNET_memcpy (&rh[1],
           ip,
           ip_len);
   rh->data_len = ip_len;

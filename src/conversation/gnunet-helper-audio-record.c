@@ -300,8 +300,8 @@ write_page (ogg_page *og)
   size_t msg_size;
   msg_size = sizeof (struct AudioMessage) + og->header_len + og->body_len;
   audio_message->header.size = htons ((uint16_t) msg_size);
-  memcpy (&audio_message[1], og->header, og->header_len);
-  memcpy (((char *) &audio_message[1]) + og->header_len, og->body, og->body_len);
+  GNUNET_memcpy (&audio_message[1], og->header, og->header_len);
+  GNUNET_memcpy (((char *) &audio_message[1]) + og->header_len, og->body, og->body_len);
 
   toff += msg_size;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -330,7 +330,7 @@ packetizer ()
 
   while (transmit_buffer_length >= transmit_buffer_index + pcm_length)
   {
-    memcpy (pcm_buffer,
+    GNUNET_memcpy (pcm_buffer,
 	    &transmit_buffer[transmit_buffer_index],
 	    pcm_length);
     transmit_buffer_index += pcm_length;
@@ -428,7 +428,7 @@ stream_read_callback (pa_stream * s,
   {
     transmit_buffer = pa_xrealloc (transmit_buffer,
 				   transmit_buffer_length + length);
-    memcpy (&transmit_buffer[transmit_buffer_length],
+    GNUNET_memcpy (&transmit_buffer[transmit_buffer_length],
 	    data,
 	    length);
     transmit_buffer_length += length;
@@ -436,7 +436,7 @@ stream_read_callback (pa_stream * s,
   else
   {
     transmit_buffer = pa_xmalloc (length);
-    memcpy (transmit_buffer, data, length);
+    GNUNET_memcpy (transmit_buffer, data, length);
     transmit_buffer_length = length;
     transmit_buffer_index = 0;
   }
@@ -686,7 +686,7 @@ ogg_init ()
     const char *opusver;
     int vendor_length;
 
-    memcpy (headpacket.magic, "OpusHead", 8);
+    GNUNET_memcpy (headpacket.magic, "OpusHead", 8);
     headpacket.version = 1;
     headpacket.channels = CHANNELS;
     headpacket.preskip = GNUNET_htole16 (0);
@@ -723,9 +723,9 @@ ogg_init ()
       exit (5);
     }
 
-    memcpy (commentspacket->magic, "OpusTags", 8);
+    GNUNET_memcpy (commentspacket->magic, "OpusTags", 8);
     commentspacket->vendor_length = GNUNET_htole32 (vendor_length);
-    memcpy (&commentspacket[1], opusver, vendor_length);
+    GNUNET_memcpy (&commentspacket[1], opusver, vendor_length);
     *(uint32_t *) &((char *) &commentspacket[1])[vendor_length] = \
         GNUNET_htole32 (0); /* no tags */
 

@@ -462,11 +462,11 @@ handle_token_update (void *cls)
     + strlen (scopes) + 1; //With 0-Terminator
   token_metadata = GNUNET_malloc (token_metadata_len);
   write_ptr = token_metadata;
-  memcpy (token_metadata, new_ecdhe_privkey, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  GNUNET_memcpy (token_metadata, new_ecdhe_privkey, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
-  memcpy (write_ptr, &token->aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_memcpy (write_ptr, &token->aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  memcpy (write_ptr, scopes, strlen (scopes) + 1); //with 0-Terminator;
+  GNUNET_memcpy (write_ptr, scopes, strlen (scopes) + 1); //with 0-Terminator;
 
   token_record[1].data = token_metadata;
   token_record[1].data_size = token_metadata_len;
@@ -886,7 +886,7 @@ create_exchange_result_message (const char* token,
   erm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)
                             + token_len);
   erm->ticket_nonce = htonl (ticket_nonce);
-  memcpy (&erm[1], token, token_len);
+  GNUNET_memcpy (&erm[1], token, token_len);
   return erm;
 }
 
@@ -909,7 +909,7 @@ create_issue_result_message (const char* label,
                             + strlen (ticket) + 1
                             + strlen (token) + 1);
   GNUNET_asprintf (&tmp_str, "%s,%s,%s", label, ticket, token);
-  memcpy (&irm[1], tmp_str, strlen (tmp_str) + 1);
+  GNUNET_memcpy (&irm[1], tmp_str, strlen (tmp_str) + 1);
   GNUNET_free (tmp_str);
   return irm;
 }
@@ -1051,11 +1051,11 @@ sign_and_return_token (void *cls)
     + strlen (handle->scopes) + 1; //With 0-Terminator
   token_metadata = GNUNET_malloc (token_metadata_len);
   write_ptr = token_metadata;
-  memcpy (token_metadata, ecdhe_privkey, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  GNUNET_memcpy (token_metadata, ecdhe_privkey, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
-  memcpy (write_ptr, &handle->aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_memcpy (write_ptr, &handle->aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  memcpy (write_ptr, handle->scopes, strlen (handle->scopes) + 1); //with 0-Terminator;
+  GNUNET_memcpy (write_ptr, handle->scopes, strlen (handle->scopes) + 1); //with 0-Terminator;
 
   token_record[1].data = token_metadata;
   token_record[1].data_size = token_metadata_len;

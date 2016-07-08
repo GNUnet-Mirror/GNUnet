@@ -296,7 +296,7 @@ reciever (void *cls,
 {
   struct GNUNET_SOCKS_Handshake * ih = cls;
   GNUNET_assert (&ih->inend[available] < &ih->inbuf[1024]);
-  memcpy(ih->inend, buf, available);
+  GNUNET_memcpy(ih->inend, buf, available);
   ih->inend += available;
   SOCKS5_handshake_step (ih);
 }
@@ -375,7 +375,7 @@ transmit_ready (void *cls,
   GNUNET_assert (e <= &ih->outbuf[1024]);
   unsigned l = e - b;
   GNUNET_assert (size >= l && l >= 0);
-  memcpy(buf, b, l);
+  GNUNET_memcpy(buf, b, l);
   register_reciever (ih, register_reciever_wants(ih));
   return l;
 }
@@ -497,11 +497,11 @@ GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
   /* Specify destination */
   if (1 == inet_pton(AF_INET,host,&ia.in4)) {
     *(b++)= 1;  /* IPv4 */
-    memcpy (b, &ia.in4, sizeof(struct in_addr));
+    GNUNET_memcpy (b, &ia.in4, sizeof(struct in_addr));
     b += sizeof(struct in_addr);  /* 4 */
   } else if (1 == inet_pton(AF_INET6,host,&ia.in6)) {
     *(b++)= 4;  /* IPv6 */
-    memcpy (b, &ia.in6, sizeof(struct in6_addr));
+    GNUNET_memcpy (b, &ia.in6, sizeof(struct in6_addr));
     b += sizeof(struct in6_addr);  /* 16 */
   } else {
     *(b++)= 3;  /* hostname */

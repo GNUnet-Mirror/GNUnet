@@ -476,7 +476,7 @@ send_next_message (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending message of type %d to PSYCstore service. ID: %" PRIu64 "\n",
        ntohs (op->msg->type), op->op_id);
-  memcpy (buf, op->msg, ret);
+  GNUNET_memcpy (buf, op->msg, ret);
 
   GNUNET_CONTAINER_DLL_remove (h->transmit_head, h->transmit_tail, op);
 
@@ -800,7 +800,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.size = htons (sizeof (*req) + size);
   req->channel_key = *channel_key;
   req->psycstore_flags = htonl (psycstore_flags);
-  memcpy (&req[1], msg, size);
+  GNUNET_memcpy (&req[1], msg, size);
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);
@@ -1016,7 +1016,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
     req->slave_key = *slave_key;
     req->do_membership_test = GNUNET_YES;
   }
-  memcpy (&req[1], method_prefix, method_size);
+  GNUNET_memcpy (&req[1], method_prefix, method_size);
   ((char *) &req[1])[method_size - 1] = '\0';
 
   op->op_id = get_next_op_id (h);
@@ -1094,7 +1094,7 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);
-  memcpy (&req[1], method_prefix, method_size);
+  GNUNET_memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1334,8 +1334,8 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
       ? STATE_OP_LAST
       : 0;
 
-    memcpy (&req[1], modifiers[i].name, name_size);
-    memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
+    GNUNET_memcpy (&req[1], modifiers[i].name, name_size);
+    GNUNET_memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
 
     op->op_id = get_next_op_id (h);
     req->op_id = GNUNET_htonll (op->op_id);
@@ -1482,7 +1482,7 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_GET);
   req->header.size = htons (sizeof (*req) + name_size);
   req->channel_key = *channel_key;
-  memcpy (&req[1], name, name_size);
+  GNUNET_memcpy (&req[1], name, name_size);
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);
@@ -1535,7 +1535,7 @@ GNUNET_PSYCSTORE_state_get_prefix (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_GET_PREFIX);
   req->header.size = htons (sizeof (*req) + name_size);
   req->channel_key = *channel_key;
-  memcpy (&req[1], name_prefix, name_size);
+  GNUNET_memcpy (&req[1], name_prefix, name_size);
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);

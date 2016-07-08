@@ -374,7 +374,7 @@ callback_download (void *ptr,
   while ((left > 0) || (download_pos > 0))
   {
     cpy = GNUNET_MIN (left, GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - download_pos);
-    memcpy (&download_buffer[download_pos], cbuf, cpy);
+    GNUNET_memcpy (&download_buffer[download_pos], cbuf, cpy);
     cbuf += cpy;
     download_pos += cpy;
     left -= cpy;
@@ -1273,7 +1273,7 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->hostlist_uri = (const char *) &hostlist[1];
-  memcpy (&hostlist[1], uri, uri_size);
+  GNUNET_memcpy (&hostlist[1], uri, uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get ();
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
@@ -1424,7 +1424,7 @@ load_hostlist_file ()
     hostlist = GNUNET_malloc (sizeof (struct Hostlist) + strlen (uri) + 1);
     hostlist->hello_count = hellos_returned;
     hostlist->hostlist_uri = (const char *) &hostlist[1];
-    memcpy (&hostlist[1], uri, strlen (uri) + 1);
+    GNUNET_memcpy (&hostlist[1], uri, strlen (uri) + 1);
     hostlist->quality = quality;
     hostlist->time_creation.abs_value_us = created;
     hostlist->time_last_usage.abs_value_us = last_used;

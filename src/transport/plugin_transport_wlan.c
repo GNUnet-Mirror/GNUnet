@@ -732,7 +732,7 @@ send_ack (void *cls,
 		   &radio_header->frame,
 		   &endpoint->wlan_addr.mac,
 		   sizeof (endpoint->wlan_addr.mac));
-  memcpy (&radio_header[1], hdr, msize);
+  GNUNET_memcpy (&radio_header[1], hdr, msize);
   if (NULL !=
       GNUNET_HELPER_send (endpoint->plugin->suid_helper,
 			  &radio_header->header,
@@ -996,7 +996,7 @@ transmit_fragment (void *cls,
 		     &radio_header->frame,
 		     &endpoint->wlan_addr.mac,
 		     sizeof (endpoint->wlan_addr.mac));
-    memcpy (&radio_header[1], hdr, msize);
+    GNUNET_memcpy (&radio_header[1], hdr, msize);
     GNUNET_assert (NULL == fm->sh);
     fm->sh = GNUNET_HELPER_send (endpoint->plugin->suid_helper,
 				 &radio_header->header,
@@ -1417,7 +1417,7 @@ wlan_plugin_send (void *cls,
   wlanheader->sender = *plugin->env->my_identity;
   wlanheader->target = session->target;
   wlanheader->crc = htonl (GNUNET_CRYPTO_crc32_n (msgbuf, msgbuf_size));
-  memcpy (&wlanheader[1],
+  GNUNET_memcpy (&wlanheader[1],
           msgbuf,
           msgbuf_size);
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1704,7 +1704,7 @@ send_hello_beacon (void *cls)
 	 (unsigned int) size,
 	 mac_to_string (&bc_all_mac));
     get_wlan_header (plugin, &radioHeader->frame, &bc_all_mac, size);
-    memcpy (&radioHeader[1], hello, hello_size);
+    GNUNET_memcpy (&radioHeader[1], hello, hello_size);
     if (NULL !=
 	GNUNET_HELPER_send (plugin->suid_helper,
 			    &radioHeader->header,

@@ -131,14 +131,14 @@ find_proof (void *cls)
 	      "Got Proof of Work %llu\n",
 	      (unsigned long long) proof);
   proof_task = NULL;
-  memcpy (&buf[sizeof (uint64_t)], &pub,
+  GNUNET_memcpy (&buf[sizeof (uint64_t)], &pub,
           sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   i = 0;
   counter = proof;
   timestamp = GNUNET_TIME_absolute_get ();
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
-    memcpy (buf, &counter, sizeof (uint64_t));
+    GNUNET_memcpy (buf, &counter, sizeof (uint64_t));
     pow_hash (buf, sizeof (buf), &result);
     if (nse_work_required <= count_leading_zeroes (&result))
     {

@@ -179,7 +179,7 @@ do_put (struct CpsRunContext *crc)
   if (i > 255)
     memset (value, i - 255, size / 2);
   value[0] = crc->i;
-  memcpy (&value[4], &i, sizeof (i));
+  GNUNET_memcpy (&value[4], &i, sizeof (i));
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
   crc->api->put (crc->api->cls, &key, size, value, 1 + i % 4 /* type */ ,
                  prio, i % 4 /* anonymity */ ,
@@ -212,7 +212,7 @@ iterate_zeros (void *cls,
 
   GNUNET_assert (key != NULL);
   GNUNET_assert (size >= 8);
-  memcpy (&i, &cdata[4], sizeof (i));
+  GNUNET_memcpy (&i, &cdata[4], sizeof (i));
   hits[i / 8] |= (1 << (i % 8));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -267,7 +267,7 @@ expiration_get (void *cls,
   const char *cdata = data;
 
   GNUNET_assert (size >= 8);
-  memcpy (&i, &cdata[4], sizeof (i));
+  GNUNET_memcpy (&i, &cdata[4], sizeof (i));
   hits[i / 8] |= (1 << (i % 8));
   crc->cnt++;
   if (PUT_10 <= crc->cnt)
@@ -320,7 +320,7 @@ replication_get (void *cls,
 
   GNUNET_assert (NULL != key);
   GNUNET_assert (size >= 8);
-  memcpy (&i, &cdata[4], sizeof (i));
+  GNUNET_memcpy (&i, &cdata[4], sizeof (i));
   hits[i / 8] |= (1 << (i % 8));
   crc->cnt++;
   if (PUT_10 <= crc->cnt)

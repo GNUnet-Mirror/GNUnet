@@ -607,7 +607,7 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
   tmit->paused = GNUNET_NO;
 
   *data_size = size;
-  memcpy (data, tmit->data[tmit->n], size);
+  GNUNET_memcpy (data, tmit->data[tmit->n], size);
 
   return ++tmit->n < tmit->data_count ? GNUNET_NO : GNUNET_YES;
 }
@@ -653,9 +653,9 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
       tmit->mod_value = tmit->mod->value + value_size;
     }
 
-    memcpy (data, tmit->mod->name, name_size);
+    GNUNET_memcpy (data, tmit->mod->name, name_size);
     ((char *)data)[name_size] = '\0';
-    memcpy ((char *)data + name_size + 1, tmit->mod->value, value_size);
+    GNUNET_memcpy ((char *)data + name_size + 1, tmit->mod->value, value_size);
   }
   else if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
   { /* Modifier continuation */
@@ -682,7 +682,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
     }
 
     *data_size = value_size;
-    memcpy (data, value, value_size);
+    GNUNET_memcpy (data, value, value_size);
   }
 
   return GNUNET_NO;

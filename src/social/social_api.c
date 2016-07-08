@@ -489,7 +489,7 @@ app_send_connect_msg (struct GNUNET_SOCIAL_App *app)
 {
   uint16_t cmsg_size = ntohs (app->connect_msg->size);
   struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
-  memcpy (cmsg, app->connect_msg, cmsg_size);
+  GNUNET_memcpy (cmsg, app->connect_msg, cmsg_size);
   GNUNET_CLIENT_MANAGER_transmit_now (app->client, cmsg);
   GNUNET_free (cmsg);
 }
@@ -516,7 +516,7 @@ place_send_connect_msg (struct GNUNET_SOCIAL_Place *plc)
 {
   uint16_t cmsg_size = ntohs (plc->connect_msg->size);
   struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
-  memcpy (cmsg, plc->connect_msg, cmsg_size);
+  GNUNET_memcpy (cmsg, plc->connect_msg, cmsg_size);
   GNUNET_CLIENT_MANAGER_transmit_now (plc->client, cmsg);
   GNUNET_free (cmsg);
 }
@@ -718,7 +718,7 @@ place_recv_state_result (void *cls,
     {
         look->mod_value_remaining = look->mod_value_size;
         look->mod_name = GNUNET_malloc (name_size);
-        memcpy (look->mod_name, name, name_size);
+        GNUNET_memcpy (look->mod_name, name, name_size);
     }
     break;
   }
@@ -911,12 +911,12 @@ app_recv_ego (void *cls,
     ego = GNUNET_malloc (sizeof (*ego));
     ego->pub_key = emsg->ego_pub_key;
     ego->name = GNUNET_malloc (name_size);
-    memcpy (ego->name, &emsg[1], name_size);
+    GNUNET_memcpy (ego->name, &emsg[1], name_size);
   }
   else
   {
     ego->name = GNUNET_realloc (ego->name, name_size);
-    memcpy (ego->name, &emsg[1], name_size);
+    GNUNET_memcpy (ego->name, &emsg[1], name_size);
   }
 
   GNUNET_CONTAINER_multihashmap_put (app->egos, &ego_pub_hash, ego,
@@ -1212,7 +1212,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
   hreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
   hreq->policy = policy;
   hreq->ego_pub_key = ego->pub_key;
-  memcpy (&hreq[1], app->id, app_id_size);
+  GNUNET_memcpy (&hreq[1], app->id, app_id_size);
 
   plc->connect_msg = &hreq->header;
   place_send_connect_msg (plc);
@@ -1280,7 +1280,7 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   hreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
   hreq->place_pub_key = hconn->plc_msg.place_pub_key;
   hreq->ego_pub_key = hconn->plc_msg.ego_pub_key;
-  memcpy (&hreq[1], hconn->app->id, app_id_size);
+  GNUNET_memcpy (&hreq[1], hconn->app->id, app_id_size);
 
   plc->connect_msg = &hreq->header;
   place_send_connect_msg (plc);
@@ -1332,7 +1332,7 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
   dcsn->slave_pub_key = nym->pub_key;
 
   if (0 < entry_resp_size)
-    memcpy (&dcsn[1], entry_resp, entry_resp_size);
+    GNUNET_memcpy (&dcsn[1], entry_resp, entry_resp_size);
 
   GNUNET_CLIENT_MANAGER_transmit (hst->plc.client, &dcsn->header);
   GNUNET_free (dcsn);
@@ -1621,16 +1621,16 @@ guest_enter_request_create (const char *app_id,
   greq->relay_count = htonl (relay_count);
 
   char *p = (char *) &greq[1];
-  memcpy (p, app_id, app_id_size);
+  GNUNET_memcpy (p, app_id, app_id_size);
   p += app_id_size;
 
   if (0 < relay_size)
   {
-    memcpy (p, relays, relay_size);
+    GNUNET_memcpy (p, relays, relay_size);
     p += relay_size;
   }
 
-  memcpy (p, join_msg, join_msg_size);
+  GNUNET_memcpy (p, join_msg, join_msg_size);
   return greq;
 }
 
@@ -1765,14 +1765,14 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
   greq->ego_pub_key = ego->pub_key;
 
   char *p = (char *) &greq[1];
-  memcpy (p, app->id, app_id_size);
+  GNUNET_memcpy (p, app->id, app_id_size);
   p += app_id_size;
-  memcpy (p, gns_name, gns_name_size);
+  GNUNET_memcpy (p, gns_name, gns_name_size);
   p += gns_name_size;
-  memcpy (p, password, password_size);
+  GNUNET_memcpy (p, password, password_size);
   p += password_size;
   if (NULL != join_msg)
-    memcpy (p, join_msg, join_msg_size);
+    GNUNET_memcpy (p, join_msg, join_msg_size);
 
   gst->enter_cb = local_enter_cb;
   gst->entry_dcsn_cb = entry_decision_cb;
@@ -1831,7 +1831,7 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   greq->place_pub_key = gconn->plc_msg.place_pub_key;
   greq->flags = htonl (flags);
 
-  memcpy (&greq[1], gconn->app->id, app_id_size);
+  GNUNET_memcpy (&greq[1], gconn->app->id, app_id_size);
 
   gst->enter_cb = local_enter_cb;
   gst->cb_cls = cls;
@@ -2023,7 +2023,7 @@ GNUNET_SOCIAL_place_msg_proc_set (struct GNUNET_SOCIAL_Place *plc,
   mpreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET);
   mpreq->header.size = htons (sizeof (*mpreq) + method_size);
   mpreq->flags = htonl (flags);
-  memcpy (&mpreq[1], method_prefix, method_size);
+  GNUNET_memcpy (&mpreq[1], method_prefix, method_size);
 
   GNUNET_CLIENT_MANAGER_transmit (plc->client, &mpreq->header);
   GNUNET_free (mpreq);
@@ -2076,7 +2076,7 @@ place_history_replay (struct GNUNET_SOCIAL_Place *plc,
   req->message_limit = GNUNET_htonll (message_limit);
   req->flags = htonl (flags);
   req->op_id = GNUNET_htonll (hist->op_id);
-  memcpy (&req[1], method_prefix, method_size);
+  GNUNET_memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
   GNUNET_free (req);
@@ -2198,7 +2198,7 @@ place_state_get (struct GNUNET_SOCIAL_Place *plc,
   req->header.type = htons (type);
   req->header.size = htons (sizeof (*req) + name_size);
   req->op_id = GNUNET_htonll (look->op_id);
-  memcpy (&req[1], name, name_size);
+  GNUNET_memcpy (&req[1], name, name_size);
 
   GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
   GNUNET_free (req);
@@ -2349,11 +2349,11 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
   preq->relay_count = htonl (relay_count);
 
   char *p = (char *) &preq[1];
-  memcpy (p, name, name_size);
+  GNUNET_memcpy (p, name, name_size);
   p += name_size;
-  memcpy (p, password, password_size);
+  GNUNET_memcpy (p, password, password_size);
   p += password_size;
-  memcpy (p, relays, relay_size);
+  GNUNET_memcpy (p, relays, relay_size);
 
   struct ZoneAddPlaceHandle * add_plc = GNUNET_malloc (sizeof (*add_plc));
   add_plc->req = preq;
@@ -2426,7 +2426,7 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
   nreq->expiration_time = GNUNET_htonll (expiration_time.abs_value_us);
   nreq->ego_pub_key = ego->pub_key;
   nreq->nym_pub_key = *nym_pub_key;
-  memcpy (&nreq[1], name, name_size);
+  GNUNET_memcpy (&nreq[1], name, name_size);
 
   struct ZoneAddNymHandle * add_nym = GNUNET_malloc (sizeof (*add_nym));
   add_nym->req = nreq;
@@ -2488,12 +2488,12 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CLIENT_MANAGER_set_user_context_ (app->client, app, sizeof (*app));
 
   app->id = GNUNET_malloc (app_id_size);
-  memcpy (app->id, id, app_id_size);
+  GNUNET_memcpy (app->id, id, app_id_size);
 
   struct AppConnectRequest *creq = GNUNET_malloc (sizeof (*creq) + app_id_size);
   creq->header.size = htons (sizeof (*creq) + app_id_size);
   creq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT);
-  memcpy (&creq[1], app->id, app_id_size);
+  GNUNET_memcpy (&creq[1], app->id, app_id_size);
 
   app->connect_msg = &creq->header;
   app_send_connect_msg (app);

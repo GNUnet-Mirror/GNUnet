@@ -64,7 +64,7 @@ struct PendingMessage
   /**
    * Actual message to be sent, allocated at the end of the struct:
    * // msg = (cast) &pm[1];
-   * // memcpy (&pm[1], data, len);
+   * // GNUNET_memcpy (&pm[1], data, len);
    */
   const struct GNUNET_MessageHeader *msg;
 
@@ -316,7 +316,7 @@ send_reply_to_client (void *cls, size_t size, void *buf)
   {
     GNUNET_CONTAINER_DLL_remove (client->pending_head, client->pending_tail,
                                  reply);
-    memcpy (&cbuf[off], reply->msg, msize);
+    GNUNET_memcpy (&cbuf[off], reply->msg, msize);
     GNUNET_free (reply);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmitting %u bytes to client %p\n",
@@ -578,7 +578,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
     /* two clients waiting for same reply, must copy for queueing */
     pm = GNUNET_malloc (sizeof (struct PendingMessage) +
                         ntohs (frc->pm->msg->size));
-    memcpy (pm, frc->pm,
+    GNUNET_memcpy (pm, frc->pm,
             sizeof (struct PendingMessage) + ntohs (frc->pm->msg->size));
     pm->next = pm->prev = NULL;
     pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
@@ -664,11 +664,11 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   reply->expiration = GNUNET_TIME_absolute_hton (expiration);
   reply->key = *key;
   paths = (struct GNUNET_PeerIdentity *) &reply[1];
-  memcpy (paths, put_path,
+  GNUNET_memcpy (paths, put_path,
           sizeof (struct GNUNET_PeerIdentity) * put_path_length);
-  memcpy (&paths[put_path_length], get_path,
+  GNUNET_memcpy (&paths[put_path_length], get_path,
           sizeof (struct GNUNET_PeerIdentity) * get_path_length);
-  memcpy (&paths[get_path_length + put_path_length], data, data_size);
+  GNUNET_memcpy (&paths[get_path_length + put_path_length], data, data_size);
   frc.do_copy = GNUNET_NO;
   frc.pm = pm;
   frc.data = data;
@@ -747,10 +747,10 @@ GDS_CLIENTS_process_get (uint32_t options,
       mmsg->hop_count = htonl(hop_count);
       mmsg->desired_replication_level = htonl(desired_replication_level);
       mmsg->get_path_length = htonl(path_length);
-      memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
+      GNUNET_memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
       msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
       if (path_length > 0)
-        memcpy (msg_path, path,
+        GNUNET_memcpy (msg_path, path,
                 path_length * sizeof (struct GNUNET_PeerIdentity));
       add_pending_message (m->client, pm);
     }
@@ -829,13 +829,13 @@ GDS_CLIENTS_process_put (uint32_t options,
       msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
       if (path_length > 0)
       {
-        memcpy (msg_path, path,
+        GNUNET_memcpy (msg_path, path,
                 path_length * sizeof (struct GNUNET_PeerIdentity));
       }
       mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
-      memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
+      GNUNET_memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
       if (size > 0)
-        memcpy (&msg_path[path_length], data, size);
+        GNUNET_memcpy (&msg_path[path_length], data, size);
       add_pending_message (m->client, pm);
     }
   }
@@ -1010,7 +1010,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->key = get->key;
   cqr->client = find_active_client (client);
   cqr->xquery = (void *) &cqr[1];
-  memcpy (&cqr[1], xquery, xquery_size);
+  GNUNET_memcpy (&cqr[1], xquery, xquery_size);
   cqr->hnode = GNUNET_CONTAINER_heap_insert (retry_heap, cqr, 0);
   cqr->retry_frequency = GNUNET_TIME_UNIT_SECONDS;
   cqr->retry_time = GNUNET_TIME_absolute_get ();
@@ -1132,7 +1132,7 @@ handle_dht_local_get_result_seen (void *cls, struct GNUNET_SERVER_Client *client
   GNUNET_array_grow (cqr->seen_replies,
 		     cqr->seen_replies_count,
 		     cqr->seen_replies_count + hash_count);
-  memcpy (&cqr->seen_replies[old_count],
+  GNUNET_memcpy (&cqr->seen_replies[old_count],
 	  hc,
 	  sizeof (struct GNUNET_HashCode) * hash_count);
 }
@@ -1240,7 +1240,7 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
   else
   {
     r->key = GNUNET_new (struct GNUNET_HashCode);
-    memcpy (r->key, &msg->key, sizeof (struct GNUNET_HashCode));
+    GNUNET_memcpy (r->key, &msg->key, sizeof (struct GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, r);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

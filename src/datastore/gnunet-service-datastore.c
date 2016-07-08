@@ -526,7 +526,7 @@ transmit_callback (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_assert (size >= msize);
-  memcpy (buf, tcc->msg, msize);
+  GNUNET_memcpy (buf, tcc->msg, msize);
   GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
   GNUNET_SERVER_client_drop (tcc->client);
   GNUNET_free (tcc->msg);
@@ -598,7 +598,7 @@ transmit_status (struct GNUNET_SERVER_Client *client, int code, const char *msg)
   sm->status = htonl (code);
   sm->min_expiration = GNUNET_TIME_absolute_hton (min_expiration);
   if (slen > 0)
-    memcpy (&sm[1], msg, slen);
+    GNUNET_memcpy (&sm[1], msg, slen);
   transmit (client, &sm->header);
 }
 
@@ -662,7 +662,7 @@ transmit_item (void *cls,
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->uid = GNUNET_htonll (uid);
   dm->key = *key;
-  memcpy (&dm[1], data, size);
+  GNUNET_memcpy (&dm[1], data, size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting `%s' message for `%s' of type %u with expiration %s (in: %s)\n",
               "DATA", GNUNET_h2s (key), type,
@@ -1067,7 +1067,7 @@ handle_put (void *cls,
                       sizeof (struct DataMessage));
   pc->client = client;
   GNUNET_SERVER_client_keep (client);
-  memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
+  GNUNET_memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
   if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (filter, &dm->key))
   {
     GNUNET_CRYPTO_hash (&dm[1], size, &vhash);

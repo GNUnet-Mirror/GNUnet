@@ -393,7 +393,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
     {
       if (i < *list_size -1)
       { /* Not at the last entry -- shift peers left */
-        memcpy (&tmp[i], &tmp[i +1],
+        GNUNET_memcpy (&tmp[i], &tmp[i +1],
                 ((*list_size) - i -1) * sizeof (struct GNUNET_PeerIdentity));
       }
       /* Remove last entry (should be now useless PeerID) */
@@ -555,7 +555,7 @@ est_request_rate()
   if ( 1 < req_counter)
   {
     /* Shift last request deltas to the right */
-    memcpy (&request_deltas[1],
+    GNUNET_memcpy (&request_deltas[1],
         request_deltas,
         (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
 
@@ -654,7 +654,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
                             send_size * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
   out_msg->num_peers = htonl (send_size);
-  memcpy (&out_msg[1], peer_ids,
+  GNUNET_memcpy (&out_msg[1], peer_ids,
          send_size * sizeof (struct GNUNET_PeerIdentity));
 
   Peers_send_message (peer_id, ev, "PULL REPLY");
@@ -1018,7 +1018,7 @@ client_respond (void *cls,
   out_msg->num_peers = htonl (num_peers);
   out_msg->id = htonl (reply_cls->id);
 
-  memcpy (&out_msg[1],
+  GNUNET_memcpy (&out_msg[1],
           peer_ids,
           num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free (peer_ids);
@@ -1151,7 +1151,7 @@ handle_client_seed (void *cls,
   num_peers = ntohl (in_msg->num_peers);
   peers = (struct GNUNET_PeerIdentity *) &in_msg[1];
   //peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
-  //memcpy (peers, &in_msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
+  //GNUNET_memcpy (peers, &in_msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
       sizeof (struct GNUNET_PeerIdentity) != num_peers)
@@ -1219,7 +1219,7 @@ handle_peer_push (void *cls,
   struct AttackedPeer *tmp_att_peer;
 
   tmp_att_peer = GNUNET_new (struct AttackedPeer);
-  memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
   if (1 == mal_type
       || 3 == mal_type)
   { /* Try to maximise representation */
@@ -1594,7 +1594,7 @@ handle_client_act_malicious (void *cls,
     GNUNET_array_grow (mal_peers,
                        num_mal_peers,
                        num_mal_peers + num_mal_peers_sent);
-    memcpy (&mal_peers[num_mal_peers_old],
+    GNUNET_memcpy (&mal_peers[num_mal_peers_old],
             peers,
             num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
@@ -1621,7 +1621,7 @@ handle_client_act_malicious (void *cls,
     if (NULL != mal_peers &&
         0 != num_mal_peers)
     {
-      memcpy (&mal_peers[num_mal_peers_old],
+      GNUNET_memcpy (&mal_peers[num_mal_peers_old],
               peers,
               num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
@@ -1632,7 +1632,7 @@ handle_client_act_malicious (void *cls,
     }
 
     /* Store the one attacked peer */
-    memcpy (&attacked_peer,
+    GNUNET_memcpy (&attacked_peer,
             &in_msg->attacked_peer,
             sizeof (struct GNUNET_PeerIdentity));
     /* Set the flag of the attacked peer to valid to avoid problems */
@@ -1896,7 +1896,7 @@ do_round (void *cls)
     peers_to_clean = NULL;
     peers_to_clean_size = 0;
     GNUNET_array_grow (peers_to_clean, peers_to_clean_size, View_size ());
-    memcpy (peers_to_clean,
+    GNUNET_memcpy (peers_to_clean,
             view_array,
             View_size () * sizeof (struct GNUNET_PeerIdentity));
 

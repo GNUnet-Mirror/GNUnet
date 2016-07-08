@@ -393,7 +393,7 @@ transmit_client_response (struct AliceServiceSession *s)
   msg->product_length = htonl (product_length);
   if (NULL != product_exported)
   {
-    memcpy (&msg[1],
+    GNUNET_memcpy (&msg[1],
             product_exported,
             product_length);
     GNUNET_free (product_exported);
@@ -949,7 +949,7 @@ GSS_handle_alice_client_message_multipart (void *cls,
   for (i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
@@ -1052,7 +1052,7 @@ GSS_handle_alice_client_message (void *cls,
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==

@@ -325,7 +325,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
   dqe->msg = &dqe[1];
   dqe->msg_size = msg_size;
   dqe->timeout = timeout;
-  memcpy (dqe->msg,
+  GNUNET_memcpy (dqe->msg,
           msg,
           msg_size);
   if (NULL == tmp)

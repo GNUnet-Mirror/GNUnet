@@ -90,7 +90,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (message != NULL);
   GNUNET_free_non_null (GDS_my_hello);
   GDS_my_hello = GNUNET_malloc (ntohs (message->size));
-  memcpy (GDS_my_hello, message, ntohs (message->size));
+  GNUNET_memcpy (GDS_my_hello, message, ntohs (message->size));
 }
 
 

@@ -107,7 +107,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
             sizeof (struct GNUNET_ATS_Properties));
   msg->address_local_info = htonl (local_address_info);
   addrp = (char *) &msg[1];
-  memcpy (addrp, plugin_addr, plugin_addr_len);
+  GNUNET_memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
   if (NULL == client)
   {

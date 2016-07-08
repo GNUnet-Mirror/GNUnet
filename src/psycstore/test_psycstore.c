@@ -469,7 +469,7 @@ fragment_store ()
   msg->group_generation = GNUNET_htonll (INT64_MAX - 3);
   msg->flags = htonl (GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT);
 
-  memcpy (&msg[1], &channel_pub_key, sizeof (channel_pub_key));
+  GNUNET_memcpy (&msg[1], &channel_pub_key, sizeof (channel_pub_key));
 
   msg->purpose.size = htonl (ntohs (msg->header.size)
                              - sizeof (msg->header)
@@ -484,7 +484,7 @@ fragment_store ()
 
   fcls.flags[1] = GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED;
   fcls.msg[1] = msg = GNUNET_malloc (sizeof (*msg) + sizeof (channel_pub_key));
-  memcpy (msg, fcls.msg[0], sizeof (*msg) + sizeof (channel_pub_key));
+  GNUNET_memcpy (msg, fcls.msg[0], sizeof (*msg) + sizeof (channel_pub_key));
   msg->fragment_id = GNUNET_htonll (INT64_MAX - 4);
   msg->fragment_offset = GNUNET_htonll (1024);
 
@@ -493,7 +493,7 @@ fragment_store ()
 
   fcls.flags[2] = GNUNET_PSYCSTORE_MESSAGE_STATE_HASH;
   fcls.msg[2] = msg = GNUNET_malloc (sizeof (*msg) + sizeof (channel_pub_key));
-  memcpy (msg, fcls.msg[1], sizeof (*msg) + sizeof (channel_pub_key));
+  GNUNET_memcpy (msg, fcls.msg[1], sizeof (*msg) + sizeof (channel_pub_key));
   msg->fragment_id = GNUNET_htonll (INT64_MAX);
   msg->fragment_offset = GNUNET_htonll (16384);
 

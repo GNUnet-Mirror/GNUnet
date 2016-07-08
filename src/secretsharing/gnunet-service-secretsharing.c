@@ -473,7 +473,7 @@ normalize_peers (struct GNUNET_PeerIdentity *listed,
   if (GNUNET_NO == local_peer_in_list)
     normalized[n - 1] = my_peer;
 
-  memcpy (normalized,
+  GNUNET_memcpy (normalized,
           listed,
           num_listed * sizeof (struct GNUNET_PeerIdentity));
   qsort (normalized,
@@ -1039,10 +1039,10 @@ get_fair_encryption_challenge (const struct GNUNET_SECRETSHARING_FairEncryption 
   } hash_data;
   struct GNUNET_HashCode e_hash;
 
-  memcpy (&hash_data.c, &fe->c, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  memcpy (&hash_data.h, &fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
-  memcpy (&hash_data.t1, &fe->t1, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
-  memcpy (&hash_data.t2, &fe->t2, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
+  GNUNET_memcpy (&hash_data.c, &fe->c, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+  GNUNET_memcpy (&hash_data.h, &fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+  GNUNET_memcpy (&hash_data.t1, &fe->t1, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+  GNUNET_memcpy (&hash_data.t2, &fe->t2, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&e, &e_hash, sizeof (struct GNUNET_HashCode));
   gcry_mpi_mod (e, e, elgamal_q);

@@ -343,7 +343,7 @@ transmit_sqm (void *cls,
   sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_CADET_QUERY);
   sqm.type = htonl (sr->type);
   sqm.query = sr->query;
-  memcpy (buf, &sqm, sizeof (sqm));
+  GNUNET_memcpy (buf, &sqm, sizeof (sqm));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Successfully transmitted %u bytes via cadet to %s\n",
 	      (unsigned int) size,

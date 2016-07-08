@@ -263,7 +263,7 @@ heap_plugin_put (void *cls,
   value->anonymity = anonymity;
   value->replication = replication;
   value->type = type;
-  memcpy (&value[1], data, size);
+  GNUNET_memcpy (&value[1], data, size);
   GNUNET_CONTAINER_multihashmap_put (plugin->keyvalue,
 				     &value->key,
 				     value,

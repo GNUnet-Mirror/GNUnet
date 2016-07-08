@@ -117,7 +117,7 @@ send_result_code (struct GNUNET_SERVER_Client *client, uint64_t op_id,
   res->op_id = op_id;
   if (0 < err_size)
   {
-    memcpy (&res[1], err_msg, err_size);
+    GNUNET_memcpy (&res[1], err_msg, err_size);
     ((char *) &res[1])[err_size - 1] = '\0';
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -201,7 +201,7 @@ send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
   res->header.size = htons (sizeof (struct FragmentResult) + msg_size);
   res->op_id = sc->op_id;
   res->psycstore_flags = htonl (flags);
-  memcpy (&res[1], msg, msg_size);
+  GNUNET_memcpy (&res[1], msg, msg_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending fragment %ld to client\n",
 	      GNUNET_ntohll (msg->fragment_id));
@@ -229,8 +229,8 @@ send_state_var (void *cls, const char *name,
   res->header.size = htons (sizeof (struct StateResult) + name_size + value_size);
   res->op_id = sc->op_id;
   res->name_size = htons (name_size);
-  memcpy (&res[1], name, name_size);
-  memcpy ((char *) &res[1] + name_size, value, value_size);
+  GNUNET_memcpy (&res[1], name, name_size);
+  GNUNET_memcpy ((char *) &res[1] + name_size, value, value_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending state variable %s to client\n", name);
   GNUNET_SERVER_notification_context_add (nc, sc->client);
@@ -563,13 +563,13 @@ recv_state_message_part (void *cls,
       {
         scls->mod_oper = pmod->oper;
         scls->mod_name = GNUNET_malloc (name_size);
-        memcpy (scls->mod_name, name, name_size);
+        GNUNET_memcpy (scls->mod_name, name, name_size);
 
         scls->mod_value_size = value_size;
         scls->mod_value = GNUNET_malloc (scls->mod_value_size);
         scls->mod_value_remaining
           = scls->mod_value_size - (psize - sizeof (*pmod) - name_size);
-        memcpy (scls->mod_value, value, value_size - scls->mod_value_remaining);
+        GNUNET_memcpy (scls->mod_value, value, value_size - scls->mod_value_remaining);
       }
     }
     scls->msg_state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
@@ -585,7 +585,7 @@ recv_state_message_part (void *cls,
         scls->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
       }
       psize = ntohs (pmsg->size);
-      memcpy (scls->mod_value + (scls->mod_value_size - scls->mod_value_remaining),
+      GNUNET_memcpy (scls->mod_value + (scls->mod_value_size - scls->mod_value_remaining),
               &pmsg[1], psize - sizeof (*pmsg));
       scls->mod_value_remaining -= psize - sizeof (*pmsg);
       if (0 == scls->mod_value_remaining)
@@ -814,7 +814,7 @@ handle_state_get (void *cls,
     if (GNUNET_NO == ret && name_size >= 5) /* min: _a_b\0 */
     {
       char *p, *n = GNUNET_malloc (name_size);
-      memcpy (n, name, name_size);
+      GNUNET_memcpy (n, name, name_size);
       while (&n[1] < (p = strrchr (n, '_')) && GNUNET_NO == ret)
       {
         *p = '\0';

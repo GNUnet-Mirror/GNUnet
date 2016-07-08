@@ -643,7 +643,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
   if (NULL != data)
-    memcpy (bf->bitArray, data, size);
+    GNUNET_memcpy (bf->bitArray, data, size);
   return bf;
 }
 
@@ -666,7 +666,7 @@ GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
     return GNUNET_SYSERR;
   if (bf->bitArraySize != size)
     return GNUNET_SYSERR;
-  memcpy (data, bf->bitArray, size);
+  GNUNET_memcpy (data, bf->bitArray, size);
   return GNUNET_OK;
 }
 

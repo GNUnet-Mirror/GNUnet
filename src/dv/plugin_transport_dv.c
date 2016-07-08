@@ -487,7 +487,7 @@ dv_plugin_send (void *cls,
     box = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
     box->type = htons (GNUNET_MESSAGE_TYPE_DV_BOX);
     box->size = htons (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
-    memcpy (&box[1], msgbuf, msgbuf_size);
+    GNUNET_memcpy (&box[1], msgbuf, msgbuf_size);
     msg = box;
   }
   GNUNET_DV_send (plugin->dvh,

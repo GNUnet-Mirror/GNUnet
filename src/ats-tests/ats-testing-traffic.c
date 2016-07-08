@@ -143,7 +143,7 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
   memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
   msg->type = htons (TEST_MESSAGE_TYPE_PING);
   msg->size = htons (TEST_MESSAGE_SIZE);
-  memcpy (buf, msg, TEST_MESSAGE_SIZE);
+  GNUNET_memcpy (buf, msg, TEST_MESSAGE_SIZE);
 
   p->messages_sent++;
   p->bytes_sent += TEST_MESSAGE_SIZE;
@@ -214,7 +214,7 @@ comm_send_pong_ready (void *cls, size_t size, void *buf)
   memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
   msg->type = htons (TEST_MESSAGE_TYPE_PONG);
   msg->size = htons (TEST_MESSAGE_SIZE);
-  memcpy (buf, msg, TEST_MESSAGE_SIZE);
+  GNUNET_memcpy (buf, msg, TEST_MESSAGE_SIZE);
 
   return TEST_MESSAGE_SIZE;
 }

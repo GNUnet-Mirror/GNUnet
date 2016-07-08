@@ -335,7 +335,7 @@ result_processor (void *cls,
 	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_A;
 	  rec.data.raw.data = GNUNET_new (struct in_addr);
-	  memcpy (rec.data.raw.data,
+	  GNUNET_memcpy (rec.data.raw.data,
 		  rd[i].data,
 		  rd[i].data_size);
 	  rec.data.raw.data_len = sizeof (struct in_addr);
@@ -349,7 +349,7 @@ result_processor (void *cls,
 	  rec.data.raw.data = GNUNET_new (struct in6_addr);
 	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_AAAA;
-	  memcpy (rec.data.raw.data,
+	  GNUNET_memcpy (rec.data.raw.data,
 		  rd[i].data,
 		  rd[i].data_size);
 	  rec.data.raw.data_len = sizeof (struct in6_addr);
@@ -362,7 +362,7 @@ result_processor (void *cls,
 	  rec.data.hostname = GNUNET_strdup (rd[i].data);
 	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_CNAME;
-	  memcpy (rec.data.hostname,
+	  GNUNET_memcpy (rec.data.hostname,
 		  rd[i].data,
 		  rd[i].data_size);
 	  GNUNET_array_append (packet->answers,
@@ -439,7 +439,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   request->packet = packet;
   request->addr = &request[1];
   request->addr_len = addr_len;
-  memcpy (&request[1], addr, addr_len);
+  GNUNET_memcpy (&request[1], addr, addr_len);
   request->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 							&do_timeout,
 							request);

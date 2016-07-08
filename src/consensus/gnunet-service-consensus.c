@@ -711,7 +711,7 @@ send_to_client_iter (void *cls,
     ev = GNUNET_MQ_msg_extra (m, element->size,
                               GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
     m->element_type = htons (element->element_type);
-    memcpy (&m[1], element->data, element->size);
+    GNUNET_memcpy (&m[1], element->data, element->size);
     GNUNET_MQ_send (session->client_mq, ev);
   }
   else
@@ -2358,7 +2358,7 @@ initialize_session_peer_list (struct ConsensusSession *session,
   if (GNUNET_NO == local_peer_in_list)
     session->peers[session->num_peers - 1] = my_peer;
 
-  memcpy (session->peers, msg_peers, listed_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (session->peers, msg_peers, listed_peers * sizeof (struct GNUNET_PeerIdentity));
   qsort (session->peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &peer_id_cmp);
 }
 
@@ -3091,7 +3091,7 @@ client_insert (void *cls,
   element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
   element->element_type = msg->element_type;
   element->size = element_size;
-  memcpy (&element[1], &msg[1], element_size);
+  GNUNET_memcpy (&element[1], &msg[1], element_size);
   element->data = &element[1];
   {
     struct SetKey key = { SET_KIND_CURRENT, 0, 0 };

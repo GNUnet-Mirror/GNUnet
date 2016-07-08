@@ -196,7 +196,7 @@ on_appsink_new_sample (GstElement * element, GNUNET_gstData * d)
    msg_size = sizeof (struct AudioMessage) + len;
 
   // copy the data into audio_message
-  memcpy (((char *) &(d->audio_message)[1]), map.data, len);
+  GNUNET_memcpy (((char *) &(d->audio_message)[1]), map.data, len);
 /*
   toff += msg_size;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

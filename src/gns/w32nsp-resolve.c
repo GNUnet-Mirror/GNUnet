@@ -362,7 +362,7 @@ main (int argc, char **argv)
                 struct hostent *he = malloc (result->lpBlob->cbSize);
                 if (he != NULL)
                 {
-                  memcpy (he, result->lpBlob->pBlobData, result->lpBlob->cbSize);
+                  GNUNET_memcpy (he, result->lpBlob->pBlobData, result->lpBlob->cbSize);
                   UnpackHostEnt (he);
                   print_hostent (he);
                   free (he);

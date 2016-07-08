@@ -661,7 +661,7 @@ transmit_ready (void *cls,
   peer_entry->last_transmitted_size =
       ntohl(size_estimate_messages[idx].matching_bits);
 #endif
-  memcpy (buf, &size_estimate_messages[idx],
+  GNUNET_memcpy (buf, &size_estimate_messages[idx],
           sizeof (struct GNUNET_NSE_FloodMessage));
   return sizeof (struct GNUNET_NSE_FloodMessage);
 }
@@ -880,8 +880,8 @@ check_proof_of_work (const struct GNUNET_CRYPTO_EddsaPublicKey *pkey,
            sizeof (val)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
-  memcpy (buf, &val, sizeof (val));
-  memcpy (&buf[sizeof (val)], pkey,
+  GNUNET_memcpy (buf, &val, sizeof (val));
+  GNUNET_memcpy (&buf[sizeof (val)], pkey,
           sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
@@ -926,13 +926,13 @@ find_proof (void *cls)
   unsigned int i;
 
   proof_task = NULL;
-  memcpy (&buf[sizeof (uint64_t)], &my_identity,
+  GNUNET_memcpy (&buf[sizeof (uint64_t)], &my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   i = 0;
   counter = my_proof;
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
-    memcpy (buf, &counter, sizeof (uint64_t));
+    GNUNET_memcpy (buf, &counter, sizeof (uint64_t));
     pow_hash (buf, sizeof (buf), &result);
     if (nse_work_required <= count_leading_zeroes (&result))
     {

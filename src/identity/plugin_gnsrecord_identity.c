@@ -146,7 +146,7 @@ string_to_value (void *cls,
                                      write_ptr,
                                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
       write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-      memcpy (write_ptr, str, strlen (str) + 1); //with 0-Terminator
+      GNUNET_memcpy (write_ptr, str, strlen (str) + 1); //with 0-Terminator
       GNUNET_free (tmp_tok);
       return GNUNET_OK;
 

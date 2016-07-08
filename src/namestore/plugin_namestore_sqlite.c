@@ -372,7 +372,7 @@ namestore_sqlite_store_records (void *cls,
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
-      memcpy (&pkey,
+      GNUNET_memcpy (&pkey,
               rd[i].data,
               rd[i].data_size);
       break;

@@ -612,16 +612,16 @@ transmit_ping_if_allowed (void *cls,
   {
     char message_buf[tsize] GNUNET_ALIGN;
 
-    memcpy (message_buf,
+    GNUNET_memcpy (message_buf,
             hello,
             hsize);
-    memcpy (&message_buf[hsize],
+    GNUNET_memcpy (&message_buf[hsize],
 	    &ping,
 	    sizeof (struct TransportPingMessage));
-    memcpy (&message_buf[sizeof (struct TransportPingMessage) + hsize],
+    GNUNET_memcpy (&message_buf[sizeof (struct TransportPingMessage) + hsize],
             ve->address->transport_name,
 	    slen);
-    memcpy (&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
+    GNUNET_memcpy (&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
             ve->address->address,
 	    ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
@@ -1235,13 +1235,13 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
              sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
              len_address + len_plugin);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
-  memcpy (&pong->challenge, &ping->challenge, sizeof (ping->challenge));
+  GNUNET_memcpy (&pong->challenge, &ping->challenge, sizeof (ping->challenge));
   pong->addrlen = htonl (len_address + len_plugin);
-  memcpy (&pong[1], addr, len_plugin);   /* Copy transport plugin */
+  GNUNET_memcpy (&pong[1], addr, len_plugin);   /* Copy transport plugin */
   if (len_address > 0)
   {
     GNUNET_assert (NULL != addrend);
-    memcpy (&((char *) &pong[1])[len_plugin], addrend, len_address);
+    GNUNET_memcpy (&((char *) &pong[1])[len_plugin], addrend, len_address);
   }
   if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value_us <
       PONG_SIGNATURE_LIFETIME.rel_value_us / 4)

@@ -109,7 +109,7 @@ decrypt_str_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
     return GNUNET_SYSERR;
   }
   *result_str = GNUNET_malloc (str_size+1);
-  memcpy (*result_str, str_buf, str_size);
+  GNUNET_memcpy (*result_str, str_buf, str_size);
   (*result_str)[str_size] = '\0';
   GNUNET_free (str_buf);
   return GNUNET_OK;
@@ -542,7 +542,7 @@ token_to_string (const struct IdentityToken *token,
   purpose->size =
     htonl (strlen (signature_target) + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
-  memcpy (&purpose[1], signature_target, strlen (signature_target));
+  GNUNET_memcpy (&purpose[1], signature_target, strlen (signature_target));
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (priv_key,
                                              purpose,
                                              (struct GNUNET_CRYPTO_EcdsaSignature *)&token->signature))
@@ -714,11 +714,11 @@ ticket_serialize (struct TokenTicket *ticket,
            strlen (code_payload_str));
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET);
   write_ptr = (char*) &purpose[1];
-  memcpy (write_ptr,
+  GNUNET_memcpy (write_ptr,
           &ticket->ecdh_pubkey,
           sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
-  memcpy (write_ptr, enc_ticket_payload, strlen (code_payload_str));
+  GNUNET_memcpy (write_ptr, enc_ticket_payload, strlen (code_payload_str));
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign (priv_key,
                                                         purpose,
                                                         &ticket->signature));
@@ -932,9 +932,9 @@ ticket_parse (const char *raw_data,
            enc_data_len);
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET);
   write_ptr = (char*) &purpose[1];
-  memcpy (write_ptr, &ticket->ecdh_pubkey, sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+  GNUNET_memcpy (write_ptr, &ticket->ecdh_pubkey, sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
-  memcpy (write_ptr, enc_data, enc_data_len);
+  GNUNET_memcpy (write_ptr, enc_data, enc_data_len);
 
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET,
                                                purpose,

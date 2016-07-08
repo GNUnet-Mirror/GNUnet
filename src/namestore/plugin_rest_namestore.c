@@ -744,7 +744,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
   term_data[handle->rest_handle->data_size] = '\0';
-  memcpy (term_data,
+  GNUNET_memcpy (term_data,
           handle->rest_handle->data,
           handle->rest_handle->data_size);
   data_js = json_loads (term_data,

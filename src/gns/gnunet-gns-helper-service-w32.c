@@ -224,7 +224,7 @@ transmit_callback (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_assert (size >= msize);
-  memcpy (buf, tcc->msg, msize);
+  GNUNET_memcpy (buf, tcc->msg, msize);
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
   for (tcc = tcc_head; tcc; tcc = tcc->next)
@@ -418,14 +418,14 @@ process_lookup_result (void* cls, uint32_t rd_count,
   ptr += sizeof (GUID);
   size_recalc += sizeof (GUID);
   GNUNET_break (size_recalc == (size_t) ((char *) ptr - (char *) msg));
-  memcpy (qs->lpServiceClassId, &rq->sc, sizeof (GUID));
+  GNUNET_memcpy (qs->lpServiceClassId, &rq->sc, sizeof (GUID));
   qs->lpVersion = NULL;
   qs->dwNameSpace = NS_DNS;
   qs->lpNSProviderId = (GUID *) ptr;
   ptr += sizeof (GUID);
   size_recalc += sizeof (GUID);
   GNUNET_break (size_recalc == (size_t) ((char *) ptr - (char *) msg));
-  memcpy (qs->lpNSProviderId, &GNUNET_NAMESPACE_PROVIDER_DNS, sizeof (GUID));
+  GNUNET_memcpy (qs->lpNSProviderId, &GNUNET_NAMESPACE_PROVIDER_DNS, sizeof (GUID));
   qs->lpszContext = NULL;
   qs->dwNumberOfProtocols = 0;
   qs->lpafpProtocols = NULL;
@@ -540,7 +540,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
         size_recalc += sizeof (struct in_addr);
         GNUNET_break (size_recalc == (size_t) ((char *) ptr - (char *) msg));
 
-        memcpy (he->h_addr_list[j], rd[i].data, sizeof (struct in_addr));
+        GNUNET_memcpy (he->h_addr_list[j], rd[i].data, sizeof (struct in_addr));
         j++;
       }
       else if (rq->af == AF_INET6 && rd[i].record_type == GNUNET_DNSPARSER_TYPE_AAAA)
@@ -551,7 +551,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
         size_recalc += sizeof (struct in6_addr);
         GNUNET_break (size_recalc == (size_t) ((char *) ptr - (char *) msg));
 
-        memcpy (he->h_addr_list[j], rd[i].data, sizeof (struct in6_addr));
+        GNUNET_memcpy (he->h_addr_list[j], rd[i].data, sizeof (struct in6_addr));
         j++;
       }
     }
@@ -640,7 +640,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   if (namelen)
   {
     rq->name = GNUNET_malloc ((namelen + 1) * sizeof (wchar_t));
-    memcpy (rq->name, name, (namelen + 1) * sizeof (wchar_t));
+    GNUNET_memcpy (rq->name, name, (namelen + 1) * sizeof (wchar_t));
     rq->u8name = hostname;
   }
 

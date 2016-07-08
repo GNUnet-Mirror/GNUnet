@@ -377,7 +377,7 @@ make_peer (const struct GNUNET_PeerIdentity *peer,
   if (NULL != hello)
   {
     ret->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
-    memcpy (ret->hello,
+    GNUNET_memcpy (ret->hello,
             hello,
             GNUNET_HELLO_size (hello));
   }
@@ -825,7 +825,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   {
     size = GNUNET_HELLO_size (hello);
     peer->hello = GNUNET_malloc (size);
-    memcpy (peer->hello,
+    GNUNET_memcpy (peer->hello,
             hello,
             size);
   }
@@ -1108,7 +1108,7 @@ hello_advertising_ready (void *cls,
   {
     want = GNUNET_HELLO_size (fah.result->hello);
     GNUNET_assert (want <= size);
-    memcpy (buf,
+    GNUNET_memcpy (buf,
             fah.result->hello,
             want);
     GNUNET_CRYPTO_hash (&pl->pid,

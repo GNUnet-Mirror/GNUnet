@@ -2089,8 +2089,8 @@ ril_cut_from_vector (void **old,
   else
   {
     tmpptr = GNUNET_malloc (size);
-    memcpy (tmpptr, oldptr, bytes_before);
-    memcpy (tmpptr + bytes_before, oldptr + (bytes_before + bytes_hole), bytes_after);
+    GNUNET_memcpy (tmpptr, oldptr, bytes_before);
+    GNUNET_memcpy (tmpptr + bytes_before, oldptr + (bytes_before + bytes_hole), bytes_after);
   }
   if (NULL != *old)
   {

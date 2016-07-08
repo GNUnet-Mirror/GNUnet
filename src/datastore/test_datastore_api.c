@@ -297,7 +297,7 @@ delete_value (void *cls,
   crc->size = size;
   crc->key = *key;
   crc->data = GNUNET_malloc (size);
-  memcpy (crc->data, data, size);
+  GNUNET_memcpy (crc->data, data, size);
   crc->phase = RP_DO_DEL;
   GNUNET_SCHEDULER_add_now (&run_continuation,
                             crc);

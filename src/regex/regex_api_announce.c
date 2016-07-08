@@ -118,7 +118,7 @@ announce_reconnect (struct GNUNET_REGEX_Announcement *a)
   am->compression = htons (a->compression);
   am->reserved = htons (0);
   am->refresh_delay = GNUNET_TIME_relative_hton (a->refresh_delay);
-  memcpy (&am[1],
+  GNUNET_memcpy (&am[1],
           a->regex,
           slen);
   GNUNET_MQ_send (a->mq,

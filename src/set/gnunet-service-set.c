@@ -842,7 +842,7 @@ execute_add (struct Set *set,
   {
     ee = GNUNET_malloc (el.size + sizeof *ee);
     ee->element.size = el.size;
-    memcpy (&ee[1],
+    GNUNET_memcpy (&ee[1],
             el.data,
             el.size);
     ee->element.data = &ee[1];
@@ -1012,7 +1012,7 @@ again:
     ev = GNUNET_MQ_msg_extra (msg,
                               ee->element.size,
                               GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
-    memcpy (&msg[1],
+    GNUNET_memcpy (&msg[1],
             ee->element.data,
             ee->element.size);
     msg->element_type = htons (ee->element.element_type);

@@ -174,7 +174,7 @@ gns_string_to_value (void *cls,
       return GNUNET_SYSERR;
     }
     *data = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
-    memcpy (*data, &pkey, sizeof (pkey));
+    GNUNET_memcpy (*data, &pkey, sizeof (pkey));
     *data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
     return GNUNET_OK;
 
@@ -227,7 +227,7 @@ gns_string_to_value (void *cls,
       GNUNET_free (cpy);
       *data_size = off;
       *data = GNUNET_malloc (off);
-      memcpy (*data, nsbuf, off);
+      GNUNET_memcpy (*data, nsbuf, off);
       return GNUNET_OK;
     }
   case GNUNET_GNSRECORD_TYPE_VPN:
@@ -297,7 +297,7 @@ gns_string_to_value (void *cls,
       box->protocol = htons (protocol);
       box->service = htons (service);
       box->record_type = htonl (record_type);
-      memcpy (&box[1],
+      GNUNET_memcpy (&box[1],
               bval,
               bval_size);
       GNUNET_free (bval);

@@ -417,9 +417,9 @@ uri_chk_parse (const char *s,
     *emsg = GNUNET_strdup (_("Malformed CHK URI (wrong syntax)"));
     return NULL;
   }
-  memcpy (h1, &s[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
+  GNUNET_memcpy (h1, &s[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
   h1[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] = '\0';
-  memcpy (h2, &s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)],
+  GNUNET_memcpy (h2, &s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)],
           sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
   h2[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] = '\0';
 
@@ -511,9 +511,9 @@ uri_loc_parse (const char *s,
     *emsg = GNUNET_strdup (_("LOC URI malformed (wrong syntax)"));
     return NULL;
   }
-  memcpy (h1, &s[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
+  GNUNET_memcpy (h1, &s[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
   h1[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] = '\0';
-  memcpy (h2, &s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)],
+  GNUNET_memcpy (h2, &s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)],
           sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
   h2[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] = '\0';
 
@@ -978,7 +978,7 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
   if (uri == NULL)
     return NULL;
   ret = GNUNET_new (struct GNUNET_FS_Uri);
-  memcpy (ret, uri, sizeof (struct GNUNET_FS_Uri));
+  GNUNET_memcpy (ret, uri, sizeof (struct GNUNET_FS_Uri));
   switch (ret->type)
   {
   case GNUNET_FS_URI_KSK:
@@ -1450,7 +1450,7 @@ normalize_metadata (enum EXTRACTOR_MetaFormat format,
   {
     /* u8_tolower allocates a non-NULL-terminated string! */
     free_str = GNUNET_malloc (r_len + 1);
-    memcpy (free_str, normalized, r_len);
+    GNUNET_memcpy (free_str, normalized, r_len);
     free_str[r_len] = '\0';
     free (normalized);
     normalized = free_str;

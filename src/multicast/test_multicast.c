@@ -227,7 +227,7 @@ tmit_notify (void *cls, size_t *data_size, void *data)
   tmit->paused = GNUNET_NO;
 
   *data_size = size;
-  memcpy (data, tmit->data[tmit->n], size);
+  GNUNET_memcpy (data, tmit->data[tmit->n], size);
 
   return ++tmit->n < tmit->data_count ? GNUNET_NO : GNUNET_YES;
 }
@@ -610,7 +610,7 @@ origin_recv_join_request (void *cls,
   join_resp = GNUNET_malloc (sizeof (join_resp) + data_size);
   join_resp->size = htons (sizeof (join_resp) + data_size);
   join_resp->type = htons (456);
-  memcpy (&join_resp[1], data, data_size);
+  GNUNET_memcpy (&join_resp[1], data, data_size);
 
   switch (test)
   {
@@ -649,7 +649,7 @@ member_join (int t)
   join_req = GNUNET_malloc (sizeof (join_req) + data_size);
   join_req->size = htons (sizeof (join_req) + data_size);
   join_req->type = htons (123);
-  memcpy (&join_req[1], data, data_size);
+  GNUNET_memcpy (&join_req[1], data, data_size);
 
   member = GNUNET_MULTICAST_member_join (cfg, &group_pub_key, member_key,
                                          &this_peer, 1, &this_peer, join_req,

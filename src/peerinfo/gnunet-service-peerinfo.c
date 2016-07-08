@@ -199,7 +199,7 @@ make_info_message (const struct HostEntry *he,
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
   im->peer = he->identity;
   if (NULL != src)
-    memcpy (&im[1], src, hs);
+    GNUNET_memcpy (&im[1], src, hs);
   return im;
 }
 
@@ -779,7 +779,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   if (NULL == (*dest))
   {
     (*dest) = GNUNET_malloc (GNUNET_HELLO_size (hello));
-    memcpy ((*dest), hello, GNUNET_HELLO_size (hello));
+    GNUNET_memcpy ((*dest), hello, GNUNET_HELLO_size (hello));
   }
   else
   {
@@ -861,14 +861,14 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
 
       if (GNUNET_YES == store_hello)
       {
-	memcpy (buffer,
+	GNUNET_memcpy (buffer,
                 host->hello,
                 GNUNET_HELLO_size (host->hello));
 	pos += GNUNET_HELLO_size (host->hello);
       }
       if (GNUNET_YES == store_friend_hello)
       {
-	memcpy (&buffer[pos],
+	GNUNET_memcpy (&buffer[pos],
                 host->friend_only_hello,
                 GNUNET_HELLO_size (host->friend_only_hello));
 	pos += GNUNET_HELLO_size (host->friend_only_hello);
@@ -924,7 +924,7 @@ add_to_tc (void *cls,
     hs = GNUNET_HELLO_size (pos->hello);
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
-    memcpy (&im[1], pos->hello, hs);
+    GNUNET_memcpy (&im[1], pos->hello, hs);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending public HELLO with size %u for peer `%4s'\n",
     		hs, GNUNET_i2s (key));
@@ -936,7 +936,7 @@ add_to_tc (void *cls,
     hs = GNUNET_HELLO_size (pos->friend_only_hello);
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
-    memcpy (&im[1], pos->friend_only_hello, hs);
+    GNUNET_memcpy (&im[1], pos->friend_only_hello, hs);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending friend-only HELLO with size %u for peer `%4s'\n",
     		hs,
@@ -1020,7 +1020,7 @@ discard_hosts_helper (void *cls,
     {
       /* Store new HELLO to write it when done */
       new_hello_size = GNUNET_HELLO_size (new_hello);
-      memcpy (&writebuffer[write_pos], new_hello, new_hello_size);
+      GNUNET_memcpy (&writebuffer[write_pos], new_hello, new_hello_size);
       write_pos += new_hello_size;
     }
     read_pos += cur_hello_size;

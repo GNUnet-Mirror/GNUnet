@@ -325,7 +325,7 @@ api_create_hello ()
   haddr = (EmailAddress *) &msg[1];
   memset (&haddr->filter[0], 0, FILTER_STRING_SIZE);
   strcpy (&haddr->filter[0], filter);
-  memcpy (&haddr->senderAddress[0], email, strlen (email) + 1);
+  GNUNET_memcpy (&haddr->senderAddress[0], email, strlen (email) + 1);
   msg->senderAddressSize = htons (strlen (email) + 1 + sizeof (EmailAddress));
   msg->protocol = htons (GNUNET_TRANSPORT_PROTOCOL_NUMBER_SMTP);
   msg->MTU = htonl (smtpAPI.mtu);
@@ -463,7 +463,7 @@ api_send (GNUNET_TSession * tsession, const void *msg, const unsigned int size,
   }
   GNUNET_free (filter);
   m = GNUNET_malloc (size + sizeof (SMTPMessage));
-  memcpy (m, msg, size);
+  GNUNET_memcpy (m, msg, size);
   mp = (SMTPMessage *) &m[size];
   mp->header.size = htons (size + sizeof (SMTPMessage));
   mp->header.type = htons (0);
@@ -544,7 +544,7 @@ api_connect (const GNUNET_MessageHello * hello, GNUNET_TSession ** tsessionPtr,
   tsession = GNUNET_new (GNUNET_TSession);
   tsession->internal = GNUNET_malloc (GNUNET_sizeof_hello (hello));
   tsession->peer = hello->senderIdentity;
-  memcpy (tsession->internal, hello, GNUNET_sizeof_hello (hello));
+  GNUNET_memcpy (tsession->internal, hello, GNUNET_sizeof_hello (hello));
   tsession->ttype = smtpAPI.protocol_number;
   (*tsessionPtr) = tsession;
   return GNUNET_OK;

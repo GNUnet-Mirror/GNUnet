@@ -1158,7 +1158,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
     old_hosts = rc->hosts;
     rc->hosts =
         GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * rc->num_hosts);
-    memcpy (rc->hosts, &old_hosts[1],
+    GNUNET_memcpy (rc->hosts, &old_hosts[1],
             (sizeof (struct GNUNET_TESTBED_Host *) * rc->num_hosts));
     GNUNET_free (old_hosts);
   }

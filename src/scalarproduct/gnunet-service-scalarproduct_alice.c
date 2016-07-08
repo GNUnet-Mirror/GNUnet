@@ -413,7 +413,7 @@ transmit_client_response (struct AliceServiceSession *s)
   msg->product_length = htonl (product_length);
   if (NULL != product_exported)
   {
-    memcpy (&msg[1],
+    GNUNET_memcpy (&msg[1],
             product_exported,
             product_length);
     GNUNET_free (product_exported);
@@ -692,10 +692,10 @@ handle_bobs_cryptodata_multipart (void *cls,
   /* Convert each k[][perm] to its MPI_value */
   for (i = 0; i < contained; i++)
   {
-    memcpy (&s->r[s->cadet_received_element_count + i],
+    GNUNET_memcpy (&s->r[s->cadet_received_element_count + i],
             &payload[2 * i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-    memcpy (&s->r_prime[s->cadet_received_element_count + i],
+    GNUNET_memcpy (&s->r_prime[s->cadet_received_element_count + i],
             &payload[2 * i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
@@ -775,10 +775,10 @@ handle_bobs_cryptodata_message (void *cls,
               (unsigned int) contained);
 
   payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-  memcpy (&s->s,
+  GNUNET_memcpy (&s->s,
           &payload[0],
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  memcpy (&s->s_prime,
+  GNUNET_memcpy (&s->s_prime,
           &payload[1],
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   payload = &payload[2];
@@ -787,10 +787,10 @@ handle_bobs_cryptodata_message (void *cls,
   s->r_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * s->used_element_count);
   for (i = 0; i < contained; i++)
   {
-    memcpy (&s->r[i],
+    GNUNET_memcpy (&s->r[i],
             &payload[2 * i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-    memcpy (&s->r_prime[i],
+    GNUNET_memcpy (&s->r_prime[i],
             &payload[2 * i + 1],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
@@ -1173,7 +1173,7 @@ GSS_handle_alice_client_message_multipart (void *cls,
   for (i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
@@ -1276,7 +1276,7 @@ GSS_handle_alice_client_message (void *cls,
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
-    memcpy (elem,
+    GNUNET_memcpy (elem,
             &elements[i],
             sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==

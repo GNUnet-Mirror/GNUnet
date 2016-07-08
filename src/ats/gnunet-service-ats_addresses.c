@@ -118,7 +118,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->peer = *peer;
   aa->addr_len = plugin_addr_len;
   aa->addr = &aa[1];
-  memcpy (&aa[1],
+  GNUNET_memcpy (&aa[1],
           plugin_addr,
           plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
@@ -597,7 +597,7 @@ transmit_req_addr (struct AddressIteration *ai,
   msg->address_local_info = htonl ((uint32_t) local_address_info);
   addrp = (char *) &msg[1];
   if (NULL != plugin_addr)
-    memcpy (addrp, plugin_addr, plugin_addr_len);
+    GNUNET_memcpy (addrp, plugin_addr, plugin_addr_len);
   if (NULL != plugin_name)
     strcpy (&addrp[plugin_addr_len], plugin_name);
   uc = GNUNET_SERVER_client_get_user_context (ai->client,

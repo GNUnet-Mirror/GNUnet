@@ -326,7 +326,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
   tmit->paused = GNUNET_NO;
 
   *data_size = size;
-  memcpy (data, tmit->data[tmit->n], size);
+  GNUNET_memcpy (data, tmit->data[tmit->n], size);
 
   return ++tmit->n < tmit->data_count ? GNUNET_NO : GNUNET_YES;
 }

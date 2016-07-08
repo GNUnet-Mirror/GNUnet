@@ -224,7 +224,7 @@ handle_lookup_block_it (void *cls,
   r->expire = block->expiration_time;
   r->signature = block->signature;
   r->derived_key = block->derived_key;
-  memcpy (&r[1], &block[1], esize);
+  GNUNET_memcpy (&r[1], &block[1], esize);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message with expiration time %s\n",
 	      "NAMECACHE_LOOKUP_BLOCK_RESPONSE",
@@ -333,7 +333,7 @@ handle_block_cache (void *cls,
 	      "Received `%s' message with expiration time %s\n",
 	      "NAMECACHE_BLOCK_CACHE",
               GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (block->expiration_time)));
-  memcpy (&block[1], &rp_msg[1], esize);
+  GNUNET_memcpy (&block[1], &rp_msg[1], esize);
   res = GSN_database->cache_block (GSN_database->cls,
 				   block);
   GNUNET_free (block);

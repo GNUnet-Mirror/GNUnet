@@ -519,7 +519,7 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
   struct LocalAddressList *lal;
 
   lal = GNUNET_malloc (sizeof (struct LocalAddressList) + arg_size);
-  memcpy (&lal[1], arg, arg_size);
+  GNUNET_memcpy (&lal[1], arg, arg_size);
   lal->addrlen = arg_size;
   lal->source = src;
   GNUNET_CONTAINER_DLL_insert (h->lal_head,
@@ -1522,7 +1522,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_assert (addrs[i] != NULL);
       h->local_addrlens[i] = addrlens[i];
       h->local_addrs[i] = GNUNET_malloc (addrlens[i]);
-      memcpy (h->local_addrs[i], addrs[i], addrlens[i]);
+      GNUNET_memcpy (h->local_addrs[i], addrs[i], addrlens[i]);
     }
   }
   if (GNUNET_OK ==

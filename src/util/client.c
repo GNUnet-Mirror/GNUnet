@@ -586,7 +586,7 @@ receive_helper (void *cls,
   if (client->received_size < client->received_pos + available)
     GNUNET_array_grow (client->received_buf, client->received_size,
                        client->received_pos + available);
-  memcpy (&client->received_buf[client->received_pos], buf, available);
+  GNUNET_memcpy (&client->received_buf[client->received_pos], buf, available);
   client->received_pos += available;
   check_complete (client);
   /* check for timeout */
@@ -642,7 +642,7 @@ receive_task (void *cls)
        client->service_name);
   GNUNET_assert (GNUNET_YES == client->msg_complete);
   GNUNET_assert (client->received_pos >= msize);
-  memcpy (msg, cmsg, msize);
+  GNUNET_memcpy (msg, cmsg, msize);
   memmove (client->received_buf,
 	   &client->received_buf[msize],
            client->received_pos - msize);
@@ -1371,7 +1371,7 @@ transmit_for_response (void *cls,
     return 0;
   }
   GNUNET_assert (size >= msize);
-  memcpy (buf, tc->hdr, msize);
+  GNUNET_memcpy (buf, tc->hdr, msize);
   GNUNET_CLIENT_receive (tc->client,
                          tc->rn,
                          tc->rn_cls,
@@ -1420,7 +1420,7 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client
   tc = GNUNET_malloc (sizeof (struct TransmitGetResponseContext) + msize);
   tc->client = client;
   tc->hdr = (const struct GNUNET_MessageHeader *) &tc[1];
-  memcpy (&tc[1], hdr, msize);
+  GNUNET_memcpy (&tc[1], hdr, msize);
   tc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   tc->rn = rn;
   tc->rn_cls = rn_cls;

@@ -774,7 +774,7 @@ transmit_line_audio (void *cls,
   mam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO);
   mam->remote_line = htonl (ch->remote_line);
   mam->source_line = htonl (ch->line->local_line);
-  memcpy (&mam[1], ch->audio_data, ch->audio_size);
+  GNUNET_memcpy (&mam[1], ch->audio_data, ch->audio_size);
   GNUNET_free (ch->audio_data);
   ch->audio_data = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -869,7 +869,7 @@ handle_client_audio_message (void *cls,
   }
   ch->audio_size = size;
   ch->audio_data = GNUNET_malloc (ch->audio_size);
-  memcpy (ch->audio_data,
+  GNUNET_memcpy (ch->audio_data,
           &msg[1],
           size);
   ch->unreliable_mth = GNUNET_CADET_notify_transmit_ready (ch->channel_unreliable,
@@ -1328,7 +1328,7 @@ handle_cadet_audio_message (void *cls,
   cam->header.size = htons (sizeof (buf));
   cam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   cam->cid = ch->cid;
-  memcpy (&cam[1], &msg[1], msize);
+  GNUNET_memcpy (&cam[1], &msg[1], msize);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               ch->line->client,
                                               &cam->header,

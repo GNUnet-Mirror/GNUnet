@@ -452,7 +452,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   received_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DV_RECV);
   received_msg->distance = htonl (distance);
   received_msg->sender = *origin;
-  memcpy (&received_msg[1], message, ntohs (message->size));
+  GNUNET_memcpy (&received_msg[1], message, ntohs (message->size));
   GNUNET_SERVER_notification_context_broadcast (nc,
 						&received_msg->header,
 						GNUNET_YES);
@@ -580,7 +580,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (dn->pm_head,
 				 dn->pm_tail,
                                  pending);
-    memcpy (&cbuf[off], pending->msg, msize);
+    GNUNET_memcpy (&cbuf[off], pending->msg, msize);
     GNUNET_free (pending);
     off += msize;
   }
@@ -648,7 +648,7 @@ forward_payload (struct DirectNeighbor *target,
   rm->distance = htonl (distance);
   rm->target = *actual_target;
   rm->sender = *sender;
-  memcpy (&rm[1], payload, ntohs (payload->size));
+  GNUNET_memcpy (&rm[1], payload, ntohs (payload->size));
   GNUNET_CONTAINER_DLL_insert_tail (target->pm_head,
 				    target->pm_tail,
 				    pm);
@@ -1500,7 +1500,7 @@ handle_set_union_result (void *cls,
       return;
     }
     target = GNUNET_new (struct Target);
-    memcpy (target, element->data, sizeof (struct Target));
+    GNUNET_memcpy (target, element->data, sizeof (struct Target));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received information about peer `%s' with distance %u from SET\n",
                 GNUNET_i2s (&target->peer),

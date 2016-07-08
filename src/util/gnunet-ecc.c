@@ -323,7 +323,7 @@ print_key (const char *filename)
   total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
   for (c = 0; (c < total_hostkeys) && (c < list_keys_count); c++)
   {
-    memcpy (&private_key,
+    GNUNET_memcpy (&private_key,
             hostkeys_data + (c * GNUNET_TESTING_HOSTKEYFILESIZE),
             GNUNET_TESTING_HOSTKEYFILESIZE);
     GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &public_key);

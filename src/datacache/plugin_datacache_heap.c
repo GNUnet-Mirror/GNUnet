@@ -177,7 +177,7 @@ put_cb (void *cls,
     GNUNET_array_grow (val->path_info,
 		       val->path_info_len,
 		       put_ctx->path_info_len);
-    memcpy (val->path_info,
+    GNUNET_memcpy (val->path_info,
 	    put_ctx->path_info,
 	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));
     GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
@@ -237,7 +237,7 @@ heap_plugin_put (void *cls,
   if (GNUNET_YES == put_ctx.found)
     return 0;
   val = GNUNET_malloc (sizeof (struct Value) + size);
-  memcpy (&val[1], data, size);
+  GNUNET_memcpy (&val[1], data, size);
   val->key = *key;
   val->type = type;
   val->discard_time = discard_time;
@@ -245,7 +245,7 @@ heap_plugin_put (void *cls,
   GNUNET_array_grow (val->path_info,
 		     val->path_info_len,
 		     path_info_len);
-  memcpy (val->path_info,
+  GNUNET_memcpy (val->path_info,
           path_info,
 	  path_info_len * sizeof (struct GNUNET_PeerIdentity));
   (void) GNUNET_CONTAINER_multihashmap_put (plugin->map,

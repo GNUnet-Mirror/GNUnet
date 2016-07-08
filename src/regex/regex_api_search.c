@@ -177,7 +177,7 @@ search_reconnect (struct GNUNET_REGEX_Search *s)
   env = GNUNET_MQ_msg_extra (rsm,
                              slen,
                              GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
-  memcpy (&rsm[1],
+  GNUNET_memcpy (&rsm[1],
           s->string,
           slen);
   GNUNET_MQ_send (s->mq,

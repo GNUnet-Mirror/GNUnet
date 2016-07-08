@@ -292,7 +292,7 @@ host_processor (void *cls,
   GNUNET_array_grow (builder->data,
                      builder->size,
                      old + s);
-  memcpy (&builder->data[old],
+  GNUNET_memcpy (&builder->data[old],
           hello,
           s);
 }
@@ -467,11 +467,11 @@ adv_transmit_ready (void *cls,
   header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
   header.size = htons (transmission_size);
   GNUNET_assert (size >= transmission_size);
-  memcpy (buf,
+  GNUNET_memcpy (buf,
           &header,
           sizeof (struct GNUNET_MessageHeader));
   cbuf = buf;
-  memcpy (&cbuf[sizeof (struct GNUNET_MessageHeader)],
+  GNUNET_memcpy (&cbuf[sizeof (struct GNUNET_MessageHeader)],
           hostlist_uri,
           uri_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

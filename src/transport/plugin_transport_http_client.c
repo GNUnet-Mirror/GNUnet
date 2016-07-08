@@ -681,7 +681,7 @@ client_log (CURL *curl,
     ttype = "UNSPECIFIED";
     break;
   }
-  memcpy (text, data, size);
+  GNUNET_memcpy (text, data, size);
   if (text[size - 1] == '\n')
   {
     text[size] = '\0';
@@ -774,7 +774,7 @@ http_client_plugin_send (void *cls,
   msg->buf = (char *) &msg[1];
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
-  memcpy (msg->buf,
+  GNUNET_memcpy (msg->buf,
           msgbuf,
           msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (s->msg_head,
@@ -1071,7 +1071,7 @@ client_send_cb (void *stream,
   /* calculate how much fits in buffer */
   len = GNUNET_MIN (msg->size - msg->pos,
                     size * nmemb);
-  memcpy (stream, &msg->buf[msg->pos], len);
+  GNUNET_memcpy (stream, &msg->buf[msg->pos], len);
   msg->pos += len;
   if (msg->pos == msg->size)
   {

@@ -421,7 +421,7 @@ transmit_blacklist_message (void *cls,
   bm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY);
   bm.is_allowed = htonl (0);
   bm.peer = bc->peer;
-  memcpy (buf,
+  GNUNET_memcpy (buf,
 	  &bm,
 	  sizeof (bm));
   if (GNUNET_YES == bl->call_receive_done)

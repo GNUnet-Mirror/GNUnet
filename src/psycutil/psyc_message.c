@@ -215,7 +215,7 @@ GNUNET_PSYC_message_create (const char *method_name,
   pmeth = (struct GNUNET_PSYC_MessageMethod *) &msg[1];
   pmeth->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD);
   pmeth->header.size = htons (sizeof (*pmeth) + method_name_size);
-  memcpy (&pmeth[1], method_name, method_name_size);
+  GNUNET_memcpy (&pmeth[1], method_name, method_name_size);
 
   uint16_t p = sizeof (*msg) + sizeof (*pmeth) + method_name_size;
   if (NULL != env)
@@ -234,9 +234,9 @@ GNUNET_PSYC_message_create (const char *method_name,
       pmod->name_size = htons (mod_name_size);
       pmod->value_size = htonl (mod->value_size);
 
-      memcpy (&pmod[1], mod->name, mod_name_size);
+      GNUNET_memcpy (&pmod[1], mod->name, mod_name_size);
       if (0 < mod->value_size)
-        memcpy ((char *) &pmod[1] + mod_name_size, mod->value, mod->value_size);
+        GNUNET_memcpy ((char *) &pmod[1] + mod_name_size, mod->value, mod->value_size);
 
       mod = mod->next;
     }
@@ -249,7 +249,7 @@ GNUNET_PSYC_message_create (const char *method_name,
     p += pmsg->size;
     pmsg->size = htons (pmsg->size);
     pmsg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA);
-    memcpy (&pmsg[1], data, data_size);
+    GNUNET_memcpy (&pmsg[1], data, data_size);
   }
 
   pmsg = (struct GNUNET_MessageHeader *) ((char *) msg + p);
@@ -388,7 +388,7 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
     {
       /* Message fits in current buffer, append */
       tmit->msg = GNUNET_realloc (tmit->msg, tmit->msg->size + size);
-      memcpy ((char *) tmit->msg + tmit->msg->size, msg, size);
+      GNUNET_memcpy ((char *) tmit->msg + tmit->msg->size, msg, size);
       tmit->msg->size += size;
     }
   }
@@ -398,7 +398,7 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
     /* Empty buffer, copy over message. */
     tmit->msg = GNUNET_malloc (sizeof (*tmit->msg) + size);
     tmit->msg->size = sizeof (*tmit->msg) + size;
-    memcpy (&tmit->msg[1], msg, size);
+    GNUNET_memcpy (&tmit->msg[1], msg, size);
   }
 
   if (NULL != tmit->msg
@@ -647,8 +647,8 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
       tmit->mod_value = tmit->mod->value + value_size;
     }
 
-    memcpy (data, tmit->mod->name, name_size);
-    memcpy ((char *)data + name_size, tmit->mod->value, value_size);
+    GNUNET_memcpy (data, tmit->mod->name, name_size);
+    GNUNET_memcpy ((char *)data + name_size, tmit->mod->value, value_size);
     return GNUNET_NO;
   }
   else
@@ -676,7 +676,7 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
     }
 
     *data_size = value_size;
-    memcpy (data, value, value_size);
+    GNUNET_memcpy (data, value, value_size);
     return (NULL == tmit->mod_value) ? GNUNET_YES : GNUNET_NO;
   }
 }
@@ -757,7 +757,7 @@ GNUNET_PSYC_transmit_message (struct GNUNET_PSYC_TransmitHandle *tmit,
   pmeth->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD);
   pmeth->header.size = htons (sizeof (*pmeth) + size);
   pmeth->flags = htonl (flags);
-  memcpy (&pmeth[1], method_name, size);
+  GNUNET_memcpy (&pmeth[1], method_name, size);
 
   tmit->state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
   tmit->notify_data = notify_data;
@@ -1302,7 +1302,7 @@ GNUNET_PSYC_message_header_init (struct GNUNET_PSYC_MessageHeader *pmsg,
   pmsg->fragment_offset = mmsg->fragment_offset;
   pmsg->flags = htonl (flags);
 
-  memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
+  GNUNET_memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
 }
 
 
@@ -1334,6 +1334,6 @@ GNUNET_PSYC_message_header_create_from_psyc (const struct GNUNET_PSYC_Message *m
     pmsg = GNUNET_malloc (sizeof (*pmsg) + msg_size - sizeof (*msg));
   pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
   pmsg->header.size = htons (sizeof (*pmsg) + msg_size - sizeof (*msg));
-  memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
+  GNUNET_memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
   return pmsg;
 }

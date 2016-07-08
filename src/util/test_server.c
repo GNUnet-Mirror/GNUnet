@@ -151,7 +151,7 @@ reply_msg (void *cls,
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
+  GNUNET_memcpy (buf, &msg, sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (NULL != argclient);
   GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
   GNUNET_SERVER_client_drop (argclient);

@@ -1375,7 +1375,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   ph->iv_seed = calculate_seed (kx);
   ph->reserved = 0;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  memcpy (&ph[1],
+  GNUNET_memcpy (&ph[1],
           payload,
           payload_size);
 
