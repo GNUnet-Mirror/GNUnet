@@ -34,9 +34,9 @@
 
 struct GNUNET_SCHEDULER_Task * timeout_task;
 
-static struct PeerContext *p;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
 static int ret = 0;
 
@@ -48,7 +48,7 @@ end ()
   if (timeout_task != NULL)
     GNUNET_SCHEDULER_cancel (timeout_task);
 
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
+  GNUNET_TRANSPORT_TESTING_stop_peer (p);
   GNUNET_TRANSPORT_TESTING_done (tth);
 }
 
@@ -59,7 +59,7 @@ end_badly ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   if (NULL != p)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p);
 
   if (NULL != tth)
     GNUNET_TRANSPORT_TESTING_done (tth);
@@ -68,12 +68,13 @@ end_badly ()
 }
 
 static void
-restart_cb (struct PeerContext *p, void *cls)
+restart_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
+            void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') successfully restarted\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%s') successfully restarted\n",
               p->no,
               GNUNET_i2s (&p->id));
-
   ret = 0;
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
@@ -87,14 +88,13 @@ restart_task ()
               p->no,
               GNUNET_i2s (&p->id));
   GNUNET_TRANSPORT_TESTING_restart_peer (p,
-                                         NULL,
                                          &restart_cb,
                                          p);
 }
 
 
 static void
-start_cb (struct PeerContext *p, void *cls)
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') successfully started\n",
               p->no,
@@ -113,9 +113,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != tth);
 
   timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &end_badly, NULL);
-
-  p = GNUNET_TRANSPORT_TESTING_start_peer(tth, cfgfile, 1,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &end_badly,
+                                    NULL);
+  p = GNUNET_TRANSPORT_TESTING_start_peer(tth,
+                                          cfgfile,
+                                          1,
                                           NULL, /* receive cb */
                                           NULL, /* connect cb */
                                           NULL, /* disconnect cb */

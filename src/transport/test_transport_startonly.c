@@ -39,9 +39,9 @@
 
 struct GNUNET_SCHEDULER_Task * timeout_task;
 
-static struct PeerContext *p1;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
 static int connected = GNUNET_NO;
 
@@ -71,7 +71,7 @@ end_badly (void *cls)
 	      "Fail! Stopping peers\n");
   timeout_task = NULL;
   if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
   if (NULL != tth)
     GNUNET_TRANSPORT_TESTING_done (tth);
   ret = GNUNET_SYSERR;
@@ -131,7 +131,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_assert (p1 != NULL);
     GNUNET_assert (p1->th != NULL);
 
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
 
     i++;
     if (i <= ITERATIONS)

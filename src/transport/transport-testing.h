@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006, 2009, 2015 GNUnet e.V.
+     Copyright (C) 2006, 2009, 2015, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,9 +21,11 @@
 /**
  * @file transport-testing.h
  * @brief testing lib for transport service
- *
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
+#ifndef TRANSPORT_TESTING_H
+#define TRANSPORT_TESTING_H
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
@@ -31,56 +33,45 @@
 #include "gnunet_testing_lib.h"
 
 
-struct GNUNET_TRANSPORT_TESTING_ConnectRequest;
-
-
 /**
  * Context for a single peer
  */
-struct PeerContext;
-
-/**
- * Callback when two peers are connected and both have called the connect callback
- * to notify clients about a new peer
- */
-typedef void
-(*GNUNET_TRANSPORT_TESTING_start_cb) (struct PeerContext *p,
-                                      void *cls);
-
-/**
- * Callback when two peers are connected and both have called the connect callback
- * to notify clients about a new peer
- */
-typedef void
-(*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext *p1,
-                                        struct PeerContext *p2,
-                                        void *cls);
-
+struct GNUNET_TRANSPORT_TESTING_PeerContext;
 
 /**
  * Definition for a transport testing handle
  */
-struct GNUNET_TRANSPORT_TESTING_handle;
+struct GNUNET_TRANSPORT_TESTING_Handle;
+
+
+/**
+ * Callback when two peers are connected and both have called the connect callback
+ * to notify clients about a new peer
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_StartCallback) (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
+                                           void *cls);
+
 
 /**
  * Context for a single peer
  */
-struct PeerContext
+struct GNUNET_TRANSPORT_TESTING_PeerContext
 {
   /**
    * Next element in the DLL
    */
-  struct PeerContext *next;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *next;
 
   /**
    * Previous element in the DLL
    */
-  struct PeerContext *prev;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *prev;
 
   /**
    * Transport testing handle this peer belongs to
    */
-  struct GNUNET_TRANSPORT_TESTING_handle *tth;
+  struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
   /**
    * Peer's configuration
@@ -135,7 +126,7 @@ struct PeerContext
   /**
    * Startup completed callback
    */
-  GNUNET_TRANSPORT_TESTING_start_cb start_cb;
+  GNUNET_TRANSPORT_TESTING_StartCallback start_cb;
 
   /**
    * Peers HELLO Message
@@ -154,23 +145,29 @@ struct PeerContext
 };
 
 
+/**
+ * Handle for a request to connect two peers.
+ */
 struct GNUNET_TRANSPORT_TESTING_ConnectRequest
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *next;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *prev;
-  struct PeerContext *p1;
-  struct PeerContext *p2;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
   struct GNUNET_SCHEDULER_Task *tct;
   struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
-  GNUNET_TRANSPORT_TESTING_connect_cb cb;
+  GNUNET_SCHEDULER_TaskCallback cb;
   void *cb_cls;
   int p1_c;
   int p2_c;
 };
 
 
-struct GNUNET_TRANSPORT_TESTING_handle
+/**
+ * Handle for a test run.
+ */
+struct GNUNET_TRANSPORT_TESTING_Handle
 {
   /**
    * Testing library system handle
@@ -190,13 +187,31 @@ struct GNUNET_TRANSPORT_TESTING_handle
   /**
    * head DLL of peers
    */
-  struct PeerContext *p_head;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p_head;
 
   /**
    * tail DLL of peers
    */
-  struct PeerContext *p_tail;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p_tail;
 };
+
+
+/**
+ * Initialize the transport testing
+ *
+ * @return transport testing handle
+ */
+struct GNUNET_TRANSPORT_TESTING_Handle *
+GNUNET_TRANSPORT_TESTING_init (void);
+
+
+/**
+ * Clean up the transport testing
+ *
+ * @param tth transport testing handle
+ */
+void
+GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth);
 
 
 /**
@@ -212,50 +227,46 @@ struct GNUNET_TRANSPORT_TESTING_handle
  * @param cb_cls closure for callback
  * @return the peer context
  */
-struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+struct GNUNET_TRANSPORT_TESTING_PeerContext *
+GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
                                      const char *cfgname,
                                      int peer_id,
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
-                                     GNUNET_TRANSPORT_TESTING_start_cb start_cb,
+                                     GNUNET_TRANSPORT_TESTING_StartCallback start_cb,
                                      void *cb_cls);
 
 
 /**
- * shutdown the given peer
+ * Shutdown the given peer
  *
- * @param tth the testing handle
  * @param p the peer
  */
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                                    struct PeerContext *pc);
+GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext *pc);
 
 
 /**
- * Restart the given peer
+ * Stops and restarts the given peer, sleeping (!) for 5s in between.
  *
  * @param p the peer
- * @param cfgname the cfg file used to restart
  * @param restart_cb restart callback
  * @param cb_cls callback closure
  * @return #GNUNET_OK in success otherwise #GNUNET_SYSERR
  */
 int
-GNUNET_TRANSPORT_TESTING_restart_peer (struct PeerContext *p,
-                                       const char *cfgname,
-                                       GNUNET_TRANSPORT_TESTING_start_cb restart_cb,
+GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
+                                       GNUNET_TRANSPORT_TESTING_StartCallback restart_cb,
                                        void *cb_cls);
 
 
+
 /**
- * Connect the given peers and call the callback when both peers report the
- * inbound connection. Remarks: start_peer's notify_connect callback can be called
- * before.
+ * Connect the given peers and call the callback when both peers
+ * report the inbound connection. Remarks: start_peer's notify_connect
+ * callback can be called before.
  *
- * @param tth transport testing handle
  * @param p1 peer 1
  * @param p2 peer 2
  * @param cb the callback to call when both peers notified that they are connected
@@ -263,48 +274,85 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct PeerContext *p,
  * @return a connect request handle
  */
 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *
-GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                                        struct PeerContext *p1,
-                                        struct PeerContext *p2,
-                                        GNUNET_TRANSPORT_TESTING_connect_cb cb,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
+                                        struct GNUNET_TRANSPORT_TESTING_PeerContext *p2,
+                                        GNUNET_SCHEDULER_TaskCallback cb,
                                         void *cls);
 
 
 /**
- * Cancel the request to connect two peers
- * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
- * @param tth testing
+ * Cancel the request to connect two peers.  You MUST cancel the
+ * request if you stop the peers before the peers connected
+ * succesfully.
+ *
  * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                                               struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
+
+/* ********************** high-level process functions *************** */
 
 
 /**
- * Clean up the transport testing
- * @param tth transport testing handle
+ * Main function of a testcase.  Called with the initial setup data
+ * for the test as derived from the source name and the binary name.
+ *
+ * @param cls closure
+ * @param tth initialized testing handle
+ * @param test_plugin name of the plugin (if available)
+ * @param num_peers number of entries in the @a cfg_file array
+ * @param cfg_files array of names of configuration files for the peers
  */
-void
-GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth);
+typedef void
+(*GNUNET_TRANSPORT_TESTING_CheckCallback)(void *cls,
+                                          struct GNUNET_TRANSPORT_TESTING_Handle *tth,
+                                          const char *test_plugin,
+                                          unsigned int num_peers,
+                                          const char *cfg_files[]);
 
 
 /**
- * Initialize the transport testing
- * @return transport testing handle
+ * Setup testcase.  Calls @a check with the data the test needs.
+ *
+ * @param argv0 binary name (argv[0])
+ * @param filename source file name (__FILE__)
+ * @param num_peers number of peers to start
+ * @param check main function to run
+ * @param check_cls closure for @a check
+ * @return #GNUNET_OK on success
  */
-struct GNUNET_TRANSPORT_TESTING_handle *
-GNUNET_TRANSPORT_TESTING_init (void);
+int
+GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
+                                const char *filename,
+                                unsigned int num_peers,
+                                GNUNET_TRANSPORT_TESTING_CheckCallback check,
+                                void *check_cls);
 
 
 /**
- * Extracts the test filename from an absolute file name and removes the extension
+ * Setup testcase.  Calls @a check with the data the test needs.
+ *
+ * @param num_peers number of peers to start
+ * @param check main function to run
+ * @param check_cls closure for @a check
+ * @return #GNUNET_OK on success
+ */
+#define GNUNET_TRANSPORT_TESTING_main(num_peers,check,check_cls) \
+  GNUNET_TRANSPORT_TESTING_main_ (argv[0], __FILE__, num_peers, check, check_cls)
+
+
+/* ********************** low-level filename functions *************** */
+
+
+/**
+ * Extracts the test filename from an absolute file name and removes
+ * the extension.
+ *
  * @param file absolute file name
- * @param dest where to store result
+ * @return resulting test name
  */
-void
-GNUNET_TRANSPORT_TESTING_get_test_name (const char *file,
-                                        char **dest);
+char *
+GNUNET_TRANSPORT_TESTING_get_test_name (const char *file);
 
 
 /**
@@ -312,12 +360,11 @@ GNUNET_TRANSPORT_TESTING_get_test_name (const char *file,
  * if existing ".exe"-prefix and adds the peer-number
  *
  * @param file filename of the test, e.g. argv[0]
- * @param dest where to write the filename
  * @param count peer number
+ * @return configuration name to use
  */
-void
+char *
 GNUNET_TRANSPORT_TESTING_get_config_name (const char *file,
-                                          char **dest,
                                           int count);
 
 
@@ -325,21 +372,22 @@ GNUNET_TRANSPORT_TESTING_get_config_name (const char *file,
  * Extracts the plugin anme from an absolute file name and the test name
  * @param file absolute file name
  * @param test test name
- * @param dest where to store result
+ * @return the plugin name
  */
-void
+char *
 GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *executable,
-                                               const char *testname,
-                                               char **pluginname);
+                                               const char *testname);
 
 
 /**
- * Extracts the filename from an absolute file name and removes the extenstion
+ * Extracts the filename from an absolute file name and removes the
+ * extenstion
+ *
  * @param file absolute file name
- * @param dest where to store result
+ * @return the source name
  */
-void
-GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file,
-                                               char **testname);
+char *
+GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file);
 
+#endif
 /* end of transport_testing.h */

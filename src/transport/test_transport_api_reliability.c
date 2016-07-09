@@ -92,7 +92,7 @@ static int ok;
 /**
  * Context of peer 1
  */
-static struct PeerContext *p1;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
 
 /**
  * Configuration file of peer 1
@@ -102,7 +102,7 @@ static char *cfg_file_p1;
 /**
  * Context of peer 2
  */
-static struct PeerContext *p2;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
 
 /**
  * Configuration file of peer 1
@@ -122,7 +122,7 @@ static struct GNUNET_TRANSPORT_TransmitHandle *th;
 /**
  * Transport testing handle
  */
-static struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
 /*
  * Total amount of bytes sent
@@ -215,11 +215,11 @@ end ()
   }
   if (cc != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
     cc = NULL;
   }
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  GNUNET_TRANSPORT_TESTING_stop_peer (p1);
+  GNUNET_TRANSPORT_TESTING_stop_peer (p2);
   GNUNET_TRANSPORT_TESTING_done (tth);
   ok = 0;
   for (i = 0; i < TOTAL_MSGS; i++)
@@ -274,13 +274,13 @@ end_badly ()
   }
   if (cc != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
     cc = NULL;
   }
   if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
   if (p2 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p2);
   GNUNET_TRANSPORT_TESTING_done (tth);
   ok = GNUNET_SYSERR;
 }
@@ -542,9 +542,7 @@ sendtask (void *cls)
 
 
 static void
-testing_connect_cb (struct PeerContext *p1,
-                    struct PeerContext *p2,
-                    void *cls)
+testing_connect_cb (void *cls)
 {
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
@@ -562,7 +560,7 @@ testing_connect_cb (struct PeerContext *p1,
 
 
 static void
-start_cb (struct PeerContext *p, void *cls)
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
 {
   static int started;
   started++;
@@ -576,7 +574,7 @@ start_cb (struct PeerContext *p, void *cls)
     return;
 
   test_connected = GNUNET_NO;
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb,
                                                NULL);
 
 }
@@ -627,21 +625,18 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_TRANSPORT_TESTING_get_test_name (argv[0],
-                                          &test_name);
+  test_name = GNUNET_TRANSPORT_TESTING_get_test_name (argv[0]);
   GNUNET_log_setup (test_name,
                     "WARNING",
                     NULL);
-  GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__,
-                                                 &test_source);
-  GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0],
-                                                 test_source,
-                                                 &test_plugin);
+  test_source = GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__);
+  test_plugin = GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0],
+                                                               test_source);
 
   tth = GNUNET_TRANSPORT_TESTING_init ();
 
-  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
-  GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
+  cfg_file_p1 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 1);
+  cfg_file_p2 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 2);
 
 #if WRITECONFIG
   setTransportOptions ("test_transport_api_data.conf");

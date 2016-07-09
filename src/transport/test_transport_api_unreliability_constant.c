@@ -51,13 +51,13 @@ static int ok;
 
 static struct GNUNET_SCHEDULER_Task * die_task;
 
-struct PeerContext *p1;
+struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
 
-struct PeerContext *p2;
+struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
 
 struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
 char *cfg_file_p1;
 
@@ -386,7 +386,7 @@ sendtask ()
 }
 
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p1, struct GNUNET_TRANSPORT_TESTING_PeerContext *p2, void *cls)
 {
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
@@ -400,7 +400,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 void
-start_cb (struct PeerContext *p, void *cls)
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
 {
   static int started;
 

@@ -28,15 +28,15 @@
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-static struct PeerContext *p1;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
 
-static struct PeerContext *p2;
+static struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-static struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
 /**
  * How long until we give up on transmitting the message?
@@ -91,7 +91,7 @@ end (void *cls)
 
   if (cc != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(cc);
     cc = NULL;
   }
 
@@ -113,12 +113,12 @@ end (void *cls)
 
   if (p1 != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
     p1 = NULL;
   }
   if (p2 != NULL)
   {
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p2);
     p2 = NULL;
   }
 
@@ -155,7 +155,7 @@ end_badly (void *cls)
   if (cc != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
     cc = NULL;
   }
 
@@ -170,9 +170,9 @@ end_badly (void *cls)
     GNUNET_TRANSPORT_blacklist_cancel (blacklist_p2);
 
   if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
   if (p2 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p2);
 
   ok = GNUNET_SYSERR;
 }
@@ -182,8 +182,8 @@ static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
-  struct PeerContext *p = cls;
-  struct PeerContext *t = NULL;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *t = NULL;
 
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
     t = p1;
@@ -217,7 +217,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 static size_t
 notify_ready (void *cls, size_t size, void *buf)
 {
-  struct PeerContext *p = cls;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
   struct GNUNET_MessageHeader *hdr;
 
   th = NULL;
@@ -283,8 +283,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   static int c;
 
   c++;
-  struct PeerContext *p = cls;
-  struct PeerContext *t = NULL;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *t = NULL;
 
   connected = GNUNET_YES;
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
@@ -310,7 +310,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct PeerContext *p = cls;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -326,7 +326,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (void *cls)
 {
   cc = NULL;
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
@@ -347,7 +347,7 @@ blacklist_cb (void *cls,
               const struct
               GNUNET_PeerIdentity * pid)
 {
-  struct PeerContext * p = cls;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext * p = cls;
   int res = GNUNET_SYSERR;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -376,7 +376,7 @@ blacklist_cb (void *cls,
 
 
 static void
-start_cb (struct PeerContext *p, void *cls)
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
 {
   static int started;
 
@@ -395,7 +395,9 @@ start_cb (struct PeerContext *p, void *cls)
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (sender_c);
 
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1,
+                                               p2,
+                                               &testing_connect_cb,
                                                NULL);
 
 }
@@ -405,28 +407,36 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                           &end_badly,
+                                           NULL);
   connected = GNUNET_NO;
   blacklist_request_p1 = GNUNET_NO;
   blacklist_request_p2 = GNUNET_NO;
 
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_api_tcp_peer1.conf", 1,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
+                                            "test_transport_api_tcp_peer1.conf", 1,
+                                            &notify_receive,
+                                            &notify_connect,
+                                            &notify_disconnect,
+                                            &start_cb,
                                             NULL);
 
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_api_tcp_peer2.conf", 2,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
+                                            "test_transport_api_tcp_peer2.conf", 2,
+                                            &notify_receive,
+                                            &notify_connect,
+                                            &notify_disconnect,
+                                            &start_cb,
                                             NULL);
 
   blacklist_p1 = GNUNET_TRANSPORT_blacklist (p1->cfg,
-                              &blacklist_cb,
-                              p1);
+                                             &blacklist_cb,
+                                             p1);
 
   blacklist_p2 = GNUNET_TRANSPORT_blacklist (p2->cfg,
-                              &blacklist_cb,
-                              p2);
+                                             &blacklist_cb,
+                                             p2);
 
   GNUNET_assert (blacklist_p1 != NULL);
   GNUNET_assert (blacklist_p2 != NULL);
