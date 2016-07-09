@@ -103,7 +103,9 @@ lookup_it (void *cls,
 {
   nsqe = NULL;
 
-  if (0 != memcmp(privkey, zone, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != memcmp (privkey,
+                   zone,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     GNUNET_break(0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -144,6 +146,13 @@ lookup_it (void *cls,
 
 
 static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
@@ -162,7 +171,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
     return;
   }
   /* Lookup */
-  nsqe = GNUNET_NAMESTORE_records_lookup (nsh, privkey, name, lookup_it, NULL);
+  nsqe = GNUNET_NAMESTORE_records_lookup (nsh,
+                                          privkey,
+                                          name,
+                                          &fail_cb,
+                                          NULL,
+                                          &lookup_it,
+                                          NULL);
 }
 
 

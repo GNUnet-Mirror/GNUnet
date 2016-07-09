@@ -215,11 +215,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
   char *label = cls;
 
   if (0 == strcmp (label, s_name_1))
-  	ns_ops[0] = NULL;
+    ns_ops[0] = NULL;
   else if (0 == strcmp (label, s_name_2))
-  	ns_ops[1] = NULL;
+    ns_ops[1] = NULL;
   else if (0 == strcmp (label, s_name_3))
-  	ns_ops[2] = NULL;
+    ns_ops[2] = NULL;
 
   if (success == GNUNET_OK)
   {
@@ -261,6 +261,20 @@ create_record (unsigned int count)
 
 
 static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
+sync_cb (void *cls)
+{
+  /* do nothing */
+}
+
+
+static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
@@ -288,8 +302,11 @@ run (void *cls,
   zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
                                             privkey,
                                             GNUNET_YES,
+                                            &fail_cb,
+                                            NULL,
 					    &zone_proc,
 					    NULL,
+                                            &sync_cb,
 					    NULL);
   if (NULL == zm)
   {

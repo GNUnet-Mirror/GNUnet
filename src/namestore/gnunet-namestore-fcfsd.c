@@ -247,6 +247,62 @@ run_httpd_now ()
 
 
 /**
+ * Function called on error in zone iteration.
+ */
+static void
+zone_iteration_error (void *cls)
+{
+  struct ZoneinfoRequest *zr = cls;
+  struct MHD_Response *response;
+
+  zr->list_it = NULL;
+  response = MHD_create_response_from_buffer (strlen ("internal error"),
+					      (void *) "internal error",
+					      MHD_RESPMEM_PERSISTENT);
+  MHD_queue_response (zr->connection,
+                      MHD_HTTP_INTERNAL_SERVER_ERROR,
+                      response);
+  MHD_destroy_response (response);
+  GNUNET_free (zr->zoneinfo);
+  GNUNET_free (zr);
+  run_httpd_now ();
+}
+
+
+/**
+ * Function called once the zone iteration is done.
+ */
+static void
+zone_iteration_end (void *cls)
+{
+  struct ZoneinfoRequest *zr = cls;
+  struct MHD_Response *response;
+  char* full_page;
+
+  zr->list_it = NULL;
+
+  /* return static form */
+  GNUNET_asprintf (&full_page,
+                   ZONEINFO_PAGE,
+                   zr->zoneinfo,
+                   zr->zoneinfo);
+  response = MHD_create_response_from_buffer (strlen (full_page),
+					      (void *) full_page,
+					      MHD_RESPMEM_MUST_FREE);
+  MHD_add_response_header (response,
+			   MHD_HTTP_HEADER_CONTENT_TYPE,
+			   MIME_HTML);
+  MHD_queue_response (zr->connection,
+                      MHD_HTTP_OK,
+                      response);
+  MHD_destroy_response (response);
+  GNUNET_free (zr->zoneinfo);
+  GNUNET_free (zr);
+  run_httpd_now ();
+}
+
+
+/**
  * Process a record that was stored in the namestore, adding
  * the information to the HTML.
  *
@@ -264,37 +320,9 @@ iterate_cb (void *cls,
 	    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneinfoRequest *zr = cls;
-  struct MHD_Response *response;
-  char* full_page;
   size_t bytes_free;
   char* pkey;
   char* new_buf;
-
-
-  if (NULL == name)
-  {
-    zr->list_it = NULL;
-
-    /* return static form */
-    GNUNET_asprintf (&full_page,
-                     ZONEINFO_PAGE,
-                     zr->zoneinfo,
-                     zr->zoneinfo);
-    response = MHD_create_response_from_buffer (strlen (full_page),
-					      (void *) full_page,
-					      MHD_RESPMEM_MUST_FREE);
-    MHD_add_response_header (response,
-			   MHD_HTTP_HEADER_CONTENT_TYPE,
-			   MIME_HTML);
-    MHD_queue_response (zr->connection,
-			    MHD_HTTP_OK,
-			    response);
-    MHD_destroy_response (response);
-    GNUNET_free (zr->zoneinfo);
-    GNUNET_free (zr);
-    run_httpd_now ();
-    return;
-  }
 
   if (1 != rd_len)
   {
@@ -354,8 +382,12 @@ serve_zoneinfo_page (struct MHD_Connection *connection)
   zr->write_offset = 0;
   zr->list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
 						       &fcfs_zone_pkey,
+                                                       &zone_iteration_error,
+                                                       zr,
 						       &iterate_cb,
-						       zr);
+						       zr,
+                                                       &zone_iteration_end,
+                                                       zr);
   return MHD_YES;
 }
 
@@ -512,6 +544,21 @@ put_continuation (void *cls,
 
 
 /**
+ * Function called if we had an error in zone-to-name mapping.
+ */
+static void
+zone_to_name_error (void *cls)
+{
+  struct Request *request = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              _("Error when mapping zone to name\n"));
+  request->phase = RP_FAIL;
+  run_httpd_now ();
+}
+
+
+/**
  * Test if a name mapping was found, if so, refuse.  If not, initiate storing of the record.
  *
  * @param cls closure
@@ -529,6 +576,7 @@ zone_to_name_cb (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_GNSRECORD_Data r;
+
   request->qe = NULL;
 
   if (0 != rd_count)
@@ -540,15 +588,6 @@ zone_to_name_cb (void *cls,
     run_httpd_now ();
     return;
   }
-  if (NULL == zone_key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Error when mapping zone to name\n"));
-    request->phase = RP_FAIL;
-    run_httpd_now ();
-    return;
-  }
-
   r.data = &request->pub;
   r.data_size = sizeof (request->pub);
   r.expiration_time = UINT64_MAX;
@@ -560,6 +599,20 @@ zone_to_name_cb (void *cls,
 						1, &r,
 						&put_continuation,
 						request);
+}
+
+
+/**
+ * We encountered an error in the name lookup.
+ */
+static void
+lookup_block_error (void *cls)
+{
+  struct Request *request = cls;
+
+  request->qe = NULL;
+  request->phase = RP_FAIL;
+  run_httpd_now ();
 }
 
 
@@ -585,7 +638,6 @@ lookup_block_processor (void *cls,
   request->qe = NULL;
   if (0 == rd_count)
   {
-
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
                                                     strlen (request->public_key),
@@ -599,6 +651,8 @@ lookup_block_processor (void *cls,
     request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
                                                  &fcfs_zone_pkey,
                                                  &request->pub,
+                                                 &zone_to_name_error,
+                                                 request,
                                                  &zone_to_name_cb,
                                                  request);
     return;
@@ -728,10 +782,12 @@ create_response (void *cls,
 	  }
 	  request->phase = RP_LOOKUP;
 	  request->qe = GNUNET_NAMESTORE_records_lookup (ns,
-                                                       &fcfs_zone_pkey,
-                                                       request->domain_name,
-                                                       &lookup_block_processor,
-                                                       request);
+                                                         &fcfs_zone_pkey,
+                                                         request->domain_name,
+                                                         &lookup_block_error,
+                                                         request,
+                                                         &lookup_block_processor,
+                                                         request);
 	  break;
 	case RP_LOOKUP:
 	  break;

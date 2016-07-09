@@ -199,6 +199,18 @@ check_zone_2 (const char *label,
 
 
 static void
+zone_proc_end (void *cls)
+{
+  zi = NULL;
+  res = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received last result, iteration done after receing %u results\n",
+              returned_records);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+}
+
+
+static void
 zone_proc (void *cls,
            const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
            const char *label,
@@ -206,16 +218,7 @@ zone_proc (void *cls,
            const struct GNUNET_GNSRECORD_Data *rd)
 {
   int failed = GNUNET_NO;
-  if ((zone == NULL) && (label == NULL))
-  {
-    zi = NULL;
-    res = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-    		"Received last result, iteration done after receing %u results\n",
-    		returned_records);
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-    return;
-  }
+
   GNUNET_assert (NULL != zone);
   if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
@@ -254,6 +257,13 @@ zone_proc (void *cls,
 
 
 static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   static int c = 0;
@@ -281,7 +291,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start (nsh,
                                                 NULL,
+                                                &fail_cb,
+                                                NULL,
                                                 &zone_proc,
+                                                NULL,
+                                                &zone_proc_end,
                                                 NULL);
     if (zi == NULL)
     {
@@ -378,8 +392,8 @@ empty_zone_proc (void *cls,
 		 unsigned int rd_count,
 		 const struct GNUNET_GNSRECORD_Data *rd)
 {
-  char *hostkey_file;
   GNUNET_assert (nsh == cls);
+
   if (NULL != zone)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -400,6 +414,15 @@ empty_zone_proc (void *cls,
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
   }
+  GNUNET_assert (0);
+}
+
+
+static void
+empty_zone_end (void *cls)
+{
+  char *hostkey_file;
+  GNUNET_assert (nsh == cls);
 
   zi = NULL;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
@@ -445,7 +468,13 @@ run (void *cls,
 
   /* first, iterate over empty namestore */
   zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-					     NULL, &empty_zone_proc, nsh);
+					     NULL,
+                                             &fail_cb,
+                                             NULL,
+                                             &empty_zone_proc,
+                                             nsh,
+                                             &empty_zone_end,
+                                             nsh);
   if (NULL == zi)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

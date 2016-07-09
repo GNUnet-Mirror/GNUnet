@@ -343,6 +343,31 @@ del_continuation (void *cls,
 
 
 /**
+ * Function called when we are done with a zone iteration.
+ */
+static void
+zone_iteration_finished (void *cls)
+{
+  list_it = NULL;
+  test_finished ();
+}
+
+
+/**
+ * Function called when we encountered an error in a zone iteration.
+ */
+static void
+zone_iteration_error_cb (void *cls)
+{
+  list_it = NULL;
+  fprintf (stderr,
+           "Error iterating over zone\n");
+  ret = 1;
+  test_finished ();
+}
+
+
+/**
  * Process a record that was stored in the namestore.
  *
  * @param cls closure
@@ -365,12 +390,6 @@ display_record (void *cls,
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
 
-  if (NULL == rname)
-  {
-    list_it = NULL;
-    test_finished ();
-    return;
-  }
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
@@ -433,6 +452,31 @@ sync_cb (void *cls)
 
 
 /**
+ * Function called on errors while monitoring.
+ *
+ * @param cls NULL
+ */
+static void
+monitor_error_cb (void *cls)
+{
+  FPRINTF (stderr, "%s", "Monitor disconnected and out of sync.\n");
+}
+
+
+/**
+ * Function called if lookup fails.
+ */
+static void
+lookup_error_cb (void *cls)
+{
+  add_qe = NULL;
+  GNUNET_break (0);
+  ret = 1;
+  test_finished ();
+}
+
+
+/**
  * We're storing a record; this function is given the existing record
  * so that we can merge the information.
  *
@@ -454,8 +498,7 @@ get_existing_record (void *cls,
   unsigned int i;
 
   add_qe = NULL;
-  if ( (NULL != zone_key) &&
-       (0 != strcmp (rec_name, name)) )
+  if (0 != strcmp (rec_name, name))
   {
     GNUNET_break (0);
     ret = 1;
@@ -566,6 +609,19 @@ get_existing_record (void *cls,
 
 
 /**
+ * Function called if we encountered an error in zone-to-name.
+ */
+static void
+reverse_error_cb (void *cls)
+{
+  reverse_qe = NULL;
+  FPRINTF (stdout,
+           "%s.zkey\n",
+           reverse_pkey);
+}
+
+
+/**
  * Function called with the result of our attempt to obtain a name for a given
  * public key.
  *
@@ -591,6 +647,19 @@ handle_reverse_lookup (void *cls,
     FPRINTF (stdout,
              "%s.gnu\n",
              label);
+  test_finished ();
+}
+
+
+/**
+ * Function called if lookup for deletion fails.
+ */
+static void
+del_lookup_error_cb (void *cls)
+{
+  del_qe = NULL;
+  GNUNET_break (0);
+  ret = 1;
   test_finished ();
 }
 
@@ -802,8 +871,13 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    add_qe = GNUNET_NAMESTORE_records_lookup (ns, &zone_pkey, name,
-        &get_existing_record, NULL );
+    add_qe = GNUNET_NAMESTORE_records_lookup (ns,
+                                              &zone_pkey,
+                                              name,
+                                              &lookup_error_cb,
+                                              NULL,
+                                              &get_existing_record,
+                                              NULL);
   }
   if (del)
   {
@@ -819,6 +893,8 @@ testservice_task (void *cls,
     del_qe = GNUNET_NAMESTORE_records_lookup (ns,
                                               &zone_pkey,
                                               name,
+                                              &del_lookup_error_cb,
+                                              NULL,
                                               &del_monitor,
                                               NULL);
   }
@@ -826,7 +902,11 @@ testservice_task (void *cls,
   {
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
                                                      &zone_pkey,
+                                                     &zone_iteration_error_cb,
+                                                     NULL,
                                                      &display_record,
+                                                     NULL,
+                                                     &zone_iteration_finished,
                                                      NULL);
   }
   if (NULL != reverse_pkey)
@@ -846,6 +926,8 @@ testservice_task (void *cls,
     reverse_qe = GNUNET_NAMESTORE_zone_to_name (ns,
                                                 &zone_pkey,
                                                 &pubkey,
+                                                &reverse_error_cb,
+                                                NULL,
                                                 &handle_reverse_lookup,
                                                 NULL);
   }
@@ -860,7 +942,10 @@ testservice_task (void *cls,
                         "gnunet://gns/%52s/%63s",
                         sh,
                         sname)) ) ||
-         (GNUNET_OK != GNUNET_CRYPTO_ecdsa_public_key_from_string (sh, strlen (sh), &pkey)) )
+         (GNUNET_OK !=
+          GNUNET_CRYPTO_ecdsa_public_key_from_string (sh,
+                                                      strlen (sh),
+                                                      &pkey)) )
     {
       fprintf (stderr,
                _("Invalid URI `%s'\n"),
@@ -912,7 +997,10 @@ testservice_task (void *cls,
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
 					      &zone_pkey,
                                               GNUNET_YES,
+                                              &monitor_error_cb,
+                                              NULL,
 					      &display_record,
+                                              NULL,
 					      &sync_cb,
 					      NULL);
   }

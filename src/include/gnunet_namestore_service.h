@@ -133,8 +133,8 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
  * Process a record that was stored in the namestore.
  *
  * @param cls closure
- * @param zone private key of the zone; NULL on disconnect
- * @param label label of the records; NULL on disconnect
+ * @param zone private key of the zone
+ * @param label label of the records
  * @param rd_count number of entries in @a rd array, 0 if label was deleted
  * @param rd array of records with data to store
  */
@@ -170,7 +170,11 @@ GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param label name that is being mapped
- * @param rm function to call with the result (with 0 records if we don't have that label)
+ * @param error_cb function to call on error (i.e. disconnect)
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param rm function to call with the result (with 0 records if we don't have that label);
+ *        the handle is afterwards invalid
  * @param rm_cls closure for @a rm
  * @return handle to abort the request
  */
@@ -178,6 +182,8 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
                                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
                                  const char *label,
+                                 GNUNET_SCHEDULER_TaskCallback error_cb,
+                                 void *error_cb_cls,
                                  GNUNET_NAMESTORE_RecordMonitor rm,
                                  void *rm_cls);
 
@@ -189,8 +195,12 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param zone public key of the zone to look up in, never NULL
  * @param value_zone public key of the target zone (value), never NULL
+ * @param error_cb function to call on error (i.e. disconnect)
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
  * @param proc function to call on the matching records, or with
- *        NULL (rd_count == 0) if there are no matching records
+ *        NULL (rd_count == 0) if there are no matching records;
+ *        the handle is afterwards invalid
  * @param proc_cls closure for @a proc
  * @return a handle that can be used to
  *         cancel
@@ -199,7 +209,10 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
+                               GNUNET_SCHEDULER_TaskCallback error_cb,
+                               void *error_cb_cls,
+			       GNUNET_NAMESTORE_RecordMonitor proc,
+                               void *proc_cls);
 
 
 /**
@@ -216,25 +229,38 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). This MUST lock the struct GNUNET_NAMESTORE_Handle
- * for any other calls than #GNUNET_NAMESTORE_zone_iterator_next and
+ * records into our DHT). This MUST lock the `struct GNUNET_NAMESTORE_Handle`
+ * for any other calls than #GNUNET_NAMESTORE_zone_iterator_next() and
  * #GNUNET_NAMESTORE_zone_iteration_stop. @a proc will be called once
  * immediately, and then again after
- * #GNUNET_NAMESTORE_zone_iterator_next is invoked.
+ * #GNUNET_NAMESTORE_zone_iterator_next() is invoked.
+ *
+ * On error (disconnect), @a error_cb will be invoked.
+ * On normal completion, @a finish_cb proc will be
+ * invoked.
  *
  * @param h handle to the namestore
  * @param zone zone to access, NULL for all zones
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
- *        and always once at the end with a label of NULL.
  * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 				       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                       GNUNET_SCHEDULER_TaskCallback error_cb,
+                                       void *error_cb_cls,
 				       GNUNET_NAMESTORE_RecordMonitor proc,
-				       void *proc_cls);
+				       void *proc_cls,
+                                       GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                       void *finish_cb_cls);
 
 
 /**
@@ -265,44 +291,42 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
 
 
 /**
- * Function called once the monitor has caught up with the current
- * state of the database.  Will be called AGAIN after each disconnect
- * (record monitor called with 'NULL' for zone_key) once we're again
- * in sync.
- *
- * @param cls closure
- */
-typedef void
-(*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
-
-
-/**
  * Begin monitoring a zone for changes.  Will first call the @a
  * monitor function on all existing records in the selected zone(s) if
  * @a iterate_first is #GNUNET_YES.  In any case, we will then call @a
  * sync_cb, and then afterwards call the @a monitor whenever a record
- * changes.  If the namestore disconnects, the @a monitor function is
- * called with a disconnect event; if the connection is
+ * changes.  If the namestore disconnects, the @a error_cb function is
+ * called with a disconnect event. Once the connection is
  * re-established, the process begins from the start (depending on @a
- * iterate_first, we first do all existing records, then @a sync, then
- * updates).
+ * iterate_first, we will again first do all existing records, then @a
+ * sync, then updates).
  *
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor, NULL for all zones
  * @param iterate_first #GNUNET_YES to first iterate over all existing records,
  *                      #GNUNET_NO to only return changes that happen from now on
+ * @param error_cb function to call on error (i.e. disconnect); note that
+ *         unlike the other error callbacks in this API, a call to this
+ *         function does NOT destroy the monitor handle, it merely signals
+ *         that monitoring is down. You need to still explicitly call
+ *         #GNUNET_NAMESTORE_zone_monitor_stop().
+ * @param error_cb_cls closure for @a error_cb
  * @param monitor function to call on zone changes
+ * @param monitor_cls closure for @a monitor
  * @param sync_cb function called when we're in sync with the namestore
- * @param cls closure for @a monitor and @a sync_cb
+ * @param sync_cb_cls closure for @a sync_cb
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                      int iterate_first,
+                                     GNUNET_SCHEDULER_TaskCallback error_cb,
+                                     void *error_cb_cls,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
-				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
-				     void *cls);
+                                     void *monitor_cls,
+				     GNUNET_SCHEDULER_TaskCallback sync_cb,
+				     void *sync_cb_cls);
 
 
 /**

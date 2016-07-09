@@ -222,6 +222,13 @@ lookup_it (void *cls,
 
 
 static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
@@ -240,8 +247,15 @@ put_cont (void *cls, int32_t success, const char *emsg)
     return;
   }
   /* Lookup */
-  nsqe = GNUNET_NAMESTORE_records_lookup (nsh, privkey, name, lookup_it, NULL);
+  nsqe = GNUNET_NAMESTORE_records_lookup (nsh,
+                                          privkey,
+                                          name,
+                                          &fail_cb,
+                                          NULL,
+                                          &lookup_it,
+                                          NULL);
 }
+
 
 static void
 nick_cont (void *cls, int32_t success, const char *emsg)

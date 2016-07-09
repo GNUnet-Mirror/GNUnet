@@ -59,6 +59,7 @@ struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
 static char *directory;
 
+
 static void
 do_shutdown ()
 {
@@ -204,7 +205,20 @@ zone_proc (void *cls,
     else
     	GNUNET_SCHEDULER_add_now (&end, NULL);
   }
+}
 
+
+static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
+sync_cb (void *cls)
+{
+  /* do nothing */
 }
 
 
@@ -240,8 +254,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
                                               privkey,
                                               GNUNET_YES,
+                                              &fail_cb,
+                                              NULL,
                                               &zone_proc,
                                               NULL,
+                                              &sync_cb,
                                               NULL);
     if (NULL == zm)
     {

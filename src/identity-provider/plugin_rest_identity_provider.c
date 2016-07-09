@@ -647,6 +647,69 @@ return_token_list (void *cls)
   cleanup_handle (handle);
 }
 
+
+static void
+token_collect_error_cb (void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  do_error (handle);
+}
+
+
+/**
+ * Collect all tokens for an ego
+ *
+ * TODO move this into the identity-provider service
+ *
+ */
+static void
+token_collect (void *cls,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+               const char *label,
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd);
+
+
+static void
+token_collect_finished_cb (void *cls)
+{
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_tmp;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+
+  ego_tmp = handle->ego_head;
+  GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                               handle->ego_tail,
+                               ego_tmp);
+  GNUNET_free (ego_tmp->identifier);
+  GNUNET_free (ego_tmp->keystring);
+  GNUNET_free (ego_tmp);
+
+  if (NULL == handle->ego_head)
+  {
+    //Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token END\n");
+    handle->ns_it = NULL;
+    GNUNET_SCHEDULER_add_now (&return_token_list, handle);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Next ego: %s\n",
+              handle->ego_head->identifier);
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
+  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                         priv_key,
+                                                         &token_collect_error_cb,
+                                                         handle,
+                                                         &token_collect,
+                                                         handle,
+                                                         &token_collect_finished_cb,
+                                                         handle);
+}
+
+
 /**
  * Collect all tokens for an ego
  *
@@ -660,42 +723,12 @@ token_collect (void *cls,
                unsigned int rd_count,
                const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct RequestHandle *handle = cls;
   int i;
   char* data;
-  struct RequestHandle *handle = cls;
-  struct EgoEntry *ego_tmp;
   struct GNUNET_JSONAPI_Resource *json_resource;
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   json_t *issuer;
   json_t *token;
-
-  if (NULL == label)
-  {
-    ego_tmp = handle->ego_head;
-    GNUNET_CONTAINER_DLL_remove (handle->ego_head,
-                                 handle->ego_tail,
-                                 ego_tmp);
-    GNUNET_free (ego_tmp->identifier);
-    GNUNET_free (ego_tmp->keystring);
-    GNUNET_free (ego_tmp);
-
-    if (NULL == handle->ego_head)
-    {
-      //Done
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token END\n");
-      handle->ns_it = NULL;
-      GNUNET_SCHEDULER_add_now (&return_token_list, handle);
-      return;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Next ego: %s\n", handle->ego_head->identifier);
-    priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
-    handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
-                                                           priv_key,
-                                                           &token_collect,
-                                                           handle);
-    return;
-  }
 
   for (i = 0; i < rd_count; i++)
   {
@@ -789,7 +822,11 @@ list_token_cont (struct GNUNET_REST_RequestHandle *con_handle,
   handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
   handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
                                                          priv_key,
+                                                         &token_collect_error_cb,
+                                                         handle,
                                                          &token_collect,
+                                                         handle,
+                                                         &token_collect_finished_cb,
                                                          handle);
 
 }

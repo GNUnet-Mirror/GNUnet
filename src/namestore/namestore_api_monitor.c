@@ -51,19 +51,34 @@ struct GNUNET_NAMESTORE_ZoneMonitor
   struct GNUNET_MQ_Handle *mq;
 
   /**
+   * Function to call on errors.
+   */
+  GNUNET_SCHEDULER_TaskCallback error_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *error_cb_cls;
+
+  /**
    * Function to call on events.
    */
   GNUNET_NAMESTORE_RecordMonitor monitor;
 
   /**
-   * Function called when we've synchronized.
+   * Closure for @e monitor.
    */
-  GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb;
+  void *monitor_cls;
 
   /**
-   * Closure for @e monitor and @e sync_cb.
+   * Function called when we've synchronized.
    */
-  void *cls;
+  GNUNET_SCHEDULER_TaskCallback sync_cb;
+
+  /**
+   * Closure for @e sync_cb.
+   */
+  void *sync_cb_cls;
 
   /**
    * Monitored zone.
@@ -100,7 +115,7 @@ handle_sync (void *cls,
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
 
   if (NULL != zm->sync_cb)
-    zm->sync_cb (zm->cls);
+    zm->sync_cb (zm->sync_cb_cls);
 }
 
 
@@ -193,7 +208,7 @@ handle_result (void *cls,
                                                          rd_ser_tmp,
                                                          rd_count,
                                                          rd));
-    zm->monitor (zm->cls,
+    zm->monitor (zm->monitor_cls,
 		 &lrm->private_key,
 		 name_tmp,
 		 rd_count,
@@ -245,11 +260,7 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
   if (NULL != zm->mq)
   {
     GNUNET_MQ_destroy (zm->mq);
-    zm->monitor (zm->cls,
-                 NULL,
-                 NULL,
-                 0,
-                 NULL);
+    zm->error_cb (zm->error_cb_cls);
   }
   zm->mq = GNUNET_CLIENT_connecT (zm->cfg,
                                   "namestore",
@@ -278,18 +289,28 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
  * @param zone zone to monitor
  * @param iterate_first #GNUNET_YES to first iterate over all existing records,
  *                      #GNUNET_NO to only return changes that happen from now on
+ * @param error_cb function to call on error (i.e. disconnect); note that
+ *         unlike the other error callbacks in this API, a call to this
+ *         function does NOT destroy the monitor handle, it merely signals
+ *         that monitoring is down. You need to still explicitly call
+ *         #GNUNET_NAMESTORE_zone_monitor_stop().
+ * @param error_cb_cls closure for @a error_cb
  * @param monitor function to call on zone changes
+ * @param monitor_cls closure for @a monitor
  * @param sync_cb function called when we're in sync with the namestore
- * @param cls closure for @a monitor and @a sync_cb
+ * @param cls closure for @a sync_cb
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                      int iterate_first,
+                                     GNUNET_SCHEDULER_TaskCallback error_cb,
+                                     void *error_cb_cls,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
-				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
-				     void *cls)
+                                     void *monitor_cls,
+				     GNUNET_SCHEDULER_TaskCallback sync_cb,
+				     void *sync_cb_cls)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm;
 
@@ -297,9 +318,12 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
   if (NULL != zone)
     zm->zone = *zone;
   zm->iterate_first = iterate_first;
+  zm->error_cb = error_cb;
+  zm->error_cb_cls = error_cb_cls;
   zm->monitor = monitor;
+  zm->monitor_cls = monitor_cls;
   zm->sync_cb = sync_cb;
-  zm->cls = cls;
+  zm->sync_cb_cls = sync_cb_cls;
   zm->cfg = cfg;
   reconnect (zm);
   if (NULL == zm->mq)

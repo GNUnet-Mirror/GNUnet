@@ -156,30 +156,21 @@ end (void *cls)
 
 
 static void
+fail_cb (void *cls)
+{
+  GNUNET_assert (0);
+}
+
+
+static void
 zone_proc (void *cls,
-					 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-					 const char *label,
-					 unsigned int rd_count,
-					 const struct GNUNET_GNSRECORD_Data *rd)
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+           const char *label,
+           unsigned int rd_count,
+           const struct GNUNET_GNSRECORD_Data *rd)
 {
   int failed = GNUNET_NO;
-  if ((zone == NULL) && (label == NULL))
-  {
-    GNUNET_break (2 == returned_records);
-    if (2 == returned_records)
-    {
-      res = 0; /* Last iteraterator callback, we are done */
-      zi = NULL;
-    }
-    else
-      res = 1;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-    		"Received last result, iteration done after receing %u results\n",
-    		returned_records );
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-    return;
-  }
   GNUNET_assert (NULL != zone);
   if (0 == memcmp (zone,
                    privkey,
@@ -258,6 +249,25 @@ zone_proc (void *cls,
 
 
 static void
+zone_proc_end (void *cls)
+{
+  GNUNET_break (2 == returned_records);
+  if (2 == returned_records)
+  {
+    res = 0; /* Last iteraterator callback, we are done */
+    zi = NULL;
+  }
+  else
+    res = 1;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received last result, iteration done after receing %u results\n",
+              returned_records);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+}
+
+
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   static int c = 0;
@@ -288,8 +298,12 @@ put_cont (void *cls, int32_t success, const char *emsg)
                 "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
 					       privkey,
+                                               &fail_cb,
+                                               NULL,
 					       &zone_proc,
-					       NULL);
+					       NULL,
+                                               &zone_proc_end,
+                                               NULL);
     if (zi == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -336,42 +350,55 @@ empty_zone_proc (void *cls,
 		 unsigned int rd_count,
 		 const struct GNUNET_GNSRECORD_Data *rd)
 {
-  char *hostkey_file;
-
   GNUNET_assert (nsh == cls);
   if (NULL != zone)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Expected empty zone but received zone private key\n"));
-      GNUNET_break (0);
-      if (endbadly_task != NULL)
-    	GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Expected empty zone but received zone private key\n"));
+    GNUNET_break (0);
+    if (endbadly_task != NULL)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
   if ((NULL != label) || (NULL != rd) || (0 != rd_count))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Expected no zone content but received data\n"));
-      GNUNET_break (0);
-      if (endbadly_task != NULL)
-    	GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Expected no zone content but received data\n"));
+    GNUNET_break (0);
+    if (endbadly_task != NULL)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
+  GNUNET_assert (0);
+}
 
+
+static void
+empty_zone_proc_end (void *cls)
+{
+  char *hostkey_file;
 
   zi = NULL;
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
-      "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
+  GNUNET_asprintf (&hostkey_file,
+                   "zonefiles%s%s",
+                   DIR_SEPARATOR_STR,
+                   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s'\n",
+              hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
 
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
-      "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  GNUNET_asprintf(&hostkey_file,
+                  "zonefiles%s%s",
+                  DIR_SEPARATOR_STR,
+                  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s' \n",
+              hostkey_file);
   privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
@@ -380,25 +407,39 @@ empty_zone_proc (void *cls,
               "Created record 1\n");
 
   GNUNET_asprintf(&s_name_1, "dummy1");
-  s_rd_1 = create_record(1);
-  GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
-  		1, s_rd_1, &put_cont, NULL);
+  s_rd_1 = create_record (1);
+  GNUNET_NAMESTORE_records_store (nsh,
+                                  privkey,
+                                  s_name_1,
+                                  1,
+                                  s_rd_1,
+                                  &put_cont,
+                                  NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
-  s_rd_2 = create_record(1);
-  GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_2,
-  		1, s_rd_2, &put_cont, NULL);
+  s_rd_2 = create_record (1);
+  GNUNET_NAMESTORE_records_store (nsh,
+                                  privkey,
+                                  s_name_2,
+                                  1,
+                                  s_rd_2,
+                                  &put_cont,
+                                  NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 3\n");
 
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
-  s_rd_3 = create_record(1);
-  GNUNET_NAMESTORE_records_store(nsh, privkey2, s_name_3,
-  		1, s_rd_3, &put_cont, NULL);
+  s_rd_3 = create_record (1);
+  GNUNET_NAMESTORE_records_store (nsh,
+                                  privkey2,
+                                  s_name_3,
+                                  1, s_rd_3,
+                                  &put_cont,
+                                  NULL);
 }
 
 
@@ -423,7 +464,12 @@ run (void *cls,
   /* first, iterate over empty namestore */
   zi = GNUNET_NAMESTORE_zone_iteration_start (nsh,
                                               NULL,
-                                              &empty_zone_proc, nsh);
+                                              &fail_cb,
+                                              NULL,
+                                              &empty_zone_proc,
+                                              nsh,
+                                              &empty_zone_proc_end,
+                                              nsh);
   if (NULL == zi)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

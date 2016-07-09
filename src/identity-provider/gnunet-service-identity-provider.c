@@ -531,6 +531,32 @@ clear_ego_attrs (void *cls,
 }
 
 
+static void
+token_collect_error_cb (void *cls)
+{
+  // struct EgoEntry *ego_entry = cls;
+
+  GNUNET_assert (0); // FIXME: handle properly!
+}
+
+
+static void
+token_collect_finished_cb (void *cls)
+{
+  struct EgoEntry *ego_entry = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              ">>> Updating Ego finished\n");
+  //Clear attribute map for ego
+  GNUNET_CONTAINER_multihashmap_iterate (ego_entry->attr_map,
+                                         &clear_ego_attrs,
+                                         ego_entry);
+  GNUNET_CONTAINER_multihashmap_clear (ego_entry->attr_map);
+  update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+                                          ego_entry->next);
+}
+
+
 /**
  *
  * Update all ID_TOKEN records for an identity and store them
@@ -552,21 +578,6 @@ token_collect (void *cls,
   const struct GNUNET_GNSRECORD_Data *token_record;
   const struct GNUNET_GNSRECORD_Data *token_metadata_record;
   struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key;
-
-  if (NULL == lbl)
-  {
-    //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                ">>> Updating Ego finished\n");
-    //Clear attribute map for ego
-    GNUNET_CONTAINER_multihashmap_iterate (ego_entry->attr_map,
-                                           &clear_ego_attrs,
-                                           ego_entry);
-    GNUNET_CONTAINER_multihashmap_clear (ego_entry->attr_map);
-    update_task = GNUNET_SCHEDULER_add_now (&update_identities,
-                                            ego_entry->next);
-    return;
-  }
 
   //There should be only a single record for a token under a label
   if (2 != rd_count)
@@ -614,6 +625,28 @@ token_collect (void *cls,
 }
 
 
+static void
+attribute_collect_error_cb (void *cls)
+{
+  // struct EgoEntry *ego_entry = cls;
+
+  GNUNET_assert (0); // FIXME: handle properly!
+}
+
+
+static void
+attribute_collect_finished_cb (void *cls)
+{
+  struct EgoEntry *ego_entry = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              ">>> Updating Attributes finished\n");
+  ego_entry->attributes_dirty = GNUNET_NO;
+  update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+                                          ego_entry);
+}
+
+
 /**
  *
  * Collect all ID_ATTR records for an identity and store them
@@ -638,17 +671,6 @@ attribute_collect (void *cls,
   struct TokenAttrValue *val;
   char *val_str;
   int i;
-
-  if (NULL == lbl)
-  {
-    //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                ">>> Updating Attributes finished\n");
-    ego_entry->attributes_dirty = GNUNET_NO;
-    update_task = GNUNET_SCHEDULER_add_now (&update_identities,
-					    ego_entry);
-    return;
-  }
 
   if (0 == rd_count)
   {
@@ -703,7 +725,6 @@ attribute_collect (void *cls,
                                      attr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_NAMESTORE_zone_iterator_next (ns_it);
-  return;
 }
 
 /**
@@ -718,6 +739,7 @@ update_identities(void *cls)
 {
   struct EgoEntry *next_ego = cls;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+
   update_task = NULL;
   if (NULL == next_ego)
   {
@@ -740,7 +762,11 @@ update_identities(void *cls)
     //Starting over. We must update the Attributes for they might have changed.
     ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
                                                    priv_key,
+                                                   &attribute_collect_error_cb,
+                                                   next_ego,
                                                    &attribute_collect,
+                                                   next_ego,
+                                                   &attribute_collect_finished_cb,
                                                    next_ego);
 
   }
@@ -750,7 +776,11 @@ update_identities(void *cls)
     next_ego->attributes_dirty = GNUNET_YES;
     ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
                                                    priv_key,
+                                                   &token_collect_error_cb,
+                                                   next_ego,
                                                    &token_collect,
+                                                   next_ego,
+                                                   &token_collect_finished_cb,
                                                    next_ego);
   }
 }
@@ -939,7 +969,7 @@ store_token_issue_cont (void *cls,
   struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
   char *ticket_str;
   char *token_str;
-  
+
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
@@ -1077,6 +1107,27 @@ sign_and_return_token (void *cls)
   GNUNET_free (token_metadata);
 }
 
+
+static void
+attr_collect_error (void *cls)
+{
+  // struct IssueHandle *handle = cls;
+
+  GNUNET_assert (0); // FIXME: handle error!
+}
+
+
+static void
+attr_collect_finished (void *cls)
+{
+  struct IssueHandle *handle = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute END: \n");
+  handle->ns_it = NULL;
+  GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+}
+
+
 /**
  * Collect attributes for token
  */
@@ -1087,18 +1138,10 @@ attr_collect (void *cls,
               unsigned int rd_count,
               const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct IssueHandle *handle = cls;
   int i;
   char* data;
-  struct IssueHandle *handle = cls;
   struct GNUNET_HashCode key;
-
-  if (NULL == label)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute END: \n");
-    handle->ns_it = NULL;
-    GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
-    return;
-  }
 
   GNUNET_CRYPTO_hash (label,
                       strlen (label),
@@ -1278,6 +1321,41 @@ handle_exchange_message (void *cls,
 }
 
 
+static void
+find_existing_token_error (void *cls)
+{
+  // struct IssueHandle *handle = cls;
+
+  GNUNET_assert (0); // FIXME: handle properly
+}
+
+
+static void
+find_existing_token_finished (void *cls)
+{
+  struct IssueHandle *handle = cls;
+  uint64_t rnd_key;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              ">>> No existing token found\n");
+  rnd_key =
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+                              UINT64_MAX);
+  GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
+                                sizeof (uint64_t),
+                                &handle->label);
+  handle->ns_it = NULL;
+  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
+                                                         &handle->iss_key,
+                                                         &attr_collect_error,
+                                                         handle,
+                                                         &attr_collect,
+                                                         handle,
+                                                         &attr_collect_finished,
+                                                         handle);
+}
+
+
 /**
  *
  * Look for existing token
@@ -1301,29 +1379,8 @@ find_existing_token (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key;
   struct GNUNET_HashCode key;
   int scope_count_token;
-  uint64_t rnd_key;
   char *scope;
   char *tmp_scopes;
-
-  if (NULL == lbl)
-  {
-    //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                ">>> No existing token found\n");
-    //Label
-    rnd_key =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                UINT64_MAX);
-    GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
-                                  sizeof (uint64_t),
-                                  &handle->label);
-    handle->ns_it = NULL;
-    handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                           &handle->iss_key,
-                                                           &attr_collect,
-                                                           handle);
-    return;
-  }
 
   //There should be only a single record for a token under a label
   if (2 != rd_count)
@@ -1335,7 +1392,9 @@ find_existing_token (void *cls,
   if (rd[0].record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA)
   {
     token_metadata_record = &rd[0];
-  } else {
+  }
+  else
+  {
     token_metadata_record = &rd[1];
   }
   if (token_metadata_record->record_type != GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA)
@@ -1399,7 +1458,11 @@ find_existing_token (void *cls,
     handle->ns_it = NULL;
     handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
                                                            &handle->iss_key,
+                                                           &attr_collect_error,
+                                                           handle,
                                                            &attr_collect,
+                                                           handle,
+                                                           &attr_collect_finished,
                                                            handle);
 
     return;
@@ -1477,9 +1540,14 @@ handle_issue_message (void *cls,
 
   issue_handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
                                                                &im->iss_key,
+                                                               &find_existing_token_error,
+                                                               issue_handle,
                                                                &find_existing_token,
+                                                               issue_handle,
+                                                               &find_existing_token_finished,
                                                                issue_handle);
 }
+
 
 /**
  * Main function that will be run

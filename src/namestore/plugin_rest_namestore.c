@@ -388,6 +388,38 @@ cleanup_handle_delayed (void *cls)
 
 
 /**
+ * Iteration over all results finished, build final
+ * response.
+ *
+ * @param cls the `struct RequestHandle`
+ */
+static void
+namestore_list_finished (void *cls)
+{
+  struct RequestHandle *handle = cls;
+  char *result;
+  struct MHD_Response *resp;
+
+  handle->list_it = NULL;
+  if (GNUNET_SYSERR ==
+      GNUNET_JSONAPI_document_serialize (handle->resp_object,
+                                         &result))
+  {
+    do_error (handle);
+    return;
+  }
+  resp = GNUNET_REST_create_response (result);
+  handle->proc (handle->proc_cls,
+                resp,
+                MHD_HTTP_OK);
+  GNUNET_free_non_null (result);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed,
+                            handle);
+}
+
+
+
+/**
  * Create a response with requested records
  *
  * @param handle the RequestHandle
@@ -401,30 +433,12 @@ namestore_list_response (void *cls,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_JSONAPI_Resource *json_resource;
-  struct MHD_Response *resp;
   json_t *result_array;
   json_t *record_obj;
   int i;
-  char *result;
 
   if (NULL == handle->resp_object)
     handle->resp_object = GNUNET_JSONAPI_document_new ();
-
-  if (NULL == rname)
-  {
-    handle->list_it = NULL;
-    //Handle response
-    if (GNUNET_SYSERR == GNUNET_JSONAPI_document_serialize (handle->resp_object, &result))
-    {
-      GNUNET_SCHEDULER_add_now (&do_error, handle);
-      return;
-    }
-    resp = GNUNET_REST_create_response (result);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-    GNUNET_free_non_null (result);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
-    return;
-  }
 
   if ( (NULL != handle->name) &&
        (0 != strcmp (handle->name, rname)) )
@@ -463,6 +477,7 @@ namestore_list_response (void *cls,
   json_decref (result_array);
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
 }
+
 
 static void
 create_finished (void *cls, int32_t success, const char *emsg)
@@ -506,11 +521,10 @@ create_new_record_cont (void *cls,
   struct RequestHandle *handle = cls;
 
   handle->add_qe = NULL;
-  if ( (NULL != zone_key) &&
-       (0 != strcmp (rec_name, handle->name)) )
+  if (0 != strcmp (rec_name, handle->name))
   {
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    do_error (handle);
     return;
   }
 
@@ -532,6 +546,7 @@ create_new_record_cont (void *cls,
                                                    &create_finished,
                                                    handle);
 }
+
 
 static void
 del_finished (void *cls,
@@ -565,6 +580,7 @@ del_finished (void *cls,
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
+
 static void
 del_cont (void *cls,
           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -573,13 +589,14 @@ del_cont (void *cls,
           const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
+
   handle->add_qe = NULL;
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("There are no records under label `%s' that could be deleted.\n"),
                 label);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    do_error (handle);
     return;
   }
 
@@ -590,6 +607,7 @@ del_cont (void *cls,
                                                    &del_finished,
                                                    handle);
 }
+
 
 static void
 namestore_delete_cont (struct GNUNET_REST_RequestHandle *con,
@@ -607,9 +625,12 @@ namestore_delete_cont (struct GNUNET_REST_RequestHandle *con,
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
                                                     &handle->zone_pkey,
                                                     handle->name,
+                                                    &do_error,
+                                                    handle,
                                                     &del_cont,
                                                     handle);
 }
+
 
 static int
 json_to_gnsrecord (const json_t *records_json,
@@ -713,6 +734,7 @@ json_to_gnsrecord (const json_t *records_json,
   return GNUNET_OK;
 }
 
+
 static void
 namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
                        const char *url,
@@ -730,7 +752,7 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
     GNUNET_JSON_spec_jsonapi_document (&json_obj),
     GNUNET_JSON_spec_end()
   };
-  
+
   if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -805,8 +827,12 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
                                                     &handle->zone_pkey,
                                                     handle->name,
-                                                    &create_new_record_cont, handle );
+                                                    &do_error,
+                                                    handle,
+                                                    &create_new_record_cont,
+                                                    handle);
 }
+
 
 static void
 namestore_zkey_response (void *cls,
@@ -847,9 +873,8 @@ namestore_zkey_response (void *cls,
   GNUNET_JSONAPI_document_delete (json_obj);
   GNUNET_free (result);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
-  return;
-
 }
+
 
 static void
 namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
@@ -887,9 +912,12 @@ namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
   handle->reverse_qe = GNUNET_NAMESTORE_zone_to_name (handle->ns_handle,
                                                       &handle->zone_pkey,
                                                       &pubkey,
+                                                      &do_error,
+                                                      handle,
                                                       &namestore_zkey_response,
                                                       handle);
 }
+
 
 static void
 namestore_info_cont (struct GNUNET_REST_RequestHandle *con,
@@ -897,11 +925,17 @@ namestore_info_cont (struct GNUNET_REST_RequestHandle *con,
                      void *cls)
 {
   struct RequestHandle *handle = cls;
+
   handle->list_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
                                                            &handle->zone_pkey,
+                                                           &do_error,
+                                                           handle,
                                                            &namestore_list_response,
+                                                           handle,
+                                                           &namestore_list_finished,
                                                            handle);
 }
+
 
 static char*
 get_name_from_url (const char* url)

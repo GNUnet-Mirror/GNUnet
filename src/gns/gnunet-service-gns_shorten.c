@@ -326,6 +326,21 @@ process_pseu_lookup_ns (void *cls,
 
 
 /**
+ * Encountered an error in zone-to-name lookup, give up on shortening.
+ */
+static void
+zone_to_name_error_cb (void *cls)
+{
+  struct GetPseuAuthorityHandle* gph = cls;
+
+  gph->namestore_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Shortening aborted, internal error talking to namestore\n");
+  free_get_pseu_authority_handle (gph);
+}
+
+
+/**
  * Callback called by namestore for a zone to name result.  We're
  * trying to see if a short name for a given zone already exists.
  *
@@ -343,9 +358,6 @@ process_zone_to_name_discover (void *cls,
 			       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GetPseuAuthorityHandle* gph = cls;
-#if 0
-  struct GNUNET_HashCode lookup_key;
-#endif
 
   gph->namestore_task = NULL;
   if (0 != rd_len)
@@ -412,6 +424,8 @@ GNS_shorten_start (const char *original_label,
   gph->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                                        shorten_zone,
                                                        pub,
+                                                       &zone_to_name_error_cb,
+                                                       gph,
                                                        &process_zone_to_name_discover,
                                                        gph);
 }

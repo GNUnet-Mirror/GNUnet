@@ -84,6 +84,16 @@ struct GNUNET_NAMESTORE_QueueEntry
   void *proc_cls;
 
   /**
+   * Function to call on errors.
+   */
+  GNUNET_SCHEDULER_TaskCallback error_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *error_cb_cls;
+
+  /**
    * Envelope of the message to send to the service, if not yet
    * sent.
    */
@@ -119,6 +129,16 @@ struct GNUNET_NAMESTORE_ZoneIterator
   struct GNUNET_NAMESTORE_Handle *h;
 
   /**
+   * Function to call on completion.
+   */
+  GNUNET_SCHEDULER_TaskCallback finish_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *finish_cb_cls;
+
+  /**
    * The continuation to call with the results
    */
   GNUNET_NAMESTORE_RecordMonitor proc;
@@ -127,6 +147,16 @@ struct GNUNET_NAMESTORE_ZoneIterator
    * Closure for @e proc.
    */
   void *proc_cls;
+
+  /**
+   * Function to call on errors.
+   */
+  GNUNET_SCHEDULER_TaskCallback error_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *error_cb_cls;
 
   /**
    * Envelope of the message to send to the service, if not yet
@@ -543,9 +573,11 @@ handle_record_result (void *cls,
                 ntohl (msg->gns_header.r_id));
   qe = find_qe (h,
                 ntohl (msg->gns_header.r_id));
-  if ( (NULL == ze) && (NULL == qe) )
+  if ( (NULL == ze) &&
+       (NULL == qe) )
     return; /* rid not found */
-  if ( (NULL != ze) && (NULL != qe) )
+  if ( (NULL != ze) &&
+       (NULL != qe) )
   {
     GNUNET_break (0);   /* rid ambigous */
     force_reconnect (h);
@@ -564,8 +596,8 @@ handle_record_result (void *cls,
       force_reconnect (h);
       return;
     }
-    if (NULL != ze->proc)
-      ze->proc (ze->proc_cls, NULL, NULL, 0, NULL);
+    if (NULL != ze->finish_cb)
+      ze->finish_cb (ze->finish_cb_cls);
     free_ze (ze);
     return;
   }
@@ -706,7 +738,8 @@ handle_zone_to_name_response (void *cls,
 	qe->proc (qe->proc_cls,
 		  &msg->zone,
 		  name_tmp,
-		  rd_count, rd);
+		  rd_count,
+                  rd);
       /* return is important here: break would call continuation with error! */
       free_qe (qe);
       return;
@@ -717,8 +750,8 @@ handle_zone_to_name_response (void *cls,
     return;
   }
   /* error case, call continuation with error */
-  if (NULL != qe->proc)
-    qe->proc (qe->proc_cls, NULL, NULL, 0, NULL);
+  if (NULL != qe->error_cb)
+    qe->error_cb (qe->error_cb_cls);
   free_qe (qe);
 }
 
@@ -826,18 +859,18 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
   h->mq = NULL;
   while (NULL != (ze = h->z_head))
   {
-    /* FIXME: This does not allow clients to distinguish
-       iteration error from successful termination! */
-    if (NULL != ze->proc)
-      ze->proc (ze->proc_cls, NULL, NULL, 0, NULL);
+    if (NULL != ze->error_cb)
+      ze->error_cb (ze->error_cb_cls);
     free_ze (ze);
   }
   while (NULL != (qe = h->op_head))
   {
-    /* FIXME: This does not allow clients to distinguish
-       iteration error from successful termination! */
-    if (NULL != qe->proc)
-      qe->proc (qe->proc_cls, NULL, NULL, 0, NULL);
+    if (NULL != qe->error_cb)
+      qe->error_cb (qe->error_cb_cls);
+    if (NULL != qe->cont)
+      qe->cont (qe->cont_cls,
+                GNUNET_SYSERR,
+                "failure in communication with namestore service");
     free_qe (qe);
   }
 
@@ -1058,6 +1091,8 @@ GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param label name that is being mapped (at most 255 characters long)
+ * @param error_cb function to call on error (i.e. disconnect)
+ * @param error_cb_cls closure for @a error_cb
  * @param rm function to call with the result (with 0 records if we don't have that label)
  * @param rm_cls closure for @a rm
  * @return handle to abort the request
@@ -1066,6 +1101,8 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
                                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
                                  const char *label,
+                                 GNUNET_SCHEDULER_TaskCallback error_cb,
+                                 void *error_cb_cls,
                                  GNUNET_NAMESTORE_RecordMonitor rm,
                                  void *rm_cls)
 {
@@ -1082,6 +1119,8 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
 
   qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
   qe->h = h;
+  qe->error_cb = error_cb;
+  qe->error_cb_cls = error_cb_cls;
   qe->proc = rm;
   qe->proc_cls = rm_cls;
   qe->op_id = get_op_id(h);
@@ -1114,6 +1153,8 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param zone public key of the zone to look up in, never NULL
  * @param value_zone public key of the target zone (value), never NULL
+ * @param error_cb function to call on error (i.e. disconnect)
+ * @param error_cb_cls closure for @a error_cb
  * @param proc function to call on the matching records, or with
  *        NULL (rd_count == 0) if there are no matching records
  * @param proc_cls closure for @a proc
@@ -1124,6 +1165,8 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
+                               GNUNET_SCHEDULER_TaskCallback error_cb,
+                               void *error_cb_cls,
 			       GNUNET_NAMESTORE_RecordMonitor proc,
                                void *proc_cls)
 {
@@ -1135,6 +1178,8 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
   rid = get_op_id(h);
   qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
   qe->h = h;
+  qe->error_cb = error_cb;
+  qe->error_cb_cls = error_cb_cls;
   qe->proc = proc;
   qe->proc_cls = proc_cls;
   qe->op_id = rid;
@@ -1166,26 +1211,39 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  *
  * @param h handle to the namestore
  * @param zone zone to access, NULL for all zones
+ * @param error_cb function to call on error (i.e. disconnect)
+ * @param error_cb_cls closure for @a error_cb
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
- *        and always once at the end with a name of NULL.
  * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ * @param finish_cb_cls closure for @a finish_cb
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 				       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                       GNUNET_SCHEDULER_TaskCallback error_cb,
+                                       void *error_cb_cls,
 				       GNUNET_NAMESTORE_RecordMonitor proc,
-				       void *proc_cls)
+				       void *proc_cls,
+                                       GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                       void *finish_cb_cls)
 {
   struct GNUNET_NAMESTORE_ZoneIterator *it;
   struct GNUNET_MQ_Envelope *env;
   struct ZoneIterationStartMessage *msg;
   uint32_t rid;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending ZONE_ITERATION_START message\n");
   rid = get_op_id (h);
   it = GNUNET_new (struct GNUNET_NAMESTORE_ZoneIterator);
   it->h = h;
+  it->error_cb = error_cb;
+  it->error_cb_cls = error_cb_cls;
+  it->finish_cb = finish_cb;
+  it->finish_cb_cls = finish_cb_cls;
   it->proc = proc;
   it->proc_cls = proc_cls;
   it->op_id = rid;
