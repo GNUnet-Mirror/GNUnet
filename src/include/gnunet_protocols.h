@@ -2336,7 +2336,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME 737
 
 /**
- * Client <-> Server message to send audio data.
+ * Service -> Client message to notify that phone was picked up.
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 738
 
