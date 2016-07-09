@@ -46,6 +46,8 @@ extern "C"
  */
 #define HIGH_BIT ((uint32_t) (1LL << 31))
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 
 /**
  * Message to transmit the audio (between client and helpers).
@@ -371,6 +373,8 @@ struct CadetAudioMessage
 
 };
 
+
+GNUNET_NETWORK_STRUCT_END
 
 
 #if 0				/* keep Emacsens' auto-indent happy */
