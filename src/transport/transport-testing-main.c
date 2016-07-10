@@ -93,8 +93,11 @@ do_shutdown (void *cls)
   }
   for (unsigned int i=0;i<ccc->num_peers;i++)
   {
-    GNUNET_TRANSPORT_TESTING_stop_peer (ccc->p[i]);
-    ccc->p[i] = NULL;
+    if (NULL != ccc->p[i])
+    {
+      GNUNET_TRANSPORT_TESTING_stop_peer (ccc->p[i]);
+      ccc->p[i] = NULL;
+    }
   }
 }
 
