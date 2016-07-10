@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,128 +34,48 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 #define TEST_MESSAGE_SIZE 2600
 
 #define TEST_MESSAGE_TYPE 12345
 
-static char *test_source;
 
-static char *test_plugin;
-
-static char *test_name;
-
-static int ok;
-
-static int s_started;
-
-static int s_connected;
-
-static int s_sending;
-
-static struct GNUNET_SCHEDULER_Task * die_task;
-
-static struct GNUNET_SCHEDULER_Task * send_task;
-
-static struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
-
-static struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
-
-static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-static struct GNUNET_TRANSPORT_TESTING_Handle *tth;
-
-static char *cfg_file_p1;
-
-static char *cfg_file_p2;
+static struct GNUNET_SCHEDULER_Task *send_task;
 
 static int messages_recv;
 
 static struct GNUNET_TIME_Absolute start_normal;
+
 static struct GNUNET_TIME_Relative dur_normal;
 
 static struct GNUNET_TIME_Absolute start_delayed;
+
 static struct GNUNET_TIME_Relative dur_delayed;
 
 
 static void
-end ()
+custom_shutdown (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
-
-  if (send_task != NULL)
-    GNUNET_SCHEDULER_cancel (send_task);
-
-  if (die_task != NULL)
-    GNUNET_SCHEDULER_cancel (die_task);
-
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
-  GNUNET_TRANSPORT_TESTING_stop_peer (p1);
-  GNUNET_TRANSPORT_TESTING_stop_peer (p2);
-}
-
-
-static void
-end_badly (void *cls)
-{
-  die_task = NULL;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
-
-
-  if (send_task != NULL)
-    GNUNET_SCHEDULER_cancel (send_task);
-
-  if (cc != NULL)
+  if (NULL != th)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
-    cc = NULL;
-  }
-
-  if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not ready to send data\n"));
-
-  if (s_started == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were not started \n"));
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were started \n"));
-
-  if (s_connected == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not connected\n"));
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were connected\n"));
-
-  if (s_sending == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not ready to send data\n"));
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were ready to send data\n"));
-
-  th = NULL;
-
-  if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer 1 was not started\n"));
-  if (p2 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p2);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer 2 was not started\n"));
-
-  ok = GNUNET_SYSERR;
+    th = NULL;
+  }
+  if (NULL != send_task)
+  {
+    GNUNET_SCHEDULER_cancel (send_task);
+    send_task = NULL;
+  }
 }
 
 
@@ -164,80 +84,71 @@ sendtask (void *cls);
 
 
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
                 const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *t = NULL;
-
-  if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
-    t = p1;
-  if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
-    t = p2;
-  GNUNET_assert (t != NULL);
-
   {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
-                p->no,
+                "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
+                receiver->no,
                 ps,
                 ntohs (message->type),
                 ntohs (message->size),
-                t->no,
-                GNUNET_i2s (&t->id));
+                GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
 
   if ((TEST_MESSAGE_TYPE == ntohs (message->type)) &&
       (TEST_MESSAGE_SIZE == ntohs (message->size)))
   {
-    ok = 0;
-
+    if (GNUNET_NO == ccc->global_ret)
+      ccc->global_ret = GNUNET_OK;
   }
   else
   {
     GNUNET_break (0);
-    ok = 1;
-    end ();
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   if (0 == messages_recv)
   {
-  	/* Received non-delayed message */
-  	dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
+    /* Received non-delayed message */
+    dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received non-delayed message %u after %s\n",
                 messages_recv,
                 GNUNET_STRINGS_relative_time_to_string (dur_normal,
 							GNUNET_YES));
-    send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
+    send_task = GNUNET_SCHEDULER_add_now (&sendtask,
+                                          NULL);
   }
   if (1 == messages_recv)
   {
-  	/* Received manipulated message */
-    	dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received delayed message %u after %s\n",
-                  messages_recv,
+    /* Received manipulated message */
+    dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received delayed message %u after %s\n",
+                messages_recv,
+                GNUNET_STRINGS_relative_time_to_string (dur_delayed,
+                                                        GNUNET_YES));
+    if (dur_delayed.rel_value_us < GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+    {
+      GNUNET_break (0);
+      ccc->global_ret = GNUNET_SYSERR;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Delayed message was not delayed correctly: took only %s\n",
                   GNUNET_STRINGS_relative_time_to_string (dur_delayed,
-							  GNUNET_YES));
-      if (dur_delayed.rel_value_us < 1000 * 1000LL)
-      {
-	GNUNET_break (0);
-	ok += 1;
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Delayed message was not delayed correctly: took only %s\n",
-                    GNUNET_STRINGS_relative_time_to_string (dur_delayed,
-							    GNUNET_YES));
-      }
-
-      /* shutdown */
-      end ();
+                                                          GNUNET_YES));
+    }
+    GNUNET_SCHEDULER_shutdown ();
   }
-  messages_recv ++;
+  messages_recv++;
 }
 
 
@@ -248,15 +159,12 @@ notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *hdr;
 
   th = NULL;
-
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready\n");
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    ok = 42;
+    GNUNET_SCHEDULER_shutdown ();
+    ccc->global_ret = 42;
     return 0;
   }
 
@@ -267,10 +175,11 @@ notify_ready (void *cls, size_t size, void *buf)
   hdr->type = htons (TEST_MESSAGE_TYPE);
 
   {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&ccc->p[1]->id));
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-                p2->no,
+                "Peer %u (`%s') sending message with type %u and size %u bytes to peer %u (`%s')\n",
+                ccc->p[1]->no,
                 ps,
                 ntohs (hdr->type),
                 ntohs (hdr->size),
@@ -289,16 +198,20 @@ sendtask (void *cls)
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Properties prop;
 
+  if (NULL == send_task)
+    ccc->global_ret = GNUNET_NO; /* first call! */
   send_task = NULL;
-  char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));
+  {
+    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
-              p2->no,
-              GNUNET_i2s (&p2->id),
-              p1->no,
-              receiver_s);
-  GNUNET_free (receiver_s);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending message from peer %u (`%s') -> peer %u (`%s') !\n",
+                ccc->p[1]->no,
+                GNUNET_i2s (&ccc->p[1]->id),
+                ccc->p[0]->no,
+                receiver_s);
+    GNUNET_free (receiver_s);
+  }
 
   if (0 == messages_recv)
   {
@@ -307,73 +220,38 @@ sendtask (void *cls)
   if (1 == messages_recv)
   {
     memset (&prop, 0, sizeof (prop));
-    delay.rel_value_us = 1000LL * 1000LL;
-    GNUNET_TRANSPORT_set_traffic_metric (p2->th,
-                                         &p1->id,
+    delay = GNUNET_TIME_UNIT_SECONDS;
+    GNUNET_TRANSPORT_set_traffic_metric (ccc->p[1]->th,
+                                         &ccc->p[0]->id,
                                          &prop,
                                          GNUNET_TIME_UNIT_ZERO,
                                          delay);
     prop.distance = 10;
-    GNUNET_TRANSPORT_set_traffic_metric (p1->th,
-                                         &p2->id,
+    GNUNET_TRANSPORT_set_traffic_metric (ccc->p[0]->th,
+                                         &ccc->p[1]->id,
                                          &prop,
                                          delay,
                                          delay);
     start_delayed = GNUNET_TIME_absolute_get();
   }
-
-  s_sending = GNUNET_YES;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE,
-                                               TIMEOUT_TRANSMIT, &notify_ready,
-                                               p1);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
+                                               &ccc->p[0]->id,
+                                               TEST_MESSAGE_SIZE,
+                                               TIMEOUT_TRANSMIT,
+                                               &notify_ready,
+                                               ccc->p[0]);
 }
 
 
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_disconnect (void *cls,
+                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                   const struct GNUNET_PeerIdentity *other)
 {
-  static int c;
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *t = NULL;
-
-  c++;
-  if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
-    t = p1;
-  if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
-    t = p2;
-  GNUNET_assert (t != NULL);
-
-  {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%4s'): peer %u (`%s') connected to me!\n",
-                p->no,
-                ps,
-                t->no,
-                GNUNET_i2s (peer));
-    GNUNET_free (ps);
-  }
-}
-
-
-static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-
-  {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
-                p->no,
-                ps,
-                GNUNET_i2s (peer));
-    GNUNET_free (ps);
-  }
-
-  if (th != NULL)
+  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
+                                           me,
+                                           other);
+  if (NULL != th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
     th = NULL;
@@ -381,141 +259,26 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 
-static void
-testing_connect_cb (void *cls)
-{
-  cc = NULL;
-
-  {
-    char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peers connected: %u (%s) <-> %u (%s)\n",
-                p1->no,
-                p1_c,
-                p2->no,
-                GNUNET_i2s (&p2->id));
-    GNUNET_free (p1_c);
-  }
-
-  s_connected = GNUNET_YES;
-  send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
-}
-
-
-static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
-{
-  static int started;
-  started++;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%s') started\n",
-              p->no,
-              GNUNET_i2s (&p->id));
-
-  if (started != 2)
-    return;
-  else
-    s_started = GNUNET_YES;
-  char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
-              p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
-  GNUNET_free (sender_c);
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1,
-                                               p2,
-                                               &testing_connect_cb,
-                                               NULL);
-
-}
-
-
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-
-  s_started = GNUNET_NO;
-  s_connected = GNUNET_NO;
-  s_sending = GNUNET_NO;
-
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-                                            cfg_file_p1, 1,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
-                                            NULL);
-
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-                                            cfg_file_p2, 2,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
-                                            NULL);
-
-  if ((p1 == NULL) || (p2 == NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != NULL)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
-}
-
-
-static int
-check ()
-{
-  static char *const argv[] = { "test-transport-api-manipulation",
-    "-c",
-    "test_transport_api_data.conf",
-    NULL
-  };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  send_task = NULL;
-
-  ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,
-                      "nohelp", options, &run, &ok);
-
-  return ok;
-}
-
 int
 main (int argc, char *argv[])
 {
-  int ret;
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
+    .connect_continuation = &sendtask,
+    .config_file = "test_transport_api_data.conf",
+    .rec = &notify_receive,
+    .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
+    .nd = &notify_disconnect,
+    .shutdown_task = &custom_shutdown,
+    .timeout = TIMEOUT
+  };
 
-  test_name = GNUNET_TRANSPORT_TESTING_get_test_name (argv[0]);
-  test_source = GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__);
-  test_plugin = GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0],
-                                                               test_source);
-
-  GNUNET_log_setup (test_name,
-                    "WARNING",
-                    NULL);
-  tth = GNUNET_TRANSPORT_TESTING_init ();
-
-  cfg_file_p1 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 1);
-  cfg_file_p2 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 2);
-
-  ret = check ();
-
-  GNUNET_free (cfg_file_p1);
-  GNUNET_free (cfg_file_p2);
-
-  GNUNET_free (test_source);
-  GNUNET_free (test_plugin);
-  GNUNET_free (test_name);
-
-  GNUNET_TRANSPORT_TESTING_done (tth);
-
-  return ret;
+  ccc = &my_ccc;
+  if (GNUNET_OK !=
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
+    return 1;
+  return 0;
 }
 
 /* end of test_transport_api_manipulation_send_tcp.c */
