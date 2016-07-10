@@ -637,6 +637,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth)
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *t;
 
+  if (NULL == tth)
+    return;
   cc = tth->cc_head;
   while (NULL != cc)
   {

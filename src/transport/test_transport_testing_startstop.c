@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,67 +21,65 @@
  * @file transport/test_transport_testing_startstop.c
  * @brief test case for transport testing library:
  * start the peer, get the HELLO message and stop the peer
- *
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-/**
- * How long until we give up on transmitting the message?
- */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-struct GNUNET_SCHEDULER_Task * timeout_task;
+
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 static struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
 
-struct GNUNET_TRANSPORT_TESTING_Handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_Handle *tth;
 
-static int ret = 0;
+static int ret;
+
 
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
-
-  if (timeout_task != NULL)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping peers\n");
+  if (NULL != timeout_task)
     GNUNET_SCHEDULER_cancel (timeout_task);
-
-  GNUNET_TRANSPORT_TESTING_stop_peer (p);
-  GNUNET_TRANSPORT_TESTING_done (tth);
+  if (NULL != p)
+    GNUNET_TRANSPORT_TESTING_stop_peer (p);
+  if (NULL != tth)
+    GNUNET_TRANSPORT_TESTING_done (tth);
 }
+
 
 static void
 end_badly ()
 {
   timeout_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
-
-  if (NULL != p)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p);
-
-  if (NULL != tth)
-    GNUNET_TRANSPORT_TESTING_done (tth);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Timeout!\n");
+  end ();
   ret = GNUNET_SYSERR;
 }
 
 
 static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
+          void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') successfully started\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%s') successfully started\n",
               p->no,
               GNUNET_i2s (&p->id));
-
   ret = 0;
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  end ();
 }
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ret = 1;
@@ -110,25 +108,28 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 }
 
+
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_transport_testing_startstop",
-                    "WARNING",
-                    NULL);
-
   char *const argv_1[] = { "test_transport_testing",
     "-c",
     "test_transport_api_data.conf",
     NULL
   };
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1, argv_1,
-                      "test_transport_testing_startstop", "nohelp", options, &run, &ret);
+  GNUNET_log_setup ("test_transport_testing_startstop",
+                    "WARNING",
+                    NULL);
+  GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1,
+                      argv_1,
+                      "test_transport_testing_startstop", "nohelp",
+                      options,
+                      &run,
+                      &ret);
 
   return ret;
 }

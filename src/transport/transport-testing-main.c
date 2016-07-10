@@ -113,7 +113,8 @@ do_timeout (void *cls)
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
 
   ccc->timeout_task = NULL;
-  GNUNET_break (0); /* signal timeout */
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Testcase timed out\n");
   ccc->global_ret = GNUNET_SYSERR;
   GNUNET_SCHEDULER_shutdown ();
 }

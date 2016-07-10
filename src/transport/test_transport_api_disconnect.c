@@ -21,7 +21,9 @@
  * @file transport/test_transport_api_disconnect.c
  * @brief base test case for transport implementations
  *
- * This test case tests disconnect notifications in peer shutdown
+ * This test case tests disconnect notifications in peer shutdown.
+ * Starts two peers, has them connect, sends a message in between,
+ * stops one peer, expects the others to send a disconnect notification.
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
