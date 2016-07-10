@@ -287,9 +287,6 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-#if WRITECONFIG
-  setTransportOptions ("test_transport_api_data.conf");
-#endif
   send_task = NULL;
 
   ok = 1;

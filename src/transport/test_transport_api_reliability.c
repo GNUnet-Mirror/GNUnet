@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -61,70 +61,24 @@
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60 * FACTOR)
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Struct for the test message
  */
-GNUNET_NETWORK_STRUCT_BEGIN
-
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
-  uint32_t num;
+  uint32_t num GNUNET_PACKED;
 };
 GNUNET_NETWORK_STRUCT_END
 
 
-/**
- * Name of the plugin to test
- */
-static char *test_plugin;
+static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
-/**
- * Name of the test
- */
-static char *test_name;
-
-/**
- * Return value of the test
- */
-static int ok;
-
-/**
- * Context of peer 1
- */
-static struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
-
-/**
- * Configuration file of peer 1
- */
-static char *cfg_file_p1;
-
-/**
- * Context of peer 2
- */
-static struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
-
-/**
- * Configuration file of peer 1
- */
-static char *cfg_file_p2;
-
-/**
- * Timeout task
- */
-static struct GNUNET_SCHEDULER_Task * die_task;
-
-/**
- * Transport transmit handle used
- */
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 /**
- * Transport testing handle
- */
-static struct GNUNET_TRANSPORT_TESTING_Handle *tth;
-
-/*
  * Total amount of bytes sent
  */
 static unsigned long long total_bytes;
@@ -149,141 +103,10 @@ static int msg_sent;
  */
 static int msg_recv;
 
-static int test_connected;
-
-static int test_sending;
-
-static int test_send_timeout;
-
-
 /**
  * Bitmap storing which messages were received
  */
 static char bitmap[TOTAL_MSGS / 8];
-
-static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
-
-/*
- * END Testcase specific declarations
- */
-
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
-
-
-static int
-get_bit (const char *map, unsigned int bit);
-
-
-static void
-end ()
-{
-  unsigned long long delta;
-  unsigned long long rate;
-  char *value_name;
-  unsigned int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Stopping peers\n");
-
-  /* Calculcate statistics   */
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
-  FPRINTF (stderr,
-           "\nThroughput was %llu KiBytes/s\n",
-           rate);
-
-  GNUNET_asprintf (&value_name,
-                   "unreliable_%s",
-                   test_plugin);
-  GAUGER ("TRANSPORT",
-          value_name,
-          (int) rate,
-          "kb/s");
-  GNUNET_free (value_name);
-
-  if (die_task != NULL)
-    GNUNET_SCHEDULER_cancel (die_task);
-
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-  if (cc != NULL)
-  {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
-    cc = NULL;
-  }
-  GNUNET_TRANSPORT_TESTING_stop_peer (p1);
-  GNUNET_TRANSPORT_TESTING_stop_peer (p2);
-  GNUNET_TRANSPORT_TESTING_done (tth);
-  ok = 0;
-  for (i = 0; i < TOTAL_MSGS; i++)
-  {
-    if (get_bit (bitmap, i) == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Did not receive message %d\n",
-                  i);
-      ok = -1;
-    }
-  }
-}
-
-
-static void
-end_badly ()
-{
-  unsigned int i;
-
-  die_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Fail! Stopping peers\n");
-  if (test_connected == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peers got connected\n");
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peers got NOT connected\n");
-
-  if (test_sending == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testcase did not send any messages before timeout\n");
-  if (test_send_timeout == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Test had timeout while waiting to send data\n");
-  for (i = 0; i < TOTAL_MSGS; i++)
-  {
-    if (get_bit (bitmap, i) == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Did not receive message %u\n",
-                  i);
-      ok = -1;
-    }
-  }
-
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-  if (cc != NULL)
-  {
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
-    cc = NULL;
-  }
-  if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p1);
-  if (p2 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p2);
-  GNUNET_TRANSPORT_TESTING_done (tth);
-  ok = GNUNET_SYSERR;
-}
 
 
 static unsigned int
@@ -335,10 +158,11 @@ set_bit (unsigned int bitIdx)
  * @param map the bitmap
  * @param bit index from bitmap
  *
- * @return Bit \a bit from hashcode \a code
+ * @return Bit @a bit from @a map
  */
 static int
-get_bit (const char *map, unsigned int bit)
+get_bit (const char *map,
+         unsigned int bit)
 {
   if (bit > TOTAL_MSGS)
   {
@@ -353,7 +177,56 @@ get_bit (const char *map, unsigned int bit)
 
 
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+custom_shutdown (void *cls)
+{
+  unsigned long long delta;
+  unsigned long long rate;
+  unsigned int i;
+  int ok;
+
+  if (NULL != th)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+    th = NULL;
+  }
+  /* Calculcate statistics   */
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
+  FPRINTF (stderr,
+           "\nThroughput was %llu KiBytes/s\n",
+           rate);
+  {
+    char *value_name;
+    GNUNET_asprintf (&value_name,
+                     "unreliable_%s",
+                     ccc->test_plugin);
+    GAUGER ("TRANSPORT",
+            value_name,
+            (int) rate,
+            "kb/s");
+    GNUNET_free (value_name);
+  }
+
+  ok = 0;
+  for (i = 0; i < TOTAL_MSGS; i++)
+  {
+    if (get_bit (bitmap, i) == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Did not receive message %d\n",
+                  i);
+      ok = -1;
+    }
+  }
+  if (0 != ok)
+    ccc->global_ret = GNUNET_SYSERR; /* fail: messages missing! */
+}
+
+
+static void
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
                 const struct GNUNET_MessageHeader *message)
 {
   static int n;
@@ -373,11 +246,12 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                ntohl (hdr->num), s, ntohs (message->size), ntohl (hdr->num));
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    test_sending = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+                ntohl (hdr->num),
+                s,
+                ntohs (message->size),
+                ntohl (hdr->num));
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -386,11 +260,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u with bits %u, but body did not match\n",
-                ntohl (hdr->num), (unsigned char) n);
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    test_sending = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+                ntohl (hdr->num),
+                (unsigned char) n);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 #if VERBOSE
@@ -410,23 +283,22 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                   ntohl (hdr->num),
                   TOTAL_MSGS);
   }
-  test_sending = GNUNET_YES;
   if (0 == (n % (TOTAL_MSGS / 100)))
   {
     FPRINTF (stderr, "%s",  ".");
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
   if (n == TOTAL_MSGS)
   {
-    end ();
+    /* end testcase with success */
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
 
 static size_t
-notify_ready (void *cls, size_t size, void *buf)
+notify_ready (void *cls,
+              size_t size,
+              void *buf)
 {
   static int n;
   char *cbuf = buf;
@@ -435,17 +307,14 @@ notify_ready (void *cls, size_t size, void *buf)
   unsigned int ret;
 
   th = NULL;
-
-  if (buf == NULL)
+  if (NULL == buf)
   {
-    test_send_timeout = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready for msg %u of %u\n",
-                msg_scheduled, TOTAL_MSGS);
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    ok = 42;
+                msg_scheduled,
+                TOTAL_MSGS);
+    GNUNET_SCHEDULER_shutdown ();
+    ccc->global_ret = 42;
     return 0;
   }
   ret = 0;
@@ -467,7 +336,7 @@ notify_ready (void *cls, size_t size, void *buf)
     ret += s - sizeof (struct TestMessage);
 
 #if VERBOSE
-    if (n % 5000 == 0)
+    if (0 == n % 5000)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending message %u of size %u\n",
@@ -483,48 +352,30 @@ notify_ready (void *cls, size_t size, void *buf)
   while ((size - ret >= s) && (n < TOTAL_MSGS));
   if (n < TOTAL_MSGS)
   {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s,
+    th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
+                                                 &ccc->p[0]->id,
+                                                 s,
                                                  TIMEOUT_TRANSMIT,
-                                                 &notify_ready, NULL);
+                                                 &notify_ready,
+                                                 NULL);
     msg_scheduled = n;
   }
   else
   {
-    FPRINTF (stderr, "%s",  "\n");
+    FPRINTF (stderr,
+             "%s",
+             "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All messages scheduled to be sent\n");
-    if (NULL != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
-  if (n % 5000 == 0)
+  if (0 == n % 5000)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Returning total message block of size %u\n", ret);
+                "Returning total message block of size %u\n",
+                ret);
   }
   total_bytes += ret;
   return ret;
-}
-
-
-static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n",
-              GNUNET_i2s (peer), cls);
-}
-
-
-static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n",
-              GNUNET_i2s (peer), cls);
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
 }
 
 
@@ -535,76 +386,27 @@ sendtask (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting to send %u messages\n",
               TOTAL_MSGS);
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0),
-                                               TIMEOUT_TRANSMIT, &notify_ready,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
+                                               &ccc->p[0]->id,
+                                               get_size (0),
+                                               TIMEOUT_TRANSMIT,
+                                               &notify_ready,
                                                NULL);
 }
 
 
 static void
-testing_connect_cb (void *cls)
+notify_disconnect (void *cls,
+                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                   const struct GNUNET_PeerIdentity *other)
 {
-  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peers connected: %s <-> %s\n",
-              p1_c,
-              GNUNET_i2s (&p2->id));
-  GNUNET_free (p1_c);
-
-  test_connected = GNUNET_YES;
-  cc = NULL;
-
-  GNUNET_SCHEDULER_add_now (&sendtask, NULL);
-}
-
-
-static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
-{
-  static int started;
-  started++;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%s') started\n",
-              p->no,
-              GNUNET_i2s (&p->id));
-
-  if (started != 2)
-    return;
-
-  test_connected = GNUNET_NO;
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1, p2, &testing_connect_cb,
-                                               NULL);
-
-}
-
-
-static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                           &end_badly, NULL);
-  test_send_timeout = GNUNET_NO;
-
-  p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
-                                            NULL);
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
-                                            &notify_receive, &notify_connect,
-                                            &notify_disconnect, &start_cb,
-                                            NULL);
-  if ((p1 == NULL) || (p2 == NULL))
+  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
+                                           me,
+                                           other);
+  if (NULL != th)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != NULL)
-      GNUNET_SCHEDULER_cancel (die_task);
-    //die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+    th = NULL;
   }
 }
 
@@ -612,55 +414,24 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  char *test_source;
-  int ret;
-
-  static char *const argv_new[] = {
-    "test-transport-api-reliability",
-    "-c",
-    "test_transport_api_data.conf",
-    NULL
-  };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
+    .connect_continuation = &sendtask,
+    .config_file = "test_transport_api_data.conf",
+    .rec = &notify_receive,
+    .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
+    .nd = &notify_disconnect,
+    .shutdown_task = &custom_shutdown,
+    .timeout = TIMEOUT
   };
 
-  test_name = GNUNET_TRANSPORT_TESTING_get_test_name (argv[0]);
-  GNUNET_log_setup (test_name,
-                    "WARNING",
-                    NULL);
-  test_source = GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__);
-  test_plugin = GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0],
-                                                               test_source);
-
-  tth = GNUNET_TRANSPORT_TESTING_init ();
-
-  cfg_file_p1 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 1);
-  cfg_file_p2 = GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], 2);
-
-#if WRITECONFIG
-  setTransportOptions ("test_transport_api_data.conf");
-#endif
-  ok = GNUNET_SYSERR;
-
-  ret = GNUNET_PROGRAM_run ((sizeof (argv_new) / sizeof (char *)) - 1,
-                            argv_new, test_name,
-                            "nohelp", options,
-                            &run, &ok);
-  if (GNUNET_SYSERR == ret)
-  {
-    fprintf (stderr,
-             "Test failed: %d\n",
-             ok);
-    ok = -1;
-  }
-  GNUNET_free (cfg_file_p1);
-  GNUNET_free (cfg_file_p2);
-  GNUNET_free (test_source);
-  GNUNET_free (test_plugin);
-  GNUNET_free (test_name);
-
-  return ok;
+  ccc = &my_ccc;
+  if (GNUNET_OK !=
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
+    return 1;
+  return 0;
 }
+
 
 /* end of test_transport_api_reliability.c */
