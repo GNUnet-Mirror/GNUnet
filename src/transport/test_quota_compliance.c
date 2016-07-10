@@ -55,10 +55,6 @@ static unsigned long long quota_out[] = { 10000, 10000 };
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 
-/*
- * Testcase specific declarations
- */
-
 /**
  * Note that this value must not significantly exceed
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
@@ -72,26 +68,18 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
-  uint32_t num;
+
+  uint32_t num GNUNET_PACKED;
 };
 GNUNET_NETWORK_STRUCT_END
 
 static int msg_scheduled;
+
 static int msg_sent;
 
 static unsigned long long total_bytes_sent;
 
 static struct GNUNET_TIME_Absolute start_time;
-
-/*
- * END Testcase specific declarations
- */
-
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
 
 
 static void
