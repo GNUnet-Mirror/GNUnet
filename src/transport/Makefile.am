@@ -435,7 +435,6 @@ check_PROGRAMS = \
  test_transport_address_switch_udp \
  test_transport_testing_startstop \
  test_transport_testing_restart \
- test_transport_testing \
  test_transport_startonly \
  test_plugin_tcp \
  test_plugin_udp \
@@ -590,14 +589,6 @@ test_transport_testing_startstop_LDADD = \
 test_transport_testing_restart_SOURCES = \
  test_transport_testing_restart.c
 test_transport_testing_restart_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- libgnunettransporttesting.la
-
-test_transport_testing_SOURCES = \
- test_transport_testing.c
-test_transport_testing_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
