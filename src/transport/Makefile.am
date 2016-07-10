@@ -435,7 +435,6 @@ check_PROGRAMS = \
  test_transport_address_switch_udp \
  test_transport_testing_startstop \
  test_transport_testing_restart \
- test_transport_startonly \
  test_plugin_tcp \
  test_plugin_udp \
  $(UNIX_TEST) \
@@ -512,7 +511,6 @@ TESTS = \
  test_transport_testing_startstop \
  test_transport_testing_restart \
  test_transport_testing \
- test_transport_startonly \
  test_plugin_tcp \
  test_plugin_udp \
  $(UNIX_TEST) \
@@ -661,15 +659,6 @@ test_transport_blacklisting_multiple_plugins_LDADD = \
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
 test_transport_api_disconnect_tcp_LDADD = \
- libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettransporttesting.la
-
-test_transport_startonly_SOURCES = \
- test_transport_startonly.c
-test_transport_startonly_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
