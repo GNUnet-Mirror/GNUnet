@@ -459,9 +459,27 @@ struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
   void *shutdown_task_cls;
 
   /**
+   * Custom task to run after peers were started but before we try to
+   * connect them.  If this function is set, we wait ONE second after
+   * running this function until we continue with connecting the
+   * peers.
+   */
+  GNUNET_SCHEDULER_TaskCallback pre_connect_task;
+
+  /**
+   * Closure for @e shutdown_task.
+   */
+  void *pre_connect_task_cls;
+
+  /**
    * When should the testcase time out?
    */
   struct GNUNET_TIME_Relative timeout;
+
+  /**
+   * Should we try to create connections in both directions?
+   */
+  int bi_directional;
 
   /* ******* fields set by #GNUNET_TRANSPORT_TESTING_connect_check **** */
 
@@ -512,6 +530,11 @@ struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
    * Task run on timeout.
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Task run to connect peers.
+   */
+  struct GNUNET_SCHEDULER_Task *connect_task;
 
   /**
    * Number of peers that have been started.

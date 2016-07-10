@@ -20,6 +20,7 @@
 /**
  * @file transport/test_transport_api.c
  * @brief base test case for transport implementations
+ * @author Christian Grothoff
  *
  * This test case serves as a base for tcp, udp, and udp-nat
  * transport test cases.  Based on the executable being run
@@ -33,12 +34,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define TEST_MESSAGE_SIZE 2600
 
@@ -58,9 +59,6 @@ custom_shutdown (void *cls)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
     th = NULL;
   }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peers were not ready to send data\n");
 }
 
 
@@ -148,7 +146,7 @@ sendtask (void *cls)
     char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
+                "Sending message from peer %u (`%s') -> peer %u (`%s') !\n",
                 ccc->p[1]->no,
                 GNUNET_i2s (&ccc->p[1]->id),
                 ccc->p[0]->no,
@@ -162,6 +160,7 @@ sendtask (void *cls)
                                                TIMEOUT_TRANSMIT,
                                                &notify_ready,
                                                ccc->p[0]);
+  GNUNET_assert (NULL != th);
 }
 
 
@@ -181,9 +180,16 @@ notify_disconnect (void *cls,
 }
 
 
-int
-main (int argc,
-      char *argv[])
+/**
+ * Runs the test.
+ *
+ * @param argv the argv argument from main()
+ * @param bi_directional should we try to establish connections
+ *        in both directions simultaneously?
+ */
+static int
+test (char *argv[],
+      int bi_directional)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .connect_continuation = &sendtask,
@@ -192,7 +198,8 @@ main (int argc,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
     .nd = &notify_disconnect,
     .shutdown_task = &custom_shutdown,
-    .timeout = TIMEOUT
+    .timeout = TIMEOUT,
+    .bi_directional = bi_directional
   };
 
   ccc = &my_ccc;
@@ -200,6 +207,19 @@ main (int argc,
       GNUNET_TRANSPORT_TESTING_main (2,
                                      &GNUNET_TRANSPORT_TESTING_connect_check,
                                      ccc))
+    return 1;
+  return 0;
+}
+
+
+int
+main (int argc,
+      char *argv[])
+{
+  if ( (0 != test (argv,
+                   GNUNET_NO)) ||
+       (0 != test (argv,
+                   GNUNET_YES) ) )
     return 1;
   return 0;
 }

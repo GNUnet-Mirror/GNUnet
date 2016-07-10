@@ -445,9 +445,8 @@ check_PROGRAMS = \
  $(HTTPS_CLIENT_PLUGIN_TEST) \
  $(HTTP_SERVER_PLUGIN_TEST) \
  $(HTTPS_SERVER_PLUGIN_TEST) \
- test_transport_api_blacklisting \
+ test_transport_api_blacklisting_tcp \
  test_transport_api_disconnect_tcp \
- test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
  test_transport_api_restart_1peer \
  test_transport_api_timeout_tcp \
@@ -516,9 +515,8 @@ TESTS = \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  $(BT_PLUGIN_TEST) \
- test_transport_api_blacklisting \
+ test_transport_api_blacklisting_tcp \
  test_transport_api_disconnect_tcp \
- test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
  test_transport_api_restart_1peer \
  test_transport_api_restart_2peers \
@@ -592,9 +590,9 @@ test_transport_testing_restart_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  libgnunettransporttesting.la
 
-test_transport_api_blacklisting_SOURCES = \
+test_transport_api_blacklisting_tcp_SOURCES = \
  test_transport_api_blacklisting.c
-test_transport_api_blacklisting_LDADD = \
+test_transport_api_blacklisting_tcp_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -758,14 +756,6 @@ test_plugin_https_client_LDADD = \
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
 test_transport_api_tcp_LDADD = \
- libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la  \
- libgnunettransporttesting.la
-
-test_transport_api_bidirectional_connect_SOURCES = \
- test_transport_api_bidirectional_connect.c
-test_transport_api_bidirectional_connect_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
@@ -1264,6 +1254,8 @@ test_quota_compliance_wlan_asymmetric_peer2.conf\
 test_quota_compliance_bluetooth_asymmetric_peer1.conf\
 test_quota_compliance_bluetooth_asymmetric_peer2.conf\
 test_transport_api_data.conf\
+test_transport_api_blacklisting_tcp_peer1.conf \
+test_transport_api_blacklisting_tcp_peer2.conf \
 test_transport_api_http_peer1.conf\
 test_transport_api_http_peer2.conf\
 test_transport_api_https_peer1.conf\
@@ -1286,8 +1278,6 @@ test_transport_api_reliability_wlan_peer1.conf\
 test_transport_api_reliability_wlan_peer2.conf\
 test_transport_api_reliability_bluetooth_peer1.conf\
 test_transport_api_reliability_bluetooth_peer2.conf\
-test_transport_api_bidirectional_connect_peer1.conf\
-test_transport_api_bidirectional_connect_peer2.conf\
 test_transport_api_manipulation_send_tcp_peer1.conf\
 test_transport_api_manipulation_send_tcp_peer2.conf\
 test_transport_api_manipulation_recv_tcp_peer1.conf\

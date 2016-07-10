@@ -44,23 +44,30 @@ find_peer_context (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
 }
 
 
-static struct GNUNET_TRANSPORT_TESTING_ConnectRequest *
-find_connecting_context (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
-                         struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
-                         struct GNUNET_TRANSPORT_TESTING_PeerContext *p2)
+static void
+notify_connecting_context (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
+                           struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
+                           struct GNUNET_TRANSPORT_TESTING_PeerContext *p2)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *ccn;
 
-  for (cc = tth->cc_head; NULL != cc; cc = cc->next)
+  for (cc = tth->cc_head; NULL != cc; cc = ccn)
   {
+    ccn = cc->next;
     if ( (cc->p1 == p1) &&
          (cc->p2 == p2) )
-      return cc;
+      cc->p1_c = GNUNET_YES;
     if ( (cc->p1 == p2) &&
          (cc->p2 == p1) )
-      return cc;
+      cc->p2_c = GNUNET_YES;
+    if ( (cc->p1_c == GNUNET_YES) &&
+         (cc->p2_c == GNUNET_YES) )
+    {
+      cc->cb (cc->cb_cls);
+      GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
+    }
   }
-  return NULL;
 }
 
 
@@ -71,7 +78,6 @@ notify_connect (void *cls,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
   char *p2_s;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
-  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
 
   p2 = find_peer_context (p->tth,
                           peer);
@@ -94,24 +100,9 @@ notify_connect (void *cls,
        p->no,
        GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
-
-  /* Find ConnectingContext */
-  cc = find_connecting_context (p->tth,
-                                p,
-                                p2);
-  if (NULL == cc)
-    return;
-  if (p == cc->p1)
-    cc->p1_c = GNUNET_YES;
-  if (p == cc->p2)
-    cc->p2_c = GNUNET_YES;
-
-  if ( (cc->p1_c == GNUNET_YES) &&
-       (cc->p2_c == GNUNET_YES) )
-  {
-    cc->cb (cc->cb_cls);
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (cc);
-  }
+  notify_connecting_context (p->tth,
+                             p,
+                             p2);
 }
 
 

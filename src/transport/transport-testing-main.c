@@ -83,6 +83,11 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (ccc->timeout_task);
     ccc->timeout_task = NULL;
   }
+  if (NULL != ccc->connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (ccc->connect_task);
+    ccc->connect_task = NULL;
+  }
   while (NULL != (crl = ccc->crl_head))
   {
     GNUNET_CONTAINER_DLL_remove (ccc->crl_head,
@@ -263,33 +268,23 @@ my_rec (void *cls,
 
 
 /**
- * Function called once we have successfully launched a peer.
- * Once all peers have been launched, we connect all of them
- * in a clique.
+ * Connect the peers as a clique.
  *
- * @param p peer that was launched (redundant, kill ASAP)
- * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
+ * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
  */
 static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-          void *cls)
+do_connect (void *cls)
 {
-  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
-  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
 
-  ccc->started++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%s') started\n",
-              p->no,
-              GNUNET_i2s (&p->id));
-  if (ccc->started != ccc->num_peers)
-    return;
-
+  ccc->connect_task = NULL;
   for (unsigned int i=0;i<ccc->num_peers;i++)
-    for (unsigned int j=i+1;j<ccc->num_peers;j++)
+    for (unsigned int j=(ccc->bi_directional ? 0 : i+1);j<ccc->num_peers;j++)
     {
       struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl;
 
+      if (i == j)
+        continue;
       crl = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequestList);
       GNUNET_CONTAINER_DLL_insert (ccc->crl_head,
                                    ccc->crl_tail,
@@ -313,6 +308,44 @@ start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
                                                         &connect_cb,
                                                         crl);
     }
+}
+
+
+/**
+ * Function called once we have successfully launched a peer.
+ * Once all peers have been launched, we connect all of them
+ * in a clique.
+ *
+ * @param p peer that was launched (redundant, kill ASAP)
+ * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
+ */
+static void
+start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
+          void *cls)
+{
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
+
+  ccc->started++;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer %u (`%s') started\n",
+              p->no,
+              GNUNET_i2s (&p->id));
+  if (ccc->started != ccc->num_peers)
+    return;
+  if (NULL != ccc->pre_connect_task)
+  {
+    /* Run the custom per-connect job, then give it a second to
+       go into effect before we continue connecting peers. */
+    ccc->pre_connect_task (ccc->pre_connect_task_cls);
+    ccc->connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                      &do_connect,
+                                                      ccc);
+  }
+  else
+  {
+    do_connect (ccc);
+  }
 }
 
 
