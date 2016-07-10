@@ -152,6 +152,7 @@ lib_LTLIBRARIES = \
 libgnunettransporttesting_la_SOURCES = \
   transport-testing.c transport-testing.h \
   transport-testing-filenames.c \
+  transport-testing-loggers.c \
   transport-testing-main.c
 libgnunettransporttesting_la_LIBADD = \
   libgnunettransport.la \

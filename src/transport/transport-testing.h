@@ -33,6 +33,8 @@
 #include "gnunet_testing_lib.h"
 
 
+/* ************* Basic functions for starting/stopping/connecting *********** */
+
 /**
  * Context for a single peer
  */
@@ -47,10 +49,14 @@ struct GNUNET_TRANSPORT_TESTING_Handle;
 /**
  * Callback when two peers are connected and both have called the connect callback
  * to notify clients about a new peer
+ *
+ * @param p FIXME: remove ASAP.
+ * @param cls closure
  */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_StartCallback) (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
                                            void *cls);
+
 
 
 /**
@@ -150,17 +156,54 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
  */
 struct GNUNET_TRANSPORT_TESTING_ConnectRequest
 {
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *next;
+
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *prev;
+
+  /**
+   * Peer we want to connect.
+   */
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p1;
+
+  /**
+   * Peer we want to connect.
+   */
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
+
+  /**
+   * Task by which we accomplish the connection.
+   */
   struct GNUNET_SCHEDULER_Task *tct;
+
+  /**
+   * Handle by which we ask ATS to faciliate the connection.
+   */
   struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
+
+  /**
+   * Handle by which we inform the peer about the HELLO of
+   * the other peer.
+   */
   struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
+
+  /**
+   * Function to call upon completion.
+   */
   GNUNET_SCHEDULER_TaskCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
   void *cb_cls;
-  int p1_c;
-  int p2_c;
+
+  int p1_c; // dead?
+  int p2_c; // dead?
 };
 
 
@@ -290,7 +333,243 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerCont
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
 
+
 /* ********************** high-level process functions *************** */
+
+
+/**
+ * Function called once the peers have been launched and
+ * connected by #GNUNET_TRANSPORT_TESTING_connect_check().
+ *
+ * @param cls closure
+ * @param num_peers size of the @a p array
+ * @param p the peers that were launched
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_ConnectContinuation)(void *cls,
+                                                unsigned int num_peers,
+                                                struct GNUNET_TRANSPORT_TESTING_PeerContext *p[]);
+
+
+/**
+ * Internal data structure.
+ */
+struct GNUNET_TRANSPORT_TESTING_ConnectRequestList;
+
+/**
+ * Internal data structure.
+ */
+struct GNUNET_TRANSPORT_TESTING_InternalPeerContext;
+
+
+/**
+ * Function called by the transport for each received message.
+ *
+ * @param cls closure
+ * @param receiver receiver of the message
+ * @param sender sender of the message
+ * @param message the message
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_ReceiveCallback) (void *cls,
+                                             struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                                             const struct GNUNET_PeerIdentity *sender,
+                                             const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param me peer experiencing the event
+ * @param other peer that connected to @a me
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_NotifyConnect) (void *cls,
+                                           struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                           const struct GNUNET_PeerIdentity *other);
+
+
+/**
+ * Function called to notify transport users that another
+ * peer disconnected from us.
+ *
+ * @param cls closure
+ * @param me peer experiencing the event
+ * @param other peer that disconnected from @a me
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_NotifyDisconnect) (void *cls,
+                                              struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                              const struct GNUNET_PeerIdentity *other);
+
+
+/**
+ * Closure that must be passed to
+ * #GNUNET_TRANSPORT_TESTING_connect_check.
+ */
+struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
+{
+
+  /**
+   * How should we continue after the connect?
+   */
+  GNUNET_SCHEDULER_TaskCallback connect_continuation;
+
+  /**
+   * Closure for @e connect_continuation.
+   */
+  void *connect_continuation_cls;
+
+  /**
+   * Which configuration file should we pass to the
+   * #GNUNET_PROGRAM_run() of the testcase?
+   */
+  const char *config_file;
+
+  /**
+   * Receiver argument to give for peers we start.
+   */
+  GNUNET_TRANSPORT_TESTING_ReceiveCallback rec;
+
+  /**
+   * Notify connect argument to give for peers we start.
+   */
+  GNUNET_TRANSPORT_TESTING_NotifyConnect nc;
+
+  /**
+   * Notify disconnect argument to give for peers we start.
+   */
+  GNUNET_TRANSPORT_TESTING_NotifyDisconnect nd;
+
+  /**
+   * Closure for @e rec, @e nc and @e nd.
+   */
+  void *cls;
+
+  /**
+   * Custom task to run on shutdown.
+   */
+  GNUNET_SCHEDULER_TaskCallback shutdown_task;
+
+  /**
+   * Closure for @e shutdown_task.
+   */
+  void *shutdown_task_cls;
+
+  /**
+   * When should the testcase time out?
+   */
+  struct GNUNET_TIME_Relative timeout;
+
+  /* ******* fields set by #GNUNET_TRANSPORT_TESTING_connect_check **** */
+
+  /**
+   * Number of peers involved in the test.
+   */
+  unsigned int num_peers;
+
+  /**
+   * Configuration files we have, array with @e num_peers entries.
+   */
+  char **cfg_files;
+
+  /**
+   * Array with @e num_peers entries.
+   */
+  struct GNUNET_TRANSPORT_TESTING_PeerContext **p;
+
+  /**
+   * Name of the plugin.
+   */
+  const char *test_plugin;
+
+  /**
+   * Name of the testcase.
+   */
+  const char *test_name;
+
+  /**
+   * Configuration object for the testcase.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Main testing handle.
+   */
+  struct GNUNET_TRANSPORT_TESTING_Handle *tth;
+
+  /**
+   * Result from the main function, set to #GNUNET_OK on success.
+   * Clients should set to #GNUNET_SYSERR to indicate test failure.
+   */
+  int global_ret;
+
+  /* ******* internal state, clients should not mess with this **** */
+
+  /**
+   * Task run on timeout.
+   */
+  struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Number of peers that have been started.
+   */
+  unsigned int started;
+
+  /**
+   * DLL of active connect requests.
+   */
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl_head;
+
+  /**
+   * DLL of active connect requests.
+   */
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl_tail;
+
+  /**
+   * Array with @e num_peers entries.
+   */
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ip;
+
+};
+
+
+/**
+ * Find peer by peer ID.
+ *
+ * @param ccc context to search
+ * @param peer peer to look for
+ * @return NULL if @a peer was not found
+ */
+struct GNUNET_TRANSPORT_TESTING_PeerContext *
+GNUNET_TRANSPORT_TESTING_find_peer (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
+                                    const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * Common implementation of the #GNUNET_TRANSPORT_TESTING_CheckCallback.
+ * Starts and connects the two peers, then invokes the
+ * `connect_continuation` from @a cls.  Sets up a timeout to
+ * abort the test, and a shutdown handler to clean up properly
+ * on exit.
+ *
+ * @param cls closure of type `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
+ * @param tth_ initialized testing handle
+ * @param test_plugin_ name of the plugin
+ * @param test_name_ name of the test
+ * @param num_peers number of entries in the @a cfg_file array
+ * @param cfg_files array of names of configuration files for the peers
+ * @return #GNUNET_SYSERR on error
+ */
+int
+GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
+                                        struct GNUNET_TRANSPORT_TESTING_Handle *tth_,
+                                        const char *test_plugin_,
+                                        const char *test_name_,
+                                        unsigned int num_peers,
+                                        char *cfg_files[]);
 
 
 /**
@@ -298,17 +577,20 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_C
  * for the test as derived from the source name and the binary name.
  *
  * @param cls closure
- * @param tth initialized testing handle
- * @param test_plugin name of the plugin (if available)
+ * @param tth_ initialized testing handle
+ * @param test_plugin_ name of the plugin
+ * @param test_name_ name of the test
  * @param num_peers number of entries in the @a cfg_file array
  * @param cfg_files array of names of configuration files for the peers
+ * @return #GNUNET_SYSERR on error
  */
-typedef void
+typedef int
 (*GNUNET_TRANSPORT_TESTING_CheckCallback)(void *cls,
-                                          struct GNUNET_TRANSPORT_TESTING_Handle *tth,
-                                          const char *test_plugin,
+                                          struct GNUNET_TRANSPORT_TESTING_Handle *tth_,
+                                          const char *test_plugin_,
+                                          const char *test_name_,
                                           unsigned int num_peers,
-                                          const char *cfg_files[]);
+                                          char *cfg_files[]);
 
 
 /**
@@ -339,6 +621,37 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
  */
 #define GNUNET_TRANSPORT_TESTING_main(num_peers,check,check_cls) \
   GNUNET_TRANSPORT_TESTING_main_ (argv[0], __FILE__, num_peers, check, check_cls)
+
+
+
+/* ********************** log-only convenience functions ************* */
+
+
+/**
+ * Log a connect event.
+ *
+ * @param cls NULL
+ * @param me peer that had the event
+ * @param other peer that connected.
+ */
+void
+GNUNET_TRANSPORT_TESTING_log_connect (void *cls,
+                                      struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                      const struct GNUNET_PeerIdentity *other);
+
+
+/**
+ * Log a disconnect event.
+ *
+ * @param cls NULL
+ * @param me peer that had the event
+ * @param other peer that disconnected.
+ */
+void
+GNUNET_TRANSPORT_TESTING_log_disconnect (void *cls,
+                                         struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                         const struct GNUNET_PeerIdentity *other);
+
 
 
 /* ********************** low-level filename functions *************** */
