@@ -244,7 +244,7 @@ do_align:
       want = ntohs (hdr->size);
       if (want < sizeof (struct GNUNET_MessageHeader))
       {
-        GNUNET_break_op (0);
+	GNUNET_break_op (0);
         mst->off = 0;
         return GNUNET_SYSERR;
       }

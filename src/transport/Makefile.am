@@ -509,7 +509,6 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = \
  test_transport_testing_startstop \
  test_transport_testing_restart \
- test_transport_testing \
  test_plugin_tcp \
  test_plugin_udp \
  $(UNIX_TEST) \
@@ -1266,6 +1265,8 @@ test_transport_api_timeout_tcp_peer1.conf\
 test_transport_api_timeout_tcp_peer2.conf\
 test_transport_api_multi_peer1.conf\
 test_transport_api_multi_peer2.conf\
+test_transport_api_restart_1peer_peer1.conf\
+test_transport_api_restart_1peer_peer2.conf\
 test_transport_api_reliability_http_peer1.conf\
 test_transport_api_reliability_http_peer2.conf\
 test_transport_api_reliability_https_peer1.conf\
@@ -1284,6 +1285,10 @@ test_transport_api_manipulation_recv_tcp_peer1.conf\
 test_transport_api_manipulation_recv_tcp_peer2.conf\
 test_transport_api_manipulation_cfg_peer1.conf\
 test_transport_api_manipulation_cfg_peer2.conf\
+test_transport_api_restart_1peer_peer1.conf\
+test_transport_api_restart_1peer_peer2.conf\
+test_transport_api_restart_2peers_peer1.conf\
+test_transport_api_restart_2peers_peer2.conf\
 test_transport_api_tcp_nat_peer1.conf\
 test_transport_api_tcp_nat_peer2.conf\
 test_transport_api_tcp_peer1.conf\

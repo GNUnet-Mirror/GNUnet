@@ -817,6 +817,7 @@ transmit_ready (struct GNUNET_TRANSPORT_Handle *h)
       GNUNET_MQ_discard (env);
       continue;
     }
+    obm->header.size = htons (mret + sizeof (*obm));
     if (NULL != n->unready_warn_task)
       n->unready_warn_task
         = GNUNET_SCHEDULER_add_delayed (UNREADY_WARN_TIME,

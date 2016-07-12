@@ -275,6 +275,7 @@ run_stage (void *cls)
                                                 1,
                                                 NULL,
                                                 NULL,
+						NULL,
                                                 NULL,
                                                 &start_cb,
                                                 NULL);
@@ -284,6 +285,7 @@ run_stage (void *cls)
                                                 2,
                                                 NULL,
                                                 NULL,
+						NULL,
                                                 NULL,
                                                 &start_cb,
                                                 NULL);
@@ -297,10 +299,12 @@ run_stage (void *cls)
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p1,
                                                 1, NULL, NULL, NULL,
+						NULL,
                                                 &start_cb, NULL);
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p2, 2,
                                                 NULL, NULL, NULL,
+						NULL,
                                                 &start_cb, NULL);
 
       /* check if configuration contain correct blacklist entries */
@@ -328,6 +332,7 @@ run_stage (void *cls)
                                                 cfg_p1,
                                                 1,
                                                 NULL,
+						NULL,
                                                 NULL,
                                                 NULL,
                                                 &start_cb,
@@ -337,6 +342,7 @@ run_stage (void *cls)
                                                 cfg_p2, 2,
                                                 NULL,
                                                 NULL,
+						NULL,
                                                 NULL,
                                                 &start_cb,
                                                 NULL);
@@ -363,11 +369,13 @@ run_stage (void *cls)
 
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p1, 1,
+						NULL,
                                                 NULL, NULL, NULL,
                                                 &start_cb, NULL);
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p2, 2,
+						NULL,
                                                 NULL, NULL, NULL,
                                                 &start_cb, NULL);
 
@@ -391,11 +399,13 @@ run_stage (void *cls)
 
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p1, 1,
+						NULL,
                                                 NULL, NULL, NULL,
                                                 &start_cb, NULL);
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p2, 2,
+						NULL,
                                                 NULL, NULL,
                                                 NULL,
                                                 &start_cb, NULL);
@@ -421,11 +431,13 @@ run_stage (void *cls)
 
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p1, 1,
+						NULL,
                                                 NULL, NULL, NULL,
                                                 &start_cb, NULL);
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                                 cfg_p2, 2,
+						NULL,
                                                 NULL, NULL, NULL,
                                                 &start_cb, NULL);
 

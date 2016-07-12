@@ -254,6 +254,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_receive,
                                             &notify_connect,
                                             &notify_disconnect,
+					    NULL,
                                             &start_cb,
                                             NULL);
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
@@ -262,6 +263,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_receive,
                                             &notify_connect,
                                             &notify_disconnect,
+					    NULL,
                                             &start_cb,
                                             NULL);
   if ((p1 == NULL) || (p2 == NULL))

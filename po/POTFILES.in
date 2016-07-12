@@ -406,10 +406,15 @@ src/transport/plugin_transport_wlan.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api.c
+src/transport/transport_api_core.c
+src/transport/transport_api_get_hello.c
 src/transport/transport_api_monitor_peers.c
 src/transport/transport_api_monitor_plugins.c
-src/transport/transport_api_monitor_validation.c
+src/transport/transport_api_offer_hello.c
 src/transport/transport-testing.c
+src/transport/transport-testing-filenames.c
+src/transport/transport-testing-loggers.c
+src/transport/transport-testing-main.c
 src/tun/regex.c
 src/tun/tun.c
 src/util/bandwidth.c

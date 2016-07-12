@@ -72,7 +72,7 @@ notify_receive (void *cls,
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peer %u (`%4s') received message of type %d and size %u size from peer %s!\n",
+                "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
                 receiver->no,
                 ps,
                 ntohs (message->type),

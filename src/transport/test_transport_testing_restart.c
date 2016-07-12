@@ -122,6 +122,7 @@ run (void *cls,
                                           NULL, /* receive cb */
                                           NULL, /* connect cb */
                                           NULL, /* disconnect cb */
+					  NULL, /* nc/nd closure */
                                           start_cb, /* startup cb */
                                           NULL); /* closure */
   if (NULL == p)

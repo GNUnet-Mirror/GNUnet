@@ -186,7 +186,7 @@ get_hello (void *cb_cls,
          p->no,
          GNUNET_i2s (&p->id));
     p->start_cb (p,
-                 p->cb_cls);
+                 p->start_cb_cls);
     p->start_cb = NULL;
   }
 }
@@ -200,8 +200,9 @@ get_hello (void *cb_cls,
  * @param rec receive callback
  * @param nc connect callback
  * @param nd disconnect callback
- * @param start_cb start callback
  * @param cb_cls closure for callback
+ * @param start_cb start callback
+ * @param start_cb_cls closure for callback
  * @return the peer context
  */
 struct GNUNET_TRANSPORT_TESTING_PeerContext *
@@ -211,8 +212,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
+				     void *cb_cls,
                                      GNUNET_TRANSPORT_TESTING_StartCallback start_cb,
-                                     void *cb_cls)
+                                     void *start_cb_cls)
 {
   char *emsg = NULL;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
@@ -231,11 +233,12 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
   p->nc = nc;
   p->nd = nd;
   p->rec = rec;
-  p->start_cb = start_cb;
-  if (cb_cls != NULL)
+  if (NULL != cb_cls)
     p->cb_cls = cb_cls;
   else
     p->cb_cls = p;
+  p->start_cb = start_cb;
+  p->start_cb_cls = start_cb_cls;
   GNUNET_CONTAINER_DLL_insert (tth->p_head,
                                tth->p_tail,
                                p);
@@ -341,13 +344,13 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
  *
  * @param p the peer
  * @param restart_cb callback to call when restarted
- * @param cb_cls callback closure
+ * @param restart_cb_cls callback closure
  * @return #GNUNET_OK in success otherwise #GNUNET_SYSERR
  */
 int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
                                        GNUNET_TRANSPORT_TESTING_StartCallback restart_cb,
-                                       void *cb_cls)
+                                       void *restart_cb_cls)
 {
   /* shutdown */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -397,7 +400,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerConte
 
   GNUNET_assert (NULL == p->start_cb);
   p->start_cb = restart_cb;
-  p->cb_cls = cb_cls;
+  p->start_cb_cls = restart_cb_cls;
 
   p->th = GNUNET_TRANSPORT_connect (p->cfg,
                                     NULL,

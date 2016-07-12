@@ -383,6 +383,7 @@ connect_check_run (void *cls,
                                                      &my_rec,
                                                      &my_nc,
                                                      &my_nd,
+						     &ccc->ip[i],
                                                      &start_cb,
                                                      &ccc->ip[i]);
     if (NULL == ccc->p[i])

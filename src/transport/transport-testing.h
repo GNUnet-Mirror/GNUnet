@@ -140,10 +140,15 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
   struct GNUNET_HELLO_Message *hello;
 
   /**
-   * Closure for the callbacks
+   * Closure for the @a nc and @a nd callbacks
    */
   void *cb_cls;
 
+  /**
+   * Closure for @e start_cb.
+   */
+  void *start_cb_cls;
+  
   /**
    * An unique number to identify the peer
    */
@@ -266,8 +271,9 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth);
  * @param rec receive callback
  * @param nc connect callback
  * @param nd disconnect callback
+ * @param cb_cls closure for @a nc and @a nd callback
  * @param start_cb start callback
- * @param cb_cls closure for callback
+ * @param start_cb_cls closure for @a start_cb
  * @return the peer context
  */
 struct GNUNET_TRANSPORT_TESTING_PeerContext *
@@ -277,8 +283,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
                                      GNUNET_TRANSPORT_ReceiveCallback rec,
                                      GNUNET_TRANSPORT_NotifyConnect nc,
                                      GNUNET_TRANSPORT_NotifyDisconnect nd,
+				     void *cb_cls,
                                      GNUNET_TRANSPORT_TESTING_StartCallback start_cb,
-                                     void *cb_cls);
+                                     void *start_cb_cls);
 
 
 /**
@@ -295,13 +302,13 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext 
  *
  * @param p the peer
  * @param restart_cb restart callback
- * @param cb_cls callback closure
+ * @param restart_cb_cls callback closure
  * @return #GNUNET_OK in success otherwise #GNUNET_SYSERR
  */
 int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
                                        GNUNET_TRANSPORT_TESTING_StartCallback restart_cb,
-                                       void *cb_cls);
+                                       void *restart_cb_cls);
 
 
 

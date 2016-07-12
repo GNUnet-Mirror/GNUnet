@@ -91,14 +91,15 @@ run (void *cls,
                                     &end_badly,
                                     NULL);
 
-  p = GNUNET_TRANSPORT_TESTING_start_peer(tth,
-                                          cfgfile,
-                                          1,
-                                          NULL, /* receive cb */
-                                          NULL, /* connect cb */
-                                          NULL, /* disconnect cb */
-                                          &start_cb, /* startup cb */
-                                          NULL); /* closure */
+  p = GNUNET_TRANSPORT_TESTING_start_peer (tth,
+					   cfgfile,
+					   1,
+					   NULL, /* receive cb */
+					   NULL, /* connect cb */
+					   NULL, /* disconnect cb */
+					   NULL, /* nc/nd closure */
+					   &start_cb, /* startup cb */
+					   NULL); /* closure */
   if (NULL == p)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to start peer\n");

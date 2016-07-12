@@ -472,10 +472,11 @@ handle_store (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request (size: %lu).\n" " Sub system `%s'\n"
-              " Peer `%s'\n" " Key `%s'\n" " Value size %lu\n"
-              " Options: %d.\n", record->value_size, record->sub_system,
-              GNUNET_i2s (record->peer), record->key, record->value_size,
+              "Received a store request (size: %u). Sub system `%s' Peer `%s Key `%s' Options: %d.\n",
+	      (unsigned int) record->value_size,
+	      record->sub_system,
+              GNUNET_i2s (record->peer),
+	      record->key,
               ntohl (srm->options));
   record->client = client;
   if (GNUNET_OK !=

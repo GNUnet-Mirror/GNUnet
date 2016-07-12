@@ -486,7 +486,7 @@ main (int argc,
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .connect_continuation = &connected_cb,
-    .config_file = "test_transport_startonly.conf",
+    .config_file = "test_transport_api.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
     .nd = &notify_disconnect,
