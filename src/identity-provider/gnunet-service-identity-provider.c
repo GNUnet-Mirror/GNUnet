@@ -534,9 +534,18 @@ clear_ego_attrs (void *cls,
 static void
 token_collect_error_cb (void *cls)
 {
-  // struct EgoEntry *ego_entry = cls;
+  struct EgoEntry *ego_entry = cls;
 
-  GNUNET_assert (0); // FIXME: handle properly!
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              ">>> Updating Ego failed!\n");
+  //Clear attribute map for ego
+  GNUNET_CONTAINER_multihashmap_iterate (ego_entry->attr_map,
+                                         &clear_ego_attrs,
+                                         ego_entry);
+  GNUNET_CONTAINER_multihashmap_clear (ego_entry->attr_map);
+  update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+                                          ego_entry->next);
+
 }
 
 
@@ -621,16 +630,20 @@ token_collect (void *cls,
   rd_exp = token_record->expiration_time;
 
   GNUNET_SCHEDULER_add_now (&handle_token_update,
-			    ego_entry);
+                            ego_entry);
 }
 
 
 static void
 attribute_collect_error_cb (void *cls)
 {
-  // struct EgoEntry *ego_entry = cls;
+  struct EgoEntry *ego_entry = cls;
 
-  GNUNET_assert (0); // FIXME: handle properly!
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              ">>> Updating Attributes failed!\n");
+  ego_entry->attributes_dirty = GNUNET_NO;
+  update_task = GNUNET_SCHEDULER_add_now (&update_identities,
+                                          ego_entry);
 }
 
 
@@ -685,8 +698,8 @@ attribute_collect (void *cls,
     if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
     {
       val_str = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-                                              rd->data,
-                                              rd->data_size);
+                                                  rd->data,
+                                                  rd->data_size);
       attr = GNUNET_malloc (sizeof (struct TokenAttr));
       attr->name = GNUNET_strdup (lbl);
       val = GNUNET_malloc (sizeof (struct TokenAttrValue));
@@ -721,9 +734,9 @@ attribute_collect (void *cls,
     }
   }
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
-                                     &key,
-                                     attr,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                                                                 &key,
+                                                                 attr,
+                                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_NAMESTORE_zone_iterator_next (ns_it);
 }
 
@@ -795,7 +808,7 @@ init_cont ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, ">>> Starting Service\n");
   //Initially iterate all itenties and refresh all tokens
   update_task = GNUNET_SCHEDULER_add_now (&update_identities,
-					  ego_head);
+                                          ego_head);
 }
 
 
@@ -952,7 +965,7 @@ cleanup_issue_handle (struct IssueHandle *handle)
   if (NULL != handle->scopes)
     GNUNET_free (handle->scopes);
   if (NULL != handle->token)
-   token_destroy (handle->token);
+    token_destroy (handle->token);
   if (NULL != handle->ticket)
     ticket_destroy (handle->ticket);
   if (NULL != handle->label)
@@ -1001,8 +1014,8 @@ store_token_issue_cont (void *cls,
     return;
   }
   irm = create_issue_result_message (handle->label,
-				     ticket_str,
-				     token_str);
+                                     ticket_str,
+                                     token_str);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &irm->header,
@@ -1016,16 +1029,9 @@ store_token_issue_cont (void *cls,
 
 
 /**
- * Build a GNUid token for identity
+ * Build a token and store it
  *
- * FIXME: doxygen is very wrong here!
- *
- * @param handle the handle
- * @param ego_entry the ego to build the token for
- * @param name name of the ego
- * @param token_aud token audience
- * @param token the resulting gnuid token
- * @return identifier string of token (label)
+ * @param cls the IssueHandle
  */
 static void
 sign_and_return_token (void *cls)
@@ -1111,9 +1117,11 @@ sign_and_return_token (void *cls)
 static void
 attr_collect_error (void *cls)
 {
-  // struct IssueHandle *handle = cls;
+  struct IssueHandle *handle = cls;
 
-  GNUNET_assert (0); // FIXME: handle error!
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute Error!\n");
+  handle->ns_it = NULL;
+  GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
 }
 
 
@@ -1324,9 +1332,10 @@ handle_exchange_message (void *cls,
 static void
 find_existing_token_error (void *cls)
 {
-  // struct IssueHandle *handle = cls;
-
-  GNUNET_assert (0); // FIXME: handle properly
+  struct IssueHandle *handle = cls;
+  cleanup_issue_handle (handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error looking for existing token\n");
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -1508,8 +1517,13 @@ handle_issue_message (void *cls,
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
-  /* FIXME: check that scopes is 0-termianted, Out-of-bounds access
-     possible here!!! */
+  if ('\0' != scopes[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed scopes received!\n");
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   scopes_tmp = GNUNET_strdup (scopes);
   scope = strtok(scopes_tmp, ",");
   for (; NULL != scope; scope = strtok (NULL, ","))
