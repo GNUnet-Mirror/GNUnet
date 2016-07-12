@@ -20,15 +20,10 @@
 
 /**
  * @file psycstore/plugin_psycstore_mysql.c
- * @brief sqlite-based psycstore backend
+ * @brief mysql-based psycstore backend
  * @author Gabor X Toth
  * @author Christian Grothoff
  * @author Christophe Genevey
- */
-
-/*
- * FIXME: SQLite3 only supports signed 64-bit integers natively,
- *        thus it can only store 63 bits of the uint64_t's.
  */
 
 #include "platform.h"
@@ -309,7 +304,7 @@ database_setup (struct Plugin *plugin)
                                                "FILENAME", &filename))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "psycstore-sqlite", "FILENAME");
+			       "psycstore-mysql", "FILENAME");
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (filename))
@@ -330,7 +325,7 @@ database_setup (struct Plugin *plugin)
   if (NULL == plugin->mc)
   {
     LOG(GNUNET_ERROR_TYPE_ERROR,
-   _("Unable to initialize Mysql: .\n"));
+   _("Unable to initialize Mysql.\n"));
     return GNUNET_SYSERR; 
   }
   
@@ -356,12 +351,15 @@ database_setup (struct Plugin *plugin)
 
   GNUNET_MYSQL_statement_run (plugin->mc,
                               "CREATE TABLE IF NOT EXISTS channels (\n"
-                              "  id INT PRIMARY KEY,\n"
-                              "  pub_key BLOB UNIQUE,\n"
-                              "  max_state_message_id INT,\n" // last applied state message ID
-                              "  state_hash_message_id INT\n" // last message ID with a state hash
+                              " id INT,\n"
+                              " pub_key BLOB,\n"
+                              " max_state_message_id INT,\n"
+                              " state_hash_message_id INT,\n"
+                              " PRIMARY KEY(id),\n"
+                              " UNIQUE KEY(pub_key(10))\n"
                               ");");
-
+  
+/** ERROR **/
   GNUNET_MYSQL_statement_run (plugin->mc,
                               "CREATE TABLE IF NOT EXISTS slaves (\n"
                               "  id INT PRIMARY KEY,\n"
@@ -636,7 +634,7 @@ database_setup (struct Plugin *plugin)
 static void
 database_shutdown (struct Plugin *plugin)
 {
-  GNUNET_MYSQL_statements_invalidate (plugin->mc);
+  GNUNET_MYSQL_context_destroy (plugin->mc);
 
   GNUNET_free_non_null (plugin->fn);
 }
@@ -908,7 +906,7 @@ slave_key_store (struct Plugin *plugin,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-sqlite_membership_store (void *cls,
+mysql_membership_store (void *cls,
                          const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                          const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                          int did_join,
@@ -926,6 +924,7 @@ sqlite_membership_store (void *cls,
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->insert_membership;
   MYSQL_STMT *statement = NULL;
 
+/**** FAIL HERE ****/ 
   statement = GNUNET_MYSQL_statement_get_stmt (stmt);
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
@@ -2206,7 +2205,7 @@ libgnunet_plugin_psycstore_mysql_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_PSYCSTORE_PluginFunctions);
   api->cls = &plugin;
-  api->membership_store = &sqlite_membership_store;
+  api->membership_store = &mysql_membership_store;
   api->membership_test = &membership_test;
   api->fragment_store = &fragment_store;
   api->message_add_flags = &message_add_flags;
@@ -2229,7 +2228,7 @@ libgnunet_plugin_psycstore_mysql_init (void *cls)
   api->state_get_prefix = &state_get_prefix;
   api->state_get_signed = &state_get_signed;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, _("SQLite database running\n"));
+  LOG (GNUNET_ERROR_TYPE_INFO, _("Mysql database running\n"));
   return api;
 }
 
@@ -2249,7 +2248,7 @@ libgnunet_plugin_psycstore_mysql_done (void *cls)
   database_shutdown (plugin);
   plugin->cfg = NULL;
   GNUNET_free (api);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "SQLite plugin is finished\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Mysql plugin is finished\n");
   return NULL;
 }
 

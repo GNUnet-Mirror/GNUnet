@@ -20,6 +20,13 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_MYSQL
+MYSQL_PLUGIN = libgnunet_plugin_psycstore_mysql.la
+if HAVE_TESTING
+MYSQL_TESTS = test_plugin_psycstore_mysql
+endif
+endif
+
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_psycstore_sqlite.la
 if HAVE_TESTING
@@ -53,7 +60,8 @@ gnunet_service_psycstore_LDADD = \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \
-  $(SQLITE_PLUGIN)
+  $(SQLITE_PLUGIN) \
+  $(MYSQL_PLUGIN)
 
 libgnunet_plugin_psycstore_mysql_la_SOURCES = \
   plugin_psycstore_mysql.c
@@ -83,6 +91,7 @@ if HAVE_SQLITE
 if HAVE_TESTING
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
+ $(MYSQL_TESTS) \
  test_psycstore
 endif
 endif
@@ -108,3 +117,10 @@ test_plugin_psycstore_sqlite_SOURCES = \
 test_plugin_psycstore_sqlite_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+test_plugin_psycstore_mysql_SOURCES = \
+ test_plugin_psycstore.c
+test_plugin_psycstore_mysql_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
