@@ -244,7 +244,7 @@ mysql_trace (void *cls, const char *sql)
  */
 static int
 mysql_prepare (struct GNUNET_MYSQL_Context *mc,
-              const char *sql, 
+              const char *sql,
               struct GNUNET_MYSQL_StatementHandle *stmt)
 {
   stmt = GNUNET_MYSQL_statement_prepare (mc,
@@ -326,9 +326,9 @@ database_setup (struct Plugin *plugin)
   {
     LOG(GNUNET_ERROR_TYPE_ERROR,
    _("Unable to initialize Mysql.\n"));
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
-  
+
 /*
 #if DEBUG_PSYCSTORE
   sqlite3_trace (plugin->dbh, &sql_trace, NULL);
@@ -418,27 +418,27 @@ database_setup (struct Plugin *plugin)
                               ");");
 
   /* Prepare statements */
-  mysql_prepare (plugin->mc, 
-                "BEGIN", 
+  mysql_prepare (plugin->mc,
+                "BEGIN",
                 plugin->transaction_begin);
 
-  mysql_prepare (plugin->mc, 
-                "COMMIT", 
+  mysql_prepare (plugin->mc,
+                "COMMIT",
                 plugin->transaction_commit);
 
-  mysql_prepare (plugin->mc, 
-                "ROLLBACK;", 
+  mysql_prepare (plugin->mc,
+                "ROLLBACK;",
                 plugin->transaction_rollback);
 
-  mysql_prepare (plugin->mc, 
-                "INSERT OR IGNORE INTO channels (pub_key) VALUES (?);", 
+  mysql_prepare (plugin->mc,
+                "INSERT OR IGNORE INTO channels (pub_key) VALUES (?);",
                 plugin->insert_channel_key);
 
-  mysql_prepare (plugin->mc, 
-                "INSERT OR IGNORE INTO slaves (pub_key) VALUES (?);", 
+  mysql_prepare (plugin->mc,
+                "INSERT OR IGNORE INTO slaves (pub_key) VALUES (?);",
                 plugin->insert_slave_key);
- 
-  mysql_prepare (plugin->mc, 
+
+  mysql_prepare (plugin->mc,
                 "INSERT INTO membership\n"
                 " (channel_id, slave_id, did_join, announced_at,\n"
                 "  effective_since, group_generation)\n"
@@ -675,14 +675,14 @@ exec_channel (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt,
                                           params))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "mysql exec_channel", statement); 
+                "mysql exec_channel", statement);
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return GNUNET_OK;
@@ -717,14 +717,14 @@ transaction_begin (struct Plugin *plugin, enum Transactions transaction)
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   plugin->transaction = transaction;
@@ -747,7 +747,7 @@ transaction_commit (struct Plugin *plugin)
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql statement invalide", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_QueryParam params[] = {
@@ -760,14 +760,14 @@ transaction_commit (struct Plugin *plugin)
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   plugin->transaction = TRANSACTION_NONE;
@@ -789,7 +789,7 @@ transaction_rollback (struct Plugin *plugin)
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql statement invalide", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_QueryParam params[] = {
@@ -802,14 +802,14 @@ transaction_rollback (struct Plugin *plugin)
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", statement);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   plugin->transaction = TRANSACTION_NONE;
@@ -830,7 +830,7 @@ channel_key_store (struct Plugin *plugin,
   {
    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql statement invalide", statement);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_QueryParam params[] = {
@@ -851,7 +851,7 @@ channel_key_store (struct Plugin *plugin,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return GNUNET_OK;
@@ -871,7 +871,7 @@ slave_key_store (struct Plugin *plugin,
   {
    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql statement invalide", statement);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_QueryParam params[] = {
@@ -892,7 +892,7 @@ slave_key_store (struct Plugin *plugin,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return GNUNET_OK;
@@ -917,7 +917,7 @@ mysql_membership_store (void *cls,
                          uint64_t group_generation)
 {
   struct Plugin *plugin = cls;
-  
+
   uint32_t idid_join = (uint32_t)did_join;
   uint64_t iannounced_at = (uint64_t)announced_at;
   uint64_t ieffective_since = (uint64_t)effective_since;
@@ -926,7 +926,7 @@ mysql_membership_store (void *cls,
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->insert_membership;
   MYSQL_STMT *statement = NULL;
 
-/**** FAIL HERE ****/ 
+/**** FAIL HERE ****/
   statement = GNUNET_MYSQL_statement_get_stmt (stmt);
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
@@ -959,14 +959,14 @@ mysql_membership_store (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
@@ -989,7 +989,7 @@ membership_test (void *cls,
 
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_membership;
   MYSQL_STMT *statement = NULL;
-  
+
   uint32_t did_join = 0;
 
   statement = GNUNET_MYSQL_statement_get_stmt (stmt);
@@ -998,7 +998,7 @@ membership_test (void *cls,
   {
    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql statement invalide", statement);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
 
   int ret = GNUNET_SYSERR;
@@ -1016,7 +1016,7 @@ membership_test (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql execute prepared", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_ResultSpec results_select[] = {
@@ -1029,7 +1029,7 @@ membership_test (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   if(0 != did_join)
@@ -1045,7 +1045,7 @@ membership_test (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return ret;
@@ -1065,7 +1065,7 @@ fragment_store (void *cls,
                 uint32_t psycstore_flags)
 {
   struct Plugin *plugin = cls;
-  
+
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->insert_fragment;
   MYSQL_STMT *statement = NULL;
 
@@ -1113,16 +1113,16 @@ fragment_store (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql execute prepared", statement);
-    return GNUNET_SYSERR;    
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
-  
+
   return GNUNET_OK;
 }
 
@@ -1161,54 +1161,77 @@ message_add_flags (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql execute prepared", statement);
-    return GNUNET_SYSERR;   
+    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (statement))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return ret;
 }
 
+
 static int
-fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
+fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
+              GNUNET_PSYCSTORE_FragmentCallback cb,
               void *cb_cls)
 {
-  int data_size = 0 ;
-  uint64_t data8 = 0;
-  MYSQL_STMT * statement = NULL;
-  statement = GNUNET_MYSQL_statement_get_stmt (stmt);
 
-  struct GNUNET_MULTICAST_MessageHeader *msg
-    = GNUNET_malloc (sizeof (*msg) + data_size);
-
+  uint64_t fragment_id;
+  uint64_t fragment_offset;
+  uint64_t message_id;
+  uint64_t group_generation;
+  struct GNUNET_MULTICAST_MessageHeader msg; // to be removed...
+  void *buf;
+  size_t buf_size;
+  int ret;
+  uint64_t flags;
+  struct GNUNET_MULTICAST_MessageHeader *mp;
   struct GNUNET_MY_ResultSpec results[] = {
-    GNUNET_MY_result_spec_uint32 ((uint32_t *)&msg->hop_counter),
-    GNUNET_MY_result_spec_auto_from_type (&msg->signature),
-    GNUNET_MY_result_spec_auto_from_type (&msg->purpose),
-    GNUNET_MY_result_spec_uint64 (&msg->fragment_id),
-    GNUNET_MY_result_spec_uint64 (&msg->fragment_offset),
-    GNUNET_MY_result_spec_uint64 (&msg->message_id),
-    GNUNET_MY_result_spec_uint64 (&msg->group_generation),
-    GNUNET_MY_result_spec_uint32 (&msg->flags),
-    GNUNET_MY_result_spec_uint64 (&data8),
-    GNUNET_MY_result_spec_auto_from_type (&msg[1]),
+    GNUNET_MY_result_spec_uint32 ((uint32_t *)&msg.hop_counter), // FIXME
+    GNUNET_MY_result_spec_auto_from_type (&msg.signature), // FIXME
+    GNUNET_MY_result_spec_auto_from_type (&msg.purpose), // FIXME
+    GNUNET_MY_result_spec_uint64 (&fragment_id),
+    GNUNET_MY_result_spec_uint64 (&fragment_offset),
+    GNUNET_MY_result_spec_uint64 (&message_id),
+    GNUNET_MY_result_spec_uint64 (&group_generation),
+    GNUNET_MY_result_spec_uint32 (&msg.flags), // FIXME
+    GNUNET_MY_result_spec_uint64 (&flags),
+    GNUNET_MY_result_spec_variable_size (&buf,
+                                         &buf_size),
     GNUNET_MY_result_spec_end
   };
 
-  if (GNUNET_OK != GNUNET_MY_extract_result (stmt,
-                                            results))
+  if (GNUNET_OK !=
+      GNUNET_MY_extract_result (stmt,
+                                results))
   {
-    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "mysql extract_result", statement);
+    LOG_MYSQL(plugin,
+              GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+              "mysql extract_result",
+              GNUNET_MYSQL_statement_get_stmt (stmt));
     return GNUNET_SYSERR;
   }
 
-  return cb (cb_cls, (void *) msg, data8);
+  mp = GNUNET_malloc (sizeof (msg) + buf_size);
+  *mp = msg;
+  mp->fragment_id = GNUNET_htonll (fragment_id);
+  mp->fragment_offset = GNUNET_htonllk (fragment_offset);
+  mp->message_id = GNUNET_htonllk (message_id);
+  mp->group_generation = GNUNET_htonllk (group_generation);
+  GNUNET_memcpy (&mp[1],
+                 buf,
+                 buf_size);
+  ret = cb (cb_cls,
+            mp,
+            (enum GNUNET_PSYCSTORE_MessageFlags) flags);
+  GNUNET_free (mp);
+  GNUNET_MY_cleanup_result (results);
+  return ret;
 }
 
 
@@ -1274,7 +1297,7 @@ fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stm
         break;
       default:
         LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                    "mysql extract_result", statement);    
+                    "mysql extract_result", statement);
     }
   }
   while (sql_ret == GNUNET_YES);
@@ -1308,7 +1331,7 @@ fragment_get (void *cls,
   {
    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql get_stmt", statement);
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   }
 
   int ret = GNUNET_SYSERR;
@@ -1327,7 +1350,7 @@ fragment_get (void *cls,
   {
     LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return ret;
@@ -1371,8 +1394,8 @@ fragment_get_latest (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1419,8 +1442,8 @@ message_get (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1464,8 +1487,8 @@ message_get_latest (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1509,7 +1532,7 @@ message_get_fragment (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql execute prepared", statement);
-    return GNUNET_SYSERR;    
+    return GNUNET_SYSERR;
   }
 /****** CHANGER ICI ****/
   ret = fragment_row (stmt, cb, cb_cls);
@@ -1518,8 +1541,8 @@ message_get_fragment (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1539,7 +1562,7 @@ counters_message_get (void *cls,
                       uint64_t *max_group_generation)
 {
   struct Plugin *plugin = cls;
-  
+
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_counters_message;
   MYSQL_STMT *statement = NULL;
 
@@ -1549,7 +1572,7 @@ counters_message_get (void *cls,
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql get statement", statement);
     return GNUNET_SYSERR;
-  }  
+  }
 
   int ret = GNUNET_SYSERR;
 
@@ -1588,8 +1611,8 @@ counters_message_get (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1616,7 +1639,7 @@ counters_state_get (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql get_stmt", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   int ret = GNUNET_SYSERR;
@@ -1654,8 +1677,8 @@ counters_state_get (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }  
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1705,8 +1728,8 @@ state_assign (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }    
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -1746,9 +1769,9 @@ update_message_id (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *s
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }   
-  
+    return GNUNET_SYSERR;
+  }
+
   return GNUNET_OK;
 }
 
@@ -2006,8 +2029,8 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
-  }   
+    return GNUNET_SYSERR;
+  }
 
   return ret;
 }
@@ -2093,7 +2116,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return ret;
@@ -2123,7 +2146,7 @@ state_get_signed (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql get_stmt", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   struct GNUNET_MY_QueryParam params_select[] = {
@@ -2176,7 +2199,7 @@ state_get_signed (void *cls,
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql_stmt_reset", statement);
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   }
 
   return ret;
