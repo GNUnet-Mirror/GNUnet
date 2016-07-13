@@ -358,12 +358,13 @@ database_setup (struct Plugin *plugin)
                               " PRIMARY KEY(id),\n"
                               " UNIQUE KEY(pub_key(10))\n"
                               ");");
-  
-/** ERROR **/
+
   GNUNET_MYSQL_statement_run (plugin->mc,
                               "CREATE TABLE IF NOT EXISTS slaves (\n"
-                              "  id INT PRIMARY KEY,\n"
-                              "  pub_key BLOB UNIQUE\n"
+                              " id INT,\n"
+                              " pub_key BLOB,\n"
+                              " PRIMARY KEY(id),\n"
+                              " UNIQUE KEY(pub_key(10))\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -376,8 +377,9 @@ database_setup (struct Plugin *plugin)
                               "  group_generation INT NOT NULL\n"
                               ");");
 
+/*** FIX because IF NOT EXISTS doesn't work ***/
   GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
+                              "CREATE INDEX idx_membership_channel_id_slave_id "
                               "ON membership (channel_id, slave_id);");
 
   /** @todo messages table: add method_name column */
@@ -395,7 +397,7 @@ database_setup (struct Plugin *plugin)
                               "  psycstore_flags INT NOT NULL,\n"
                               "  data BLOB,\n"
                               "  PRIMARY KEY (channel_id, fragment_id),\n"
-                              "  UNIQUE (channel_id, message_id, fragment_offset)\n"
+                              "  UNIQUE KEY(channel_id, message_id, fragment_offset)\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -404,7 +406,7 @@ database_setup (struct Plugin *plugin)
                               "  name TEXT NOT NULL,\n"
                               "  value_current BLOB,\n"
                               "  value_signed BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
+                              "  PRIMARY KEY (channel_id, name(10))\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -412,7 +414,7 @@ database_setup (struct Plugin *plugin)
                               "  channel_id INT NOT NULL REFERENCES channels(id),\n"
                               "  name TEXT NOT NULL,\n"
                               "  value BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
+                              "  PRIMARY KEY (channel_id, name(10))\n"
                               ");");
 
   /* Prepare statements */
