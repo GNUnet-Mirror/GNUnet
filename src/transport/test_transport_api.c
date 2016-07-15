@@ -36,30 +36,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-#define TEST_MESSAGE_SIZE 2600
-
-#define TEST_MESSAGE_TYPE 12345
-
-
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
-
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
-
-
-static void
-custom_shutdown (void *cls)
-{
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-}
 
 
 static void
@@ -81,8 +58,8 @@ notify_receive (void *cls,
     GNUNET_free (ps);
   }
 
-  if ((TEST_MESSAGE_TYPE == ntohs (message->type)) &&
-      (TEST_MESSAGE_SIZE == ntohs (message->size)))
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->type)) &&
+      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE == ntohs (message->size)))
   {
     ccc->global_ret = GNUNET_OK;
     GNUNET_SCHEDULER_shutdown ();
@@ -92,90 +69,6 @@ notify_receive (void *cls,
     GNUNET_break (0);
     ccc->global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
-  }
-}
-
-
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-  struct GNUNET_MessageHeader *hdr;
-
-  th = NULL;
-  if (buf == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready\n");
-    GNUNET_SCHEDULER_shutdown ();
-    ccc->global_ret = 42;
-    return 0;
-  }
-
-  GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (NULL != buf)
-  {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_MESSAGE_TYPE);
-  }
-
-  {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&ccc->p[1]->id));
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-                ccc->p[1]->no,
-                ps,
-                ntohs (hdr->type),
-                ntohs (hdr->size),
-                p->no,
-                GNUNET_i2s (&p->id));
-    GNUNET_free (ps);
-  }
-  return TEST_MESSAGE_SIZE;
-}
-
-
-static void
-sendtask (void *cls)
-{
-  {
-    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Sending message from peer %u (`%s') -> peer %u (`%s') !\n",
-                ccc->p[1]->no,
-                GNUNET_i2s (&ccc->p[1]->id),
-                ccc->p[0]->no,
-                receiver_s);
-    GNUNET_free (receiver_s);
-  }
-  ccc->global_ret = GNUNET_SYSERR;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id,
-                                               TEST_MESSAGE_SIZE,
-                                               TIMEOUT_TRANSMIT,
-                                               &notify_ready,
-                                               ccc->p[0]);
-  GNUNET_assert (NULL != th);
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
   }
 }
 
@@ -192,12 +85,12 @@ test (char *argv[],
       int bi_directional)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
-    .connect_continuation = &sendtask,
+    .connect_continuation = &GNUNET_TRANSPORT_TESTING_large_send,
+    .connect_continuation_cls = &my_ccc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-    .nd = &notify_disconnect,
-    .shutdown_task = &custom_shutdown,
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
     .timeout = TIMEOUT,
     .bi_directional = bi_directional
   };

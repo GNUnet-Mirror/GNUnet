@@ -207,8 +207,69 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
    */
   void *cb_cls;
 
-  int p1_c; // dead?
-  int p2_c; // dead?
+  /** 
+   * Set if peer1 says the connection is up to peer2.
+   */
+  int p1_c;
+
+  /** 
+   * Set if peer2 says the connection is up to peer1.
+   */
+  int p2_c;
+
+  /**
+   * #GNUNET_YES if both @e p1_c and @e p2_c are #GNUNET_YES.
+   */
+  int connected;
+};
+
+
+/**
+ * Information we keep for active transmission jobs.
+ */
+struct TRANSPORT_TESTING_SendJob
+{
+
+  /**
+   * Kept in a DLL.
+   */ 
+  struct TRANSPORT_TESTING_SendJob *next;
+
+  /**
+   * Kept in a DLL.
+   */ 
+  struct TRANSPORT_TESTING_SendJob *prev;
+
+  /**
+   * Sender of the message.
+   */
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *sender;
+
+  /** 
+   * Receiver of the message.
+   */ 
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver;
+
+  /**
+   * Operation handle.
+   */
+  struct GNUNET_TRANSPORT_TransmitHandle *th;
+
+  /**
+   * Number of the message.
+   */ 
+  uint32_t num;
+  
+  /**
+   * Type of message to send.
+   */ 
+  uint16_t mtype;
+
+  /**
+   * Length of the message.
+   */
+  uint16_t msize;
+  
 };
 
 
@@ -232,6 +293,16 @@ struct GNUNET_TRANSPORT_TESTING_Handle
    */
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc_tail;
 
+  /**
+   * Kept in a DLL.
+   */ 
+  struct TRANSPORT_TESTING_SendJob *sj_head;
+
+  /**
+   * Kept in a DLL.
+   */ 
+  struct TRANSPORT_TESTING_SendJob *sj_tail;
+  
   /**
    * head DLL of peers
    */
@@ -339,6 +410,32 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerCont
  */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
+
+
+/**
+ * Function called on matching connect requests.
+ *
+ * @param cls closure
+ * @param cc request matching the query
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_ConnectContextCallback)(void *cls,
+						   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
+
+
+/**
+ * Find any connecting context matching the given pair of peers.
+ *
+ * @param p1 first peer
+ * @param p2 second peer
+ * @param cb function to call 
+ * @param cb_cls closure for @a cb
+ */
+void
+GNUNET_TRANSPORT_TESTING_find_connecting_context (struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
+						  struct GNUNET_TRANSPORT_TESTING_PeerContext *p2,
+						  GNUNET_TRANSPORT_TESTING_ConnectContextCallback cb,
+						  void *cb_cls);
 
 
 /* ********************** high-level process functions *************** */
@@ -531,6 +628,14 @@ struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
    */
   int global_ret;
 
+  /**
+   * Generator for the `num` field in test messages.  Incremented each
+   * time #GNUNET_TRANSPORT_TESTING_simple_send or
+   * #GNUNET_TRANSPORT_TESTING_large_send are used to transmit a
+   * message.
+   */
+  uint32_t send_num_gen;
+  
   /* ******* internal state, clients should not mess with this **** */
 
   /**
@@ -652,6 +757,80 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
 #define GNUNET_TRANSPORT_TESTING_main(num_peers,check,check_cls) \
   GNUNET_TRANSPORT_TESTING_main_ (argv[0], __FILE__, num_peers, check, check_cls)
 
+/* ***************** Convenience functions for sending ********* */
+
+
+/**
+ * Send a test message of type @a mtype and size @a msize from
+ * peer @a sender to peer @a receiver.  The peers should be
+ * connected when this function is called.
+ *
+ * @param sender the sending peer
+ * @param receiver the receiving peer
+ * @param mtype message type to use
+ * @param msize size of the message, at least `sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage)`
+ * @param num unique message number
+ * @return #GNUNET_OK if message was queued,
+ *         #GNUNET_NO if peers are not connected
+ *         #GNUNET_SYSERR if @a msize is illegal
+ */
+int
+GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *sender,
+			       struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+			       uint16_t mtype,
+			       uint16_t msize,
+			       uint32_t num);
+
+
+/**
+ * Message type used by #GNUNET_TRANSPORT_TESTING_simple_send().
+ */
+#define GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE 12345
+
+GNUNET_NETWORK_STRUCT_BEGIN
+struct GNUNET_TRANSPORT_TESTING_TestMessage
+{
+  /**
+   * Type is #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Monotonically increasing counter throughout the test.
+   */
+  uint32_t num GNUNET_PACKED;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Task that sends a minimalistic test message from the 
+ * first peer to the second peer.
+ *
+ * @param cls the `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
+ *        which should contain at least two peers, the first two
+ *        of which should be currently connected
+ */
+void
+GNUNET_TRANSPORT_TESTING_simple_send (void *cls);
+
+/**
+ * Size of a message sent with 
+ * #GNUNET_TRANSPORT_TESTING_large_send().  Big enough
+ * to usually force defragmentation.
+ */
+#define GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE 2600
+
+/**
+ * Task that sends a large test message from the 
+ * first peer to the second peer.
+ *
+ * @param cls the `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
+ *        which should contain at least two peers, the first two
+ *        of which should be currently connected
+ */
+void
+GNUNET_TRANSPORT_TESTING_large_send (void *cls);
 
 
 /* ********************** log-only convenience functions ************* */
