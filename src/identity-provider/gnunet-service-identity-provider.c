@@ -769,7 +769,7 @@ update_identities(void *cls)
     if (min_rel_exp.rel_value_us < MIN_WAIT_TIME.rel_value_us)
       min_rel_exp = MIN_WAIT_TIME;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                ">>> Finished. Rescheduling in %lu\n",
+                ">>> Finished. Rescheduling in %"SCNu64"\n",
                 min_rel_exp.rel_value_us);
     ns_it = NULL;
     //finished -> reschedule

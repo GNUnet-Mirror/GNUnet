@@ -871,7 +871,7 @@ exchange_cont (void *cls,
   if (ticket_nonce != expected_nonce)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Ticket nonce %lu does not match expected nonce %lu\n",
+                "Ticket nonce %"SCNu64" does not match expected nonce %"SCNu64"\n",
                 ticket_nonce, expected_nonce);
     handle->emsg = GNUNET_strdup ("Ticket nonce does not match expected nonce\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
