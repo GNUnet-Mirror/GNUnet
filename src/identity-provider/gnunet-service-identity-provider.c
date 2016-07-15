@@ -191,6 +191,11 @@ struct ExchangeHandle
    * Label to return
    */
   char *label;
+
+  /**
+   * request id
+   */
+  uint32_t r_id;
 };
 
 struct IssueHandle
@@ -260,6 +265,11 @@ struct IssueHandle
    * The label the token is stored under
    */
   char *label;
+
+  /**
+   * request id
+   */
+  uint32_t r_id;
 };
 
 /**
@@ -1016,6 +1026,7 @@ store_token_issue_cont (void *cls,
   irm = create_issue_result_message (handle->label,
                                      ticket_str,
                                      token_str);
+  irm->id = handle->r_id;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &irm->header,
@@ -1250,6 +1261,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   erm = create_exchange_result_message (token_str,
                                         handle->label,
                                         handle->ticket->payload->nonce);
+  erm->id = handle->r_id;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &erm->header,
@@ -1298,7 +1310,7 @@ handle_exchange_message (void *cls,
               ticket);
   xchange_handle = GNUNET_malloc (sizeof (struct ExchangeHandle));
   xchange_handle->aud_privkey = em->aud_privkey;
-
+  xchange_handle->r_id = em->id;
   if (GNUNET_SYSERR == ticket_parse (ticket,
                                      &xchange_handle->aud_privkey,
                                      &xchange_handle->ticket))
@@ -1537,7 +1549,7 @@ handle_issue_message (void *cls,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   GNUNET_free (scopes_tmp);
-
+  issue_handle->r_id = im->id;
   issue_handle->aud_key = im->aud_key;
   issue_handle->iss_key = im->iss_key;
   GNUNET_CRYPTO_ecdsa_key_get_public (&im->iss_key,

@@ -65,6 +65,11 @@ struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
   /* followed by 0-terminated label,ticket,token */
 
 };
@@ -79,6 +84,11 @@ struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
 
   /**
    * Nonce found in ticket. NBO
@@ -101,6 +111,12 @@ struct GNUNET_IDENTITY_PROVIDER_IssueMessage
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
 
   /**
    * Issuer identity private key
@@ -137,7 +153,12 @@ struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
    */
   struct GNUNET_MessageHeader header;
-  
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
   /**
    * Audience identity private key
    */
