@@ -167,7 +167,7 @@ static struct NotificationContext *nc_tail;
 static struct GNUNET_SCHEDULER_Task *cron_clean;
 
 /**
- * Handle for task to run #cron_scan_directory_hosts()
+ * Handle for task to run #cron_scan_directory_data_hosts()
  */
 static struct GNUNET_SCHEDULER_Task *cron_scan;
 

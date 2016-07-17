@@ -48,7 +48,7 @@ static struct GNUNET_SERVER_NotificationContext *nc_pic;
  * Transmit the given performance information to all performance
  * clients.
  *
- * @param pc client to send to, NULL for all
+ * @param client client to send to, NULL for all
  * @param peer peer for which this is an address suggestion
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file identity-token/identity_token.c
+ * @file identity-provider/identity_token.c
  * @brief helper library to manage identity tokens
  * @author Martin Schanzenbach
  */

@@ -131,10 +131,10 @@ reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
  */
 static int
 check_monitor_notify (void *cls,
-                       const struct GNUNET_ARM_StatusMessage *res)
+                       const struct GNUNET_ARM_StatusMessage *msg)
 {
-  size_t sl = ntohs (res->header.size) - sizeof (struct GNUNET_ARM_StatusMessage);
-  const char *name = (const char *) &res[1];
+  size_t sl = ntohs (msg->header.size) - sizeof (struct GNUNET_ARM_StatusMessage);
+  const char *name = (const char *) &msg[1];
 
   if ( (0 == sl) ||
        ('\0' != name[sl-1]) )
@@ -150,7 +150,7 @@ check_monitor_notify (void *cls,
  * Handler for notification messages received from ARM.
  *
  * @param cls our `struct GNUNET_ARM_MonitorHandle`
- * @param msg the message received from the arm service
+ * @param res the message received from the arm service
  */
 static void
 handle_monitor_notify (void *cls,

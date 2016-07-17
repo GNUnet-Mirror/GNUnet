@@ -14,7 +14,7 @@
   GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
 */
 /**
- * @file json/jsonapi.c
+ * @file jsonapi/jsonapi.c
  * @brief functions to generate specifciations for JSONAPI parsing
  * @author Martin Schanzenbach
  */

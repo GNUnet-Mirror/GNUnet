@@ -218,7 +218,6 @@ sum_relative_preferences (void *cls,
  *
  * @param id peer id of the peer for which we should do the update
  * @param kind the kind of preference value to update
- * @param rp the relative peer struct where we store the global result
  * @return the new relative preference
  */
 static void
@@ -526,7 +525,7 @@ recalculate_relative_preferences (struct PreferenceClient *c,
  * changed, update the global preferences for the given
  * peer and notify the plugin.
  *
- * @param value the kind of preference to calculate the
+ * @param cls the kind of preference to calculate the
  *        new global relative preference values for
  * @param key the peer to update relative preference values for
  * @param value a `struct PeerRelative`, unused

@@ -14,7 +14,7 @@
   GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
 */
 /**
- * @file json/mhd_json.c
+ * @file json/json_mhd.c
  * @brief functions to parse JSON snippets we receive via MHD
  * @author Florian Dold
  * @author Benedikt Mueller

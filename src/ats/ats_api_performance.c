@@ -424,7 +424,7 @@ handle_reservation_result (void *cls,
  * We received a PeerInformationMessage.  Validate it.
  *
  * @param cls our context with the callback
- * @param msg the message
+ * @param pi the message
  * @return #GNUNET_OK if the message was well-formed
  */
 static int
@@ -456,7 +456,7 @@ check_address_list (void *cls,
  * Process it.
  *
  * @param cls our context with the callback
- * @param msg the message
+ * @param pi the message
  */
 static void
 handle_address_list (void *cls,

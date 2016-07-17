@@ -19,7 +19,7 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file include/gnunet_identity_provider_lib.h
+ * @file identity-provider/identity_token.h
  * @brief GNUnet Identity Provider library
  *
  */
