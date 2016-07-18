@@ -15,3 +15,6 @@ DATABASE = sqlite
 
 [psycstore-sqlite]
 FILENAME = $GNUNET_DATA_HOME/psycstore/sqlite.db
+
+[psycstore-mysql]
+FILENAME = $GNUNET_DATA_HOME/psycstore/mysql.sql

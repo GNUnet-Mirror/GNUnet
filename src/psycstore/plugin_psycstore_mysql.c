@@ -307,6 +307,7 @@ database_setup (struct Plugin *plugin)
 			       "psycstore-mysql", "FILENAME");
     return GNUNET_SYSERR;
   }
+  //ERROR
   if (GNUNET_OK != GNUNET_DISK_file_test (filename))
   {
     if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (filename))
@@ -639,6 +640,7 @@ database_shutdown (struct Plugin *plugin)
   GNUNET_MYSQL_context_destroy (plugin->mc);
 
   GNUNET_free_non_null (plugin->fn);
+
 }
 
 
@@ -1106,21 +1108,30 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
   uint64_t fragment_offset;
   uint64_t message_id;
   uint64_t group_generation;
-  struct GNUNET_MULTICAST_MessageHeader msg; // to be removed...
   void *buf;
   size_t buf_size;
   int ret;
   uint64_t flags;
+  struct GNUNET_MULTICAST_MessageHeader msg;
   struct GNUNET_MULTICAST_MessageHeader *mp;
+
+
+  uint32_t hop_counter;
+  void *signature = NULL;
+  void *purpose = NULL;
+  size_t signature_size;
+  size_t purpose_size;
+  uint32_t msg_flags;
+
   struct GNUNET_MY_ResultSpec results[] = {
-    GNUNET_MY_result_spec_uint32 ((uint32_t *)&msg.hop_counter), // FIXME
-    GNUNET_MY_result_spec_auto_from_type (&msg.signature), // FIXME
-    GNUNET_MY_result_spec_auto_from_type (&msg.purpose), // FIXME
+    GNUNET_MY_result_spec_uint32 (&hop_counter),
+    GNUNET_MY_result_spec_variable_size (&signature, &signature_size),
+    GNUNET_MY_result_spec_variable_size (&purpose, &purpose_size),
     GNUNET_MY_result_spec_uint64 (&fragment_id),
     GNUNET_MY_result_spec_uint64 (&fragment_offset),
     GNUNET_MY_result_spec_uint64 (&message_id),
     GNUNET_MY_result_spec_uint64 (&group_generation),
-    GNUNET_MY_result_spec_uint32 (&msg.flags), // FIXME
+    GNUNET_MY_result_spec_uint32 (&msg_flags),
     GNUNET_MY_result_spec_uint64 (&flags),
     GNUNET_MY_result_spec_variable_size (&buf,
                                          &buf_size),
@@ -1134,16 +1145,26 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
     LOG_MYSQL(plugin,
               GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql extract_result",
-              GNUNET_MYSQL_statement_get_stmt (stmt));
+              stmt);
     return GNUNET_SYSERR;
   }
 
   mp = GNUNET_malloc (sizeof (msg) + buf_size);
   *mp = msg;
+  
+  mp->hop_counter = hop_counter;
+  GNUNET_memcpy (&mp->signature,
+                signature,
+                signature_size);
+  GNUNET_memcpy (&mp->purpose,
+                purpose,
+                purpose_size);
   mp->fragment_id = GNUNET_htonll (fragment_id);
   mp->fragment_offset = GNUNET_htonllk (fragment_offset);
   mp->message_id = GNUNET_htonllk (message_id);
   mp->group_generation = GNUNET_htonllk (group_generation);
+  mp->flags = msg_flags;
+
   GNUNET_memcpy (&mp[1],
                  buf,
                  buf_size);
