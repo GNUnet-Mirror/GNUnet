@@ -206,6 +206,7 @@ src/identity/gnunet-identity.c
 src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
 src/identity/identity_api_lookup.c
+src/identity/identity_json.c
 src/identity/plugin_gnsrecord_identity.c
 src/identity/plugin_rest_identity.c
 src/identity-provider/gnunet-identity-token.c
