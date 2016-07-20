@@ -307,7 +307,7 @@ database_setup (struct Plugin *plugin)
 			       "psycstore-mysql", "FILENAME");
     return GNUNET_SYSERR;
   }
-  //ERROR
+  
   if (GNUNET_OK != GNUNET_DISK_file_test (filename))
   {
     if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (filename))
@@ -330,24 +330,6 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
 
-/*
-#if DEBUG_PSYCSTORE
-  sqlite3_trace (plugin->dbh, &sql_trace, NULL);
-#endif
-
-  sql_exec (plugin->dbh, "PRAGMA temp_store=MEMORY");
-  sql_exec (plugin->dbh, "PRAGMA synchronous=NORMAL");
-  sql_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF");
-  sql_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL");
-  sql_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"");
-#if ! DEBUG_PSYCSTORE
-  sql_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE");
-#endif
-  sql_exec (plugin->dbh, "PRAGMA page_size=4096");
-
-  sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS);
-
-*/
   /* Create tables */
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -862,9 +844,6 @@ mysql_membership_store (void *cls,
   struct Plugin *plugin = cls;
 
   uint32_t idid_join = (uint32_t)did_join;
-  uint64_t iannounced_at = (uint64_t)announced_at;
-  uint64_t ieffective_since = (uint64_t)effective_since;
-  uint64_t igroup_generation = (uint64_t)group_generation;
 
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->insert_membership;
 
@@ -886,9 +865,9 @@ mysql_membership_store (void *cls,
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_auto_from_type (slave_key),
     GNUNET_MY_query_param_uint32 (&idid_join),
-    GNUNET_MY_query_param_uint64 (&iannounced_at),
-    GNUNET_MY_query_param_uint64 (&ieffective_since),
-    GNUNET_MY_query_param_uint64 (&igroup_generation),
+    GNUNET_MY_query_param_uint64 (&announced_at),
+    GNUNET_MY_query_param_uint64 (&effective_since),
+    GNUNET_MY_query_param_uint64 (&group_generation),
     GNUNET_MY_query_param_end
   };
 
