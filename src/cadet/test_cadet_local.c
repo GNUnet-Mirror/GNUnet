@@ -296,8 +296,6 @@ run (void *cls,
                                      (void *) 2L,     /* cls */
                                      &channel_end,      /* channel end hndlr */
                                      handlers2); /* traffic handlers */
-  GNUNET_CADET_open_port (cadet_peer_2, GC_u2h (1),
-                          &inbound_channel, (void *) 2L);
 
   if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
   {
@@ -307,6 +305,8 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_CADET_open_port (cadet_peer_2, GC_u2h (1),
+                          &inbound_channel, (void *) 2L);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
                                   GNUNET_TIME_UNIT_SECONDS,
                                   2),
