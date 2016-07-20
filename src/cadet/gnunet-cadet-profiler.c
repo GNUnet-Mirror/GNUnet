@@ -816,7 +816,8 @@ static struct GNUNET_CADET_MessageHandler handlers[] = {
 static void *
 incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port, enum GNUNET_CADET_ChannelOption options)
+                 const struct GNUNET_HashCode *port,
+                  enum GNUNET_CADET_ChannelOption options)
 {
   long n = (long) cls;
   struct CadetPeer *peer;
@@ -921,7 +922,7 @@ start_test (void *cls)
     peers[i].dest = select_random_peer (&peers[i]);
     peers[i].ch = GNUNET_CADET_channel_create (peers[i].cadet, NULL,
                                                &peers[i].dest->id,
-                                               1, flags);
+                                               GC_u2h (1), flags);
     if (NULL == peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
@@ -966,7 +967,7 @@ warmup (void)
                 i, get_index (peer));
     peers[i].warmup_ch =
       GNUNET_CADET_channel_create (peers[i].cadet, NULL, &peer->id,
-                                  1, GNUNET_CADET_OPTION_DEFAULT);
+                                  GC_u2h (1), GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == peers[i].warmup_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Warmup %u failed\n", i);
@@ -1083,7 +1084,7 @@ tmain (void *cls,
 int
 main (int argc, char *argv[])
 {
-  static uint32_t ports[2];
+  static const struct GNUNET_HashCode *ports[2];
   const char *config_file;
 
   config_file = ".profiler.conf";
@@ -1135,7 +1136,7 @@ main (int argc, char *argv[])
   GNUNET_assert (NULL != ids);
   p_ids = 0;
   test_finished = GNUNET_NO;
-  ports[0] = 1;
+  ports[0] = GC_u2h (1);
   ports[1] = 0;
   GNUNET_CADET_TEST_run ("cadet-profiler", config_file, peers_total,
                         &tmain, NULL, /* tmain cls */

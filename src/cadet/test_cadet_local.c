@@ -149,15 +149,15 @@ static void *
 inbound_channel (void *cls,
                  struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port,
+                 const struct GNUNET_HashCode *port,
                  enum GNUNET_CADET_ChannelOption options)
 {
   long id = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "received incoming channel on peer %d, port %u\n",
+              "received incoming channel on peer %d, port %s\n",
               (int) id,
-              (unsigned int) port);
+              GNUNET_h2s (port));
   if (id != 2L)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -259,7 +259,7 @@ do_connect (void *cls)
   connect_task = NULL;
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, 1,
+  ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, GC_u2h (1),
                                    GNUNET_CADET_OPTION_DEFAULT);
   mth = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
@@ -280,8 +280,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  static uint32_t ports[] = {1, 0};
-
   me = peer;
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   abort_task =
@@ -291,17 +289,16 @@ run (void *cls,
                                     NULL);
   cadet_peer_1 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 1L,       /* cls */
-                                     NULL,              /* inbound new hndlr */
                                      &channel_end,      /* channel end hndlr */
-                                     handlers1, /* traffic handlers */
-                                     NULL);     /* ports offered */
+                                     handlers1); /* traffic handlers */
 
   cadet_peer_2 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
-                                     &inbound_channel,   /* inbound new hndlr */
                                      &channel_end,      /* channel end hndlr */
-                                     handlers2, /* traffic handlers */
-                                     ports);     /* ports offered */
+                                     handlers2); /* traffic handlers */
+  GNUNET_CADET_open_port (cadet_peer_2, GC_u2h (1),
+                          &inbound_channel, (void *) 2L);
+
   if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

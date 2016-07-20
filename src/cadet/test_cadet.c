@@ -97,6 +97,11 @@ struct GNUNET_TESTBED_Operation *t_op[2];
 struct GNUNET_PeerIdentity *p_id[2];
 
 /**
+ * Port ID
+ */
+struct GNUNET_HashCode port;
+
+/**
  * Peer ids counter.
  */
 unsigned int p_ids;
@@ -761,12 +766,13 @@ static struct GNUNET_CADET_MessageHandler handlers[] = {
 static void *
 incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port, enum GNUNET_CADET_ChannelOption options)
+                 const struct GNUNET_HashCode *port,
+                 enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel from %s to peer %d\n",
+              "Incoming channel from %s to peer %d:%s\n",
               GNUNET_i2s (initiator),
-              (int) (long) cls);
+              (int) (long) cls, GNUNET_h2s (port));
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == peers_requested - 1)
@@ -865,7 +871,8 @@ do_test (void *cls)
     test = SPEED;
     flags |= GNUNET_CADET_OPTION_RELIABLE;
   }
-  ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], 1, flags);
+
+  ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], &port, flags);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &gather_stats_and_exit,
@@ -965,8 +972,10 @@ int
 main (int argc, char *argv[])
 {
   initialized = GNUNET_NO;
-  static uint32_t ports[2];
+  static const struct GNUNET_HashCode *ports[2];
   const char *config_file;
+  char port_id[] = "test port";
+  GNUNET_CRYPTO_hash (port_id, sizeof (port_id), &port);
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
   config_file = "test_cadet.conf";
@@ -1066,8 +1075,8 @@ main (int argc, char *argv[])
   }
 
   p_ids = 0;
-  ports[0] = 1;
-  ports[1] = 0;
+  ports[0] = &port;
+  ports[1] = NULL;
   GNUNET_CADET_TEST_run ("test_cadet_small",
                         config_file,
                         peers_requested,

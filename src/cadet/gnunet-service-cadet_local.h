@@ -134,7 +134,7 @@ GML_client_get (struct GNUNET_SERVER_Client *client);
  * @return non-NULL if a client has the port.
  */
 struct CadetClient *
-GML_client_get_by_port (struct GNUNET_HashCode *port);
+GML_client_get_by_port (const struct GNUNET_HashCode *port);
 
 /**
  * Deletes a tunnel from a client (either owner or destination).

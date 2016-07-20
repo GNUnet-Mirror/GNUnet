@@ -71,7 +71,7 @@ typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
  * @param new_channel Handler for incoming tunnels.
  * @param cleaner Cleaner for destroyed incoming tunnels.
  * @param handlers Message handlers.
- * @param ports Ports the peers offer.
+ * @param ports Ports the peers offer, NULL-terminated.
  */
 void
 GNUNET_CADET_TEST_run (const char *testname,
@@ -82,7 +82,7 @@ GNUNET_CADET_TEST_run (const char *testname,
                       GNUNET_CADET_InboundChannelNotificationHandler new_channel,
                       GNUNET_CADET_ChannelEndHandler cleaner,
                       struct GNUNET_CADET_MessageHandler* handlers,
-                      const uint32_t* ports);
+                      const struct GNUNET_HashCode **ports);
 
 
 /**

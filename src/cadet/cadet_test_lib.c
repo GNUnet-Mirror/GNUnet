@@ -80,7 +80,7 @@ struct GNUNET_CADET_TEST_Context
   /**
    * Application ports.
    */
-  const uint32_t *ports;
+  const struct GNUNET_HashCode **ports;
 
 };
 
@@ -94,7 +94,7 @@ struct GNUNET_CADET_TEST_AdapterContext
    * Peer number for the particular peer.
    */
   unsigned int peer;
-
+ 
   /**
    * General context.
    */
@@ -124,6 +124,16 @@ cadet_connect_adapter (void *cls,
                            (void *) (long) actx->peer,
                            ctx->cleaner,
                            ctx->handlers);
+  if (NULL == ctx->ports)
+    return h;
+
+  for (int i = 0; NULL != ctx->ports[i]; i++)
+  {
+    (void ) GNUNET_CADET_open_port (h, ctx->ports[i],
+                                    ctx->new_channel,
+                                    (void *) (long) actx->peer);
+  }
+
   return h;
 }
 
@@ -269,7 +279,7 @@ GNUNET_CADET_TEST_run (const char *testname,
                       GNUNET_CADET_InboundChannelNotificationHandler new_channel,
                       GNUNET_CADET_ChannelEndHandler cleaner,
                       struct GNUNET_CADET_MessageHandler* handlers,
-                      const uint32_t *ports)
+                      const struct GNUNET_HashCode **ports)
 {
   struct GNUNET_CADET_TEST_Context *ctx;
 

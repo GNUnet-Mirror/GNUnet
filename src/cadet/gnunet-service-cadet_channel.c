@@ -2149,7 +2149,7 @@ GCCH_handle_create (struct CadetTunnel *t,
   struct CadetChannel *ch;
   struct CadetClient *c;
   int new_channel;
-  struct GNUNET_HashCode *port;
+  const struct GNUNET_HashCode *port;
 
   chid = ntohl (msg->chid);
 
