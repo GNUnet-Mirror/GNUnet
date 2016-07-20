@@ -122,10 +122,8 @@ cadet_connect_adapter (void *cls,
 
   h = GNUNET_CADET_connect (cfg,
                            (void *) (long) actx->peer,
-                           ctx->new_channel,
                            ctx->cleaner,
-                           ctx->handlers,
-                           ctx->ports);
+                           ctx->handlers);
   return h;
 }
 

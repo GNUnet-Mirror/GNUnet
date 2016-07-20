@@ -134,7 +134,7 @@ GML_client_get (struct GNUNET_SERVER_Client *client);
  * @return non-NULL if a client has the port.
  */
 struct CadetClient *
-GML_client_get_by_port (uint32_t port);
+GML_client_get_by_port (struct GNUNET_HashCode *port);
 
 /**
  * Deletes a tunnel from a client (either owner or destination).
@@ -170,8 +170,8 @@ GML_send_ack (struct CadetClient *c, CADET_ChannelNumber id);
  */
 void
 GML_send_channel_create (struct CadetClient *c,
-                         uint32_t id, uint32_t port, uint32_t opt,
-                         const struct GNUNET_PeerIdentity *peer);
+                         uint32_t id, struct GNUNET_HashCode *port,
+                         uint32_t opt, const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Build a local channel NACK message and send it to a local client.

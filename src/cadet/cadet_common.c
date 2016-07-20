@@ -247,11 +247,18 @@ GC_m2s (uint16_t m)
       s = "KEEPALIVE";
       break;
 
-    /**
-       * Connect to the cadet service, specifying subscriptions
+      /**
+       * Open port
        */
-    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT:
-      s = "LOC_CONNCT";
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN:
+      s = "OPEN_PORT";
+      break;
+
+      /**
+       * Close port
+       */
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE:
+      s = "CLOSE_PORT";
       break;
 
       /**

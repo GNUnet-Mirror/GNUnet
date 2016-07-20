@@ -33,7 +33,7 @@
 /**
  * How many messages to send
  */
-#define TOTAL_PACKETS 200 /* Cannot exceed 64k! */
+#define TOTAL_PACKETS 5000 /* Cannot exceed 64k! */
 
 /**
  * How long until we give up on connecting the peers?

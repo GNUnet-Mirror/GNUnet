@@ -49,7 +49,7 @@ extern "C"
 /**
  * Version number of GNUnet-cadet API.
  */
-#define GNUNET_CADET_VERSION 0x00000003
+#define GNUNET_CADET_VERSION 0x00000004
 
 
 /**
@@ -61,6 +61,11 @@ struct GNUNET_CADET_Handle;
  * Opaque handle to a channel.
  */
 struct GNUNET_CADET_Channel;
+
+/**
+ * Opaque handle to a port.
+ */
+struct GNUNET_CADET_Port;
 
 /**
  * Hash to be used in Cadet communication. Only 256 bits needed,
@@ -180,7 +185,7 @@ typedef void *
 (GNUNET_CADET_InboundChannelNotificationHandler) (void *cls,
                                                   struct GNUNET_CADET_Channel *channel,
                                                   const struct GNUNET_PeerIdentity *initiator,
-                                                  uint32_t port,
+                                                  const struct GNUNET_HashCode *port,
                                                   enum GNUNET_CADET_ChannelOption options);
 
 
@@ -208,9 +213,6 @@ typedef void
  * @param cfg Configuration to use.
  * @param cls Closure for the various callbacks that follow (including
  *            handlers in the handlers array).
- * @param new_channel Function called when an *incoming* channel is created.
- *                    Can be NULL if no inbound channels are desired.
- *                    See @a ports.
  * @param cleaner Function called when a channel is destroyed.
  *                It is called immediately if #GNUNET_CADET_channel_destroy
  *                is called on the channel.
@@ -218,8 +220,6 @@ typedef void
  *                 one must call #GNUNET_CADET_receive_done on the channel to
  *                 receive the next message.  Messages of a type that is not
  *                 in the handlers array are ignored if received.
- * @param ports NULL or 0-terminated array of port numbers for incoming channels.
- *              See @a new_channel.
  *
  * @return handle to the cadet service NULL on error
  *         (in this case, init is never called)
@@ -227,10 +227,8 @@ typedef void
 struct GNUNET_CADET_Handle *
 GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       void *cls,
-                      GNUNET_CADET_InboundChannelNotificationHandler new_channel,
                       GNUNET_CADET_ChannelEndHandler cleaner,
-                      const struct GNUNET_CADET_MessageHandler *handlers,
-                      const uint32_t *ports);
+                      const struct GNUNET_CADET_MessageHandler *handlers);
 
 
 /**
@@ -244,6 +242,31 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
 
+/**
+ * Open a port to receive incomming channels.
+ *
+ * @param h CADET handle.
+ * @param port Hash representing the port number.
+ * @param new_channel Function called when an channel is received.
+ * @param new_channel_cls Closure for @a new_channel.
+ *
+ * @return Port handle.
+ */
+struct GNUNET_CADET_Port *
+GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
+			const struct GNUNET_HashCode *port,
+			GNUNET_CADET_InboundChannelNotificationHandler
+			    new_channel,
+			void *new_channel_cls);
+
+/**
+ * Close a port opened with @a GNUNET_CADET_open_port.
+ * The @a new_channel callback will no longer be called.
+ *
+ * @param p Port handle.
+ */
+void
+GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
 
 /**
  * Create a new channel towards a remote peer.
@@ -255,17 +278,17 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
  * @param h cadet handle
  * @param channel_ctx client's channel context to associate with the channel
  * @param peer peer identity the channel should go to
- * @param port Port number.
+ * @param port Port hash (port number).
  * @param options CadetOption flag field, with all desired option bits set to 1.
  *
  * @return handle to the channel
  */
 struct GNUNET_CADET_Channel *
 GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
-                             void *channel_ctx,
-                             const struct GNUNET_PeerIdentity *peer,
-                             uint32_t port,
-                             enum GNUNET_CADET_ChannelOption options);
+                            void *channel_ctx,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_HashCode *port,
+                            enum GNUNET_CADET_ChannelOption options);
 
 
 /**
@@ -632,6 +655,19 @@ GNUNET_CADET_get_tunnel (struct GNUNET_CADET_Handle *h,
  */
 struct GNUNET_MQ_Handle *
 GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel);
+
+
+/**
+ * Transitional function to convert an unsigned int port to a hash value.
+ * WARNING: local static value returned, NOT reentrant!
+ * WARNING: do not use this function for new code!
+ *
+ * @param port Numerical port (unsigned int format).
+ *
+ * @return A GNUNET_HashCode usable for the new CADET API.
+ */
+const struct GNUNET_HashCode *
+GC_u2h (uint32_t port);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

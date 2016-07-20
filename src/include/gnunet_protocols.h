@@ -876,10 +876,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE              270
 
-/**
- * Connect to the cadet service, specifying subscriptions
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT          272
 
 /**
  * Ask the cadet service to create a new channel.
@@ -925,6 +921,16 @@ extern "C"
  * Local ACK for data.
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK              286
+
+/**
+ * Start listening on a port.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN        287
+
+/**
+ * Stop listening on a port.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE       288
 
 /**
  * Local information about all channels of service.

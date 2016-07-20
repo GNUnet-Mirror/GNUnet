@@ -63,22 +63,24 @@ extern "C"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+
 /**
- * Message for a client to register to the service
+ * Message for a client to create and destroy channels.
  */
-struct GNUNET_CADET_ClientConnect
+struct GNUNET_CADET_PortMessage
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_[OPEN|CLOSE]
      *
-     * Size: sizeof(struct GNUNET_CADET_ClientConnect) +
-     *       sizeof(CADET_ApplicationType) * applications +
-     *       sizeof(uint16_t) * types
+     * Size: sizeof(struct GNUNET_CADET_ChannelMessage)
      */
   struct GNUNET_MessageHeader header;
-  /* uint32_t                 list_ports[]           */
-};
 
+    /**
+     * Port to open/close.
+     */
+  struct GNUNET_HashCode port GNUNET_PACKED;
+};
 
 /**
  * Type for channel numbering.
@@ -90,14 +92,14 @@ typedef uint32_t CADET_ChannelNumber;
 
 
 /**
- * Message for a client to create and destroy channels.
+ * Message for a client to create channels.
  */
-struct GNUNET_CADET_ChannelMessage
+struct GNUNET_CADET_ChannelCreateMessage
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_[CREATE|DESTROY]
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
      *
-     * Size: sizeof(struct GNUNET_CADET_ChannelMessage)
+     * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessage)
      */
   struct GNUNET_MessageHeader header;
 
@@ -114,12 +116,31 @@ struct GNUNET_CADET_ChannelMessage
     /**
      * Port of the channel.
      */
-  uint32_t port GNUNET_PACKED;
+  struct GNUNET_HashCode port;
 
     /**
      * Options.
      */
   uint32_t opt GNUNET_PACKED;
+};
+
+
+/**
+ * Message for a client to destroy channels.
+ */
+struct GNUNET_CADET_ChannelDestroyMessage
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY
+     *
+     * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * ID of a channel controlled by this client.
+     */
+  CADET_ChannelNumber channel_id GNUNET_PACKED;
 };
 
 
@@ -260,7 +281,6 @@ struct GNUNET_CADET_LocalInfoTunnel
 
 
 GNUNET_NETWORK_STRUCT_END
-
 
 
 /**

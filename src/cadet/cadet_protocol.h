@@ -362,7 +362,7 @@ struct GNUNET_CADET_ChannelCreate
   /**
    * Destination port.
    */
-  uint32_t port GNUNET_PACKED;
+  struct GNUNET_HashCode port;
 
   /**
    * Channel options.

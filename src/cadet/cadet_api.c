@@ -142,12 +142,7 @@ struct GNUNET_CADET_Handle
   /**
    * Ports open.
    */
-  const uint32_t *ports;
-
-  /**
-   * Number of ports.
-   */
-  unsigned int n_ports;
+  struct GNUNET_CONTAINER_MultiHashMap *ports;
 
     /**
      * Double linked list of the channels this client is connected to, head.
@@ -158,11 +153,6 @@ struct GNUNET_CADET_Handle
      * Double linked list of the channels this client is connected to, tail.
      */
   struct GNUNET_CADET_Channel *channels_tail;
-
-    /**
-     * Callback for inbound channel creation
-     */
-  GNUNET_CADET_InboundChannelNotificationHandler *new_channel;
 
     /**
      * Callback for inbound channel disconnection
@@ -249,7 +239,6 @@ struct GNUNET_CADET_Peer
  */
 struct GNUNET_CADET_Channel
 {
-
     /**
      * DLL next
      */
@@ -271,9 +260,9 @@ struct GNUNET_CADET_Channel
   CADET_ChannelNumber chid;
 
     /**
-     * Port number.
+     * Channel's port, if any.
      */
-  uint32_t port;
+  struct GNUNET_CADET_Port *port;
 
     /**
      * Other end of the channel.
@@ -300,6 +289,32 @@ struct GNUNET_CADET_Channel
      */
   int allow_send;
 
+};
+
+/**
+ * Opaque handle to a port.
+ */
+struct GNUNET_CADET_Port
+{
+    /**
+     * Handle to the CADET session this port belongs to.
+     */
+  struct GNUNET_CADET_Handle *cadet;
+
+    /**
+     * Port ID.
+     */
+  struct GNUNET_HashCode *hash;
+
+    /**
+     * Callback handler for incoming channels on this port.
+     */
+  GNUNET_CADET_InboundChannelNotificationHandler *handler;
+
+    /**
+     * Closure for @a handler.
+     */
+  void *cls;
 };
 
 
@@ -357,6 +372,25 @@ th_is_payload (struct GNUNET_CADET_TransmitHandle *th)
   return (th->notify != NULL) ? GNUNET_YES : GNUNET_NO;
 }
 
+
+/**
+ * Find the Port struct for a hash.
+ *
+ * @param h CADET handle.
+ * @param hash HashCode for the port number.
+ *
+ * @return The port handle if known, NULL otherwise.
+ */
+static struct GNUNET_CADET_Port *
+find_port (const struct GNUNET_CADET_Handle *h,
+	   const struct GNUNET_HashCode *hash)
+{
+  struct GNUNET_CADET_Port *p;
+
+  p = GNUNET_CONTAINER_multihashmap_get (h->ports, hash);
+
+  return p;
+}
 
 /**
  * Check whether there is any message ready in the queue and find the size.
@@ -604,45 +638,6 @@ reconnect_cbk (void *cls);
 
 
 /**
- * Send a connect packet to the service with the applications and types
- * requested by the user.
- *
- * @param h The cadet handle.
- *
- */
-static void
-send_connect (struct GNUNET_CADET_Handle *h)
-{
-  size_t size;
-
-  size = sizeof (struct GNUNET_CADET_ClientConnect);
-  size += h->n_ports * sizeof (uint32_t);
-  {
-    char buf[size] GNUNET_ALIGN;
-    struct GNUNET_CADET_ClientConnect *msg;
-    uint32_t *ports;
-    uint16_t i;
-
-    /* build connection packet */
-    msg = (struct GNUNET_CADET_ClientConnect *) buf;
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT);
-    msg->header.size = htons (size);
-    ports = (uint32_t *) &msg[1];
-    for (i = 0; i < h->n_ports; i++)
-    {
-      ports[i] = htonl (h->ports[i]);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " port %u\n",
-           h->ports[i]);
-    }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending %lu bytes long message with %u ports\n",
-         ntohs (msg->header.size), h->n_ports);
-    send_packet (h, &msg->header, NULL);
-  }
-}
-
-
-/**
  * Reconnect to the service, retransmit all infomation to try to restore the
  * original state.
  *
@@ -690,7 +685,6 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
   {
     h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
-  send_connect (h);
   return GNUNET_YES;
 }
 
@@ -746,21 +740,24 @@ reconnect (struct GNUNET_CADET_Handle *h)
  */
 static void
 process_channel_created (struct GNUNET_CADET_Handle *h,
-                         const struct GNUNET_CADET_ChannelMessage *msg)
+                         const struct GNUNET_CADET_ChannelCreateMessage *msg)
 {
   struct GNUNET_CADET_Channel *ch;
+  struct GNUNET_CADET_Port *port;
+  const struct GNUNET_HashCode *port_number;
   CADET_ChannelNumber chid;
-  uint32_t port;
 
   chid = ntohl (msg->channel_id);
-  port = ntohl (msg->port);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating incoming channel %X:%u\n", chid, port);
+  port_number = &msg->port;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating incoming channel %X [%s]\n",
+       chid, GNUNET_h2s (port_number));
   if (chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV)
   {
     GNUNET_break (0);
     return;
   }
-  if (NULL != h->new_channel)
+  port = find_port (h, port_number);
+  if (NULL != port)
   {
     void *ctx;
 
@@ -773,23 +770,20 @@ process_channel_created (struct GNUNET_CADET_Handle *h,
     ch->options = ntohl (msg->opt);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", ch);
-    ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port, ch->options);
+    ctx = port->handler (port->cls, ch, &msg->peer, port->hash, ch->options);
     if (NULL != ctx)
       ch->ctx = ctx;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
   }
   else
   {
-    struct GNUNET_CADET_ChannelMessage d_msg;
+    struct GNUNET_CADET_ChannelDestroyMessage d_msg;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No handler for incoming channels\n");
 
     d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
-    d_msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelMessage));
+    d_msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelDestroyMessage));
     d_msg.channel_id = msg->channel_id;
-    memset (&d_msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
-    d_msg.port = 0;
-    d_msg.opt = 0;
 
     send_packet (h, &d_msg.header, NULL);
   }
@@ -805,7 +799,7 @@ process_channel_created (struct GNUNET_CADET_Handle *h,
  */
 static void
 process_channel_destroy (struct GNUNET_CADET_Handle *h,
-                         const struct GNUNET_CADET_ChannelMessage *msg)
+                         const struct GNUNET_CADET_ChannelDestroyMessage *msg)
 {
   struct GNUNET_CADET_Channel *ch;
   CADET_ChannelNumber chid;
@@ -1270,12 +1264,14 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     /* Notify of a new incoming channel */
   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    process_channel_created (h, (struct GNUNET_CADET_ChannelMessage *) msg);
+    process_channel_created (h,
+			     (struct GNUNET_CADET_ChannelCreateMessage *) msg);
     break;
     /* Notify of a channel disconnection */
   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY: /* TODO separate(gid problem)*/
   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-    process_channel_destroy (h, (struct GNUNET_CADET_ChannelMessage *) msg);
+    process_channel_destroy (h,
+			     (struct GNUNET_CADET_ChannelDestroyMessage *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA:
     process_incoming_data (h, msg);
@@ -1496,10 +1492,8 @@ send_packet (struct GNUNET_CADET_Handle *h,
 
 struct GNUNET_CADET_Handle *
 GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
-                     GNUNET_CADET_InboundChannelNotificationHandler new_channel,
                      GNUNET_CADET_ChannelEndHandler cleaner,
-                     const struct GNUNET_CADET_MessageHandler *handlers,
-                     const uint32_t *ports)
+                     const struct GNUNET_CADET_MessageHandler *handlers)
 {
   struct GNUNET_CADET_Handle *h;
 
@@ -1507,8 +1501,8 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   h = GNUNET_new (struct GNUNET_CADET_Handle);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " addr %p\n", h);
   h->cfg = cfg;
-  h->new_channel = new_channel;
   h->cleaner = cleaner;
+  h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
   h->client = GNUNET_CLIENT_connect ("cadet", cfg);
   if (h->client == NULL)
   {
@@ -1518,31 +1512,14 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   }
   h->cls = cls;
   h->message_handlers = handlers;
-  h->ports = ports;
   h->next_chid = GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   h->reconnect_task = NULL;
 
-  if (NULL != ports && ports[0] != 0 && NULL == new_channel)
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "no new channel handler given, ports parameter is useless!!\n");
-  }
-  if ((NULL == ports || ports[0] == 0) && NULL != new_channel)
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "no ports given, new channel handler will never be called!!\n");
-  }
   /* count handlers */
   for (h->n_handlers = 0;
        handlers && handlers[h->n_handlers].type;
        h->n_handlers++) ;
-  for (h->n_ports = 0;
-       ports && ports[h->n_ports];
-       h->n_ports++) ;
-  send_connect (h);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CADET_connect() END\n");
   return h;
 }
@@ -1580,9 +1557,10 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
     msg = (struct GNUNET_MessageHeader *) &th[1];
     switch (ntohs(msg->type))
     {
-      case GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT:
       case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
       case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
+      case GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN:
+      case GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE:
       case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS:
       case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
       case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER:
@@ -1615,7 +1593,72 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
     GNUNET_SCHEDULER_cancel(handle->reconnect_task);
     handle->reconnect_task = NULL;
   }
+
+  GNUNET_CONTAINER_multihashmap_destroy (handle->ports);
+  handle->ports = NULL;
   GNUNET_free (handle);
+}
+
+
+/**
+ * Open a port to receive incomming channels.
+ *
+ * @param h CADET handle.
+ * @param port Hash representing the port number.
+ * @param new_channel Function called when an channel is received.
+ * @param new_channel_cls Closure for @a new_channel.
+ *
+ * @return Port handle.
+ */
+struct GNUNET_CADET_Port *
+GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
+			const struct GNUNET_HashCode *port,
+			GNUNET_CADET_InboundChannelNotificationHandler
+			    new_channel,
+			void *new_channel_cls)
+{
+  struct GNUNET_CADET_Port *p;
+  struct GNUNET_CADET_PortMessage msg;
+
+  GNUNET_assert (NULL != new_channel);
+  p = GNUNET_new (struct GNUNET_CADET_Port);
+  p->cadet = h;
+  p->hash = GNUNET_new (struct GNUNET_HashCode);
+  *p->hash = *port;
+  p->handler = new_channel;
+  p->cls = new_channel_cls;
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (h->ports,
+						    p->hash,
+						    p,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN);
+  msg.port = *p->hash;
+  send_packet (p->cadet, &msg.header, NULL);
+
+  return p;
+}
+
+/**
+ * Close a port opened with @a GNUNET_CADET_open_port.
+ * The @a new_channel callback will no longer be called.
+ *
+ * @param p Port handle.
+ */
+void
+GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
+{
+  struct GNUNET_CADET_PortMessage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
+  msg.port = *p->hash;
+  send_packet (p->cadet, &msg.header, NULL);
+  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports, p->hash, p);
+  GNUNET_free (p->hash);
+  GNUNET_free (p);
 }
 
 
@@ -1629,7 +1672,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
  * @param h cadet handle
  * @param channel_ctx client's channel context to associate with the channel
  * @param peer peer identity the channel should go to
- * @param port Port number.
+ * @param port Port hash (port number).
  * @param options CadetOption flag field, with all desired option bits set to 1.
  *
  * @return handle to the channel
@@ -1638,11 +1681,11 @@ struct GNUNET_CADET_Channel *
 GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                             void *channel_ctx,
                             const struct GNUNET_PeerIdentity *peer,
-                            uint32_t port,
+                            const struct GNUNET_HashCode *port,
                             enum GNUNET_CADET_ChannelOption options)
 {
   struct GNUNET_CADET_Channel *ch;
-  struct GNUNET_CADET_ChannelMessage msg;
+  struct GNUNET_CADET_ChannelCreateMessage msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new channel to %s:%u\n",
@@ -1652,14 +1695,16 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", ch->chid);
   ch->ctx = channel_ctx;
   ch->peer = GNUNET_PEER_intern (peer);
+
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
-  msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelMessage));
+  msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelCreateMessage));
   msg.channel_id = htonl (ch->chid);
-  msg.port = htonl (port);
+  msg.port = *port;
   msg.peer = *peer;
   msg.opt = htonl (options);
   ch->allow_send = GNUNET_NO;
   send_packet (h, &msg.header, ch);
+
   return ch;
 }
 
@@ -1668,18 +1713,15 @@ void
 GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
 {
   struct GNUNET_CADET_Handle *h;
-  struct GNUNET_CADET_ChannelMessage msg;
+  struct GNUNET_CADET_ChannelDestroyMessage msg;
   struct GNUNET_CADET_TransmitHandle *th;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying channel\n");
   h = channel->cadet;
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
-  msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelMessage));
+  msg.header.size = htons (sizeof (struct GNUNET_CADET_ChannelDestroyMessage));
   msg.channel_id = htonl (channel->chid);
-  memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
-  msg.port = 0;
-  msg.opt = 0;
   th = h->th_head;
   while (th != NULL)
   {
@@ -2178,4 +2220,27 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel)
                                       NULL, /* no err handlers */
                                       NULL); /* no handler cls */
   return mq;
+}
+
+
+/**
+ * Transitional function to convert an unsigned int port to a hash value.
+ * WARNING: local static value returned, NOT reentrant!
+ * WARNING: do not use this function for new code!
+ *
+ * @param port Numerical port (unsigned int format).
+ *
+ * @return A GNUNET_HashCode usable for the new CADET API.
+ */
+const struct GNUNET_HashCode *
+GC_u2h (uint32_t port)
+{
+  static struct GNUNET_HashCode hash;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "This is a transitional function, "
+              "use proper crypto hashes as CADET ports\n");
+  GNUNET_CRYPTO_hash (&port, sizeof (port), &hash);
+
+  return &hash;
 }
