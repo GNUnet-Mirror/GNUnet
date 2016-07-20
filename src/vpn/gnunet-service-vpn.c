@@ -758,7 +758,7 @@ handle_regex_result (void *cls,
   ts->channel = GNUNET_CADET_channel_create (cadet_handle,
                                              ts,
                                              id,
-                                             apptype,
+                                             GC_u2h (apptype),
                                              GNUNET_CADET_OPTION_DEFAULT);
 }
 
@@ -801,7 +801,7 @@ create_channel_to_destination (struct DestinationChannel *dt,
     ts->channel = GNUNET_CADET_channel_create (cadet_handle,
                                                ts,
                                                &dt->destination->details.service_destination.target,
-                                               apptype,
+                                               GC_u2h (apptype),
                                                GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
@@ -3090,10 +3090,9 @@ run (void *cls,
 
   cadet_handle =
     GNUNET_CADET_connect (cfg_, NULL,
-                          NULL,
                           &channel_cleaner,
-                          cadet_handlers,
-                          NULL);
+                          cadet_handlers);
+    // FIXME never opens ports???
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL, NULL);

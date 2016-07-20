@@ -1187,7 +1187,7 @@ static void *
 cb_channel_incoming (void *cls,
                      struct GNUNET_CADET_Channel *channel,
                      const struct GNUNET_PeerIdentity *initiator,
-                     uint32_t port,
+                     const struct GNUNET_HashCode *port,
                      enum GNUNET_CADET_ChannelOption options)
 {
   struct CadetIncomingSession *in;
@@ -1512,10 +1512,6 @@ run (void *cls,
       0},
     { NULL, 0, 0}
   };
-  static const uint32_t ports[] = {
-    GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-    0
-  };
 
   cfg = c;
   /*
@@ -1538,10 +1534,8 @@ run (void *cls,
   cadet_sessions = GNUNET_CONTAINER_multihashmap_create (128,
                                                          GNUNET_YES);
   my_cadet = GNUNET_CADET_connect (cfg, NULL,
-                                   &cb_channel_incoming,
                                    &cb_channel_destruction,
-                                   cadet_handlers,
-                                   ports);
+                                   cadet_handlers);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1549,6 +1543,9 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_CADET_open_port (my_cadet,
+                          GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT),
+                          &cb_channel_incoming, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }

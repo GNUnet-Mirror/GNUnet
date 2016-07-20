@@ -789,7 +789,7 @@ cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
   chn->direction = DIR_OUTGOING;
   chn->join_status = JOIN_WAITING;
   chn->channel = GNUNET_CADET_channel_create (cadet, chn, &chn->peer,
-                                              GNUNET_APPLICATION_TYPE_MULTICAST,
+                                              GC_u2h (GNUNET_APPLICATION_TYPE_MULTICAST),
                                               GNUNET_CADET_OPTION_RELIABLE);
   GNUNET_CONTAINER_multihashmap_put (channels_out, &chn->group_pub_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -1484,7 +1484,7 @@ static void *
 cadet_notify_channel_new (void *cls,
                           struct GNUNET_CADET_Channel *channel,
                           const struct GNUNET_PeerIdentity *initiator,
-                          uint32_t port,
+                          const struct GNUNET_HashCode *port,
                           enum GNUNET_CADET_ChannelOption options)
 {
   return NULL;
@@ -1810,12 +1810,6 @@ static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
 
 
 /**
- * Listening ports for CADET.
- */
-static const uint32_t cadet_ports[] = { GNUNET_APPLICATION_TYPE_MULTICAST, 0 };
-
-
-/**
  * Connected to core service.
  */
 static void
@@ -1833,9 +1827,11 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
   replay_req_client = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
 
   cadet = GNUNET_CADET_connect (cfg, NULL,
-                                &cadet_notify_channel_new,
                                 &cadet_notify_channel_end,
-                                cadet_handlers, cadet_ports);
+                                cadet_handlers);
+  GNUNET_assert (NULL != cadet);
+  GNUNET_CADET_open_port (cadet, GC_u2h (GNUNET_APPLICATION_TYPE_MULTICAST),
+                          &cadet_notify_channel_new, NULL);
 
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, server_handlers);

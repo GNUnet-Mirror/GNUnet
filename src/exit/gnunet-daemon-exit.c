@@ -3036,7 +3036,7 @@ static void *
 new_channel (void *cls,
              struct GNUNET_CADET_Channel *channel,
              const struct GNUNET_PeerIdentity *initiator,
-             uint32_t port,
+             const struct GNUNET_HashCode *port,
              enum GNUNET_CADET_ChannelOption options)
 {
   struct ChannelState *s = GNUNET_new (struct ChannelState);
@@ -3760,15 +3760,19 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  cadet_handle
-    = GNUNET_CADET_connect (cfg, NULL,
-			   &new_channel,
-			   &clean_channel, handlers,
-                           apptypes);
+  cadet_handle = GNUNET_CADET_connect (cfg, NULL, &clean_channel, handlers);
   if (NULL == cadet_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
+  }
+  for (int i = 0;
+       GNUNET_APPLICATION_TYPE_END != apptypes[i]
+       && i < sizeof (apptypes)/sizeof (*apptypes);
+       i++)
+  {
+    GNUNET_CADET_open_port (cadet_handle, GC_u2h (apptypes[i]),
+                            &new_channel, NULL);
   }
 
   /* Cadet handle acquired, now announce regular expressions matching our exit */

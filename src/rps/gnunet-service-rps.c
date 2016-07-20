@@ -2334,13 +2334,14 @@ run (void *cls,
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
     {NULL, 0, 0}
   };
-  const uint32_t ports[] = {GNUNET_RPS_CADET_PORT, 0}; // _PORT specified in src/rps/rps.h
   cadet_handle = GNUNET_CADET_connect (cfg,
                                        cls,
-                                       &Peers_handle_inbound_channel,
                                        &cleanup_destroyed_channel,
-                                       cadet_handlers,
-                                       ports);
+                                       cadet_handlers);
+  GNUNET_assert (NULL != cadet_handle);
+  GNUNET_CADET_open_port (cadet_handle, GC_u2h (GNUNET_RPS_CADET_PORT),
+                          &Peers_handle_inbound_channel, cls);
+
 
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
   Peers_initialise (fn_valid_peers, cadet_handle, &own_identity);

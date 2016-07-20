@@ -174,7 +174,7 @@ struct PeerContext
    * Identity of the peer
    */
   struct GNUNET_PeerIdentity peer_id;
-  
+
   /**
    * Flags indicating status of peer
    */
@@ -506,7 +506,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
       GNUNET_CADET_channel_create (cadet_handle,
                                    peer_ctx->send_channel_flags, /* context */
                                    peer,
-                                   GNUNET_RPS_CADET_PORT,
+                                   GC_u2h (GNUNET_RPS_CADET_PORT),
                                    GNUNET_CADET_OPTION_RELIABLE);
   }
   GNUNET_assert (NULL != peer_ctx->send_channel);
@@ -518,7 +518,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
  *
  * If we already have a message queue open to this client,
  * simply return it, otherways create one.
- * 
+ *
  * @param peer the peer to get the mq to
  * @return the #GNUNET_MQ_Handle
  */
@@ -1086,7 +1086,7 @@ Peers_clean_peer (const struct GNUNET_PeerIdentity *peer)
 
   // TODO actually remove unnecessary data
 
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer)) 
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     return GNUNET_NO;
   }
@@ -1104,7 +1104,7 @@ Peers_clean_peer (const struct GNUNET_PeerIdentity *peer)
 
 /**
  * @brief Remove peer
- * 
+ *
  * @param peer the peer to clean
  * @return #GNUNET_YES if peer was removed
  *         #GNUNET_NO  otherwise
@@ -1114,7 +1114,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer)) 
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     return GNUNET_NO;
   }
@@ -1350,7 +1350,7 @@ void *
 Peers_handle_inbound_channel (void *cls,
                               struct GNUNET_CADET_Channel *channel,
                               const struct GNUNET_PeerIdentity *initiator,
-                              uint32_t port,
+                              const struct GNUNET_HashCode *port,
                               enum GNUNET_CADET_ChannelOption options)
 {
   struct PeerContext *peer_ctx;

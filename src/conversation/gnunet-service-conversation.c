@@ -720,7 +720,7 @@ handle_client_call_message (void *cls,
   ch->channel_reliable = GNUNET_CADET_channel_create (cadet,
                                                      ch,
                                                      &msg->target,
-                                                     GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
+                                                     GC_u2h (GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL),
                                                      GNUNET_CADET_OPTION_RELIABLE);
   ch->reliable_mq = GNUNET_CADET_mq_create (ch->channel_reliable);
   e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
@@ -1102,7 +1102,7 @@ handle_cadet_pickup_message (void *cls,
   ch->channel_unreliable = GNUNET_CADET_channel_create (cadet,
                                                        ch,
                                                        &ch->target,
-                                                       GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
+                                                       GC_u2h (GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO),
                                                        GNUNET_CADET_OPTION_DEFAULT);
   if (NULL == ch->channel_unreliable)
   {
@@ -1351,13 +1351,14 @@ handle_cadet_audio_message (void *cls,
  */
 static void *
 inbound_channel (void *cls,
-                struct GNUNET_CADET_Channel *channel,
-		const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port, enum GNUNET_CADET_ChannelOption options)
+                 struct GNUNET_CADET_Channel *channel,
+                 const struct GNUNET_PeerIdentity *initiator,
+                 const struct GNUNET_HashCode *port,
+                 enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received incoming Cadet channel on port %u\n"),
-              (unsigned int) port);
+              _("Received incoming Cadet channel on port %s\n"),
+              GNUNET_h2s (port));
   return NULL;
 }
 
@@ -1557,11 +1558,6 @@ run (void *cls,
      0},
     {NULL, 0, 0}
   };
-  static uint32_t ports[] = {
-    GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
-    GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
-    0
-  };
 
   cfg = c;
   GNUNET_assert (GNUNET_OK ==
@@ -1569,10 +1565,8 @@ run (void *cls,
                                                   &my_identity));
   cadet = GNUNET_CADET_connect (cfg,
 			      NULL,
-			      &inbound_channel,
 			      &inbound_end,
-                              cadet_handlers,
-                              ports);
+                              cadet_handlers);
 
   if (NULL == cadet)
   {
@@ -1580,6 +1574,14 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
+  GNUNET_CADET_open_port (cadet,
+                          GC_u2h (GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL),
+                          &inbound_channel, NULL);
+  GNUNET_CADET_open_port (cadet,
+                          GC_u2h (GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO),
+                          &inbound_channel, NULL);
+
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SERVER_disconnect_notify (server,

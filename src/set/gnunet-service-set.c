@@ -1358,7 +1358,7 @@ handle_client_evaluate (void *cls,
   op->channel = GNUNET_CADET_channel_create (cadet,
                                              op,
                                              &msg->target_peer,
-                                             GNUNET_APPLICATION_TYPE_SET,
+                                             GC_u2h (GNUNET_APPLICATION_TYPE_SET),
                                              GNUNET_CADET_OPTION_RELIABLE);
   op->mq = GNUNET_CADET_mq_create (op->channel);
   set->vt->evaluate (op,
@@ -1796,7 +1796,7 @@ static void *
 channel_new_cb (void *cls,
                 struct GNUNET_CADET_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port,
+                const struct GNUNET_HashCode *port,
                 enum GNUNET_CADET_ChannelOption options)
 {
   static const struct SetVT incoming_vt = {
@@ -1805,7 +1805,7 @@ channel_new_cb (void *cls,
   };
   struct Operation *incoming;
 
-  if (GNUNET_APPLICATION_TYPE_SET != port)
+  if (0 != memcmp (GC_u2h (GNUNET_APPLICATION_TYPE_SET), port, sizeof (*port)))
   {
     GNUNET_break (0);
     GNUNET_CADET_channel_destroy (channel);
@@ -1988,7 +1988,6 @@ run (void *cls,
     { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE, 0},
     {NULL, 0, 0}
   };
-  static const uint32_t cadet_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
 
   configuration = cfg;
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
@@ -1998,10 +1997,11 @@ run (void *cls,
                               server_handlers);
   _GSS_statistics = GNUNET_STATISTICS_create ("set", cfg);
   cadet = GNUNET_CADET_connect (cfg, NULL,
-                                &channel_new_cb,
                                 &channel_end_cb,
-                                cadet_handlers,
-                                cadet_ports);
+                                cadet_handlers);
+  GNUNET_CADET_open_port (cadet,
+                          GC_u2h (GNUNET_APPLICATION_TYPE_SET),
+                          &channel_new_cb, NULL);
   if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

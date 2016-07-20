@@ -173,7 +173,7 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Remove unecessary data
- * 
+ *
  * If the other peer is not intending to send messages, we have messages pending
  * to be sent to this peer and we are not waiting for a reply, remove the
  * information about it (its #PeerContext).
@@ -187,7 +187,7 @@ Peers_clean_peer (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * @brief Remove peer
- * 
+ *
  * @param peer the peer to clean
  * @return #GNUNET_YES if peer was removed
  *         #GNUNET_NO  otherwise
@@ -320,7 +320,7 @@ void *
 Peers_handle_inbound_channel (void *cls,
                               struct GNUNET_CADET_Channel *channel,
                               const struct GNUNET_PeerIdentity *initiator,
-                              uint32_t port,
+                              const struct GNUNET_HashCode *port,
                               enum GNUNET_CADET_ChannelOption options);
 
 /**

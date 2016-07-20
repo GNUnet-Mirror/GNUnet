@@ -351,7 +351,7 @@ try_open_exit ()
 	pos->cadet_channel = GNUNET_CADET_channel_create (cadet_handle,
 						      pos,
 						      &pos->peer,
-						      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+						      GC_u2h (GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER),
 						      GNUNET_CADET_OPTION_DEFAULT);
 	if (NULL == pos->cadet_channel)
 	{
@@ -1288,9 +1288,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    cadet_handle = GNUNET_CADET_connect (cfg, NULL, NULL,
+    cadet_handle = GNUNET_CADET_connect (cfg, NULL,
 				       &cadet_channel_end_cb,
-				       cadet_handlers, NULL);
+				       cadet_handlers);
     if (NULL == cadet_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

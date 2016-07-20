@@ -236,7 +236,7 @@ reset_cadet (struct CadetHandle *mh)
   mh->channel = GNUNET_CADET_channel_create (cadet_handle,
 					  mh,
 					  &mh->target,
-					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+					  GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
 					  GNUNET_CADET_OPTION_RELIABLE);
   transmit_pending (mh);
 }
@@ -547,7 +547,7 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
   mh->channel = GNUNET_CADET_channel_create (cadet_handle,
                                             mh,
                                             &mh->target,
-                                            GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+                                            GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
                                             GNUNET_CADET_OPTION_RELIABLE);
   GNUNET_assert (mh ==
                  GNUNET_CONTAINER_multipeermap_get (cadet_map,
@@ -719,10 +719,8 @@ GSF_cadet_start_client ()
   cadet_map = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
   cadet_handle = GNUNET_CADET_connect (GSF_cfg,
 				     NULL,
-				     NULL,
 				     &cleaner_cb,
-				     handlers,
-				     NULL);
+				     handlers);
 }
 
 

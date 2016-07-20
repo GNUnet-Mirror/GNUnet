@@ -472,7 +472,8 @@ static void *
 accept_cb (void *cls,
 	   struct GNUNET_CADET_Channel *channel,
 	   const struct GNUNET_PeerIdentity *initiator,
-	   uint32_t port, enum GNUNET_CADET_ChannelOption options)
+	   const struct GNUNET_HashCode *port,
+           enum GNUNET_CADET_ChannelOption options)
 {
   struct CadetClient *sc;
 
@@ -561,11 +562,6 @@ GSF_cadet_start_server ()
     { &request_cb, GNUNET_MESSAGE_TYPE_FS_CADET_QUERY, sizeof (struct CadetQueryMessage)},
     { NULL, 0, 0 }
   };
-  static const uint32_t ports[] = {
-    GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-    0
-  };
-
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
 					     "fs",
@@ -576,11 +572,13 @@ GSF_cadet_start_server ()
 	      "Initializing cadet FS server with a limit of %llu connections\n",
 	      sc_count_max);
   listen_channel = GNUNET_CADET_connect (GSF_cfg,
-				       NULL,
-				       &accept_cb,
-				       &cleaner_cb,
-				       handlers,
-				       ports);
+                                         NULL,
+                                         &cleaner_cb,
+                                         handlers);
+  GNUNET_assert (NULL != listen_channel);
+  GNUNET_CADET_open_port (listen_channel,
+                          GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
+                          &accept_cb, NULL);
 }
 
 

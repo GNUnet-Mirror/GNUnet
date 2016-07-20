@@ -1081,7 +1081,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
     = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
-                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
+                                   GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT),
                                    GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == s->channel)
   {
@@ -1409,10 +1409,8 @@ run (void *cls,
                                    &handle_client_disconnect,
                                    NULL);
   my_cadet = GNUNET_CADET_connect (cfg, NULL,
-                                   NULL /* no incoming supported */,
                                    &cb_channel_destruction,
-                                   cadet_handlers,
-                                   NULL);
+                                   cadet_handlers);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
