@@ -44,7 +44,7 @@ path_destroy_delayed (void *cls)
   struct CadetPeer *peer;
 
   path->path_delete = NULL;
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroy delayed %p (%u)\n",
        path,
        path->length);
@@ -73,7 +73,7 @@ path_new (unsigned int length)
     p->length = length;
     p->peers = GNUNET_malloc (length * sizeof (GNUNET_PEER_Id));
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "New path %p (%u)\n", p, p->length);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "New path %p (%u)\n", p, p->length);
   return p;
 }
 
@@ -154,7 +154,7 @@ path_invalidate (struct CadetPeerPath *p)
   if (NULL != p->path_delete)
     return;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Invalidating path %p (%u)\n",
        p,
        p->length);
@@ -292,7 +292,7 @@ path_destroy (struct CadetPeerPath *p)
   if (NULL == p)
     return GNUNET_OK;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "destroying path %p (%u)\n",
        p,
        p->length);
