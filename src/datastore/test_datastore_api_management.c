@@ -26,6 +26,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
+#include "gnunet_datastore_plugin.h"
 #include "gnunet_testing_lib.h"
 
 
@@ -296,14 +297,63 @@ run (void *cls,
 }
 
 
+/**
+ * check if plugin is actually working 
+ */
+static int
+test_plugin (const char *cfg_name)
+{
+  char libname[128];
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_DATASTORE_PluginFunctions *api;
+  struct GNUNET_DATASTORE_PluginEnvironment env;
+  
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_load (cfg,
+				 cfg_name))
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    fprintf (stderr,
+	     "Failed to load configuration %s\n",
+	     cfg_name);
+    return 1;
+  }
+  memset (&env, 0, sizeof (env));
+  env.cfg = cfg;
+  GNUNET_snprintf (libname,
+		   sizeof (libname),
+                   "libgnunet_plugin_datastore_%s",
+                   plugin_name);
+  api = GNUNET_PLUGIN_load (libname, &env);
+  if (NULL == api)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    fprintf (stderr,
+	     "Failed to load plugin `%s'\n",
+	     libname);
+    return 77;
+  }
+  GNUNET_PLUGIN_unload (libname, api);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  return 0;
+}
+
+
 int
 main (int argc, char *argv[])
 {
   char cfg_name[128];
+  int ret;
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
-                   "test_datastore_api_data_%s.conf", plugin_name);
+  GNUNET_snprintf (cfg_name,
+		   sizeof (cfg_name),
+                   "test_datastore_api_data_%s.conf",
+		   plugin_name);
+  ret = test_plugin (cfg_name);
+  if (0 != ret)
+    return ret;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-gnunet-datastore-management",
 			       cfg_name,
