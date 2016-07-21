@@ -58,7 +58,7 @@ notify_ready (void *cls,
   GNUNET_assert (size >= msize);
   if (NULL != buf)
   {
-    memset (buf, '\0', msize);
+    memset (buf, sj->num, msize);
     test = buf;
     test->header.size = htons (msize);
     test->header.type = htons (sj->mtype);
@@ -79,6 +79,9 @@ notify_ready (void *cls,
                 GNUNET_i2s (&receiver->id));
     GNUNET_free (ps);
   }
+  if (NULL != sj->cont)
+    GNUNET_SCHEDULER_add_now (sj->cont,
+			      sj->cont_cls);
   GNUNET_free (sj);
   return msize;
 }
@@ -107,6 +110,8 @@ find_cr (void *cls,
  * @param mtype message type to use
  * @param msize size of the message, at least `sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage)`
  * @param num unique message number
+ * @param cont continuation to call after transmission
+ * @param cont_cls closure for @a cont
  * @return #GNUNET_OK if message was queued,
  *         #GNUNET_NO if peers are not connected
  *         #GNUNET_SYSERR if @a msize is illegal
@@ -116,7 +121,9 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
 			       struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
 			       uint16_t mtype,
 			       uint16_t msize,
-			       uint32_t num)
+			       uint32_t num,
+			       GNUNET_SCHEDULER_TaskCallback cont,
+			       void *cont_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_Handle *tth = sender->tth;
   struct TRANSPORT_TESTING_SendJob *sj;
@@ -147,6 +154,8 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
   sj->num = num;
   sj->sender = sender;
   sj->receiver = receiver;
+  sj->cont = cont;
+  sj->cont_cls = cont_cls;
   sj->mtype = mtype;
   sj->msize = msize;
   GNUNET_CONTAINER_DLL_insert (tth->sj_head,
@@ -180,10 +189,15 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
  *
  * @param ccc context which should contain at least two peers, the
  *        first two of which should be currently connected
+ * @param size desired message size
+ * @param cont continuation to call after transmission
+ * @param cont_cls closure for @a cont
  */
 static void
 do_send (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
-	 uint16_t size)
+	 uint16_t size,
+	 GNUNET_SCHEDULER_TaskCallback cont,
+	 void *cont_cls)
 {
   int ret;
 
@@ -192,7 +206,9 @@ do_send (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
 				       ccc->p[1],
 				       GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
 				       size,
-				       ccc->send_num_gen++);
+				       ccc->send_num_gen++,
+				       cont,
+				       cont_cls);
   GNUNET_assert (GNUNET_SYSERR != ret);
   if (GNUNET_NO == ret)
   {
@@ -214,10 +230,28 @@ do_send (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
 void
 GNUNET_TRANSPORT_TESTING_simple_send (void *cls)
 {
-  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
+  struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
+  int done;
+  size_t msize;
 
-  do_send (ccc,
-	   sizeof (struct GNUNET_MessageHeader));
+  if (0 < sc->num_messages)
+  {
+    sc->num_messages--;
+    done = (0 == sc->num_messages);
+  }
+  else
+  {
+    done = 0; /* infinite loop */
+  }
+  msize = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage);
+  if (NULL != sc->get_size_cb)
+    msize = sc->get_size_cb (sc->num_messages);
+  /* if this was the last message, call the continuation,
+     otherwise call this function again */
+  do_send (sc->ccc,
+	   msize,
+	   done ? sc->cont : &GNUNET_TRANSPORT_TESTING_simple_send,
+	   done ? sc->cont_cls : sc);
 }
 
 
@@ -232,10 +266,28 @@ GNUNET_TRANSPORT_TESTING_simple_send (void *cls)
 void
 GNUNET_TRANSPORT_TESTING_large_send (void *cls)
 {
-  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
+  struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
+  int done;
+  size_t msize;
 
-  do_send (ccc,
-	   2600);
+  if (0 < sc->num_messages)
+  {
+    sc->num_messages--;
+    done = (0 == sc->num_messages);
+  }
+  else
+  {
+    done = 0; /* infinite loop */
+  }
+  msize = 2600;
+  if (NULL != sc->get_size_cb)
+    msize = sc->get_size_cb (sc->num_messages);
+  /* if this was the last message, call the continuation,
+     otherwise call this function again */
+  do_send (sc->ccc,
+	   msize,
+	   done ? sc->cont : &GNUNET_TRANSPORT_TESTING_large_send,
+	   done ? sc->cont_cls : sc);
 }
 
 /* end of transport-testing-send.c */

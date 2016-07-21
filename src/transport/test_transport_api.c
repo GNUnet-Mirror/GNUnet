@@ -84,9 +84,12 @@ static int
 test (char *argv[],
       int bi_directional)
 {
+  struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = 1
+  };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .connect_continuation = &GNUNET_TRANSPORT_TESTING_large_send,
-    .connect_continuation_cls = &my_ccc,
+    .connect_continuation_cls = &sc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
@@ -96,6 +99,7 @@ test (char *argv[],
   };
 
   ccc = &my_ccc;
+  sc.ccc = ccc;
   if (GNUNET_OK !=
       GNUNET_TRANSPORT_TESTING_main (2,
                                      &GNUNET_TRANSPORT_TESTING_connect_check,

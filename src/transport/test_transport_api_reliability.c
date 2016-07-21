@@ -46,37 +46,12 @@
 #define TOTAL_MSGS (1024 * 3 * FACTOR)
 
 /**
- * Message type of test messages
- */
-#define MTYPE 12345
-
-/**
  * Testcase timeout
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90 * FACTOR)
-
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60 * FACTOR)
-
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * Struct for the test message
- */
-struct TestMessage
-{
-  struct GNUNET_MessageHeader header;
-  uint32_t num GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 450 * FACTOR)
 
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
-
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 /**
  * Total amount of bytes sent
@@ -89,19 +64,9 @@ static unsigned long long total_bytes;
 static struct GNUNET_TIME_Absolute start_time;
 
 /**
- * No. of message currently scheduled to be send
- */
-static int msg_scheduled;
-
-/**
- * No. of last message sent
- */
-static int msg_sent;
-
-/**
  * No. of last message received
  */
-static int msg_recv;
+static unsigned int msg_recv;
 
 /**
  * Bitmap storing which messages were received
@@ -109,20 +74,41 @@ static int msg_recv;
 static char bitmap[TOTAL_MSGS / 8];
 
 
-static unsigned int
+/**
+ * Get the desired message size for message number @a iter.
+ */
+static size_t
 get_size (unsigned int iter)
 {
-  unsigned int ret;
+  size_t ret;
 
   ret = (iter * iter * iter);
-
 #ifndef LINUX
   /* FreeBSD/OSX etc. Unix DGRAMs do not work
    * with large messages */
   if (0 == strcmp ("unix", test_plugin))
-    return sizeof (struct TestMessage) + (ret % 1024);
+    ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 1024);
 #endif
-  return sizeof (struct TestMessage) + (ret % 60000);
+  ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 60000);
+  return ret;
+}
+
+
+/**
+ * Implementation of the callback for obtaining the
+ * size of messages for transmission.  Counts the total
+ * number of bytes sent as a side-effect.
+ *
+ * @param cnt_down count down from `TOTAL_MSGS - 1`
+ * @return message size of the message
+ */
+static size_t
+get_size_cnt (unsigned int cnt_down)
+{
+  size_t ret = get_size (TOTAL_MSGS - 1 - cnt_down);
+
+  total_bytes += ret;
+  return ret;
 }
 
 
@@ -181,14 +167,8 @@ custom_shutdown (void *cls)
 {
   unsigned long long delta;
   unsigned long long rate;
-  unsigned int i;
   int ok;
 
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
   /* Calculcate statistics   */
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
@@ -197,6 +177,7 @@ custom_shutdown (void *cls)
            rate);
   {
     char *value_name;
+
     GNUNET_asprintf (&value_name,
                      "unreliable_%s",
                      ccc->test_plugin);
@@ -208,7 +189,7 @@ custom_shutdown (void *cls)
   }
 
   ok = 0;
-  for (i = 0; i < TOTAL_MSGS; i++)
+  for (unsigned int i = 0; i < TOTAL_MSGS; i++)
   {
     if (get_bit (bitmap, i) == 0)
     {
@@ -230,14 +211,13 @@ notify_receive (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
   static int n;
-
   unsigned int s;
   char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  const struct TestMessage *hdr;
+  const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr;
 
-  hdr = (const struct TestMessage *) message;
+  hdr = (const struct GNUNET_TRANSPORT_TESTING_TestMessage *) message;
 
-  if (MTYPE != ntohs (message->type))
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type))
     return;
   msg_recv = ntohl (hdr->num);
   s = get_size (ntohl (hdr->num));
@@ -255,19 +235,24 @@ notify_receive (void *cls,
     return;
   }
 
-  memset (cbuf, ntohl (hdr->num), s - sizeof (struct TestMessage));
-  if (0 != memcmp (cbuf, &hdr[1], s - sizeof (struct TestMessage)))
+  memset (cbuf,
+	  ntohl (hdr->num),
+	  s - sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage));
+  if (0 !=
+      memcmp (cbuf,
+	      &hdr[1],
+	      s - sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u with bits %u, but body did not match\n",
                 ntohl (hdr->num),
-                (unsigned char) n);
+                (unsigned char) ntohl (hdr->num));
     ccc->global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 #if VERBOSE
-  if (ntohl (hdr->num) % 5 == 0)
+  if (0 == ntohl (hdr->num) % 5)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Got message %u of size %u\n",
@@ -290,123 +275,8 @@ notify_receive (void *cls,
   if (n == TOTAL_MSGS)
   {
     /* end testcase with success */
+    ccc->global_ret = GNUNET_OK;
     GNUNET_SCHEDULER_shutdown ();
-  }
-}
-
-
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{
-  static int n;
-  char *cbuf = buf;
-  struct TestMessage hdr;
-  unsigned int s;
-  unsigned int ret;
-
-  th = NULL;
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready for msg %u of %u\n",
-                msg_scheduled,
-                TOTAL_MSGS);
-    GNUNET_SCHEDULER_shutdown ();
-    ccc->global_ret = 42;
-    return 0;
-  }
-  ret = 0;
-  s = get_size (n);
-  GNUNET_assert (size >= s);
-  GNUNET_assert (buf != NULL);
-  GNUNET_assert (n < TOTAL_MSGS);
-  cbuf = buf;
-  do
-  {
-    GNUNET_assert (n < TOTAL_MSGS);
-    hdr.header.size = htons (s);
-    hdr.header.type = htons (MTYPE);
-    hdr.num = htonl (n);
-    msg_sent = n;
-    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
-    ret += sizeof (struct TestMessage);
-    memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
-    ret += s - sizeof (struct TestMessage);
-
-#if VERBOSE
-    if (0 == n % 5000)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message %u of size %u\n",
-                  n,
-                  s);
-    }
-#endif
-    n++;
-    s = get_size (n);
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
-      break;                    /* sometimes pack buffer full, sometimes not */
-  }
-  while ((size - ret >= s) && (n < TOTAL_MSGS));
-  if (n < TOTAL_MSGS)
-  {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                                 &ccc->p[0]->id,
-                                                 s,
-                                                 TIMEOUT_TRANSMIT,
-                                                 &notify_ready,
-                                                 NULL);
-    msg_scheduled = n;
-  }
-  else
-  {
-    FPRINTF (stderr,
-             "%s",
-             "\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All messages scheduled to be sent\n");
-  }
-  if (0 == n % 5000)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Returning total message block of size %u\n",
-                ret);
-  }
-  total_bytes += ret;
-  return ret;
-}
-
-
-static void
-sendtask (void *cls)
-{
-  start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting to send %u messages\n",
-              TOTAL_MSGS);
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id,
-                                               get_size (0),
-                                               TIMEOUT_TRANSMIT,
-                                               &notify_ready,
-                                               NULL);
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
   }
 }
 
@@ -414,17 +284,25 @@ notify_disconnect (void *cls,
 int
 main (int argc, char *argv[])
 {
+  struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = TOTAL_MSGS,
+    .get_size_cb = &get_size_cnt
+  };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
-    .connect_continuation = &sendtask,
+    .connect_continuation = &GNUNET_TRANSPORT_TESTING_simple_send,
+    .connect_continuation_cls = &sc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-    .nd = &notify_disconnect,
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
     .shutdown_task = &custom_shutdown,
-    .timeout = TIMEOUT
+    .timeout = TIMEOUT,
+    .global_ret = GNUNET_SYSERR
   };
 
   ccc = &my_ccc;
+  sc.ccc = ccc;
+  start_time = GNUNET_TIME_absolute_get ();
   if (GNUNET_OK !=
       GNUNET_TRANSPORT_TESTING_main (2,
                                      &GNUNET_TRANSPORT_TESTING_connect_check,

@@ -35,19 +35,10 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-#define MTYPE 12345
-
 #define MAX_FILES 50
 
 
 #if HAVE_SETRLIMIT
-
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
@@ -62,8 +53,10 @@ notify_receive (void *cls,
               "Received message of type %d from peer %s!\n",
               ntohs (message->type),
 	      GNUNET_i2s (sender));
-  if ((MTYPE == ntohs (message->type)) &&
-      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
+  if ( (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE ==
+	ntohs (message->type)) &&
+       (sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) ==
+	ntohs (message->size)) )
   {
     ccc->global_ret = GNUNET_OK;
   }
@@ -75,83 +68,27 @@ notify_receive (void *cls,
 }
 
 
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-  struct GNUNET_MessageHeader *hdr;
-
-  th = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting message with %u bytes to peer %s\n",
-              (unsigned int) sizeof (struct GNUNET_MessageHeader),
-              GNUNET_i2s (&p->id));
-  GNUNET_assert (size >= 256);
-  if (buf != NULL)
-  {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-}
-
-
-static void
-custom_shutdown (void *cls)
-{
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-}
-
-
-static void
-sendtask (void *cls)
-{
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[0]->th,
-					       &ccc->p[1]->id,
-					       256,
-					       TIMEOUT,
-                                               &notify_ready,
-					       ccc->p[0]);
-}
-
-
 int
 main (int argc, char *argv[])
 {
+  struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = 1
+  };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
-    .connect_continuation = &sendtask,
+    .connect_continuation = &GNUNET_TRANSPORT_TESTING_simple_send,
+    .connect_continuation_cls = &sc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-    .nd = &notify_disconnect,
-    .shutdown_task = &custom_shutdown,
-    .timeout = TIMEOUT
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
+    .timeout = TIMEOUT,
+    .global_ret = GNUNET_SYSERR
   };
   struct rlimit r_file_old;
   struct rlimit r_file_new;
   int res;
-  
+
+  sc.ccc = &my_ccc;
   res = getrlimit (RLIMIT_NOFILE,
 		   &r_file_old);
   r_file_new.rlim_cur = MAX_FILES;
@@ -183,8 +120,9 @@ main (int argc, char *argv[])
 int
 main (int argc, char *argv[])
 {
-  fprintf (stderr, "Cannot run test on this system\n");
-  return 0;
+  fprintf (stderr,
+	   "Cannot run test on this system\n");
+  return 77;
 }
 
 #endif

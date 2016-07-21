@@ -256,6 +256,16 @@ struct TRANSPORT_TESTING_SendJob
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
   /**
+   * Function to call upon completion.
+   */
+  GNUNET_SCHEDULER_TaskCallback cont;
+
+  /**
+   * Closure for @e cont.
+   */
+  void *cont_cls;
+  
+  /**
    * Number of the message.
    */ 
   uint32_t num;
@@ -774,6 +784,8 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
  * @param mtype message type to use
  * @param msize size of the message, at least `sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage)`
  * @param num unique message number
+ * @param cont continuation to call after transmission
+ * @param cont_cls closure for @a cont
  * @return #GNUNET_OK if message was queued,
  *         #GNUNET_NO if peers are not connected
  *         #GNUNET_SYSERR if @a msize is illegal
@@ -783,7 +795,9 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
 			       struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
 			       uint16_t mtype,
 			       uint16_t msize,
-			       uint32_t num);
+			       uint32_t num,
+			       GNUNET_SCHEDULER_TaskCallback cont,
+			       void *cont_cls);
 
 
 /**
@@ -808,10 +822,48 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
+ * Type of the closure argument to pass to
+ * #GNUNET_TRANSPORT_TESTING_simple_send() and
+ * #GNUNET_TRANSPORT_TESTING_large_send().
+ */
+struct GNUNET_TRANSPORT_TESTING_SendClosure
+{
+  /**
+   * Context for the transmission.
+   */
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
+
+  /**
+   * Function that returns the desired message size. Overrides
+   * the message size, can be NULL in which case the message
+   * size is the default.
+   */
+  size_t (*get_size_cb)(unsigned int n);
+  
+  /**
+   * Number of messages to be transmitted in a loop.
+   * Use zero for "forever" (until external shutdown).
+   */
+  unsigned int num_messages;
+  
+  /**
+   * Function to call after all transmissions, can be NULL.
+   */
+  GNUNET_SCHEDULER_TaskCallback cont;
+
+  /**
+   * Closure for @e cont.
+   */
+  void *cont_cls;
+  
+};
+
+
+/**
  * Task that sends a minimalistic test message from the 
  * first peer to the second peer.
  *
- * @param cls the `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
+ * @param cls the `struct GNUNET_TRANSPORT_TESTING_SendClosure`
  *        which should contain at least two peers, the first two
  *        of which should be currently connected
  */
@@ -829,7 +881,7 @@ GNUNET_TRANSPORT_TESTING_simple_send (void *cls);
  * Task that sends a large test message from the 
  * first peer to the second peer.
  *
- * @param cls the `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
+ * @param cls the `struct GNUNET_TRANSPORT_TESTING_SendClosure`
  *        which should contain at least two peers, the first two
  *        of which should be currently connected
  */

@@ -1061,8 +1061,10 @@ client_send_cb (void *stream,
          "Session %p/request %p: nothing to send, suspending\n",
          s,
          s->put.easyhandle);
-    s->put_disconnect_task = GNUNET_SCHEDULER_add_delayed (PUT_DISCONNECT_TIMEOUT,
-        &client_put_disconnect, s);
+    s->put_disconnect_task
+      = GNUNET_SCHEDULER_add_delayed (PUT_DISCONNECT_TIMEOUT,
+				      &client_put_disconnect,
+				      s);
     s->put.state = H_PAUSED;
     return CURL_READFUNC_PAUSE;
   }
@@ -1071,7 +1073,9 @@ client_send_cb (void *stream,
   /* calculate how much fits in buffer */
   len = GNUNET_MIN (msg->size - msg->pos,
                     size * nmemb);
-  GNUNET_memcpy (stream, &msg->buf[msg->pos], len);
+  GNUNET_memcpy (stream,
+		 &msg->buf[msg->pos],
+		 len);
   msg->pos += len;
   if (msg->pos == msg->size)
   {
