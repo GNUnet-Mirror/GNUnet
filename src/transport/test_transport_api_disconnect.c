@@ -34,29 +34,10 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-#define MTYPE 12345
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
-
 static int shutdown_;
-
-
-static void
-custom_shutdown (void *cls)
-{
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-}
 
 
 static void
@@ -69,12 +50,7 @@ notify_disconnect (void *cls,
   GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
                                            me,
                                            other);
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-  if (shutdown_ == GNUNET_YES)
+  if (GNUNET_YES == shutdown_)
   {
     ccc->global_ret = GNUNET_OK;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -115,8 +91,8 @@ notify_receive (void *cls,
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
-  if ((MTYPE == ntohs (message->type)) &&
-      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->type)) &&
+      (sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs (message->size)))
   {
     GNUNET_SCHEDULER_add_now (&stop_peer,
                               NULL);
@@ -125,86 +101,26 @@ notify_receive (void *cls,
 }
 
 
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
-  struct GNUNET_MessageHeader *hdr;
-
-  th = NULL;
-
-  if (buf == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Transmission error occurred in transmit_ready\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return 0;
-  }
-
-  GNUNET_assert (size >= 256);
-
-  if (NULL != buf)
-  {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-  {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&ccc->p[1]->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-                ccc->p[1]->no,
-                ps,
-                ntohs (hdr->type),
-                ntohs (hdr->size),
-                p->no,
-                GNUNET_i2s (&p->id));
-    GNUNET_free (ps);
-  }
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
-static void
-sendtask (void *cls)
-{
-  ccc->global_ret = GNUNET_SYSERR;
-  {
-    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
-                ccc->p[1]->no,
-                GNUNET_i2s (&ccc->p[1]->id),
-                ccc->p[0]->no,
-                receiver_s);
-    GNUNET_free (receiver_s);
-  }
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id, 256,
-                                               TIMEOUT_TRANSMIT,
-                                               &notify_ready,
-                                               ccc->p[0]);
-}
-
-
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
+  struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = 1
+  };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
-    .connect_continuation = &sendtask,
+    .connect_continuation = &GNUNET_TRANSPORT_TESTING_simple_send,
+    .connect_continuation_cls = &sc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
     .nd = &notify_disconnect,
-    .shutdown_task = &custom_shutdown,
-    .timeout = TIMEOUT
+    .timeout = TIMEOUT,
+    .global_ret = GNUNET_SYSERR
   };
+  
   ccc = &my_ccc;
-
+  sc.ccc = ccc;
   if (GNUNET_OK !=
       GNUNET_TRANSPORT_TESTING_main (2,
                                      &GNUNET_TRANSPORT_TESTING_connect_check,
