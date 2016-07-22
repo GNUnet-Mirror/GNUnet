@@ -48,40 +48,16 @@
 #include "transport-testing.h"
 
 
-GNUNET_NETWORK_STRUCT_BEGIN
-struct TestMessage
-{
-  struct GNUNET_MessageHeader header;
-  uint32_t num GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
-
-/**
- * Message type for test messages
- */
-#define MTYPE 12345
-
-/**
- * Message size for test messages
- */
-#define MSIZE 2048
-
 /**
  * Testcase timeout
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 static struct GNUNET_SCHEDULER_Task *measure_task;
 
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 /**
  * Statistics we track per peer.
@@ -243,11 +219,6 @@ custom_shutdown (void *cls)
       stats[i].stat = NULL;
     }
   }
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
 
   result = 0;
   FPRINTF (stderr, "\n");
@@ -293,14 +264,16 @@ custom_shutdown (void *cls)
   if ( ((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
        (bytes_sent_after_switch == 0) )
   {
-    FPRINTF (stderr, "No data sent after switching!\n");
+    FPRINTF (stderr,
+	     "No data sent after switching!\n");
     GNUNET_break (0);
     result++;
   }
   if ( ((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
        (bytes_recv_after_switch == 0) )
   {
-    FPRINTF (stderr, "No data received after switching!\n");
+    FPRINTF (stderr,
+	     "No data received after switching!\n");
     GNUNET_break (0);
     result++;
   }
@@ -315,10 +288,10 @@ notify_receive (void *cls,
                 const struct GNUNET_PeerIdentity *sender,
                 const struct GNUNET_MessageHeader *message)
 {
-  const struct TestMessage *hdr;
+  const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr;
 
-  hdr = (const struct TestMessage *) message;
-  if (MTYPE != ntohs (message->type))
+  hdr = (const struct GNUNET_TRANSPORT_TESTING_TestMessage *) message;
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type))
     return;
 
   {
@@ -338,7 +311,8 @@ notify_receive (void *cls,
         (stats[1].switch_attempts == stats[1].switch_fail + stats[1].switch_success) )
   {
     bytes_recv_after_switch += ntohs(hdr->header.size);
-    if ((bytes_sent_after_switch > 0) && (bytes_recv_after_switch > 0))
+    if ( (bytes_sent_after_switch > 0) &&
+	 (bytes_recv_after_switch > 0) )
     {
       /* A peer switched addresses and sent and received data after the
        * switch operations */
@@ -348,75 +322,26 @@ notify_receive (void *cls,
 }
 
 
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
+static void
+notify_send (void *cls)
 {
-  static uint32_t counter;
-  char *cbuf = buf;
-  struct TestMessage hdr;
+  static uint32_t cnt;
 
-  th = NULL;
-  if (buf == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-               "Timeout occurred while waiting for transmit_ready for message\n");
-    ccc->global_ret = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_shutdown ();
-    return 0;
-  }
-
-  GNUNET_assert(size >= MSIZE);
-  GNUNET_assert(buf != NULL);
-  cbuf = buf;
-
-  hdr.header.size = htons (MSIZE);
-  hdr.header.type = htons (MTYPE);
-  hdr.num = htonl (counter++);
-  GNUNET_memcpy (&cbuf[0], &hdr, sizeof(struct TestMessage));
-  memset (&cbuf[sizeof(struct TestMessage)], '0', MSIZE - sizeof(struct TestMessage));
-
-  {
-    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Sending message %u of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
-                (unsigned int) (counter - 1),
-                MSIZE,
-                ccc->p[1]->no,
-                GNUNET_i2s (&ccc->p[1]->id),
-                ccc->p[0]->no,
-                receiver_s);
-    GNUNET_free(receiver_s);
-  }
-
-  if (th == NULL)
-    th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                                 &ccc->p[0]->id,
-                                                 MSIZE,
-                                                 TIMEOUT_TRANSMIT,
-                                                 &notify_ready,
-                                                 NULL);
-
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
+						ccc->p[0],
+						GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+						GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
+						++cnt,
+						&notify_send,
+						NULL));
   if ( ( (stats[0].switch_attempts >= 1) ||
          (stats[1].switch_attempts >= 1) ) &&
        (stats[0].switch_attempts == stats[0].switch_fail + stats[0].switch_success) &&
        (stats[1].switch_attempts == stats[1].switch_fail + stats[1].switch_success) )
   {
-    bytes_sent_after_switch += MSIZE;
-  }
-  return MSIZE;
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
+    bytes_sent_after_switch
+      += GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE;
   }
 }
 
@@ -472,11 +397,14 @@ connected_cb (void *cls)
                                                &progress_indicator,
                                                NULL);
   /* Peers are connected, start transmit test messages */
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id, MSIZE,
-                                               TIMEOUT_TRANSMIT,
-                                               &notify_ready, NULL);
-
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
+						ccc->p[0],
+						GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+						GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
+						0,
+						&notify_send,
+						NULL));
 }
 
 
@@ -489,7 +417,6 @@ main (int argc,
     .config_file = "test_transport_api.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-    .nd = &notify_disconnect,
     .shutdown_task = &custom_shutdown,
     .timeout = TIMEOUT
   };
