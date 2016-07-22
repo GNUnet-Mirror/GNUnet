@@ -117,42 +117,9 @@ notify_receive (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unexpectedly even received the message despite blacklist\n");
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{
-  struct GNUNET_MessageHeader *hdr;
-
-  th = NULL;
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return 0;
-  }
-  GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  hdr = buf;
-  hdr->size = htons (TEST_MESSAGE_SIZE);
-  hdr->type = htons (TEST_MESSAGE_TYPE);
-  return TEST_MESSAGE_SIZE;
-}
-
-
-static void
-sendtask (void *cls)
-{
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id,
-                                               TEST_MESSAGE_SIZE,
-                                               TIMEOUT,
-                                               &notify_ready,
-                                               ccc->p[0]);
+  connected = GNUNET_YES;
+  GNUNET_SCHEDULER_cancel (shutdown_task);
+  end (NULL);
 }
 
 
@@ -169,22 +136,6 @@ notify_connect (void *cls,
   connected = GNUNET_YES; /* this test now failed */
   GNUNET_SCHEDULER_cancel (shutdown_task);
   end (NULL);
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
 }
 
 
@@ -244,13 +195,17 @@ int
 main (int argc,
       char *argv[])
 {
+  struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = 1
+  };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .pre_connect_task = &start_blacklist,
-    .connect_continuation = &sendtask,
+    .connect_continuation = &GNUNET_TRANSPORT_TESTING_simple_send,
+    .connect_continuation_cls = &sc,
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &notify_connect,
-    .nd = &notify_disconnect,
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
     .shutdown_task = &custom_shutdown,
     .timeout = TIMEOUT,
     .bi_directional = GNUNET_YES
