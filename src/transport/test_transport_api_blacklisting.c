@@ -30,13 +30,6 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define TEST_MESSAGE_SIZE 2600
-
-#define TEST_MESSAGE_TYPE 12345
-
-
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
-
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 static int connected;
@@ -48,8 +41,6 @@ static int blacklist_request_p2;
 static struct GNUNET_TRANSPORT_Blacklist *blacklist_p1;
 
 static struct GNUNET_TRANSPORT_Blacklist *blacklist_p2;
-
-static struct GNUNET_SCHEDULER_Task *send_task;
 
 static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
@@ -81,20 +72,10 @@ end (void *cls)
 static void
 custom_shutdown (void *cls)
 {
-  if (NULL != send_task)
-  {
-    GNUNET_SCHEDULER_cancel (send_task);
-    send_task = NULL;
-  }
   if (NULL != shutdown_task)
   {
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = NULL;
-  }
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
   }
   if (NULL != blacklist_p1)
   {
