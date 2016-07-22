@@ -255,34 +255,9 @@ mysql_prepare (struct GNUNET_MYSQL_Context *mc,
   if(NULL == *stmt)
     LOG(GNUNET_ERROR_TYPE_ERROR,
    _("Error preparing SQL query: %s\n  %s\n"),
-   mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (stmt)), sql);
+   mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (*stmt)), sql);
 
   return 0;
-}
-
-
-/**
- * @brief Prepare a SQL statement
- *
- * @param dbh handle to the database
- * @param sql SQL statement, UTF-8 encoded
- * @return 0 on success
- */
-static int
-mysql_exec (struct GNUNET_MYSQL_Context *mc,
-            struct GNUNET_MYSQL_StatementHandle *sh,
-            struct GNUNET_MY_QueryParam *qp)
-{
-  int result;
-
-  result = GNUNET_MY_exec_prepared (mc, sh, qp);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-       "Executed `GNUNET_MY_exec_prepared`' / %d\n", result);
-  if (GNUNET_OK != result)
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-   _("Error executing SQL query: %s\n"),
-   mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (sh)));
-  return result;
 }
 
 
