@@ -809,7 +809,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_TRANSPORT_TESTING_TestMessage
 {
   /**
-   * Type is #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
+   * Type is (usually) #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
    */
   struct GNUNET_MessageHeader header;
 
