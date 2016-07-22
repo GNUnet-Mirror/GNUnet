@@ -245,19 +245,19 @@ mysql_trace (void *cls, const char *sql)
 static int
 mysql_prepare (struct GNUNET_MYSQL_Context *mc,
               const char *sql,
-              struct GNUNET_MYSQL_StatementHandle *stmt)
+              struct GNUNET_MYSQL_StatementHandle **stmt)
 {
-  stmt = GNUNET_MYSQL_statement_prepare (mc,
+  *stmt = GNUNET_MYSQL_statement_prepare (mc,
                                           sql);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
        "Prepared `%s' / %p\n", sql, stmt);
-  if(NULL == stmt)
+  if(NULL == *stmt)
     LOG(GNUNET_ERROR_TYPE_ERROR,
    _("Error preparing SQL query: %s\n  %s\n"),
    mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (stmt)), sql);
 
-  return 1;
+  return 0;
 }
 
 
@@ -339,7 +339,7 @@ database_setup (struct Plugin *plugin)
                               " max_state_message_id INT,\n"
                               " state_hash_message_id INT,\n"
                               " PRIMARY KEY(id),\n"
-                              " UNIQUE KEY(pub_key(10))\n"
+                              " UNIQUE KEY(pub_key(5))\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -347,7 +347,7 @@ database_setup (struct Plugin *plugin)
                               " id INT,\n"
                               " pub_key BLOB,\n"
                               " PRIMARY KEY(id),\n"
-                              " UNIQUE KEY(pub_key(10))\n"
+                              " UNIQUE KEY(pub_key(5))\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -389,7 +389,7 @@ database_setup (struct Plugin *plugin)
                               "  name TEXT NOT NULL,\n"
                               "  value_current BLOB,\n"
                               "  value_signed BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name(10))\n"
+                              "  PRIMARY KEY (channel_id, name(5))\n"
                               ");");
 
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -397,29 +397,29 @@ database_setup (struct Plugin *plugin)
                               "  channel_id INT NOT NULL REFERENCES channels(id),\n"
                               "  name TEXT NOT NULL,\n"
                               "  value BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name(10))\n"
+                              "  PRIMARY KEY (channel_id, name(5))\n"
                               ");");
 
   /* Prepare statements */
   mysql_prepare (plugin->mc,
                 "BEGIN",
-                plugin->transaction_begin);
+                &plugin->transaction_begin);
 
   mysql_prepare (plugin->mc,
                 "COMMIT",
-                plugin->transaction_commit);
+                &plugin->transaction_commit);
 
   mysql_prepare (plugin->mc,
                 "ROLLBACK;",
-                plugin->transaction_rollback);
+                &plugin->transaction_rollback);
 
   mysql_prepare (plugin->mc,
-                "INSERT OR IGNORE INTO channels (pub_key) VALUES (?);",
-                plugin->insert_channel_key);
+                "INSERT IGNORE INTO channels (pub_key) VALUES (?);",
+                &plugin->insert_channel_key);
 
   mysql_prepare (plugin->mc,
-                "INSERT OR IGNORE INTO slaves (pub_key) VALUES (?);",
-                plugin->insert_slave_key);
+                "INSERT IGNORE INTO slaves (pub_key) VALUES (?);",
+                &plugin->insert_slave_key);
 
   mysql_prepare (plugin->mc,
                 "INSERT INTO membership\n"
@@ -428,7 +428,7 @@ database_setup (struct Plugin *plugin)
                 "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
                 "        (SELECT id FROM slaves WHERE pub_key = ?),\n"
                 "        ?, ?, ?, ?);",
-                plugin->insert_membership);
+                &plugin->insert_membership);
 
   mysql_prepare (plugin->mc,
                 "SELECT did_join FROM membership\n"
@@ -436,23 +436,23 @@ database_setup (struct Plugin *plugin)
                "      AND slave_id = (SELECT id FROM slaves WHERE pub_key = ?)\n"
                "      AND effective_since <= ? AND did_join = 1\n"
                "ORDER BY announced_at DESC LIMIT 1;",
-               plugin->select_membership);
+               &plugin->select_membership);
 
   mysql_prepare (plugin->mc,
-                "INSERT OR IGNORE INTO messages\n"
+                "INSERT IGNORE INTO messages\n"
                " (channel_id, hop_counter, signature, purpose,\n"
                "  fragment_id, fragment_offset, message_id,\n"
                "  group_generation, multicast_flags, psycstore_flags, data)\n"
                "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
                "        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
-                plugin->insert_fragment);
+                &plugin->insert_fragment);
 
   mysql_prepare (plugin->mc,
                 "UPDATE messages\n"
                 "SET psycstore_flags = psycstore_flags | ?\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND message_id = ? AND fragment_offset = 0;",
-                plugin->update_message_flags);
+                &plugin->update_message_flags);
 
   mysql_prepare (plugin->mc,
                   "SELECT hop_counter, signature, purpose, fragment_id,\n"
@@ -461,7 +461,7 @@ database_setup (struct Plugin *plugin)
                   "FROM messages\n"
                   "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                   "      AND ? <= fragment_id AND fragment_id <= ?;",
-               plugin->select_fragments);
+                &plugin->select_fragments);
 
   /** @todo select_messages: add method_prefix filter */
   mysql_prepare (plugin->mc,
@@ -472,7 +472,7 @@ database_setup (struct Plugin *plugin)
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND ? <= message_id AND message_id <= ?"
                 "LIMIT ?;",
-                plugin->select_messages);
+                &plugin->select_messages);
 
   mysql_prepare (plugin->mc,
                 "SELECT * FROM\n"
@@ -484,7 +484,7 @@ database_setup (struct Plugin *plugin)
                 " ORDER BY fragment_id DESC\n"
                 " LIMIT ?)\n"
                 "ORDER BY fragment_id;",
-                plugin->select_latest_fragments);
+                &plugin->select_latest_fragments);
 
   /** @todo select_latest_messages: add method_prefix filter */
   mysql_prepare (plugin->mc,
@@ -501,7 +501,7 @@ database_setup (struct Plugin *plugin)
                 "       ORDER BY message_id\n"
                 "       DESC LIMIT ?)\n"
                 "ORDER BY fragment_id;",
-               plugin->select_latest_messages);
+                &plugin->select_latest_messages);
 
   mysql_prepare (plugin->mc,
                 "SELECT hop_counter, signature, purpose, fragment_id,\n"
@@ -510,35 +510,35 @@ database_setup (struct Plugin *plugin)
                 "FROM messages\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND message_id = ? AND fragment_offset = ?;",
-                plugin->select_message_fragment);
+                &plugin->select_message_fragment);
 
   mysql_prepare (plugin->mc,
                 "SELECT fragment_id, message_id, group_generation\n"
-               "FROM messages\n"
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "ORDER BY fragment_id DESC LIMIT 1;",
-               plugin->select_counters_message);
+                "FROM messages\n"
+                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+                "ORDER BY fragment_id DESC LIMIT 1;",
+                &plugin->select_counters_message);
 
   mysql_prepare (plugin->mc,
                 "SELECT max_state_message_id\n"
                 "FROM channels\n"
                 "WHERE pub_key = ? AND max_state_message_id IS NOT NULL;",
-               plugin->select_counters_state);
+                &plugin->select_counters_state);
 
   mysql_prepare (plugin->mc,
                 "UPDATE channels\n"
                 "SET max_state_message_id = ?\n"
                 "WHERE pub_key = ?;",
-               plugin->update_max_state_message_id);
+                &plugin->update_max_state_message_id);
 
   mysql_prepare (plugin->mc,
                 "UPDATE channels\n"
                 "SET state_hash_message_id = ?\n"
                 "WHERE pub_key = ?;",
-                plugin->update_state_hash_message_id);
+                &plugin->update_state_hash_message_id);
 
   mysql_prepare (plugin->mc,
-                "INSERT OR REPLACE INTO state\n"
+                "REPLACE INTO state\n"
                 "  (channel_id, name, value_current, value_signed)\n"
                 "SELECT new.channel_id, new.name,\n"
                 "       new.value_current, old.value_signed\n"
@@ -548,30 +548,30 @@ database_setup (struct Plugin *plugin)
                 "LEFT JOIN (SELECT channel_id, name, value_signed\n"
                 "           FROM state) AS old\n"
                 "ON new.channel_id = old.channel_id AND new.name = old.name;",
-                plugin->insert_state_current);
+                &plugin->insert_state_current);
 
   mysql_prepare (plugin->mc,
                 "DELETE FROM state\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND (value_current IS NULL OR length(value_current) = 0)\n"
                 "      AND (value_signed IS NULL OR length(value_signed) = 0);",
-               plugin->delete_state_empty);
+                &plugin->delete_state_empty);
 
   mysql_prepare (plugin->mc,
                 "UPDATE state\n"
                 "SET value_signed = value_current\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                plugin->update_state_signed);
+                &plugin->update_state_signed);
 
   mysql_prepare (plugin->mc,
                 "DELETE FROM state\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                plugin->delete_state);
+                &plugin->delete_state);
 
   mysql_prepare (plugin->mc,
                 "INSERT INTO state_sync (channel_id, name, value)\n"
                 "VALUES ((SELECT id FROM channels WHERE pub_key = ?), ?, ?);",
-                plugin->insert_state_sync);
+                &plugin->insert_state_sync);
 
   mysql_prepare (plugin->mc,
                 "INSERT INTO state\n"
@@ -579,33 +579,33 @@ database_setup (struct Plugin *plugin)
                 "SELECT channel_id, name, value, value\n"
                 "FROM state_sync\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                plugin->insert_state_from_sync);
+                &plugin->insert_state_from_sync);
 
   mysql_prepare (plugin->mc,
                 "DELETE FROM state_sync\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                plugin->delete_state_sync);
+                &plugin->delete_state_sync);
 
   mysql_prepare (plugin->mc,
                 "SELECT value_current\n"
                 "FROM state\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND name = ?;",
-                plugin->select_state_one);
+                &plugin->select_state_one);
 
   mysql_prepare (plugin->mc,
                 "SELECT name, value_current\n"
                 "FROM state\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                 "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
-                plugin->select_state_prefix);
+                &plugin->select_state_prefix);
 
   mysql_prepare (plugin->mc,
                 "SELECT name, value_signed\n"
                 "FROM state\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)"
                 "      AND value_signed IS NOT NULL;",
-                plugin->select_state_signed);
+                &plugin->select_state_signed);
 
   return GNUNET_OK;
 }
@@ -778,7 +778,7 @@ channel_key_store (struct Plugin *plugin,
                                             params))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "mysql extract_result", stmt);
+                "mysql exec_prepared", stmt);
     return GNUNET_SYSERR;
   }
 
@@ -809,7 +809,7 @@ slave_key_store (struct Plugin *plugin,
                                             params))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "mysql extract_result", stmt);
+                "mysql exec_prepared", stmt);
     return GNUNET_SYSERR;
   }
 
@@ -876,7 +876,7 @@ mysql_membership_store (void *cls,
                                             params))
   {
     LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "mysql extract_result", stmt);
+                "mysql exec_prepared", stmt);
     return GNUNET_SYSERR;
   }
 
@@ -911,6 +911,11 @@ membership_test (void *cls,
 
   int ret = GNUNET_SYSERR;
 
+  if (NULL == plugin->select_membership)
+  {
+    fprintf(stderr, "Erreur plugin->select_membership\n");
+  }
+
   struct GNUNET_MY_QueryParam params_select[] = {
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_auto_from_type (slave_key),
@@ -932,21 +937,18 @@ membership_test (void *cls,
     GNUNET_MY_result_spec_end
   };
 
-  if (GNUNET_OK != GNUNET_MY_extract_result (stmt,
+  switch(GNUNET_MY_extract_result (stmt,
                                 results_select))
   {
-    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    case GNUNET_NO:
+      ret = GNUNET_NO;
+      break;
+    case GNUNET_YES:
+      ret = GNUNET_YES;
+    default:
+      LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql extract_result", stmt);
-    return GNUNET_SYSERR;
-  }
-
-  if(0 != did_join)
-  {
-    ret = GNUNET_YES;
-  }
-  else
-  {
-    ret = GNUNET_NO;
+      return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (GNUNET_MYSQL_statement_get_stmt (stmt)))
