@@ -96,6 +96,8 @@ find_cr (void *cls,
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest **cr = cls;
 
+  if (GNUNET_NO == cx->connected)
+    return;
   *cr = cx;
 }
 
@@ -144,8 +146,7 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
 						      sender,
 						      &find_cr,
 						      &cr);
-  if ( (NULL == cr) ||
-       (GNUNET_YES != cr->connected) )
+  if (NULL == cr)
   {
     GNUNET_break (0);
     return GNUNET_NO;

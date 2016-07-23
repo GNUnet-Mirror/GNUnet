@@ -145,9 +145,8 @@ struct GNUNET_TRANSPORT_TESTING_InternalPeerContext
 
 
 /**
- * Function called when we connected two peers.
- * Once we have gotten to the clique, launch
- * test-specific logic.
+ * Function called when we connected two peers.  Once we have gotten
+ * to the clique, launch test-specific logic.
  *
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *`
  */
@@ -511,7 +510,7 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
   for (unsigned int i=0;i<num_peers;i++)
     GNUNET_free (cfg_names[i]);
   GNUNET_free (test_source);
-  GNUNET_free (test_plugin);
+  GNUNET_free_non_null (test_plugin);
   GNUNET_free (test_name);
   return ret;
 }

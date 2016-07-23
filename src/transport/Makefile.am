@@ -431,7 +431,6 @@ libgnunet_plugin_transport_https_server_la_CFLAGS = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_transport_api_restart_2peers \
  test_transport_address_switch_tcp \
  test_transport_address_switch_udp \
  test_transport_testing_startstop \
@@ -450,6 +449,7 @@ check_PROGRAMS = \
  test_transport_api_disconnect_tcp \
  test_transport_api_tcp \
  test_transport_api_restart_1peer \
+ test_transport_api_restart_2peers \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
@@ -508,6 +508,10 @@ endif
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
+ test_transport_address_switch_tcp \
+ test_transport_address_switch_udp \
+ $(HTTP_SWITCH) \
+ $(HTTPS_SWITCH) \
  test_transport_testing_startstop \
  test_transport_testing_restart \
  test_plugin_tcp \
@@ -563,11 +567,7 @@ TESTS = \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_TIMEOUT_TEST) \
- $(BT_TIMEOUT_TEST) \
- test_transport_address_switch_tcp \
- test_transport_address_switch_udp \
- $(HTTP_SWITCH) \
- $(HTTPS_SWITCH)
+ $(BT_TIMEOUT_TEST) 
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats
@@ -762,7 +762,7 @@ test_transport_api_tcp_LDADD = \
  libgnunettransporttesting.la
 
 test_transport_api_restart_1peer_SOURCES = \
- test_transport_api_restart_1peer.c
+ test_transport_api_restart_reconnect.c
 test_transport_api_restart_1peer_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
@@ -772,7 +772,7 @@ test_transport_api_restart_1peer_LDADD = \
  libgnunettransporttesting.la
 
 test_transport_api_restart_2peers_SOURCES = \
- test_transport_api_restart_2peers.c
+ test_transport_api_restart_reconnect.c
 test_transport_api_restart_2peers_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \

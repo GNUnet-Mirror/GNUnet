@@ -769,11 +769,6 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
 
 /* ***************** Convenience functions for sending ********* */
 
-// TODO:
-// - need to have continuation after send is done!
-// - need easy way to specify continuation in case
-//   of the scheduler tasks
-
 /**
  * Send a test message of type @a mtype and size @a msize from
  * peer @a sender to peer @a receiver.  The peers should be

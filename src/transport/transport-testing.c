@@ -77,6 +77,10 @@ static void
 set_p1c (void *cls,   
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
+  int *found = cls;
+
+  if (NULL != found)
+    *found = GNUNET_YES;
   cx->p1_c = GNUNET_YES;
 }
 
@@ -85,6 +89,10 @@ static void
 set_p2c (void *cls,   
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
+  int *found = cls;
+
+  if (NULL != found)
+    *found = GNUNET_YES;
   cx->p2_c = GNUNET_YES;
 }
 
@@ -93,6 +101,10 @@ static void
 clear_p1c (void *cls,   
 	   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
+  int *found = cls;
+
+  if (NULL != found)
+    *found = GNUNET_YES;
   cx->p1_c = GNUNET_NO;
 }
 
@@ -101,6 +113,10 @@ static void
 clear_p2c (void *cls,   
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
+  int *found = cls;
+
+  if (NULL != found)
+    *found = GNUNET_YES;
   cx->p2_c = GNUNET_NO;
 }
 
@@ -115,6 +131,7 @@ notify_connect (void *cls,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *ccn;
+  int found;
 
   p2 = find_peer_context (p->tth,
                           peer);
@@ -138,14 +155,36 @@ notify_connect (void *cls,
        GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
   /* update flags in connecting contexts */
+  found = GNUNET_NO;
   GNUNET_TRANSPORT_TESTING_find_connecting_context (p,
 						    p2,
 						    &set_p1c,
-						    NULL);
+						    &found);
+  if (GNUNET_NO == found)
+  {
+    cc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequest);
+    cc->p1 = p;
+    cc->p2 = p2;
+    cc->p1_c = GNUNET_YES;
+    GNUNET_CONTAINER_DLL_insert (tth->cc_head,
+				 tth->cc_tail,
+				 cc);
+  }
+  found = GNUNET_NO;
   GNUNET_TRANSPORT_TESTING_find_connecting_context (p2,
 						    p,
 						    &set_p2c,
-						    NULL);
+						    &found);
+  if (GNUNET_NO == found)
+  {
+    cc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequest);
+    cc->p1 = p2;
+    cc->p2 = p;
+    cc->p1_c = GNUNET_YES;
+    GNUNET_CONTAINER_DLL_insert (tth->cc_head,
+				 tth->cc_tail,
+				 cc);
+  }
   /* update set connected flag for all requests */
   for (cc = tth->cc_head; NULL != cc; cc = cc->next)
   {
@@ -703,7 +742,19 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerCont
 {
   struct GNUNET_TRANSPORT_TESTING_Handle *tth = p1->tth;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *ccn;
 
+  ccn = NULL;
+  for (cc = tth->cc_head; NULL != cc; cc = cc->next)
+  {
+    if ( (cc->p1 == p1) &&
+	 (cc->p2 == p2) )
+    {
+      ccn = cc;
+      break;
+    }
+  }
+	  
   cc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequest);
   cc->p1 = p1;
   cc->p2 = p2;
@@ -712,6 +763,12 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerCont
     cc->cb_cls = cls;
   else
     cc->cb_cls = cc;
+  if (NULL != ccn)
+  {
+    cc->p1_c = ccn->p1_c;
+    cc->p2_c = ccn->p2_c;
+    cc->connected = ccn->connected;
+  }
   GNUNET_CONTAINER_DLL_insert (tth->cc_head,
                                tth->cc_tail,
                                cc);
