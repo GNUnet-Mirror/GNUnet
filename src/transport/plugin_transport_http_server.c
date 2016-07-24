@@ -774,8 +774,8 @@ http_server_plugin_send (void *cls,
  */
 static int
 destroy_session_shutdown_cb (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    void *value)
+			     const struct GNUNET_PeerIdentity *peer,
+			     void *value)
 {
   struct GNUNET_ATS_Session *s = value;
   struct ServerRequest *sc_send;
@@ -1851,9 +1851,12 @@ server_access_cb (void *cls,
       else
       {
         /* delay processing */
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-            "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %s\n",
-            s, sc, GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %s\n",
+		    s,
+		    sc,
+		    GNUNET_STRINGS_relative_time_to_string (delay,
+							    GNUNET_YES));
         GNUNET_assert(s->server_recv->mhd_conn == mhd_connection);
         MHD_suspend_connection (s->server_recv->mhd_conn);
         if (NULL == s->recv_wakeup_task)
@@ -3170,16 +3173,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   /* Stop to report addresses to transport service */
   server_stop_report_addresses (plugin);
-  if (NULL != plugin->server_v4)
-  {
-    MHD_stop_daemon (plugin->server_v4);
-    plugin->server_v4 = NULL;
-  }
-  if (NULL != plugin->server_v6)
-  {
-    MHD_stop_daemon (plugin->server_v6);
-    plugin->server_v6 = NULL;
-  }
   if (NULL != plugin->server_v4_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
@@ -3201,6 +3194,16 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                                          plugin);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
   plugin->sessions = NULL;
+  if (NULL != plugin->server_v4)
+  {
+    MHD_stop_daemon (plugin->server_v4);
+    plugin->server_v4 = NULL;
+  }
+  if (NULL != plugin->server_v6)
+  {
+    MHD_stop_daemon (plugin->server_v6);
+    plugin->server_v6 = NULL;
+  }
   /* Clean up */
   GNUNET_free_non_null (plugin->external_hostname);
   GNUNET_free_non_null (plugin->ext_addr);
