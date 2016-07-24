@@ -351,7 +351,8 @@ GNUNET_ATS_connectivity_suggest_cancel (struct GNUNET_ATS_ConnectivitySuggestHan
     GNUNET_free (sh);
     return;
   }
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL);
+  ev = GNUNET_MQ_msg (m,
+		      GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL);
   m->strength = htonl (0);
   m->peer = sh->id;
   GNUNET_MQ_send (ch->mq, ev);
