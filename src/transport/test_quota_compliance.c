@@ -32,19 +32,12 @@
 /**
  * Testcase timeout
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 480)
 
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
-
-#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 80)
 
 
 static struct GNUNET_SCHEDULER_Task *measure_task;
-
-struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 static char *gen_cfgs[2];
 
@@ -60,24 +53,9 @@ static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (1024 * 2)
+#define TOTAL_MSGS (1024 * 32)
 
-#define MTYPE 12345
-
-GNUNET_NETWORK_STRUCT_BEGIN
-struct TestMessage
-{
-  struct GNUNET_MessageHeader header;
-
-  uint32_t num GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
-
-static int msg_scheduled;
-
-static int msg_sent;
-
-static unsigned long long total_bytes_sent;
+static unsigned long long total_bytes_recv;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -89,24 +67,24 @@ report ()
   unsigned long long datarate;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  datarate = (total_bytes_sent * 1000 * 1000) / delta;
-
+  datarate = (total_bytes_recv * 1000 * 1000) / delta;
+  
   FPRINTF (stderr,
            "Throughput was %llu b/s\n",
            datarate);
-
-  if (datarate > quota_in[1])
+  ccc->global_ret = GNUNET_OK;
+  if (datarate > 1.1 * quota_in[1])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Datarate of %llu b/s higher than allowed inbound quota of %llu b/s\n",
+                "Datarate of %llu b/s significantly higher than allowed inbound quota of %llu b/s\n",
                 datarate,
                 quota_in[1]);
     ccc->global_ret = GNUNET_SYSERR;
   }
-  if (datarate > quota_out[0])
+  if (datarate > 1.1 * quota_out[0])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Datarate of %llu b/s higher than allowed outbound quota of %llu b/s\n",
+                "Datarate of %llu b/s significantly higher than allowed outbound quota of %llu b/s\n",
                 datarate,
                 quota_out[0]);
     ccc->global_ret = GNUNET_SYSERR;
@@ -130,22 +108,18 @@ custom_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (measure_task);
     measure_task = NULL;
   }
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
   report ();
 }
 
 
-static unsigned int
+static size_t
 get_size (unsigned int iter)
 {
-  unsigned int ret;
+  size_t ret;
 
-  ret = (iter * iter * iter);
-  return sizeof (struct TestMessage) + (ret % 60000);
+  ret = (iter * iter * iter) % 60000;
+  ret += sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage);
+  return ret;
 }
 
 
@@ -155,11 +129,12 @@ notify_receive (void *cls,
                 const struct GNUNET_PeerIdentity *sender,
                 const struct GNUNET_MessageHeader *message)
 {
-  const struct TestMessage *hdr;
+  const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr;
 
-  hdr = (const struct TestMessage *) message;
-  if (MTYPE != ntohs (message->type))
+  hdr = (const struct GNUNET_TRANSPORT_TESTING_TestMessage *) message;
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type))
     return;
+  total_bytes_recv += ntohs (message->size);
 
   {
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -173,123 +148,6 @@ notify_receive (void *cls,
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
-}
-
-
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{
-  static int n;
-  char *cbuf = buf;
-  struct TestMessage hdr;
-  unsigned int s;
-  unsigned int ret;
-
-  th = NULL;
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready for message %u of %u\n",
-                msg_scheduled, TOTAL_MSGS);
-    GNUNET_SCHEDULER_shutdown ();
-    ccc->global_ret = GNUNET_SYSERR;
-    return 0;
-  }
-
-  ret = 0;
-  s = get_size (n);
-  GNUNET_assert (size >= s);
-  GNUNET_assert (buf != NULL);
-  cbuf = buf;
-  do
-  {
-    hdr.header.size = htons (s);
-    hdr.header.type = htons (MTYPE);
-    hdr.num = htonl (n);
-    msg_sent = n;
-    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
-    ret += sizeof (struct TestMessage);
-    memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
-    ret += s - sizeof (struct TestMessage);
-#if VERBOSE
-    if (n % 5000 == 0)
-    {
-#endif
-      char *receiver_s = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Sending message %u of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
-                  n, s,
-                  ccc->p[1]->no,
-                  GNUNET_i2s (&ccc->p[1]->id),
-                  ccc->p[0]->no,
-                  receiver_s);
-      GNUNET_free (receiver_s);
-#if 0
-    }
-#endif
-    n++;
-    s = get_size (n);
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
-      break;                    /* sometimes pack buffer full, sometimes not */
-  }
-  while (size - ret >= s);
-  if (n < TOTAL_MSGS)
-  {
-    if (th == NULL)
-      th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                                   &ccc->p[0]->id,
-                                                   s,
-                                                   TIMEOUT_TRANSMIT,
-                                                   &notify_ready,
-                                                   NULL);
-    msg_scheduled = n;
-  }
-  if (n % 5000 == 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Returning total message block of size %u\n",
-                ret);
-  }
-  total_bytes_sent += ret;
-  if (n == TOTAL_MSGS)
-  {
-    FPRINTF (stderr, "%s",  "\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All messages sent\n");
-  }
-  return ret;
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-}
-
-
-static void
-sendtask ()
-{
-  start_time = GNUNET_TIME_absolute_get ();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (ccc->p[1]->th,
-                                               &ccc->p[0]->id,
-                                               get_size (0),
-                                               TIMEOUT_TRANSMIT,
-                                               &notify_ready,
-                                               NULL);
 }
 
 
@@ -316,11 +174,18 @@ measure (void *cls)
 static void
 start_task (void *cls)
 {
+  static struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
+    .num_messages = TOTAL_MSGS,
+    .get_size_cb = &get_size
+  };
+
+  sc.ccc = ccc;
   measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                &measure,
                                                NULL);
-  GNUNET_SCHEDULER_add_now (&sendtask,
-                            NULL);
+  start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_SCHEDULER_add_now (&GNUNET_TRANSPORT_TESTING_simple_send,
+                            &sc);
 }
 
 
@@ -386,7 +251,7 @@ check (void *cls,
     .config_file = "test_quota_compliance_data.conf",
     .rec = &notify_receive,
     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-    .nd = &notify_disconnect,
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
     .shutdown_task = &custom_shutdown,
     .timeout = TIMEOUT
   };
@@ -429,7 +294,8 @@ check (void *cls,
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   if (GNUNET_OK !=
       GNUNET_TRANSPORT_TESTING_main (2,
