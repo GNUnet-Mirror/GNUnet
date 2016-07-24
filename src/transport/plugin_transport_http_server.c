@@ -578,7 +578,9 @@ server_delete_session (struct GNUNET_ATS_Session *s)
     MHD_set_connection_option (s->server_send->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1 /* 0 = no timeout, so this is MIN */);
-    server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_YES);
+    server_reschedule (plugin,
+		       s->server_send->mhd_daemon,
+		       GNUNET_YES);
   }
 
   if (NULL != s->server_recv)
@@ -590,7 +592,9 @@ server_delete_session (struct GNUNET_ATS_Session *s)
     MHD_set_connection_option (s->server_recv->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1 /* 0 = no timeout, so this is MIN */);
-    server_reschedule (plugin, s->server_recv->mhd_daemon, GNUNET_YES);
+    server_reschedule (plugin,
+		       s->server_recv->mhd_daemon,
+		       GNUNET_YES);
   }
   notify_session_monitor (plugin,
                           s,
@@ -611,7 +615,6 @@ server_delete_session (struct GNUNET_ATS_Session *s)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p destroyed\n",
        s);
-
   GNUNET_free (s);
 }
 
@@ -784,12 +787,14 @@ destroy_session_shutdown_cb (void *cls,
   sc_send = s->server_send;
   sc_recv = s->server_recv;
   server_delete_session (s);
-
-  GNUNET_free_non_null (sc_send);
-  GNUNET_free_non_null (sc_recv);
+  if (NULL != sc_send)
+    sc_send->session = NULL;
+  if (NULL != sc_recv)
+    sc_recv->session = NULL;
 
   return GNUNET_OK;
 }
+
 
 /**
  * Terminate session.
@@ -809,6 +814,7 @@ destroy_session_cb (void *cls,
   server_delete_session (s);
   return GNUNET_OK;
 }
+
 
 /**
  * Function that can be used to force the plugin to disconnect
@@ -1648,7 +1654,9 @@ server_receive_mst_cb (void *cls,
                    "# bytes received via %s_server",
                    plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,
-                            stat_txt, ntohs (message->size), GNUNET_NO);
+                            stat_txt,
+			    ntohs (message->size),
+			    GNUNET_NO);
   GNUNET_free (stat_txt);
   s->next_receive = GNUNET_TIME_relative_to_absolute (delay);
   if (delay.rel_value_us > 0)
@@ -2752,7 +2760,8 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
                            plugin->port,
                            (unsigned int) res,
                            (const struct sockaddr **) addrs, addrlens,
-                           &server_nat_port_map_callback, NULL, plugin, NULL);
+                           &server_nat_port_map_callback, NULL,
+			   plugin, NULL);
   while (res > 0)
   {
     res--;
@@ -2806,13 +2815,18 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
   int res = GNUNET_NO;
 
   /* Probe IPv6 support */
-  desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+  desc = GNUNET_NETWORK_socket_create (PF_INET6,
+				       SOCK_STREAM,
+				       0);
   if (NULL == desc)
   {
-    if ((errno == ENOBUFS) || (errno == ENOMEM) || (errno == ENFILE) ||
-        (errno == EACCES))
+    if ( (errno == ENOBUFS) ||
+	 (errno == ENOMEM) ||
+	 (errno == ENFILE) ||
+	 (errno == EACCES) )
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			   "socket");
     }
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Disabling IPv6 since it is not supported on this system!\n"));
@@ -2820,7 +2834,8 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
   }
   else
   {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (desc));
+    GNUNET_break (GNUNET_OK ==
+		  GNUNET_NETWORK_socket_close (desc));
     desc = NULL;
     res = GNUNET_YES;
   }
@@ -2867,21 +2882,23 @@ server_notify_external_hostname (void *cls)
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Enabling SSL verification for external hostname address `%s'\n",
          plugin->external_hostname);
-  plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
-						    "https_client",
-						    ext_addr,
-						    ext_addr_len,
-						    GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->ext_addr
+    = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+				     "https_client",
+				     ext_addr,
+				     ext_addr_len,
+				     GNUNET_HELLO_ADDRESS_INFO_NONE);
   plugin->env->notify_address (plugin->env->cls,
 			       GNUNET_YES,
 			       plugin->ext_addr);
   GNUNET_free (ext_addr);
 #else
-  plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
-						    "http_client",
-						    ext_addr,
-						    ext_addr_len,
-						    GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->ext_addr
+    = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+				     "http_client",
+				     ext_addr,
+				     ext_addr_len,
+				     GNUNET_HELLO_ADDRESS_INFO_NONE);
   plugin->env->notify_address (plugin->env->cls,
 			       GNUNET_YES,
 			       plugin->ext_addr);
@@ -2958,15 +2975,20 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Using port %u\n"), plugin->port);
 
-  if ((plugin->use_ipv4 == GNUNET_YES) &&
-      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                          plugin->name, "BINDTO", &bind4_address)))
+  if ( (plugin->use_ipv4 == GNUNET_YES) &&
+       (GNUNET_YES ==
+	GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+					       plugin->name,
+					       "BINDTO",
+					       &bind4_address)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Binding %s plugin to specific IPv4 address: `%s'\n",
-         plugin->protocol, bind4_address);
+         plugin->protocol,
+	 bind4_address);
     plugin->server_addr_v4 = GNUNET_new (struct sockaddr_in);
-    if (1 != inet_pton (AF_INET, bind4_address,
+    if (1 != inet_pton (AF_INET,
+			bind4_address,
                         &plugin->server_addr_v4->sin_addr))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -2980,7 +3002,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           _("Binding to IPv4 address %s\n"),
+           "Binding to IPv4 address %s\n",
            bind4_address);
       plugin->server_addr_v4->sin_family = AF_INET;
       plugin->server_addr_v4->sin_port = htons (plugin->port);
@@ -2992,14 +3014,17 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
       (GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
                                               plugin->name,
-                                              "BINDTO6", &bind6_address)))
+                                              "BINDTO6",
+					      &bind6_address)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Binding %s plugin to specific IPv6 address: `%s'\n",
          plugin->protocol, bind6_address);
     plugin->server_addr_v6 = GNUNET_new (struct sockaddr_in6);
     if (1 !=
-        inet_pton (AF_INET6, bind6_address, &plugin->server_addr_v6->sin6_addr))
+        inet_pton (AF_INET6,
+		   bind6_address,
+		   &plugin->server_addr_v6->sin6_addr))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Specific IPv6 address `%s' in configuration file is invalid!\n"),
@@ -3012,7 +3037,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           _("Binding to IPv6 address %s\n"),
+           "Binding to IPv6 address %s\n",
            bind6_address);
       plugin->server_addr_v6->sin6_family = AF_INET6;
       plugin->server_addr_v6->sin6_port = htons (plugin->port);
@@ -3022,17 +3047,19 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
 
   plugin->verify_external_hostname = GNUNET_NO;
 #if BUILD_HTTPS
-  plugin->verify_external_hostname = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
-                                                                           plugin->name,
-                                                                           "VERIFY_EXTERNAL_HOSTNAME");
+  plugin->verify_external_hostname
+    = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+					    plugin->name,
+					    "VERIFY_EXTERNAL_HOSTNAME");
   if (GNUNET_SYSERR == plugin->verify_external_hostname)
   	plugin->verify_external_hostname = GNUNET_NO;
   if (GNUNET_YES == plugin->verify_external_hostname)
   	plugin->options |= HTTP_OPTIONS_VERIFY_CERTIFICATE;
 #endif
-  external_hostname_use_port = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
-                                                                     plugin->name,
-                                                                     "EXTERNAL_HOSTNAME_USE_PORT");
+  external_hostname_use_port
+    = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+					    plugin->name,
+					    "EXTERNAL_HOSTNAME_USE_PORT");
   if (GNUNET_SYSERR == external_hostname_use_port)
   	external_hostname_use_port = GNUNET_NO;
 
@@ -3434,12 +3461,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   }
 
   /* Compile URL regex */
-  if (regcomp(&plugin->url_regex,
-              URL_REGEX,
-              REG_EXTENDED))
+  if (regcomp (&plugin->url_regex,
+	       URL_REGEX,
+	       REG_EXTENDED))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-                     _("Unable to compile URL regex\n"));
+	 _("Unable to compile URL regex\n"));
     LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
     return NULL;
   }
