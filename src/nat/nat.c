@@ -429,7 +429,7 @@ struct GNUNET_NAT_Handle
   /**
    * STUN request task
    */
-  struct GNUNET_SCHEDULER_Task * stun_task;
+  struct GNUNET_SCHEDULER_Task *stun_task;
 
   /**
    * Head of List of STUN servers
@@ -457,15 +457,6 @@ struct GNUNET_NAT_Handle
  */
 static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
-
-
-/**
- * Call task to process STUN
- *
- * @param cls handle to NAT
- */
-static void
-process_stun (void *cls);
 
 
 /**
@@ -688,7 +679,8 @@ process_external_ip (void *cls,
     /* Current iteration is over, remove 'old' IPs now */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Purging old IPs for external address\n");
-    remove_from_address_list_by_source (h, LAL_EXTERNAL_IP_OLD);
+    remove_from_address_list_by_source (h,
+					LAL_EXTERNAL_IP_OLD);
     if (1 == inet_pton (AF_INET,
                         h->external_address,
                         &dummy))
@@ -704,9 +696,13 @@ process_external_ip (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got IP `%s' for external address `%s'\n",
-       GNUNET_a2s (addr, addrlen),
+       GNUNET_a2s (addr,
+		   addrlen),
        h->external_address);
-  add_to_address_list (h, LAL_EXTERNAL_IP, addr, addrlen);
+  add_to_address_list (h,
+		       LAL_EXTERNAL_IP,
+		       addr,
+		       addrlen);
 }
 
 
@@ -740,10 +736,14 @@ process_hostname_ip (void *cls,
     h->hostname_dns = NULL;
     h->hostname_task =
         GNUNET_SCHEDULER_add_delayed (h->hostname_dns_frequency,
-                                      &resolve_hostname, h);
+                                      &resolve_hostname,
+				      h);
     return;
   }
-  add_to_address_list (h, LAL_HOSTNAME_DNS, addr, addrlen);
+  add_to_address_list (h,
+		       LAL_HOSTNAME_DNS,
+		       addr,
+		       addrlen);
 }
 
 
@@ -1204,7 +1204,7 @@ static void
 process_stun (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
-  struct StunServerList* elem = h->actual_stun_server;
+  struct StunServerList *elem = h->actual_stun_server;
 
   h->stun_task = NULL;
   /* Make the request */
@@ -1260,9 +1260,12 @@ resolve_hostname (void *cls)
 
   h->hostname_task = NULL;
   remove_from_address_list_by_source (h, LAL_HOSTNAME_DNS);
+  GNUNET_assert (NULL == h->hostname_dns);
   h->hostname_dns =
-      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, HOSTNAME_RESOLVE_TIMEOUT,
-                                        &process_hostname_ip, h);
+      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
+					HOSTNAME_RESOLVE_TIMEOUT,
+                                        &process_hostname_ip,
+					h);
 }
 
 
@@ -1285,10 +1288,13 @@ resolve_dns (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Resolving external address `%s'\n",
        h->external_address);
+  GNUNET_assert (NULL == h->ext_dns);
   h->ext_dns =
-      GNUNET_RESOLVER_ip_get (h->external_address, AF_INET,
+      GNUNET_RESOLVER_ip_get (h->external_address,
+			      AF_INET,
                               GNUNET_TIME_UNIT_MINUTES,
-                              &process_external_ip, h);
+                              &process_external_ip,
+			      h);
 }
 
 
@@ -1636,7 +1642,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     size_t pos_port;
 
     h->socket = sock;
-    h->actual_stun_server = NULL;
     stun_servers = NULL;
     /* Lets process the servers*/
     (void) GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -1644,9 +1649,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                   "STUN_SERVERS",
                                                   &stun_servers);
     urls = 0;
-    h->stun_servers_head = NULL;
-    h->stun_servers_tail = NULL;
-    h->actual_stun_server = NULL;
     if ( (NULL != stun_servers) &&
          (strlen (stun_servers) > 0) )
     {
@@ -1665,8 +1667,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
         {
           struct StunServerList *ml;
 
-          /*Check if we do have a port*/
-          if((0 == pos_port) || (pos_port <= pos))
+          /* Check if we do have a port */
+          if ((0 == pos_port) || (pos_port <= pos))
           {
             LOG (GNUNET_ERROR_TYPE_WARNING,
                  "STUN server format mistake\n");
@@ -1677,7 +1679,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
           ml->port = atoi (&stun_servers[pos_port]);
 
           /* Remove trailing space */
-          if(stun_servers[pos] == ' ')
+          if (stun_servers[pos] == ' ')
             ml->address = GNUNET_strdup (&stun_servers[pos + 1]);
           else
             ml->address = GNUNET_strdup (&stun_servers[pos]);
@@ -1688,6 +1690,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_CONTAINER_DLL_insert (h->stun_servers_head,
                                        h->stun_servers_tail,
                                        ml);
+	  stun_servers[pos] = '\0';
         }
       }
     }
@@ -1767,9 +1770,30 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   unsigned int i;
   struct LocalAddressList *lal;
   struct MiniList *ml;
-
+  struct StunServerList *ssl;
+  
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "NAT unregister called\n");
+  while (NULL != (ssl = h->stun_servers_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->stun_servers_head,
+                                 h->stun_servers_tail,
+                                 ssl);
+    GNUNET_free (ssl->address);
+    GNUNET_free (ssl);
+  }
+  while (NULL != (lal = h->lal_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->lal_head,
+                                 h->lal_tail,
+                                 lal);
+    if (NULL != h->address_callback)
+      h->address_callback (h->callback_cls,
+                           GNUNET_NO,
+                           (const struct sockaddr *) &lal[1],
+                           lal->addrlen);
+    GNUNET_free (lal);
+  }
   while (NULL != (ml = h->mini_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->mini_head,
@@ -1838,18 +1862,6 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     GNUNET_DISK_pipe_close (h->server_stdout);
     h->server_stdout = NULL;
     h->server_stdout_handle = NULL;
-  }
-  while (NULL != (lal = h->lal_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->lal_head,
-                                 h->lal_tail,
-                                 lal);
-    if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls,
-                           GNUNET_NO,
-                           (const struct sockaddr *) &lal[1],
-                           lal->addrlen);
-    GNUNET_free (lal);
   }
   for (i = 0; i < h->num_local_addrs; i++)
     GNUNET_free (h->local_addrs[i]);

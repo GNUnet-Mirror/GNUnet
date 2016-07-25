@@ -461,9 +461,9 @@ stun_dns_callback (void *cls,
   int reqlen;
   struct sockaddr_in server;
 
-  rh->dns_active = NULL;
   if (NULL == addr)
   {
+    rh->dns_active = NULL;
     if (GNUNET_NO == rh->dns_success)
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
@@ -471,8 +471,18 @@ stun_dns_callback (void *cls,
            rh->stun_server);
       rh->cb (rh->cb_cls,
               GNUNET_NAT_ERROR_NOT_ONLINE);
-      GNUNET_NAT_stun_make_request_cancel (rh);
     }
+    else if (GNUNET_SYSERR == rh->dns_success)
+    {
+      rh->cb (rh->cb_cls,
+	      GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+    }
+    else
+    {
+      rh->cb (rh->cb_cls,
+	      GNUNET_NAT_ERROR_SUCCESS);
+    }
+    GNUNET_NAT_stun_make_request_cancel (rh);
     return;
   }
 
@@ -487,31 +497,27 @@ stun_dns_callback (void *cls,
 
   /*Craft the simplest possible STUN packet. A request binding*/
   req = (struct stun_header *)reqdata;
-  generate_request_id(req);
+  generate_request_id (req);
   reqlen = 0;
   req->msgtype = 0;
   req->msglen = 0;
-  req->msglen = htons(reqlen);
-  req->msgtype = htons(encode_message(STUN_REQUEST, STUN_BINDING));
+  req->msglen = htons (reqlen);
+  req->msgtype = htons (encode_message (STUN_REQUEST,
+					STUN_BINDING));
 
   /* Send the packet */
-  if (-1 == GNUNET_NETWORK_socket_sendto (rh->sock,
-                                          req,
-                                          ntohs(req->msglen) + sizeof(*req),
-                                          (const struct sockaddr *) &server,
-                                          sizeof (server)))
+  if (-1 ==
+      GNUNET_NETWORK_socket_sendto (rh->sock,
+				    req,
+				    ntohs(req->msglen) + sizeof(*req),
+				    (const struct sockaddr *) &server,
+				    sizeof (server)))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                         "Fail to sendto");
-    rh->cb (rh->cb_cls,
-            GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
-    GNUNET_NAT_stun_make_request_cancel (rh);
+                         "sendto");
+    rh->dns_success = GNUNET_SYSERR;
     return;
   }
-  /* sending STUN request done, let's wait for replies... */
-  rh->cb (rh->cb_cls,
-          GNUNET_NAT_ERROR_SUCCESS);
-  GNUNET_NAT_stun_make_request_cancel (rh);
 }
 
 
@@ -550,8 +556,6 @@ GNUNET_NAT_stun_make_request (const char *server,
                                            &stun_dns_callback, rh);
   if (NULL == rh->dns_active)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                         "Failed DNS");
     GNUNET_NAT_stun_make_request_cancel (rh);
     return NULL;
   }
