@@ -3997,6 +3997,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     GNUNET_CONTAINER_multipeermap_destroy (p->sessions);
     GNUNET_CONTAINER_heap_destroy (p->defrag_ctxs);
     GNUNET_SERVER_mst_destroy (p->mst);
+    if (NULL != p->nat)
+      GNUNET_NAT_unregister (p->nat);
     GNUNET_free (p);
     return NULL;
   }

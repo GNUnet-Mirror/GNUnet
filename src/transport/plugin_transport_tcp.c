@@ -463,11 +463,6 @@ struct Plugin
   struct TCPProbeContext *probe_tail;
 
   /**
-   * Handle for (DYN)DNS lookup of our external IP.
-   */
-  struct GNUNET_RESOLVER_RequestHandle *ext_dns;
-
-  /**
    * Function to call about session status changes.
    */
   GNUNET_TRANSPORT_SessionInfoCallback sic;
@@ -2002,7 +1997,8 @@ tcp_plugin_address_pretty_printer (void *cls,
                                                        sbs,
                                                        ! numeric,
                                                        timeout,
-                                                       &append_port, ppc);
+                                                       &append_port,
+						       ppc);
   if (NULL == ppc->resolver_handle)
   {
     GNUNET_break (0);
@@ -3011,10 +3007,12 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                              GNUNET_YES,
                              aport,
                              (unsigned int) ret_s,
-                             (const struct sockaddr **) addrs, addrlens,
+                             (const struct sockaddr **) addrs,
+			     addrlens,
                              &tcp_nat_port_map_callback,
                              &try_connection_reversal,
-                             plugin, NULL);
+                             plugin,
+			     NULL);
     for (ret = ret_s -1; ret >= 0; ret--)
       GNUNET_free (addrs[ret]);
     GNUNET_free_non_null (addrs);
@@ -3075,7 +3073,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 					   GNUNET_YES);
   }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
-  GNUNET_memcpy (plugin->handlers, my_handlers, sizeof(my_handlers));
+  GNUNET_memcpy (plugin->handlers,
+		 my_handlers,
+		 sizeof(my_handlers));
   for (i = 0;i < sizeof(my_handlers) / sizeof(struct GNUNET_SERVER_MessageHandler);i++)
     plugin->handlers[i].callback_cls = plugin;
 
