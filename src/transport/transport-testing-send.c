@@ -30,63 +30,6 @@
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
-static size_t
-notify_ready (void *cls,
-              size_t size,
-              void *buf)
-{ 
-  struct TRANSPORT_TESTING_SendJob *sj = cls;
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *sender = sj->sender;
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver = sj->receiver;
-  struct GNUNET_TRANSPORT_TESTING_Handle *tth = sender->tth;
-  uint16_t msize = sj->msize;
-  struct GNUNET_TRANSPORT_TESTING_TestMessage *test;
-
-  sj->th = NULL;
-  GNUNET_CONTAINER_DLL_remove (tth->sj_head,
-			       tth->sj_tail,
-			       sj);
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout occurred while waiting for transmit_ready\n");
-    GNUNET_SCHEDULER_shutdown ();
-    GNUNET_free (sj);
-    return 0;
-  }
-
-  GNUNET_assert (size >= msize);
-  if (NULL != buf)
-  {
-    memset (buf, sj->num, msize);
-    test = buf;
-    test->header.size = htons (msize);
-    test->header.type = htons (sj->mtype);
-    test->num = htonl (sj->num);
-  }
-
-  {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&sender->id));
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Sending message %u from %u (%s) with type %u and size %u bytes to peer %u (%s)\n",
-		(unsigned int) sj->num,
-		sender->no,
-		ps,
-                sj->mtype,
-                msize,
-                receiver->no,
-                GNUNET_i2s (&receiver->id));
-    GNUNET_free (ps);
-  }
-  if (NULL != sj->cont)
-    GNUNET_SCHEDULER_add_now (sj->cont,
-			      sj->cont_cls);
-  GNUNET_free (sj);
-  return msize;
-}
-
-
 /**
  * Return @a cx in @a cls.
  */
@@ -127,10 +70,10 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
 			       GNUNET_SCHEDULER_TaskCallback cont,
 			       void *cont_cls)
 {
-  struct GNUNET_TRANSPORT_TESTING_Handle *tth = sender->tth;
-  struct TRANSPORT_TESTING_SendJob *sj;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cr;
-
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_TRANSPORT_TESTING_TestMessage *test;
+  
   if (msize < sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage))
   {
     GNUNET_break (0);
@@ -151,17 +94,11 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
     GNUNET_break (0);
     return GNUNET_NO;
   }
-  sj = GNUNET_new (struct TRANSPORT_TESTING_SendJob);
-  sj->num = num;
-  sj->sender = sender;
-  sj->receiver = receiver;
-  sj->cont = cont;
-  sj->cont_cls = cont_cls;
-  sj->mtype = mtype;
-  sj->msize = msize;
-  GNUNET_CONTAINER_DLL_insert (tth->sj_head,
-			       tth->sj_tail,
-			       sj);
+  if (NULL == cr->mq) 
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
   {
     char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
@@ -173,13 +110,18 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
                 receiver_s);
     GNUNET_free (receiver_s);
   }
-  sj->th = GNUNET_TRANSPORT_notify_transmit_ready (sender->th,
-						   &receiver->id,
-						   msize,
-						   TIMEOUT_TRANSMIT,
-						   &notify_ready,
-						   sj);
-  GNUNET_assert (NULL != sj->th);
+  env = GNUNET_MQ_msg_extra (test,
+			     msize - sizeof (*test),
+			     mtype);
+  test->num = htonl (num);
+  memset (&test[1],
+	  num,
+	  msize - sizeof (*test));
+  GNUNET_MQ_notify_sent (env,
+			 cont,
+			 cont_cls);
+  GNUNET_MQ_send (cr->mq,
+		  env);
   return GNUNET_OK;
 }
 

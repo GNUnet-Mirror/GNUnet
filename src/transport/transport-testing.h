@@ -30,6 +30,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_core_service.h"
+#include "gnunet_transport_manipulation_service.h"
 #include "gnunet_testing_lib.h"
 
 
@@ -44,19 +46,6 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext;
  * Definition for a transport testing handle
  */
 struct GNUNET_TRANSPORT_TESTING_Handle;
-
-
-/**
- * Callback when two peers are connected and both have called the connect callback
- * to notify clients about a new peer
- *
- * @param p FIXME: remove ASAP.
- * @param cls closure
- */
-typedef void
-(*GNUNET_TRANSPORT_TESTING_StartCallback) (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-                                           void *cls);
-
 
 
 /**
@@ -87,7 +76,12 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
   /**
    * Peer's transport service handle
    */
-  struct GNUNET_TRANSPORT_Handle *th;
+  struct GNUNET_TRANSPORT_CoreHandle *th;
+
+  /**
+   * Peer's transport service manipulation handle
+   */
+  struct GNUNET_TRANSPORT_ManipulationHandle *tmh;
 
   /**
    * Peer's ATS handle.
@@ -117,22 +111,22 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
   /**
    * Receive callback
    */
-  GNUNET_TRANSPORT_ReceiveCallback rec;
+  struct GNUNET_MQ_MessageHandler *handlers;
 
   /**
    * Notify connect callback
    */
-  GNUNET_TRANSPORT_NotifyConnect nc;
+  GNUNET_TRANSPORT_NotifyConnecT nc;
 
   /**
    * Notify disconnect callback
    */
-  GNUNET_TRANSPORT_NotifyDisconnect nd;
+  GNUNET_TRANSPORT_NotifyDisconnecT nd;
 
   /**
    * Startup completed callback
    */
-  GNUNET_TRANSPORT_TESTING_StartCallback start_cb;
+  GNUNET_SCHEDULER_TaskCallback start_cb;
 
   /**
    * Peers HELLO Message
@@ -207,6 +201,11 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
    */
   void *cb_cls;
 
+  /**
+   * Message queue for sending from @a p1 to @a p2.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
   /** 
    * Set if peer1 says the connection is up to peer2.
    */
@@ -221,65 +220,6 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
    * #GNUNET_YES if both @e p1_c and @e p2_c are #GNUNET_YES.
    */
   int connected;
-};
-
-
-/**
- * Information we keep for active transmission jobs.
- */
-struct TRANSPORT_TESTING_SendJob
-{
-
-  /**
-   * Kept in a DLL.
-   */ 
-  struct TRANSPORT_TESTING_SendJob *next;
-
-  /**
-   * Kept in a DLL.
-   */ 
-  struct TRANSPORT_TESTING_SendJob *prev;
-
-  /**
-   * Sender of the message.
-   */
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *sender;
-
-  /** 
-   * Receiver of the message.
-   */ 
-  struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver;
-
-  /**
-   * Operation handle.
-   */
-  struct GNUNET_TRANSPORT_TransmitHandle *th;
-
-  /**
-   * Function to call upon completion.
-   */
-  GNUNET_SCHEDULER_TaskCallback cont;
-
-  /**
-   * Closure for @e cont.
-   */
-  void *cont_cls;
-  
-  /**
-   * Number of the message.
-   */ 
-  uint32_t num;
-  
-  /**
-   * Type of message to send.
-   */ 
-  uint16_t mtype;
-
-  /**
-   * Length of the message.
-   */
-  uint16_t msize;
-  
 };
 
 
@@ -303,16 +243,6 @@ struct GNUNET_TRANSPORT_TESTING_Handle
    */
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc_tail;
 
-  /**
-   * Kept in a DLL.
-   */ 
-  struct TRANSPORT_TESTING_SendJob *sj_head;
-
-  /**
-   * Kept in a DLL.
-   */ 
-  struct TRANSPORT_TESTING_SendJob *sj_tail;
-  
   /**
    * head DLL of peers
    */
@@ -349,7 +279,7 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth);
  * @param tth the testing handle
  * @param cfgname configuration file
  * @param peer_id the peer_id
- * @param rec receive callback
+ * @param handlers functions for receiving messages
  * @param nc connect callback
  * @param nd disconnect callback
  * @param cb_cls closure for @a nc and @a nd callback
@@ -361,11 +291,11 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext *
 GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
                                      const char *cfgname,
                                      int peer_id,
-                                     GNUNET_TRANSPORT_ReceiveCallback rec,
-                                     GNUNET_TRANSPORT_NotifyConnect nc,
-                                     GNUNET_TRANSPORT_NotifyDisconnect nd,
+                                     const struct GNUNET_MQ_MessageHandler *handlers,
+                                     GNUNET_TRANSPORT_NotifyConnecT nc,
+                                     GNUNET_TRANSPORT_NotifyDisconnecT nd,
 				     void *cb_cls,
-                                     GNUNET_TRANSPORT_TESTING_StartCallback start_cb,
+                                     GNUNET_SCHEDULER_TaskCallback start_cb,
                                      void *start_cb_cls);
 
 
@@ -388,7 +318,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext 
  */
 int
 GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-                                       GNUNET_TRANSPORT_TESTING_StartCallback restart_cb,
+                                       GNUNET_SCHEDULER_TaskCallback restart_cb,
                                        void *restart_cb_cls);
 
 
@@ -476,6 +406,23 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequestList;
 struct GNUNET_TRANSPORT_TESTING_InternalPeerContext;
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+struct GNUNET_TRANSPORT_TESTING_TestMessage
+{
+  /**
+   * Type is (usually) #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Monotonically increasing counter throughout the test.
+   */
+  uint32_t num GNUNET_PACKED;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+
 /**
  * Function called by the transport for each received message.
  *
@@ -488,7 +435,7 @@ typedef void
 (*GNUNET_TRANSPORT_TESTING_ReceiveCallback) (void *cls,
                                              struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                                              const struct GNUNET_PeerIdentity *sender,
-                                             const struct GNUNET_MessageHeader *message);
+                                             const struct GNUNET_TRANSPORT_TESTING_TestMessage *message);
 
 
 /**
@@ -800,20 +747,10 @@ GNUNET_TRANSPORT_TESTING_send (struct GNUNET_TRANSPORT_TESTING_PeerContext *send
  */
 #define GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE 12345
 
-GNUNET_NETWORK_STRUCT_BEGIN
-struct GNUNET_TRANSPORT_TESTING_TestMessage
-{
-  /**
-   * Type is (usually) #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Monotonically increasing counter throughout the test.
-   */
-  uint32_t num GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
+/**
+ * Alternative message type for tests.
+ */
+#define GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2 12346
 
 
 /**

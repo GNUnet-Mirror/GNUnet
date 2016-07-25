@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/transport_api.c
+ * @file transport/transport_api_get_hello.c
  * @brief library to obtain our HELLO from our transport service
  * @author Christian Grothoff
  */

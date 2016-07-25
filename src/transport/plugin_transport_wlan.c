@@ -1888,9 +1888,10 @@ handle_helper_message (void *cls, void *client,
     break;
   default:
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Unexpected message of type %u (%u bytes)",
-	 ntohs (hdr->type), ntohs (hdr->size));
+	 ntohs (hdr->type),
+	 ntohs (hdr->size));
     break;
   }
   return GNUNET_OK;

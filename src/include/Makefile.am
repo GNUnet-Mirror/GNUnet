@@ -118,6 +118,11 @@ gnunetinclude_HEADERS = \
   gnunet_testing_lib.h \
   gnunet_time_lib.h \
   gnunet_transport_service.h \
+  gnunet_transport_communication_service.h \
+  gnunet_transport_core_service.h \
+  gnunet_transport_hello_service.h \
+  gnunet_transport_manipulation_service.h \
+  gnunet_transport_monitor_service.h \
   gnunet_transport_plugin.h \
   gnunet_tun_lib.h \
   gnunet_util_lib.h \

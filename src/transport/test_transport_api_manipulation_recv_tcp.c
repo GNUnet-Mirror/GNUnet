@@ -79,11 +79,11 @@ sendtask (void *cls)
   {
     memset (&prop, 0, sizeof (prop));
     delay = GNUNET_TIME_UNIT_SECONDS;
-    GNUNET_TRANSPORT_set_traffic_metric (ccc->p[1]->th,
-                                         &ccc->p[0]->id,
-                                         &prop,
-                                         delay,
-                                         GNUNET_TIME_UNIT_ZERO);
+    GNUNET_TRANSPORT_manipulation_set (ccc->p[1]->tmh,
+				       &ccc->p[0]->id,
+				       &prop,
+				       delay,
+				       GNUNET_TIME_UNIT_ZERO);
     start_delayed = GNUNET_TIME_absolute_get();
   }
   GNUNET_TRANSPORT_TESTING_large_send (sc);
@@ -94,7 +94,7 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -103,13 +103,13 @@ notify_receive (void *cls,
                 "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
                 receiver->no,
                 ps,
-                ntohs (message->type),
-                ntohs (message->size),
+                ntohs (message->header.type),
+                ntohs (message->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
-  if ( (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type)) ||
-       (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE != ntohs (message->size)) )
+  if ( (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->header.type)) ||
+       (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE != ntohs (message->header.size)) )
   {
     GNUNET_break (0);
     ccc->global_ret = GNUNET_SYSERR;

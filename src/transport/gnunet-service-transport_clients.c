@@ -1366,18 +1366,24 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
                        int may_drop)
 {
   struct TransportClient *tc;
+  int done;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked to broadcast message of type %u with %u bytes\n",
               (unsigned int) ntohs (msg->type),
               (unsigned int) ntohs (msg->size));
+  done = GNUNET_NO;
   for (tc = clients_head; NULL != tc; tc = tc->next)
   {
     if ( (GNUNET_YES == may_drop) &&
          (GNUNET_YES != tc->send_payload) )
       continue; /* skip, this client does not care about payload */
     unicast (tc, msg, may_drop);
+    done = GNUNET_YES;
   }
+  if (GNUNET_NO == done)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Message not delivered, is CORE service up?\n");
 }
 
 

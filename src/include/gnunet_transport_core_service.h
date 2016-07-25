@@ -60,7 +60,10 @@ struct GNUNET_TRANSPORT_CoreHandle;
  * peer connected to us.
  *
  * @param cls closure
- * @param peer the peer that connected
+ * @param peer the identity of the peer that connected; this
+ *        pointer will remain valid until the disconnect, hence
+ *        applications do not necessarily have to make a copy 
+ *        of the value if they only need it until disconnect
  * @param mq message queue to use to transmit to @a peer
  * @return closure to use in MQ handlers
  */

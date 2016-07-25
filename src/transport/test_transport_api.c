@@ -43,7 +43,7 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -52,14 +52,14 @@ notify_receive (void *cls,
                 "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
                 receiver->no,
                 ps,
-                ntohs (message->type),
-                ntohs (message->size),
+                ntohs (message->header.type),
+                ntohs (message->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
 
-  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->type)) &&
-      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE == ntohs (message->size)))
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->header.type)) &&
+      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE == ntohs (message->header.size)))
   {
     ccc->global_ret = GNUNET_OK;
     GNUNET_SCHEDULER_shutdown ();

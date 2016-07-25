@@ -40,7 +40,7 @@
 
 #define TEST_MESSAGE_SIZE 2600
 
-#define TEST_RESPONSE_MESSAGE_TYPE 12346
+#define TEST_RESPONSE_MESSAGE_TYPE 
 
 /**
  * Test delay, in microseconds.
@@ -63,7 +63,7 @@ sendtask_response_task (void *cls)
   start_response = GNUNET_TIME_absolute_get();
   ret = GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
 				       ccc->p[0],
-				       TEST_RESPONSE_MESSAGE_TYPE,
+				       GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
 				       TEST_MESSAGE_SIZE,
 				       1,
 				       NULL,
@@ -82,7 +82,7 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   struct GNUNET_TIME_Relative duration;
 
@@ -93,13 +93,13 @@ notify_receive (void *cls,
                 "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
                 receiver->no,
                 ps,
-                ntohs (message->type),
-                ntohs (message->size),
+                ntohs (message->header.type),
+                ntohs (message->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
 
-  switch (ntohs (message->type)) {
+  switch (ntohs (message->header.type)) {
   case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE:
     duration = GNUNET_TIME_absolute_get_difference (start_request,
 						    GNUNET_TIME_absolute_get());
@@ -123,7 +123,7 @@ notify_receive (void *cls,
     GNUNET_SCHEDULER_add_now (&sendtask_response_task,
 			      NULL);
     return;
-  case TEST_RESPONSE_MESSAGE_TYPE:
+  case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2:
     duration = GNUNET_TIME_absolute_get_difference(start_response,
                                                    GNUNET_TIME_absolute_get());
     if (duration.rel_value_us >= TEST_DELAY)

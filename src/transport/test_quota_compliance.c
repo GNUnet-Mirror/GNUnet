@@ -127,14 +127,12 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
 {
-  const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr;
 
-  hdr = (const struct GNUNET_TRANSPORT_TESTING_TestMessage *) message;
-  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type))
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
     return;
-  total_bytes_recv += ntohs (message->size);
+  total_bytes_recv += ntohs (hdr->header.size);
 
   {
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -144,7 +142,7 @@ notify_receive (void *cls,
                 receiver->no,
                 ps,
                 ntohl (hdr->num),
-                ntohs (message->size),
+                ntohs (hdr->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }

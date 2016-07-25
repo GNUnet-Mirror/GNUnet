@@ -266,12 +266,12 @@ neighbour_delete (void *cls,
     GNUNET_SCHEDULER_cancel (n->timeout_task);
     n->timeout_task = NULL;
   }
-  GNUNET_MQ_destroy (n->mq);
   if (NULL != n->env)
   {
     GNUNET_MQ_send_cancel (n->env);
     n->env = NULL;
   }
+  GNUNET_MQ_destroy (n->mq);
   GNUNET_assert (NULL == n->mq);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (handle->neighbours,
@@ -411,7 +411,7 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
                                     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
                                     msg);
   obm->reserved = htonl (0);
-  obm->timeout = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO); /* FIXME: to be removed */
+  obm->timeout = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_MINUTES); /* FIXME: to be removed */
   obm->peer = n->id;
   GNUNET_assert (NULL == n->timeout_task);
   n->is_ready = GNUNET_NO;
@@ -421,6 +421,9 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
                          n);
   GNUNET_MQ_send (h->mq,
                   n->env);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Queued message for neighbour `%s'.\n",
+       GNUNET_i2s (&n->id));
 }
 
 
@@ -655,15 +658,14 @@ check_recv (void *cls,
   const struct GNUNET_MessageHeader *imm;
   uint16_t size;
 
-  size = ntohs (im->header.size);
-  if (size <
-      sizeof (struct InboundMessage) + sizeof (struct GNUNET_MessageHeader))
+  size = ntohs (im->header.size) - sizeof (*im);
+  if (size < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   imm = (const struct GNUNET_MessageHeader *) &im[1];
-  if (ntohs (imm->size) + sizeof (struct InboundMessage) != size)
+  if (ntohs (imm->size) != size)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -808,15 +810,15 @@ static void
 disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
 {
   GNUNET_assert (NULL == h->reconnect_task);
+  /* Forget about all neighbours that we used to be connected to */
+  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
+                                         &neighbour_delete,
+                                         h);
   if (NULL != h->mq)
   {
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
-                                         &neighbour_delete,
-                                         h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling task to reconnect to transport service in %s.\n",
        GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
@@ -865,13 +867,13 @@ GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CoreHandle *
-GNUNET_TRANSPORT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_PeerIdentity *self,
-                          const struct GNUNET_MQ_MessageHandler *handlers,
-                          void *cls,
-                          GNUNET_TRANSPORT_NotifyConnecT nc,
-                          GNUNET_TRANSPORT_NotifyDisconnecT nd,
-                          GNUNET_TRANSPORT_NotifyExcessBandwidtH neb)
+GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			       const struct GNUNET_PeerIdentity *self,
+			       const struct GNUNET_MQ_MessageHandler *handlers,
+			       void *cls,
+			       GNUNET_TRANSPORT_NotifyConnecT nc,
+			       GNUNET_TRANSPORT_NotifyDisconnecT nd,
+			       GNUNET_TRANSPORT_NotifyExcessBandwidtH neb)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h;
   unsigned int i;
@@ -888,22 +890,23 @@ GNUNET_TRANSPORT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->nd_cb = nd;
   h->neb_cb = neb;
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connecting to transport service.\n");
-  reconnect (h);
-  if (NULL == h->mq)
-  {
-    GNUNET_free (h);
-    return NULL;
-  }
   if (NULL != handlers)
   {
     for (i=0;NULL != handlers[i].cb; i++) ;
     h->handlers = GNUNET_new_array (i + 1,
                                     struct GNUNET_MQ_MessageHandler);
     GNUNET_memcpy (h->handlers,
-	    handlers,
-	    i * sizeof (struct GNUNET_MQ_MessageHandler));
+		   handlers,
+		   i * sizeof (struct GNUNET_MQ_MessageHandler));
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to transport service\n");
+  reconnect (h);
+  if (NULL == h->mq)
+  {
+    GNUNET_free_non_null (h->handlers);
+    GNUNET_free (h);
+    return NULL;
   }
   h->neighbours =
     GNUNET_CONTAINER_multipeermap_create (STARTING_NEIGHBOURS_SIZE,

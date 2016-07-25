@@ -171,6 +171,7 @@ libgnunettransport_la_SOURCES = \
   transport_api_blacklist.c \
   transport_api_core.c \
   transport_api_get_hello.c \
+  transport_api_manipulation.c \
   transport_api_monitor_peers.c \
   transport_api_monitor_plugins.c \
   transport_api_offer_hello.c

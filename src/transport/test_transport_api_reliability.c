@@ -50,6 +50,11 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 450 * FACTOR)
 
+/**
+ * If we are in an "xhdr" test, the factor by which we divide
+ * #TOTAL_MSGS for a more sane test duration.
+ */
+static unsigned int xhdr = 1;
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
@@ -105,7 +110,7 @@ get_size (unsigned int iter)
 static size_t
 get_size_cnt (unsigned int cnt_down)
 {
-  size_t ret = get_size (TOTAL_MSGS - 1 - cnt_down);
+  size_t ret = get_size (TOTAL_MSGS / xhdr - 1 - cnt_down);
 
   total_bytes += ret;
   return ret;
@@ -189,7 +194,7 @@ custom_shutdown (void *cls)
   }
 
   ok = 0;
-  for (unsigned int i = 0; i < TOTAL_MSGS; i++)
+  for (unsigned int i = 0; i < TOTAL_MSGS / xhdr; i++)
   {
     if (get_bit (bitmap, i) == 0)
     {
@@ -208,27 +213,24 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
 {
   static int n;
   unsigned int s;
   char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr;
 
-  hdr = (const struct GNUNET_TRANSPORT_TESTING_TestMessage *) message;
-
-  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->type))
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
     return;
   msg_recv = ntohl (hdr->num);
   s = get_size (ntohl (hdr->num));
 
-  if (ntohs (message->size) != s)
+  if (ntohs (hdr->header.size) != s)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
                 ntohl (hdr->num),
                 s,
-                ntohs (message->size),
+                ntohs (hdr->header.size),
                 ntohl (hdr->num));
     ccc->global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
@@ -257,7 +259,7 @@ notify_receive (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Got message %u of size %u\n",
                 ntohl (hdr->num),
-                ntohs (message->size));
+                ntohs (hdr->header.size));
   }
 #endif
   n++;
@@ -266,13 +268,13 @@ notify_receive (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Message id %u is bigger than maxmimum number of messages %u expected\n",
                   ntohl (hdr->num),
-                  TOTAL_MSGS);
+                  TOTAL_MSGS / xhdr);
   }
-  if (0 == (n % (TOTAL_MSGS / 100)))
+  if (0 == (n % (TOTAL_MSGS / xhdr / 100)))
   {
     FPRINTF (stderr, "%s",  ".");
   }
-  if (n == TOTAL_MSGS)
+  if (n == TOTAL_MSGS / xhdr)
   {
     /* end testcase with success */
     ccc->global_ret = GNUNET_OK;
@@ -284,8 +286,10 @@ notify_receive (void *cls,
 int
 main (int argc, char *argv[])
 {
+  if (0 == strstr (argv[0], "xhdr"))
+    xhdr = 30;
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
-    .num_messages = TOTAL_MSGS,
+    .num_messages = TOTAL_MSGS / xhdr,
     .get_size_cb = &get_size_cnt
   };
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {

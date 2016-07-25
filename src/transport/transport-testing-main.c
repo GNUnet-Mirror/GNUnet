@@ -145,6 +145,23 @@ struct GNUNET_TRANSPORT_TESTING_InternalPeerContext
 
 
 /**
+ * Information tracked per connected peer.
+ */ 
+struct ConnectPairInfo
+{
+  /**
+   * Peer this is about.
+   */
+  const struct GNUNET_PeerIdentity *sender;
+
+  /**
+   * Information about the receiving peer.
+   */
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi;
+};
+
+
+/**
  * Function called when we connected two peers.  Once we have gotten
  * to the clique, launch test-specific logic.
  *
@@ -207,20 +224,27 @@ GNUNET_TRANSPORT_TESTING_find_peer (struct GNUNET_TRANSPORT_TESTING_ConnectCheck
  *
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
  * @param peer peer we got connected to
+ * @param mq message queue for transmissions to @a peer
+ * @return closure for message handlers
  */
-static void
+static void *
 my_nc (void *cls,
-       const struct GNUNET_PeerIdentity *peer)
+       const struct GNUNET_PeerIdentity *peer,
+       struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
-
+  struct ConnectPairInfo *cpi;
+  
   if (NULL != ccc->nc)
     ccc->nc (ccc->cls,
              ccc->p[ipi->off],
              peer);
+  cpi = GNUNET_new (struct ConnectPairInfo);
+  cpi->ipi = ipi;
+  cpi->sender = peer; /* valid until disconnect */
+  return cpi;
 }
-
 
 
 /**
@@ -228,40 +252,95 @@ my_nc (void *cls,
  *
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
  * @param peer peer we got disconnected from
+ * @param custom_cls return value from @my_nc
  */
 static void
 my_nd (void *cls,
-       const struct GNUNET_PeerIdentity *peer)
+       const struct GNUNET_PeerIdentity *peer,
+       void *custom_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
-
+  struct ConnectPairInfo *cpi = custom_cls;
+  
   if (NULL != ccc->nd)
     ccc->nd (ccc->cls,
              ccc->p[ipi->off],
              peer);
+  GNUNET_free (cpi);
 }
 
 
 /**
  * Wrapper around receiving data.  Calls client's rec function.
  *
- * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
- * @param peer peer we got a message from
+ * @param cls our `struct ConnectPairInfo *`
+ * @param message message we received
+ * @return #GNUNET_OK (all messages are fine)
+ */
+static int
+check_test (void *cls,
+	    const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Wrapper around receiving data.  Calls client's rec function.
+ *
+ * @param cls our `struct ConnectPairInfo *`
  * @param message message we received
  */
 static void
-my_rec (void *cls,
-        const struct GNUNET_PeerIdentity *peer,
-        const struct GNUNET_MessageHeader *message)
+handle_test (void *cls,
+	     const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
-  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
+  struct ConnectPairInfo *cpi = cls;
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cpi->ipi;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
 
   if (NULL != ccc->rec)
     ccc->rec (ccc->cls,
               ccc->p[ipi->off],
-              peer,
+              cpi->sender,
+              message);
+}
+
+
+/**
+ * Wrapper around receiving data.  Calls client's rec function.
+ *
+ * @param cls our `struct ConnectPairInfo *`
+ * @param message message we received
+ * @return #GNUNET_OK (all messages are fine)
+ */
+static int
+check_test2 (void *cls,
+	     const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Wrapper around receiving data.  Calls client's rec function.
+ *
+ * @param cls our `struct ConnectPairInfo *`
+ * @param message message we received
+ */
+static void
+handle_test2 (void *cls,
+	      const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+{
+  struct ConnectPairInfo *cpi = cls;
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cpi->ipi;
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
+
+  if (NULL != ccc->rec)
+    ccc->rec (ccc->cls,
+              ccc->p[ipi->off],
+              cpi->sender,
               message);
 }
 
@@ -315,15 +394,14 @@ do_connect (void *cls)
  * Once all peers have been launched, we connect all of them
  * in a clique.
  *
- * @param p peer that was launched (redundant, kill ASAP)
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
  */
 static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-          void *cls)
+start_cb (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = ccc->p[ipi->off];
 
   ccc->started++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -364,6 +442,12 @@ connect_check_run (void *cls,
                    const char *cfgfile,
                    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_MQ_hd_var_size (test,
+			 GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+			 struct GNUNET_TRANSPORT_TESTING_TestMessage);
+  GNUNET_MQ_hd_var_size (test2,
+			 GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
+			 struct GNUNET_TRANSPORT_TESTING_TestMessage);
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
   int ok;
 
@@ -376,10 +460,15 @@ connect_check_run (void *cls,
   ok = GNUNET_OK;
   for (unsigned int i=0;i<ccc->num_peers;i++)
   {
+    struct GNUNET_MQ_MessageHandler handlers[] = {
+      make_test_handler (NULL),
+      make_test2_handler (NULL),
+      GNUNET_MQ_handler_end()
+    };
     ccc->p[i] = GNUNET_TRANSPORT_TESTING_start_peer (ccc->tth,
                                                      ccc->cfg_files[i],
                                                      i + 1,
-                                                     &my_rec,
+                                                     handlers,
                                                      &my_nc,
                                                      &my_nd,
 						     &ccc->ip[i],

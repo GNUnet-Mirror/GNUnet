@@ -94,7 +94,7 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unexpectedly even received the message despite blacklist\n");

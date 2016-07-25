@@ -58,11 +58,11 @@ custom_shutdown (void *cls)
 
 
 static void
-restart_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-	    void *cls)
+restart_cb (void *cls)
 {
   static unsigned int c;
-
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
+  
   c++;
   if ( (2 != c) &&
        (NULL != strstr (ccc->test_name,
@@ -96,7 +96,7 @@ static void
 notify_receive (void *cls,
                 struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
                 const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_MessageHeader *message)
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
     char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -105,13 +105,13 @@ notify_receive (void *cls,
                 "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
                 receiver->no,
                 ps,
-                ntohs (message->type),
-                ntohs (message->size),
+                ntohs (message->header.type),
+                ntohs (message->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
   }
-  if ( (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->type)) &&
-       (sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs (message->size)) )
+  if ( (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->header.type)) &&
+       (sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs (message->header.size)) )
   {
     if (GNUNET_NO == restarted)
     {

@@ -64,8 +64,7 @@ end_badly ()
 
 
 static void
-restart_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-            void *cls)
+restart_cb (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%s') successfully restarted\n",
@@ -90,8 +89,7 @@ restart_task ()
 
 
 static void
-start_cb (struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
-          void *cls)
+start_cb (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%s') successfully started\n",

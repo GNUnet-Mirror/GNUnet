@@ -807,9 +807,18 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
 {
   struct ClientConnectionState *state = impl_state;
 
-  GNUNET_assert (NULL != state->th);
-  GNUNET_CLIENT_notify_transmit_ready_cancel (state->th);
-  state->th = NULL;
+  if (NULL != state->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (state->th);
+    state->th = NULL;
+  }
+  else if (NULL != mq->continue_task)
+  {
+    GNUNET_SCHEDULER_cancel (mq->continue_task);
+    mq->continue_task = NULL;
+  }
+  else
+    GNUNET_assert (0);
 }
 
 
