@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_core_service.h"
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_neighbours.h"
 #include "gnunet-service-core_kx.h"
