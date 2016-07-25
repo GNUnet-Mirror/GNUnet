@@ -37,6 +37,15 @@ struct GSC_KeyExchangeInfo;
 
 
 /**
+ * Obtain the array of message handlers provided by KX.
+ *
+ * @return NULL-entry terminated array of handlers
+ */
+const struct GNUNET_MQ_MessageHandler *
+GSC_KX_get_handlers (void);
+
+
+/**
  * We received a EPHEMERAL_KEY message.  Validate and update
  * our key material and status.
  *

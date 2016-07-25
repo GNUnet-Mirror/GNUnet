@@ -479,9 +479,6 @@ handle_transport_receive (void *cls,
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
     GSC_KX_handle_encrypted_message (n->kxinfo, message);
     break;
-  case GNUNET_MESSAGE_TYPE_DUMMY:
-    /*  Dummy messages for testing / benchmarking, just discard */
-    break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Unsupported message of type %u (%u bytes) received from peer `%s'\n"),
@@ -523,8 +520,8 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
   me->size = msize;
   GNUNET_memcpy (&me[1],
-          msg,
-          msize);
+		 msg,
+		 msize);
   GNUNET_CONTAINER_DLL_insert_tail (n->message_head,
                                     n->message_tail,
                                     me);

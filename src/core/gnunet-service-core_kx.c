@@ -1608,6 +1608,41 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 
 
 /**
+ * Obtain the array of message handlers provided by KX.
+ *
+ * @return NULL-entry terminated array of handlers
+ */
+const struct GNUNET_MQ_MessageHandler *
+GSC_KX_get_handlers (void)
+{
+#if 0
+  GNUNET_MQ_hd_fixed_size (ephemeral_key,
+			   GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY,
+			   struct EphemeralKeyMessage);
+  GNUNET_MQ_hd_fixed_size (ping,
+			   PING,
+			   struct PingMessage);
+  GNUNET_MQ_hd_fixed_size (pong,
+			   PING,
+			   struct PongMessage);
+  GNUNET_MQ_hd_var_size (encrypted,
+			 PING,
+			 struct ping);
+#endif
+  static struct GNUNET_MQ_MessageHandler handlers[] = {
+#if 0
+    make_ephemeral_key_handler (),
+    make_ping_handler (),
+    make_pong_handler (),
+    make_encrypted_handler (),
+#endif
+    GNUNET_MQ_handler_end()
+  };
+  return handlers;
+}
+
+
+/**
  * Deliver P2P message to interested clients.
  * Invokes send twice, once for clients that want the full message, and once
  * for clients that only want the header
@@ -1641,10 +1676,12 @@ deliver_message (void *cls,
     GSC_SESSIONS_confirm_typemap (dmc->peer, m);
     return GNUNET_OK;
   default:
-    GSC_CLIENTS_deliver_message (dmc->peer, m,
+    GSC_CLIENTS_deliver_message (dmc->peer,
+                                 m,
                                  ntohs (m->size),
                                  GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-    GSC_CLIENTS_deliver_message (dmc->peer, m,
+    GSC_CLIENTS_deliver_message (dmc->peer,
+                                 m,
                                  sizeof (struct GNUNET_MessageHeader),
                                  GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
   }
@@ -1686,8 +1723,8 @@ sign_ephemeral_key ()
   current_ekm.origin_identity = GSC_my_identity;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CRYPTO_eddsa_sign (my_private_key,
-					 &current_ekm.purpose,
-					 &current_ekm.signature));
+                                           &current_ekm.purpose,
+					   &current_ekm.signature));
 }
 
 
