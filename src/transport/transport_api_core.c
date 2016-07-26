@@ -228,6 +228,10 @@ notify_excess_cb (void *cls)
   struct Neighbour *n = cls;
   struct GNUNET_TRANSPORT_CoreHandle *h = n->h;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying CORE that more bandwidth is available for %s\n",
+       GNUNET_i2s (&n->id));
+
   if (NULL != h->neb_cb)
     h->neb_cb (h->cls,
                &n->id,
@@ -719,7 +723,8 @@ handle_set_quota (void *cls,
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
 
-  n = neighbour_find (h, &qm->peer);
+  n = neighbour_find (h,
+		      &qm->peer);
   if (NULL == n)
   {
     GNUNET_break (0);

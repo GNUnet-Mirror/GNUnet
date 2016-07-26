@@ -516,6 +516,41 @@ print_ack_state (enum GST_ACK_State s)
 
 
 /**
+ * Send information about a new outbound quota to our clients.
+ * Note that the outbound quota is enforced client-side (i.e.
+ * in libgnunettransport).
+ *
+ * @param n affected peer
+ */
+static void
+send_outbound_quota_to_clients (struct NeighbourMapEntry *n)
+{
+  struct QuotaSetMessage q_msg;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
+
+  if (! GNUNET_TRANSPORT_is_connected (n->state))
+    return;
+#if IGNORE_INBOUND_QUOTA
+  bandwidth_min = n->primary_address.bandwidth_out;
+#else
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
+                                              n->neighbour_receive_quota);
+#endif
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
+              ntohl (bandwidth_min.value__),
+              GNUNET_i2s (&n->id));
+  q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
+  q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
+  q_msg.quota = bandwidth_min;
+  q_msg.peer = n->id;
+  GST_clients_broadcast (&q_msg.header,
+			 GNUNET_NO);
+}
+
+
+/**
  * Notify our clients that another peer connected to us.
  *
  * @param n the peer that connected
@@ -624,40 +659,6 @@ test_connected (struct NeighbourMapEntry *n)
   if (NULL == n)
     return GNUNET_NO;
   return GNUNET_TRANSPORT_is_connected (n->state);
-}
-
-
-/**
- * Send information about a new outbound quota to our clients.
- * Note that the outbound quota is enforced client-side (i.e.
- * in libgnunettransport).
- *
- * @param n affected peer
- */
-static void
-send_outbound_quota_to_clients (struct NeighbourMapEntry *n)
-{
-  struct QuotaSetMessage q_msg;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
-
-  if (! GNUNET_TRANSPORT_is_connected (n->state))
-    return;
-#if IGNORE_INBOUND_QUOTA
-  bandwidth_min = n->primary_address.bandwidth_out;
-#else
-  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
-                                              n->neighbour_receive_quota);
-#endif
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (bandwidth_min.value__),
-              GNUNET_i2s (&n->id));
-  q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
-  q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  q_msg.quota = bandwidth_min;
-  q_msg.peer = n->id;
-  GST_clients_broadcast (&q_msg.header, GNUNET_NO);
 }
 
 
