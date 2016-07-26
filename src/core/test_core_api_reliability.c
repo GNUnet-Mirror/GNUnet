@@ -84,7 +84,7 @@ static int32_t tr_n;
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
-  uint32_t num;
+  uint32_t num GNUNET_PACKED;
 };
 
 
@@ -136,8 +136,6 @@ terminate_task (void *cls)
 {
   unsigned long long delta;
 
-  terminate_peer (&p1);
-  terminate_peer (&p2);
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   FPRINTF (stderr,
            "\nThroughput was %llu kb/s\n",
@@ -146,6 +144,7 @@ terminate_task (void *cls)
           "Core throughput/s",
           total_bytes * 1000000LL / 1024 / delta,
           "kb/s");
+  GNUNET_SCHEDULER_shutdown ();
   ok = 0;
 }
 
@@ -153,10 +152,23 @@ terminate_task (void *cls)
 static void
 terminate_task_error (void *cls)
 {
+  err_task = NULL;
   GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 42;
+}
+
+
+static void
+do_shutdown (void *cls)
+{
+  if (NULL != err_task)
+  {
+    GNUNET_SCHEDULER_cancel (err_task);
+    err_task = NULL;
+  }
   terminate_peer (&p1);
   terminate_peer (&p2);
-  ok = 42;
 }
 
 
@@ -462,7 +474,9 @@ setup_peer (struct PeerContext *p,
                              binary,
                              "gnunet-service-arm",
                              "-c", cfgname, NULL);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_load (p->cfg,
+					    cfgname));
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
@@ -486,24 +500,30 @@ run (void *cls,
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                     &terminate_task_error,
                                     NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
 
-  GNUNET_assert (NULL != (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1,
-                                                       &init_notify,
-                                                       &connect_notify,
-                                                       &disconnect_notify,
-                                                       &inbound_notify, GNUNET_YES,
-                                                       &outbound_notify, GNUNET_YES,
-                                                       handlers)));
+  GNUNET_assert (NULL !=
+		 (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1,
+					       &init_notify,
+					       &connect_notify,
+					       &disconnect_notify,
+					       &inbound_notify,
+					       GNUNET_YES,
+					       &outbound_notify,
+					       GNUNET_YES,
+					       handlers)));
 }
 
 
 static void
 stop_arm (struct PeerContext *p)
 {
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
+  if (0 != GNUNET_OS_process_kill (p->arm_proc,
+				   GNUNET_TERM_SIG))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                          "kill");
-  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
+  if (GNUNET_OK != GNUNET_OS_process_wait (p->arm_proc))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                          "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -531,8 +551,12 @@ main (int argc, char *argv1[])
   GNUNET_log_setup ("test-core-api-reliability",
                     "WARNING",
                     NULL);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-core-api-reliability", "nohelp", options, &run,
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+		      argv,
+                      "test-core-api-reliability",
+		      "nohelp",
+		      options,
+		      &run,
                       &ok);
   stop_arm (&p1);
   stop_arm (&p2);
