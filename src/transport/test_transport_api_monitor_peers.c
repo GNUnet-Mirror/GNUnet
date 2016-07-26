@@ -39,8 +39,6 @@
 
 #define TEST_MESSAGE_TYPE 12345
 
-static struct GNUNET_TRANSPORT_TransmitHandle *th;
-
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pmc_p1;
@@ -59,11 +57,6 @@ static int p2_c_notify;
 static void
 custom_shutdown (void *cls)
 {
-  if (th != NULL)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
   if (NULL != pmc_p1)
   {
     GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p1);
@@ -136,22 +129,6 @@ notify_connect (void *cls,
     p2_c_notify = GNUNET_YES;
   }
   check_done ();
-}
-
-
-static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
-{
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
 }
 
 
@@ -230,7 +207,7 @@ main (int argc, char *argv[])
     .config_file = "test_transport_api_data.conf",
     .rec = &notify_receive,
     .nc = &notify_connect,
-    .nd = &notify_disconnect,
+    .nd = &GNUNET_TRANSPORT_TESTING_log_disconnect,
     .shutdown_task = &custom_shutdown,
     .timeout = TIMEOUT
   };
