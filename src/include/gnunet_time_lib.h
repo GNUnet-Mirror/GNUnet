@@ -417,7 +417,7 @@ GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
-                               unsigned int factor);
+                               unsigned long long factor);
 
 
 /**
@@ -429,7 +429,7 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
-                             unsigned int factor);
+                             unsigned long long factor);
 
 
 /**

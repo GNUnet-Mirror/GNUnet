@@ -147,7 +147,11 @@ excess_trigger (void *cls)
 
   av->excess_task = NULL;
   if (NULL != av->excess_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Notifying application about excess bandwidth\n");
     av->excess_cb (av->excess_cb_cls);
+  }
 }
 
 

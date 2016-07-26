@@ -427,7 +427,7 @@ GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
-                               unsigned int factor)
+                               unsigned long long factor)
 {
   struct GNUNET_TIME_Relative ret;
 
@@ -435,7 +435,7 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
     return GNUNET_TIME_UNIT_ZERO;
   if (rel.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     return GNUNET_TIME_UNIT_FOREVER_REL;
-  ret.rel_value_us = rel.rel_value_us * (unsigned long long) factor;
+  ret.rel_value_us = rel.rel_value_us * factor;
   if (ret.rel_value_us / factor != rel.rel_value_us)
   {
     GNUNET_break (0);
@@ -454,14 +454,14 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
-                             unsigned int factor)
+                             unsigned long long factor)
 {
   struct GNUNET_TIME_Relative ret;
 
   if ((0 == factor) ||
       (rel.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us))
     return GNUNET_TIME_UNIT_FOREVER_REL;
-  ret.rel_value_us = rel.rel_value_us / (unsigned long long) factor;
+  ret.rel_value_us = rel.rel_value_us / factor;
   return ret;
 }
 

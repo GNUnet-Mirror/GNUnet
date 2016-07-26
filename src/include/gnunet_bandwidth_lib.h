@@ -126,7 +126,7 @@ struct GNUNET_BANDWIDTH_Tracker
   struct GNUNET_TIME_Absolute last_update__;
 
   /**
-   * Bandwidth limit to enforce in bytes per s.
+   * Bandwidth limit to enforce in bytes per second.
    */
   uint32_t available_bytes_per_s__;
 
@@ -289,7 +289,7 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 
 
 /**
- * Compute how long we should wait until consuming 'size'
+ * Compute how long we should wait until consuming @a size
  * bytes of bandwidth in order to stay within the given
  * quota.
  *
