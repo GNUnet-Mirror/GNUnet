@@ -74,6 +74,8 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
+static struct GNUNET_CORE_TransmitHandle *nth;
+
 static int ok;
 
 static int32_t tr_n;
@@ -132,24 +134,6 @@ terminate_peer (struct PeerContext *p)
 
 
 static void
-terminate_task (void *cls)
-{
-  unsigned long long delta;
-
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  FPRINTF (stderr,
-           "\nThroughput was %llu kb/s\n",
-           total_bytes * 1000000LL / 1024 / delta);
-  GAUGER ("CORE",
-          "Core throughput/s",
-          total_bytes * 1000000LL / 1024 / delta,
-          "kb/s");
-  GNUNET_SCHEDULER_shutdown ();
-  ok = 0;
-}
-
-
-static void
 terminate_task_error (void *cls)
 {
   err_task = NULL;
@@ -162,13 +146,29 @@ terminate_task_error (void *cls)
 static void
 do_shutdown (void *cls)
 {
+  unsigned long long delta;
+
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  FPRINTF (stderr,
+           "\nThroughput was %llu kb/s\n",
+           total_bytes * 1000000LL / 1024 / delta);
+  GAUGER ("CORE",
+          "Core throughput/s",
+          total_bytes * 1000000LL / 1024 / delta,
+          "kb/s");
   if (NULL != err_task)
   {
     GNUNET_SCHEDULER_cancel (err_task);
     err_task = NULL;
   }
+  if (NULL != nth)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (nth);
+    nth = NULL;
+  }
   terminate_peer (&p1);
   terminate_peer (&p2);
+  
 }
 
 
@@ -182,16 +182,19 @@ transmit_ready (void *cls,
   unsigned int s;
   unsigned int ret;
 
+  nth = NULL;
   GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
   if (NULL == buf)
   {
     if (NULL != p1.ch)
       GNUNET_break (NULL !=
-                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
-                                                       GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                       FAST_TIMEOUT, &p2.id,
-                                                       get_size (tr_n),
-                                                       &transmit_ready, &p1));
+                    (nth = GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+							      GNUNET_CORE_PRIO_BEST_EFFORT,
+							      FAST_TIMEOUT,
+							      &p2.id,
+							      get_size (tr_n),
+							      &transmit_ready,
+							      &p1)));
     return 0;
   }
   GNUNET_assert (tr_n < TOTAL_MSGS);
@@ -223,7 +226,8 @@ transmit_ready (void *cls,
   GNUNET_SCHEDULER_cancel (err_task);
   err_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                    &terminate_task_error, NULL);
+                                    &terminate_task_error,
+				    NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Returning total message block of size %u\n",
               ret);
@@ -238,9 +242,11 @@ connect_notify (void *cls,
 {
   struct PeerContext *pc = cls;
 
-  if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&pc->id,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
     return;
-  GNUNET_assert (pc->connect_status == 0);
+  GNUNET_assert (0 == pc->connect_status);
   pc->connect_status = 1;
   if (pc == &p1)
   {
@@ -252,14 +258,19 @@ connect_notify (void *cls,
                 GNUNET_i2s (&p2.id));
     GNUNET_SCHEDULER_cancel (err_task);
     err_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				      &terminate_task_error,
+				      NULL);
     start_time = GNUNET_TIME_absolute_get ();
     GNUNET_break (NULL !=
-                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
-                                                     GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                     TIMEOUT, &p2.id,
-                                                     get_size (0),
-                                                     &transmit_ready, &p1));
+                  (nth = GNUNET_CORE_notify_transmit_ready (p1.ch,
+							    GNUNET_NO,
+							    GNUNET_CORE_PRIO_BEST_EFFORT,
+							    TIMEOUT,
+							    &p2.id,
+							    get_size (0),
+							    &transmit_ready,
+							    &p1)));
   }
 }
 
@@ -342,7 +353,8 @@ process_mtype (void *cls,
                 ntohs (message->size),
                 ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
-    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
+    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
+					 NULL);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -354,8 +366,8 @@ process_mtype (void *cls,
     FPRINTF (stderr, "%s",  ".");
   if (n == TOTAL_MSGS)
   {
-    GNUNET_SCHEDULER_cancel (err_task);
-    GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
+    ok = 0;
+    GNUNET_SCHEDULER_shutdown ();
   }
   else
   {

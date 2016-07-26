@@ -25,10 +25,7 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 
 #define TIMEOUT 5
 
@@ -46,32 +43,28 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Task * timeout_task_id;
+static struct GNUNET_SCHEDULER_Task *timeout_task_id;
 
 static int ok;
 
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
-
-
 
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_notify (void *cls,
+		const struct GNUNET_PeerIdentity *peer)
 {
 }
 
 
 static void
-disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+disconnect_notify (void *cls,
+		   const struct GNUNET_PeerIdentity *peer)
 {
 }
 
 
 static int
-inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+inbound_notify (void *cls,
+		const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   return GNUNET_OK;
@@ -79,7 +72,8 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 
 
 static int
-outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
+outbound_notify (void *cls,
+		 const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message)
 {
   return GNUNET_OK;
@@ -112,33 +106,45 @@ init_notify (void *cls,
   {
     /* connect p2 */
     p2.ch =
-        GNUNET_CORE_connect (p2.cfg, &p2, &init_notify, &connect_notify,
-                             &disconnect_notify, &inbound_notify, GNUNET_YES,
-                             &outbound_notify, GNUNET_YES, handlers);
+        GNUNET_CORE_connect (p2.cfg,
+			     &p2,
+			     &init_notify,
+			     &connect_notify,
+                             &disconnect_notify,
+			     &inbound_notify, GNUNET_YES,
+                             &outbound_notify, GNUNET_YES,
+			     handlers);
   }
   else
   {
     GNUNET_assert (p == &p2);
     GNUNET_SCHEDULER_cancel (timeout_task_id);
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    timeout_task_id = NULL;
+    GNUNET_SCHEDULER_add_now (&shutdown_task,
+			      NULL);
   }
 }
 
 
 static void
-setup_peer (struct PeerContext *p, const char *cfgname)
+setup_peer (struct PeerContext *p,
+	    const char *cfgname)
 {
   char *binary;
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+    GNUNET_OS_start_process (GNUNET_YES,
+			     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
 			     NULL, NULL, NULL,
 			     binary,
 			     "gnunet-service-arm",
-			     "-c", cfgname, NULL);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+			     "-c", cfgname,
+			     NULL);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_load (p->cfg,
+					    cfgname));
   GNUNET_free (binary);
 }
 
@@ -147,12 +153,12 @@ static void
 timeout_task (void *cls)
 {
   FPRINTF (stderr, "%s",  "Timeout.\n");
-  if (p1.ch != NULL)
+  if (NULL != p1.ch)
   {
     GNUNET_CORE_disconnect (p1.ch);
     p1.ch = NULL;
   }
-  if (p2.ch != NULL)
+  if (NULL != p2.ch)
   {
     GNUNET_CORE_disconnect (p2.ch);
     p2.ch = NULL;
@@ -162,34 +168,47 @@ timeout_task (void *cls)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
-  OKPP;
+  ok++;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
   timeout_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, TIMEOUT),
+                                    (GNUNET_TIME_UNIT_MINUTES,
+				     TIMEOUT),
                                     &timeout_task, NULL);
-  p1.ch =
-      GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
-                           &disconnect_notify, &inbound_notify, GNUNET_YES,
-                           &outbound_notify, GNUNET_YES, handlers);
+  p1.ch = GNUNET_CORE_connect (p1.cfg,
+			       &p1,
+			       &init_notify,
+			       &connect_notify,
+			       &disconnect_notify,
+			       &inbound_notify, GNUNET_YES,
+			       &outbound_notify, GNUNET_YES,
+			       handlers);
 }
 
 
 static void
 stop_arm (struct PeerContext *p)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
-              GNUNET_OS_process_get_pid (p->arm_proc));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Stopping peer\n");
+  if (0 != GNUNET_OS_process_kill (p->arm_proc,
+				   GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "kill");
+  if (GNUNET_OK !=
+      GNUNET_OS_process_wait (p->arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ARM process %u stopped\n",
+              (unsigned int) GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
   GNUNET_CONFIGURATION_destroy (p->cfg);
@@ -199,7 +218,8 @@ stop_arm (struct PeerContext *p)
 static int
 check ()
 {
-  char *const argv[] = { "test-core-api-start-only",
+  char *const argv[] = {
+    "test-core-api-start-only",
     "-c",
     "test_core_api_data.conf",
     NULL
@@ -211,9 +231,15 @@ check ()
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
 
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-core-api-start-only", "nohelp", options, &run, &ok);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test finished\n");
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+		      argv,
+                      "test-core-api-start-only",
+		      "nohelp",
+		      options,
+		      &run,
+		      &ok);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Test finished\n");
   stop_arm (&p1);
   stop_arm (&p2);
   return ok;
@@ -221,7 +247,8 @@ check ()
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   int ret;
 

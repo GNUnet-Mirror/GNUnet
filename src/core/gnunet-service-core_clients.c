@@ -29,7 +29,6 @@
 #include "gnunet_transport_service.h"
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_clients.h"
-#include "gnunet-service-core_neighbours.h"
 #include "gnunet-service-core_sessions.h"
 #include "gnunet-service-core_typemap.h"
 #include "core.h"
@@ -402,8 +401,8 @@ handle_client_send_request (void *cls,
     /* dequeue and recycle memory from pending request, there can only
        be at most one per client and peer */
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# dequeuing CAR (duplicate request)"), 1,
+                              gettext_noop ("# dequeuing CAR (duplicate request)"),
+			      1,
                               GNUNET_NO);
     GSC_SESSIONS_dequeue_request (car);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -476,7 +475,8 @@ handle_client_send (void *cls,
   if (msize < sizeof (struct SendMessage))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+				GNUNET_SYSERR);
     return;
   }
   sm = (const struct SendMessage *) message;
@@ -487,12 +487,12 @@ handle_client_send (void *cls,
   {
     /* client did not send INIT first! */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+				GNUNET_SYSERR);
     return;
   }
-  tc.car
-    = GNUNET_CONTAINER_multipeermap_get (c->requests,
-                                         &sm->peer);
+  tc.car = GNUNET_CONTAINER_multipeermap_get (c->requests,
+					      &sm->peer);
   if (NULL == tc.car)
   {
     /* Must have been that we first approved the request, then got disconnected
@@ -501,9 +501,9 @@ handle_client_send (void *cls,
      * might also now be *again* connected.  So this can happen (but should be
      * rare).  If it does happen, the message is discarded. */
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# messages discarded (session disconnected)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# messages discarded (session disconnected)"),
+                              1,
+			      GNUNET_NO);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_OK);
     return;
@@ -519,7 +519,7 @@ handle_client_send (void *cls,
                                                         GNUNET_YES),
                 msize,
                 GNUNET_i2s (&sm->peer),
-                tc.cork ? "" : " (corked)");
+                tc.cork ? " (cork)" : " (uncorked)");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client waited %s for transmission of %u bytes to `%s'%s\n",
@@ -527,7 +527,7 @@ handle_client_send (void *cls,
                                                         GNUNET_YES),
                 msize,
                 GNUNET_i2s (&sm->peer),
-                tc.cork ? "" : " (corked)");
+                tc.cork ? " (cork)" : " (uncorked)");
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (c->requests,

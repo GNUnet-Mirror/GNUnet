@@ -42,7 +42,6 @@ bin_PROGRAMS = \
 gnunet_service_core_SOURCES = \
  gnunet-service-core.c gnunet-service-core.h \
  gnunet-service-core_clients.c gnunet-service-core_clients.h \
- gnunet-service-core_neighbours.c gnunet-service-core_neighbours.h \
  gnunet-service-core_kx.c gnunet-service-core_kx.h \
  gnunet-service-core_sessions.c gnunet-service-core_sessions.h \
  gnunet-service-core_typemap.c gnunet-service-core_typemap.h
@@ -60,7 +59,9 @@ gnunet_core_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 if HAVE_TESTING
-  TESTING_TESTS = test_core_api_send_to_self test_core_api_mq
+  TESTING_TESTS = \
+    test_core_api_send_to_self \
+    test_core_api_mq
 endif
 
 check_PROGRAMS = \

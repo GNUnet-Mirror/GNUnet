@@ -674,6 +674,8 @@ handle_send_ready (void *cls,
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_TIME_Relative overdue;
   unsigned int ret;
+  unsigned int priority;
+  int cork;
 
   GNUNET_break (GNUNET_NO == h->currently_down);
   pr = GNUNET_CONTAINER_multipeermap_get (h->peers,
@@ -708,11 +710,12 @@ handle_send_ready (void *cls,
   sm->priority = htonl ((uint32_t) th->priority);
   sm->deadline = GNUNET_TIME_absolute_hton (th->deadline);
   sm->peer = pr->peer;
-  sm->cork = htonl ((uint32_t) th->cork);
+  sm->cork = htonl ((uint32_t) (cork = th->cork));
   sm->reserved = htonl (0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Calling get_message with buffer of %u bytes\n",
-              (unsigned int) th->msize);
+              "Calling get_message with buffer of %u bytes (%s)\n",
+              (unsigned int) th->msize,
+	      cork ? "corked" : "uncorked");
   /* FIXME: this is ugly and a bit brutal, but "get_message"
      may call GNUNET_CORE_notify_transmit_ready() which
      may call GNUNET_MQ_send() as well, and we MUST get this
@@ -725,30 +728,33 @@ handle_send_ready (void *cls,
      be required */
   GNUNET_MQ_send (h->mq,
                   env);
+  delay = GNUNET_TIME_absolute_get_duration (th->request_time);
+  overdue = GNUNET_TIME_absolute_get_duration (th->deadline);
+  priority = th->priority;
   ret = th->get_message (th->get_message_cls,
                          th->msize,
                          &sm[1]);
+  /* after this point, 'th' should not be used anymore, it
+     may now be about another message! */
   sm->header.size = htons (ret + sizeof (struct SendMessage));
-  delay = GNUNET_TIME_absolute_get_duration (th->request_time);
-  overdue = GNUNET_TIME_absolute_get_duration (th->deadline);
   if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Transmitting overdue %u bytes to `%s' at priority %u with %s delay %s\n",
          ret,
          GNUNET_i2s (&pr->peer),
-         (unsigned int) th->priority,
+         priority,
          GNUNET_STRINGS_relative_time_to_string (delay,
                                                  GNUNET_YES),
-         (th->cork) ? " (corked)" : "");
+         (cork) ? " (corked)" : " (uncorked)");
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmitting %u bytes to `%s' at priority %u with %s delay %s\n",
          ret,
          GNUNET_i2s (&pr->peer),
-         (unsigned int) th->priority,
+         priority,
          GNUNET_STRINGS_relative_time_to_string (delay,
                                                  GNUNET_YES),
-         (th->cork) ? " (corked)" : "");
+         (cork) ? " (corked)" : " (uncorked)");
 }
 
 
@@ -995,9 +1001,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
     return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asking core for transmission of %u bytes to `%s'\n",
+       "Asking core for transmission of %u bytes to `%s'%s\n",
        (unsigned int) notify_size,
-       GNUNET_i2s (target));
+       GNUNET_i2s (target),
+       cork ? " (corked)" : "");
   pr = GNUNET_CONTAINER_multipeermap_get (handle->peers,
                                           target);
   if (NULL == pr)

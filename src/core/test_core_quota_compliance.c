@@ -112,7 +112,7 @@ struct TestMessage
 static void
 terminate_peer (struct PeerContext *p)
 {
-  if (p->nth != NULL)
+  if (NULL != p->nth)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (p->nth);
     p->nth = NULL;
@@ -156,9 +156,18 @@ terminate_peer (struct PeerContext *p)
 
 
 static void
-terminate_task (void *cls)
+shutdown_task (void *cls)
 {
-  err_task = NULL;
+  if (NULL != err_task)
+  {
+    GNUNET_SCHEDULER_cancel (err_task);
+    err_task = NULL;
+  }
+  if (NULL != measure_task)
+  {
+    GNUNET_SCHEDULER_cancel (measure_task);
+    measure_task = NULL;
+  }
   terminate_peer (&p1);
   terminate_peer (&p2);
 }
@@ -169,15 +178,8 @@ terminate_task_error (void *cls)
 {
   err_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Testcase failed!\n");
-  terminate_peer (&p1);
-  terminate_peer (&p2);
-  //GNUNET_break (0);
-  if (NULL != measure_task)
-  {
-    GNUNET_SCHEDULER_cancel (measure_task);
-    measure_task = NULL;
-  }
+	      "Testcase failed (timeout)!\n");
+  GNUNET_SCHEDULER_shutdown ();
   ok = 42;
 }
 
@@ -245,37 +247,63 @@ measurement_stop (void *cls)
     ok = 1; /* fail */
   else
     ok = 0; /* pass */
-  GNUNET_STATISTICS_get (p1.stats, "core", "# discarded CORE_SEND requests",
-                         NULL, &print_stat, &p1);
-
-  GNUNET_STATISTICS_get (p1.stats, "core",
+  GNUNET_STATISTICS_get (p1.stats,
+			 "core",
+			 "# discarded CORE_SEND requests",
+                         NULL,
+			 &print_stat,
+			 &p1);
+  GNUNET_STATISTICS_get (p1.stats,
+			 "core",
                          "# discarded CORE_SEND request bytes",
-                         NULL, &print_stat, &p1);
-  GNUNET_STATISTICS_get (p1.stats, "core",
+                         NULL,
+			 &print_stat,
+			 &p1);
+  GNUNET_STATISTICS_get (p1.stats,
+			 "core",
                          "# discarded lower priority CORE_SEND requests",
-                         NULL, &print_stat, NULL);
-  GNUNET_STATISTICS_get (p1.stats, "core",
+                         NULL,
+			 &print_stat,
+			 NULL);
+  GNUNET_STATISTICS_get (p1.stats,
+			 "core",
                          "# discarded lower priority CORE_SEND request bytes",
-                         NULL, &print_stat, &p1);
-  GNUNET_STATISTICS_get (p2.stats, "core", "# discarded CORE_SEND requests",
-                         NULL, &print_stat, &p2);
+                         NULL,
+			 &print_stat,
+			 &p1);
+  GNUNET_STATISTICS_get (p2.stats,
+			 "core",
+			 "# discarded CORE_SEND requests",
+                         NULL,
+			 &print_stat,
+			 &p2);
 
-  GNUNET_STATISTICS_get (p2.stats, "core",
+  GNUNET_STATISTICS_get (p2.stats,
+			 "core",
                          "# discarded CORE_SEND request bytes",
-                         NULL, &print_stat, &p2);
-  GNUNET_STATISTICS_get (p2.stats, "core",
+                         NULL,
+			 &print_stat,
+			 &p2);
+  GNUNET_STATISTICS_get (p2.stats,
+			 "core",
                          "# discarded lower priority CORE_SEND requests",
-                         NULL, &print_stat, &p2);
-  GNUNET_STATISTICS_get (p2.stats, "core",
+                         NULL,
+			 &print_stat,
+			 &p2);
+  GNUNET_STATISTICS_get (p2.stats,
+			 "core",
                          "# discarded lower priority CORE_SEND request bytes",
-                         NULL, &print_stat, &p2);
+                         NULL,
+			 &print_stat,
+			 &p2);
 
   if (ok != 0)
     kind = GNUNET_ERROR_TYPE_ERROR;
   switch (test)
   {
   case SYMMETRIC:
-    GNUNET_log (kind, "Core quota compliance test with symmetric quotas: %s\n",
+    GNUNET_log (kind,
+		"Core quota compliance test with symmetric quotas: %s\n",
                 (0 == ok) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_SEND_LIMITED:
@@ -289,23 +317,34 @@ measurement_stop (void *cls)
                 (0 == ok) ? "PASSED" : "FAILED");
     break;
   };
-  GNUNET_log (kind, "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
-              throughput_out, total_bytes_sent, delta);
-  GNUNET_log (kind, "Peer 1 send quota: %llu b/s\n", current_quota_p1_out);
-  GNUNET_log (kind, "Peer 2 receive  rate: %llu b/s (%llu bytes in %llu ms)\n",
-              throughput_in, total_bytes_recv, delta);
-  GNUNET_log (kind, "Peer 2 receive quota: %llu b/s\n", current_quota_p2_in);
+  GNUNET_log (kind,
+	      "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
+              throughput_out,
+	      total_bytes_sent,
+	      delta);
+  GNUNET_log (kind,
+	      "Peer 1 send quota: %llu b/s\n",
+	      current_quota_p1_out);
+  GNUNET_log (kind,
+	      "Peer 2 receive  rate: %llu b/s (%llu bytes in %llu ms)\n",
+              throughput_in,
+	      total_bytes_recv,
+	      delta);
+  GNUNET_log (kind,
+	      "Peer 2 receive quota: %llu b/s\n",
+	      current_quota_p2_in);
 /*
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu b/s\n",max_quota_in );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu b/s\n",max_quota_out);
 */
-  GNUNET_SCHEDULER_cancel (err_task);
-  err_task = GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static size_t
-transmit_ready (void *cls, size_t size, void *buf)
+transmit_ready (void *cls,
+		size_t size,
+		void *buf)
 {
   char *cbuf = buf;
   struct TestMessage hdr;
@@ -313,43 +352,56 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   p1.nth = NULL;
   GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
-  if (buf == NULL)
+  if (NULL == buf)
   {
-    if ((p1.ch != NULL) && (p1.connect_status == 1))
+    if ( (NULL != p1.ch) &&
+	 (1 == p1.connect_status) )
       GNUNET_break (NULL !=
                     (p1.nth =
-                     GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                     GNUNET_CORE_notify_transmit_ready (p1.ch,
+							GNUNET_NO,
                                                         GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                        FAST_TIMEOUT, &p2.id,
+                                                        FAST_TIMEOUT,
+							&p2.id,
                                                         MESSAGESIZE,
-                                                        &transmit_ready, &p1)));
+                                                        &transmit_ready,
+							&p1)));
     return 0;
   }
   GNUNET_assert (tr_n < TOTAL_MSGS);
   ret = 0;
   GNUNET_assert (size >= MESSAGESIZE);
-  GNUNET_assert (buf != NULL);
+  GNUNET_assert (NULL != buf);
   cbuf = buf;
   do
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending message %u of size %u at offset %u\n", tr_n,
-                MESSAGESIZE, ret);
+                "Sending message %u of size %u at offset %u\n",
+		tr_n,
+                MESSAGESIZE,
+		ret);
     hdr.header.size = htons (MESSAGESIZE);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
-    GNUNET_memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+    GNUNET_memcpy (&cbuf[ret],
+		   &hdr,
+		   sizeof (struct TestMessage));
     ret += sizeof (struct TestMessage);
-    memset (&cbuf[ret], tr_n, MESSAGESIZE - sizeof (struct TestMessage));
+    memset (&cbuf[ret],
+	    tr_n,
+	    MESSAGESIZE - sizeof (struct TestMessage));
     ret += MESSAGESIZE - sizeof (struct TestMessage);
     tr_n++;
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
+    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+				       16))
       break;                    /* sometimes pack buffer full, sometimes not */
   }
   while (size - ret >= MESSAGESIZE);
   GNUNET_SCHEDULER_cancel (err_task);
   err_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				    &terminate_task_error,
+				    NULL);
 
   total_bytes_sent += ret;
   return ret;
@@ -357,48 +409,60 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_notify (void *cls,
+		const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
-  if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&pc->id,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
     return;                     /* loopback */
-  GNUNET_assert (pc->connect_status == 0);
+  GNUNET_assert (0 == pc->connect_status);
   pc->connect_status = 1;
   if (pc == &p1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Encrypted connection established to peer `%4s'\n",
+                "Encrypted connection established to peer `%s'\n",
                 GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asking core (1) for transmission to peer `%4s'\n",
+                "Asking core (1) for transmission to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
     GNUNET_SCHEDULER_cancel (err_task);
     err_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				      &terminate_task_error,
+				      NULL);
     start_time = GNUNET_TIME_absolute_get ();
     running = GNUNET_YES;
     measure_task =
-        GNUNET_SCHEDULER_add_delayed (MEASUREMENT_LENGTH, &measurement_stop,
+        GNUNET_SCHEDULER_add_delayed (MEASUREMENT_LENGTH,
+				      &measurement_stop,
                                       NULL);
 
     GNUNET_break (NULL !=
                   (p1.nth =
-                   GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                   GNUNET_CORE_notify_transmit_ready (p1.ch,
+						      GNUNET_NO,
                                                       GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                      TIMEOUT, &p2.id,
+                                                      TIMEOUT,
+						      &p2.id,
                                                       MESSAGESIZE,
-                                                      &transmit_ready, &p1)));
+                                                      &transmit_ready,
+						      &p1)));
   }
 }
 
 
 static void
-disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+disconnect_notify (void *cls,
+		   const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
-  if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&pc->id,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
     return;                     /* loopback */
   pc->connect_status = 0;
   if (NULL != measure_task)
@@ -408,12 +472,13 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_SCHEDULER_cancel (measure_task);
     measure_task = NULL;
   }
-  if (pc->nth != NULL)
+  if (NULL != pc->nth)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (pc->nth);
     pc->nth = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted connection to `%4s' cut\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Encrypted connection to `%s' cut\n",
               GNUNET_i2s (peer));
 }
 
@@ -424,7 +489,7 @@ inbound_notify (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s' %u.\n",
+              "Core provides inbound data from `%s' %u.\n",
               GNUNET_i2s (other),
               (unsigned int) ntohs (message->size));
   total_bytes_recv += ntohs (message->size);
@@ -438,7 +503,7 @@ outbound_notify (void *cls,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notifies about outbound data for `%4s'.\n",
+              "Core notifies about outbound data for `%s'.\n",
               GNUNET_i2s (other));
   return GNUNET_OK;
 }
@@ -449,7 +514,8 @@ transmit_ready (void *cls, size_t size, void *buf);
 
 
 static int
-process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
+process_mtype (void *cls,
+	       const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
   static int n;
@@ -462,34 +528,46 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, MESSAGESIZE, ntohs (message->size), ntohl (hdr->num));
+                n,
+		MESSAGESIZE,
+		ntohs (message->size),
+		ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
-    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
+    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
+					 NULL);
     return GNUNET_SYSERR;
   }
   if (ntohl (hdr->num) != n)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, MESSAGESIZE, ntohs (message->size), ntohl (hdr->num));
+                n,
+		MESSAGESIZE,
+		ntohs (message->size),
+		ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
-    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
+    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
+					 NULL);
     return GNUNET_SYSERR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
-              ntohl (hdr->num), ntohs (message->size));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got message %u of size %u\n",
+              ntohl (hdr->num),
+	      ntohs (message->size));
   n++;
   if (0 == (n % 10))
     FPRINTF (stderr, "%s",  ".");
 
-
-  if (running == GNUNET_YES)
+  if (GNUNET_YES == running)
     GNUNET_break (NULL !=
-                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
-                                                     GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                     FAST_TIMEOUT, &p2.id,
-                                                     MESSAGESIZE,
-                                                     &transmit_ready, &p1));
+                  (p1.nth = GNUNET_CORE_notify_transmit_ready (p1.ch,
+							       GNUNET_NO,
+							       GNUNET_CORE_PRIO_BEST_EFFORT,
+							       FAST_TIMEOUT,
+							       &p2.id,
+							       MESSAGESIZE,
+							       &transmit_ready,
+							       &p1)));
   return GNUNET_OK;
 }
 
@@ -518,9 +596,16 @@ init_notify (void *cls,
     OKPP;
     /* connect p2 */
     p2.ch =
-        GNUNET_CORE_connect (p2.cfg, &p2, &init_notify, &connect_notify,
-                             &disconnect_notify, &inbound_notify, GNUNET_YES,
-                             &outbound_notify, GNUNET_YES, handlers);
+        GNUNET_CORE_connect (p2.cfg,
+			     &p2,
+			     &init_notify,
+			     &connect_notify,
+                             &disconnect_notify,
+			     &inbound_notify,
+			     GNUNET_YES,
+                             &outbound_notify,
+			     GNUNET_YES,
+			     handlers);
   }
   else
   {
@@ -550,12 +635,13 @@ offer_hello_done (void *cls)
 
 
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls,
+	       const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received (my) `%s' from transport service\n", "HELLO");
+              "Received (my) HELLO from transport service\n");
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   GNUNET_memcpy (p->hello, message, ntohs (message->size));
@@ -583,7 +669,8 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 
 static void
-setup_peer (struct PeerContext *p, const char *cfgname)
+setup_peer (struct PeerContext *p,
+	    const char *cfgname)
 {
   char *binary;
 
@@ -606,13 +693,19 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
   err_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				    &terminate_task_error,
+				    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   if (test == SYMMETRIC)
   {
     setup_peer (&p1, "test_core_quota_peer1.conf");
@@ -657,11 +750,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 static void
 stop_arm (struct PeerContext *p)
 {
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
+  if (0 != GNUNET_OS_process_kill (p->arm_proc,
+				   GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "kill");
+  if (GNUNET_OK !=
+      GNUNET_OS_process_wait (p->arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
@@ -672,7 +770,8 @@ stop_arm (struct PeerContext *p)
 static int
 check ()
 {
-  char *const argv[] = { "test-core-quota-compliance",
+  char *const argv[] = {
+    "test-core-quota-compliance",
     "-c",
     "test_core_api_data.conf",
     NULL
@@ -681,8 +780,12 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-core-quota-compliance", "nohelp", options, &run,
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+		      argv,
+                      "test-core-quota-compliance",
+		      "nohelp",
+		      options,
+		      &run,
                       &ok);
   stop_arm (&p1);
   stop_arm (&p2);
@@ -691,7 +794,8 @@ check ()
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   int ret;
 

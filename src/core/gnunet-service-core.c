@@ -29,7 +29,6 @@
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_clients.h"
 #include "gnunet-service-core_kx.h"
-#include "gnunet-service-core_neighbours.h"
 #include "gnunet-service-core_sessions.h"
 #include "gnunet-service-core_typemap.h"
 
@@ -67,13 +66,13 @@ shutdown_task (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service shutting down.\n");
   GSC_CLIENTS_done ();
-  GSC_NEIGHBOURS_done ();
   GSC_SESSIONS_done ();
   GSC_KX_done ();
   GSC_TYPEMAP_done ();
   if (NULL != GSC_stats)
   {
-    GNUNET_STATISTICS_destroy (GSC_stats, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (GSC_stats,
+			       GNUNET_NO);
     GSC_stats = NULL;
   }
   GSC_cfg = NULL;
@@ -88,7 +87,8 @@ shutdown_task (void *cls)
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
@@ -97,7 +97,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSC_cfg = c;
   GSC_server = server;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg, "PEER", "PRIVATE_KEY",
+      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg,
+					       "PEER",
+					       "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -105,7 +107,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GSC_stats = GNUNET_STATISTICS_create ("core", GSC_cfg);
+  GSC_stats = GNUNET_STATISTICS_create ("core",
+					GSC_cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   GNUNET_SERVER_suspend (server);
@@ -113,9 +116,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
-  if ((GNUNET_OK != GSC_KX_init (pk,
-                                 server)) ||
-      (GNUNET_OK != GSC_NEIGHBOURS_init ()))
+  if (GNUNET_OK != GSC_KX_init (pk,
+				server))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -124,7 +126,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSC_CLIENTS_init (GSC_server);
   GNUNET_SERVER_resume (GSC_server);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Core service of `%4s' ready.\n"),
+              _("Core service of `%s' ready.\n"),
               GNUNET_i2s (&GSC_my_identity));
 }
 
