@@ -989,19 +989,23 @@ place_recv_save_data (void *cls,
   struct GNUNET_DISK_FileHandle *
     fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
                                 GNUNET_DISK_PERM_NONE);
-  GNUNET_free (filename);
-
   if (NULL != fh)
   {
-    GNUNET_DISK_file_seek (fh, plc->file_offset, GNUNET_DISK_SEEK_SET);
+    if (plc->file_offset != GNUNET_DISK_file_seek
+	  (fh, plc->file_offset, GNUNET_DISK_SEEK_SET)) {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "seek", filename);
+	GNUNET_free (filename);
+	return;
+    }
     GNUNET_DISK_file_write (fh, data, data_size);
     GNUNET_DISK_file_close (fh);
+    GNUNET_free (filename);
   }
   else
   {
+    GNUNET_free (filename);
     GNUNET_break (0);
   }
-
   plc->file_offset += data_size;
 }
 
@@ -1033,7 +1037,11 @@ place_recv_save_eom (void *cls,
   char *fn_part = NULL;
   GNUNET_asprintf (&fn_part, "%s.part", fn);
 
-  rename (fn_part, fn);
+  if (rename (fn_part, fn)) {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to rename %s into %s: %s (%d)\n",
+		  fn_part, fn, strerror (errno), errno);
+  }
 
   GNUNET_free (fn);
   GNUNET_free (fn_part);
@@ -1098,8 +1106,8 @@ place_add (const struct PlaceEnterRequest *ereq)
  *
  * @param app_id
  *        Application ID.
- * @param msg
- *        Entry message.
+ * @param ereq
+ *        Entry request.
  *
  * @return #GNUNET_OK if the place was added
  *         #GNUNET_NO if the place already exists in the hash map
@@ -1183,8 +1191,8 @@ app_place_add (const char *app_id,
  *
  * @param app_id
  *        Application ID.
- * @param msg
- *        Entry message.
+ * @param ereq
+ *        Entry request message.
  */
 static int
 app_place_save (const char *app_id,
@@ -1302,8 +1310,8 @@ app_place_remove (const char *app_id,
 /**
  * Enter place as host.
  *
- * @param req
- *        Entry request.
+ * @param hreq
+ *        Host entry request.
  * @param[out] ret_hst
  *        Returned Host struct.
  *
@@ -1541,8 +1549,8 @@ client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Enter place as guest.
  *
- * @param req
- *        Entry request.
+ * @param greq
+ *        Guest entry request.
  * @param[out] ret_gst
  *        Returned Guest struct.
  *
@@ -1589,6 +1597,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     len = strnlen (app_id, remaining);
     if (len == remaining)
     {
+      GNUNET_free (gst);
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
@@ -1623,8 +1632,8 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "%zu + %u + %u != %u\n",
                   sizeof (*greq), relay_size, join_msg_size, greq_size);
-      GNUNET_break (0);
       GNUNET_free (gst);
+      GNUNET_break (0);
       return GNUNET_SYSERR;
     }
     if (0 < relay_size)
@@ -2595,10 +2604,8 @@ guest_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
 /**
  * Get method part of next message from transmission queue.
  *
- * @param tmit_msg
- *        Next item in message transmission queue.
- * @param[out] pmeth
- *        The malloc'd message method is returned here.
+ * @param plc
+ *        Place
  *
  * @return #GNUNET_OK on success
  *         #GNUNET_NO if there are no more messages in queue.

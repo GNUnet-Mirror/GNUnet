@@ -194,7 +194,7 @@ Description of file
 
 Messages with a _file method contain a file,
 which is saved to disk upon reception at the following location:
-$GNUNET_DATA_HOME/social/files/<H(place_pub)>/<message_id>
+$GNUNET_DATA_HOME/social/files/<H(place_pub)>/<H(message_id)>
 
 ### Environment
 
@@ -386,7 +386,7 @@ typedef void
 /**
  * Establish application connection to the social service.
  *
- * The @host_place_cb and @guest_place_cb functions are
+ * The @host_cb and @guest_cb functions are
  * initially called for each entered places,
  * then later each time a new place is entered with the current app ID.
  *
@@ -416,8 +416,12 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Disconnect app.
  *
- * @param c
- *        App handle.
+ * @param app
+ *        Application handle.
+ * @param disconnect_cb
+ *        Disconnect callback.
+ * @param disconnect_cls
+ *        Disconnect closure.
  */
 void
 GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,

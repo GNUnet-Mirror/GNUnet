@@ -2452,11 +2452,13 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
  *        Configuration.
  * @param id
  *        Application ID.
- * @param notify_host
+ * @param ego_cb
+ *        Function to notify about an available ego.
+ * @param host_cb
  *        Function to notify about a place entered as host.
- * @param notify_guest
- *        Function to notify about a place entered as guest..
- * @param notify_cls
+ * @param guest_cb
+ *        Function to notify about a place entered as guest.
+ * @param cls
  *        Closure for the callbacks.
  *
  * @return Handle that can be used to stop listening.
@@ -2507,6 +2509,10 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param app
  *        Application handle.
+ * @param disconnect_cb
+ *        Disconnect callback.
+ * @param disconnect_cls
+ *        Disconnect closure.
  */
 void
 GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,

@@ -1055,9 +1055,9 @@ app_recv_ego (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
               const char *name)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Ego:   %s\t%s\n",
-              GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key), name);
+  char *s = GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ego:   %s\t%s\n", s, name);
+  GNUNET_free (s);
 
   if (0 == memcmp (&ego_pub_key, pub_key, sizeof (*pub_key))
       || (NULL != opt_ego && 0 == strcmp (opt_ego, name)))
@@ -1107,7 +1107,7 @@ core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param cls closure
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,

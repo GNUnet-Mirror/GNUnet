@@ -1082,7 +1082,7 @@ host_answer_door (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Host received entry request from guest (try %u).\n",
-              test, join_req_count);
+              (uint8_t) test, join_req_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s\n%.*s\n",
               method_name, data_size, (const char *) data);
