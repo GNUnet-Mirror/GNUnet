@@ -350,7 +350,7 @@ slave_state_get_prefix_result (void *cls, int64_t result,
                                const void *err_msg, uint16_t err_msg_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_state_get_prefix:\t%" PRId64 " (%.s)\n",
+              "slave_state_get_prefix:\t%" PRId64 " (%.*s)\n",
               result,
               (int) err_msg_size,
               (const char *) err_msg);
@@ -376,7 +376,7 @@ master_state_get_prefix_result (void *cls, int64_t result,
                                 const void *err_msg, uint16_t err_msg_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "master_state_get_prefix:\t%" PRId64 " (%s)\n", result, err_msg);
+              "master_state_get_prefix:\t%" PRId64 " (%s)\n", result, (char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
   slave_state_get_prefix ();
 }
@@ -400,7 +400,7 @@ slave_state_get_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_state_get:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result, err_msg_size, (char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
   master_state_get_prefix ();
 }
@@ -424,7 +424,7 @@ master_state_get_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "master_state_get:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result, err_msg_size, (char *) err_msg);
   // FIXME: GNUNET_assert (1 == result);
   slave_state_get ();
 }
@@ -538,7 +538,7 @@ master_history_replay_latest_result (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "master_history_replay_latest:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result, err_msg_size, (char *) err_msg);
   GNUNET_assert (9 == result);
 
   slave_history_replay_latest ();
@@ -619,7 +619,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 {
   struct TransmitClosure *tmit = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%d: Transmit notify modifier: %lu bytes available, "
+              "Test #%d: Transmit notify modifier: %u bytes available, "
               "%u modifiers left to process.\n",
               test, *data_size, GNUNET_PSYC_env_get_count (tmit->env));
 
@@ -723,7 +723,7 @@ slave_remove_cb (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_remove:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result, err_msg_size, (char *) err_msg);
 
   slave_transmit ();
 }
@@ -745,7 +745,7 @@ slave_add_cb (void *cls, int64_t result,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_add:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, err_msg);
+              result, err_msg_size, (char *) err_msg);
   slave_remove ();
 }
 
@@ -837,7 +837,7 @@ static void
 slave_join (int t)
 {
   test = t;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Joining slave.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Joining slave.\n", t);
 
   struct GNUNET_PeerIdentity origin = this_peer;
   struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();

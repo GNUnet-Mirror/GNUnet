@@ -1124,7 +1124,8 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *mem,
                                          uint64_t flags)
 {
   member_replay_request (mem, fragment_id, 0, 0, flags);
-  // FIXME: return
+  // FIXME: return something useful
+  return NULL;
 }
 
 
@@ -1153,7 +1154,8 @@ GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *mem,
                                         uint64_t flags)
 {
   member_replay_request (mem, 0, message_id, fragment_offset, flags);
-  // FIXME: return
+  // FIXME: return something useful
+  return NULL;
 }
 
 

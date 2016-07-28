@@ -856,18 +856,23 @@ store_recv_fragment_replay_result (void *cls, int64_t result,
   case GNUNET_NO:
     GNUNET_MULTICAST_replay_response (rh, NULL,
                                       GNUNET_MULTICAST_REC_NOT_FOUND);
-    break;
+    return;
 
   case GNUNET_PSYCSTORE_MEMBERSHIP_TEST_FAILED:
     GNUNET_MULTICAST_replay_response (rh, NULL,
                                       GNUNET_MULTICAST_REC_ACCESS_DENIED);
-    break;
+    return;
 
   case GNUNET_SYSERR:
     GNUNET_MULTICAST_replay_response (rh, NULL,
                                       GNUNET_MULTICAST_REC_INTERNAL_ERROR);
     return;
   }
+  /* GNUNET_MULTICAST_replay_response frees 'rh' when passed
+   * an error code, so it must be ensured no further processing
+   * is attempted on 'rh'. Maybe this should be refactored as
+   * it doesn't look very intuitive.	--lynX
+   */
   GNUNET_MULTICAST_replay_response_end (rh);
 }
 
@@ -2269,6 +2274,9 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t size = ntohs (msg->size);
   if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size - sizeof (*msg))
   {
+    /* Coverity says this printf has incompatible args
+     * but I don't see anything wrong with it.. FIXME
+     */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Message payload too large: %u < %u.\n",
                 chn,

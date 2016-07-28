@@ -195,7 +195,7 @@ state_result (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "  variable %s differs\nReceived: %.*s\nExpected: %.*s\n",
-                name, value_size, value, val_size, val);
+                name, value_size, (char*) value, val_size, (char*) val);
     GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
@@ -208,7 +208,7 @@ state_get_prefix_result (void *cls, int64_t result,
 {
   struct StateClosure *scls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_prefix_result:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_prefix_result:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result && 2 == scls->n);
 
   op = GNUNET_PSYCSTORE_state_reset (h, &channel_pub_key,
@@ -221,7 +221,7 @@ state_get_result (void *cls, int64_t result,
                   const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_result:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_result:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   scls.n = 0;
@@ -274,7 +274,7 @@ state_modify_result (void *cls, int64_t result,
                      const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_modify_result:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_modify_result:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_counters_get (h, &channel_pub_key,
@@ -288,7 +288,7 @@ state_sync_result (void *cls, int64_t result,
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_sync_result:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_sync_result:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_state_modify (h, &channel_pub_key,
@@ -332,7 +332,7 @@ message_get_latest_result (void *cls, int64_t result,
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_latest:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_latest:\t%ld\n", (long int) result);
   GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   modifiers[0] = (struct GNUNET_PSYC_Modifier) {
@@ -361,7 +361,7 @@ message_get_result (void *cls, int64_t result,
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%ld\n", (long int) result);
   GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   fcls->n = 0;
@@ -378,7 +378,7 @@ message_get_fragment_result (void *cls, int64_t result,
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_fragment:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_fragment:\t%ld\n", (long int) result);
   GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   fcls->n = 0;
@@ -397,7 +397,7 @@ fragment_get_latest_result (void *cls, int64_t result,
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_get_latest:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_get_latest:\t%ld\n", (long int) result);
   GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   fcls->n = 1;
@@ -435,7 +435,7 @@ fragment_store_result (void *cls, int64_t result,
                        const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_store:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_store:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   if ((intptr_t) cls == GNUNET_YES)
@@ -507,7 +507,7 @@ membership_test_result (void *cls, int64_t result,
                         const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   fragment_store ();
@@ -519,7 +519,7 @@ membership_store_result (void *cls, int64_t result,
                          const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_store:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_store:\t%ld\n", (long int) result);
   GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_membership_test (h, &channel_pub_key, &slave_pub_key,
