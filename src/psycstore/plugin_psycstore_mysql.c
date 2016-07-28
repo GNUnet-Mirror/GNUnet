@@ -956,6 +956,9 @@ fragment_store (void *cls,
   uint64_t message_id = GNUNET_ntohll (msg->message_id);
   uint64_t group_generation = GNUNET_ntohll (msg->group_generation);
 
+  uint64_t hop_counter = ntohl(msg->hop_counter);
+  uint64_t flags = ntohl(msg->flags);
+
   if (fragment_id > INT64_MAX || fragment_offset > INT64_MAX ||
       message_id > INT64_MAX || group_generation > INT64_MAX)
   {
@@ -972,16 +975,19 @@ fragment_store (void *cls,
 
   struct GNUNET_MY_QueryParam params_insert[] = {
     GNUNET_MY_query_param_auto_from_type (channel_key),
-    GNUNET_MY_query_param_uint32 ((const uint32_t *) &msg->hop_counter),
+    GNUNET_MY_query_param_uint64 (&hop_counter),
     GNUNET_MY_query_param_auto_from_type (&msg->signature),
     GNUNET_MY_query_param_auto_from_type (&msg->purpose),
+    //GNUNET_MY_query_param_fixed_size (&msg->signature, sizeof (msg->signature)),
+    //GNUNET_MY_query_param_fixed_size (&msg->purpose, sizeof (msg->purpose)),
     GNUNET_MY_query_param_uint64 (&fragment_id),
     GNUNET_MY_query_param_uint64 (&fragment_offset),
     GNUNET_MY_query_param_uint64 (&message_id),
     GNUNET_MY_query_param_uint64 (&group_generation),
-    GNUNET_MY_query_param_uint32 ( (const uint32_t *) &msg->flags),
+    GNUNET_MY_query_param_uint64 (&flags),
     GNUNET_MY_query_param_uint32 (&psycstore_flags),
-    GNUNET_MY_query_param_auto_from_type (&msg[1]),
+    GNUNET_MY_query_param_fixed_size (&msg[1], ntohs (msg->header.size)
+                                                  - sizeof (*msg)),
     GNUNET_MY_query_param_end
   };
 
@@ -1112,9 +1118,9 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
                     purpose,
                     purpose_size);
       mp->fragment_id = GNUNET_htonll (fragment_id);
-      mp->fragment_offset = GNUNET_htonllk (fragment_offset);
-      mp->message_id = GNUNET_htonllk (message_id);
-      mp->group_generation = GNUNET_htonllk (group_generation);
+      mp->fragment_offset = GNUNET_htonll (fragment_offset);
+      mp->message_id = GNUNET_htonll (message_id);
+      mp->group_generation = GNUNET_htonll (group_generation);
       mp->flags = msg_flags;
 
       GNUNET_memcpy (&mp[1],
