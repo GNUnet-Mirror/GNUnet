@@ -809,6 +809,8 @@ host_relay_message_part (struct Host *hst,
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == ptype)
   {
     /* FIXME: last message was unfinished, cancel & remove from queue */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	        "FIXME: last message was unfinished.\n");
   }
 
   tmit_msg = psyc_transmit_queue_message (&hst->plc, NULL, ntohs (pmsg->size),
@@ -817,12 +819,14 @@ host_relay_message_part (struct Host *hst,
   switch (ptype)
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
-    GNUNET_CONTAINER_multihashmap_put (hst->relay_msgs, &nym_pub_hash, tmit_msg,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_put
+				      (hst->relay_msgs, &nym_pub_hash, tmit_msg,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     break;
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
-    GNUNET_CONTAINER_multihashmap_remove (hst->relay_msgs, &nym_pub_hash, tmit_msg);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove
+				     (hst->relay_msgs, &nym_pub_hash, tmit_msg));
     break;
   }
 }
@@ -985,17 +989,23 @@ place_recv_save_data (void *cls,
                    place_pub_str, DIR_SEPARATOR,
                    GNUNET_ntohll (msg->message_id));
   GNUNET_free (place_pub_str);
-  GNUNET_DISK_directory_create_for_file (filename);
+  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "create", filename);
+    GNUNET_free (filename);
+    return;
+  }
+
   struct GNUNET_DISK_FileHandle *
     fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
                                 GNUNET_DISK_PERM_NONE);
   if (NULL != fh)
   {
     if (plc->file_offset != GNUNET_DISK_file_seek
-	  (fh, plc->file_offset, GNUNET_DISK_SEEK_SET)) {
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "seek", filename);
-	GNUNET_free (filename);
-	return;
+			    (fh, plc->file_offset, GNUNET_DISK_SEEK_SET)) {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "seek", filename);
+      GNUNET_free (filename);
+      return;
     }
     GNUNET_DISK_file_write (fh, data, data_size);
     GNUNET_DISK_file_close (fh);

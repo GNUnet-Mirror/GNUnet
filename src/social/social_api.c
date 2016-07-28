@@ -967,19 +967,21 @@ app_recv_place (void *cls,
 
   if (GNUNET_YES == pmsg->is_host)
   {
-    struct GNUNET_SOCIAL_HostConnection *hconn = GNUNET_malloc (sizeof (*hconn));
-    hconn->app = app;
-    hconn->plc_msg = *pmsg;
-    if (NULL != app->host_cb)
+    if (NULL != app->host_cb) {
+      struct GNUNET_SOCIAL_HostConnection *hconn = GNUNET_malloc (sizeof (*hconn));
+      hconn->app = app;
+      hconn->plc_msg = *pmsg;
       app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key, pmsg->place_state);
+      // FIXME: should this have a GNUNET_free (hconn) here?
+    }
   }
-  else
+  else if (NULL != app->guest_cb)
   {
     struct GNUNET_SOCIAL_GuestConnection *gconn = GNUNET_malloc (sizeof (*gconn));
     gconn->app = app;
     gconn->plc_msg = *pmsg;
-    if (NULL != app->guest_cb)
-      app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
+    app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
+    GNUNET_free (gconn); // FIXME: is this correct here?
   }
 }
 

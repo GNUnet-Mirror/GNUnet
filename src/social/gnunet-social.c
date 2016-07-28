@@ -727,12 +727,13 @@ guest_enter (const struct GNUNET_CRYPTO_EddsaPublicKey *pub_key,
     return;
   }
 
+  struct GNUNET_PSYC_Message *join_msg = guest_enter_msg_create ();
   gst = GNUNET_SOCIAL_guest_enter (app, ego, pub_key,
                                    GNUNET_PSYC_SLAVE_JOIN_NONE,
-                                   peer, 0, NULL, guest_enter_msg_create (),
-                                   slicer_create (),
+                                   peer, 0, NULL, join_msg, slicer_create (),
                                    guest_recv_local_enter,
                                    guest_recv_entry_decision, NULL);
+  GNUNET_free (join_msg);
   plc = GNUNET_SOCIAL_guest_get_place (gst);
 }
 
@@ -746,10 +747,12 @@ guest_enter_by_name (const char *gns_name)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Entering to place by name as guest.\n");
 
+  struct GNUNET_PSYC_Message *join_msg = guest_enter_msg_create ();
   gst = GNUNET_SOCIAL_guest_enter_by_name (app, ego, gns_name, NULL,
-                                           guest_enter_msg_create (), slicer,
+                                           join_msg, slicer,
                                            guest_recv_local_enter,
                                            guest_recv_entry_decision, NULL);
+  GNUNET_free (join_msg);
   plc = GNUNET_SOCIAL_guest_get_place (gst);
 }
 
@@ -1157,9 +1160,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (opt_ego)
   {
-    GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (opt_ego,
                                                 strlen (opt_ego),
-                                                &ego_pub_key);
+                                                &ego_pub_key))
+    {
+      FPRINTF (stderr,
+               _("Public key `%s' malformed\n"),
+               opt_ego);
+      exit_fail ();
+      return;
+    }
   }
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
