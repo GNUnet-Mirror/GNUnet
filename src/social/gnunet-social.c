@@ -218,21 +218,21 @@ static void
 timeout (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "timeout()\n");
-  disconnect ();
+  //disconnect ();
 }
 
 static void
 schedule_success (void *cls)
 {
   ret = 0;
-  disconnect ();
+  //disconnect ();
 }
 
 
 static void
 schedule_fail (void *cls)
 {
-  disconnect ();
+  //disconnect ();
 }
 
 
@@ -931,7 +931,7 @@ guest_reconnected (void *cls, int result,
                    uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Guest reconnected.\n");
+              "Guest reconnected to place %s.\n", GNUNET_CRYPTO_eddsa_public_key_to_string(place_pub_key));
 
   if (op_guest_leave) {
     guest_leave ();

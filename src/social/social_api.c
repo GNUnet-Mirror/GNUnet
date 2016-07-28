@@ -1157,9 +1157,6 @@ guest_cleanup (void *cls)
  *        Application handle.
  * @param ego
  *        Identity of the host.
- * @param place_key
- *        Private-public key pair of the place.
- *        NULL to generate a key.
  * @param policy
  *        Policy specifying entry and history restrictions for the place.
  * @param slicer
@@ -1173,7 +1170,7 @@ guest_cleanup (void *cls)
  * @param cls
  *        Closure for the callbacks.
  *
- * @return Handle for the host.
+ * @return Handle for the host. This handle contains the pubkey.
  */
 struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
