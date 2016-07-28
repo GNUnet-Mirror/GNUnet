@@ -1539,7 +1539,7 @@ client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
 
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%p Client connected as host to place %s.\n",
-                hst, &plc->pub_key_hash);
+                hst, GNUNET_h2s (&plc->pub_key_hash));
 
     struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
     cli->client = client;
