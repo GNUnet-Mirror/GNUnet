@@ -6,30 +6,19 @@ use strict;
 use warnings;
 my $DEFAULT_SOCKET = '/tmp/gnunet-logread-ipc.sock';
 
+print STDERR <<X if -t STDIN and $#ARGV == -1;
+*** For a usage message, try '$0 -h'.
+*** For documentation, try 'perldoc $0'.
+*** Listening for GNUNET_log events on STDIN. Type CTRL-D to terminate.
+
+X
+
 use Getopt::Std;
 my (%opts, $name, $ipc, $msg_level, $msg_regex);
-getopts ('i:x:n:s:L:m:fh', \%opts);
+getopts ('i:x:n:s:L:m:fhq', \%opts);
 
-die <<X if $opts{h};
-Usage:
-	<gnunet-service> |& $0 [<options>]
-    or
-	$0 [<options>] [<logfile>]
-
-Options:
-    -f				Follow input from IPC FIFO socket.
-
-   Regular screen output options:
-    -i <regex>			Include only messages that match <regex>.
-    -x <regex>			Exclude all messages that match <regex>.
-
-   Options to enable message passing to IPC socket:
-    -n <component_name>		Name of this component to use for IPC logging.
-    -s </path/to/ipc.sock>	Default = $DEFAULT_SOCKET
-    -L <LOGLEVEL>		Minimum level of messages to pass on.
-                                Log levels: NONE, ERROR, WARNING, INFO, DEBUG.
-    -m <regex>		        Only pass messages matching a regular expression.
-X
+use Pod::Usage qw( pod2usage );
+die pod2usage if $opts{h};
 
 use POSIX qw(mkfifo);
 
@@ -149,4 +138,62 @@ sub perform {
 
     print;
 }
+
+__END__
+
+=pod
+
+=head1 NAME
+
+gnunet-logread - a GNUnet log analyzer, colorizer and aggregator
+
+=head1 SYNOPSIS
+
+	<gnunet-service> |& $0 [<options>]
+    or
+	$0 [<options>] [<logfile>]
+
+ Options:
+    -f				Follow input from IPC FIFO socket.
+
+   Regular screen output options:
+    -i <regex>			Include only messages that match <regex>.
+    -x <regex>			Exclude all messages that match <regex>.
+    -q				Quiet: Do not show usage advice to new users.
+
+   Options to forward messages to the IPC FIFO socket:
+    -n <component_name>		Name of the component we are forwarding messages for.
+    -s </path/to/ipc.sock>	Default = $DEFAULT_SOCKET
+    -L <LOGLEVEL>		Minimum level of messages to forward:
+                                Log levels: NONE, ERROR, WARNING, INFO, DEBUG.
+    -m <regex>		        Only forward messages matching a regular expression.
+
+ See 'perldoc gnunet-logread' for a longer explanation.
+
+=head1 MOTIVATION
+
+GNUnet debug logs are a tedious read, but given a complex system that we 
+cannot run all parts of in a debugger all the time, some gathering and
+structuring of events and message passing is useful.
+
+At first, this tool simply makes logs easier to read. Both if viewed in
+real-time or taken from disk. Then it also allows to extract all message
+passing events from it and forward them to a special process that aggregates
+all message passing events and therefore helps you make sense of all the
+inter-process communication (IPC) happening between the various pieces of
+the GNUnet system beast.
+
+That master process is simply an extra gnunet-logread that you run in a
+separate window and adorn it with the '-f' flag. The submitting processes
+instead need to be given a '-n' flag. That is because from the GNUnet logs
+it isn't clear which process events belong too. For example you may be
+having events taking place in the 'util' subsystem of gnunet-psyc-service
+just as much as in the 'util' subsystem of gnunet-multicast-service. In
+order to make sense of them it is necessary to manually add that info. This
+could be remedied by extending the semantics of the GNUNET_log facility
+instead, but that is still subject to further consideration.
+
+=head1 AUTHORS
+
+tg & lynX
 
