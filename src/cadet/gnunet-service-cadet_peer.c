@@ -787,13 +787,12 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_ATS_connectivity_suggest_cancel (peer->connectivity_suggestion);
     peer->connectivity_suggestion = NULL;
   }
-    /* Following check was 'while' instead of 'if', but GCP_queue_destroy
-     * frees 'peer->queue_head' so the while checks on freed memory.
-     * Not sure if 'if' is what you wanted, but 'while' can't be
-     * correct. --lynX
-     */
-  if (NULL != peer->queue_head)
+  while (NULL != peer->queue_head)
   {
+    /* This function destroys the current peer->queue_head but
+     * replaces it with the next in the queue, so it is correct
+     * to while() here.
+     */
     GCP_queue_destroy (peer->queue_head, GNUNET_YES, GNUNET_NO, 0);
   }
   if (NULL != peer->core_transmit)
