@@ -43,7 +43,6 @@
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_CORE_Handle *core;
   struct GNUNET_STATISTICS_Handle *stats;
@@ -123,22 +122,12 @@ shutdown_testcase ()
     GNUNET_free (current_adv_uri);
     current_adv_uri = NULL;
   }
-  if (adv_peer.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (adv_peer.th);
-    adv_peer.th = NULL;
-  }
-  if (learn_peer.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (learn_peer.th);
-    learn_peer.th = NULL;
-  }
-  if (adv_peer.core != NULL)
+  if (NULL != adv_peer.core)
   {
     GNUNET_CORE_disconnect (adv_peer.core);
     adv_peer.core = NULL;
   }
-  if (learn_peer.core != NULL)
+  if (NULL != learn_peer.core)
   {
     GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
@@ -153,13 +142,18 @@ shutdown_testcase ()
   adv_peer.arm_proc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist client ARM process.\n");
-  if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait (learn_peer.arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+  if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc,
+				   GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "kill");
+  if (GNUNET_OK !=
+      GNUNET_OS_process_wait (learn_peer.arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "waitpid");
   GNUNET_OS_process_destroy (learn_peer.arm_proc);
   learn_peer.arm_proc = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Shutdown complete....\n");
 }
 
 /**
