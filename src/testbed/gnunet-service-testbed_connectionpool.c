@@ -27,6 +27,7 @@
 #include "gnunet-service-testbed.h"
 #include "gnunet-service-testbed_connectionpool.h"
 #include "testbed_api_operations.h"
+#include "gnunet_transport_core_service.h"
 
 /**
  * Redefine LOG with a changed log component string
@@ -71,7 +72,7 @@ struct PooledConnection
   /**
    * The transport handle to the peer corresponding to this entry; can be NULL
    */
-  struct GNUNET_TRANSPORT_Handle *handle_transport;
+  struct GNUNET_TRANSPORT_CoreHandle *handle_transport;
 
   /**
    * The core handle to the peer corresponding to this entry; can be NULL
@@ -525,16 +526,20 @@ peer_connect_notify_cb (void *cls,
  *
  * @param cls the #PooledConnection object
  * @param peer the peer that connected
+ * @param mq queue for sending data to @a peer
+ * @return NULL
  */
-static void
+static void *
 transport_peer_connect_notify_cb (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer)
+                                  const struct GNUNET_PeerIdentity *peer,
+				  struct GNUNET_MQ_Handle *mq)
 {
   struct PooledConnection *entry = cls;
 
   peer_connect_notify_cb (entry,
                           peer,
                           GST_CONNECTIONPOOL_SERVICE_TRANSPORT);
+  return NULL;
 }
 
 
@@ -553,12 +558,13 @@ opstart_get_handle_transport (void *cls)
   LOG_DEBUG ("Opening a transport connection to peer %u\n",
              entry->index);
   entry->handle_transport =
-      GNUNET_TRANSPORT_connect (entry->cfg,
-                                NULL,
-                                entry,
-                                NULL,
-                                &transport_peer_connect_notify_cb,
-                                NULL);
+      GNUNET_TRANSPORT_core_connect (entry->cfg,
+				     NULL,
+				     NULL,
+				     entry,
+				     &transport_peer_connect_notify_cb,
+				     NULL,
+				     NULL);
   if (NULL == entry->handle_transport)
   {
     GNUNET_break (0);
@@ -589,7 +595,7 @@ oprelease_get_handle_transport (void *cls)
 
   if (NULL == entry->handle_transport)
     return;
-  GNUNET_TRANSPORT_disconnect (entry->handle_transport);
+  GNUNET_TRANSPORT_core_disconnect (entry->handle_transport);
   entry->handle_transport = NULL;
 }
 
@@ -601,7 +607,8 @@ oprelease_get_handle_transport (void *cls)
  * @param peer peer identity this notification is about
  */
 static void
-core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+core_peer_connect_cb (void *cls,
+		      const struct GNUNET_PeerIdentity *peer)
 {
   struct PooledConnection *entry = cls;
 
@@ -634,9 +641,7 @@ core_startup_cb (void *cls,
   }
   GNUNET_assert (NULL == entry->peer_identity);
   entry->peer_identity = GNUNET_new (struct GNUNET_PeerIdentity);
-  GNUNET_memcpy (entry->peer_identity,
-          my_identity,
-          sizeof (struct GNUNET_PeerIdentity));
+  *entry->peer_identity = *my_identity;
   if (0 == entry->demand)
     return;
   if (NULL != entry->notify_task)

@@ -46,7 +46,7 @@ struct ConnectivitySuggestContext
   /**
    * The transport handle obtained from cache. Do NOT close/disconnect.
    */
-  struct GNUNET_TRANSPORT_Handle *th_;
+  struct GNUNET_TRANSPORT_CoreHandle *th_;
 
   /**
    * Configuration of the peer from cache. Do not free!
@@ -178,7 +178,7 @@ struct OverlayConnectContext
    * Transport handle of the first peer obtained from cache to get its HELLO. Do
    * NOT close/disconnect.
    */
-  struct GNUNET_TRANSPORT_Handle *p1th_;
+  struct GNUNET_TRANSPORT_CoreHandle *p1th_;
 
   /**
    * The #GST_ConnectionPool_GetHandle for the peer1's transport handle
@@ -709,7 +709,7 @@ overlay_connect_notify (void *cls,
 static void
 occ_cache_get_handle_ats_occ_cb (void *cls,
                                  struct GNUNET_CORE_Handle *ch,
-                                 struct GNUNET_TRANSPORT_Handle *th,
+                                 struct GNUNET_TRANSPORT_CoreHandle *th,
                                  struct GNUNET_ATS_ConnectivityHandle *ac,
                                  const struct GNUNET_PeerIdentity *my_identity,
                                  const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -759,7 +759,7 @@ occ_cache_get_handle_ats_occ_cb (void *cls,
 static void
 occ_cache_get_handle_ats_rocc_cb (void *cls,
                                   struct GNUNET_CORE_Handle *ch,
-                                  struct GNUNET_TRANSPORT_Handle *th,
+                                  struct GNUNET_TRANSPORT_CoreHandle *th,
                                   struct GNUNET_ATS_ConnectivityHandle *ac,
                                   const struct GNUNET_PeerIdentity *my_identity,
                                   const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -921,7 +921,7 @@ send_hello (void *cls)
 static void
 p2_transport_connect_cache_callback (void *cls,
                                      struct GNUNET_CORE_Handle *ch,
-                                     struct GNUNET_TRANSPORT_Handle *th,
+                                     struct GNUNET_TRANSPORT_CoreHandle *th,
                                      struct GNUNET_ATS_ConnectivityHandle *ac,
                                      const struct GNUNET_PeerIdentity *ignore_,
                                      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -1063,7 +1063,7 @@ hello_update_cb (void *cls,
 static void
 p1_transport_connect_cache_callback (void *cls,
                                      struct GNUNET_CORE_Handle *ch,
-                                     struct GNUNET_TRANSPORT_Handle *th,
+                                     struct GNUNET_TRANSPORT_CoreHandle *th,
                                      struct GNUNET_ATS_ConnectivityHandle *ac,
                                      const struct GNUNET_PeerIdentity *ignore_,
                                      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -1108,7 +1108,7 @@ p1_transport_connect_cache_callback (void *cls,
 static void
 occ_cache_get_handle_core_cb (void *cls,
                               struct GNUNET_CORE_Handle *ch,
-                              struct GNUNET_TRANSPORT_Handle *th,
+                              struct GNUNET_TRANSPORT_CoreHandle *th,
                               struct GNUNET_ATS_ConnectivityHandle *ac,
                               const struct GNUNET_PeerIdentity *my_identity,
                               const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -1759,7 +1759,7 @@ attempt_connect_task (void *cls)
 static void
 rocc_cache_get_handle_transport_cb (void *cls,
                                     struct GNUNET_CORE_Handle *ch,
-                                    struct GNUNET_TRANSPORT_Handle *th,
+                                    struct GNUNET_TRANSPORT_CoreHandle *th,
                                     struct GNUNET_ATS_ConnectivityHandle *ac,
                                     const struct GNUNET_PeerIdentity *ignore_,
                                     const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -1774,9 +1774,9 @@ rocc_cache_get_handle_transport_cb (void *cls,
   }
   rocc->tcc.th_ = th;
   rocc->tcc.cfg = cfg;
-  if (GNUNET_YES ==
-      GNUNET_TRANSPORT_check_peer_connected (rocc->tcc.th_,
-                                             &rocc->a_id))
+  if (NULL !=
+      GNUNET_TRANSPORT_core_get_mq (rocc->tcc.th_,
+				    &rocc->a_id))
   {
     LOG_DEBUG ("0x%llx: Target peer %s already connected to local peer: %u\n",
                rocc->op_id,

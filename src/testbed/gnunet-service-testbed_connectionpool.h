@@ -25,7 +25,7 @@
  */
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_transport_service.h"
+#include "gnunet_transport_core_service.h"
 
 /**
  * The request handle for obtaining a pooled connection
@@ -90,7 +90,7 @@ GST_connection_pool_destroy (void);
 typedef void
 (*GST_connection_pool_connection_ready_cb) (void *cls,
                                             struct GNUNET_CORE_Handle *ch,
-                                            struct GNUNET_TRANSPORT_Handle *th,
+                                            struct GNUNET_TRANSPORT_CoreHandle *th,
                                             struct GNUNET_ATS_ConnectivityHandle *ac,
                                             const struct GNUNET_PeerIdentity *peer_id,
                                             const struct GNUNET_CONFIGURATION_Handle *cfg);
