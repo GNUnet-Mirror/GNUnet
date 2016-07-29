@@ -1026,6 +1026,7 @@ message_add_flags (void *cls,
 
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->update_message_flags;
 
+  int sql_ret;
   int ret = GNUNET_SYSERR;
 
   struct GNUNET_MY_QueryParam params_update[] = {
@@ -1035,13 +1036,17 @@ message_add_flags (void *cls,
     GNUNET_MY_query_param_end
   };
 
-  if (GNUNET_OK != GNUNET_MY_exec_prepared (plugin->mc,
+  sql_ret = GNUNET_MY_exec_prepared (plugin->mc,
                                             stmt,
-                                            params_update))
+                                            params_update);
+  switch(sql_ret)
   {
-    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    case GNUNET_OK:
+      ret = GNUNET_OK;
+      break;
+    default:
+       LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql execute prepared", stmt);
-    return GNUNET_SYSERR;
   }
 
   if (0 != mysql_stmt_reset (GNUNET_MYSQL_statement_get_stmt (stmt)))
@@ -1151,16 +1156,18 @@ fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stm
   int ret = GNUNET_SYSERR;
   int sql_ret;
 
-  struct GNUNET_MULTICAST_MessageHeader *msg
-    = GNUNET_malloc (sizeof (*msg) + 0);
-
   sql_ret = GNUNET_MY_exec_prepared (plugin->mc,
                           stmt,
                           params);
   switch(sql_ret)
   {
+    case GNUNET_NO:
+      if (ret != GNUNET_OK)
+          ret = GNUNET_NO;
+      break;
     case GNUNET_YES:
        ret = fragment_row (stmt, cb, cb_cls);
+       (*returned_fragments)++;
       break;
     default:
       LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -1187,9 +1194,7 @@ fragment_get (void *cls,
               void *cb_cls)
 {
   struct Plugin *plugin = cls;
-
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_fragments;
-
   int ret = GNUNET_SYSERR;
   *returned_fragments = 0;
 
