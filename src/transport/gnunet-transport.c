@@ -938,6 +938,7 @@ monitor_notify_disconnect (void *cls,
  *
  * @param cls closure
  * @param message the message
+ * @return #GNUNET_OK
  */
 static int
 check_dummy (void *cls,
