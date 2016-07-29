@@ -1155,6 +1155,21 @@ fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stm
   int ret = GNUNET_SYSERR;
   int sql_ret;
 
+  if(NULL == plugin->mc)
+  {
+    fprintf(stderr, "bla\n");
+  }
+
+  if(NULL == stmt)
+  {
+    fprintf(stderr, "blo\n" );
+  }
+
+  if(NULL == params)
+  {
+    fprintf(stderr, "toot\n" );
+  }
+
   sql_ret = GNUNET_MY_exec_prepared (plugin->mc,
                                     stmt,
                                     params);

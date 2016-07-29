@@ -267,6 +267,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
                                    fragment_id, fragment_id,
                                    &ret_frags, fragment_cb, &fcls));
+
   GNUNET_assert (fcls.n == 1);
 
   struct GNUNET_MULTICAST_MessageHeader *msg1
