@@ -29,6 +29,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_manipulation_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_testing_lib.h"
 #include <sqlite3.h>
@@ -94,7 +95,7 @@ static void *hostkeys_data;
 /**
  * Handle to the transport service.  This is used for setting link metrics
  */
-static struct GNUNET_TRANSPORT_Handle *transport;
+static struct GNUNET_TRANSPORT_ManipulationHandle *transport;
 
 /**
  * The number of hostkeys in the hostkeys array
@@ -287,7 +288,7 @@ do_shutdown (void *cls)
 {
   if (NULL != transport)
   {
-    GNUNET_TRANSPORT_disconnect (transport);
+    GNUNET_TRANSPORT_manipulation_disconnect (transport);
     transport = NULL;
   }
   cleanup_map ();
@@ -398,7 +399,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK != load_keys (c))
       goto close_db;
 
-  transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
+  transport = GNUNET_TRANSPORT_manipulation_connect (c);
   if (NULL == transport)
   {
     GNUNET_break (0);
@@ -410,7 +411,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   nrows = db_read_whitelist (db, pid, &wl_head);
   if ((GNUNET_SYSERR == nrows) || (0 == nrows))
   {
-    GNUNET_TRANSPORT_disconnect (transport);
+    GNUNET_TRANSPORT_manipulation_disconnect (transport);
     goto close_db;
   }
   map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_NO);
@@ -426,11 +427,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     DEBUG ("Setting %u ms latency to peer `%s'\n",
            wl_entry->latency,
            GNUNET_i2s (&identity));
-    GNUNET_TRANSPORT_set_traffic_metric (transport,
-                                         &identity,
-                                         &prop,
-                                         delay,
-                                         delay);
+    GNUNET_TRANSPORT_manipulation_set (transport,
+				       &identity,
+				       &prop,
+				       delay,
+				       delay);
     GNUNET_free (wl_entry);
   }
   bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
