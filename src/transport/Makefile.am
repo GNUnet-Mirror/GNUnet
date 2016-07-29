@@ -166,7 +166,7 @@ libgnunettransporttesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
 
 libgnunettransport_la_SOURCES = \
-  transport_api.c transport.h \
+  transport.h \
   transport_api_address_to_string.c \
   transport_api_blacklist.c \
   transport_api_core.c \
