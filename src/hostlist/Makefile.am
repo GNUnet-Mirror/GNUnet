@@ -59,15 +59,20 @@ check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \
  test_gnunet_daemon_hostlist_learning
+else
+if HAVE_LIBCURL
+check_PROGRAMS = \
+ test_gnunet_daemon_hostlist \
+ test_gnunet_daemon_hostlist_reconnect \
+ test_gnunet_daemon_hostlist_learning
+endif
+endif
 
 if HAVE_MHD
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
- test_gnunet_daemon_hostlist \
- test_gnunet_daemon_hostlist_reconnect \
- test_gnunet_daemon_hostlist_learning
-endif
+ $(check_PROGRAMS)
 endif
 endif
 

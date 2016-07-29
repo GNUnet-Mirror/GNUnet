@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2009 GNUnet e.V.
+     Copyright (C) 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,6 +26,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_core_service.h"
 
 
 /**
@@ -40,7 +41,7 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
+  struct GNUNET_TRANSPORT_CoreHandle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
   struct GNUNET_OS_Process *arm_proc;
@@ -54,28 +55,29 @@ static struct PeerContext p2;
 static void
 clean_up (void *cls)
 {
-  if (p1.th != NULL)
+  if (NULL != p1.th)
   {
-    if (p1.ghh != NULL)
+    if (NULL != p1.ghh)
     {
       GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
       p1.ghh = NULL;
     }
-    GNUNET_TRANSPORT_disconnect (p1.th);
+    GNUNET_TRANSPORT_core_disconnect (p1.th);
     p1.th = NULL;
   }
-  if (p2.th != NULL)
+  if (NULL != p2.th)
   {
-    if (p2.ghh != NULL)
+    if (NULL != p2.ghh)
     {
       GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
       p2.ghh = NULL;
     }
-    GNUNET_TRANSPORT_disconnect (p2.th);
+    GNUNET_TRANSPORT_core_disconnect (p2.th);
     p2.th = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * Timeout, give up.
@@ -96,24 +98,24 @@ timeout_error (void *cls)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param latency current latency of the connection
- * @param distance in overlay hops, as given by transport plugin
+ * @param mq message queue to send messages to the peer
  */
-static void
+static void *
 notify_connect (void *cls,
-		const struct GNUNET_PeerIdentity *peer)
+		const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_MQ_Handle *mq)
 {
-  if (peer == NULL)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peers connected, shutting down.\n");
   ok = 0;
-  if (timeout_task != NULL)
+  if (NULL != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&clean_up, NULL);
+  GNUNET_SCHEDULER_add_now (&clean_up,
+			    NULL);
+  return NULL;
 }
 
 
@@ -131,23 +133,38 @@ process_hello (void *cls,
 
 
 static void
-setup_peer (struct PeerContext *p, const char *cfgname)
+setup_peer (struct PeerContext *p,
+	    const char *cfgname)
 {
   char *binary;
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                             NULL, NULL, NULL,
+    GNUNET_OS_start_process (GNUNET_YES,
+			     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                             NULL,
+			     NULL,
+			     NULL,
                              binary,
                              "gnunet-service-arm",
-                             "-c", cfgname, NULL);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th =
-      GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, &notify_connect, NULL);
+                             "-c",
+			     cfgname,
+			     NULL);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_load (p->cfg,
+					    cfgname));
+  p->th = GNUNET_TRANSPORT_core_connect (p->cfg,
+					 NULL,
+					 NULL,
+					 p,
+					 &notify_connect,
+					 NULL,
+					 NULL);
   GNUNET_assert (p->th != NULL);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
+				       &process_hello,
+				       p);
   GNUNET_free (binary);
 }
 
@@ -157,12 +174,18 @@ waitpid_task (void *cls)
 {
   struct PeerContext *p = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Killing ARM process.\n");
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Killing ARM process.\n");
+  if (0 != GNUNET_OS_process_kill (p->arm_proc,
+				   GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "kill");
+  if (GNUNET_OK !=
+      GNUNET_OS_process_wait (p->arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
@@ -176,7 +199,8 @@ stop_arm (struct PeerContext *p)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking ARM to stop core service\n");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				&waitpid_task, p);
+				&waitpid_task,
+				p);
 }
 
 
@@ -204,15 +228,18 @@ run (void *cls,
 					       NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
-  setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
-  setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
+  setup_peer (&p1,
+	      "test_gnunet_daemon_hostlist_peer1.conf");
+  setup_peer (&p2,
+	      "test_gnunet_daemon_hostlist_peer2.conf");
 }
 
 
 static int
 check ()
 {
-  char *const argv[] = { "test-gnunet-daemon-hostlist",
+  char *const argv[] = {
+    "test-gnunet-daemon-hostlist",
     "-c", "test_gnunet_daemon_hostlist_data.conf",
     NULL
   };
@@ -220,8 +247,12 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-gnunet-daemon-hostlist", "nohelp", options, &run,
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+		      argv,
+                      "test-gnunet-daemon-hostlist",
+		      "nohelp",
+		      options,
+		      &run,
                       &ok);
   return ok;
 }
