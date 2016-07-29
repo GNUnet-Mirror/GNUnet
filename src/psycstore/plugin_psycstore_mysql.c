@@ -330,9 +330,9 @@ database_setup (struct Plugin *plugin)
                               "  channel_id INT NOT NULL REFERENCES channels(id),\n"
                               "  slave_id INT NOT NULL REFERENCES slaves(id),\n"
                               "  did_join INT NOT NULL,\n"
-                              "  announced_at INT NOT NULL,\n"
-                              "  effective_since INT NOT NULL,\n"
-                              "  group_generation INT NOT NULL\n"
+                              "  announced_at BIGINT UNSIGNED NOT NULL,\n"
+                              "  effective_since BIGINT UNSIGNED NOT NULL,\n"
+                              "  group_generation BIGINT UNSIGNED NOT NULL\n"
                               ");");
 
 /*** FIX because IF NOT EXISTS doesn't work ***/
@@ -344,15 +344,15 @@ database_setup (struct Plugin *plugin)
   GNUNET_MYSQL_statement_run (plugin->mc,
                               "CREATE TABLE IF NOT EXISTS messages (\n"
                               "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  hop_counter INT NOT NULL,\n"
+                              "  hop_counter BIGINT UNSIGNED NOT NULL,\n"
                               "  signature BLOB,\n"
                               "  purpose BLOB,\n"
-                              "  fragment_id INT NOT NULL,\n"
-                              "  fragment_offset INT NOT NULL,\n"
-                              "  message_id INT NOT NULL,\n"
-                              "  group_generation INT NOT NULL,\n"
-                              "  multicast_flags INT NOT NULL,\n"
-                              "  psycstore_flags INT NOT NULL,\n"
+                              "  fragment_id BIGINT UNSIGNED NOT NULL,\n"
+                              "  fragment_offset BIGINT UNSIGNED NOT NULL,\n"
+                              "  message_id BIGINT UNSIGNED NOT NULL,\n"
+                              "  group_generation BIGINT UNSIGNED NOT NULL,\n"
+                              "  multicast_flags BIGINT UNSIGNED NOT NULL,\n"
+                              "  psycstore_flags BIGINT UNSIGNED NOT NULL,\n"
                               "  data BLOB,\n"
                               "  PRIMARY KEY (channel_id, fragment_id),\n"
                               "  UNIQUE KEY(channel_id, message_id, fragment_offset)\n"
@@ -952,6 +952,7 @@ fragment_store (void *cls,
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
 
   uint64_t fragment_id = GNUNET_ntohll (msg->fragment_id);
+
   uint64_t fragment_offset = GNUNET_ntohll (msg->fragment_offset);
   uint64_t message_id = GNUNET_ntohll (msg->message_id);
   uint64_t group_generation = GNUNET_ntohll (msg->group_generation);
@@ -978,8 +979,6 @@ fragment_store (void *cls,
     GNUNET_MY_query_param_uint64 (&hop_counter),
     GNUNET_MY_query_param_auto_from_type (&msg->signature),
     GNUNET_MY_query_param_auto_from_type (&msg->purpose),
-    //GNUNET_MY_query_param_fixed_size (&msg->signature, sizeof (msg->signature)),
-    //GNUNET_MY_query_param_fixed_size (&msg->purpose, sizeof (msg->purpose)),
     GNUNET_MY_query_param_uint64 (&fragment_id),
     GNUNET_MY_query_param_uint64 (&fragment_offset),
     GNUNET_MY_query_param_uint64 (&message_id),
@@ -1062,25 +1061,24 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
               void *cb_cls)
 {
 
-  uint64_t fragment_id;
-  uint64_t fragment_offset;
-  uint64_t message_id;
-  uint64_t group_generation;
-  void *buf;
-  size_t buf_size;
-  int ret = GNUNET_SYSERR;
-  int sql_ret;
-  uint64_t flags;
-  struct GNUNET_MULTICAST_MessageHeader msg;
-  struct GNUNET_MULTICAST_MessageHeader *mp;
-
-
   uint32_t hop_counter;
   void *signature = NULL;
   void *purpose = NULL;
   size_t signature_size;
   size_t purpose_size;
-  uint32_t msg_flags;
+
+  uint64_t fragment_id;
+  uint64_t fragment_offset;
+  uint64_t message_id;
+  uint64_t group_generation;
+  uint64_t flags;
+  void *buf;
+  size_t buf_size;
+  int ret = GNUNET_SYSERR;
+  int sql_ret;
+  struct GNUNET_MULTICAST_MessageHeader *mp;
+
+  uint64_t msg_flags;
 
 
   struct GNUNET_MY_ResultSpec results[] = {
@@ -1091,7 +1089,7 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
     GNUNET_MY_result_spec_uint64 (&fragment_offset),
     GNUNET_MY_result_spec_uint64 (&message_id),
     GNUNET_MY_result_spec_uint64 (&group_generation),
-    GNUNET_MY_result_spec_uint32 (&msg_flags),
+    GNUNET_MY_result_spec_uint64 (&msg_flags),
     GNUNET_MY_result_spec_uint64 (&flags),
     GNUNET_MY_result_spec_variable_size (&buf,
                                          &buf_size),
@@ -1108,9 +1106,11 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
       break;
     case GNUNET_OK:
 
-      mp = GNUNET_malloc (sizeof (msg) + buf_size);
-      *mp = msg;  
-      mp->hop_counter = hop_counter;
+      mp = GNUNET_malloc (sizeof (*mp) + buf_size); 
+      
+      mp->header.size = htons (sizeof (*mp) + buf_size);
+      mp->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
+      mp->hop_counter = htonl (hop_counter);
       GNUNET_memcpy (&mp->signature,
                     signature,
                     signature_size);
@@ -1121,7 +1121,7 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
       mp->fragment_offset = GNUNET_htonll (fragment_offset);
       mp->message_id = GNUNET_htonll (message_id);
       mp->group_generation = GNUNET_htonll (group_generation);
-      mp->flags = msg_flags;
+      mp->flags = htonl(msg_flags);
 
       GNUNET_memcpy (&mp[1],
                     buf,
@@ -1129,17 +1129,15 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
       ret = cb (cb_cls,
                 mp,
                 (enum GNUNET_PSYCSTORE_MessageFlags) flags);
-      if (ret != GNUNET_YES)
-        sql_ret = GNUNET_NO;
-      GNUNET_free (mp);
+      
+      GNUNET_MY_cleanup_result (results);
+ 
       break;
     default:
       LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "mysql extract_result", stmt);
   }
 
-//  GNUNET_MY_cleanup_result (results);
- 
   return ret;
 }
 
