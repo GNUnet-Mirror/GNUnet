@@ -72,9 +72,10 @@ enum GeneratorType
  * @param masters array of master peers
  * @param slaves array of master peers
  */
-typedef void (*GNUNET_ATS_TEST_TopologySetupDoneCallback) (void *cls,
-    struct BenchmarkPeer *masters,
-    struct BenchmarkPeer *slaves);
+typedef void
+(*GNUNET_ATS_TEST_TopologySetupDoneCallback) (void *cls,
+					      struct BenchmarkPeer *masters,
+					      struct BenchmarkPeer *slaves);
 
 /**
  * Callback called when logging is required for the data contained
