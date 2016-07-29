@@ -3482,6 +3482,13 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   int droppable;
 
   GCC_check_connections ();
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (0 == fc->queue_max)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
   GNUNET_memcpy (data, message, size);
@@ -3490,13 +3497,6 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
        GC_f2s(fwd), size);
-
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (0 == fc->queue_max)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
   droppable = GNUNET_NO == force;
   switch (type)
   {

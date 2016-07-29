@@ -45,7 +45,7 @@ if (open HEADER, $filename)
 Could not read $filename for message codes:
 	$!.
 Please provide a \$GNUNET_PREFIX environment variable to replace "/usr".
-Try also '$0 -h' for help
+Try also '$0 -h' for help.
 
 X
 }
@@ -186,7 +186,7 @@ the GNUnet system beast.
 That master process is simply an extra gnunet-logread that you run in a
 separate window and adorn it with the '-f' flag. The submitting processes
 instead need to be given a '-n' flag. That is because from the GNUnet logs
-it isn't clear which process events belong too. For example you may be
+it isn't clear which process events belong to. For example you may be
 having events taking place in the 'util' subsystem of gnunet-psyc-service
 just as much as in the 'util' subsystem of gnunet-multicast-service. In
 order to make sense of them it is necessary to manually add that info. This

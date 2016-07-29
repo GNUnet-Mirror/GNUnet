@@ -4252,6 +4252,7 @@ GCT_send_connection_acks (struct CadetTunnel *t)
     {
       continue;
     }
+    GNUNET_assert(cs != 0);
     allow_per_connection = to_allow/cs;
     to_allow -= allow_per_connection;
     cs--;

@@ -575,10 +575,7 @@ GNUNET_SOCKS_do_connect (const char *service_name,
       GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "SOCKSPORT", &port0))
     port0 = 9050;
   /* A typical Tor client should usually try port 9150 for the TBB too, but
-   * GUNNet can probably assume a system Tor instalation. */
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
-    host0 = "127.0.0.1";
+   * GUNNet can probably assume a system Tor installation. */
   if (port0 > 65535 || port0 <= 0)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -587,7 +584,6 @@ GNUNET_SOCKS_do_connect (const char *service_name,
 	 port0,service_name);
     return NULL;
   }
-
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port1))
       || (port1 > 65535) || (port1 <= 0) ||
@@ -600,9 +596,11 @@ GNUNET_SOCKS_do_connect (const char *service_name,
 	 service_name,port1,host1);
     return NULL;
   }
-
-  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, host0, port0);
-  GNUNET_free (host0);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
+    host0 = NULL; /* you don't want to feed a static string to free(), right? */
+  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, host0 || "127.0.0.1", port0);
+  if (host0) GNUNET_free (host0);
 
   /* Sets to NULL if they do not exist */
   GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
