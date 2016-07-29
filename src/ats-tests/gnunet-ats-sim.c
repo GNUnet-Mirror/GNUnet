@@ -168,32 +168,25 @@ do_timeout (void *cls)
 
 
 static void
-transport_recv_cb (void *cls,
-                   const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_MessageHeader *message)
+log_request__cb (void *cls,
+		 const struct GNUNET_HELLO_Address *address,
+		 int address_active,
+		 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		 const struct GNUNET_ATS_Properties *ats)
 {
-
-}
-
-static void
-log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
-    int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Properties *ats)
-{
-
   if (NULL != l)
   {
     //GNUNET_break (0);
     //GNUNET_ATS_TEST_logging_now (l);
   }
-
 }
 
 
 static void
 experiment_done_cb (struct Experiment *e,
-                    struct GNUNET_TIME_Relative duration,int success)
+                    struct GNUNET_TIME_Relative duration,
+		    int success)
 {
   if (GNUNET_OK == success)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -222,15 +215,19 @@ experiment_done_cb (struct Experiment *e,
 static void
 episode_done_cb (struct Episode *ep)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Episode %u done\n", ep->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Episode %u done\n",
+	      ep->id);
 }
 
 
-static void topology_setup_done (void *cls,
-                                 struct BenchmarkPeer *masters,
-                                 struct BenchmarkPeer *slaves)
+static void
+topology_setup_done (void *cls,
+		     struct BenchmarkPeer *masters,
+		     struct BenchmarkPeer *slaves)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Topology setup complete!\n");
 
   masters_p = masters;
   slaves_p = slaves;
@@ -240,7 +237,9 @@ static void topology_setup_done (void *cls,
       masters_p,
       e->num_masters, e->num_slaves,
       opt_verbose);
-  GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
+  GNUNET_ATS_TEST_experimentation_run (e,
+				       &episode_done_cb,
+				       &experiment_done_cb);
 /*
   GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
       GNUNET_ATS_TEST_TG_CONSTANT, 1, 1, GNUNET_TIME_UNIT_SECONDS,
@@ -385,7 +384,6 @@ main (int argc, char *argv[])
       GNUNET_NO,
       &topology_setup_done,
       NULL,
-      &transport_recv_cb,
       &log_request__cb);
   GNUNET_free (opt_exp_file);
   return 0;

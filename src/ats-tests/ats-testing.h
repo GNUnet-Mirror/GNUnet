@@ -447,8 +447,6 @@ struct GNUNET_ATS_TEST_Topology
 
   struct GNUNET_CORE_MessageHandler *handlers;
 
-  GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
-
   GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb;
   GNUNET_ATS_AddressInformationCallback ats_perf_cb;
   void *done_cb_cls;
@@ -721,7 +719,6 @@ GNUNET_ATS_TEST_get_partner (int src, int dest);
  * @param test_core connect to CORE service (#GNUNET_YES) or transport (#GNUNET_NO)
  * @param done_cb function to call when topology is setup
  * @param done_cb_cls cls for callback
- * @param transport_recv_cb callback to call when data are received
  * @param log_request_cb callback to call when logging is required
  */
 void
@@ -732,7 +729,6 @@ GNUNET_ATS_TEST_create_topology (char *name,
                                  int test_core,
                                  GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
                                  void *done_cb_cls,
-                                 GNUNET_TRANSPORT_ReceiveCallback recv_cb,
                                  GNUNET_ATS_TEST_LogRequest ats_perf_cb);
 
 

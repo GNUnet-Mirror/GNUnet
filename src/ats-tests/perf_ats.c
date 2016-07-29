@@ -339,15 +339,6 @@ find_partner (struct BenchmarkPeer *me,
 
 
 static void
-test_recv_cb (void *cls,
-              const struct GNUNET_PeerIdentity * peer,
-              const struct GNUNET_MessageHeader * message)
-{
-
-}
-
-
-static void
 log_request_cb (void *cls,
                 const struct GNUNET_HELLO_Address *address,
                 int address_active,
@@ -586,7 +577,7 @@ main (int argc, char *argv[])
                                    test_core,
                                    &do_benchmark,
                                    NULL,
-                                   &test_recv_cb,
+                                   NULL,
                                    &log_request_cb);
 
   return result;

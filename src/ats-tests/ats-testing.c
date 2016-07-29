@@ -841,7 +841,6 @@ GNUNET_ATS_TEST_get_partner (int src, int dest)
  * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
  * @param done_cb function to call when topology is setup
  * @param done_cb_cls cls for callback
- * @param transport_recv_cb callback to call when data are received
  * @param log_request_cb callback to call when logging is required
  */
 void
@@ -851,7 +850,6 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
                                  int test_core,
                                  GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
                                  void *done_cb_cls,
-                                 GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
                                  GNUNET_ATS_AddressInformationCallback log_request_cb)
 {
   static struct GNUNET_CORE_MessageHandler handlers[] = {
@@ -866,11 +864,12 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   top->done_cb = done_cb;
   top->done_cb_cls = done_cb_cls;
   top->test_core = test_core;
-  top->transport_recv_cb = transport_recv_cb;
   top->ats_perf_cb = log_request_cb;
 
-  top->mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
-  top->sps = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
+  top->mps = GNUNET_new_array (num_masters,
+			       struct BenchmarkPeer);
+  top->sps = GNUNET_new_array (num_slaves,
+			       struct BenchmarkPeer);
 
   /* Start topology */
   uint64_t event_mask;
