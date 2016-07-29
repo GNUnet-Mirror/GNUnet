@@ -79,7 +79,7 @@ typedef void *
  * connect notification will be destroyed and must not be used
  * henceforth.
  *
- * @param cls closure from #GNUNET_TRANSPORT_connecT
+ * @param cls closure from #GNUNET_TRANSPORT_core_connect
  * @param peer the peer that disconnected
  * @param handlers_cls closure of the handlers, was returned from the
  *                    connect notification callback

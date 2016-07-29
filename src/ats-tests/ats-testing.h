@@ -28,6 +28,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
+#include "gnunet_transport_core_service.h"
 
 #define TEST_ATS_PREFERENCE_DEFAULT 1.0
 
@@ -45,6 +46,15 @@
  * Size of test messages
  */
 #define TEST_MESSAGE_SIZE 100
+
+
+struct TestMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  uint8_t padding[TEST_MESSAGE_SIZE - sizeof (struct GNUNET_MessageHeader)];
+};
+
 
 struct BenchmarkPartner;
 
@@ -147,14 +157,14 @@ struct BenchmarkPeer
   struct TestbedConnectOperation *core_connect_ops;
 
   /**
-   *  Core handle
+   * Core handle
    */
   struct GNUNET_CORE_Handle *ch;
 
   /**
-   *  Core handle
+   * Transport handle
    */
-  struct GNUNET_TRANSPORT_Handle *th;
+  struct GNUNET_TRANSPORT_CoreHandle *th;
 
   /**
    * Masters only:
@@ -280,10 +290,9 @@ struct BenchmarkPartner
   struct GNUNET_CORE_TransmitHandle *cth;
 
   /**
-   * Transport transmit handles
+   * Message queue handle.
    */
-  struct GNUNET_TRANSPORT_TransmitHandle *tth;
-
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Handle for traffic generator
@@ -325,23 +334,33 @@ struct BenchmarkPartner
    */
   unsigned int bytes_received;
 
-  /* Current ATS properties */
+  /**
+   * Current ATS properties 
+   */
   struct GNUNET_ATS_Properties props;
 
-  /* Bandwidth assigned inbound */
+  /**
+   * Bandwidth assigned inbound 
+   */
   uint32_t bandwidth_in;
 
-  /* Bandwidth assigned outbound */
+  /**
+   * Bandwidth assigned outbound 
+   */
   uint32_t bandwidth_out;
 
-  /* Current preference values for bandwidth */
+  /**
+   * Current preference values for bandwidth 
+   */
   double pref_bandwidth;
 
-  /* Current preference values for delay */
+  /**
+   * Current preference values for delay 
+   */
   double pref_delay;
 
-
 };
+
 
 /**
  * Overall state of the performance benchmark
@@ -387,7 +406,8 @@ struct GNUNET_ATS_TEST_Topology
    */
   int result;
 
-  /**Test core (GNUNET_YES) or transport (GNUNET_NO)
+  /**
+   * Test core (#GNUNET_YES) or transport (#GNUNET_NO)
    */
   int test_core;
 
@@ -446,10 +466,10 @@ struct GNUNET_ATS_TEST_Topology
    */
   struct BenchmarkState state;
 
-  struct GNUNET_CORE_MessageHandler *handlers;
-
   GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb;
+
   GNUNET_ATS_AddressInformationCallback ats_perf_cb;
+
   void *done_cb_cls;
 };
 
@@ -465,11 +485,13 @@ struct Episode;
 
 struct Experiment;
 
-typedef void (*GNUNET_ATS_TESTING_EpisodeDoneCallback) (
-    struct Episode *e);
+typedef void
+(*GNUNET_ATS_TESTING_EpisodeDoneCallback) (struct Episode *e);
 
-typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
-    struct GNUNET_TIME_Relative duration,int success);
+typedef void
+(*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
+					      struct GNUNET_TIME_Relative duration,
+					      int success);
 
 /**
  * An operation in an experiment
@@ -524,9 +546,7 @@ struct Experiment
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb;
 };
 
-/*
- * Experiment related functions
- */
+
 extern struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
@@ -560,12 +580,10 @@ GNUNET_ATS_TEST_experimentation_load (const char *filename);
 void
 GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e);
 
-/*
- * Traffic related functions
- */
 
 void
 GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p);
+
 
 void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
@@ -596,6 +614,7 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
 
 void
 GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
+
 
 /**
  * Stop all traffic generators
@@ -628,6 +647,7 @@ GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
                                             struct GNUNET_TIME_Relative frequency,
                                             enum GNUNET_ATS_PreferenceKind kind);
 
+
 void
 GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);
 
@@ -635,9 +655,6 @@ GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);
 void
 GNUNET_ATS_TEST_generate_preferences_stop_all (void);
 
-/*
- * Logging related functions
- */
 
 /**
  * Start logging
@@ -651,12 +668,12 @@ GNUNET_ATS_TEST_generate_preferences_stop_all (void);
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
-GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
-                              const char *testname,
-                              struct BenchmarkPeer *masters,
-                              int num_masters,
-                              int num_slaves,
-                              int verbose);
+GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
+			       const char *testname,
+			       struct BenchmarkPeer *masters,
+			       int num_masters,
+			       int num_slaves,
+			       int verbose);
 
 
 /**
