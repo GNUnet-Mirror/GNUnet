@@ -1023,7 +1023,6 @@ message_add_flags (void *cls,
                    uint64_t psycstore_flags)
 {
   struct Plugin *plugin = cls;
-
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->update_message_flags;
 
   int sql_ret;
@@ -1157,8 +1156,8 @@ fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stm
   int sql_ret;
 
   sql_ret = GNUNET_MY_exec_prepared (plugin->mc,
-                          stmt,
-                          params);
+                                    stmt,
+                                    params);
   switch(sql_ret)
   {
     case GNUNET_NO:
@@ -1173,7 +1172,7 @@ fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stm
       LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "mysql exec_prepared", stmt);   
   }
-  
+
   return ret;
 }
 
@@ -1363,9 +1362,8 @@ message_get_fragment (void *cls,
                       void *cb_cls)
 {
   struct Plugin *plugin = cls;
-
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_message_fragment;
-
+  int sql_ret;
   int ret = GNUNET_SYSERR;
 
   struct GNUNET_MY_QueryParam params_select[] = {
@@ -1375,16 +1373,21 @@ message_get_fragment (void *cls,
     GNUNET_MY_query_param_end
   };
 
-  if (GNUNET_OK != GNUNET_MY_exec_prepared (plugin->mc,
+  sql_ret = GNUNET_MY_exec_prepared (plugin->mc,
                                             stmt,
-                                            params_select))
+                                            params_select);
+  switch(sql_ret)
   {
-    LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    case GNUNET_NO:
+      ret = GNUNET_NO;
+      break;
+    case GNUNET_OK:
+      ret = fragment_row (stmt, cb, cb_cls);
+      break;
+    default:
+      LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
               "mysql execute prepared", stmt);
-    return GNUNET_SYSERR;
   }
-
-  ret = fragment_row (stmt, cb, cb_cls);
 
   if (0 != mysql_stmt_reset (GNUNET_MYSQL_statement_get_stmt (stmt)))
   {
