@@ -23,6 +23,7 @@ lib_LTLIBRARIES = \
 
 libgnunetcore_la_SOURCES = \
   core_api.c core.h \
+  core_api_2.c \
   core_api_mq.c \
   core_api_monitor_peers.c
 libgnunetcore_la_LIBADD = \
