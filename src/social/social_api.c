@@ -981,7 +981,7 @@ app_recv_place (void *cls,
     gconn->app = app;
     gconn->plc_msg = *pmsg;
     app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
-    GNUNET_free (gconn); // FIXME: is this correct here?
+    // GNUNET_free (gconn); // FIXME: is this correct here? apparently not!
   }
 }
 
