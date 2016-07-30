@@ -66,7 +66,7 @@ typedef void
 /**
  * Handle to cancel a #GNUNET_TRANSPORT_hello_get() operation.
  */
-struct GNUNET_TRANSPORT_GetHelloHandle;
+struct GNUNET_TRANSPORT_HelloGetHandle;
 
 
 /**
@@ -79,8 +79,8 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
  * @param rec_cls closure for @a rec
  * @return handle to cancel the operation
  */
-struct GNUNET_TRANSPORT_GetHelloHandle *
-GNUNET_TRANSPORT_hello_get (struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_TRANSPORT_HelloGetHandle *
+GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             enum GNUNET_ATS_Network_Type nt,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls);
@@ -92,7 +92,7 @@ GNUNET_TRANSPORT_hello_get (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ghh handle to cancel
  */
 void
-GNUNET_TRANSPORT_hello_get_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
+GNUNET_TRANSPORT_hello_get_cancel (struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
 
 
 /**
