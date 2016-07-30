@@ -20,6 +20,7 @@
 /**
  * @file core/test_core_api.c
  * @brief testcase for core_api.c
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -91,7 +92,7 @@ terminate_peer (struct PeerContext *p)
 {
   if (NULL != p->ch)
   {
-    GNUNET_CORE_disconnect (p->ch);
+    GNUNET_CORE_disconnecT (p->ch);
     p->ch = NULL;
   }
   if (NULL != p->ghh)
@@ -140,35 +141,19 @@ terminate_task_error (void *cls)
 }
 
 
-static size_t
-transmit_ready (void *cls,
-		size_t size,
-		void *buf)
-{
-  struct PeerContext *p = cls;
-  struct GNUNET_MessageHeader *m;
-
-  GNUNET_assert (ok == 4);
-  OKPP;
-  GNUNET_assert (p == &p1);
-  GNUNET_assert (NULL != buf);
-  m = (struct GNUNET_MessageHeader *) buf;
-  m->type = htons (MTYPE);
-  m->size = htons (sizeof (struct GNUNET_MessageHeader));
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-
-static void
+static void *
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_MQ_Handle *mq)
 {
   struct PeerContext *pc = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
 
   if (0 == memcmp (&pc->id,
 		   peer,
 		   sizeof (struct GNUNET_PeerIdentity)))
-    return;
+    return (void *) peer;
   GNUNET_assert (pc->connect_status == 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%s'\n",
@@ -176,30 +161,35 @@ connect_notify (void *cls,
   pc->connect_status = 1;
   if (pc == &p1)
   {
+    uint64_t flags;
+    const void *extra;
+    
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) for transmission to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
-    if (NULL ==
-        GNUNET_CORE_notify_transmit_ready (p1.ch,
-					   GNUNET_YES,
-                                           GNUNET_CORE_PRIO_BEST_EFFORT,
-                                           GNUNET_TIME_relative_multiply
-                                           (GNUNET_TIME_UNIT_SECONDS, 145),
-                                           &p2.id,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           &transmit_ready, &p1))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "RECEIVED NULL when asking core (1) for transmission to peer `%s'\n",
-                  GNUNET_i2s (&p2.id));
-    }
+    env = GNUNET_MQ_msg (msg,
+			 MTYPE);
+    /* enable corking for this test */
+    extra = GNUNET_CORE_get_mq_options (GNUNET_YES,
+					GNUNET_CORE_PRIO_BEST_EFFORT,
+					&flags);
+    GNUNET_MQ_env_set_options (env,
+			       flags,
+			       extra);
+    /* now actually transmit message */
+    GNUNET_assert (ok == 4);
+    OKPP;
+    GNUNET_MQ_send (mq,
+		    env);
   }
+  return (void *) peer;
 }
 
 
 static void
 disconnect_notify (void *cls,
-		   const struct GNUNET_PeerIdentity *peer)
+		   const struct GNUNET_PeerIdentity *peer,
+		   void *internal_cls)
 {
   struct PeerContext *pc = cls;
 
@@ -214,35 +204,12 @@ disconnect_notify (void *cls,
 }
 
 
-static int
-inbound_notify (void *cls,
-		const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
+static void
+handle_test (void *cls,
+	     const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%s'.\n",
-	      GNUNET_i2s (other));
-  return GNUNET_OK;
-}
-
-
-static int
-outbound_notify (void *cls,
-		 const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notifies about outbound data for `%s'.\n",
-              GNUNET_i2s (other));
-  return GNUNET_OK;
-}
-
-
-static int
-process_mtype (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
-{
+  const struct GNUNET_PeerIdentity *peer = cls;
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving message from `%s'.\n",
               GNUNET_i2s (peer));
@@ -251,21 +218,21 @@ process_mtype (void *cls,
   GNUNET_SCHEDULER_cancel (err_task);
   err_task = GNUNET_SCHEDULER_add_now (&terminate_task,
 				       NULL);
-  return GNUNET_OK;
 }
-
-
-static struct GNUNET_CORE_MessageHandler handlers[] = {
-  {&process_mtype, MTYPE, sizeof (struct GNUNET_MessageHeader)},
-  {NULL, 0, 0}
-};
 
 
 static void
 init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
+  GNUNET_MQ_hd_fixed_size (test,
+			   MTYPE,
+			   struct GNUNET_MessageHeader);
   struct PeerContext *p = cls;
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (NULL),
+    GNUNET_MQ_handler_end ()
+  };
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core connection to `%s' established\n",
@@ -276,13 +243,11 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    p2.ch = GNUNET_CORE_connect (p2.cfg,
+    p2.ch = GNUNET_CORE_connecT (p2.cfg,
 				 &p2,
 				 &init_notify,
 				 &connect_notify,
 				 &disconnect_notify,
-				 &inbound_notify, GNUNET_YES,
-				 &outbound_notify, GNUNET_YES,
 				 handlers);
   }
   else
@@ -333,21 +298,30 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_MQ_hd_fixed_size (test,
+			   MTYPE,
+			   struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (NULL),
+    GNUNET_MQ_handler_end ()
+  };
+
   GNUNET_assert (ok == 1);
   OKPP;
-  setup_peer (&p1, "test_core_api_peer1.conf");
-  setup_peer (&p2, "test_core_api_peer2.conf");
+  setup_peer (&p1,
+	      "test_core_api_peer1.conf");
+  setup_peer (&p2,
+	      "test_core_api_peer2.conf");
   err_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 300),
                                     &terminate_task_error, NULL);
   p1.ch =
-      GNUNET_CORE_connect (p1.cfg, &p1,
+      GNUNET_CORE_connecT (p1.cfg,
+			   &p1,
                            &init_notify,
                            &connect_notify,
                            &disconnect_notify,
-                           &inbound_notify, GNUNET_YES,
-                           &outbound_notify, GNUNET_YES,
                            handlers);
 }
 
@@ -355,11 +329,16 @@ run (void *cls,
 static void
 stop_arm (struct PeerContext *p)
 {
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
+  if (0 != GNUNET_OS_process_kill (p->arm_proc,
+				   GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "kill");
+  if (GNUNET_OK !=
+      GNUNET_OS_process_wait (p->arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "waitpid");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;

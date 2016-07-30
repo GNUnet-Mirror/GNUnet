@@ -20,6 +20,7 @@
 /**
  * @file core/test_core_api_reliability.c
  * @brief testcase for core_api.c focusing on reliable transmission (with TCP)
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -291,30 +292,6 @@ disconnect_notify (void *cls,
 }
 
 
-static int
-inbound_notify (void *cls,
-                const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%s'.\n",
-              GNUNET_i2s (other));
-  return GNUNET_OK;
-}
-
-
-static int
-outbound_notify (void *cls,
-                 const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notifies about outbound data for `%s'.\n",
-              GNUNET_i2s (other));
-  return GNUNET_OK;
-}
-
-
 static size_t
 transmit_ready (void *cls,
                 size_t size,
@@ -413,9 +390,9 @@ init_notify (void *cls,
 						 &init_notify,
 						 &connect_notify,
 						 &disconnect_notify,
-						 &inbound_notify,
+						 NULL,
 						 GNUNET_YES,
-						 &outbound_notify,
+						 NULL,
 						 GNUNET_YES,
 						 handlers)));
   }
@@ -532,9 +509,9 @@ run (void *cls,
 					       &init_notify,
 					       &connect_notify,
 					       &disconnect_notify,
-					       &inbound_notify,
+					       NULL,
 					       GNUNET_YES,
-					       &outbound_notify,
+					       NULL,
 					       GNUNET_YES,
 					       handlers)));
 }

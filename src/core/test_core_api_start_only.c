@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 GNUnet e.V.
+     Copyright (C) 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,6 +21,7 @@
  * @file transport/test_core_api_start_only.c
  * @brief testcase for core_api.c that only starts two peers,
  *        connects to the core service and shuts down again
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -48,49 +49,34 @@ static struct GNUNET_SCHEDULER_Task *timeout_task_id;
 static int ok;
 
 
-static void
+static void *
 connect_notify (void *cls,
-		const struct GNUNET_PeerIdentity *peer)
+		const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_MQ_Handle *mq)
 {
+  return NULL;
 }
 
 
 static void
 disconnect_notify (void *cls,
-		   const struct GNUNET_PeerIdentity *peer)
+		   const struct GNUNET_PeerIdentity *peer,
+		   void *internal_cls)
 {
 }
 
 
-static int
-inbound_notify (void *cls,
-		const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
-{
-  return GNUNET_OK;
-}
-
-
-static int
-outbound_notify (void *cls,
-		 const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
-{
-  return GNUNET_OK;
-}
-
-
-static struct GNUNET_CORE_MessageHandler handlers[] = {
-  {NULL, 0, 0}
+static struct GNUNET_MQ_MessageHandler handlers[] = {
+  GNUNET_MQ_handler_end ()
 };
 
 
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_CORE_disconnect (p1.ch);
+  GNUNET_CORE_disconnecT (p1.ch);
   p1.ch = NULL;
-  GNUNET_CORE_disconnect (p2.ch);
+  GNUNET_CORE_disconnecT (p2.ch);
   p2.ch = NULL;
   ok = 0;
 }
@@ -105,15 +91,12 @@ init_notify (void *cls,
   if (p == &p1)
   {
     /* connect p2 */
-    p2.ch =
-        GNUNET_CORE_connect (p2.cfg,
-			     &p2,
-			     &init_notify,
-			     &connect_notify,
-                             &disconnect_notify,
-			     &inbound_notify, GNUNET_YES,
-                             &outbound_notify, GNUNET_YES,
-			     handlers);
+    p2.ch = GNUNET_CORE_connecT (p2.cfg,
+				 &p2,
+				 &init_notify,
+				 &connect_notify,
+				 &disconnect_notify,
+				 handlers);
   }
   else
   {
@@ -152,15 +135,17 @@ setup_peer (struct PeerContext *p,
 static void
 timeout_task (void *cls)
 {
-  FPRINTF (stderr, "%s",  "Timeout.\n");
+  FPRINTF (stderr,
+	   "%s",
+	   "Timeout.\n");
   if (NULL != p1.ch)
   {
-    GNUNET_CORE_disconnect (p1.ch);
+    GNUNET_CORE_disconnecT (p1.ch);
     p1.ch = NULL;
   }
   if (NULL != p2.ch)
   {
-    GNUNET_CORE_disconnect (p2.ch);
+    GNUNET_CORE_disconnecT (p2.ch);
     p2.ch = NULL;
   }
   ok = 42;
@@ -181,14 +166,13 @@ run (void *cls,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES,
 				     TIMEOUT),
-                                    &timeout_task, NULL);
-  p1.ch = GNUNET_CORE_connect (p1.cfg,
+                                    &timeout_task,
+				    NULL);
+  p1.ch = GNUNET_CORE_connecT (p1.cfg,
 			       &p1,
 			       &init_notify,
 			       &connect_notify,
 			       &disconnect_notify,
-			       &inbound_notify, GNUNET_YES,
-			       &outbound_notify, GNUNET_YES,
 			       handlers);
 }
 
