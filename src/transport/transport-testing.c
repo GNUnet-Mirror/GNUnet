@@ -508,10 +508,11 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
     GNUNET_TRANSPORT_TESTING_stop_peer (p);
     return NULL;
   }
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
-                                       &get_hello,
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
+				       &get_hello,
                                        p);
-  GNUNET_assert (p->ghh != NULL);
+  GNUNET_assert (NULL != p->ghh);
   return p;
 }
 
@@ -539,7 +540,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerConte
        GNUNET_i2s (&p->id));
   if (NULL != p->ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
     p->ghh = NULL;
   }
   if (NULL != p->th)
@@ -603,7 +604,8 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerConte
 					 NULL);
   GNUNET_assert (NULL != p->th);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
                                        &get_hello,
                                        p);
   GNUNET_assert (NULL != p->ghh);
@@ -632,7 +634,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext 
   }
   if (NULL != p->ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
     p->ghh = NULL;
   }
   if (NULL != p->tmh)

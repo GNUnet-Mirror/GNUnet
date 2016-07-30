@@ -31,6 +31,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_core_service.h"
+#include "gnunet_transport_hello_service.h"
 #include "gnunet_transport_manipulation_service.h"
 #include "gnunet_testing_lib.h"
 
@@ -91,7 +92,7 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
   /**
    * Peer's transport get hello handle to retrieve peer's HELLO message
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 
   /**
    * Peer's testing handle
