@@ -20,6 +20,7 @@
 /**
  * @file core/test_core_quota_compliance.c
  * @brief testcase for core_api.c focusing quota compliance on core level
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
@@ -820,6 +821,30 @@ check ()
 }
 
 
+static void
+cleanup_directory (int test)
+{
+  switch (test) {
+  case SYMMETRIC:
+    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-1/");
+    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-2/");
+    break;
+  case ASYMMETRIC_SEND_LIMITED:
+    GNUNET_DISK_directory_remove
+        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-1/");
+    GNUNET_DISK_directory_remove
+        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-2/");
+    break;
+  case ASYMMETRIC_RECV_LIMITED:
+    GNUNET_DISK_directory_remove
+        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-1/");
+    GNUNET_DISK_directory_remove
+        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
+    break;
+  }
+}
+
+
 int
 main (int argc,
       char *argv[])
@@ -827,63 +852,30 @@ main (int argc,
   int ret;
 
   test = -1;
-  if (strstr (argv[0], "_symmetric") != NULL)
+  if (NULL != strstr (argv[0],
+		      "_symmetric"))
   {
     test = SYMMETRIC;
   }
-  else if (strstr (argv[0], "_asymmetric_send") != NULL)
+  else if (NULL != strstr (argv[0],
+			   "_asymmetric_send"))
   {
     test = ASYMMETRIC_SEND_LIMITED;
   }
-  else if (strstr (argv[0], "_asymmetric_recv") != NULL)
+  else if (NULL != strstr (argv[0],
+			   "_asymmetric_recv"))
   {
     test = ASYMMETRIC_RECV_LIMITED;
   }
   GNUNET_assert (test != -1);
-  if (test == SYMMETRIC)
-  {
-    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-1/");
-    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-2/");
-  }
-  else if (test == ASYMMETRIC_SEND_LIMITED)
-  {
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-1/");
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-2/");
-  }
-  else if (test == ASYMMETRIC_RECV_LIMITED)
-  {
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-1/");
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
-  }
-
+  cleanup_directory (test);
   GNUNET_log_setup ("test-core-quota-compliance",
                     "WARNING",
                     NULL);
   ret = check ();
-  if (test == SYMMETRIC)
-  {
-    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-1/");
-    GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-2/");
-  }
-  else if (test == ASYMMETRIC_SEND_LIMITED)
-  {
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-1/");
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-2/");
-  }
-  else if (test == ASYMMETRIC_RECV_LIMITED)
-  {
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-1/");
-    GNUNET_DISK_directory_remove
-        ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
-  }
+  cleanup_directory (test);
   return ret;
 }
+
 
 /* end of test_core_quota_compliance.c */
