@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_transport_core_service.h"
+#include "gnunet_transport_hello_service.h"
 
 /**
  * How long until we give up on transmitting the message?
@@ -42,7 +43,7 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_CoreHandle *th;
   struct GNUNET_MessageHeader *hello;
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
   struct GNUNET_OS_Process *arm_proc;
 };
 
@@ -73,7 +74,7 @@ timeout_error (void *cls)
  * @param mq message queue to send to @a peer
  * @return NULL
  */
-static void
+static void *
 notify_connect (void *cls,
 		const struct GNUNET_PeerIdentity *peer,
 		struct GNUNET_MQ_Handle *mq)
@@ -92,7 +93,7 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+  GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
   p->ghh = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received HELLO, starting hostlist service.\n");
@@ -129,7 +130,8 @@ setup_peer (struct PeerContext *p,
 					 NULL,
 					 NULL);
   GNUNET_assert (NULL != p->th);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
 				       &process_hello,
 				       p);
   GNUNET_free (binary);
@@ -184,7 +186,7 @@ shutdown_task (void *cls)
   }
   if (NULL != p1.ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p1.ghh);
     p1.ghh = NULL;
   }
   if (NULL != p1.th)
@@ -194,7 +196,7 @@ shutdown_task (void *cls)
   }
   if (NULL != p2.ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p2.ghh);
     p2.ghh = NULL;
   }
   if (NULL != p2.th)

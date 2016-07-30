@@ -27,6 +27,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_core_service.h"
+#include "gnunet_transport_hello_service.h"
 
 
 /**
@@ -43,7 +44,7 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_CoreHandle *th;
   struct GNUNET_MessageHeader *hello;
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
   struct GNUNET_OS_Process *arm_proc;
 };
 
@@ -59,7 +60,7 @@ clean_up (void *cls)
   {
     if (NULL != p1.ghh)
     {
-      GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
+      GNUNET_TRANSPORT_hello_get_cancel (p1.ghh);
       p1.ghh = NULL;
     }
     GNUNET_TRANSPORT_core_disconnect (p1.th);
@@ -69,7 +70,7 @@ clean_up (void *cls)
   {
     if (NULL != p2.ghh)
     {
-      GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
+      GNUNET_TRANSPORT_hello_get_cancel (p2.ghh);
       p2.ghh = NULL;
     }
     GNUNET_TRANSPORT_core_disconnect (p2.th);
@@ -125,7 +126,7 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+  GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
   p->ghh = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received HELLO, starting hostlist service.\n");
@@ -161,8 +162,9 @@ setup_peer (struct PeerContext *p,
 					 &notify_connect,
 					 NULL,
 					 NULL);
-  GNUNET_assert (p->th != NULL);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
+  GNUNET_assert (NULL != p->th);
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
 				       &process_hello,
 				       p);
   GNUNET_free (binary);
