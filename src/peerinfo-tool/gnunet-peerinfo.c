@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2014 GNUnet e.V.
+     Copyright (C) 2001-2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_hello_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet-peerinfo_plugins.h"
 
@@ -175,12 +176,12 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Main state machine task (if active).
  */
-static struct GNUNET_SCHEDULER_Task * tt;
+static struct GNUNET_SCHEDULER_Task *tt;
 
 /**
- * Pending #GNUNET_TRANSPORT_get_hello() operation.
+ * Pending #GNUNET_TRANSPORT_hello_get() operation.
  */
-static struct GNUNET_TRANSPORT_GetHelloHandle *gh;
+static struct GNUNET_TRANSPORT_HelloGetHandle *gh;
 
 /**
  * Current iterator context (if active, otherwise NULL).
@@ -439,7 +440,7 @@ count_addr (void *cls,
 {
   int *c = cls;
 
-  (*c) ++;
+  (*c)++;
   return GNUNET_OK;
 }
 
@@ -633,7 +634,7 @@ shutdown_task (void *cls)
   }
   if (NULL != gh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (gh);
+    GNUNET_TRANSPORT_hello_get_cancel (gh);
     gh = NULL;
   }
   while (NULL != (pc = pc_head))
@@ -682,7 +683,7 @@ hello_callback (void *cls,
   if (NULL == hello)
   {
     fprintf (stderr,
-             _("Failed to get my own HELLO from this peer!\n"));
+             "Failed to get my own HELLO from this peer!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -690,7 +691,7 @@ hello_callback (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id (my_hello,
                                       &my_peer_identity));
-  GNUNET_TRANSPORT_get_hello_cancel (gh);
+  GNUNET_TRANSPORT_hello_get_cancel (gh);
   gh = NULL;
   if (NULL != dump_hello)
     dump_my_hello ();
@@ -712,7 +713,7 @@ testservice_task (void *cls,
   if (GNUNET_YES != result)
   {
     FPRINTF (stderr,
-             _("Service `%s' is not running, please start GNUnet\n"),
+             "Service `%s' is not running, please start GNUnet\n",
              "peerinfo");
     return;
   }
@@ -721,20 +722,22 @@ testservice_task (void *cls,
   {
     FPRINTF (stderr,
              "%s",
-             _("Could not access PEERINFO service.  Exiting.\n"));
+             "Could not access PEERINFO service.  Exiting.\n");
     return;
   }
   if ( (GNUNET_YES == get_self) ||
        (GNUNET_YES == get_uri) ||
        (NULL != dump_hello) )
   {
-    gh = GNUNET_TRANSPORT_get_hello (cfg,
+    gh = GNUNET_TRANSPORT_hello_get (cfg,
+				     GNUNET_TRANSPORT_AC_ANY,
                                      &hello_callback,
                                      NULL);
   }
   else
   {
-    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine,
+				   NULL);
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
@@ -758,7 +761,8 @@ run (void *cls,
   cfg = c;
   if ( (NULL != args[0]) &&
        (NULL == put_uri) &&
-       (args[0] == strcasestr (args[0], "gnunet://hello/")) )
+       (args[0] == strcasestr (args[0],
+			       "gnunet://hello/")) )
   {
     put_uri = GNUNET_strdup (args[0]);
     args++;
@@ -774,7 +778,8 @@ run (void *cls,
   GNUNET_CLIENT_service_test ("peerinfo",
                               cfg,
                               GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_task, (void *) cfg);
+                              &testservice_task,
+			      (void *) cfg);
 }
 
 
@@ -809,7 +814,8 @@ state_machine (void *cls)
     pic = GNUNET_PEERINFO_iterate (peerinfo,
                                    include_friend_only,
                                    NULL,
-				   &print_peer_info, NULL);
+				   &print_peer_info,
+				   NULL);
   }
   else if (GNUNET_YES == get_self)
   {
@@ -820,7 +826,8 @@ state_machine (void *cls)
     else
       printf (_("I am peer `%s'.\n"),
 	      GNUNET_i2s_full (&my_peer_identity));
-    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine,
+				   NULL);
   }
   else if (GNUNET_YES == get_uri)
   {
@@ -828,7 +835,8 @@ state_machine (void *cls)
     pic = GNUNET_PEERINFO_iterate (peerinfo,
                                    include_friend_only,
                                    &my_peer_identity,
-                                   &print_my_uri, NULL);
+                                   &print_my_uri,
+				   NULL);
     get_uri = GNUNET_NO;
   }
   else if (GNUNET_YES == default_operation)
@@ -836,7 +844,8 @@ state_machine (void *cls)
     /* default operation list all */
     default_operation = GNUNET_NO;
     get_info = GNUNET_YES;
-    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine,
+				   NULL);
   }
   else
   {
@@ -888,13 +897,18 @@ main (int argc, char *const *argv)
   default_operation = GNUNET_YES;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc,
                                                  argv,
-                                                 &argc, &argv))
+                                                 &argc,
+						 &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-peerinfo",
+	 GNUNET_PROGRAM_run (argc,
+			     argv,
+			     "gnunet-peerinfo",
 			     gettext_noop ("Print information about peers."),
-			     options, &run, NULL)) ? 0 : 1;
+			     options,
+			     &run,
+			     NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }
