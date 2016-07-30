@@ -43,11 +43,6 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
-/**
- * What delay do we request from the core service for transmission?
- */
-#define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
 #define MTYPE 12345
 
 
