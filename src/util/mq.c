@@ -63,6 +63,26 @@ struct GNUNET_MQ_Envelope
    * Closure for @e send_cb
    */
   void *sent_cls;
+
+  /**
+   * Flags that were set for this envelope by
+   * #GNUNET_MQ_env_set_options().   Only valid if
+   * @e have_custom_options is set.
+   */
+  uint64_t flags;
+
+  /**
+   * Additional options buffer set for this envelope by
+   * #GNUNET_MQ_env_set_options().  Only valid if
+   * @e have_custom_options is set.
+   */
+  const void *extra;
+
+  /**
+   * Did the application call #GNUNET_MQ_env_set_options()?
+   */
+  int have_custom_options;
+  
 };
 
 
@@ -133,6 +153,18 @@ struct GNUNET_MQ_Handle
    * Task scheduled during #GNUNET_MQ_impl_send_continue.
    */
   struct GNUNET_SCHEDULER_Task *continue_task;
+
+  /**
+   * Additional options buffer set for this queue by
+   * #GNUNET_MQ_set_options().  Default is 0.
+   */
+  const void *default_extra;
+  
+  /**
+   * Flags that were set for this queue by
+   * #GNUNET_MQ_set_options().   Default is 0.
+   */
+  uint64_t default_flags;
 
   /**
    * Next id that should be used for the @e assoc_map,
@@ -1039,5 +1071,85 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   ev->mh = NULL;
   GNUNET_free (ev);
 }
+
+
+/**
+ * Function to obtain the current envelope from
+ * within #GNUNET_MQ_SendImpl implementations.
+ *
+ * @param mq message queue to interrogate
+ * @return the current envelope
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq)
+{
+  return mq->current_envelope;
+}
+
+
+/**
+ * Set application-specific options for this envelope.
+ * Overrides the options set for the queue with
+ * #GNUNET_MQ_set_options() for this message only.
+ *
+ * @param env message to set options for
+ * @param flags flags to use (meaning is queue-specific)
+ * @param extra additional buffer for further data (also queue-specific)
+ */
+void
+GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
+			   uint64_t flags,
+			   const void *extra)
+{
+  env->flags = flags;
+  env->extra = extra;
+  env->have_custom_options = GNUNET_YES;
+}
+
+
+/**
+ * Get application-specific options for this envelope.
+ *
+ * @param env message to set options for
+ * @param[out] flags set to flags to use (meaning is queue-specific)
+ * @return extra additional buffer for further data (also queue-specific)
+ */
+const void *
+GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
+			   uint64_t *flags)
+{
+  struct GNUNET_MQ_Handle *mq = env->parent_queue;
+  
+  if (GNUNET_YES == env->have_custom_options)
+  {
+    *flags = env->flags;
+    return env->extra;
+  }
+  if (NULL == mq)
+  {
+    *flags = 0;
+    return NULL;
+  }
+  *flags = mq->default_flags;
+  return mq->default_extra;
+}
+
+
+/**
+ * Set application-specific options for this queue.
+ *
+ * @param mq message queue to set options for
+ * @param flags flags to use (meaning is queue-specific)
+ * @param extra additional buffer for further data (also queue-specific)
+ */
+void
+GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
+		       uint64_t flags,
+		       const void *extra)
+{
+  mq->default_flags = flags;
+  mq->default_extra = extra;
+}
+
 
 /* end of mq.c */

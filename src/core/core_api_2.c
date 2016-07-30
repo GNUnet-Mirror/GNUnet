@@ -257,6 +257,26 @@ handle_mq_error (void *cls,
 
 
 /**
+ * Inquire with CORE what options should be set for a message
+ * so that it is transmitted with the given @a priority and
+ * the given @a cork value.
+ *
+ * @param cork desired corking 
+ * @param priority desired message priority
+ * @param[out] flags set to `flags` value for #GNUNET_MQ_set_options()
+ * @return `extra` argument to give to #GNUNET_MQ_set_options()
+ */
+const void *
+GNUNET_CORE_get_mq_options (int cork,
+			    enum GNUNET_CORE_Priority priority,
+			    uint64_t *flags)
+{
+  *flags = ((uint64_t) priority) + (((uint64_t) cork) << 32);
+  return NULL;
+}
+
+
+/**
  * Implement sending functionality of a message queue for
  * us sending messages to a peer.
  *
@@ -275,12 +295,20 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   struct SendMessage *sm;
   struct GNUNET_MQ_Envelope *env;
   uint16_t msize;
-  int cork
-    = GNUNET_NO; // FIXME
-  enum GNUNET_CORE_Priority priority
-    = GNUNET_CORE_PRIO_BEST_EFFORT; // FIXME
+  uint64_t flags;
+  int cork;
+  enum GNUNET_CORE_Priority priority;
 
   GNUNET_assert (NULL == pr->env);
+  /* extract options from envelope */
+  env = GNUNET_MQ_get_current_envelope (mq);
+  GNUNET_break (NULL ==
+		GNUNET_MQ_env_get_options (env,
+					   &flags));
+  cork = (int) (flags >> 32);
+  priority = (uint32_t) flags;
+
+  /* check message size for sanity */
   msize = ntohs (msg->size);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct SendMessage))
   {
@@ -288,6 +316,8 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
     GNUNET_MQ_impl_send_continue (mq);
     return;
   }
+
+  /* ask core for transmission */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asking core for transmission of %u bytes to `%s'\n",
        (unsigned int) msize,
@@ -302,6 +332,8 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   smr->smr_id = htons (++pr->smr_id_gen);
   GNUNET_MQ_send (h->mq,
                   env);
+
+  /* prepare message with actual transmission data */
   pr->env = GNUNET_MQ_msg_nested_mh (sm,
 				     GNUNET_MESSAGE_TYPE_CORE_SEND,
 				     msg);
@@ -385,6 +417,8 @@ connect_peer (struct GNUNET_CORE_Handle *h,
 	      const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerRecord *pr;
+  uint64_t flags;
+  const void *extra;
   
   pr = GNUNET_new (struct PeerRecord);
   pr->peer = *peer;
@@ -401,6 +435,13 @@ connect_peer (struct GNUNET_CORE_Handle *h,
 					  h->handlers,
 					  &core_mq_error_handler,
 					  pr);
+  /* get our default options */
+  extra = GNUNET_CORE_get_mq_options (GNUNET_NO,
+				      GNUNET_CORE_PRIO_BEST_EFFORT,
+				      &flags);
+  GNUNET_MQ_set_options (pr->mq,
+			 flags,
+			 extra);
   if (NULL != h->connects)
   {
     pr->client_cls = h->connects (h->cls,

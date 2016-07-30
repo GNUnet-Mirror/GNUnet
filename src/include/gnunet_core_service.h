@@ -247,6 +247,16 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      int outbound_hdr_only,
                      const struct GNUNET_CORE_MessageHandler *handlers);
 
+/**
+ * Disconnect from the core service.    This function can only
+ * be called *after* all pending #GNUNET_CORE_notify_transmit_ready
+ * requests have been explicitly cancelled.
+ *
+ * @param handle connection to core to disconnect
+ */
+void
+GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
+
 
 /**
  * Connect to the core service.  Note that the connection may complete
@@ -282,14 +292,40 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the core service.    This function can only
- * be called *after* all pending #GNUNET_CORE_notify_transmit_ready
- * requests have been explicitly cancelled.
+ * Disconnect from the core service.
  *
  * @param handle connection to core to disconnect
  */
 void
-GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
+GNUNET_CORE_disconnecT (struct GNUNET_CORE_Handle *handle);
+
+
+/**
+ * Inquire with CORE what options should be set for a message
+ * so that it is transmitted with the given @a priority and
+ * the given @a cork value.
+ *
+ * @param cork desired corking 
+ * @param priority desired message priority
+ * @param[out] flags set to `flags` value for #GNUNET_MQ_set_options()
+ * @return `extra` argument to give to #GNUNET_MQ_set_options()
+ */
+const void *
+GNUNET_CORE_get_mq_options (int cork,
+			    enum GNUNET_CORE_Priority priority,
+			    uint64_t *flags);
+
+
+/**
+ * Obtain the message queue for a connected peer.
+ *
+ * @param h the core handle
+ * @param pid the identity of the peer 
+ * @return NULL if @a pid is not connected
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CORE_get_mq (const struct GNUNET_CORE_Handle *h,
+		    const struct GNUNET_PeerIdentity *pid);
 
 
 /**

@@ -106,7 +106,7 @@
 
 
 /**
- * Implementation of the GNUNET_MQ_extract_nexted_mh macro.
+ * Implementation of the #GNUNET_MQ_extract_nexted_mh macro.
  *
  * @param mh message header to extract nested message header from
  * @param base_size size of the message before the nested message's header appears
@@ -305,7 +305,7 @@ struct GNUNET_MQ_MessageHandler
 /**
  * End-marker for the handlers array
  */
-#define GNUNET_MQ_handler_end() {NULL, NULL, NULL, 0, 0}
+#define GNUNET_MQ_handler_end() { NULL, NULL, NULL, 0, 0 }
 
 
 /**
@@ -431,6 +431,57 @@ GNUNET_MQ_msg_copy (const struct GNUNET_MessageHeader *hdr);
  */
 void
 GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
+
+
+/**
+ * Function to obtain the current envelope from
+ * within #GNUNET_MQ_SendImpl implementations.
+ *
+ * @param mq message queue to interrogate
+ * @return the current envelope
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ * Set application-specific options for this envelope.
+ * Overrides the options set for the queue with
+ * #GNUNET_MQ_set_options() for this message only.
+ *
+ * @param env message to set options for
+ * @param flags flags to use (meaning is queue-specific)
+ * @param extra additional buffer for further data (also queue-specific)
+ */
+void
+GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
+			   uint64_t flags,
+			   const void *extra);
+
+
+/**
+ * Get application-specific options for this envelope.
+ *
+ * @param env message to set options for
+ * @param[out] flags set to flags to use (meaning is queue-specific)
+ * @return extra additional buffer for further data (also queue-specific)
+ */
+const void *
+GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
+			   uint64_t *flags);
+
+
+/**
+ * Set application-specific options for this queue.
+ *
+ * @param mq message queue to set options for
+ * @param flags flags to use (meaning is queue-specific)
+ * @param extra additional buffer for further data (also queue-specific)
+ */
+void
+GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
+		       uint64_t flags,
+		       const void *extra);
 
 
 /**
