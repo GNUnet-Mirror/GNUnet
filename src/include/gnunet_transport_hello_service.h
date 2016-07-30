@@ -52,6 +52,61 @@ extern "C"
 
 
 /**
+ * Some addresses contain sensitive information or are
+ * not suitable for global distribution.  We use address
+ * classes to filter addresses by which domain they make
+ * sense to be used in.  These are used in a bitmask.
+ */
+enum GNUNET_TRANSPORT_AddressClass
+{
+
+  /**
+   * No address.
+   */
+  GNUNET_TRANSPORT_AC_NONE = 0,
+
+  /**
+   * Addresses that fall into no other category
+   * (i.e. incoming which we cannot use elsewhere).
+   */
+  GNUNET_TRANSPORT_AC_OTHER = 1,
+
+  /**
+   * Addresses that are global and are insensitive
+   * (i.e. IPv4).
+   */
+  GNUNET_TRANSPORT_AC_GLOBAL = 2,
+
+  /**
+   * Addresses that are global and are sensitive
+   * (i.e. IPv6 with our MAC).
+   */
+  GNUNET_TRANSPORT_AC_GLOBAL_PRIVATE = 4,
+
+  /**
+   * Addresses useful in the local wired network,
+   * i.e. a MAC.  Sensitive, but obvious to people nearby.
+   * Useful for broadcasts.
+   */
+  GNUNET_TRANSPORT_AC_LAN = 8,
+
+  /**
+   * Addresses useful in the local wireless network,
+   * i.e. a MAC.  Sensitive, but obvious to people nearby.
+   * Useful for broadcasts.
+   */
+  GNUNET_TRANSPORT_AC_WLAN = 16,
+
+  /**
+   * Addresses useful in the local bluetooth network.  Sensitive, but
+   * obvious to people nearby.  Useful for broadcasts.
+   */
+  GNUNET_TRANSPORT_AC_BT = 32
+  
+};
+
+
+/**
  * Function called whenever there is an update to the
  * HELLO of this peer.
  *
@@ -74,14 +129,14 @@ struct GNUNET_TRANSPORT_HelloGetHandle;
  * given in this function is never called synchronously.
  *
  * @param cfg configuration to use
- * @param nt which network type should the addresses from the HELLO belong to?
+ * @param ac which network type should the addresses from the HELLO belong to?
  * @param rec function to call with the HELLO
  * @param rec_cls closure for @a rec
  * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_HelloGetHandle *
 GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            enum GNUNET_ATS_Network_Type nt,
+                            enum GNUNET_TRANSPORT_AddressClass ac,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls);
 

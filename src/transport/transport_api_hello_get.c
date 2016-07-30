@@ -77,7 +77,7 @@ struct GNUNET_TRANSPORT_HelloGetHandle
   /**
    * Type of HELLOs client cares about.
    */
-  enum GNUNET_ATS_Network_Type nt;
+  enum GNUNET_TRANSPORT_AddressClass ac;
 };
 
 
@@ -219,7 +219,7 @@ schedule_reconnect (struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
  * is never called synchronously.
  *
  * @param cfg configuration
- * @param nt which network type should the addresses from the HELLO belong to?
+ * @param ac which network type should the addresses from the HELLO belong to?
  * @param rec function to call with the HELLO, sender will be our peer
  *            identity; message and sender will be NULL on timeout
  *            (handshake with transport service pending/failed).
@@ -229,7 +229,7 @@ schedule_reconnect (struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
  */
 struct GNUNET_TRANSPORT_HelloGetHandle *
 GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            enum GNUNET_ATS_Network_Type nt,
+                            enum GNUNET_TRANSPORT_AddressClass ac,
                             GNUNET_TRANSPORT_HelloUpdateCallback rec,
                             void *rec_cls)
 {
@@ -239,7 +239,7 @@ GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ghh->rec = rec;
   ghh->rec_cls = rec_cls;
   ghh->cfg = cfg;
-  ghh->nt = nt;
+  ghh->ac = ac;
   reconnect (ghh);
   if (NULL == ghh->mq)
   {

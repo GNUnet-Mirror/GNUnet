@@ -71,7 +71,7 @@ enum GNUNET_ATS_Network_Type
   /**
    * Bluetooth LAN
    */
-  GNUNET_ATS_NET_BT = 5
+  GNUNET_ATS_NET_BT = 5,
 
 /**
  * Number of network types supported by ATS

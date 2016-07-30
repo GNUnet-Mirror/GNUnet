@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,6 +28,7 @@
 #include "gnunet_block_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_hello_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
@@ -38,7 +39,6 @@
 #include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
-
 
 
 /**
@@ -69,7 +69,7 @@ struct GNUNET_MessageHeader *GDS_my_hello;
 /**
  * Handle to get our current HELLO.
  */
-static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+static struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 
 /**
  * Hello address expiration
@@ -85,9 +85,9 @@ struct GNUNET_TIME_Relative hello_expiration;
  * @param message HELLO message of peer
  */
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls,
+	       const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_assert (message != NULL);
   GNUNET_free_non_null (GDS_my_hello);
   GDS_my_hello = GNUNET_malloc (ntohs (message->size));
   GNUNET_memcpy (GDS_my_hello, message, ntohs (message->size));
@@ -104,7 +104,7 @@ shutdown_task (void *cls)
 {
   if (NULL != ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (ghh);
     ghh = NULL;
   }
   GDS_NEIGHBOURS_done ();
@@ -112,14 +112,15 @@ shutdown_task (void *cls)
   GDS_ROUTING_done ();
   GDS_HELLO_done ();
   GDS_NSE_done ();
-  if (GDS_block_context != NULL)
+  if (NULL != GDS_block_context)
   {
     GNUNET_BLOCK_context_destroy (GDS_block_context);
     GDS_block_context = NULL;
   }
-  if (GDS_stats != NULL)
+  if (NULL != GDS_stats)
   {
-    GNUNET_STATISTICS_destroy (GDS_stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (GDS_stats,
+			       GNUNET_YES);
     GDS_stats = NULL;
   }
   GNUNET_free_non_null (GDS_my_hello);
@@ -143,7 +144,10 @@ run (void *cls,
   GDS_server = server;
   GNUNET_SERVER_suspend (server);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION", &hello_expiration))
+      GNUNET_CONFIGURATION_get_value_time (c,
+					   "transport",
+					   "HELLO_EXPIRATION",
+					   &hello_expiration))
   {
     hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
   }
@@ -160,7 +164,8 @@ run (void *cls,
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
-  ghh = GNUNET_TRANSPORT_get_hello (GDS_cfg,
+  ghh = GNUNET_TRANSPORT_hello_get (GDS_cfg,
+				    GNUNET_TRANSPORT_AC_GLOBAL,
                                     &process_hello,
                                     NULL);
 }
@@ -174,14 +179,18 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   int ret;
 
-  ret =
-      (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "dht", GNUNET_SERVICE_OPTION_NONE, &run,
-                           NULL)) ? 0 : 1;
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc,
+			     argv,
+			     "dht",
+			     GNUNET_SERVICE_OPTION_NONE,
+			     &run,
+			     NULL)) ? 0 : 1;
   GDS_CLIENTS_done ();
   return ret;
 }
