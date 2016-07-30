@@ -101,7 +101,12 @@ enum GNUNET_TRANSPORT_AddressClass
    * Addresses useful in the local bluetooth network.  Sensitive, but
    * obvious to people nearby.  Useful for broadcasts.
    */
-  GNUNET_TRANSPORT_AC_BT = 32
+  GNUNET_TRANSPORT_AC_BT = 32,
+
+  /**
+   * Bitmask for "any" address.
+   */
+  GNUNET_TRANSPORT_AC_ANY = 65535
   
 };
 

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2015 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2015, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_hello_service.h"
 #include "gnunet_statistics_service.h"
 
 
@@ -74,7 +75,7 @@ struct PeerContext
   struct GNUNET_PeerIdentity id;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_STATISTICS_Handle *stats;
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
   struct GNUNET_ATS_ConnectivityHandle *ats;
   struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   int connect_status;
@@ -124,7 +125,7 @@ terminate_peer (struct PeerContext *p)
   }
   if (NULL != p->ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
     p->ghh = NULL;
   }
   if (NULL != p->oh)
@@ -677,17 +678,26 @@ setup_peer (struct PeerContext *p,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+    GNUNET_OS_start_process (GNUNET_YES,
+			     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
                              NULL, NULL, NULL,
                              binary,
                              "gnunet-service-arm",
-                             "-c", cfgname, NULL);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->stats = GNUNET_STATISTICS_create ("core", p->cfg);
-  GNUNET_assert (p->stats != NULL);
+                             "-c",
+			     cfgname,
+			     NULL);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_load (p->cfg,
+					    cfgname));
+  p->stats = GNUNET_STATISTICS_create ("core",
+				       p->cfg);
+  GNUNET_assert (NULL != p->stats);
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg, &process_hello, p);
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
+				       &process_hello,
+				       p);
   GNUNET_free (binary);
 }
 
@@ -708,42 +718,59 @@ run (void *cls,
 				 NULL);
   if (test == SYMMETRIC)
   {
-    setup_peer (&p1, "test_core_quota_peer1.conf");
-    setup_peer (&p2, "test_core_quota_peer2.conf");
+    setup_peer (&p1,
+		"test_core_quota_peer1.conf");
+    setup_peer (&p2,
+		"test_core_quota_peer2.conf");
   }
   else if (test == ASYMMETRIC_SEND_LIMITED)
   {
-    setup_peer (&p1, "test_core_quota_asymmetric_send_limit_peer1.conf");
-    setup_peer (&p2, "test_core_quota_asymmetric_send_limit_peer2.conf");
+    setup_peer (&p1,
+		"test_core_quota_asymmetric_send_limit_peer1.conf");
+    setup_peer (&p2,
+		"test_core_quota_asymmetric_send_limit_peer2.conf");
   }
   else if (test == ASYMMETRIC_RECV_LIMITED)
   {
-    setup_peer (&p1, "test_core_quota_asymmetric_recv_limited_peer1.conf");
-    setup_peer (&p2, "test_core_quota_asymmetric_recv_limited_peer2.conf");
+    setup_peer (&p1,
+		"test_core_quota_asymmetric_recv_limited_peer1.conf");
+    setup_peer (&p2,
+		"test_core_quota_asymmetric_recv_limited_peer2.conf");
   }
 
   GNUNET_assert (test != -1);
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_size (p1.cfg, "ATS",
+                 GNUNET_CONFIGURATION_get_value_size (p1.cfg,
+						      "ATS",
                                                       "WAN_QUOTA_IN",
                                                       &current_quota_p1_in));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_size (p2.cfg, "ATS",
+                 GNUNET_CONFIGURATION_get_value_size (p2.cfg,
+						      "ATS",
                                                       "WAN_QUOTA_IN",
                                                       &current_quota_p2_in));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_size (p1.cfg, "ATS",
+                 GNUNET_CONFIGURATION_get_value_size (p1.cfg,
+						      "ATS",
                                                       "WAN_QUOTA_OUT",
                                                       &current_quota_p1_out));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONFIGURATION_get_value_size (p2.cfg, "ATS",
+                 GNUNET_CONFIGURATION_get_value_size (p2.cfg,
+						      "ATS",
                                                       "WAN_QUOTA_OUT",
                                                       &current_quota_p2_out));
 
   p1.ch =
-      GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
-                           &disconnect_notify, &inbound_notify, GNUNET_YES,
-                           &outbound_notify, GNUNET_YES, handlers);
+      GNUNET_CORE_connect (p1.cfg,
+			   &p1,
+			   &init_notify,
+			   &connect_notify,
+                           &disconnect_notify,
+			   &inbound_notify,
+			   GNUNET_YES,
+                           &outbound_notify,
+			   GNUNET_YES,
+			   handlers);
 }
 
 

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2015 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2015, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_hello_service.h"
 #include <gauger.h>
 
 /**
@@ -63,7 +64,7 @@ struct PeerContext
   struct GNUNET_PeerIdentity id;
   struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
   struct GNUNET_MessageHeader *hello;
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
   struct GNUNET_ATS_ConnectivityHandle *ats;
   struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   int connect_status;
@@ -112,7 +113,7 @@ terminate_peer (struct PeerContext *p)
   }
   if (NULL != p->ghh)
   {
-    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (p->ghh);
     p->ghh = NULL;
   }
   if (NULL != p->oh)
@@ -406,13 +407,17 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    GNUNET_assert (NULL != (p2.ch = GNUNET_CORE_connect (p2.cfg, &p2,
-                                                         &init_notify,
-                                                         &connect_notify,
-                                                         &disconnect_notify,
-                                                         &inbound_notify, GNUNET_YES,
-                                                         &outbound_notify, GNUNET_YES,
-                                                         handlers)));
+    GNUNET_assert (NULL !=
+		   (p2.ch = GNUNET_CORE_connect (p2.cfg,
+						 &p2,
+						 &init_notify,
+						 &connect_notify,
+						 &disconnect_notify,
+						 &inbound_notify,
+						 GNUNET_YES,
+						 &outbound_notify,
+						 GNUNET_YES,
+						 handlers)));
   }
   else
   {
@@ -480,18 +485,22 @@ setup_peer (struct PeerContext *p,
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
-  p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                             NULL, NULL, NULL,
-                             binary,
-                             "gnunet-service-arm",
-                             "-c", cfgname, NULL);
+  p->arm_proc
+    = GNUNET_OS_start_process (GNUNET_YES,
+			       GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			       NULL, NULL, NULL,
+			       binary,
+			       "gnunet-service-arm",
+			       "-c",
+			       cfgname,
+			       NULL);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONFIGURATION_load (p->cfg,
 					    cfgname));
   p->ats = GNUNET_ATS_connectivity_init (p->cfg);
   GNUNET_assert (NULL != p->ats);
-  p->ghh = GNUNET_TRANSPORT_get_hello (p->cfg,
+  p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
+				       GNUNET_TRANSPORT_AC_ANY,
                                        &process_hello,
                                        p);
   GNUNET_free (binary);
@@ -506,8 +515,10 @@ run (void *cls,
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  setup_peer (&p1, "test_core_api_peer1.conf");
-  setup_peer (&p2, "test_core_api_peer2.conf");
+  setup_peer (&p1,
+	      "test_core_api_peer1.conf");
+  setup_peer (&p2,
+	      "test_core_api_peer2.conf");
   err_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                     &terminate_task_error,
@@ -516,7 +527,8 @@ run (void *cls,
 				 NULL);
 
   GNUNET_assert (NULL !=
-		 (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1,
+		 (p1.ch = GNUNET_CORE_connect (p1.cfg,
+					       &p1,
 					       &init_notify,
 					       &connect_notify,
 					       &disconnect_notify,
@@ -548,7 +560,8 @@ stop_arm (struct PeerContext *p)
 
 
 int
-main (int argc, char *argv1[])
+main (int argc,
+      char *argv1[])
 {
   char *const argv[] = {
     "test-core-api-reliability",
