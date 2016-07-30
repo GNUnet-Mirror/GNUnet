@@ -422,7 +422,7 @@ core_disconnect_adapter (void *cls,
 {
   struct BenchmarkPeer *me = cls;
 
-  GNUNET_CORE_disconnect (me->ch);
+  GNUNET_CORE_disconnecT (me->ch);
   me->ch = NULL;
 }
 

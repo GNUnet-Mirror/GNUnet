@@ -17,12 +17,10 @@ if HAVE_LIBGLPK
  PERF_MLP = \
  perf_ats_mlp_transport_none \
  perf_ats_mlp_transport_bandwidth \
- perf_ats_mlp_transport_latency
-# core-related test commented out while we wait
-# for GNUNET_CORE_connecT to be implemented!
-# perf_ats_mlp_core_none \
-# perf_ats_mlp_core_bandwidth \
-# perf_ats_mlp_core_latency
+ perf_ats_mlp_transport_latency \
+ perf_ats_mlp_core_none \
+ perf_ats_mlp_core_bandwidth \
+ perf_ats_mlp_core_latency
 endif
 
 if HAVE_TESTING
@@ -30,13 +28,10 @@ TESTING_TESTS = \
  perf_ats_proportional_transport_none \
  perf_ats_proportional_transport_bandwidth \
  perf_ats_proportional_transport_latency \
+ perf_ats_proportional_core_none \
+ perf_ats_proportional_core_bandwidth \
+ perf_ats_proportional_core_latency \
  $(PERF_MLP)
-
-# core-related test commented out while we wait
-# for GNUNET_CORE_connecT to be implemented!
-# perf_ats_proportional_core_none \
-# perf_ats_proportional_core_bandwidth \
-# perf_ats_proportional_core_latency 
 
 # RIL-tests commented out as RIL is currently badly broken.
 # perf_ats_ril_transport_none  perf_ats_ril_core_none perf_ats_ril_transport_bandwidth perf_ats_ril_core_bandwidth perf_ats_ril_transport_latency perf_ats_ril_core_latency
