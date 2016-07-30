@@ -22,6 +22,7 @@
  * @file core/test_core_api_send_to_self.c
  * @brief test that sending a message to ourselves via CORE works
  * @author Philipp Toelke
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -64,7 +65,7 @@ cleanup (void *cls)
   }
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -85,39 +86,12 @@ do_timeout (void *cls)
 }
 
 
-static int
-receive (void *cls,
-         const struct GNUNET_PeerIdentity *other,
-         const struct GNUNET_MessageHeader *message)
+static void
+handle_test (void *cls,
+	     const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message from peer %s\n",
-              GNUNET_i2s (other));
-  GNUNET_assert (GNUNET_MESSAGE_TYPE_DUMMY == ntohs (message->type));
-  GNUNET_assert (0 == memcmp (other, &myself, sizeof (myself)));
   GNUNET_SCHEDULER_shutdown ();
   ret = 0;
-  return GNUNET_OK;
-}
-
-
-static size_t
-send_message (void *cls,
-              size_t size,
-              void *buf)
-{
-  struct GNUNET_MessageHeader *hdr = buf;
-  if ( (size == 0) || (buf == NULL) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not send; got 0 buffer\n");
-    return 0;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending!\n");
-  hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
-  return ntohs (hdr->size);
 }
 
 
@@ -134,14 +108,15 @@ init (void *cls,
               "Correctly connected to CORE; we are the peer %s.\n",
               GNUNET_i2s (my_identity));
   GNUNET_memcpy (&myself,
-          my_identity,
-          sizeof (struct GNUNET_PeerIdentity));
+		 my_identity,
+		 sizeof (struct GNUNET_PeerIdentity));
 }
 
 
-static void
+static void *
 connect_cb (void *cls,
-            const struct GNUNET_PeerIdentity *peer)
+            const struct GNUNET_PeerIdentity *peer,
+	    struct GNUNET_MQ_Handle *mq)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connected to peer %s.\n",
@@ -150,16 +125,17 @@ connect_cb (void *cls,
                    &myself,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_MessageHeader *msg;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Connected to myself; sending message!\n");
-    GNUNET_CORE_notify_transmit_ready (core,
-                                       GNUNET_YES,
-                                       0,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       peer,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       &send_message, NULL);
+    env = GNUNET_MQ_msg (msg,
+			 GNUNET_MESSAGE_TYPE_DUMMY);
+    GNUNET_MQ_send (mq,
+		    env);
   }
+  return NULL;
 }
 
 
@@ -174,16 +150,21 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  const static struct GNUNET_CORE_MessageHandler handlers[] = {
-    { &receive,
-      GNUNET_MESSAGE_TYPE_DUMMY,
-      sizeof (struct GNUNET_MessageHeader) },
-    {NULL, 0, 0}
+  GNUNET_MQ_hd_fixed_size (test,
+			   GNUNET_MESSAGE_TYPE_DUMMY,
+			   struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (NULL),
+    GNUNET_MQ_handler_end ()
   };
+
   core =
-    GNUNET_CORE_connect (cfg, NULL, &init,
-                         &connect_cb, NULL, NULL,
-			 0, NULL, 0, handlers);
+    GNUNET_CORE_connecT (cfg,
+			 NULL,
+			 &init,
+                         &connect_cb,
+			 NULL,
+			 handlers);
   GNUNET_SCHEDULER_add_shutdown (&cleanup,
                                  NULL);
   die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
