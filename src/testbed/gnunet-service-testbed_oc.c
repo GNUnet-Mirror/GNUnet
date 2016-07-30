@@ -26,6 +26,7 @@
 
 #include "gnunet-service-testbed.h"
 #include "gnunet-service-testbed_connectionpool.h"
+#include "gnunet_transport_hello_service.h"
 
 /**
  * Redefine LOG with a changed log component string
@@ -199,7 +200,7 @@ struct OverlayConnectContext
   /**
    * Get GetHelloHandle to acquire a HELLO of the first peer
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 
   /**
    * The error message we send if this overlay connect operation has timed out
@@ -542,7 +543,7 @@ cleanup_occ (struct OverlayConnectContext *occ)
   if (NULL != occ->cgh_ch)
     GST_connection_pool_get_handle_done (occ->cgh_ch);
   if (NULL != occ->ghh)
-    GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
+    GNUNET_TRANSPORT_hello_get_cancel (occ->ghh);
   GST_connection_pool_get_handle_done (occ->cgh_p1th);
   GNUNET_assert (NULL != GST_peer_list);
   GNUNET_assert (occ->peer->reference_cnt > 0);
@@ -1040,7 +1041,7 @@ hello_update_cb (void *cls,
   occ->hello = GNUNET_malloc (msize);
   GST_cache_add_hello (occ->peer->id, hello);
   GNUNET_memcpy (occ->hello, hello, msize);
-  GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
+  GNUNET_TRANSPORT_hello_get_cancel (occ->ghh);
   occ->ghh = NULL;
   GST_connection_pool_get_handle_done (occ->cgh_p1th);
   occ->cgh_p1th = NULL;
@@ -1090,7 +1091,8 @@ p1_transport_connect_cache_callback (void *cls,
                    "0x%llx: Timeout while acquiring HELLO of peer %s",
                    occ->op_id,
                    GNUNET_i2s (&occ->peer_identity));
-  occ->ghh = GNUNET_TRANSPORT_get_hello (cfg,
+  occ->ghh = GNUNET_TRANSPORT_hello_get (cfg,
+					 GNUNET_TRANSPORT_AC_ANY,
                                          &hello_update_cb,
                                          occ);
 }
