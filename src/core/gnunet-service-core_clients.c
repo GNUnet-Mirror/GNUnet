@@ -469,7 +469,6 @@ handle_client_send (void *cls,
   struct TokenizerContext tc;
   uint16_t msize;
   struct GNUNET_TIME_Relative delay;
-  struct GNUNET_TIME_Relative overdue;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct SendMessage))
@@ -509,10 +508,9 @@ handle_client_send (void *cls,
     return;
   }
   delay = GNUNET_TIME_absolute_get_duration (tc.car->received_time);
-  overdue = GNUNET_TIME_absolute_get_duration (tc.car->deadline);
   tc.cork = ntohl (sm->cork);
   tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
-  if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+  if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Client waited %s for transmission of %u bytes to `%s'%s\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
@@ -711,7 +709,7 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   }
   delay = GNUNET_TIME_absolute_get_duration (car->received_time);
   left = GNUNET_TIME_absolute_get_duration (car->deadline);
-  if (left.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+  if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Client waited %s for permission to transmit to `%s'%s (priority %u)\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
