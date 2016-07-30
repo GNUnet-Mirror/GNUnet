@@ -54,49 +54,6 @@ extern "C"
 
 /* *************************** HELLO *************************** */
 
-
-/**
- * Function called whenever there is an update to the
- * HELLO of this peer.
- *
- * @param cls closure
- * @param hello our updated HELLO
- */
-typedef void
-(*GNUNET_TRANSPORT_HelloUpdateCallback) (void *cls,
-                                         const struct GNUNET_MessageHeader *hello);
-
-
-/**
- * Handle to cancel a #GNUNET_TRANSPORT_get_hello() operation.
- */
-struct GNUNET_TRANSPORT_GetHelloHandle;
-
-
-/**
- * Obtain updates on changes to the HELLO message for this peer. The callback
- * given in this function is never called synchronously.
- *
- * @param cfg configuration
- * @param rec function to call with the HELLO
- * @param rec_cls closure for @a rec
- * @return handle to cancel the operation
- */
-struct GNUNET_TRANSPORT_GetHelloHandle *
-GNUNET_TRANSPORT_get_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                            void *rec_cls);
-
-
-/**
- * Stop receiving updates about changes to our HELLO message.
- *
- * @param ghh handle to cancel
- */
-void
-GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
-
-
 /**
  * Handle for a #GNUNET_TRANSPORT_offer_hello operation
  */
@@ -114,7 +71,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  *      tc reason #GNUNET_SCHEDULER_REASON_TIMEOUT for fail
  *      tc reasong #GNUNET_SCHEDULER_REASON_READ_READY for success
  * @param cont_cls closure for @a cont
- * @return a GNUNET_TRANSPORT_OfferHelloHandle handle or NULL on failure,
+ * @return a `struct GNUNET_TRANSPORT_OfferHelloHandle` handle or NULL on failure,
  *      in case of failure @a cont will not be called
  *
  */
