@@ -400,9 +400,9 @@ member_recv_replay_response (void *cls,
   struct GNUNET_MULTICAST_Member *
     mem = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*grp));
   grp = &mem->grp;
-  struct MulticastReplayResponseMessage *
-    res = (struct MulticastReplayResponseMessage *) msg;
-
+  // FIXME: Something is missing here for the code to make sense
+  //struct MulticastReplayResponseMessage *
+  //  res = (struct MulticastReplayResponseMessage *) msg;
   if (GNUNET_YES == grp->is_disconnecting)
     return;
 

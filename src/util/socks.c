@@ -599,7 +599,7 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
     host0 = NULL; /* you don't want to feed a static string to free(), right? */
-  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, host0 || "127.0.0.1", port0);
+  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (char*)(host0 || "127.0.0.1"), port0);
   if (host0) GNUNET_free (host0);
 
   /* Sets to NULL if they do not exist */

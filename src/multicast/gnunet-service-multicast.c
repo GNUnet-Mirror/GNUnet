@@ -877,6 +877,7 @@ cadet_send_children (struct GNUNET_HashCode *pub_key_hash,
 }
 
 
+#if 0	    // unused as yet
 /**
  * Send message to all connected parents.
  */
@@ -890,6 +891,7 @@ cadet_send_parents (struct GNUNET_HashCode *pub_key_hash,
                                                      cadet_send_cb, (void *) msg);
   return n;
 }
+#endif
 
 
 /**
@@ -1778,7 +1780,7 @@ cadet_recv_replay_response (void *cls,
                             void **ctx,
                             const struct GNUNET_MessageHeader *m)
 {
-  struct Channel *chn = *ctx;
+  //struct Channel *chn = *ctx;
 
   /* @todo FIXME: got replay error response, send request to other members */
 

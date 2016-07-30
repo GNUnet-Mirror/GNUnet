@@ -131,6 +131,9 @@ static int opt_limit;
 /** exit code */
 static int ret = 1;
 
+/** are we waiting for service to close our connection */
+static char is_disconnecting = 0;
+
 /** Task handle for timeout termination. */
 struct GNUNET_SCHEDULER_Task *timeout_task;
 
@@ -199,8 +202,11 @@ app_disconnected (void *cls)
 static void
 disconnect ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect()\n");
-  GNUNET_SOCIAL_app_disconnect (app, app_disconnected, NULL);
+  // handle that we get called several times from several places, but should we?
+  if (!is_disconnecting++) {
+    GNUNET_SOCIAL_app_disconnect (app, app_disconnected, NULL);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect() called for the #%d time\n", is_disconnecting);
 }
 
 
@@ -218,21 +224,21 @@ static void
 timeout (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "timeout()\n");
-  //disconnect ();
+  disconnect ();
 }
 
 static void
 schedule_success (void *cls)
 {
   ret = 0;
-  //disconnect ();
+  disconnect ();
 }
 
 
 static void
 schedule_fail (void *cls)
 {
-  //disconnect ();
+  disconnect ();
 }
 
 
