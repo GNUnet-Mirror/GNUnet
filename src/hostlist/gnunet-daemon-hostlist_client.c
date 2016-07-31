@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2010, 2014 GNUnet e.V.
+     Copyright (C) 2001-2010, 2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1187,14 +1187,20 @@ task_hostlist_saving (void *cls)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param mq message queue for transmissions to @a peer
  */
-static void
-handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+static void *
+handler_connect (void *cls,
+		 const struct GNUNET_PeerIdentity *peer,
+		 struct GNUNET_MQ_Handle *mq)
 {
   GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# active connections"), 1,
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# active connections"),
+			    1,
                             GNUNET_NO);
+  return NULL;
 }
 
 
@@ -1205,11 +1211,15 @@ handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer peer identity this notification is about
  */
 static void
-handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+handler_disconnect (void *cls,
+		    const struct GNUNET_PeerIdentity *peer,
+		    void *internal_cls)
 {
   GNUNET_assert (stat_connection_count > 0);
   stat_connection_count--;
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# active connections"), -1,
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# active connections"),
+			    -1,
                             GNUNET_NO);
 }
 
@@ -1217,63 +1227,44 @@ handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 /**
  * Method called whenever an advertisement message arrives.
  *
- * @param cls closure (always NULL)
- * @param peer the peer sending the message
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param uri the advertised URI
  */
-static int
-handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message)
+static void
+handler_advertisement (const char *uri)
 {
-  size_t size;
   size_t uri_size;
-  const struct GNUNET_MessageHeader *incoming;
-  const char *uri;
   struct Hostlist *hostlist;
 
-  GNUNET_assert (ntohs (message->type) ==
-                 GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-  size = ntohs (message->size);
-  if (size <= sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  incoming = (const struct GNUNET_MessageHeader *) message;
-  uri = (const char *) &incoming[1];
-  uri_size = size - sizeof (struct GNUNET_MessageHeader);
-  if (uri[uri_size - 1] != '\0')
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
+  uri_size = strlen (uri) + 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client recieved advertisement from `%s' containing URI `%s'\n",
-              GNUNET_i2s (peer), uri);
+              "Hostlist client recieved advertisement containing URI `%s'\n",
+	      uri);
   if (GNUNET_NO != linked_list_contains (uri))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "URI `%s' is already known\n", uri);
-    return GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"URI `%s' is already known\n",
+		uri);
+    return;
   }
 
   if (GNUNET_NO == stat_testing_allowed)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting new advertisements: interval between to advertisements is not reached\n");
-    return GNUNET_SYSERR;
+    return;
   }
   if (GNUNET_YES == stat_testing_hostlist)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Currently not accepting new advertisements: we are already testing a hostlist\n");
-    return GNUNET_SYSERR;
+    return;
   }
 
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->hostlist_uri = (const char *) &hostlist[1];
-  GNUNET_memcpy (&hostlist[1], uri, uri_size);
+  GNUNET_memcpy (&hostlist[1],
+		 uri,
+		 uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get ();
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
@@ -1282,7 +1273,8 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
   stat_testing_allowed = GNUNET_NO;
   ti_testing_intervall_task =
       GNUNET_SCHEDULER_add_delayed (TESTING_INTERVAL,
-                                    &task_testing_intervall_reset, NULL);
+                                    &task_testing_intervall_reset,
+				    NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testing new hostlist advertisements is locked for the next %s\n",
@@ -1290,9 +1282,8 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
 						      GNUNET_YES));
 
   ti_download_dispatcher_task =
-      GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
-
-  return GNUNET_OK;
+      GNUNET_SCHEDULER_add_now (&task_download_dispatcher,
+				NULL);
 }
 
 
@@ -1557,9 +1548,9 @@ save_hostlist_file (int shutdown)
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
-                              GNUNET_CORE_ConnectEventHandler *ch,
-                              GNUNET_CORE_DisconnectEventHandler *dh,
-                              GNUNET_CORE_MessageCallback *msgh,
+                              GNUNET_CORE_ConnecTEventHandler *ch,
+                              GNUNET_CORE_DisconnecTEventHandler *dh,
+                              GNUNET_HOSTLIST_UriHandler *msgh,
                               int learn)
 {
   char *filename;
@@ -1578,23 +1569,31 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   /* Read proxy configuration */
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "HOSTLIST", "PROXY", &proxy))
+                                             "HOSTLIST",
+					     "PROXY",
+					     &proxy))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                      "Found proxy host: `%s'\n",
                      proxy);
     /* proxy username */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
-        "HOSTLIST", "PROXY_USERNAME", &proxy_username))
+    if (GNUNET_OK ==
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+					       "HOSTLIST",
+					       "PROXY_USERNAME",
+					       &proxy_username))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       "Found proxy username name: `%s'\n",
-                       proxy_username);
+		  "Found proxy username name: `%s'\n",
+		  proxy_username);
     }
 
     /* proxy password */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
-        "HOSTLIST", "PROXY_PASSWORD", &proxy_password))
+    if (GNUNET_OK ==
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+					       "HOSTLIST",
+					       "PROXY_PASSWORD",
+					       &proxy_password))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "Found proxy password name: `%s'\n",
@@ -1659,7 +1658,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     load_hostlist_file ();
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Hostlists will be saved to file again in %s\n",
-		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL, GNUNET_YES));
+		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL,
+							GNUNET_YES));
     ti_saving_task =
         GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL,
                                       &task_hostlist_saving,
@@ -1671,8 +1671,10 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                 _("Learning is not enabled on this peer\n"));
     *msgh = NULL;
     if (GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST",
-                                                 "HOSTLISTFILE", &filename))
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+						 "HOSTLIST",
+                                                 "HOSTLISTFILE",
+						 &filename))
     {
       if (GNUNET_YES == GNUNET_DISK_file_test (filename))
       {
@@ -1706,9 +1708,10 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   else
   {
-    ti_check_download = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                                      &stat_timeout_task,
-                                                      NULL);
+    ti_check_download
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+				      &stat_timeout_task,
+				      NULL);
   }
   return GNUNET_OK;
 }

@@ -31,6 +31,15 @@
 
 
 /**
+ * Function that handles an advertised URI.
+ *
+ * @param uri 0-termianted URI of a hostlist
+ */
+typedef void
+(*GNUNET_HOSTLIST_UriHandler)(const char *uri);
+
+
+/**
  * Start downloading hostlists from hostlist servers as necessary.
  *
  * @param c configuration to use
@@ -44,9 +53,9 @@
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
-                              GNUNET_CORE_ConnectEventHandler *ch,
-                              GNUNET_CORE_DisconnectEventHandler *dh,
-                              GNUNET_CORE_MessageCallback *msgh,
+                              GNUNET_CORE_ConnecTEventHandler *ch,
+                              GNUNET_CORE_DisconnecTEventHandler *dh,
+                              GNUNET_HOSTLIST_UriHandler *msgh,
                               int learn);
 
 

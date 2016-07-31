@@ -30,42 +30,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_plugin.h"
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * A HELLO message is used to exchange information about
- * transports with other peers.  This struct is always
- * followed by the actual network addresses which have
- * the format:
- *
- * 1) transport-name (0-terminated)
- * 2) address-length (uint16_t, network byte order; possibly
- *    unaligned!)
- * 3) address expiration (`struct GNUNET_TIME_AbsoluteNBO`); possibly
- *    unaligned!)
- * 4) address (address-length bytes; possibly unaligned!)
- */
-struct GNUNET_HELLO_Message
-{
-  /**
-   * Type will be #GNUNET_MESSAGE_TYPE_HELLO.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Use in F2F mode: Do not gossip this HELLO message
-   */
-  uint32_t friend_only GNUNET_PACKED;
-
-  /**
-   * The public key of the peer.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey publicKey;
-
-};
-GNUNET_NETWORK_STRUCT_END
-
-
 /**
  * Context used for building our own URI.
  */

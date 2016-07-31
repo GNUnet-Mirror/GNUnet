@@ -39,7 +39,6 @@
  * @param st statistics handle to use
  * @param co core handle to use
  * @param[out] server_ch set to handler for CORE connect events
- * @param[out] server_dh set to handler for CORE disconnect events
  * @param advertise #GNUNET_YES if we should advertise our hostlist
  * @return #GNUNET_OK on success
  */
@@ -47,9 +46,8 @@ int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
                               struct GNUNET_CORE_Handle *core,
-                              GNUNET_CORE_ConnectEventHandler *server_ch,
-                              GNUNET_CORE_DisconnectEventHandler *server_dh,
-                              int advertise);
+                              GNUNET_CORE_ConnecTEventHandler *server_ch,
+			      int advertise);
 
 
 /**

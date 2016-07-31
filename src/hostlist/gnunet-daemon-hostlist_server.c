@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2008, 2009, 2010, 2014 GNUnet e.V.
+     Copyright (C) 2008, 2009, 2010, 2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -100,12 +100,6 @@ static int advertising;
  * Buffer for the hostlist address
  */
 static char *hostlist_uri;
-
-/**
- * Map of peer identities to `struct GNUNET_CORE_TransmitHandle *` for
- * pending hostlist server advertisements.
- */
-static struct GNUNET_CONTAINER_MultiPeerMap *advertisements;
 
 
 /**
@@ -436,47 +430,34 @@ access_handler_callback (void *cls,
  * @param buf buffer to copy message to
  * @return number of bytes copied to @a buf
  */
-static size_t
-adv_transmit_ready (void *cls,
-                    size_t size,
-                    void *buf)
+static void
+adv_transmit (struct GNUNET_MQ_Handle *mq)
 {
-  const struct GNUNET_PeerIdentity *peer = cls;
   static uint64_t hostlist_adv_count;
-  size_t transmission_size;
+  const void *extra;
+  uint64_t flags;
   size_t uri_size;              /* Including \0 termination! */
-  struct GNUNET_MessageHeader header;
-  char *cbuf;
-  struct GNUNET_CORE_TransmitHandle *th;
+  struct GNUNET_MessageHeader *header;
+  struct GNUNET_MQ_Envelope *env;
 
-  th = GNUNET_CONTAINER_multipeermap_get (advertisements,
-                                          peer);
-  GNUNET_assert (NULL != th);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (advertisements,
-                                                       peer,
-                                                       th));
-  if (NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmission failed, buffer invalid!\n");
-    return 0;
-  }
+  extra = GNUNET_CORE_get_mq_options (GNUNET_YES,
+				      GNUNET_CORE_PRIO_BEST_EFFORT,
+				      &flags);
   uri_size = strlen (hostlist_uri) + 1;
-  transmission_size = sizeof (struct GNUNET_MessageHeader) + uri_size;
-  header.type = htons (GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-  header.size = htons (transmission_size);
-  GNUNET_assert (size >= transmission_size);
-  GNUNET_memcpy (buf,
-          &header,
-          sizeof (struct GNUNET_MessageHeader));
-  cbuf = buf;
-  GNUNET_memcpy (&cbuf[sizeof (struct GNUNET_MessageHeader)],
-          hostlist_uri,
-          uri_size);
+  env = GNUNET_MQ_msg_extra (header,
+			     uri_size,
+			     GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
+  GNUNET_memcpy (&header[1],
+		 hostlist_uri,
+		 uri_size);
+  GNUNET_MQ_env_set_options (env,
+			     flags,
+			     extra);
+  GNUNET_MQ_send (mq,
+		  env);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sent advertisement message: Copied %u bytes into buffer!\n",
-              (unsigned int) transmission_size);
+              (unsigned int) uri_size);
   hostlist_adv_count++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " # Sent advertisement message: %llu\n",
@@ -484,7 +465,6 @@ adv_transmit_ready (void *cls,
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# hostlist advertisements send"), 1,
                             GNUNET_NO);
-  return transmission_size;
 }
 
 
@@ -493,78 +473,39 @@ adv_transmit_ready (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param mq queue for transmission to @a peer
+ * @return NULL (must!)
  */
-static void
+static void *
 connect_handler (void *cls,
-                 const struct GNUNET_PeerIdentity *peer)
+                 const struct GNUNET_PeerIdentity *peer,
+		 struct GNUNET_MQ_Handle *mq)
 {
   size_t size;
-  struct GNUNET_CORE_TransmitHandle *th;
 
   if (! advertising)
-    return;
+    return NULL;
   if (NULL == hostlist_uri)
-    return;
+    return NULL;
   size = strlen (hostlist_uri) + 1;
   if (size + sizeof (struct GNUNET_MessageHeader) >=
       GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
-    return;
+    return NULL;
   }
   size += sizeof (struct GNUNET_MessageHeader);
   if (NULL == core)
   {
     GNUNET_break (0);
-    return;
+    return NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked CORE to transmit advertisement message with a size of %u bytes to peer `%s'\n",
               (unsigned int) size,
               GNUNET_i2s (peer));
-  if (NULL ==
-      (th = GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES,
-                                               GNUNET_CORE_PRIO_BEST_EFFORT,
-                                               GNUNET_ADV_TIMEOUT,
-                                               peer,
-                                               size,
-                                               &adv_transmit_ready,
-                                               (void *) peer)) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Advertisement message could not be queued by core\n"));
-  }
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_put (advertisements,
-                                                    peer,
-                                                    th,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-}
-
-
-/**
- * Method called whenever a given peer disconnects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-static void
-disconnect_handler (void *cls,
-                    const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_CORE_TransmitHandle *th;
-
-  if (! advertising)
-    return;
-  th = GNUNET_CONTAINER_multipeermap_get (advertisements,
-                                          peer);
-  if (NULL == th)
-    return;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (advertisements,
-                                                       peer,
-                                                       th));
-  GNUNET_CORE_notify_transmit_ready_cancel (th);
+  adv_transmit (mq);
+  return NULL;
 }
 
 
@@ -696,7 +637,6 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
  * @param st statistics handle to use
  * @param co core handle to use
  * @param[out] server_ch set to handler for CORE connect events
- * @param[out] server_dh set to handler for CORE disconnect events
  * @param advertise #GNUNET_YES if we should advertise our hostlist
  * @return #GNUNET_OK on success
  */
@@ -704,8 +644,7 @@ int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
                               struct GNUNET_CORE_Handle *co,
-                              GNUNET_CORE_ConnectEventHandler *server_ch,
-                              GNUNET_CORE_DisconnectEventHandler *server_dh,
+                              GNUNET_CORE_ConnecTEventHandler *server_ch,
                               int advertise)
 {
   unsigned long long port;
@@ -730,8 +669,6 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Advertising enabled on this hostlist server\n");
-    advertisements = GNUNET_CONTAINER_multipeermap_create (8,
-                                                           GNUNET_NO);
   }
   cfg = c;
   stats = st;
@@ -797,11 +734,15 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   else
     ipv4 = NULL;
-  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV6"))
+  if (GNUNET_CONFIGURATION_have_value (cfg,
+				       "HOSTLIST",
+				       "BINDTOIPV6"))
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
-                                               "BINDTOIP", &ipv6))
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+					       "HOSTLIST",
+                                               "BINDTOIP",
+					       &ipv6))
       {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
           _("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"));
@@ -892,7 +833,6 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 
   core = co;
   *server_ch = &connect_handler;
-  *server_dh = &disconnect_handler;
   if (NULL != daemon_handle_v4)
     hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
   if (NULL != daemon_handle_v6)
@@ -957,13 +897,6 @@ GNUNET_HOSTLIST_server_stop ()
   {
     GNUNET_PEERINFO_disconnect (peerinfo);
     peerinfo = NULL;
-  }
-  if (NULL != advertisements)
-  {
-    GNUNET_break (0 ==
-                  GNUNET_CONTAINER_multipeermap_size (advertisements));
-    GNUNET_CONTAINER_multipeermap_destroy (advertisements);
-    advertisements = NULL;
   }
   cfg = NULL;
   stats = NULL;

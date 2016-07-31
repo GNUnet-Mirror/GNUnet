@@ -1494,7 +1494,7 @@ run (void *cls,
   };
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
     make_p2p_estimate_handler (NULL),
-    GNUNET_MQ_handler_end (),
+    GNUNET_MQ_handler_end ()
   };
   char *proof;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;

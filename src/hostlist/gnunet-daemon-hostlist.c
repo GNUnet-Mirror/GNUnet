@@ -47,12 +47,7 @@ static int provide_hostlist;
 /**
  * Handle to hostlist server's connect handler
  */
-static GNUNET_CORE_ConnectEventHandler server_ch;
-
-/**
- * Handle to hostlist server's disconnect handler
- */
-static GNUNET_CORE_DisconnectEventHandler server_dh;
+static GNUNET_CORE_ConnecTEventHandler server_ch;
 
 #endif
 
@@ -81,17 +76,17 @@ static struct GNUNET_CORE_Handle *core;
 /**
  * Handle to the hostlist client's advertisement handler
  */
-static GNUNET_CORE_MessageCallback client_adv_handler;
+static GNUNET_HOSTLIST_UriHandler client_adv_handler;
 
 /**
  * Handle to hostlist client's connect handler
  */
-static GNUNET_CORE_ConnectEventHandler client_ch;
+static GNUNET_CORE_ConnecTEventHandler client_ch;
 
 /**
  * Handle to hostlist client's disconnect handler
  */
-static GNUNET_CORE_DisconnectEventHandler client_dh;
+static GNUNET_CORE_DisconnecTEventHandler client_dh;
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -146,17 +141,49 @@ core_init (void *cls,
  * Core handler for p2p hostlist advertisements
  *
  * @param cls closure
- * @param peer identity of the sender
+ * @param message advertisement message we got
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_advertisement (void *cls,
+		     const struct GNUNET_MessageHeader *message)
+{
+  size_t size;
+  size_t uri_size;
+  const char *uri;
+
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  uri = (const char *) &message[1];
+  uri_size = size - sizeof (struct GNUNET_MessageHeader);
+  if (uri[uri_size - 1] != '\0')
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Core handler for p2p hostlist advertisements
+ *
+ * @param cls closure
  * @param message advertisement message we got
  * @return #GNUNET_OK on success
  */
-static int
-advertisement_handler (void *cls,
-                       const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message)
+static void
+handle_advertisement (void *cls,
+		      const struct GNUNET_MessageHeader *message)
 {
+  const char *uri = (const char *) &message[1];
+ 
   GNUNET_assert (NULL != client_adv_handler);
-  return (*client_adv_handler) (cls, peer, message);
+  (void) (*client_adv_handler) (uri);
 }
 
 
@@ -166,20 +193,33 @@ advertisement_handler (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param mq queue for sending messages to @a peer
+ * @return peer
  */
-static void
-connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
+static void *
+connect_handler (void *cls,
+		 const struct GNUNET_PeerIdentity *peer,
+		 struct GNUNET_MQ_Handle *mq)
 {
-  if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
-    return;
+  if (0 == memcmp (&me,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if (NULL != client_ch)
-    (*client_ch) (cls, peer);
+    GNUNET_assert (NULL ==
+		   (*client_ch) (cls,
+				 peer,
+				 mq));
 #if HAVE_MHD
   if (NULL != server_ch)
-    (*server_ch) (cls, peer);
+    GNUNET_assert (NULL ==
+		   (*server_ch) (cls,
+				 peer,
+				 mq));
 #endif
+  return (void *) peer;
 }
 
 
@@ -192,18 +232,18 @@ connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
  */
 static void
 disconnect_handler (void *cls,
-                    const struct GNUNET_PeerIdentity *peer)
+                    const struct GNUNET_PeerIdentity *peer,
+		    void *internal_cls)
 {
-  if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&me,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* call hostlist client disconnect handler */
   if (NULL != client_dh)
-    (*client_dh) (cls, peer);
-#if HAVE_MHD
-  /* call hostlist server disconnect handler */
-  if (NULL != server_dh)
-    (*server_dh) (cls, peer);
-#endif
+    (*client_dh) (cls,
+		  peer,
+		  NULL);
 }
 
 
@@ -220,7 +260,7 @@ cleaning_task (void *cls)
 	      "Hostlist daemon is shutting down\n");
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
   if (bootstrapping)
@@ -235,7 +275,8 @@ cleaning_task (void *cls)
 #endif
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (stats,
+			       GNUNET_NO);
     stats = NULL;
   }
 }
@@ -255,12 +296,15 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  static const struct GNUNET_CORE_MessageHandler learn_handlers[] = {
-    {&advertisement_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
-    {NULL, 0, 0}
+  GNUNET_MQ_hd_var_size (advertisement,
+			 GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
+			 struct GNUNET_MessageHeader);
+  struct GNUNET_MQ_MessageHandler learn_handlers[] = {
+    make_advertisement_handler (NULL),
+    GNUNET_MQ_handler_end ()
   };
-  static const struct GNUNET_CORE_MessageHandler no_learn_handlers[] = {
-    {NULL, 0, 0}
+  struct GNUNET_MQ_MessageHandler no_learn_handlers[] = {
+    GNUNET_MQ_handler_end ()
   };
   if ((! bootstrapping) && (! learning)
 #if HAVE_MHD
@@ -279,24 +323,27 @@ run (void *cls,
     return;
   }
   if (bootstrapping)
-    GNUNET_HOSTLIST_client_start (cfg, stats,
+    GNUNET_HOSTLIST_client_start (cfg,
+				  stats,
                                   &client_ch,
                                   &client_dh,
                                   &client_adv_handler,
                                   learning);
   core =
-    GNUNET_CORE_connect (cfg, NULL,
+    GNUNET_CORE_connecT (cfg,
+			 NULL,
 			 &core_init,
 			 &connect_handler,
 			 &disconnect_handler,
-                         NULL, GNUNET_NO,
-                         NULL, GNUNET_NO,
 			 learning ? learn_handlers : no_learn_handlers);
 
 
 #if HAVE_MHD
   if (provide_hostlist)
-    GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh,
+    GNUNET_HOSTLIST_server_start (cfg,
+				  stats,
+				  core,
+				  &server_ch,
                                   advertising);
 #endif
   GNUNET_SCHEDULER_add_shutdown (&cleaning_task,

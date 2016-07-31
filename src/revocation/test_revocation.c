@@ -280,9 +280,10 @@ identity_disconnect_adapter (void *cls,
 }
 
 
-static void
+static void *
 connect_cb (void *cls,
-            const struct GNUNET_PeerIdentity *peer)
+            const struct GNUNET_PeerIdentity *peer,
+	    struct GNUNET_MQ_Handle *mq)
 {
   static int connects = 0;
 
@@ -308,6 +309,7 @@ connect_cb (void *cls,
                                         &identity_disconnect_adapter,
                                         &testpeers[1]);
   }
+  return NULL;
 }
 
 
@@ -335,10 +337,11 @@ core_connect_adapter (void *cls,
   struct TestPeer *me = cls;
 
   me->cfg = cfg;
-  me->ch = GNUNET_CORE_connect (cfg, me, NULL,
-                                &connect_cb, NULL,
-                                NULL, GNUNET_NO,
-                                NULL, GNUNET_NO,
+  me->ch = GNUNET_CORE_connecT (cfg,
+				me,
+				NULL,
+                                &connect_cb,
+				NULL,
                                 NULL);
   if (NULL == me->ch)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
@@ -353,7 +356,7 @@ core_disconnect_adapter (void *cls,
 {
   struct TestPeer *me = cls;
 
-  GNUNET_CORE_disconnect (me->ch);
+  GNUNET_CORE_disconnecT (me->ch);
   me->ch = NULL;
 }
 

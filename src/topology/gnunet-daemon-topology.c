@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2007-2015 GNUnet e.V.
+     Copyright (C) 2007-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -70,10 +70,10 @@ struct Peer
   struct GNUNET_PeerIdentity pid;
 
   /**
-   * Our handle for the request to transmit HELLOs to this peer; NULL
-   * if no such request is pending.
+   * Our handle for transmitting to this peer; NULL
+   * if peer is not connected.
    */
-  struct GNUNET_CORE_TransmitHandle *hello_req;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Pointer to the HELLO message of this peer; can be NULL.
@@ -116,11 +116,6 @@ struct Peer
    * Is this peer listed here because he is a friend?
    */
   int is_friend;
-
-  /**
-   * Are we connected to this peer right now?
-   */
-  int is_connected;
 
 };
 
@@ -264,16 +259,11 @@ free_peer (void *cls,
 {
   struct Peer *pos = value;
 
-  GNUNET_break (GNUNET_NO == pos->is_connected);
+  GNUNET_break (NULL == pos->mq);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_remove (peers,
                                                       pid,
                                                       pos));
-  if (NULL != pos->hello_req)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
-    pos->hello_req = NULL;
-  }
   if (NULL != pos->hello_delay_task)
   {
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
@@ -329,7 +319,7 @@ attempt_connect (struct Peer *pos)
   }
   if (pos->is_friend)
     strength *= 2; /* friends always count more */
-  if (pos->is_connected)
+  if (NULL != pos->mq)
     strength *= 2; /* existing connections preferred */
   if (strength == pos->strength)
     return; /* nothing to do */
@@ -378,8 +368,8 @@ make_peer (const struct GNUNET_PeerIdentity *peer,
   {
     ret->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
     GNUNET_memcpy (ret->hello,
-            hello,
-            GNUNET_HELLO_size (hello));
+		   hello,
+		   GNUNET_HELLO_size (hello));
   }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (peers,
@@ -417,20 +407,6 @@ setup_filter (struct Peer *peer)
                       &hc);
   GNUNET_CONTAINER_bloomfilter_add (peer->filter, &hc);
 }
-
-
-/**
- * Function to fill send buffer with HELLO.
- *
- * @param cls `struct Peer` of the target peer
- * @param size number of bytes available in @a buf
- * @param buf where the callee should write the message
- * @return number of bytes written to @a buf
- */
-static size_t
-hello_advertising_ready (void *cls,
-                         size_t size,
-                         void *buf);
 
 
 /**
@@ -492,7 +468,8 @@ find_advertisable_hello (void *cls,
   hs = GNUNET_HELLO_size (pos->hello);
   if (hs > fah->max_size)
     return GNUNET_YES;
-  GNUNET_CRYPTO_hash (&fah->peer->pid, sizeof (struct GNUNET_PeerIdentity), &hc);
+  GNUNET_CRYPTO_hash (&fah->peer->pid,
+		      sizeof (struct GNUNET_PeerIdentity), &hc);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_bloomfilter_test (pos->filter,
                                          &hc))
@@ -512,13 +489,13 @@ schedule_next_hello (void *cls)
 {
   struct Peer *pl = cls;
   struct FindAdvHelloContext fah;
-  size_t next_want;
+  struct GNUNET_MQ_Envelope *env;
+  size_t want;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_HashCode hc;
 
   pl->hello_delay_task = NULL;
-  GNUNET_assert (GNUNET_YES == pl->is_connected);
-  if (pl->hello_req != NULL)
-    return;                     /* did not finish sending the previous one */
+  GNUNET_assert (NULL != pl->mq);
   /* find applicable HELLOs */
   fah.peer = pl;
   fah.result = NULL;
@@ -533,18 +510,37 @@ schedule_next_hello (void *cls)
                                     pl);
   if (NULL == fah.result)
     return;
-  next_want = GNUNET_HELLO_size (fah.result->hello);
   delay = GNUNET_TIME_absolute_get_remaining (pl->next_hello_allowed);
-  if (0 == delay.rel_value_us)
-  {
-    /* now! */
-    pl->hello_req =
-        GNUNET_CORE_notify_transmit_ready (handle, GNUNET_YES,
-                                           GNUNET_CORE_PRIO_BEST_EFFORT,
-                                           GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-                                           &pl->pid, next_want,
-                                           &hello_advertising_ready, pl);
-  }
+  if (0 != delay.rel_value_us)
+    return;
+
+  want = GNUNET_HELLO_size (fah.result->hello);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending HELLO with %u bytes",
+	      (unsigned int) want);
+  env = GNUNET_MQ_msg_copy (&fah.result->hello->header);
+  GNUNET_MQ_send (pl->mq,
+		  env);
+
+  /* avoid sending this one again soon */
+  GNUNET_CRYPTO_hash (&pl->pid,
+		      sizeof (struct GNUNET_PeerIdentity),
+		      &hc);
+  GNUNET_CONTAINER_bloomfilter_add (fah.result->filter,
+				    &hc);
+
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# HELLO messages gossipped"),
+			    1,
+			    GNUNET_NO);
+  /* prepare to send the next one */
+  if (NULL != pl->hello_delay_task)
+    GNUNET_SCHEDULER_cancel (pl->hello_delay_task);
+  pl->next_hello_allowed
+    = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
+  pl->hello_delay_task
+    = GNUNET_SCHEDULER_add_now (&schedule_next_hello,
+				pl);
 }
 
 
@@ -568,14 +564,9 @@ reschedule_hellos (void *cls,
 
   if (skip == peer)
     return GNUNET_YES;
-  if (!peer->is_connected)
+  if (NULL == peer->mq)
     return GNUNET_YES;
-  if (peer->hello_req != NULL)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->hello_req);
-    peer->hello_req = NULL;
-  }
-  if (peer->hello_delay_task != NULL)
+  if (NULL != peer->hello_delay_task)
   {
     GNUNET_SCHEDULER_cancel (peer->hello_delay_task);
     peer->hello_delay_task = NULL;
@@ -591,12 +582,17 @@ reschedule_hellos (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param mq message queue for communicating with @a peer
+ * @return our `struct Peer` for @a peer
  */
-static void
+static void *
 connect_notify (void *cls,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+		struct GNUNET_MQ_Handle *mq)
 {
   struct Peer *pos;
+  uint64_t flags;
+  const void *extra;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core told us that we are connecting to `%s'\n",
@@ -604,8 +600,13 @@ connect_notify (void *cls,
   if (0 == memcmp (&my_identity,
                    peer,
                    sizeof (struct GNUNET_PeerIdentity)))
-    return;
-
+    return NULL;
+  extra = GNUNET_CORE_get_mq_options (GNUNET_YES,
+				      GNUNET_CORE_PRIO_BEST_EFFORT,
+				      &flags);
+  GNUNET_MQ_set_options (mq,
+			 flags,
+			 extra);
   connection_count++;
   GNUNET_STATISTICS_set (stats,
                          gettext_noop ("# peers connected"),
@@ -621,9 +622,9 @@ connect_notify (void *cls,
   }
   else
   {
-    GNUNET_assert (GNUNET_NO == pos->is_connected);
+    GNUNET_assert (NULL == pos->mq);
   }
-  pos->is_connected = GNUNET_YES;
+  pos->mq = mq;
   if (pos->is_friend)
   {
     friend_count++;
@@ -638,6 +639,7 @@ connect_notify (void *cls,
   reschedule_hellos (NULL,
                      peer,
                      pos);
+  return pos;
 }
 
 
@@ -682,38 +684,27 @@ add_peer_task (void *cls)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param internal_cls the `struct Peer` for this peer
  */
 static void
 disconnect_notify (void *cls,
-                   const struct GNUNET_PeerIdentity *peer)
+                   const struct GNUNET_PeerIdentity *peer,
+		   void *internal_cls)
 {
-  struct Peer *pos;
+  struct Peer *pos = internal_cls;
 
-  if (0 == memcmp (&my_identity,
-                   peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
-    return;
+  if (NULL == pos)
+    return; /* myself, we're shutting down */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core told us that we disconnected from `%s'\n",
               GNUNET_i2s (peer));
-  pos = GNUNET_CONTAINER_multipeermap_get (peers, peer);
-  if (NULL == pos)
+  if (NULL == pos->mq)
   {
     GNUNET_break (0);
     return;
   }
-  if (GNUNET_YES != pos->is_connected)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  pos->is_connected = GNUNET_NO;
+  pos->mq = NULL;
   connection_count--;
-  if (NULL != pos->hello_req)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
-    pos->hello_req = NULL;
-  }
   if (NULL != pos->hello_delay_task)
   {
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
@@ -891,7 +882,7 @@ process_peer (void *cls,
         GNUNET_CONTAINER_bloomfilter_free (pos->filter);
         pos->filter = NULL;
       }
-      if ( (GNUNET_NO == pos->is_connected) &&
+      if ( (NULL == pos->mq) &&
            (GNUNET_NO == pos->is_friend) )
         free_peer (NULL,
                    &pos->pid,
@@ -911,7 +902,7 @@ process_peer (void *cls,
 
 
 /**
- * Function called after #GNUNET_CORE_connect has succeeded
+ * Function called after #GNUNET_CORE_connecT has succeeded
  * (or failed for good).
  *
  * @param cls closure
@@ -1021,115 +1012,76 @@ done_offer_hello (void *cls)
  * This function is called whenever an encrypted HELLO message is
  * received.
  *
- * @param cls closure
- * @param other the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
+ * @param cls closure with the peer identity of the sender
  * @param message the actual HELLO message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK if @a message is well-formed
+ *         #GNUNET_SYSERR if @a message is invalid
  */
 static int
-handle_encrypted_hello (void *cls,
-                        const struct GNUNET_PeerIdentity *other,
-                        const struct GNUNET_MessageHeader *message)
+check_hello (void *cls,
+	     const struct GNUNET_HELLO_Message *message)
 {
+  struct GNUNET_PeerIdentity pid;
+    
+  if (GNUNET_OK !=
+      GNUNET_HELLO_get_id (message,
+			   &pid))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * This function is called whenever an encrypted HELLO message is
+ * received.
+ *
+ * @param cls closure with the peer identity of the sender
+ * @param message the actual HELLO message
+ */
+static void
+handle_hello (void *cls,
+	      const struct GNUNET_HELLO_Message *message)
+{
+  const struct GNUNET_PeerIdentity *other = cls;
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received encrypted HELLO from peer `%s'",
               GNUNET_i2s (other));
-  if (GNUNET_OK !=
-      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) message, &pid))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_HELLO_get_id (message,
+				      &pid));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# HELLO messages received"),
                             1,
                             GNUNET_NO);
-  peer = GNUNET_CONTAINER_multipeermap_get (peers, &pid);
+  peer = GNUNET_CONTAINER_multipeermap_get (peers,
+					    &pid);
   if (NULL == peer)
   {
     if ( (GNUNET_YES == friends_only) ||
          (friend_count < minimum_friend_count) )
-      return GNUNET_OK;
+      return;
   }
   else
   {
     if ( (GNUNET_YES != peer->is_friend) &&
          (GNUNET_YES == friends_only) )
-      return GNUNET_OK;
+      return;
     if ((GNUNET_YES != peer->is_friend) &&
         (friend_count < minimum_friend_count))
-      return GNUNET_OK;
+      return;
   }
   if (NULL != oh)
     GNUNET_TRANSPORT_offer_hello_cancel (oh);
   oh = GNUNET_TRANSPORT_offer_hello (cfg,
-                                     message,
+                                     &message->header,
                                      &done_offer_hello,
                                      NULL);
-  return GNUNET_OK;
-}
-
-
-/**
- * Function to fill send buffer with HELLO.
- *
- * @param cls `struct Peer` of the target peer
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-hello_advertising_ready (void *cls,
-                         size_t size,
-                         void *buf)
-{
-  struct Peer *pl = cls;
-  struct FindAdvHelloContext fah;
-  size_t want;
-  struct GNUNET_HashCode hc;
-
-  pl->hello_req = NULL;
-  GNUNET_assert (GNUNET_YES == pl->is_connected);
-  /* find applicable HELLOs */
-  fah.peer = pl;
-  fah.result = NULL;
-  fah.max_size = size;
-  fah.next_adv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_CONTAINER_multipeermap_iterate (peers,
-                                         &find_advertisable_hello,
-                                         &fah);
-  want = 0;
-  if (NULL != fah.result)
-  {
-    want = GNUNET_HELLO_size (fah.result->hello);
-    GNUNET_assert (want <= size);
-    GNUNET_memcpy (buf,
-            fah.result->hello,
-            want);
-    GNUNET_CRYPTO_hash (&pl->pid,
-                        sizeof (struct GNUNET_PeerIdentity),
-                        &hc);
-    GNUNET_CONTAINER_bloomfilter_add (fah.result->filter,
-                                      &hc);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending HELLO with %u bytes",
-                (unsigned int) want);
-    GNUNET_STATISTICS_update (stats,
-                              gettext_noop ("# HELLO messages gossipped"), 1,
-                              GNUNET_NO);
-  }
-
-  if (pl->hello_delay_task != NULL)
-    GNUNET_SCHEDULER_cancel (pl->hello_delay_task);
-  pl->next_hello_allowed =
-      GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
-  pl->hello_delay_task = GNUNET_SCHEDULER_add_now (&schedule_next_hello, pl);
-  return want;
 }
 
 
@@ -1149,7 +1101,7 @@ cleaning_task (void *cls)
   }
   if (NULL != handle)
   {
-    GNUNET_CORE_disconnect (handle);
+    GNUNET_CORE_disconnecT (handle);
     handle = NULL;
   }
   whitelist_peers ();
@@ -1195,9 +1147,12 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  static struct GNUNET_CORE_MessageHandler handlers[] = {
-    {&handle_encrypted_hello, GNUNET_MESSAGE_TYPE_HELLO, 0},
-    {NULL, 0, 0}
+  GNUNET_MQ_hd_var_size (hello,
+			 GNUNET_MESSAGE_TYPE_HELLO,
+			 struct GNUNET_HELLO_Message);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_hello_handler (NULL),
+    GNUNET_MQ_handler_end ()
   };
   unsigned long long opt;
 
@@ -1234,14 +1189,12 @@ run (void *cls,
                                             &blacklist_check,
                                             NULL);
   ats = GNUNET_ATS_connectivity_init (cfg);
-  handle =
-      GNUNET_CORE_connect (cfg, NULL,
-                           &core_init,
-                           &connect_notify,
-                           &disconnect_notify,
-                           NULL, GNUNET_NO,
-                           NULL, GNUNET_NO,
-                           handlers);
+  handle = GNUNET_CORE_connecT (cfg,
+				NULL,
+				&core_init,
+				&connect_notify,
+				&disconnect_notify,
+				handlers);
   GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
 				 NULL);
   if (NULL == handle)
@@ -1290,7 +1243,8 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
