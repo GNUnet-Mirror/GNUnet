@@ -40,34 +40,34 @@ enum GSF_PendingRequestOptions
    */
   GSF_PRO_DEFAULTS = 0,
 
-    /**
-     * Request must only be processed locally.
-     */
+  /**
+   * Request must only be processed locally.
+   */
   GSF_PRO_LOCAL_ONLY = 1,
 
-    /**
-     * Request must only be forwarded (no routing)
-     */
+  /**
+   * Request must only be forwarded (no routing)
+   */
   GSF_PRO_FORWARD_ONLY = 2,
 
-    /**
-     * Request persists indefinitely (no expiration).
-     */
+  /**
+   * Request persists indefinitely (no expiration).
+   */
   GSF_PRO_REQUEST_NEVER_EXPIRES = 4,
 
-    /**
-     * Request is allowed to refresh bloomfilter and change mingle value.
-     */
+  /**
+   * Request is allowed to refresh bloomfilter and change mingle value.
+   */
   GSF_PRO_BLOOMFILTER_FULL_REFRESH = 8,
 
-    /**
-     * Request priority is allowed to be exceeded.
-     */
+  /**
+   * Request priority is allowed to be exceeded.
+   */
   GSF_PRO_PRIORITY_UNLIMITED = 16,
 
-    /**
-     * Option mask for typical local requests.
-     */
+  /**
+   * Option mask for typical local requests.
+   */
   GSF_PRO_LOCAL_REQUEST =
       (GSF_PRO_BLOOMFILTER_FULL_REFRESH | GSF_PRO_PRIORITY_UNLIMITED | GSF_PRO_REQUEST_NEVER_EXPIRES)
 };
@@ -288,17 +288,13 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
 
 /**
  * Generate the message corresponding to the given pending request for
- * transmission to other peers (or at least determine its size).
+ * transmission to other peers.
  *
  * @param pr request to generate the message for
- * @param buf_size number of bytes available in @a buf
- * @param buf where to copy the message (can be NULL)
- * @return number of bytes needed (if @a buf_size too small) or used
+ * @return envelope with the request message
  */
-size_t
-GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-                                  size_t buf_size,
-                                  void *buf);
+struct GNUNET_MQ_Envelope *
+GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr);
 
 
 /**
@@ -344,16 +340,12 @@ GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
  * this content and possibly passes it on (to local clients or other
  * peers).  Does NOT perform migration (content caching at this peer).
  *
- * @param cp the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return #GNUNET_OK if the message was well-formed,
- *         #GNUNET_SYSERR if the message was malformed (close connection,
- *         do not cache under any circumstances)
+ * @param cls the other peer involved (sender)
+ * @param put the actual message
  */
-int
-GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
-                         const struct GNUNET_MessageHeader *message);
+void
+handle_p2p_put (void *cls,
+		const struct PutMessage *put);
 
 
 /**

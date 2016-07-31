@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2014 GNUnet e.V.
+     Copyright (C) 2009-2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -177,7 +177,7 @@ static struct GNUNET_LOAD_Value *datastore_get_load;
 /**
  * Identity of this peer.
  */
-static struct GNUNET_PeerIdentity my_id;
+struct GNUNET_PeerIdentity GSF_my_id;
 
 
 /**
@@ -277,33 +277,26 @@ update_latencies (void *cls,
 
 
 /**
- * Handle P2P "PUT" message.
+ * Check P2P "PUT" message.
  *
- * @param cls closure, always NULL
- * @param other the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
+ * @param cls closure with the `struct GSF_ConnectedPeer`
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_put (void *cls,
-                const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
+check_p2p_put (void *cls,
+	       const struct PutMessage *put)
 {
-  struct GSF_ConnectedPeer *cp;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received P2P PUT from %s\n",
-              GNUNET_i2s (other));
-  cp = GSF_peer_get_ (other);
-  if (NULL == cp)
+  enum GNUNET_BLOCK_Type type;
+  
+  type = ntohl (put->type);
+  if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
   {
-    GNUNET_break (0);
-    return GNUNET_OK;
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
-  GSF_cover_content_count++;
-  return GSF_handle_p2p_content_ (cp, message);
+  return GNUNET_OK;
 }
 
 
@@ -324,7 +317,8 @@ consider_request_for_forwarding (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
 
-  if (GNUNET_YES != GSF_pending_request_test_target_ (pr, peer))
+  if (GNUNET_YES !=
+      GSF_pending_request_test_target_ (pr, peer))
   {
 #if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
@@ -333,7 +327,8 @@ consider_request_for_forwarding (void *cls,
 #endif
     return;
   }
-  GSF_plan_add_ (cp, pr);
+  GSF_plan_add_ (cp,
+		 pr);
 }
 
 
@@ -347,10 +342,10 @@ consider_request_for_forwarding (void *cls,
  * @param pr the pending request we were processing
  * @param result final datastore lookup result
  */
-static void
-consider_forwarding (void *cls,
-                     struct GSF_PendingRequest *pr,
-                     enum GNUNET_BLOCK_EvaluationResult result)
+void
+GSF_consider_forwarding (void *cls,
+			 struct GSF_PendingRequest *pr,
+			 enum GNUNET_BLOCK_EvaluationResult result)
 {
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
     return;                     /* we're done... */
@@ -363,31 +358,44 @@ consider_forwarding (void *cls,
 
 
 /**
- * Handle P2P "GET" request.
+ * Check P2P "GET" request.
  *
- * @param cls closure, always NULL
- * @param other the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
+ * @param cls closure
+ * @param gm the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_get (void *cls,
-                const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
+check_p2p_get (void *cls,
+	       const struct GetMessage *gm)
 {
-  struct GSF_PendingRequest *pr;
-
-  pr = GSF_handle_p2p_query_ (other,
-                              message);
-  if (NULL == pr)
-    return GNUNET_OK; /* exists, identical to existing request, or malformed */
-  GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
-  GSF_local_lookup_ (pr,
-                     &consider_forwarding,
-                     NULL);
-  return GNUNET_OK;
+  size_t msize;
+  unsigned int bm;
+  unsigned int bits;
+  size_t bfsize;
+  
+  msize = ntohs (gm->header.size);
+  bm = ntohl (gm->hash_bitmap);
+  bits = 0;
+  while (bm > 0)
+  {
+    if (1 == (bm & 1))
+      bits++;
+    bm >>= 1;
+  }
+  if (msize < sizeof (struct GetMessage) + bits * sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (struct GNUNET_PeerIdentity);
+  /* bfsize must be power of 2, check! */
+  if (0 != ((bfsize - 1) & bfsize))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }  
+  return GNUNET_OK; 
 }
 
 
@@ -416,7 +424,8 @@ start_p2p_processing (void *cls,
   prd = GSF_pending_request_get_data_ (pr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished database lookup for local request `%s' with result %d\n",
-              GNUNET_h2s (&prd->query), result);
+              GNUNET_h2s (&prd->query),
+	      result);
   if (0 == prd->anonymity_level)
   {
     switch (prd->type)
@@ -439,7 +448,7 @@ start_p2p_processing (void *cls,
       break;
     }
   }
-  consider_forwarding (NULL, pr, result);
+  GSF_consider_forwarding (NULL, pr, result);
 }
 
 
@@ -538,7 +547,7 @@ shutdown_task (void *cls)
   GSF_cadet_stop_server ();
   if (NULL != GSF_core)
   {
-    GNUNET_CORE_disconnect (GSF_core);
+    GNUNET_CORE_disconnecT (GSF_core);
     GSF_core = NULL;
   }
   if (NULL != GSF_ats)
@@ -575,80 +584,7 @@ shutdown_task (void *cls)
 
 
 /**
- * Function called for each pending request whenever a new
- * peer connects, giving us a chance to decide about submitting
- * the existing request to the new peer.
- *
- * @param cls the `struct GSF_ConnectedPeer` of the new peer
- * @param key query for the request
- * @param pr handle to the pending request
- * @return #GNUNET_YES to continue to iterate
- */
-static int
-consider_peer_for_forwarding (void *cls,
-                              const struct GNUNET_HashCode *key,
-                              struct GSF_PendingRequest *pr)
-{
-  struct GSF_ConnectedPeer *cp = cls;
-  struct GNUNET_PeerIdentity pid;
-
-  if (GNUNET_YES !=
-      GSF_pending_request_test_active_ (pr))
-    return GNUNET_YES; /* request is not actually active, skip! */
-  GSF_connected_peer_get_identity_ (cp, &pid);
-  if (GNUNET_YES !=
-      GSF_pending_request_test_target_ (pr, &pid))
-  {
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# Loopback routes suppressed"),
-                              1,
-                              GNUNET_NO);
-    return GNUNET_YES;
-  }
-  GSF_plan_add_ (cp, pr);
-  return GNUNET_YES;
-}
-
-
-/**
- * Function called after the creation of a connected peer record is complete.
- *
- * @param cls closure (unused)
- * @param cp handle to the newly created connected peer record
- */
-static void
-connected_peer_cb (void *cls,
-                   struct GSF_ConnectedPeer *cp)
-{
-  if (NULL == cp)
-    return;
-  GSF_iterate_pending_requests_ (&consider_peer_for_forwarding,
-                                 cp);
-}
-
-
-/**
- * Method called whenever a given peer connects.
- *
- * @param cls closure, not used
- * @param peer peer identity this notification is about
- */
-static void
-peer_connect_handler (void *cls,
-                      const struct GNUNET_PeerIdentity *peer)
-{
-  if (0 ==
-      GNUNET_CRYPTO_cmp_peer_identity (&my_id,
-                                       peer))
-    return;
-  GSF_peer_connect_handler_ (peer,
-                             &connected_peer_cb,
-                             NULL);
-}
-
-
-/**
- * Function called after GNUNET_CORE_connect has succeeded
+ * Function called after GNUNET_CORE_connecT has succeeded
  * (or failed for good).  Note that the private key of the
  * peer is intentionally not exposed here; if you need it,
  * your process should try to read the private key file
@@ -661,7 +597,7 @@ static void
 peer_init_handler (void *cls,
                    const struct GNUNET_PeerIdentity *my_identity)
 {
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_id,
+  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&GSF_my_id,
                                             my_identity))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -681,18 +617,23 @@ static int
 main_init (struct GNUNET_SERVER_Handle *server,
            const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  static const struct GNUNET_CORE_MessageHandler no_p2p_handlers[] = {
-    { NULL, 0, 0 }
+  GNUNET_MQ_hd_var_size (p2p_get,
+			 GNUNET_MESSAGE_TYPE_FS_GET,
+			 struct GetMessage);
+  GNUNET_MQ_hd_var_size (p2p_put,
+			 GNUNET_MESSAGE_TYPE_FS_PUT,
+			 struct PutMessage);
+  GNUNET_MQ_hd_fixed_size (p2p_migration_stop,
+			   GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
+			   struct MigrationStopMessage);
+  struct GNUNET_MQ_MessageHandler no_p2p_handlers[] = {
+    GNUNET_MQ_handler_end ()
   };
-  static const struct GNUNET_CORE_MessageHandler p2p_handlers[] = {
-    { &handle_p2p_get,
-      GNUNET_MESSAGE_TYPE_FS_GET, 0 },
-    { &handle_p2p_put,
-      GNUNET_MESSAGE_TYPE_FS_PUT, 0 },
-    { &GSF_handle_p2p_migration_stop_,
-      GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
-      sizeof (struct MigrationStopMessage) },
-    { NULL, 0, 0 }
+  struct GNUNET_MQ_MessageHandler p2p_handlers[] = {
+    make_p2p_get_handler (NULL),
+    make_p2p_put_handler (NULL),
+    make_p2p_migration_stop_handler (NULL),
+    GNUNET_MQ_handler_end ()
   };
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     { &GNUNET_FS_handle_index_start, NULL,
@@ -735,28 +676,29 @@ main_init (struct GNUNET_SERVER_Handle *server,
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   GNUNET_CRYPTO_eddsa_key_get_public (pk,
-                                      &my_id.public_key);
+                                      &GSF_my_id.public_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "I am peer %s\n",
-              GNUNET_i2s (&my_id));
+              GNUNET_i2s (&GSF_my_id));
   GSF_core
-    = GNUNET_CORE_connect (GSF_cfg, NULL,
+    = GNUNET_CORE_connecT (GSF_cfg,
+			   NULL,
                            &peer_init_handler,
-                           &peer_connect_handler,
-                           &GSF_peer_disconnect_handler_,
-                           NULL, GNUNET_NO,
-                           NULL, GNUNET_NO,
+                           &GSF_peer_connect_handler,
+                           &GSF_peer_disconnect_handler,
 			   (GNUNET_YES == anon_p2p_off)
 			   ? no_p2p_handlers
 			   : p2p_handlers);
   if (NULL == GSF_core)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to `%s' service.\n"), "core");
+                _("Failed to connect to `%s' service.\n"),
+		"core");
     return GNUNET_SYSERR;
   }
-  GNUNET_SERVER_disconnect_notify (server, &GSF_client_disconnect_handler_,
+  GNUNET_SERVER_disconnect_notify (server,
+				   &GSF_client_disconnect_handler_,
                                    NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   cover_age_task =

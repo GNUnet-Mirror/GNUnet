@@ -512,21 +512,17 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
 
 /**
  * Generate the message corresponding to the given pending request for
- * transmission to other peers (or at least determine its size).
+ * transmission to other peers.
  *
  * @param pr request to generate the message for
- * @param buf_size number of bytes available in @a buf
- * @param buf where to copy the message (can be NULL)
- * @return number of bytes needed (if `>` @a buf_size) or used
+ * @return envelope with the request message
  */
-size_t
-GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-                                  size_t buf_size, void *buf)
+struct GNUNET_MQ_Envelope *
+GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr)
 {
-  char lbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  struct GNUNET_MQ_Envelope *env;
   struct GetMessage *gm;
   struct GNUNET_PeerIdentity *ext;
-  size_t msize;
   unsigned int k;
   uint32_t bm;
   uint32_t prio;
@@ -535,11 +531,10 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   int64_t ttl;
   int do_route;
 
-  if (buf_size > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Building request message for `%s' of type %d\n",
-                GNUNET_h2s (&pr->public_data.query),
-                pr->public_data.type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Building request message for `%s' of type %d\n",
+	      GNUNET_h2s (&pr->public_data.query),
+	      pr->public_data.type);
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
@@ -559,13 +554,9 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
     k++;
   }
   bf_size = GNUNET_CONTAINER_bloomfilter_get_size (pr->bf);
-  msize = sizeof (struct GetMessage) + bf_size + k * sizeof (struct GNUNET_PeerIdentity);
-  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  if (buf_size < msize)
-    return msize;
-  gm = (struct GetMessage *) lbuf;
-  gm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_GET);
-  gm->header.size = htons (msize);
+  env = GNUNET_MQ_msg_extra (gm,
+			     bf_size + k * sizeof (struct GNUNET_PeerIdentity),
+			     GNUNET_MESSAGE_TYPE_FS_GET);
   gm->type = htonl (pr->public_data.type);
   if (do_route)
     prio =
@@ -585,7 +576,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   gm->query = pr->public_data.query;
   ext = (struct GNUNET_PeerIdentity *) &gm[1];
   k = 0;
-  if (!do_route)
+  if (! do_route)
     GNUNET_PEER_resolve (pr->sender_pid,
                          &ext[k++]);
   if (NULL != pr->public_data.target)
@@ -595,8 +586,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
                                                               (char *) &ext[k],
                                                               bf_size));
-  GNUNET_memcpy (buf, gm, msize);
-  return msize;
+  return env;
 }
 
 
@@ -1699,18 +1689,14 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
  * this content and possibly passes it on (to local clients or other
  * peers).  Does NOT perform migration (content caching at this peer).
  *
- * @param cp the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return #GNUNET_OK if the message was well-formed,
- *         #GNUNET_SYSERR if the message was malformed (close connection,
- *         do not cache under any circumstances)
+ * @param cls the other peer involved
+ * @param put the actual message
  */
-int
-GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
-                         const struct GNUNET_MessageHeader *message)
+void
+handle_p2p_put (void *cls,
+		const struct PutMessage *put)
 {
-  const struct PutMessage *put;
+  struct GSF_ConnectedPeer *cp = cls;
   uint16_t msize;
   size_t dsize;
   enum GNUNET_BLOCK_Type type;
@@ -1721,21 +1707,17 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   double putl;
   struct PutMigrationContext *pmc;
 
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct PutMessage))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  put = (const struct PutMessage *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received P2P PUT from %s\n",
+              GNUNET_i2s (GSF_get_peer_performance_data_ (cp)->peer));
+  GSF_cover_content_count++;
+  msize = ntohs (put->header.size);
   dsize = msize - sizeof (struct PutMessage);
   type = ntohl (put->type);
   expiration = GNUNET_TIME_absolute_ntoh (put->expiration);
   /* do not allow migrated content to live longer than 1 year */
   expiration = GNUNET_TIME_absolute_min (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS),
 					 expiration);
-  if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
-    return GNUNET_SYSERR;
   if (GNUNET_OK !=
       GNUNET_BLOCK_get_key (GSF_block_ctx,
                             type,
@@ -1744,7 +1726,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                             &query))
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    return;
   }
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# GAP PUT messages received"),
@@ -1786,11 +1768,19 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
     GNUNET_PEER_resolve (GSF_get_peer_performance_data_ (cp)->pid,
                          &pmc->origin);
     if (NULL ==
-        GNUNET_DATASTORE_put (GSF_dsh, 0, &query, dsize, &put[1], type,
-                              prq.priority, 1 /* anonymity */ ,
+        GNUNET_DATASTORE_put (GSF_dsh,
+			      0,
+			      &query,
+			      dsize,
+			      &put[1],
+			      type,
+                              prq.priority,
+			      1 /* anonymity */ ,
                               0 /* replication */ ,
-                              expiration, 1 + prq.priority, MAX_DATASTORE_QUEUE,
-                              &put_migration_continuation, pmc))
+                              expiration, 1 + prq.priority,
+			      MAX_DATASTORE_QUEUE,
+                              &put_migration_continuation,
+			      pmc))
     {
       put_migration_continuation (pmc,
                                   GNUNET_SYSERR,
@@ -1802,7 +1792,8 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Choosing not to keep content `%s' (%d/%d)\n",
-                GNUNET_h2s (&query), active_to_migration,
+                GNUNET_h2s (&query),
+		active_to_migration,
                 test_put_load_too_high (prq.priority));
   }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
@@ -1826,9 +1817,9 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 		putl,
 		active_to_migration,
 		(GNUNET_NO == prq.request_found));
-    GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (block_time));
+    GSF_block_peer_migration_ (cp,
+			       GNUNET_TIME_relative_to_absolute (block_time));
   }
-  return GNUNET_OK;
 }
 
 

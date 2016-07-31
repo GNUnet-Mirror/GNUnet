@@ -223,6 +223,10 @@ extern struct GNUNET_TIME_Relative GSF_avg_latency;
  */
 extern struct GNUNET_ATS_PerformanceHandle *GSF_ats;
 
+/**
+ * Identity of this peer.
+ */
+extern struct GNUNET_PeerIdentity GSF_my_id;
 
 /**
  * Typical priorities we're seeing from other peers right now.  Since
@@ -265,13 +269,29 @@ extern unsigned int GSF_datastore_queue_size;
 
 
 /**
+ * Function to be called after we're done processing
+ * replies from the local lookup.  If the result status
+ * code indicates that there may be more replies, plan
+ * forwarding the request.
+ *
+ * @param cls closure (NULL)
+ * @param pr the pending request we were processing
+ * @param result final datastore lookup result
+ */
+void
+GSF_consider_forwarding (void *cls,
+			 struct GSF_PendingRequest *pr,
+			 enum GNUNET_BLOCK_EvaluationResult result);
+
+
+/**
  * Test if the DATABASE (GET) load on this peer is too high
  * to even consider processing the query at
  * all.
  *
- * @return GNUNET_YES if the load is too high to do anything (load high)
- *         GNUNET_NO to process normally (load normal)
- *         GNUNET_SYSERR to process for free (load low)
+ * @return #GNUNET_YES if the load is too high to do anything (load high)
+ *         #GNUNET_NO to process normally (load normal)
+ *         #GNUNET_SYSERR to process for free (load low)
  */
 int
 GSF_test_get_load_too_high_ (uint32_t priority);

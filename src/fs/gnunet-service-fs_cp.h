@@ -120,10 +120,15 @@ struct GSF_PeerPerformanceData
   double avg_priority;
 
   /**
-   * The peer's identity.
+   * The peer's identity (interned version).
    */
   GNUNET_PEER_Id pid;
 
+  /**
+   * The peer's identity (pointer).
+   */
+  const struct GNUNET_PeerIdentity *peer;
+  
   /**
    * Respect rating for this peer
    */
@@ -185,17 +190,6 @@ typedef void
 
 
 /**
- * Function called after the creation of a connected peer record is complete.
- *
- * @param cls closure
- * @param cp handle to the newly created connected peer record
- */
-typedef void
-(*GSF_ConnectedPeerCreationCallback) (void *cls,
-                                      struct GSF_ConnectedPeer *cp);
-
-
-/**
  * Handle to cancel a transmission request.
  */
 struct GSF_PeerTransmitHandle;
@@ -205,14 +199,15 @@ struct GSF_PeerTransmitHandle;
  * A peer connected to us.  Setup the connected peer
  * records.
  *
+ * @param cls NULL
  * @param peer identity of peer that connected
- * @param creation_cb callback function when the record is created.
- * @param creation_cb_cls closure for @creation_cb
+ * @param mq queue for sending messages to @a peer
+ * @return internal handle for the peer
  */
-void
-GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           GSF_ConnectedPeerCreationCallback creation_cb,
-                           void *creation_cb_cls);
+void *
+GSF_peer_connect_handler (void *cls,
+			  const struct GNUNET_PeerIdentity *peer,
+			  struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -242,30 +237,15 @@ GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
  * the callback is invoked with a 'NULL' buffer.
  *
  * @param cp target peer
- * @param is_query is this a query (GNUNET_YES) or content (GNUNET_NO)
+ * @param is_query is this a query (#GNUNET_YES) or content (#GNUNET_NO)
  * @param priority how important is this request?
- * @param timeout when does this request timeout (call gmc with error)
- * @param size number of bytes we would like to send to the peer
- * @param gmc function to call to get the message
- * @param gmc_cls closure for gmc
- * @return handle to cancel request
+ * @param env envelope of message to send
  */
-struct GSF_PeerTransmitHandle *
+void
 GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
                     int is_query,
                     uint32_t priority,
-                    struct GNUNET_TIME_Relative timeout,
-                    size_t size, GSF_GetMessageCallback gmc,
-                    void *gmc_cls);
-
-
-/**
- * Cancel an earlier request for transmission.
- *
- * @param pth request to cancel
- */
-void
-GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth);
+		    struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -307,35 +287,25 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
- * Handle P2P "MIGRATION_STOP" message.
+ * Handle P2P #GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP message.
  *
- * @param cls closure, always NULL
- * @param other the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param cls closure, the `struct GSF_ConnectedPeer`
+ * @param msm the actual message
  */
-int
-GSF_handle_p2p_migration_stop_ (void *cls,
-                                const struct GNUNET_PeerIdentity *other,
-                                const struct GNUNET_MessageHeader *message);
+void
+handle_p2p_migration_stop (void *cls,
+			   const struct MigrationStopMessage *message);
 
 
 /**
- * Handle P2P "QUERY" message.  Only responsible for creating the
- * request entry itself and setting up reply callback and cancellation
- * on peer disconnect.  Does NOT execute the actual request strategy
- * (planning) or local database operations.
+ * Handle P2P "QUERY" message.
  *
- * @param other the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return pending request handle, NULL on error
+ * @param cls the `struct GSF_ConnectedPeer` of the other sender
+ * @param gm the actual message
  */
-struct GSF_PendingRequest *
-GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
-                       const struct GNUNET_MessageHeader *message);
+void
+handle_p2p_get (void *cls,
+		const struct GetMessage *gm);
 
 
 /**
@@ -366,10 +336,12 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
  *
  * @param cls unused
  * @param peer identity of peer that connected
+ * @param internal_cls our `struct GSF_ConnectedPeer` for @a peer
  */
 void
-GSF_peer_disconnect_handler_ (void *cls,
-                              const struct GNUNET_PeerIdentity *peer);
+GSF_peer_disconnect_handler (void *cls,
+			     const struct GNUNET_PeerIdentity *peer,
+			     void *internal_cls);
 
 
 /**
