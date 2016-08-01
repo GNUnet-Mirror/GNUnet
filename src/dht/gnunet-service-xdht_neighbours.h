@@ -60,10 +60,10 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
  * @param desired_replication_level Desired replication count
  */
 void
-GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
-                          enum GNUNET_BLOCK_Type block_type,
-                          enum GNUNET_DHT_RouteOption options,
-                          uint32_t desired_replication_level);
+GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
+			   enum GNUNET_BLOCK_Type block_type,
+			   enum GNUNET_DHT_RouteOption options,
+			   uint32_t desired_replication_level);
 
 /**
  * Send the get result to requesting client.
@@ -89,7 +89,9 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
                                 unsigned int get_path_length,
                                 const struct GNUNET_PeerIdentity *get_path,
                                 struct GNUNET_TIME_Absolute expiration,
-                                const void *data, size_t data_size);
+                                const void *data,
+				size_t data_size);
+
 
 /**
  * Construct a trail teardown message and forward it to target friend.

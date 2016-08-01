@@ -632,8 +632,8 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
 
   mqm = GNUNET_MQ_msg_ (mhp, size, type);
   GNUNET_memcpy ((char *) mqm->mh + base_size,
-	  nested_mh,
-	  ntohs (nested_mh->size));
+		 nested_mh,
+		 ntohs (nested_mh->size));
 
   return mqm;
 }

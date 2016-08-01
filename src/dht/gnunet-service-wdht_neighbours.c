@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2015 GNUnet e.V.
+     Copyright (C) 2009-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -164,7 +164,7 @@ struct FriendInfo
   /**
    * Friend Identity
    */
-  struct GNUNET_PeerIdentity id;
+  const struct GNUNET_PeerIdentity *id;
 
   /**
    *
@@ -840,28 +840,19 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param internal_cls our `struct FriendInfo` for @a peer
  */
 static void
 handle_core_disconnect (void *cls,
-                        const struct GNUNET_PeerIdentity *peer)
+                        const struct GNUNET_PeerIdentity *peer,
+			void *internal_cls)
 {
-  struct FriendInfo *remove_friend;
+  struct FriendInfo *remove_friend = internal_cls;
   struct Trail *t;
 
   /* If disconnected to own identity, then return. */
-  if (0 == memcmp (&my_identity,
-                   peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (NULL == remove_friend)
     return;
-
-  if (NULL == (remove_friend =
-               GNUNET_CONTAINER_multipeermap_get (friends_peermap,
-                                                  peer)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (friends_peermap,
                                                        peer,
@@ -874,10 +865,8 @@ handle_core_disconnect (void *cls,
     delete_trail (t,
                   GNUNET_NO,
                   GNUNET_YES);
-  GNUNET_MQ_destroy (remove_friend->mq);
   GNUNET_free (remove_friend);
-  if (0 ==
-      GNUNET_CONTAINER_multipeermap_size (friends_peermap))
+  if (0 == GNUNET_CONTAINER_multipeermap_size (friends_peermap))
   {
     GNUNET_SCHEDULER_cancel (random_walk_task);
     random_walk_task = NULL;
@@ -1056,10 +1045,13 @@ do_random_walk (void *cls)
  *
  * @param cls closure
  * @param peer_identity peer identity this notification is about
+ * @param mq message queue for transmission to @a peer_identity
+ * @return the `struct FriendInfo` for the @a peer_identity, NULL for us
  */
-static void
+static void *
 handle_core_connect (void *cls,
-                     const struct GNUNET_PeerIdentity *peer_identity)
+                     const struct GNUNET_PeerIdentity *peer_identity,
+		     struct GNUNET_MQ_Handle *mq)
 {
   struct FriendInfo *friend;
 
@@ -1067,21 +1059,11 @@ handle_core_connect (void *cls,
   if (0 == memcmp (&my_identity,
                    peer_identity,
                    sizeof (struct GNUNET_PeerIdentity)))
-    return;
-
-  /* If peer already exists in our friend_peermap, then exit. */
-  if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_contains (friends_peermap,
-                                              peer_identity))
-  {
-    GNUNET_break (0);
-    return;
-  }
+    return NULL;
 
   friend = GNUNET_new (struct FriendInfo);
-  friend->id = *peer_identity;
-  friend->mq = GNUNET_CORE_mq_create (core_api,
-                                      peer_identity);
+  friend->id = peer_identity;
+  friend->mq = mq;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (friends_peermap,
                                                     peer_identity,
@@ -1093,6 +1075,7 @@ handle_core_connect (void *cls,
     random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
                                                  NULL);
   }
+  return friend;
 }
 
 
@@ -1114,30 +1097,23 @@ core_init (void *cls,
  * Handle a `struct RandomWalkMessage` from a
  * #GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK message.
  *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the setup message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @param cls the `struct FriendInfo` for the sender
+ * @param m the setup message
  */
-static int
+static void
 handle_dht_p2p_random_walk (void *cls,
-                            const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message)
+                            const struct RandomWalkMessage *m)
 {
-  const struct RandomWalkMessage *m;
+  struct FriendInfo *pred = cls;
   struct Trail *t;
-  struct FriendInfo *pred;
   uint16_t layer;
 
-  m = (const struct RandomWalkMessage *) message;
   layer = ntohs (m->layer);
   if (layer > NUMBER_LAYERED_ID)
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    return;
   }
-  pred = GNUNET_CONTAINER_multipeermap_get (friends_peermap,
-                                            peer);
   t = GNUNET_new (struct Trail);
   t->pred_id = m->trail_id;
   t->pred = pred;
@@ -1149,7 +1125,7 @@ handle_dht_p2p_random_walk (void *cls,
   {
     GNUNET_break_op (0);
     GNUNET_free (t);
-    return GNUNET_SYSERR;
+    return;
   }
   GNUNET_CONTAINER_MDLL_insert (pred,
                                 pred->pred_head,
@@ -1225,7 +1201,7 @@ handle_dht_p2p_random_walk (void *cls,
                                     pred->pred_tail,
                                     t);
       GNUNET_free (t);
-      return GNUNET_OK;
+      return;
     }
     GNUNET_CONTAINER_MDLL_insert (succ,
                                   succ->succ_head,
@@ -1239,36 +1215,30 @@ handle_dht_p2p_random_walk (void *cls,
     GNUNET_MQ_send (succ->mq,
                     env);
   }
-  return GNUNET_OK;
 }
 
 
 /**
  * Handle a `struct RandomWalkResponseMessage`.
  *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the setup response message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @param cls closure 
+ * @param rwrm the setup response message
  */
-static int
+static void
 handle_dht_p2p_random_walk_response (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const struct GNUNET_MessageHeader *message)
-{
-  const struct RandomWalkResponseMessage *rwrm;
+                                     const struct RandomWalkResponseMessage *rwrm)
+{  
   struct Trail *trail;
   struct FriendInfo *pred;
   struct FingerTable *ft;
   struct Finger *finger;
 
-  rwrm = (const struct RandomWalkResponseMessage *) message;
   trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
                                              &rwrm->trail_id);
   if (NULL == trail)
   {
     /* TODO: log/statistics: we didn't find the trail (can happen) */
-    return GNUNET_OK;
+    return;
   }
   if (NULL != (pred = trail->pred))
   {
@@ -1283,7 +1253,7 @@ handle_dht_p2p_random_walk_response (void *cls,
     rwrm2->trail_id = trail->pred_id;
     GNUNET_MQ_send (pred->mq,
                     env);
-    return GNUNET_OK;
+    return;
   }
   /* We are the first hop, complete finger */
   if (NULL == (ft = trail->ft))
@@ -1293,7 +1263,7 @@ handle_dht_p2p_random_walk_response (void *cls,
     delete_trail (trail,
                   GNUNET_NO,
                   GNUNET_YES);
-    return GNUNET_OK;
+    return;
   }
   if (NULL == (finger = ft->fingers[trail->finger_off]))
   {
@@ -1302,7 +1272,7 @@ handle_dht_p2p_random_walk_response (void *cls,
     delete_trail (trail,
                   GNUNET_NO,
                   GNUNET_YES);
-    return GNUNET_OK;
+    return;
   }
 
 
@@ -1316,39 +1286,33 @@ handle_dht_p2p_random_walk_response (void *cls,
    */
   /* FIXME: add the value in db structure 1.a */
 
-  return GNUNET_OK;
 }
 
 
 /**
  * Handle a `struct TrailDestroyMessage`.
  *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the finger destroy message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @param cls closure
+ * @param tdm the trail destroy message
  */
-static int
+static void
 handle_dht_p2p_trail_destroy (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
-{
-  const struct TrailDestroyMessage *tdm;
+			      const struct TrailDestroyMessage *tdm)
+{  
+  struct FriendInfo *sender = cls;
   struct Trail *trail;
 
-  tdm = (const struct TrailDestroyMessage *) message;
   trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
                                              &tdm->trail_id);
   delete_trail (trail,
                 ( (NULL != trail->succ) &&
-                  (0 == memcmp (peer,
+                  (0 == memcmp (sender->id,
                                 &trail->succ->id,
                                 sizeof (struct GNUNET_PeerIdentity))) ),
                 ( (NULL != trail->pred) &&
-                  (0 == memcmp (peer,
+                  (0 == memcmp (sender->id,
                                 &trail->pred->id,
                                 sizeof (struct GNUNET_PeerIdentity))) ));
-  return GNUNET_OK;
 }
 
 
@@ -1399,10 +1363,12 @@ handle_dht_p2p_peer_get (void *cls,
                          unsigned int trail_path_length,
                          const struct GNUNET_MessageHeader *message)
 {
+#if 0
   const struct PeerGetMessage *pgm;
 
   // FIXME: note: never called like this, message embedded with trail route!
   pgm = (const struct PeerGetMessage *) message;
+#endif
   // -> lookup in datacache (figure out way to remember trail!)
      /*
     * steps :
@@ -1434,9 +1400,11 @@ handle_dht_p2p_peer_get_result (void *cls,
                                 unsigned int trail_path_length,
                                 const struct GNUNET_MessageHeader *message)
 {
+#if 0
   const struct PeerGetResultMessage *pgrm;
 
   pgrm = (const struct PeerGetResultMessage *) message;
+#endif
   // pretty much: parse, & pass to client (there is some call for that...)
 
 #if 0
@@ -1474,9 +1442,11 @@ handle_dht_p2p_peer_put (void *cls,
                          unsigned int trail_path_length,
                          const struct GNUNET_MessageHeader *message)
 {
+#if 0
   const struct PeerGetResultMessage *pgrm;
 
   pgrm = (const struct PeerGetResultMessage *) message;
+#endif
   // parse & store in datacache, this is in response to us asking for successors.
   /*
    * steps :
@@ -1550,17 +1520,53 @@ struct TrailHandler
 
 
 /**
- * Handle a `struct TrailRouteMessage`.
+ * Check that a `struct TrailRouteMessage` is well-formed.
  *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the finger destroy message
+ * @param cls closure 
+ * @param trm the finger destroy message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
+check_dht_p2p_trail_route (void *cls,
+			   const struct TrailRouteMessage *trm)
+{
+  const struct GNUNET_PeerIdentity *path;
+  uint16_t path_length;
+  const struct GNUNET_MessageHeader *payload;
+  size_t msize;
+  
+  msize = ntohs (trm->header.size);
+  path_length = ntohs (trm->path_length);
+  if (msize < sizeof (struct TrailRouteMessage) +
+      path_length * sizeof (struct GNUNET_PeerIdentity) +
+      sizeof (struct GNUNET_MessageHeader) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  path = (const struct GNUNET_PeerIdentity *) &trm[1];
+  payload = (const struct GNUNET_MessageHeader *) &path[path_length];
+  if (msize != (ntohs (payload->size) +
+                sizeof (struct TrailRouteMessage) +
+                path_length * sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  /* FIXME: verify payload is OK!? */
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a `struct TrailRouteMessage`.
+ *
+ * @param cls closure 
+ * @param trm the finger destroy message
+ */
+static void
 handle_dht_p2p_trail_route (void *cls,
-                            const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message)
+                            const struct TrailRouteMessage *trm)
 {
   static const struct TrailHandler handlers[] = {
     { &handle_dht_p2p_successor_find, NULL,
@@ -1577,46 +1583,22 @@ handle_dht_p2p_trail_route (void *cls,
       0 },
     { NULL, NULL, 0, 0 }
   };
+  struct FriendInfo *sender = cls;
   unsigned int i;
-  const struct TrailRouteMessage *trm;
   const struct GNUNET_PeerIdentity *path;
   uint16_t path_length;
   const struct GNUNET_MessageHeader *payload;
   const struct TrailHandler *th;
   struct Trail *trail;
-  size_t msize;
 
-  /* Parse and check message is well-formed */
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct TrailRouteMessage))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_YES;
-  }
-  trm = (const struct TrailRouteMessage *) message;
   path_length = ntohs (trm->path_length);
-  if (msize < sizeof (struct TrailRouteMessage) +
-      path_length * sizeof (struct GNUNET_PeerIdentity) +
-      sizeof (struct GNUNET_MessageHeader) )
-  {
-    GNUNET_break_op (0);
-    return GNUNET_YES;
-  }
   path = (const struct GNUNET_PeerIdentity *) &trm[1];
   payload = (const struct GNUNET_MessageHeader *) &path[path_length];
-  if (msize != (ntohs (payload->size) +
-                sizeof (struct TrailRouteMessage) +
-                path_length * sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_YES;
-  }
-
   /* Is this message for us? */
   trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
                                              &trm->trail_id);
   if ( (NULL != trail->pred) &&
-       (0 == memcmp (peer,
+       (0 == memcmp (sender->id,
                      &trail->pred->id,
                      sizeof (struct GNUNET_PeerIdentity))) )
   {
@@ -1626,18 +1608,18 @@ handle_dht_p2p_trail_route (void *cls,
       forward_message_on_trail (trail->succ,
                                 &trail->succ_id,
                                 ntohs (trm->record_path),
-                                peer,
+                                sender->id,
                                 path,
                                 path_length,
                                 payload);
-      return GNUNET_OK;
+      return;
     }
   }
   else
   {
     /* forward to 'predecessor' */
     GNUNET_break_op ( (NULL != trail->succ) &&
-                      (0 == memcmp (peer,
+                      (0 == memcmp (sender->id,
                                     &trail->succ->id,
                                     sizeof (struct GNUNET_PeerIdentity))) );
     if (NULL != trail->pred)
@@ -1645,11 +1627,11 @@ handle_dht_p2p_trail_route (void *cls,
       forward_message_on_trail (trail->pred,
                                 &trail->pred_id,
                                 ntohs (trm->record_path),
-                                peer,
+                                sender->id,
                                 path,
                                 path_length,
                                 payload);
-      return GNUNET_OK;
+      return;
     }
   }
 
@@ -1673,7 +1655,6 @@ handle_dht_p2p_trail_route (void *cls,
     }
   }
   GNUNET_break_op (NULL != th);
-  return GNUNET_OK;
 }
 
 
@@ -1685,35 +1666,37 @@ handle_dht_p2p_trail_route (void *cls,
 int
 GDS_NEIGHBOURS_init (void)
 {
-  static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    { &handle_dht_p2p_random_walk,
-      GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK,
-      sizeof (struct RandomWalkMessage) },
-    { &handle_dht_p2p_random_walk_response,
-      GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE,
-      sizeof (struct RandomWalkResponseMessage) },
-    { &handle_dht_p2p_trail_destroy,
-      GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY,
-      sizeof (struct TrailDestroyMessage) },
-    { &handle_dht_p2p_trail_route,
-      GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
-      0},
-    {NULL, 0, 0}
+  GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk,
+			   GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK,
+			   struct RandomWalkMessage);
+  GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk_response,
+			   GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE,
+			   struct RandomWalkResponseMessage);
+  GNUNET_MQ_hd_fixed_size (dht_p2p_trail_destroy,
+			   GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY,
+			   struct TrailDestroyMessage);
+  GNUNET_MQ_hd_var_size (dht_p2p_trail_route,
+			 GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
+			 struct TrailRouteMessage);
+  struct GNUNET_MQ_MessageHandler core_handlers[] = {
+    make_dht_p2p_random_walk_handler (NULL),
+    make_dht_p2p_random_walk_response_handler (NULL),
+    make_dht_p2p_trail_destroy_handler (NULL),
+    make_dht_p2p_trail_route_handler (NULL),
+    GNUNET_MQ_handler_end ()
   };
 
-  core_api =
-    GNUNET_CORE_connect (GDS_cfg, NULL,
-                         &core_init,
-                         &handle_core_connect,
-                         &handle_core_disconnect,
-                         NULL, GNUNET_NO,
-                         NULL, GNUNET_NO,
-                         core_handlers);
-
+  core_api = GNUNET_CORE_connecT (GDS_cfg, NULL,
+				  &core_init,
+				  &handle_core_connect,
+				  &handle_core_disconnect,
+				  core_handlers);
   if (NULL == core_api)
     return GNUNET_SYSERR;
-  friends_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
-  trail_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+  friends_peermap = GNUNET_CONTAINER_multipeermap_create (256,
+							  GNUNET_NO);
+  trail_map = GNUNET_CONTAINER_multihashmap_create (1024,
+						    GNUNET_YES);
   trail_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   return GNUNET_OK;
 }
@@ -1727,7 +1710,7 @@ GDS_NEIGHBOURS_done (void)
 {
   if (NULL == core_api)
     return;
-  GNUNET_CORE_disconnect (core_api);
+  GNUNET_CORE_disconnecT (core_api);
   core_api = NULL;
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friends_peermap));
   GNUNET_CONTAINER_multipeermap_destroy (friends_peermap);

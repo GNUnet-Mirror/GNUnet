@@ -49,8 +49,8 @@ enum GDS_ROUTING_trail_direction
  *         #GNUNET_SYSERR in case no matching entry found in routing table. 
  */
 int
-GDS_ROUTING_update_trail_prev_hop (struct GNUNET_HashCode trail_id,
-                                   struct GNUNET_PeerIdentity prev_hop);
+GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode *trail_id,
+                                   const struct GNUNET_PeerIdentity *prev_hop);
 
 
 /**
@@ -62,8 +62,8 @@ GDS_ROUTING_update_trail_prev_hop (struct GNUNET_HashCode trail_id,
  *         #GNUNET_SYSERR in case no matching entry found in routing table.
  */
 int
-GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode trail_id,
-                                   struct GNUNET_PeerIdentity next_hop);
+GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode *trail_id,
+                                   const struct GNUNET_PeerIdentity *next_hop);
 
 /**
  * Get the next hop for trail corresponding to trail_id
@@ -71,25 +71,28 @@ GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode trail_id,
  * @return Next_hop if found
  *         NULL If next hop not found. 
  */
-struct GNUNET_PeerIdentity *
-GDS_ROUTING_get_next_hop (struct GNUNET_HashCode trail_id,
+const struct GNUNET_PeerIdentity *
+GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode *trail_id,
                           enum GDS_ROUTING_trail_direction trail_direction);
 
 
 /**
-  * Remove every trail where peer is either next_hop or prev_hop 
+ * Remove every trail where peer is either next_hop or prev_hop 
  * @param peer Peer to be searched.
  */
 int
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer);
+
+
 /**
  * Remove trail with trail_id
+ *
  * @param trail_id Trail id to be removed
  * @return #GNUNET_YES success 
  *         #GNUNET_NO if entry not found.
  */
 int
-GDS_ROUTING_remove_trail (struct GNUNET_HashCode remove_trail_id);
+GDS_ROUTING_remove_trail (const struct GNUNET_HashCode *remove_trail_id);
 
 
 /**
@@ -102,9 +105,9 @@ GDS_ROUTING_remove_trail (struct GNUNET_HashCode remove_trail_id);
  *                         but with different prev_hop/next_hop
  */
 int
-GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
-                 struct GNUNET_PeerIdentity prev_hop,
-                 struct GNUNET_PeerIdentity next_hop);
+GDS_ROUTING_add (const struct GNUNET_HashCode *new_trail_id, 
+                 const struct GNUNET_PeerIdentity *prev_hop,
+                 const struct GNUNET_PeerIdentity *next_hop);
 
 
 /**

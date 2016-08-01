@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -653,7 +653,8 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
                 _("Could not pass reply to client, message too big!\n"));
     return;
   }
-  DEBUG("reply FOR DATA_SIZE = %lu\n",msize);
+  DEBUG ("reply FOR DATA_SIZE = %u\n",
+	 (unsigned int) msize);
   pm = GNUNET_malloc (msize + sizeof (struct PendingMessage));
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   pm->msg = &reply->header;
@@ -666,17 +667,23 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   reply->expiration = GNUNET_TIME_absolute_hton (expiration);
   reply->key = *key;
   paths = (struct GNUNET_PeerIdentity *) &reply[1];
-  GNUNET_memcpy (paths, put_path,
-          sizeof (struct GNUNET_PeerIdentity) * put_path_length);
-  GNUNET_memcpy (&paths[put_path_length], get_path,
-          sizeof (struct GNUNET_PeerIdentity) * get_path_length);
-  GNUNET_memcpy (&paths[get_path_length + put_path_length], data, data_size);
+  GNUNET_memcpy (paths,
+		 put_path,
+		 sizeof (struct GNUNET_PeerIdentity) * put_path_length);
+  GNUNET_memcpy (&paths[put_path_length],
+		 get_path,
+		 sizeof (struct GNUNET_PeerIdentity) * get_path_length);
+  GNUNET_memcpy (&paths[get_path_length + put_path_length],
+		 data,
+		 data_size);
   frc.do_copy = GNUNET_NO;
   frc.pm = pm;
   frc.data = data;
   frc.data_size = data_size;
   frc.type = type;
-  GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, key, &forward_reply,
+  GNUNET_CONTAINER_multihashmap_get_multiple (forward_map,
+					      key,
+					      &forward_reply,
                                               &frc);
   if (GNUNET_NO == frc.do_copy)
   {
