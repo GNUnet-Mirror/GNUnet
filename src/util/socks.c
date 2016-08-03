@@ -596,15 +596,17 @@ GNUNET_SOCKS_do_connect (const char *service_name,
 	 service_name,port1,host1);
     return NULL;
   }
+  /* Appeared to still work after host0 corrupted, so either test case is broken, or 
+     this whole routine is not being called. */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
-    host0 = NULL; /* you don't want to feed a static string to free(), right? */
-  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (char*)(host0 || "127.0.0.1"), port0);
+    host0 = NULL; 
+  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (host0 != NULL)? host0:"127.0.0.1", port0);
   if (host0) GNUNET_free (host0);
 
   /* Sets to NULL if they do not exist */
-  GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
-  GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
+  (void)GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
+  (void)GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
   ih = GNUNET_SOCKS_init_handshake(user,pass);
   if (NULL != user) GNUNET_free (user);
   if (NULL != pass) GNUNET_free (pass);
