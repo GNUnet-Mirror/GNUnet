@@ -195,7 +195,7 @@ state_result (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "  variable %s differs\nReceived: %.*s\nExpected: %.*s\n",
-                name, value_size, (char*) value, val_size, (char*) val);
+                name, (int) value_size, (char*) value, (int) val_size, (char*) val);
     GNUNET_assert (0);
     return GNUNET_SYSERR;
   }

@@ -621,7 +621,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%d: Transmit notify modifier: %u bytes available, "
               "%u modifiers left to process.\n",
-              test, *data_size, GNUNET_PSYC_env_get_count (tmit->env));
+              test, *data_size, (unsigned int) GNUNET_PSYC_env_get_count (tmit->env));
 
   uint16_t name_size = 0;
   size_t value_size = 0;

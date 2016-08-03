@@ -64,6 +64,7 @@ src/conversation/gnunet-service-conversation.c
 src/conversation/microphone.c
 src/conversation/plugin_gnsrecord_conversation.c
 src/conversation/speaker.c
+src/core/core_api_2.c
 src/core/core_api.c
 src/core/core_api_monitor_peers.c
 src/core/core_api_mq.c
@@ -71,7 +72,6 @@ src/core/gnunet-core.c
 src/core/gnunet-service-core.c
 src/core/gnunet-service-core_clients.c
 src/core/gnunet-service-core_kx.c
-src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
 src/curl/curl.c
@@ -405,9 +405,8 @@ src/transport/plugin_transport_unix.c
 src/transport/plugin_transport_wlan.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
-src/transport/transport_api.c
 src/transport/transport_api_core.c
-src/transport/transport_api_get_hello.c
+src/transport/transport_api_hello_get.c
 src/transport/transport_api_manipulation.c
 src/transport/transport_api_monitor_peers.c
 src/transport/transport_api_monitor_plugins.c

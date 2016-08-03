@@ -1085,7 +1085,7 @@ host_answer_door (void *cls,
               (uint8_t) test, join_req_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s\n%.*s\n",
-              method_name, data_size, (const char *) data);
+              method_name, (int) data_size, (const char *) data);
 
   switch (test)
   {

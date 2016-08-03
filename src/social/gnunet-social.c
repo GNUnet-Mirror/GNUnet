@@ -936,8 +936,10 @@ guest_reconnected (void *cls, int result,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                    uint64_t max_message_id)
 {
+  char *place_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (place_pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Guest reconnected to place %s.\n", GNUNET_CRYPTO_eddsa_public_key_to_string(place_pub_key));
+              "Guest reconnected to place %s.\n", place_pub_str);
+  GNUNET_free (place_pub_str);
 
   if (op_guest_leave) {
     guest_leave ();

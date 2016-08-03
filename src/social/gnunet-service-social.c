@@ -1004,6 +1004,7 @@ place_recv_save_data (void *cls,
     if (plc->file_offset != GNUNET_DISK_file_seek
 			    (fh, plc->file_offset, GNUNET_DISK_SEEK_SET)) {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "seek", filename);
+      GNUNET_DISK_file_close (fh);
       GNUNET_free (filename);
       return;
     }
