@@ -456,7 +456,7 @@ shutdown_task (void *cls)
   }
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
   if (NULL != id)
@@ -3500,8 +3500,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   apps_places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
   places_apps = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
 
-  core = GNUNET_CORE_connect (cfg, NULL, core_connected, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  core = GNUNET_CORE_connecT (cfg, NULL, core_connected, NULL, NULL, NULL);
   id = GNUNET_IDENTITY_connect (cfg, &identity_recv_ego, NULL);
   gns = GNUNET_GNS_connect (cfg);
   namestore = GNUNET_NAMESTORE_connect (cfg);

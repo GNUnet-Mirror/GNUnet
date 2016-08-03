@@ -145,7 +145,7 @@ cleanup ()
 {
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
   if (NULL != slv)
@@ -988,8 +988,7 @@ run (void *cls,
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
-  core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
 }
 
 

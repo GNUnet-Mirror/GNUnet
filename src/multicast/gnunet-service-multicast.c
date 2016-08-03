@@ -333,7 +333,7 @@ shutdown_task (void *cls)
 {
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
   if (NULL != cadet)
@@ -1859,8 +1859,7 @@ run (void *cls,
   cfg = c;
   server = srv;
   GNUNET_SERVER_connect_notify (server, &client_notify_connect, NULL);
-  core = GNUNET_CORE_connect (cfg, NULL, &core_connected_cb, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected_cb, NULL, NULL, NULL);
 }
 
 

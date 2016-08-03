@@ -187,7 +187,7 @@ cleanup ()
 {
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
 
@@ -1332,8 +1332,7 @@ run (void *cls,
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &end_badly, NULL);
 
-  core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
 }
 
 

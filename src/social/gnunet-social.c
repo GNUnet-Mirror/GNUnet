@@ -1086,7 +1086,7 @@ app_recv_ego (void *cls,
 static void
 app_connect (void *cls)
 {
-  GNUNET_CORE_disconnect (core);
+  GNUNET_CORE_disconnecT (core);
   core = NULL;
 
   app = GNUNET_SOCIAL_app_connect (cfg, opt_app,
@@ -1181,8 +1181,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   }
 
-  core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
-                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
 }
 
 
