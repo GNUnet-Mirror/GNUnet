@@ -76,7 +76,7 @@ gnunet-identity -e sks-zone -s fs-sks $options
 MASTER=`gnunet-identity -d $options | grep master-zone | awk '{print $3}'`
 SHORT=`gnunet-identity -d $options | grep short-zone | awk '{print $3}'`
 PRIVATE=`gnunet-identity -d $options | grep private-zone | awk '{print $3}'`
-PIN=72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG
+PIN=DWJASSPE33MRN8T6Q0PENRNBTQY0E6ZYGTRCDP5DGPBF2CRJMJEG
 
 # Link short and private zones into master zone
 if (gnunet-namestore -z master-zone -D -n private -t PKEY | grep "PKEY: $PRIVATE" 1>/dev/null)
