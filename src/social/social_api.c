@@ -972,7 +972,7 @@ app_recv_place (void *cls,
       hconn->app = app;
       hconn->plc_msg = *pmsg;
       app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key, pmsg->place_state);
-      // FIXME: should this have a GNUNET_free (hconn) here?
+      GNUNET_free (hconn);
     }
   }
   else if (NULL != app->guest_cb)
@@ -981,7 +981,7 @@ app_recv_place (void *cls,
     gconn->app = app;
     gconn->plc_msg = *pmsg;
     app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
-    // GNUNET_free (gconn); // FIXME: is this correct here? apparently not!
+    GNUNET_free (gconn);
   }
 }
 
@@ -1284,7 +1284,6 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   plc->connect_msg = &hreq->header;
   place_send_connect_msg (plc);
 
-  GNUNET_free (hconn);
   return hst;
 }
 
@@ -1849,7 +1848,6 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   plc->connect_msg = &greq->header;
   place_send_connect_msg (plc);
 
-  GNUNET_free (gconn);
   return gst;
 }
 

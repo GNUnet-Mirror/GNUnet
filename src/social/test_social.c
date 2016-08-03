@@ -404,6 +404,11 @@ app_connected (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "App connected: %p\n", cls);
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
 }
 
 
@@ -1269,12 +1274,6 @@ host_enter ()
 static void
 id_host_created (void *cls, const char *emsg)
 {
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnect (core);
-    core = NULL;
-  }
-
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
