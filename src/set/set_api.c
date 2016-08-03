@@ -1134,8 +1134,9 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element)
   copy->size = element->size;
   copy->element_type = element->element_type;
   copy->data = &copy[1];
-  GNUNET_memcpy (copy->data, element->data, copy->size);
-
+  GNUNET_memcpy (&copy[1],
+                 element->data,
+                 copy->size);
   return copy;
 }
 
