@@ -602,7 +602,7 @@ GNUNET_SOCKS_do_connect (const char *service_name,
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
     host0 = NULL; 
   socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (host0 != NULL)? host0:"127.0.0.1", port0);
-  if (host0) GNUNET_free (host0);
+  GNUNET_free_non_null (host0);
 
   /* Sets to NULL if they do not exist */
   (void)GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
