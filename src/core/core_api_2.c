@@ -53,13 +53,13 @@ struct PeerRecord
    * for this peer (from @e mq).
    */
   struct GNUNET_MQ_Envelope *env;
-  
+
   /**
    * Value the client returned when we connected, used
    * as the closure in various places.
    */
   void *client_cls;
-  
+
   /**
    * Peer the record is about.
    */
@@ -261,7 +261,7 @@ handle_mq_error (void *cls,
  * so that it is transmitted with the given @a priority and
  * the given @a cork value.
  *
- * @param cork desired corking 
+ * @param cork desired corking
  * @param priority desired message priority
  * @param[out] flags set to `flags` value for #GNUNET_MQ_set_options()
  * @return `extra` argument to give to #GNUNET_MQ_set_options()
@@ -381,7 +381,7 @@ core_mq_cancel_impl (struct GNUNET_MQ_Handle *mq,
   struct PeerRecord *pr = impl_state;
 
   GNUNET_assert (NULL != pr->env);
-  GNUNET_MQ_send_cancel (pr->env);
+  GNUNET_MQ_discard (pr->env);
   pr->env = NULL;
 }
 
@@ -419,7 +419,7 @@ connect_peer (struct GNUNET_CORE_Handle *h,
   struct PeerRecord *pr;
   uint64_t flags;
   const void *extra;
-  
+
   pr = GNUNET_new (struct PeerRecord);
   pr->peer = *peer;
   pr->h = h;
@@ -595,7 +595,7 @@ check_notify_inbound (void *cls,
 {
   uint16_t msize;
   const struct GNUNET_MessageHeader *em;
-  
+
   msize = ntohs (ntm->header.size) - sizeof (struct NotifyTrafficMessage);
   if (msize < sizeof (struct GNUNET_MessageHeader))
   {
@@ -682,7 +682,7 @@ handle_send_ready (void *cls,
      * ignore! (we should have already sent another request) */
     return;
   }
-  
+
   /* ok, all good, send message out! */
   GNUNET_MQ_send (h->mq,
 		  pr->env);
@@ -812,7 +812,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the core service.  
+ * Disconnect from the core service.
  *
  * @param handle connection to core to disconnect
  */
@@ -853,7 +853,7 @@ GNUNET_CORE_get_mq (const struct GNUNET_CORE_Handle *h,
 		    const struct GNUNET_PeerIdentity *pid)
 {
   struct PeerRecord *pr;
-  
+
   pr = GNUNET_CONTAINER_multipeermap_get (h->peers,
 					  pid);
   if (NULL == pr)
