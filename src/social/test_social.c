@@ -406,7 +406,7 @@ app_connected (void *cls)
               "App connected: %p\n", cls);
   if (NULL != core)
   {
-    GNUNET_CORE_disconnect (core);
+    GNUNET_CORE_disconnecT (core);
     core = NULL;
   }
 }
