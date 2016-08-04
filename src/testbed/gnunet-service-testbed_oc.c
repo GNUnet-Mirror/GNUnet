@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2008--2015 GNUnet e.V.
+  Copyright (C) 2008--2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -1133,9 +1133,9 @@ occ_cache_get_handle_core_cb (void *cls,
     return;
   }
   occ->emsg = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CORE_is_peer_connected_sync (ch,
-                                          &occ->other_peer_identity))
+  if (NULL !=
+      GNUNET_CORE_get_mq (ch,
+                          &occ->other_peer_identity))
   {
     LOG_DEBUG ("0x%llx: Target peer already connected\n",
                occ->op_id);

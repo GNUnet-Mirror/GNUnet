@@ -605,24 +605,30 @@ oprelease_get_handle_transport (void *cls)
  *
  * @param cls the #PooledConnection object
  * @param peer peer identity this notification is about
+ * @param mq message queue for talking to @a peer
+ * @return peer
  */
-static void
+static void *
 core_peer_connect_cb (void *cls,
-		      const struct GNUNET_PeerIdentity *peer)
+		      const struct GNUNET_PeerIdentity *peer,
+                      struct GNUNET_MQ_Handle *mq)
 {
   struct PooledConnection *entry = cls;
 
-  peer_connect_notify_cb (entry, peer, GST_CONNECTIONPOOL_SERVICE_CORE);
+  peer_connect_notify_cb (entry,
+                          peer,
+                          GST_CONNECTIONPOOL_SERVICE_CORE);
+  return (void *) peer;
 }
 
 
 /**
- * Function called after #GNUNET_CORE_connect() has succeeded (or failed
+ * Function called after #GNUNET_CORE_connecT() has succeeded (or failed
  * for good).  Note that the private key of the peer is intentionally
  * not exposed here; if you need it, your process should try to read
  * the private key file directly (which should work if you are
  * authorized...).  Implementations of this function must not call
- * #GNUNET_CORE_disconnect() (other than by scheduling a new task to
+ * #GNUNET_CORE_disconnecT() (other than by scheduling a new task to
  * do this later).
  *
  * @param cls the #PooledConnection object
@@ -664,22 +670,17 @@ static void
 opstart_get_handle_core (void *cls)
 {
   struct PooledConnection *entry = cls;
-  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
-    {NULL, 0, 0}
-  };
 
   GNUNET_assert (NULL != entry);
-  LOG_DEBUG ("Opening a CORE connection to peer %u\n", entry->index);
-  entry->handle_core =
-      GNUNET_CORE_connect (entry->cfg, entry,        /* closure */
+  LOG_DEBUG ("Opening a CORE connection to peer %u\n",
+             entry->index);
+  entry->handle_core
+    = GNUNET_CORE_connecT (entry->cfg,
+                           entry,        /* closure */
                            &core_startup_cb, /* core startup notify */
                            &core_peer_connect_cb,    /* peer connect notify */
                            NULL,     /* peer disconnect notify */
-                           NULL,     /* inbound notify */
-                           GNUNET_NO,        /* inbound header only? */
-                           NULL,     /* outbound notify */
-                           GNUNET_NO,        /* outbound header only? */
-                           no_handlers);
+                           NULL);
 }
 
 
@@ -696,7 +697,7 @@ oprelease_get_handle_core (void *cls)
 
   if (NULL == entry->handle_core)
     return;
-  GNUNET_CORE_disconnect (entry->handle_core);
+  GNUNET_CORE_disconnecT (entry->handle_core);
   entry->handle_core = NULL;
   GNUNET_free_non_null (entry->peer_identity);
   entry->peer_identity = NULL;
