@@ -12,6 +12,7 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
+  dv \
   rps \
   $(CONSENSUS) \
   $(SECRETSHARING)
