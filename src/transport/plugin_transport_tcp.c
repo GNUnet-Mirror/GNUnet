@@ -540,9 +540,8 @@ notify_session_monitor (struct Plugin *plugin,
     return;
   memset (&info, 0, sizeof (info));
   info.state = state;
-  info.is_inbound = (0 != (GNUNET_HELLO_ADDRESS_INFO_INBOUND & session->address->local_info))
-    ? GNUNET_YES
-    : GNUNET_NO;
+  info.is_inbound = GNUNET_HELLO_address_check_option (session->address,
+                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND);
   info.num_msg_pending = session->msgs_in_queue;
   info.num_bytes_pending = session->bytes_in_queue;
   if (NULL != session->receive_delay_task)
