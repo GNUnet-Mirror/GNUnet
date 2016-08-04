@@ -520,6 +520,11 @@ recv_state_message_part (void *cls,
   struct StateModifyClosure *scls = cls;
   uint16_t psize;
 
+  if (NULL == msg)
+  { // FIXME: error on unknown message
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "recv_state_message_part()  message_id: %" PRIu64
               ", fragment_offset: %" PRIu64 ", flags: %u\n",
