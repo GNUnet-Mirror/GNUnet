@@ -54,7 +54,7 @@
 #define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 150)
 
 #define MTYPE 12345
-#define MESSAGESIZE 1024
+#define MESSAGESIZE (1024 - 8)
 #define MEASUREMENT_LENGTH GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 static unsigned long long total_bytes_sent;
@@ -71,7 +71,7 @@ struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CORE_Handle *ch;
-  struct GNUNET_CORE_TransmitHandle *nth;
+  struct GNUNET_MQ_Handle *mq;
   struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_MessageHeader *hello;
@@ -107,21 +107,17 @@ static int running;
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
-  uint32_t num;
+  uint32_t num GNUNET_PACKED;
+  uint8_t pad[MESSAGESIZE];
 };
 
 
 static void
 terminate_peer (struct PeerContext *p)
 {
-  if (NULL != p->nth)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (p->nth);
-    p->nth = NULL;
-  }
   if (NULL != p->ch)
   {
-    GNUNET_CORE_disconnect (p->ch);
+    GNUNET_CORE_disconnecT (p->ch);
     p->ch = NULL;
   }
   if (NULL != p->ghh)
@@ -343,85 +339,44 @@ measurement_stop (void *cls)
 }
 
 
-static size_t
-transmit_ready (void *cls,
-		size_t size,
-		void *buf)
+static void
+do_transmit (void *cls)
 {
-  char *cbuf = buf;
-  struct TestMessage hdr;
-  unsigned int ret;
+  struct TestMessage *hdr;
+  struct GNUNET_MQ_Envelope *env;
 
-  p1.nth = NULL;
-  GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
-  if (NULL == buf)
-  {
-    if ( (NULL != p1.ch) &&
-	 (1 == p1.connect_status) )
-      GNUNET_break (NULL !=
-                    (p1.nth =
-                     GNUNET_CORE_notify_transmit_ready (p1.ch,
-							GNUNET_NO,
-                                                        GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                        FAST_TIMEOUT,
-							&p2.id,
-                                                        MESSAGESIZE,
-                                                        &transmit_ready,
-							&p1)));
-    return 0;
-  }
-  GNUNET_assert (tr_n < TOTAL_MSGS);
-  ret = 0;
-  GNUNET_assert (size >= MESSAGESIZE);
-  GNUNET_assert (NULL != buf);
-  cbuf = buf;
-  do
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending message %u of size %u at offset %u\n",
-		tr_n,
-                MESSAGESIZE,
-		ret);
-    hdr.header.size = htons (MESSAGESIZE);
-    hdr.header.type = htons (MTYPE);
-    hdr.num = htonl (tr_n);
-    GNUNET_memcpy (&cbuf[ret],
-		   &hdr,
-		   sizeof (struct TestMessage));
-    ret += sizeof (struct TestMessage);
-    memset (&cbuf[ret],
-	    tr_n,
-	    MESSAGESIZE - sizeof (struct TestMessage));
-    ret += MESSAGESIZE - sizeof (struct TestMessage);
-    tr_n++;
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-				       16))
-      break;                    /* sometimes pack buffer full, sometimes not */
-  }
-  while (size - ret >= MESSAGESIZE);
+  env = GNUNET_MQ_msg (hdr,
+                       MTYPE);
+  hdr->num = htonl (tr_n);
+  memset (&hdr->pad,
+          tr_n,
+          MESSAGESIZE);
+  tr_n++;
   GNUNET_SCHEDULER_cancel (err_task);
   err_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				    &terminate_task_error,
 				    NULL);
-
-  total_bytes_sent += ret;
-  return ret;
+  total_bytes_sent += sizeof (struct TestMessage);
+  GNUNET_MQ_send (p1.mq,
+                  env);
 }
 
 
-static void
+static void *
 connect_notify (void *cls,
-		const struct GNUNET_PeerIdentity *peer)
+		const struct GNUNET_PeerIdentity *peer,
+                struct GNUNET_MQ_Handle *mq)
 {
   struct PeerContext *pc = cls;
 
   if (0 == memcmp (&pc->id,
 		   peer,
 		   sizeof (struct GNUNET_PeerIdentity)))
-    return;                     /* loopback */
+    return NULL;                     /* loopback */
   GNUNET_assert (0 == pc->connect_status);
   pc->connect_status = 1;
+  pc->mq = mq;
   if (pc == &p1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -441,32 +396,23 @@ connect_notify (void *cls,
         GNUNET_SCHEDULER_add_delayed (MEASUREMENT_LENGTH,
 				      &measurement_stop,
                                       NULL);
-
-    GNUNET_break (NULL !=
-                  (p1.nth =
-                   GNUNET_CORE_notify_transmit_ready (p1.ch,
-						      GNUNET_NO,
-                                                      GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                      TIMEOUT,
-						      &p2.id,
-                                                      MESSAGESIZE,
-                                                      &transmit_ready,
-						      &p1)));
+    do_transmit (NULL);
   }
+  return pc;
 }
 
 
 static void
 disconnect_notify (void *cls,
-		   const struct GNUNET_PeerIdentity *peer)
+		   const struct GNUNET_PeerIdentity *peer,
+                   void *internal_cls)
 {
   struct PeerContext *pc = cls;
 
-  if (0 == memcmp (&pc->id,
-		   peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (NULL == internal_cls)
     return;                     /* loopback */
   pc->connect_status = 0;
+  pc->mq = NULL;
   if (NULL != measure_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -474,121 +420,58 @@ disconnect_notify (void *cls,
     GNUNET_SCHEDULER_cancel (measure_task);
     measure_task = NULL;
   }
-  if (NULL != pc->nth)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (pc->nth);
-    pc->nth = NULL;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Encrypted connection to `%s' cut\n",
               GNUNET_i2s (peer));
 }
 
 
-static int
-inbound_notify (void *cls,
-                const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%s' %u.\n",
-              GNUNET_i2s (other),
-              (unsigned int) ntohs (message->size));
-  total_bytes_recv += ntohs (message->size);
-  return GNUNET_OK;
-}
 
-
-static int
-outbound_notify (void *cls,
-                 const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notifies about outbound data for `%s'.\n",
-              GNUNET_i2s (other));
-  return GNUNET_OK;
-}
-
-
-static size_t
-transmit_ready (void *cls, size_t size, void *buf);
-
-
-static int
-process_mtype (void *cls,
-	       const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
+static void
+handle_test (void *cls,
+             const struct TestMessage *hdr)
 {
   static int n;
-  const struct TestMessage *hdr;
 
-  hdr = (const struct TestMessage *) message;
-  if (MTYPE != ntohs (message->type))
-    return GNUNET_SYSERR;
-  if (ntohs (message->size) != MESSAGESIZE)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u of size %u, got %u bytes of message %u\n",
-                n,
-		MESSAGESIZE,
-		ntohs (message->size),
-		ntohl (hdr->num));
-    GNUNET_SCHEDULER_cancel (err_task);
-    err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
-					 NULL);
-    return GNUNET_SYSERR;
-  }
+  total_bytes_recv += sizeof (struct TestMessage);
   if (ntohl (hdr->num) != n)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u of size %u, got %u bytes of message %u\n",
+                "Expected message %u, got message %u\n",
                 n,
-		MESSAGESIZE,
-		ntohs (message->size),
 		ntohl (hdr->num));
     GNUNET_SCHEDULER_cancel (err_task);
     err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error,
 					 NULL);
-    return GNUNET_SYSERR;
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got message %u of size %u\n",
-              ntohl (hdr->num),
-	      ntohs (message->size));
+	      "Got message %u\n",
+              ntohl (hdr->num));
   n++;
   if (0 == (n % 10))
     FPRINTF (stderr, "%s",  ".");
 
   if (GNUNET_YES == running)
-    GNUNET_break (NULL !=
-                  (p1.nth = GNUNET_CORE_notify_transmit_ready (p1.ch,
-							       GNUNET_NO,
-							       GNUNET_CORE_PRIO_BEST_EFFORT,
-							       FAST_TIMEOUT,
-							       &p2.id,
-							       MESSAGESIZE,
-							       &transmit_ready,
-							       &p1)));
-  return GNUNET_OK;
+    do_transmit (NULL);
 }
-
-
-static struct GNUNET_CORE_MessageHandler handlers[] = {
-  {&process_mtype, MTYPE, 0},
-  {NULL, 0, 0}
-};
-
 
 
 static void
 init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
+  GNUNET_MQ_hd_fixed_size (test,
+                           MTYPE,
+                           struct TestMessage);
   struct PeerContext *p = cls;
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (NULL),
+    GNUNET_MQ_handler_end ()
+  };
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to CORE service of `%4s' established\n",
+              "Connection to CORE service of `%s' established\n",
               GNUNET_i2s (my_identity));
   GNUNET_assert (NULL != my_identity);
   p->id = *my_identity;
@@ -597,17 +480,12 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    p2.ch =
-        GNUNET_CORE_connect (p2.cfg,
-			     &p2,
-			     &init_notify,
-			     &connect_notify,
-                             &disconnect_notify,
-			     &inbound_notify,
-			     GNUNET_YES,
-                             &outbound_notify,
-			     GNUNET_YES,
-			     handlers);
+    p2.ch = GNUNET_CORE_connecT (p2.cfg,
+                                 &p2,
+                                 &init_notify,
+                                 &connect_notify,
+                                 &disconnect_notify,
+                                 handlers);
   }
   else
   {
@@ -647,22 +525,28 @@ process_hello (void *cls,
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   GNUNET_memcpy (p->hello, message, ntohs (message->size));
-  if ((p == &p1) && (NULL == p2.oh))
+  if ( (p == &p1) &&
+       (NULL == p2.oh) )
     p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg,
                                           message,
                                           &offer_hello_done,
                                           &p2);
-  if ((p == &p2) && (NULL == p1.oh))
+  if ( (p == &p2) &&
+       (NULL == p1.oh) )
     p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg, message,
                                           &offer_hello_done,
                                           &p1);
 
-  if ((p == &p1) && (p2.hello != NULL) && (NULL == p1.oh))
+  if ( (p == &p1) &&
+       (NULL != p2.hello) &&
+       (NULL == p1.oh) )
     p1.oh = GNUNET_TRANSPORT_offer_hello (p1.cfg,
                                           p2.hello,
                                           &offer_hello_done,
                                           &p1);
-  if ((p == &p2) && (p1.hello != NULL) && (NULL == p2.oh) )
+  if ( (p == &p2) &&
+       (NULL != p1.hello) &&
+       (NULL == p2.oh) )
     p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg,
                                           p1.hello,
                                           &offer_hello_done,
@@ -709,6 +593,14 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_MQ_hd_fixed_size (test,
+                           MTYPE,
+                           struct TestMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_test_handler (NULL),
+    GNUNET_MQ_handler_end ()
+  };
+
   GNUNET_assert (ok == 1);
   OKPP;
   err_task =
@@ -761,17 +653,12 @@ run (void *cls,
                                                       "WAN_QUOTA_OUT",
                                                       &current_quota_p2_out));
 
-  p1.ch =
-      GNUNET_CORE_connect (p1.cfg,
-			   &p1,
-			   &init_notify,
-			   &connect_notify,
-                           &disconnect_notify,
-			   &inbound_notify,
-			   GNUNET_YES,
-                           &outbound_notify,
-			   GNUNET_YES,
-			   handlers);
+  p1.ch = GNUNET_CORE_connecT (p1.cfg,
+                               &p1,
+                               &init_notify,
+                               &connect_notify,
+                               &disconnect_notify,
+                               handlers);
 }
 
 
