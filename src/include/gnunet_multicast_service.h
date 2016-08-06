@@ -545,14 +545,19 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
 /**
  * Start a multicast group.
  *
- * Will advertise the origin in the P2P overlay network under the respective
- * public key so that other peer can find this peer to join it.  Peers that
- * issue GNUNET_MULTICAST_member_join() can then transmit a join request to
- * either an existing group member or to the origin.  If the joining is
+ * Peers that issue GNUNET_MULTICAST_member_join() can transmit a join request
+ * to either an existing group member or to the origin.  If the joining is
  * approved, the member is cleared for @e replay and will begin to receive
  * messages transmitted to the group.  If joining is disapproved, the failed
  * candidate will be given a response.  Members in the group can send messages
- * to the origin (one at a time).
+ * to the origin.
+ *
+ * TODO: This function could optionally offer to advertise the origin in the
+ * P2P overlay network(where?) under the respective public key so that other
+ * peers can find an alternate PeerId to join it. Higher level protocols may
+ * however provide other means of solving the problem of the offline host
+ * (see secushare specs about that) and therefore merely need a way to provide
+ * a list of possible PeerIds.
  *
  * @param cfg
  *        Configuration to use.
