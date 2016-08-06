@@ -981,6 +981,11 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_RING,
 
   /**
+   * Star topology.  No options.
+   */
+  GNUNET_TESTBED_TOPOLOGY_STAR,
+
+  /**
    * 2-d torus.  No options.
    */
   GNUNET_TESTBED_TOPOLOGY_2D_TORUS,

@@ -286,6 +286,11 @@ const char *topology_strings[] = {
   "RING",
 
     /**
+     * Star topology.  No options.
+     */
+  "STAR",
+
+    /**
      * 2-d torus.  No options.
      */
   "2D_TORUS",
@@ -314,6 +319,11 @@ const char *topology_strings[] = {
      * Straight line topology.  No options.
      */
   "LINE",
+
+    /**
+     * Star topology.  No options.
+     */
+  "STAR",
 
     /**
      * Read a topology from a given file.  Followed by the name of the file (const char *).
@@ -536,6 +546,43 @@ gen_topo_line (struct TopologyContext *tc)
   }
   for (cnt = 0; cnt < (tc->link_array_size); cnt++)
     make_link (cnt, cnt, cnt + 1, tc);
+}
+
+
+/**
+ * Generates star topology
+ *
+ * @param tc the topology context
+ */
+static void
+gen_topo_star (struct TopologyContext *tc)
+{
+  unsigned int cnt;
+
+  tc->link_array_size = tc->num_peers - 1;
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+
+      overlay = &tc->u.overlay;
+      overlay->link_array =
+          GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      underlay->link_array =
+          GNUNET_malloc (sizeof (struct UnderlayLink) * tc->link_array_size);
+    }
+    break;
+  }
+  for (cnt = tc->link_array_size; cnt; cnt--)
+    make_link (0, 0, cnt, tc);
 }
 
 
@@ -1278,6 +1325,9 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   case GNUNET_TESTBED_TOPOLOGY_LINE:
     gen_topo_line (tc);
     break;
+  case GNUNET_TESTBED_TOPOLOGY_STAR:
+    gen_topo_star (tc);
+    break;
   case GNUNET_TESTBED_TOPOLOGY_RING:
     gen_topo_ring (tc);
     break;
@@ -1491,6 +1541,9 @@ GNUNET_TESTBED_underlay_construct_ (int num_peers,
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
     gen_topo_line (&tc);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_STAR:
+    gen_topo_star (&tc);
     break;
   case GNUNET_TESTBED_TOPOLOGY_RING:
     gen_topo_ring (&tc);

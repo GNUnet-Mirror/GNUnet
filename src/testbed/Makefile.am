@@ -142,6 +142,7 @@ check_PROGRAMS = \
   test_testbed_api_topology_clique \
   test_testbed_api_testbed_run_topologyrandom \
   test_testbed_api_testbed_run_topologyline \
+  test_testbed_api_testbed_run_topologystar \
   test_testbed_api_testbed_run_topologyclique \
   test_testbed_api_testbed_run_topologyring \
   test_testbed_api_testbed_run_topologysmallworldring \
@@ -176,6 +177,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_topology_clique \
   test_testbed_api_testbed_run_topologyrandom \
   test_testbed_api_testbed_run_topologyline \
+  test_testbed_api_testbed_run_topologystar \
   test_testbed_api_testbed_run_topologyclique \
   test_testbed_api_testbed_run_topologyring \
   test_testbed_api_testbed_run_topology2dtorus \
@@ -282,6 +284,12 @@ test_testbed_api_testbed_run_topologyline_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
+test_testbed_api_testbed_run_topologystar_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologystar_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
 test_testbed_api_testbed_run_topologyclique_SOURCES = \
  test_testbed_api_testbed_run.c
 test_testbed_api_testbed_run_topologyclique_LDADD = \
@@ -374,6 +382,7 @@ EXTRA_DIST = \
   test_testbed_api_test_timeout.conf \
   test_testbed_api_template.conf \
   test_testbed_api_testbed_run_topologyring.conf \
+  test_testbed_api_testbed_run_topologystar.conf \
   test_testbed_api_testbed_run_topologyclique.conf \
   test_testbed_api_testbed_run_topologyline.conf \
   test_testbed_api_testbed_run_topologyrandom.conf \

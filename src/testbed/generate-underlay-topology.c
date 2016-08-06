@@ -298,6 +298,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
   case GNUNET_TESTBED_TOPOLOGY_RING:
+  case GNUNET_TESTBED_TOPOLOGY_STAR:
   case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
   case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
     GNUNET_TESTBED_underlay_construct_ (num_peers, link_processor, NULL,
