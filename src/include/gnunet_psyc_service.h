@@ -631,10 +631,10 @@ struct GNUNET_PSYC_Master;
 
 
 /**
- * Function called after connected to the PSYC service
- * and the channel master started.
+ * Function called once we are connected to the PSYC service
+ * and the channel master is started.
  *
- * Also called when reconnected to the service
+ * Also called when we reconnected to the service
  * after the connection closed unexpectedly.
  *
  * @param cls
