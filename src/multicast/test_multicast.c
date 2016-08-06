@@ -152,7 +152,7 @@ end_normally (void *cls)
 {
   res = 0;
   cleanup ();
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test PASSED.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test PASSED.\n");
 }
 
 
@@ -257,7 +257,7 @@ static void
 schedule_origin_stop (void *cls)
 {
   test = TEST_ORIGIN_STOP;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_stop()\n", test);
   GNUNET_MULTICAST_origin_stop (origin, origin_stopped, NULL);
   origin = NULL;
@@ -302,7 +302,7 @@ static void
 member_part ()
 {
   test = TEST_MEMBER_PART;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_part()\n", test);
   GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
 }
@@ -531,7 +531,7 @@ static void
 origin_to_all ()
 {
   test = TEST_ORIGIN_TO_ALL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_to_all()\n", test);
 
   struct TransmitClosure *tmit = &tmit_cls;
@@ -635,7 +635,7 @@ static void
 member_join (int t)
 {
   test = t;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_join()\n", test);
 
   member_key = GNUNET_CRYPTO_ecdsa_key_create ();
@@ -666,7 +666,7 @@ static void
 origin_start ()
 {
   test = TEST_ORIGIN_START;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_start()\n", test);
 
   group_key = GNUNET_CRYPTO_eddsa_key_create ();

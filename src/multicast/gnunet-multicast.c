@@ -45,6 +45,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
+  puts( gettext_noop ("This command doesn't do anything yet.") );
+  ret = -1;
 }
 
 
@@ -67,7 +69,8 @@ main (int argc, char *const *argv)
 
   ret = (GNUNET_OK ==
 	 GNUNET_PROGRAM_run (argc, argv, "gnunet-multicast",
-			     gettext_noop ("help text"), options, &run,
+			     gettext_noop ("This command doesn't do anything yet."),
+			     options, &run,
 			     NULL)) ? ret : 1;
   GNUNET_free ((void*) argv);
   return ret;

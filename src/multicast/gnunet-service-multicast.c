@@ -561,7 +561,7 @@ static void
 client_send (struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%p Sending message to client.\n", client);
 
   GNUNET_SERVER_notification_context_add (nc, client);
@@ -576,7 +576,7 @@ static void
 client_send_group (const struct Group *grp,
                    const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%p Sending message to all clients of the group.\n", grp);
 
   struct ClientList *cl = grp->clients_head;
