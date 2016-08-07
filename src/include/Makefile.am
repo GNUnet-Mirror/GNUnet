@@ -81,6 +81,7 @@ gnunetinclude_HEADERS = \
   gnunet_nat_lib.h \
   gnunet_network_lib.h \
   gnunet_nse_service.h \
+  gnunet_op_lib.h \
   gnunet_os_lib.h \
   gnunet_peer_lib.h \
   gnunet_peerinfo_service.h \

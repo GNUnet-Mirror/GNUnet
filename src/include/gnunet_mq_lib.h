@@ -327,7 +327,7 @@ struct GNUNET_MQ_MessageHandler
  *                         GNUNET_MESSAGE_TYPE_TEST,
  *                         struct GNUNET_MessageTest);
  * struct GNUNET_MQ_MessageHandler handlers[] = {
- *   make_test_message_handler (),
+ *   make_test_message_handler (NULL),
  *   GNUNET_MQ_handler_end()
  * };
  *
