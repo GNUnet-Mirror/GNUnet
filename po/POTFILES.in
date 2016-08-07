@@ -462,6 +462,7 @@ src/util/helper.c
 src/util/load.c
 src/util/mq.c
 src/util/network.c
+src/util/op.c
 src/util/os_installation.c
 src/util/os_network.c
 src/util/os_priority.c
