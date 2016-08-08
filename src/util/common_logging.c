@@ -256,9 +256,9 @@ get_type (const char *log)
   if (0 == strcasecmp (log, _("DEBUG")))
     return GNUNET_ERROR_TYPE_DEBUG;
   if (0 == strcasecmp (log, _("INFO")))
-    return GNUNET_ERROR_TYPE_MESSAGE;
-  if (0 == strcasecmp (log, _("MESSAGE")))
     return GNUNET_ERROR_TYPE_INFO;
+  if (0 == strcasecmp (log, _("MESSAGE")))
+    return GNUNET_ERROR_TYPE_MESSAGE;
   if (0 == strcasecmp (log, _("WARNING")))
     return GNUNET_ERROR_TYPE_WARNING;
   if (0 == strcasecmp (log, _("ERROR")))

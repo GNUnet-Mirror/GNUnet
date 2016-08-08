@@ -419,9 +419,10 @@ channel_incoming (void *cls,
   }
   if (NULL != lp) {
     /* Now that we have our circuit up and running, let's not
-     * get confused by further incoming circuits.
+     * get confused by further incoming connect requests.
      */
     GNUNET_CADET_close_port (lp);
+    lp = NULL;
   }
   ch = channel;
   if (GNUNET_NO == echo)
