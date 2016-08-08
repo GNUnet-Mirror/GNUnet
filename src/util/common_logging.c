@@ -256,6 +256,8 @@ get_type (const char *log)
   if (0 == strcasecmp (log, _("DEBUG")))
     return GNUNET_ERROR_TYPE_DEBUG;
   if (0 == strcasecmp (log, _("INFO")))
+    return GNUNET_ERROR_TYPE_MESSAGE;
+  if (0 == strcasecmp (log, _("MESSAGE")))
     return GNUNET_ERROR_TYPE_INFO;
   if (0 == strcasecmp (log, _("WARNING")))
     return GNUNET_ERROR_TYPE_WARNING;
@@ -520,9 +522,10 @@ GNUNET_get_log_call_status (int caller_level,
   if (min_level >= 0)
     return caller_level <= min_level;
   /* All programs/services previously defaulted to WARNING.
-   * Now WE default to WARNING, and THEY default to NULL.
+   * Now *we* default to WARNING, and THEY default to NULL.
+   * Or rather we default to MESSAGE, since things aren't always bad.
    */
-  return caller_level <= GNUNET_ERROR_TYPE_WARNING;
+  return caller_level <= GNUNET_ERROR_TYPE_MESSAGE;
 }
 
 
@@ -1066,6 +1069,8 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
     return _("ERROR");
   if ((kind & GNUNET_ERROR_TYPE_WARNING) > 0)
     return _("WARNING");
+  if ((kind & GNUNET_ERROR_TYPE_MESSAGE) > 0)
+    return _("MESSAGE");
   if ((kind & GNUNET_ERROR_TYPE_INFO) > 0)
     return _("INFO");
   if ((kind & GNUNET_ERROR_TYPE_DEBUG) > 0)

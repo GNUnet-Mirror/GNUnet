@@ -65,7 +65,7 @@ static char *conn_id;
 static char *channel_id;
 
 /**
- * Port to listen on (-p).
+ * Port to listen on (-o).
  */
 static uint32_t listen_port;
 
@@ -118,6 +118,11 @@ static struct GNUNET_CADET_Channel *ch;
  * Transmit handle.
  */
 static struct GNUNET_CADET_TransmitHandle *th;
+
+/**
+ * Data structure for ongoing reception of incoming virtual circuits.
+ */
+struct GNUNET_CADET_Port *lp;
 
 /**
  * Shutdown task handle.
@@ -376,8 +381,8 @@ channel_ended (void *cls,
  * Only called (once) upon reception of data with a message type which was
  * subscribed to in #GNUNET_CADET_connect.
  *
- * A call to #GNUNET_CADET_channel_destroy causes te channel to be ignored. In
- * this case the handler MUST return NULL.
+ * A call to #GNUNET_CADET_channel_destroy causes the channel to be ignored.
+ * In this case the handler MUST return NULL.
  *
  * @param cls closure
  * @param channel new handle to the channel
@@ -395,9 +400,9 @@ channel_incoming (void *cls,
                   const struct GNUNET_HashCode *port,
                   enum GNUNET_CADET_ChannelOption options)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Incoming channel %p on port %s\n",
-              channel, GNUNET_h2s (port));
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Incoming channel %p from %s on port %s\n",
+              channel, GNUNET_i2s_full (initiator), GNUNET_h2s (port));
   if (NULL != ch)
   {
     GNUNET_break (0);
@@ -409,8 +414,14 @@ channel_incoming (void *cls,
   }
   if (0 == listen_port)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not listening to channels\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Not listening to channels\n");
     return NULL;
+  }
+  if (NULL != lp) {
+    /* Now that we have our circuit up and running, let's not
+     * get confused by further incoming circuits.
+     */
+    GNUNET_CADET_close_port (lp);
   }
   ch = channel;
   if (GNUNET_NO == echo)
@@ -901,13 +912,13 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all tunnels\n");
     job = GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
   }
-  else
+  else if (0 == listen_port)
   {
     FPRINTF (stderr, "No action requested\n");
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to cadet\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CADET service\n");
   mh = GNUNET_CADET_connect (cfg,
                             NULL, /* cls */
                             &channel_ended, /* cleaner */
@@ -919,9 +930,9 @@ run (void *cls,
 
   if (0 != listen_port)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opening listen port\n");
-    GNUNET_CADET_open_port (mh, GC_u2h (listen_port),
-			    &channel_incoming, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opening CADET listen port\n");
+    lp = GNUNET_CADET_open_port (mh, GC_u2h (listen_port),
+				 &channel_incoming, NULL);
   }
 }
 
@@ -955,7 +966,7 @@ main (int argc, char *const *argv)
 //      gettext_noop ("provide information about all events (continuously)"),
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_mode},
     {'o', "open-port", NULL,
-     gettext_noop ("port to listen to (default; 0)"),
+     gettext_noop ("port to listen to"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
     {'p', "peer", "PEER_ID",
      gettext_noop ("provide information about a patricular peer"),

@@ -379,6 +379,7 @@ static void
 handle_port_close (void *cls, struct GNUNET_SERVER_Client *client,
                    const struct GNUNET_MessageHeader *message)
 {
+	// FIXME
 }
 
 
