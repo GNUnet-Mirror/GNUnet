@@ -67,7 +67,7 @@ static char *channel_id;
 /**
  * Port to listen on (-o).
  */
-static uint32_t listen_port;
+static char *listen_port;
 
 /**
  * Request echo service
@@ -97,7 +97,7 @@ static char *target_id;
 /**
  * Port to connect to
  */
-static uint32_t target_port;
+static char *target_port = "default";
 
 /**
  * Data pending in netcat mode.
@@ -118,6 +118,11 @@ static struct GNUNET_CADET_Channel *ch;
  * Transmit handle.
  */
 static struct GNUNET_CADET_TransmitHandle *th;
+
+/**
+ * HashCode of the given port string
+ */
+static struct GNUNET_HashCode porthash;
 
 /**
  * Data structure for ongoing reception of incoming virtual circuits.
@@ -200,8 +205,7 @@ conn_2s (uint16_t status)
 
 
 /**
- * Task run in monitor mode when the user presses CTRL-C to abort.
- * Stops monitoring activity.
+ * Task to shut down this application.
  *
  * @param cls Closure (unused).
  */
@@ -219,6 +223,12 @@ shutdown_task (void *cls)
   {
     GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
+  }
+  else if (NULL != target_id) {
+    // FIXME: would be nicer to have proper NACK support from cadet_api
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Connection refused to %s\n",
+		target_id);
   }
   if (NULL != mh)
   {
@@ -419,7 +429,7 @@ channel_incoming (void *cls,
     GNUNET_SCHEDULER_shutdown();
     return NULL;
   }
-  if (0 == listen_port)
+  if (NULL == listen_port)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Not listening to channels\n");
     return NULL;
@@ -505,7 +515,8 @@ create_channel (void *cls)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
   opt = GNUNET_CADET_OPTION_DEFAULT | GNUNET_CADET_OPTION_RELIABLE;
-  ch = GNUNET_CADET_channel_create (mh, NULL, &pid, GC_u2h (target_port), opt);
+  GNUNET_CRYPTO_hash (target_port, strlen(target_port), &porthash);
+  ch = GNUNET_CADET_channel_create (mh, NULL, &pid, &porthash, opt);
   if (GNUNET_NO == echo)
     listen_stdio ();
   else
@@ -529,9 +540,9 @@ create_channel (void *cls)
  */
 static int
 data_callback (void *cls,
-               struct GNUNET_CADET_Channel *channel,
-               void **channel_ctx,
-               const struct GNUNET_MessageHeader *message)
+       struct GNUNET_CADET_Channel *channel,
+       void **channel_ctx,
+       const struct GNUNET_MessageHeader *message)
 {
   uint16_t len;
   ssize_t done;
@@ -542,7 +553,7 @@ data_callback (void *cls,
 
   if (GNUNET_YES == echo)
   {
-    if (0 != listen_port)
+    if (NULL != listen_port)
     {
       /* Just listening to echo incoming messages*/
       if (NULL != th)
@@ -868,7 +879,8 @@ run (void *cls,
   /* FIXME add option to monitor apps */
 
   target_id = args[0];
-  target_port = args[0] && args[1] ? atoi(args[1]) : 0;
+  if (target_id && args[1]) target_port = args[1];
+
   if ( (0 != (request_peers | request_tunnels)
         || 0 != monitor_mode
         || NULL != tunnel_id
@@ -925,7 +937,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all tunnels\n");
     job = GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
   }
-  else if (0 == listen_port)
+  else if (NULL == listen_port)
   {
     FPRINTF (stderr, "No action requested\n");
     return;
@@ -941,11 +953,11 @@ run (void *cls,
   else
     sd = GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 
-  if (0 != listen_port)
+  if (NULL != listen_port)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opening CADET listen port\n");
-    lp = GNUNET_CADET_open_port (mh, GC_u2h (listen_port),
-				 &channel_incoming, NULL);
+    GNUNET_CRYPTO_hash (listen_port, strlen(listen_port), &porthash);
+    lp = GNUNET_CADET_open_port (mh, &porthash, &channel_incoming, NULL);
   }
 }
 
@@ -980,7 +992,7 @@ main (int argc, char *const *argv)
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_mode},
     {'o', "open-port", NULL,
      gettext_noop ("port to listen to"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
     {'p', "peer", "PEER_ID",
      gettext_noop ("provide information about a patricular peer"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &peer_id},
