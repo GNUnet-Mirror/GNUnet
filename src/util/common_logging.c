@@ -801,12 +801,26 @@ output_message (enum GNUNET_ErrorType kind,
   if ( (NULL != GNUNET_stderr) &&
        (NULL == loggers) )
   {
-    FPRINTF (GNUNET_stderr,
+    if (kind == GNUNET_ERROR_TYPE_MESSAGE) {
+	/* The idea here is to produce "normal" output messages
+	 * for end users while still having the power of the
+	 * logging engine for developer needs. So ideally this
+	 * is what it should look like when CLI tools are used
+	 * interactively, yet the same message shouldn't look 
+	 * this way if the output is going to logfiles or robots
+	 * instead. Is this the right place to do this?	--lynX
+	 */
+	FPRINTF (GNUNET_stderr,
+             "* %s",
+             msg);
+    } else {
+	FPRINTF (GNUNET_stderr,
              "%s %s %s %s",
              datestr,
              comp,
              GNUNET_error_type_to_string (kind),
              msg);
+    }
     fflush (GNUNET_stderr);
   }
   pos = loggers;
