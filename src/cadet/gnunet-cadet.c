@@ -401,15 +401,22 @@ channel_incoming (void *cls,
                   enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Incoming channel %p from %s on port %s\n",
-              channel, GNUNET_i2s_full (initiator), GNUNET_h2s (port));
+              "Connected from %s\n",
+              GNUNET_i2s_full (initiator));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Incoming channel %p on port %s\n",
+              channel, GNUNET_h2s (port));
   if (NULL != ch)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "A channel already exists (%p)\n", ch);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Incoming channel %p on port %s\n", channel, GNUNET_h2s (port));
+    /*
+     * From now on multiple channels will be sending data to us
+     * making the service of this command unpredictable in its
+     * current implementation. So for now let's just bail out.
+     */
+    GNUNET_SCHEDULER_shutdown();
     return NULL;
   }
   if (0 == listen_port)
@@ -417,6 +424,10 @@ channel_incoming (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Not listening to channels\n");
     return NULL;
   }
+#if 0
+  // Closing the listen port currently breaks open connections.
+  // Is this an intentional departure from POSIX socket behavior?
+  //
   if (NULL != lp) {
     /* Now that we have our circuit up and running, let's not
      * get confused by further incoming connect requests.
@@ -424,6 +435,7 @@ channel_incoming (void *cls,
     GNUNET_CADET_close_port (lp);
     lp = NULL;
   }
+#endif
   ch = channel;
   if (GNUNET_NO == echo)
   {
