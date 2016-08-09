@@ -160,7 +160,7 @@ struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access_cb,
 		      void *access_cb_cls,
                       struct sockaddr *const *server_addr,
-                      const socklen_t * socklen,
+                      const socklen_t *socklen,
                       struct GNUNET_TIME_Relative idle_timeout,
                       int require_found);
 
@@ -756,8 +756,10 @@ struct GNUNET_SERVER_MessageStreamTokenizer;
  * @param message the actual message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
-typedef int (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, void *client,
-                                                       const struct GNUNET_MessageHeader *message);
+typedef int
+(*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
+                                           void *client,
+                                           const struct GNUNET_MessageHeader *message);
 
 
 /**

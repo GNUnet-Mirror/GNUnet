@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013 GNUnet e.V.
+     Copyright (C) 2009-2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,6 +45,7 @@ extern "C"
 
 #include "gnunet_configuration_lib.h"
 #include "gnunet_server_lib.h"
+#include "gnunet_mq_lib.h"
 
 
 /**
@@ -69,8 +70,8 @@ extern "C"
  */
 int
 GNUNET_SERVICE_get_server_addresses (const char *service_name,
-                                     const struct GNUNET_CONFIGURATION_Handle
-                                     *cfg, struct sockaddr ***addrs,
+                                     const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     struct sockaddr ***addrs,
                                      socklen_t **addr_lens);
 
 
@@ -124,9 +125,11 @@ enum GNUNET_SERVICE_Options
  * @param task_cls closure for @a task
  * @return #GNUNET_SYSERR on error, #GNUNET_OK
  *         if we shutdown nicely
+ * @deprecated
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv,
+GNUNET_SERVICE_run (int argc,
+                    char *const *argv,
 		    const char *service_name,
                     enum GNUNET_SERVICE_Options options,
 		    GNUNET_SERVICE_Main task,
@@ -147,6 +150,7 @@ struct GNUNET_SERVICE_Context;
  * @param cfg configuration to use
  * @param options service options
  * @return NULL on error, service handle
+ * @deprecated
  */
 struct GNUNET_SERVICE_Context *
 GNUNET_SERVICE_start (const char *service_name,
@@ -160,6 +164,7 @@ GNUNET_SERVICE_start (const char *service_name,
  *
  * @param ctx the service context returned from the start function
  * @return handle to the server for this service, NULL if there is none
+ * @deprecated
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
@@ -171,6 +176,7 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
  * @param ctx service context to query
  * @return NULL if there are no listen sockets, otherwise NULL-terminated
  *              array of listen sockets.
+ * @deprecated
  */
 struct GNUNET_NETWORK_Handle *const *
 GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx);
@@ -180,9 +186,230 @@ GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx);
  * Stop a service that was started with #GNUNET_SERVICE_start.
  *
  * @param sctx the service context returned from the start function
+ * @deprecated
  */
 void
 GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
+
+
+/* **************** NEW SERVICE API ********************** */
+
+/**
+ *
+ */
+struct GNUNET_SERVICE_Handle;
+
+
+/**
+ *
+ */
+struct GNUNET_SERVICE_Client;
+
+
+/**
+ *
+ *
+ * @param cls
+ * @param cfg
+ * @param sh
+ */
+typedef void
+(*GNUNET_SERVICE_InitCallback)(void *cls,
+                               const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               struct GNUNET_SERVICE_Handle *sh);
+
+
+/**
+ *
+ *
+ * @param cls
+ * @param c
+ * @param mq
+ * @return
+ */
+typedef void *
+(*GNUNET_SERVICE_ConnectHandler)(void *cls,
+                                 struct GNUNET_SERVICE_Client *c,
+                                 struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ *
+ *
+ * @param cls
+ * @param c
+ * @param internal_cls
+ */
+typedef void
+(*GNUNET_SERVICE_DisconnectHandler)(void *cls,
+                                    struct GNUNET_SERVICE_Client *c,
+                                    void *internal_cls);
+
+
+/**
+ * Creates the "main" function for a GNUnet service.  You
+ * should almost always use the #GNUNET_SERVICE_MAIN macro
+ * instead of calling this function directly (except
+ * for ARM, which should call this function directly).
+ *
+ * The function will launch the service with the name @a service_name
+ * using the @a service_options to configure its shutdown
+ * behavior. Once the service is ready, the @a init_cb will be called
+ * for service-specific initialization.  @a init_cb will be given the
+ * service handler which can be used to control the service's
+ * availability.  When clients connect or disconnect, the respective
+ * @a connect_cb or @a disconnect_cb functions will be called. For
+ * messages received from the clients, the respective @a handlers will
+ * be invoked; for the closure of the handlers we use the return value
+ * from the @a connect_cb invocation of the respective client.
+ *
+ * Each handler MUST call #GNUNET_SERVICE_client_continue() after each
+ * message to receive further messages from this client.  If
+ * #GNUNET_SERVICE_client_continue() is not called within a short
+ * time, a warning will be logged. If delays are expected, services
+ * should call #GNUNET_SERVICE_client_disable_continue_warning() to
+ * disable the warning.
+ *
+ * Clients sending invalid messages (based on @a handlers) will be
+ * dropped. Additionally, clients can be dropped at any time using
+ * #GNUNET_SERVICE_client_drop().
+ *
+ * @param argc
+ * @param argv
+ * @param service_name
+ * @param options
+ * @param service_init_cb
+ * @param connect_cb
+ * @param disconnect_cb
+ * @param cls
+ * @param handlers
+ * @return 0 on success, non-zero on error
+ */
+int
+GNUNET_SERVICE_ruN_ (int argc,
+                     char *const *argv,
+                     const char *service_name,
+                     enum GNUNET_SERVICE_Options options,
+                     GNUNET_SERVICE_InitCallback service_init_cb,
+                     GNUNET_SERVICE_ConnectHandler connect_cb,
+                     GNUNET_SERVICE_DisconnectHandler disconnect_cb,
+                     void *cls,
+                     const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
+ * Creates the "main" function for a GNUnet service.  You
+ * MUST use this macro to define GNUnet services (except
+ * for ARM, which MUST NOT use the macro).  The reason is
+ * the GNUnet-as-a-library project, where we will not define
+ * a main function anywhere but in ARM.
+ *
+ * The macro will launch the service with the name @a service_name
+ * using the @a service_options to configure its shutdown
+ * behavior. Once the service is ready, the @a init_cb will be called
+ * for service-specific initialization.  @a init_cb will be given the
+ * service handler which can be used to control the service's
+ * availability.  When clients connect or disconnect, the respective
+ * @a connect_cb or @a disconnect_cb functions will be called. For
+ * messages received from the clients, the respective @a handlers will
+ * be invoked; for the closure of the handlers we use the return value
+ * from the @a connect_cb invocation of the respective client.
+ *
+ * Each handler MUST call #GNUNET_SERVICE_client_continue() after each
+ * message to receive further messages from this client.  If
+ * #GNUNET_SERVICE_client_continue() is not called within a short
+ * time, a warning will be logged. If delays are expected, services
+ * should call #GNUNET_SERVICE_client_disable_continue_warning() to
+ * disable the warning.
+ *
+ * Clients sending invalid messages (based on @a handlers) will be
+ * dropped. Additionally, clients can be dropped at any time using
+ * #GNUNET_SERVICE_client_drop().
+ *
+ * @param argc
+ * @param argv
+ * @param service_name
+ * @param options
+ * @param service_init_cb
+ * @param connect_cb
+ * @param disconnect_cb
+ * @param cls
+ * @param handlers
+ * @return 0 on success, non-zero on error
+ */
+#define GNUNET_SERVICE_MAIN(service_name,service_options,init_cb,connect_cb,disconnect_cb,cls,handlers) \
+  int \
+  main (int argc,\
+        char *const *argv)\
+  { \
+    return GNUNET_SERVICE_ruN_ (argc, \
+                                argv, \
+                                service_name, \
+                                service_options, \
+                                init_cb, \
+                                connect_cb, \
+                                disconnect_cb, \
+                                cls, \
+                                handlers); \
+  }
+
+
+/**
+ *
+ * @param sh
+ */
+void
+GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh);
+
+/**
+ *
+ * @param sh
+ */
+void
+GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
+
+/**
+ *
+ * @param c
+ */
+void
+GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c);
+
+/**
+ *
+ * @param c
+ */
+void
+GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c);
+
+/**
+ *
+ * @param c
+ */
+void
+GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c);
+
+/**
+ *
+ * @param sh
+ */
+void
+GNUNET_SERVICE_stop_listening (struct GNUNET_SERVICE_Handle *sh);
+
+/**
+ *
+ * @param c
+ */
+void
+GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c);
+
+/**
+ *
+ * @param c
+ */
+void
+GNUNET_SERVICE_client_persist (struct GNUNET_SERVICE_Client *c);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
