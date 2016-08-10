@@ -742,15 +742,15 @@ handle_local_ack (void *cls,
     struct GNUNET_CADET_TransmitHandle *th;
     struct GNUNET_CADET_TransmitHandle *next;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  pending data, sending %U bytes!\n",
+         "  pending data, sending %u bytes!\n",
          ch->packet_size);
     for (th = h->th_head; NULL != th; th = next)
     {
       next = th->next;
       if (th->channel == ch)
       {
+        GNUNET_assert (NULL == th->request_data_task);
         th->request_data_task = GNUNET_SCHEDULER_add_now (&request_data, th);
-        GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
         break;
       }
     }
@@ -799,100 +799,6 @@ handle_mq_error (void *cls,
   GNUNET_MQ_destroy (h->mq);
   h->mq = NULL;
   reconnect (h);
-}
-
-
-/**
- * Reconnect to the service, retransmit all infomation to try to restore the
- * original state.
- *
- * @param h handle to the cadet
- *
- * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
- */
-static int
-do_reconnect (struct GNUNET_CADET_Handle *h)
-{
-  GNUNET_MQ_hd_fixed_size (channel_created,
-                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
-                           struct GNUNET_CADET_ChannelCreateMessage);
-  GNUNET_MQ_hd_fixed_size (channel_destroy,
-                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
-                           struct GNUNET_CADET_ChannelDestroyMessage);
-  GNUNET_MQ_hd_var_size (local_data,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
-                         struct GNUNET_CADET_LocalData);
-  GNUNET_MQ_hd_fixed_size (local_ack,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
-                           struct GNUNET_CADET_LocalAck);
-  // FIXME
-//   GNUNET_MQ_hd_fixed_Y       size (channel_destroyed,
-//                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK,
-//                            struct GNUNET_CADET_ChannelDestroyMessage);
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_channel_created_handler (h),
-    make_channel_destroy_handler (h),
-    make_local_data_handler (h),
-    make_local_ack_handler (h),
-    GNUNET_MQ_handler_end ()
-  };
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CADET\n");
-
-  GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
-                                 "cadet",
-                                 handlers,
-                                 &handle_mq_error,
-                                 h);
-  if (NULL == h->mq)
-  {
-    reconnect (h);
-    return GNUNET_NO;
-  }
-  else
-  {
-    h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
-  }
-  return GNUNET_YES;
-}
-
-/**
- * Reconnect callback: tries to reconnect again after a failer previous
- * reconnecttion
- *
- * @param cls closure (cadet handle)
- */
-static void
-reconnect_cbk (void *cls)
-{
-  struct GNUNET_CADET_Handle *h = cls;
-
-  h->reconnect_task = NULL;
-  do_reconnect (h);
-}
-
-
-/**
- * Reconnect to the service, retransmit all infomation to try to restore the
- * original state.
- *
- * @param h handle to the cadet
- *
- * @return #GNUNET_YES in case of sucess, #GNUNET_NO otherwise (service down...)
- */
-static void
-reconnect (struct GNUNET_CADET_Handle *h)
-{
-  struct GNUNET_CADET_Channel *ch;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Requested RECONNECT, destroying all channels\n");
-  for (ch = h->channels_head; NULL != ch; ch = h->channels_head)
-    destroy_channel (ch, GNUNET_YES);
-  if (NULL == h->reconnect_task)
-    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
-                                                      &reconnect_cbk, h);
 }
 
 
@@ -983,36 +889,51 @@ reconnect (struct GNUNET_CADET_Handle *h)
 
 
 /**
- * Process a local reply about info on all tunnels, pass info to the user.
+ * Check that message received from CADET service is well-formed.
  *
- * @param h Cadet handle.
- * @param message Message itself.
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param message the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
  */
-static void
-process_get_peers (struct GNUNET_CADET_Handle *h,
-                     const struct GNUNET_MessageHeader *message)
+static int
+check_get_peers (void *cls,
+                 const struct GNUNET_CADET_LocalInfoPeer *message)
 {
-  struct GNUNET_CADET_LocalInfoPeer *msg;
+  struct GNUNET_CADET_Handle *h = cls;
   uint16_t size;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Peer messasge received\n");
 
   if (NULL == h->info_cb.peers_cb)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "  no handler for peesr monitor message!\n");
+    return GNUNET_SYSERR;
   }
 
-  size = ntohs (message->size);
+  size = ntohs (message->header.size);
   if (sizeof (struct GNUNET_CADET_LocalInfoPeer) > size)
   {
     h->info_cb.peers_cb (h->info_cls, NULL, -1, 0, 0);
     h->info_cb.peers_cb = NULL;
     h->info_cls = NULL;
-    return;
+    return GNUNET_SYSERR;
   }
 
-  msg = (struct GNUNET_CADET_LocalInfoPeer *) message;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Process a local reply about info on all tunnels, pass info to the user.
+ *
+ * @param cls Closure (Cadet handle).
+ * @param msg Message itself.
+ */
+static void
+handle_get_peers (void *cls,
+                  const struct GNUNET_CADET_LocalInfoPeer *msg)
+{
+  struct GNUNET_CADET_Handle *h = cls;
   h->info_cb.peers_cb (h->info_cls, &msg->destination,
                        (int) ntohs (msg->tunnel),
                        (unsigned int ) ntohs (msg->paths),
@@ -1021,70 +942,58 @@ process_get_peers (struct GNUNET_CADET_Handle *h,
 
 
 /**
- * Process a local peer info reply, pass info to the user.
+ * Check that message received from CADET service is well-formed.
  *
- * @param h Cadet handle.
- * @param message Message itself.
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param message the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
  */
-static void
-process_get_peer (struct GNUNET_CADET_Handle *h,
-                  const struct GNUNET_MessageHeader *message)
+static int
+check_get_peer (void *cls,
+                const struct GNUNET_CADET_LocalInfoPeer *message)
 {
-  struct GNUNET_CADET_LocalInfoPeer *msg;
-  struct GNUNET_PeerIdentity *id;
+  struct GNUNET_CADET_Handle *h = cls;
+  const size_t msize = sizeof (struct GNUNET_CADET_LocalInfoPeer);
+  struct GNUNET_PeerIdentity *paths_array;
+  size_t esize;
   unsigned int epaths;
   unsigned int paths;
-  unsigned int path_length;
-  unsigned int i;
-  int neighbor;
-  size_t esize;
-  size_t msize;
+  unsigned int peers;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Info Peer messasge received\n");
   if (NULL == h->info_cb.peer_cb)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "  no handler for peer monitor message!\n");
+    goto clean_cls;
   }
 
   /* Verify message sanity */
-  msg = (struct GNUNET_CADET_LocalInfoPeer *) message;
-  esize = ntohs (message->size);
-  msize = sizeof (struct GNUNET_CADET_LocalInfoPeer);
+  esize = ntohs (message->header.size);
   if (esize < msize)
   {
     GNUNET_break_op (0);
     h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
-  epaths = (unsigned int) ntohs (msg->paths);
-  paths = 0;
-  path_length = 0;
-  neighbor = GNUNET_NO;
-  id = (struct GNUNET_PeerIdentity *) &msg[1];
-  for (i = 0; msize < esize; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %s\n", GNUNET_i2s (&id[i]));
-    msize += sizeof (struct GNUNET_PeerIdentity);
-    path_length++;
-    if (0 == memcmp (&id[i], &msg->destination,
-                     sizeof (struct GNUNET_PeerIdentity)))
-    {
-      if (1 == path_length)
-        neighbor = GNUNET_YES;
-      path_length = 0;
-      paths++;
-    }
-  }
-  if (msize != esize)
+  if (0 != ((esize - msize) % sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "m:%u, e: %u\n",
-                (unsigned int) msize,
-                (unsigned int) esize);
     h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
+
+  }
+  peers = (esize - msize) / sizeof (struct GNUNET_PeerIdentity);
+  epaths = (unsigned int) ntohs (message->paths);
+  paths_array = (struct GNUNET_PeerIdentity *) &message[1];
+  paths = 0;
+  for (int i = 0; i < peers; i++)
+  {
+    if (0 == memcmp (&paths_array[i], &message->destination,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      paths++;
+    }
   }
   if (paths != epaths)
   {
@@ -1094,52 +1003,109 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
     goto clean_cls;
   }
 
-  /* Call Callback with tunnel info. */
-  id = (struct GNUNET_PeerIdentity *) &msg[1];
-  h->info_cb.peer_cb (h->info_cls,
-                      &msg->destination,
-                      (int) ntohs (msg->tunnel),
-                      neighbor,
-                      paths,
-                      id);
+  return GNUNET_OK;
 
-  clean_cls:
+clean_cls:
   h->info_cb.peer_cb = NULL;
   h->info_cls = NULL;
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Process a local peer info reply, pass info to the user.
+ *
+ * @param cls Closure (Cadet handle).
+ * @param message Message itself.
+ */
+static void
+handle_get_peer (void *cls,
+                 const struct GNUNET_CADET_LocalInfoPeer *message)
+{
+  struct GNUNET_CADET_Handle *h = cls;
+  struct GNUNET_PeerIdentity *paths_array;
+  unsigned int paths;
+  unsigned int path_length;
+  int neighbor;
+  unsigned int peers;
+
+  paths = (unsigned int) ntohs (message->paths);
+  paths_array = (struct GNUNET_PeerIdentity *) &message[1];
+  peers = (ntohs (message->header.size) - sizeof (*message))
+          / sizeof (struct GNUNET_PeerIdentity);
+  path_length = 0;
+  neighbor = GNUNET_NO;
+
+  for (int i = 0; i < peers; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %s\n", GNUNET_i2s (&paths_array[i]));
+    path_length++;
+    if (0 == memcmp (&paths_array[i], &message->destination,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      if (1 == path_length)
+        neighbor = GNUNET_YES;
+      path_length = 0;
+    }
+  }
+
+  /* Call Callback with tunnel info. */
+  paths_array = (struct GNUNET_PeerIdentity *) &message[1];
+  h->info_cb.peer_cb (h->info_cls,
+                      &message->destination,
+                      (int) ntohs (message->tunnel),
+                      neighbor,
+                      paths,
+                      paths_array);
+}
+
+
+/**
+ * Check that message received from CADET service is well-formed.
+ *
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param msg the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
+ */
+static int
+check_get_tunnels (void *cls,
+                   const struct GNUNET_CADET_LocalInfoTunnel *msg)
+{
+  struct GNUNET_CADET_Handle *h = cls;
+  uint16_t size;
+
+  if (NULL == h->info_cb.tunnels_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "  no handler for tunnels monitor message!\n");
+    return GNUNET_SYSERR;
+  }
+
+  size = ntohs (msg->header.size);
+  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) > size)
+  {
+    h->info_cb.tunnels_cb (h->info_cls, NULL, 0, 0, 0, 0);
+    h->info_cb.tunnels_cb = NULL;
+    h->info_cls = NULL;
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
 /**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
- * @param h Cadet handle.
+ * @param cls Closure (Cadet handle).
  * @param message Message itself.
  */
 static void
-process_get_tunnels (struct GNUNET_CADET_Handle *h,
-                     const struct GNUNET_MessageHeader *message)
+handle_get_tunnels (void *cls,
+                    const struct GNUNET_CADET_LocalInfoTunnel *msg)
 {
-  struct GNUNET_CADET_LocalInfoTunnel *msg;
-  uint16_t size;
+  struct GNUNET_CADET_Handle *h = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnels messasge received\n");
-
-  if (NULL == h->info_cb.tunnels_cb)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
-    return;
-  }
-
-  size = ntohs (message->size);
-  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) > size)
-  {
-    h->info_cb.tunnels_cb (h->info_cls, NULL, 0, 0, 0, 0);
-    h->info_cb.tunnels_cb = NULL;
-    h->info_cls = NULL;
-    return;
-  }
-
-  msg = (struct GNUNET_CADET_LocalInfoTunnel *) message;
   h->info_cb.tunnels_cb (h->info_cls, &msg->destination,
                          ntohl (msg->channels), ntohl (msg->connections),
                          ntohs (msg->estate), ntohs (msg->cstate));
@@ -1148,33 +1114,32 @@ process_get_tunnels (struct GNUNET_CADET_Handle *h,
 
 
 /**
- * Process a local tunnel info reply, pass info to the user.
+ * Check that message received from CADET service is well-formed.
  *
- * @param h Cadet handle.
- * @param message Message itself.
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param msg the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
  */
-static void
-process_get_tunnel (struct GNUNET_CADET_Handle *h,
-                    const struct GNUNET_MessageHeader *message)
+static int
+check_get_tunnel (void *cls,
+                  const struct GNUNET_CADET_LocalInfoTunnel *msg)
 {
-  struct GNUNET_CADET_LocalInfoTunnel *msg;
-  size_t esize;
-  size_t msize;
+  struct GNUNET_CADET_Handle *h = cls;
   unsigned int ch_n;
   unsigned int c_n;
-  struct GNUNET_CADET_Hash *conns;
-  CADET_ChannelNumber *chns;
+  size_t esize;
+  size_t msize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
   if (NULL == h->info_cb.tunnel_cb)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "  no handler for tunnel monitor message!\n");
+    goto clean_cls;
   }
 
   /* Verify message sanity */
-  msg = (struct GNUNET_CADET_LocalInfoTunnel *) message;
-  msize = ntohs (message->size);
+  msize = ntohs (msg->header.size);
   esize = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
   if (esize > msize)
   {
@@ -1195,96 +1160,156 @@ process_get_tunnel (struct GNUNET_CADET_Handle *h,
                 (unsigned int) esize,
                 ch_n,
                 c_n);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%u (%u ch, %u conn)\n",
-                (unsigned int) sizeof (struct GNUNET_CADET_LocalInfoTunnel),
-                (unsigned int) sizeof (CADET_ChannelNumber),
-                (unsigned int) sizeof (struct GNUNET_HashCode));
     h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }
+
+  return GNUNET_OK;
+
+clean_cls:
+  h->info_cb.tunnel_cb = NULL;
+  h->info_cls = NULL;
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Process a local tunnel info reply, pass info to the user.
+ *
+ * @param cls Closure (Cadet handle).
+ * @param msg Message itself.
+ */
+static void
+handle_get_tunnel (void *cls,
+                   const struct GNUNET_CADET_LocalInfoTunnel *msg)
+{
+  struct GNUNET_CADET_Handle *h = cls;
+  unsigned int ch_n;
+  unsigned int c_n;
+  struct GNUNET_CADET_Hash *conns;
+  CADET_ChannelNumber *chns;
+
+  ch_n = ntohl (msg->channels);
+  c_n = ntohl (msg->connections);
 
   /* Call Callback with tunnel info. */
   conns = (struct GNUNET_CADET_Hash *) &msg[1];
   chns = (CADET_ChannelNumber *) &conns[c_n];
   h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
-                ch_n, c_n, chns, conns,
-                ntohs (msg->estate), ntohs (msg->cstate));
-
-clean_cls:
-  h->info_cb.tunnel_cb = NULL;
-  h->info_cls = NULL;
+                        ch_n, c_n, chns, conns,
+                        ntohs (msg->estate), ntohs (msg->cstate));
 }
 
 
-// FIXME: add monitor messages to mq
-// static void
-// msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
-// {
-//   struct GNUNET_CADET_Handle *h = cls;
-//   uint16_t type;
-//
-//   if (msg == NULL)
-//   {
-//     LOG (GNUNET_ERROR_TYPE_DEBUG,
-// 	 "Cadet service disconnected, reconnecting\n", h);
-//     reconnect (h);
-//     return;
-//   }
-//   type = ntohs (msg->type);
-//   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-//   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a message: %s\n",
-//        GC_m2s (type));
-//   switch (type)
-//   {
-//     /* Notify of a new incoming channel */
-//   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-// //     process_channel_created (h,
-// // 			     (struct GNUNET_CADET_ChannelCreateMessage *) msg);
-//     break;
-//     /* Notify of a channel disconnection */
-//   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY: /* TODO separate(gid problem)*/
-//   case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-// //     process_channel_destroy (h,
-// // 			     (struct GNUNET_CADET_ChannelDestroyMessage *) msg);
-//     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA:
-// //     process_incoming_data (h, msg);
-//     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK:
-// //     process_ack (h, msg);
-//     break;
-// //   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS:
-// //     process_get_channels (h, msg);
-// //     break;
-// //   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
-// //     process_show_channel (h, msg);
-// //     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS:
-//     process_get_peers (h, msg);
-//     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER:
-//     process_get_peer (h, msg);
-//     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS:
-//     process_get_tunnels (h, msg);
-//     break;
-//   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL:
-//     process_get_tunnel (h, msg);
-//     break;
-// //   case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
-// //     process_show_channel (h, msg);
-// //     break;
-//   default:
-//     /* We shouldn't get any other packages, log and ignore */
-//     LOG (GNUNET_ERROR_TYPE_WARNING,
-//          "unsolicited message form service (type %s)\n",
-//          GC_m2s (ntohs (msg->type)));
-//   }
-//   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
-//   GNUNET_CLIENT_receive (h->client, &msg_received, h,
-//                          GNUNET_TIME_UNIT_FOREVER_REL);
-// }
+
+/**
+ * Reconnect to the service, retransmit all infomation to try to restore the
+ * original state.
+ *
+ * @param h handle to the cadet
+ *
+ * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
+ */
+static int
+do_reconnect (struct GNUNET_CADET_Handle *h)
+{
+  GNUNET_MQ_hd_fixed_size (channel_created,
+                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
+                           struct GNUNET_CADET_ChannelCreateMessage);
+  GNUNET_MQ_hd_fixed_size (channel_destroy,
+                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
+                           struct GNUNET_CADET_ChannelDestroyMessage);
+  GNUNET_MQ_hd_var_size (local_data,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
+                         struct GNUNET_CADET_LocalData);
+  GNUNET_MQ_hd_fixed_size (local_ack,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
+                           struct GNUNET_CADET_LocalAck);
+  GNUNET_MQ_hd_var_size (get_peers,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                         struct GNUNET_CADET_LocalInfoPeer);
+  GNUNET_MQ_hd_var_size (get_peer,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
+                         struct GNUNET_CADET_LocalInfoPeer);
+  GNUNET_MQ_hd_var_size (get_tunnels,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+                         struct GNUNET_CADET_LocalInfoTunnel);
+  GNUNET_MQ_hd_var_size (get_tunnel,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
+                         struct GNUNET_CADET_LocalInfoTunnel);
+  // FIXME
+//   GNUNET_MQ_hd_fixed_Y       size (channel_destroyed,
+//                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK,
+//                            struct GNUNET_CADET_ChannelDestroyMessage);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_channel_created_handler (h),
+    make_channel_destroy_handler (h),
+    make_local_data_handler (h),
+    make_local_ack_handler (h),
+    make_get_peers_handler (h),
+    make_get_peer_handler (h),
+    make_get_tunnels_handler (h),
+    make_get_tunnel_handler (h),
+    GNUNET_MQ_handler_end ()
+  };
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CADET\n");
+
+  GNUNET_assert (NULL == h->mq);
+  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+                                 "cadet",
+                                 handlers,
+                                 &handle_mq_error,
+                                 h);
+  if (NULL == h->mq)
+  {
+    reconnect (h);
+    return GNUNET_NO;
+  }
+  else
+  {
+    h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * Reconnect callback: tries to reconnect again after a failer previous
+ * reconnecttion
+ *
+ * @param cls closure (cadet handle)
+ */
+static void
+reconnect_cbk (void *cls)
+{
+  struct GNUNET_CADET_Handle *h = cls;
+
+  h->reconnect_task = NULL;
+  do_reconnect (h);
+}
+
+
+/**
+ * Reconnect to the service, retransmit all infomation to try to restore the
+ * original state.
+ *
+ * @param h handle to the cadet
+ *
+ * @return #GNUNET_YES in case of sucess, #GNUNET_NO otherwise (service down...)
+ */
+static void
+reconnect (struct GNUNET_CADET_Handle *h)
+{
+  struct GNUNET_CADET_Channel *ch;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requested RECONNECT, destroying all channels\n");
+  for (ch = h->channels_head; NULL != ch; ch = h->channels_head)
+    destroy_channel (ch, GNUNET_YES);
+  if (NULL == h->reconnect_task)
+    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
+                                                      &reconnect_cbk, h);
+}
 
 
 /******************************************************************************/

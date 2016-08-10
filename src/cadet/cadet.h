@@ -232,7 +232,7 @@ struct GNUNET_CADET_LocalInfoPeer
   int16_t tunnel GNUNET_PACKED;
 
   /**
-   * ID of the destination of the tunnel (can be local peer).
+   * ID of the peer (can be local peer).
    */
   struct GNUNET_PeerIdentity destination;
 
