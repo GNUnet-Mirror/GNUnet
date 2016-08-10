@@ -379,7 +379,36 @@ static void
 handle_port_close (void *cls, struct GNUNET_SERVER_Client *client,
                    const struct GNUNET_MessageHeader *message)
 {
-	// FIXME
+  struct CadetClient *c;
+  struct GNUNET_CADET_PortMessage *pmsg;
+  int removed;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "close port requested\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = GML_client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
+    /* Message size sanity check */
+  if (sizeof (struct GNUNET_CADET_PortMessage) != ntohs (message->size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  pmsg = (struct GNUNET_CADET_PortMessage *) message;
+  removed = GNUNET_CONTAINER_multihashmap_remove (c->ports, &pmsg->port, c);
+  GNUNET_break_op (GNUNET_YES == removed);
+  removed = GNUNET_CONTAINER_multihashmap_remove (ports, &pmsg->port, c);
+  GNUNET_break_op (GNUNET_YES == removed);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
