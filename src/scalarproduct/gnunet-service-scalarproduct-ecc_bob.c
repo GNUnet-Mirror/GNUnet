@@ -104,6 +104,11 @@ struct BobServiceSession
   struct GNUNET_SET_OperationHandle *intersection_op;
 
   /**
+   * Our open port.
+   */
+  struct GNUNET_CADET_Port *port;
+
+  /**
    * b(Bob)
    */
   struct MpiElement *sorted_elements;
@@ -362,6 +367,7 @@ destroy_service_session (struct BobServiceSession *s)
     gcry_mpi_point_release (s->prod_h_i_b_i);
     s->prod_h_i_b_i = NULL;
   }
+  GNUNET_CADET_close_port (s->port);
   GNUNET_free (s);
 }
 
@@ -795,6 +801,11 @@ cb_intersection_element_removed (void *cls,
 static void
 start_intersection (struct BobServiceSession *s)
 {
+  struct GNUNET_HashCode set_sid;
+
+  GNUNET_CRYPTO_hash (&s->session_id,
+                      sizeof (struct GNUNET_HashCode),
+                      &set_sid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got session with key %s and %u elements, starting intersection.\n",
               GNUNET_h2s (&s->session_id),
@@ -802,7 +813,7 @@ start_intersection (struct BobServiceSession *s)
 
   s->intersection_op
     = GNUNET_SET_prepare (&s->cadet->peer,
-                          &s->session_id,
+                          &set_sid,
                           NULL,
                           GNUNET_SET_RESULT_REMOVED,
                           &cb_intersection_element_removed,
@@ -1076,6 +1087,18 @@ GSS_handle_bob_client_message (void *cls,
   s->total = total_count;
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
+  s->port = GNUNET_CADET_open_port (my_cadet,
+                                    &msg->session_key,
+                                    &cb_channel_incoming,
+                                    s);
+  if (NULL == s->port)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    GNUNET_free (s);
+    return;
+  }
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_put (client_sessions,
                                                    &s->session_id,
@@ -1246,9 +1269,6 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_open_port (my_cadet,
-                          GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT_ECC),
-                          &cb_channel_incoming, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }

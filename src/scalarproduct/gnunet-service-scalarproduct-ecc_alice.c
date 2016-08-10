@@ -850,7 +850,11 @@ client_request_complete_alice (struct AliceServiceSession *s)
 {
   struct EccServiceRequestMessage *msg;
   struct GNUNET_MQ_Envelope *e;
+  struct GNUNET_HashCode set_sid;
 
+  GNUNET_CRYPTO_hash (&s->session_id,
+                      sizeof (struct GNUNET_HashCode),
+                      &set_sid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new channel for session with key %s.\n",
               GNUNET_h2s (&s->session_id));
@@ -858,7 +862,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
     = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
-                                   GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT_ECC),
+                                   &s->session_id,
                                    GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == s->channel)
   {
@@ -870,7 +874,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
   s->intersection_listen
     = GNUNET_SET_listen (cfg,
                          GNUNET_SET_OPERATION_INTERSECTION,
-                         &s->session_id,
+                         &set_sid,
                          &cb_intersection_request_alice,
                          s);
   if (NULL == s->intersection_listen)

@@ -1081,7 +1081,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
     = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
-                                   GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT),
+                                   &s->session_id,
                                    GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == s->channel)
   {

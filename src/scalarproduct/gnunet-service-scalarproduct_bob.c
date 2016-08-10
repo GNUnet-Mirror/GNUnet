@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013, 2014 GNUnet e.V.
+     Copyright (C) 2013, 2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -102,6 +102,11 @@ struct BobServiceSession
    * the resulting elements are then used for computing the scalar product.
    */
   struct GNUNET_SET_OperationHandle *intersection_op;
+
+  /**
+   * CADET port we are listening on.
+   */
+  struct GNUNET_CADET_Port *port;
 
   /**
    * a(Alice)
@@ -403,6 +408,7 @@ destroy_service_session (struct BobServiceSession *s)
     GNUNET_free (s->r_prime);
     s->r_prime = NULL;
   }
+  GNUNET_CADET_close_port (s->port);
   GNUNET_free (s);
 }
 
@@ -1176,7 +1182,7 @@ handle_alices_computation_request (void *cls,
  * preliminary initialization, more happens after we get Alice's first
  * message.
  *
- * @param cls closure
+ * @param cls closure with the `struct BobServiceSession`
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port unused
@@ -1357,13 +1363,6 @@ GSS_handle_bob_client_message (void *cls,
                                 GNUNET_SYSERR);
     return;
   }
-  if (NULL != find_matching_client_session (&msg->session_key))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
 
   s = GNUNET_new (struct BobServiceSession);
   s->status = GNUNET_SCALARPRODUCT_STATUS_ACTIVE;
@@ -1372,6 +1371,19 @@ GSS_handle_bob_client_message (void *cls,
   s->total = total_count;
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
+  s->port = GNUNET_CADET_open_port (my_cadet,
+                                    &msg->session_key,
+                                    &cb_channel_incoming,
+                                    s);
+  if (NULL == s->port)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    GNUNET_free (s);
+    return;
+  }
+
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_put (client_sessions,
                                                    &s->session_id,
@@ -1543,9 +1555,6 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_open_port (my_cadet,
-                          GC_u2h (GNUNET_APPLICATION_TYPE_SCALARPRODUCT),
-                          &cb_channel_incoming, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
