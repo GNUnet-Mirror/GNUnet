@@ -372,6 +372,10 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
 /**
  * Cancel the specified transmission-ready notification.
  *
+ * #DEPRECATED
+ * Since soon we will send immediately with mq (via request_data),
+ * there will be time or need to cancel a "pending" transmission.
+ *
  * @param th handle that was returned by "notify_transmit_ready".
  */
 void
