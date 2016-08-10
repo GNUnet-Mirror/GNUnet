@@ -485,6 +485,26 @@ add_to_queue (struct GNUNET_CADET_Handle *h,
 
 
 /**
+ * Remove a transmit handle from the transmission queue, if present.
+ *
+ * Safe to call even if not queued.
+ *
+ * @param th handle to the packet to be unqueued.
+ */
+static void
+remove_from_queue (struct GNUNET_CADET_TransmitHandle *th)
+{
+  struct GNUNET_CADET_Handle *h = th->channel->cadet;
+
+  /* It might or might not have been queued (rarely not), but check anyway. */
+  if (NULL != th->next || h->th_tail == th)
+  {
+    GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
+  }
+}
+
+
+/**
  * Send an ack on the channel to confirm the processing of a message.
  *
  * @param ch Channel on which to send the ACK.
@@ -527,16 +547,21 @@ request_data (void *cls)
   size_t osize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting Data: %u bytes\n", th->size);
+
+  GNUNET_assert (GNUNET_YES == th->channel->allow_send);
+  th->channel->allow_send = GNUNET_NO;
   th->request_data_task = NULL;
   th->channel->packet_size = 0;
+  remove_from_queue (th);
+
   env = GNUNET_MQ_msg_extra (msg, th->size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
   msg->id = htonl (th->channel->chid);
   osize = th->notify (th->notify_cls, th->size, &msg[1]);
   GNUNET_assert (osize == th->size);
-  th->channel->allow_send = GNUNET_NO;
   GNUNET_MQ_send (th->channel->cadet->mq, env);
-  GNUNET_CADET_notify_transmit_ready_cancel (th);
+
+  GNUNET_free (th);
 }
 
 
@@ -1665,13 +1690,7 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
   }
   th->request_data_task = NULL;
 
-  /* It might or might not have been queued (rarely not), but check anyway. */
-  if (NULL != th->next)
-  {
-    struct GNUNET_CADET_Handle *h;
-    h = th->channel->cadet;
-    GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
-  }
+  remove_from_queue (th);
   GNUNET_free (th);
 }
 
@@ -1689,12 +1708,12 @@ send_info_request (struct GNUNET_CADET_Handle *h, uint16_t type)
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " Sending %s monitor message to service\n",
+       GC_m2s(type));
+
   env = GNUNET_MQ_msg (msg, type);
   GNUNET_MQ_send (h->mq, env);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " Sending %s message to service\n",
-       GC_m2s(type));
 }
 
 
