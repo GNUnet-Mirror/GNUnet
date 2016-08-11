@@ -279,8 +279,8 @@ send_request (struct GNUNET_VPN_RedirectionRequest *rr)
     rip->addr_af = htonl (rr->addr_af);
     rip->request_id = rr->request_id = ++vh->request_id_gen;
     GNUNET_memcpy (&rip[1],
-            rr->addr,
-            alen);
+                   rr->addr,
+                   alen);
   }
   GNUNET_MQ_send (vh->mq,
                   env);

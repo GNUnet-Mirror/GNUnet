@@ -786,6 +786,7 @@ GNUNET_ntoh_double (double d);
  */
 #define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
 
+
 /**
  * @ingroup memory
  * Allocate a size @a n array with structs or unions of the given @a type.

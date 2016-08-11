@@ -622,12 +622,15 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   ret = tnq->len;
   GNUNET_free (tnq);
   if (NULL != (tnq = ts->tmq_head))
-    ts->th = GNUNET_CADET_notify_transmit_ready (ts->channel,
-						GNUNET_NO /* cork */,
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						tnq->len,
-						&send_to_peer_notify_callback,
-						ts);
+  {
+    if (NULL == ts->th)
+      ts->th = GNUNET_CADET_notify_transmit_ready (ts->channel,
+                                                   GNUNET_NO /* cork */,
+                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   tnq->len,
+                                                   &send_to_peer_notify_callback,
+                                                   ts);
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes given to cadet for transmission"),
 			    ret, GNUNET_NO);
@@ -731,7 +734,7 @@ handle_regex_result (void *cls,
 		     unsigned int put_path_length)
 {
   struct ChannelState *ts = cls;
-  unsigned int apptype;
+  struct GNUNET_HashCode port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Exit %s found for destination %s!\n",
@@ -742,10 +745,16 @@ handle_regex_result (void *cls,
   switch (ts->af)
   {
   case AF_INET:
-    apptype = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY;
+    /* these must match the strings used in gnunet-daemon-exit */
+    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_IPV4_GATEWAY,
+                        strlen (GNUNET_APPLICATION_PORT_IPV4_GATEWAY),
+                        &port);
     break;
   case AF_INET6:
-    apptype = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
+    /* these must match the strings used in gnunet-daemon-exit */
+    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_IPV6_GATEWAY,
+                        strlen (GNUNET_APPLICATION_PORT_IPV6_GATEWAY),
+                        &port);
     break;
   default:
     GNUNET_break (0);
@@ -758,7 +767,7 @@ handle_regex_result (void *cls,
   ts->channel = GNUNET_CADET_channel_create (cadet_handle,
                                              ts,
                                              id,
-                                             GC_u2h (apptype),
+                                             &port,
                                              GNUNET_CADET_OPTION_DEFAULT);
 }
 
@@ -775,23 +784,11 @@ create_channel_to_destination (struct DestinationChannel *dt,
                                int client_af)
 {
   struct ChannelState *ts;
-  unsigned int apptype;
 
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Cadet channels created"),
-			    1, GNUNET_NO);
-  switch (client_af)
-  {
-  case AF_INET:
-    apptype = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY;
-    break;
-  case AF_INET6:
-    apptype = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
-    break;
-  default:
-    GNUNET_break (0);
-    return NULL;
-  }
+			    1,
+                            GNUNET_NO);
   ts = GNUNET_new (struct ChannelState);
   ts->af = client_af;
   ts->destination = *dt->destination;
@@ -801,12 +798,11 @@ create_channel_to_destination (struct DestinationChannel *dt,
     ts->channel = GNUNET_CADET_channel_create (cadet_handle,
                                                ts,
                                                &dt->destination->details.service_destination.target,
-                                               GC_u2h (apptype),
+                                               &ts->destination.details.service_destination.service_descriptor,
                                                GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to setup cadet channel!\n"));
+      GNUNET_break (0);
       GNUNET_free (ts);
       return NULL;
     }
@@ -1032,9 +1028,15 @@ route_packet (struct DestinationEntry *destination,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Routing %s packet from [%s]:%u -> [%s]:%u to destination [%s]:%u\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
-		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
+		  inet_ntop (af,
+                             source_ip,
+                             sbuf,
+                             sizeof (sbuf)),
 		  source_port,
-		  inet_ntop (af, destination_ip, dbuf, sizeof (dbuf)),
+		  inet_ntop (af,
+                             destination_ip,
+                             dbuf,
+                             sizeof (dbuf)),
 		  destination_port,
 		  inet_ntop (destination->details.exit_destination.af,
 			     &destination->details.exit_destination.ip,
@@ -1054,9 +1056,15 @@ route_packet (struct DestinationEntry *destination,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Routing %s packet from [%s]:%u -> [%s]:%u to service %s at peer %s\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
-		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
+		  inet_ntop (af,
+                             source_ip,
+                             sbuf,
+                             sizeof (sbuf)),
 		  source_port,
-		  inet_ntop (af, destination_ip, dbuf, sizeof (dbuf)),
+		  inet_ntop (af,
+                             destination_ip,
+                             dbuf,
+                             sizeof (dbuf)),
 		  destination_port,
 		  GNUNET_h2s (&destination->details.service_destination.service_descriptor),
 		  GNUNET_i2s (&destination->details.service_destination.target));
@@ -1163,8 +1171,8 @@ route_packet (struct DestinationEntry *destination,
       usm->destination_port = udp->destination_port;
       usm->service_descriptor = destination->details.service_destination.service_descriptor;
       GNUNET_memcpy (&usm[1],
-	      &udp[1],
-	      payload_length - sizeof (struct GNUNET_TUN_UdpHeader));
+                     &udp[1],
+                     payload_length - sizeof (struct GNUNET_TUN_UdpHeader));
     }
     else
     {
@@ -1233,8 +1241,8 @@ route_packet (struct DestinationEntry *destination,
 	tsm->service_descriptor = destination->details.service_destination.service_descriptor;
 	tsm->tcp_header = *tcp;
 	GNUNET_memcpy (&tsm[1],
-		&tcp[1],
-		payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
+                       &tcp[1],
+                       payload_length - sizeof (struct GNUNET_TUN_TcpHeader));
       }
       else
       {
@@ -2760,7 +2768,10 @@ service_redirect_to_service (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Allocated address %s for redirection to service %s on peer %s\n",
-		inet_ntop (result_af, addr, sbuf, sizeof (sbuf)),
+		inet_ntop (result_af,
+                           addr,
+                           sbuf,
+                           sizeof (sbuf)),
 		GNUNET_h2s (&msg->service_descriptor),
 		GNUNET_i2s (&msg->target));
   }

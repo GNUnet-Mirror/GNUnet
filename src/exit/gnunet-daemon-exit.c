@@ -3480,81 +3480,30 @@ do_dht_put (void *cls)
 			    sizeof (struct GNUNET_DNS_Advertisement),
 			    &dns_advertisement,
 			    expiration,
-			    &dht_put_cont, NULL);
+			    &dht_put_cont,
+                            NULL);
 }
 
 
 /**
- * @brief Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg_ configuration
+ * Figure out which IP versions we should support (and which
+ * are supported by the OS) according to our configuration.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+parse_ip_options ()
 {
-  static struct GNUNET_CADET_MessageHandler handlers[] = {
-    {&receive_icmp_service, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE, 0},
-    {&receive_icmp_remote, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET, 0},
-    {&receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE, 0},
-    {&receive_udp_remote, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET, 0},
-    {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START, 0},
-    {&receive_tcp_remote, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START, 0},
-    {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT, 0},
-    {&receive_dns_request, GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET, 0},
-    {NULL, 0, 0}
-  };
-
-  static uint32_t apptypes[] = {
-    GNUNET_APPLICATION_TYPE_END,
-    GNUNET_APPLICATION_TYPE_END,
-    GNUNET_APPLICATION_TYPE_END,
-    GNUNET_APPLICATION_TYPE_END
-  };
-  unsigned int app_idx;
-  char *exit_ifname;
-  char *tun_ifname;
-  char *policy;
-  char *ipv6addr;
-  char *ipv6prefix_s;
-  char *ipv4addr;
-  char *ipv4mask;
-  char *binary;
-  char *regex;
-  char *prefixed_regex;
-  struct in_addr dns_exit4;
-  struct in6_addr dns_exit6;
-  char *dns_exit;
-
-  cfg = cfg_;
-  ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");
-  ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV6");
-  ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
-  ipv6_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6");
-  if ( (ipv4_exit) || (ipv6_exit) )
-  {
-    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
-    if (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")) //no nat, ipv4 only
-    {
-      GNUNET_free (binary);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("`%s' must be installed SUID, EXIT will not work\n"),
-		  "gnunet-helper-exit");
-      GNUNET_SCHEDULER_add_shutdown (&dummy_task,
-				     NULL);
-      global_ret = 1;
-      return;
-    }
-    GNUNET_free (binary);
-  }
-  stats = GNUNET_STATISTICS_create ("exit", cfg);
-
+  ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                    "exit",
+                                                    "EXIT_IPV4");
+  ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                    "exit",
+                                                    "EXIT_IPV6");
+  ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                       "exit",
+                                                       "ENABLE_IPV4");
+  ipv6_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                       "exit",
+                                                       "ENABLE_IPV6");
   if ( (ipv4_exit || ipv4_enabled) &&
        GNUNET_OK != GNUNET_NETWORK_test_pf (PF_INET))
   {
@@ -3583,83 +3532,110 @@ run (void *cls,
 		_("Cannot enable IPv6 exit but disable IPv6 on TUN interface, will use ENABLE_IPv6=YES\n"));
     ipv6_enabled = GNUNET_YES;
   }
-  if (! (ipv4_enabled || ipv6_enabled))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("No useful service enabled.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+}
 
-  dns_exit = NULL;
-  if ( (GNUNET_YES ==
-	GNUNET_CONFIGURATION_get_value_yesno (cfg_, "exit", "EXIT_DNS")) &&
-       ( (GNUNET_OK !=
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
-						 "DNS_RESOLVER",
-						 &dns_exit)) ||
-	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
-	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
+
+/**
+ * Helper function to open the CADET port for DNS exits and to
+ * advertise the DNS exit (if applicable).
+ */
+static void
+advertise_dns_exit ()
+{
+  char *dns_exit;
+  struct GNUNET_HashCode port;
+  struct in_addr dns_exit4;
+  struct in6_addr dns_exit6;
+
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "exit",
+                                            "EXIT_DNS"))
+    return;
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "exit",
+                                               "DNS_RESOLVER",
+                                               &dns_exit)) ||
+       ( (1 != inet_pton (AF_INET,
+                          dns_exit,
+                          &dns_exit4)) &&
+         (1 != inet_pton (AF_INET6,
+                          dns_exit,
+                          &dns_exit6)) ) )
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-			       "dns", "DNS_RESOLVER",
+			       "dns",
+                               "DNS_RESOLVER",
 			       _("need a valid IPv4 or IPv6 address\n"));
-    GNUNET_free_non_null (dns_exit);
-    dns_exit = NULL;
+    return;
   }
-  app_idx = 0;
-  if (GNUNET_YES == ipv4_exit)
-  {
-    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY;
-    app_idx++;
-  }
-  if (GNUNET_YES == ipv6_exit)
-  {
-    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
-    app_idx++;
-  }
-  if (NULL != dns_exit)
-  {
-    dht = GNUNET_DHT_connect (cfg, 1);
-    peer_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
-    GNUNET_CRYPTO_eddsa_key_get_public (peer_key,
-						    &dns_advertisement.peer.public_key);
-    dns_advertisement.purpose.size = htonl (sizeof (struct GNUNET_DNS_Advertisement) -
-					    sizeof (struct GNUNET_CRYPTO_EddsaSignature));
-    dns_advertisement.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD);
-    GNUNET_CRYPTO_hash ("dns",
-			strlen ("dns"),
-			&dht_put_key);
-    dht_task = GNUNET_SCHEDULER_add_now (&do_dht_put,
-					 NULL);
-    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
-    app_idx++;
-  }
-  GNUNET_free_non_null (dns_exit);
-  GNUNET_SCHEDULER_add_shutdown (&cleanup,
-				 NULL);
+  /* open port */
+  GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_INTERNET_RESOLVER,
+                      strlen (GNUNET_APPLICATION_PORT_INTERNET_RESOLVER),
+                      &port);
+  GNUNET_CADET_open_port (cadet_handle,
+                          &port,
+                          &new_channel,
+                          NULL);
+  /* advertise exit */
+  dht = GNUNET_DHT_connect (cfg,
+                            1);
+  peer_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+  GNUNET_CRYPTO_eddsa_key_get_public (peer_key,
+                                      &dns_advertisement.peer.public_key);
+  dns_advertisement.purpose.size = htonl (sizeof (struct GNUNET_DNS_Advertisement) -
+                                          sizeof (struct GNUNET_CRYPTO_EddsaSignature));
+  dns_advertisement.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD);
+  GNUNET_CRYPTO_hash ("dns",
+                      strlen ("dns"),
+                      &dht_put_key);
+  dht_task = GNUNET_SCHEDULER_add_now (&do_dht_put,
+                                       NULL);
+  GNUNET_free (dns_exit);
+}
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_CONNECTIONS",
-                                             &max_connections))
-    max_connections = 1024;
+
+/**
+ * Initialize #exit_argv.
+ *
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if we should shutdown
+ */
+static int
+setup_exit_helper_args ()
+{
+  char *exit_ifname;
+  char *tun_ifname;
+  char *ipv6addr;
+  char *ipv6prefix_s;
+  char *ipv4addr;
+  char *ipv4mask;
+
   exit_argv[0] = GNUNET_strdup ("exit-gnunet");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "TUN_IFNAME", &tun_ifname))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "exit",
+                                             "TUN_IFNAME",
+                                             &tun_ifname))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "TUN_IFNAME");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "EXIT",
+                               "TUN_IFNAME");
+    return GNUNET_SYSERR;
   }
   exit_argv[1] = tun_ifname;
   if (ipv4_enabled)
   {
     if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_IFNAME", &exit_ifname))
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "exit",
+                                               "EXIT_IFNAME",
+                                               &exit_ifname))
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "EXIT_IFNAME");
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                 "EXIT",
+                                 "EXIT_IFNAME");
+      return GNUNET_SYSERR;
     }
     exit_argv[2] = exit_ifname;
   }
@@ -3667,7 +3643,6 @@ run (void *cls,
   {
     exit_argv[2] = GNUNET_strdup ("-");
   }
-
 
   if (GNUNET_YES == ipv6_enabled)
   {
@@ -3677,33 +3652,41 @@ run (void *cls,
                                                  "exit",
                                                  "IPV6ADDR",
 						 &ipv6addr) ||
-	  (1 != inet_pton (AF_INET6, ipv6addr, &exit_ipv6addr))) )
+	  (1 != inet_pton (AF_INET6,
+                           ipv6addr,
+                           &exit_ipv6addr))) )
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6ADDR");
-      GNUNET_SCHEDULER_shutdown ();
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                 "EXIT",
+                                 "IPV6ADDR");
       GNUNET_free_non_null (ipv6addr);
-      return;
+      return GNUNET_SYSERR;
     }
     exit_argv[3] = ipv6addr;
     if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "exit",
+                                               "IPV6PREFIX",
 					       &ipv6prefix_s))
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6PREFIX");
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                 "EXIT",
+                                 "IPV6PREFIX");
+      return GNUNET_SYSERR;
     }
     exit_argv[4] = ipv6prefix_s;
     if ( (GNUNET_OK !=
-	  GNUNET_CONFIGURATION_get_value_number (cfg, "exit",
+	  GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                 "exit",
 						 "IPV6PREFIX",
 						 &ipv6prefix)) ||
 	 (ipv6prefix >= 127) )
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6PREFIX",
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                                 "EXIT",
+                                 "IPV6PREFIX",
 				 _("Must be a number"));
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      return GNUNET_SYSERR;
     }
   }
   else
@@ -3716,26 +3699,36 @@ run (void *cls,
   {
     ipv4addr = NULL;
     if ( (GNUNET_SYSERR ==
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4ADDR",
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                 "exit",
+                                                 "IPV4ADDR",
 						 &ipv4addr) ||
-	  (1 != inet_pton (AF_INET, ipv4addr, &exit_ipv4addr))) )
+	  (1 != inet_pton (AF_INET,
+                           ipv4addr,
+                           &exit_ipv4addr))) )
       {
-	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4ADDR");
-	GNUNET_SCHEDULER_shutdown ();
+	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                   "EXIT",
+                                   "IPV4ADDR");
         GNUNET_free_non_null (ipv4addr);
-	return;
+	return GNUNET_SYSERR;
       }
     exit_argv[5] = ipv4addr;
     ipv4mask = NULL;
     if ( (GNUNET_SYSERR ==
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                 "exit",
+                                                 "IPV4MASK",
 						 &ipv4mask) ||
-	  (1 != inet_pton (AF_INET, ipv4mask, &exit_ipv4mask))) )
+	  (1 != inet_pton (AF_INET,
+                           ipv4mask,
+                           &exit_ipv4mask))) )
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4MASK");
-      GNUNET_SCHEDULER_shutdown ();
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                 "EXIT",
+                                 "IPV4MASK");
       GNUNET_free_non_null (ipv4mask);
-      return;
+      return GNUNET_SYSERR;
     }
     exit_argv[6] = ipv4mask;
   }
@@ -3746,38 +3739,119 @@ run (void *cls,
     exit_argv[6] = GNUNET_strdup ("-");
   }
   exit_argv[7] = NULL;
+  return GNUNET_OK;
+}
 
-  udp_services = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
-  tcp_services = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
-  GNUNET_CONFIGURATION_iterate_sections (cfg, &read_service_conf, NULL);
 
-  connections_map = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
-  connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  if (0 == app_idx)
+/**
+ * @brief Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg_ configuration
+ */
+static void
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+{
+  static struct GNUNET_CADET_MessageHandler handlers[] = {
+    {&receive_icmp_service, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE, 0},
+    {&receive_icmp_remote, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET, 0},
+    {&receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE, 0},
+    {&receive_udp_remote, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET, 0},
+    {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START, 0},
+    {&receive_tcp_remote, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START, 0},
+    {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT, 0},
+    {&receive_dns_request, GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET, 0},
+    {NULL, 0, 0}
+  };
+  struct GNUNET_HashCode port;
+  char *policy;
+  char *binary;
+  char *regex;
+  char *prefixed_regex;
+
+  cfg = cfg_;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "exit",
+                                             "MAX_CONNECTIONS",
+                                             &max_connections))
+    max_connections = 1024;
+  parse_ip_options ();
+  if ( (ipv4_exit) || (ipv6_exit) )
+  {
+    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
+    if (GNUNET_YES !=
+	GNUNET_OS_check_helper_binary (binary,
+                                       GNUNET_YES,
+                                       "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")) //no nat, ipv4 only
+    {
+      GNUNET_free (binary);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("`%s' must be installed SUID, EXIT will not work\n"),
+		  "gnunet-helper-exit");
+      GNUNET_SCHEDULER_add_shutdown (&dummy_task,
+				     NULL);
+      global_ret = 1;
+      return;
+    }
+    GNUNET_free (binary);
+  }
+  if (! (ipv4_enabled || ipv6_enabled))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No useful service enabled.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  cadet_handle = GNUNET_CADET_connect (cfg, NULL, &clean_channel, handlers);
+
+  GNUNET_SCHEDULER_add_shutdown (&cleanup,
+				 NULL);
+  stats = GNUNET_STATISTICS_create ("exit",
+                                    cfg);
+  cadet_handle = GNUNET_CADET_connect (cfg,
+                                       NULL,
+                                       &clean_channel,
+                                       handlers);
   if (NULL == cadet_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  for (int i = 0;
-       GNUNET_APPLICATION_TYPE_END != apptypes[i]
-       && i < sizeof (apptypes)/sizeof (*apptypes);
-       i++)
+  advertise_dns_exit ();
+  if (GNUNET_OK !=
+      setup_exit_helper_args ())
   {
-    GNUNET_CADET_open_port (cadet_handle, GC_u2h (apptypes[i]),
-                            &new_channel, NULL);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 
-  /* Cadet handle acquired, now announce regular expressions matching our exit */
+  udp_services = GNUNET_CONTAINER_multihashmap_create (65536,
+                                                       GNUNET_NO);
+  tcp_services = GNUNET_CONTAINER_multihashmap_create (65536,
+                                                       GNUNET_NO);
+  connections_map = GNUNET_CONTAINER_multihashmap_create (65536,
+                                                          GNUNET_NO);
+  connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  GNUNET_CONFIGURATION_iterate_sections (cfg,
+                                         &read_service_conf,
+                                         NULL);
+
+  /* Cadet handle acquired, now open ports and announce regular
+     expressions matching our exit */
   if ( (GNUNET_YES == ipv4_enabled) && (GNUNET_YES == ipv4_exit) )
   {
+    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_IPV4_GATEWAY,
+                        strlen (GNUNET_APPLICATION_PORT_IPV4_GATEWAY),
+                        &port);
+    GNUNET_CADET_open_port (cadet_handle,
+                            &port,
+                            &new_channel,
+                            NULL);
     policy = NULL;
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -3803,8 +3877,15 @@ run (void *cls,
     }
   }
 
-  if (GNUNET_YES == ipv6_enabled && GNUNET_YES == ipv6_exit)
+  if ( (GNUNET_YES == ipv6_enabled) && (GNUNET_YES == ipv6_exit) )
   {
+    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_IPV6_GATEWAY,
+                        strlen (GNUNET_APPLICATION_PORT_IPV6_GATEWAY),
+                        &port);
+    GNUNET_CADET_open_port (cadet_handle,
+                            &port,
+                            &new_channel,
+                            NULL);
     policy = NULL;
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,

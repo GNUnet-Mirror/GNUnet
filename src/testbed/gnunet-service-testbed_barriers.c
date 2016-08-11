@@ -862,7 +862,8 @@ GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 void
-GST_handle_barrier_status (void *cls, struct GNUNET_SERVER_Client *client,
+GST_handle_barrier_status (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_BarrierStatusMsg *msg;

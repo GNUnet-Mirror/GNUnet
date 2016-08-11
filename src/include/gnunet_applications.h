@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011 GNUnet e.V.
+     Copyright (C) 2011, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -51,80 +51,70 @@ extern "C"
 #define GNUNET_APPLICATION_TYPE_TEST 1
 
 /**
- * Internet DNS resolution (external DNS gateway).
- */
-#define GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER 2
-
-/**
  * Transfer of blocks for non-anonymmous file-sharing.
  */
 #define GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER 3
 
 /**
+ * Internet DNS resolution (external DNS gateway).  This is a "well-known"
+ * service a peer may offer over CADET where the port is the hash of this
+ * string.
+ */
+#define GNUNET_APPLICATION_PORT_INTERNET_RESOLVER "exit-dns"
+
+/**
  * Internet IPv4 gateway (any TCP/UDP/ICMP).
  */
-#define GNUNET_APPLICATION_TYPE_IPV4_GATEWAY 16
+#define GNUNET_APPLICATION_PORT_IPV4_GATEWAY "exit-ipv4"
 
 /**
  * Internet IPv6 gateway (any TCP/UDP/ICMP).
  */
-#define GNUNET_APPLICATION_TYPE_IPV6_GATEWAY 17
+#define GNUNET_APPLICATION_PORT_IPV6_GATEWAY "exit-ipv6"
 
 /**
- * Internet exit regex prefix. Consisting of application ID, followed by version
- * and padding.
+ * Internet exit regex prefix. Consisting of application ID, followed
+ * by version and padding.
  */
 #define GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX "GNUNET-VPN-VER-0001-"
 
 /**
  * Consensus.
+ *
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_CONSENSUS 18
 
 /**
  * Set. Used for two-peer set operations implemented using stream.
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_SET 19
 
 /**
- * Vectorproduct. Used for two-peer scalarproduct operations
- */
-#define GNUNET_APPLICATION_TYPE_SCALARPRODUCT 20
-
-/**
  * Conversation control data.
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL 21
 
 /**
  * Conversation audio data.
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO 22
 
 /**
  * MQTT publish-subscribe.
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_MQTT 23
 
 /**
- * Application receiving sensor measurements from peers
- */
-#define GNUNET_APPLICATION_TYPE_SENSORDASHBOARD 24
-
-/**
- * Application offering sensor updates
- */
-#define GNUNET_APPLICATION_TYPE_SENSORUPDATE 25
-
-/**
  * Multicast data.
+ * @deprecated
  */
 #define GNUNET_APPLICATION_TYPE_MULTICAST 26
 
-/**
- * Vectorproduct, ECC variant. Used for two-peer scalarproduct operations
- */
-#define GNUNET_APPLICATION_TYPE_SCALARPRODUCT_ECC 27
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
