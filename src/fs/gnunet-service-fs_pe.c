@@ -660,11 +660,6 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
     GNUNET_SCHEDULER_cancel (pp->task);
     pp->task = NULL;
   }
-  if (NULL != pp->env)
-  {
-    GNUNET_MQ_send_cancel (pp->env);
-    pp->env = NULL;
-  }
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
   {
     GNUNET_break (GNUNET_YES ==
