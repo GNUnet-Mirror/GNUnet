@@ -1382,7 +1382,7 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
     done = GNUNET_YES;
   }
   if (GNUNET_NO == done)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Message of type %u not delivered, is CORE service up?\n",
 		ntohs (msg->type));
 }
