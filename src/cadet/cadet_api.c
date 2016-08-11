@@ -423,6 +423,7 @@ create_channel (struct GNUNET_CADET_Handle *h, CADET_ChannelNumber chid)
  *
  * @return Handle to the required channel or NULL if not found.
  */
+// FIXME: simplify: call_cleaner is always #GNUNET_YES!!!
 static void
 destroy_channel (struct GNUNET_CADET_Channel *ch, int call_cleaner)
 {
