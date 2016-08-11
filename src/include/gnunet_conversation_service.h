@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2013, 2014 GNUnet e.V.
+  Copyright (C) 2013, 2014, 2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -68,7 +68,7 @@ extern "C"
 /**
  * Version of the conversation API.
  */
-#define GNUNET_CONVERSATION_VERSION 0x00000003
+#define GNUNET_CONVERSATION_VERSION 0x00000004
 
 /**
  * Handle to identify a particular caller.  A caller is an entity that
@@ -90,21 +90,26 @@ struct GNUNET_CONVERSATION_PhoneRecord
 {
 
   /**
-   * Version of the phone record, for now always zero.  We may
+   * Version of the phone record, for now always one.  We may
    * use other versions for anonymously hosted phone lines in
    * the future.
    */
   uint32_t version GNUNET_PACKED;
 
   /**
-   * Phone line to use at the peer.
+   * Reserved. In v1. always zero.
    */
-  uint32_t line GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Identity of the peer hosting the phone service.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Phone line (CADET port) to connect to.
+   */
+  struct GNUNET_HashCode line_port;
 
 };
 
