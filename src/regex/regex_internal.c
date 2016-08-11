@@ -606,6 +606,8 @@ sb_nullstrcmp (const struct StringBuffer *s1,
     return -1;
   if (s1->slen != s2->slen)
     return -1;
+  if (0 == s1->slen)
+    return 0;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
 
@@ -624,6 +626,8 @@ sb_strcmp (const struct StringBuffer *s1,
 {
   if (s1->slen != s2->slen)
     return -1;
+  if (0 == s1->slen)
+    return 0;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
 
@@ -2011,7 +2015,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
 	   (!s1->accepting && s2->accepting) )
       {
 	idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-        table[idx / 32] |= (1 << (idx % 32));
+        table[idx / 32] |= (1U << (idx % 32));
       }
 
   /* Find all equal states */
@@ -2024,7 +2028,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
       for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
       {
 	idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-        if (0 != (table[idx / 32] & (1 << (idx % 32))))
+        if (0 != (table[idx / 32] & (1U << (idx % 32))))
           continue;
         num_equal_edges = 0;
         for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
@@ -2040,9 +2044,9 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
 		idx1 = (unsigned long long) t1->to_state->marked * state_cnt + t2->to_state->marked;
 	      else
 		idx1 = (unsigned long long) t2->to_state->marked * state_cnt + t1->to_state->marked;
-	      if (0 != (table[idx1 / 32] & (1 << (idx1 % 32))))
+	      if (0 != (table[idx1 / 32] & (1U << (idx1 % 32))))
 	      {
-		table[idx / 32] |= (1 << (idx % 32));
+		table[idx / 32] |= (1U << (idx % 32));
 		change = 1; /* changed a marker, need to run again */
 	      }
 	    }
@@ -2052,7 +2056,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
 	     (num_equal_edges != s2->transition_count) )
         {
           /* Make sure ALL edges of possible equal states are the same */
-	  table[idx / 32] |= (1 << (idx % 32));
+	  table[idx / 32] |= (1U << (idx % 32));
 	  change = 1;  /* changed a marker, need to run again */
         }
       }
@@ -2067,7 +2071,7 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
     {
       s2_next = s2->next;
       idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-      if (0 == (table[idx / 32] & (1 << (idx % 32))))
+      if (0 == (table[idx / 32] & (1U << (idx % 32))))
         automaton_merge_states (ctx, a, s1, s2);
     }
   }
