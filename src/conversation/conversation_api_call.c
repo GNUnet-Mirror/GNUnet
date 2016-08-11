@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2013 GNUnet e.V.
+  Copyright (C) 2013, 2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -177,8 +177,11 @@ transmit_call_audio (void *cls,
   e = GNUNET_MQ_msg_extra (am,
                            data_size,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
-  GNUNET_memcpy (&am[1], data, data_size);
-  GNUNET_MQ_send (call->mq, e);
+  GNUNET_memcpy (&am[1],
+                 data,
+                 data_size);
+  GNUNET_MQ_send (call->mq,
+                  e);
 }
 
 
@@ -345,7 +348,8 @@ handle_call_hangup (void *cls,
     eh = call->event_handler;
     eh_cls = call->event_handler_cls;
     GNUNET_CONVERSATION_call_stop (call);
-    eh (eh_cls, GNUNET_CONVERSATION_EC_CALL_HUNG_UP);
+    eh (eh_cls,
+        GNUNET_CONVERSATION_EC_CALL_HUNG_UP);
     return;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call);
@@ -443,13 +447,15 @@ handle_gns_response (void *cls,
         continue;
       }
       GNUNET_memcpy (&call->phone_record,
-              rd[i].data,
-              rd[i].data_size);
-      e = GNUNET_MQ_msg (ccm, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
-      ccm->line = call->phone_record.line;
+                     rd[i].data,
+                     rd[i].data_size);
+      e = GNUNET_MQ_msg (ccm,
+                         GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
+      ccm->line_port = call->phone_record.line_port;
       ccm->target = call->phone_record.peer;
       ccm->caller_id = *GNUNET_IDENTITY_ego_get_private_key (call->caller_id);
-      GNUNET_MQ_send (call->mq, e);
+      GNUNET_MQ_send (call->mq,
+                      e);
       call->state = CS_RINGING;
       call->event_handler (call->event_handler_cls,
                            GNUNET_CONVERSATION_EC_CALL_RINGING);
@@ -663,8 +669,10 @@ GNUNET_CONVERSATION_call_suspend (struct GNUNET_CONVERSATION_Call *call)
   }
   call->speaker = NULL;
   call->mic = NULL;
-  e = GNUNET_MQ_msg (suspend, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
-  GNUNET_MQ_send (call->mq, e);
+  e = GNUNET_MQ_msg (suspend,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+  GNUNET_MQ_send (call->mq,
+                  e);
   if (CS_SUSPENDED_CALLER == call->state)
     call->state = CS_SUSPENDED_BOTH;
   else

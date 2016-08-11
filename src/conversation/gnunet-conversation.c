@@ -166,9 +166,9 @@ static struct CallList *cl_head;
 static struct CallList *cl_tail;
 
 /**
- * Desired phone line.
+ * Desired phone line (string to be converted to a hash).
  */
-static unsigned int line;
+static char *line;
 
 /**
  * Task which handles the commands
@@ -357,7 +357,8 @@ start_phone ()
   GNUNET_assert (NULL == phone);
   phone = GNUNET_CONVERSATION_phone_create (cfg,
                                             my_caller_id,
-                                            &phone_event_handler, NULL);
+                                            &phone_event_handler,
+                                            NULL);
   /* FIXME: get record and print full GNS record info later here... */
   if (NULL == phone)
   {
@@ -375,8 +376,8 @@ start_phone ()
                                                 rd.data,
                                                 rd.data_size);
     FPRINTF (stdout,
-             _("Phone active on line %u.  Type `/help' for a list of available commands\n"),
-             (unsigned int) line);
+             _("Phone active at `%s'.  Type `/help' for a list of available commands\n"),
+             address);
     phone_state = PS_LISTEN;
   }
 }
@@ -687,7 +688,7 @@ do_status (const char *args)
     break;
   case PS_LISTEN:
     FPRINTF (stdout,
-             _("We are listening for incoming calls for ego `%s' on line %u.\n"),
+             _("We are listening for incoming calls for ego `%s' on line `%s'.\n"),
              ego_name,
              line);
     break;
@@ -1187,7 +1188,7 @@ identity_cb (void *cls,
     return;
   }
   my_caller_id = ego;
-  GNUNET_CONFIGURATION_set_value_number (cfg,
+  GNUNET_CONFIGURATION_set_value_string (cfg,
                                          "CONVERSATION",
                                          "LINE",
                                          line);
@@ -1270,7 +1271,7 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &ego_name},
     {'p', "phone", "LINE",
       gettext_noop ("sets the LINE to use for the phone"),
-     1, &GNUNET_GETOPT_set_uint, &line},
+     1, &GNUNET_GETOPT_set_string, &line},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

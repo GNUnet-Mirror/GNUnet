@@ -317,7 +317,9 @@ caller_event_handler (void *cls,
   {
   case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
   case GNUNET_CONVERSATION_EC_CALLER_RESUME:
-    fprintf (stderr, "Unexpected caller code: %d\n", code);
+    fprintf (stderr,
+             "Unexpected caller code: %d\n",
+             code);
     break;
   }
 }

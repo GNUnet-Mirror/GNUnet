@@ -147,7 +147,8 @@ end_test (void *cls)
   }
   if (NULL != phone)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from PHONE service.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Disconnecting from PHONE service.\n");
     GNUNET_CONVERSATION_phone_destroy (phone);
     phone = NULL;
   }
@@ -214,8 +215,11 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
+    fprintf (stderr, "Unexpected call code: %d\n", code);
+    break;
   case GNUNET_CONVERSATION_EC_CALL_ERROR:
     fprintf (stderr, "Unexpected call code: %d\n", code);
+    call = NULL;
     break;
   }
 }

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -75,9 +75,14 @@ struct ClientPhoneRegisterMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Phone line to register.
+   * Always zero.
    */
-  uint32_t line GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Phone line / CADET port to register.
+   */
+  struct GNUNET_HashCode line_port;
 };
 
 
@@ -92,8 +97,8 @@ struct ClientPhoneRingMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * CID, internal caller ID to identify which active call we are
-   * talking about.
+   * CID, internal caller ID number used in the future to identify
+   * which active call we are talking about.
    */
   uint32_t cid GNUNET_PACKED;
 
@@ -183,7 +188,7 @@ struct ClientPhoneHangupMessage
 
 
 /**
- * Message Client <->Service to transmit the audio.
+ * Message Client <-> Service to transmit the audio.
  */
 struct ClientAudioMessage
 {
@@ -214,14 +219,19 @@ struct ClientCallMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Which phone line to call at the peer?
+   * Always zero.
    */
-  uint32_t line GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Which peer is hosting the line?
    */
   struct GNUNET_PeerIdentity target;
+
+  /**
+   * Which phone line to call at the peer?
+   */
+  struct GNUNET_HashCode line_port;
 
   /**
    * Identity of the caller.
@@ -241,11 +251,47 @@ struct ClientPhonePickedupMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Call ID of the corresponding
+   * #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL
+   */
+  uint32_t cid GNUNET_PACKED;
+
 };
 
 
 /**
- * Cadet message for phone is ringing.
+ * Information signed in a `struct CadetPhoneRingMessage`
+ * whereby the caller self-identifies to the receiver.
+ */
+struct CadetPhoneRingInfoPS
+{
+  /**
+   * Purpose for the signature, must be
+   * #GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Which port did the call go to?
+   */
+  struct GNUNET_HashCode line_port;
+
+  /**
+   * Which peer is the call for?
+   */
+  struct GNUNET_PeerIdentity target_peer;
+
+  /**
+   * When does the signature expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+};
+
+
+/**
+ * Cadet message to make a phone ring.  Sent to the port
+ * of the respective phone.
  */
 struct CadetPhoneRingMessage
 {
@@ -255,14 +301,9 @@ struct CadetPhoneRingMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Desired target line.
+   * Always zero.
    */
-  uint32_t remote_line GNUNET_PACKED;
-
-  /**
-   * Purpose for the signature.
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Who is calling us? (also who is signing).
@@ -270,29 +311,14 @@ struct CadetPhoneRingMessage
   struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
 
   /**
-   * Who are we calling?
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * From where are we calling?
-   */
-  struct GNUNET_PeerIdentity source;
-
-  /**
    * When does the signature expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
-   * Signature on the above.
+   * Signature over a `struct CadetPhoneRingInfoPS`
    */
   struct GNUNET_CRYPTO_EcdsaSignature signature;
-
-  /**
-   * Source line for audio data in the other direction.
-   */
-  uint32_t source_line GNUNET_PACKED;
 
 };
 
@@ -358,16 +384,6 @@ struct CadetAudioMessage
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * Target line on the receiving end.
-   */
-  uint32_t remote_line GNUNET_PACKED;
-
-  /**
-   * The source line sending this data
-   */
-  uint32_t source_line GNUNET_PACKED;
 
   /* followed by audio data */
 
