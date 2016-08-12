@@ -377,6 +377,7 @@ udp_ipv6_broadcast_send (void *cls)
     else
       GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
     		                       baddr->cryogenic_fd,
+// Why does this say ipv4 instead of ipv6 here? Looks like a bug!
                                        &udp_ipv4_broadcast_send,
                                        baddr);
   }
