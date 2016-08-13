@@ -260,7 +260,7 @@ struct TopologyContext
  * A array of names representing topologies. Should be in sync with enum
  * GNUNET_TESTBED_TopologyOption
  */
-const char *topology_strings[] = {
+static const char *topology_strings[] = {
 
     /**
      * A clique (everyone connected to everyone else).  No options. If there are N
@@ -268,7 +268,7 @@ const char *topology_strings[] = {
      */
   "CLIQUE",
 
-    /**
+    /*
      * Small-world network (2d torus plus random links).  Followed
      * by the number of random links to add (unsigned int).
      */
@@ -319,11 +319,6 @@ const char *topology_strings[] = {
      * Straight line topology.  No options.
      */
   "LINE",
-
-    /**
-     * Star topology.  No options.
-     */
-  "STAR",
 
     /**
      * Read a topology from a given file.  Followed by the name of the file (const char *).
@@ -1476,6 +1471,7 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
     {
       if (NULL != topology)
         *topology = (enum GNUNET_TESTBED_TopologyOption) cnt;
+      GNUNET_assert (GNUNET_TESTBED_TOPOLOGY_OPTION_END != *topology);
       return GNUNET_YES;
     }
   }

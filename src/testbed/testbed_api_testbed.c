@@ -1366,6 +1366,9 @@ GNUNET_TESTBED_run (const char *host_filename,
       goto error_cleanup;
     }
     goto warn_ignore;
+  case GNUNET_TESTBED_TOPOLOGY_OPTION_END:
+    /* not allowed! */
+    GNUNET_assert (0);
   default:
   warn_ignore:
     /* Warn if OVERLAY_RANDOM_LINKS is present that it will be ignored */
