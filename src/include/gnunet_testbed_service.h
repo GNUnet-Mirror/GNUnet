@@ -953,7 +953,7 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
 
 /**
  * Topologies and topology options supported for testbeds. Options should always
- * end with GNUNET_TESTBED_TOPOLOGY_OPTION_END
+ * end with #GNUNET_TESTBED_TOPOLOGY_OPTION_END
  */
 enum GNUNET_TESTBED_TopologyOption
 {

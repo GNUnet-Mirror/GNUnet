@@ -216,7 +216,8 @@ struct GNUNET_SET_Element
  *
  * @param cls closure
  */
-typedef void (*GNUNET_SET_Continuation) (void *cls);
+typedef void
+(*GNUNET_SET_Continuation) (void *cls);
 
 
 /**
@@ -227,9 +228,10 @@ typedef void (*GNUNET_SET_Continuation) (void *cls);
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
  * @param status see `enum GNUNET_SET_Status`
  */
-typedef void (*GNUNET_SET_ResultIterator) (void *cls,
-                                           const struct GNUNET_SET_Element *element,
-                                           enum GNUNET_SET_Status status);
+typedef void
+(*GNUNET_SET_ResultIterator) (void *cls,
+                              const struct GNUNET_SET_Element *element,
+                              enum GNUNET_SET_Status status);
 
 /**
  * Iterator for set elements.
@@ -239,8 +241,9 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
  *        iterated over
  * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop.
  */
-typedef int (*GNUNET_SET_ElementIterator) (void *cls,
-                                           const struct GNUNET_SET_Element *element);
+typedef int
+(*GNUNET_SET_ElementIterator) (void *cls,
+                               const struct GNUNET_SET_Element *element);
 
 
 /**
