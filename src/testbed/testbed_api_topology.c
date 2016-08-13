@@ -594,7 +594,7 @@ gen_topo_star (struct TopologyContext *tc)
     break;
   }
   for (cnt = tc->link_array_size; cnt; cnt--)
-    make_link (0,
+    make_link (cnt - 1,
                0,
                cnt,
                tc);
