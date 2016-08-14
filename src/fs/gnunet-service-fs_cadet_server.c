@@ -562,6 +562,8 @@ GSF_cadet_start_server ()
     { &request_cb, GNUNET_MESSAGE_TYPE_FS_CADET_QUERY, sizeof (struct CadetQueryMessage)},
     { NULL, 0, 0 }
   };
+  struct GNUNET_HashCode port;
+
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
 					     "fs",
@@ -576,9 +578,13 @@ GSF_cadet_start_server ()
                                          &cleaner_cb,
                                          handlers);
   GNUNET_assert (NULL != listen_channel);
+  GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
+                      strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
+                      &port);
   GNUNET_CADET_open_port (listen_channel,
-                          GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
-                          &accept_cb, NULL);
+                          &port,
+                          &accept_cb,
+                          NULL);
 }
 
 

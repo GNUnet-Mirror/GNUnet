@@ -214,6 +214,7 @@ static void
 reset_cadet (struct CadetHandle *mh)
 {
   struct GNUNET_CADET_Channel *channel = mh->channel;
+  struct GNUNET_HashCode port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting cadet channel to %s\n",
@@ -233,11 +234,14 @@ reset_cadet (struct CadetHandle *mh)
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
+  GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
+                      strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
+                      &port);
   mh->channel = GNUNET_CADET_channel_create (cadet_handle,
-					  mh,
-					  &mh->target,
-					  GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
-					  GNUNET_CADET_OPTION_RELIABLE);
+                                             mh,
+                                             &mh->target,
+                                             &port,
+                                             GNUNET_CADET_OPTION_RELIABLE);
   transmit_pending (mh);
 }
 
@@ -518,6 +522,7 @@ static struct CadetHandle *
 get_cadet (const struct GNUNET_PeerIdentity *target)
 {
   struct CadetHandle *mh;
+  struct GNUNET_HashCode port;
 
   mh = GNUNET_CONTAINER_multipeermap_get (cadet_map,
 					  target);
@@ -544,11 +549,14 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
 						    &mh->target,
 						    mh,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
+                      strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
+                      &port);
   mh->channel = GNUNET_CADET_channel_create (cadet_handle,
-                                            mh,
-                                            &mh->target,
-                                            GC_u2h (GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER),
-                                            GNUNET_CADET_OPTION_RELIABLE);
+                                             mh,
+                                             &mh->target,
+                                             &port,
+                                             GNUNET_CADET_OPTION_RELIABLE);
   GNUNET_assert (mh ==
                  GNUNET_CONTAINER_multipeermap_get (cadet_map,
                                                     target));
