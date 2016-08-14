@@ -24,6 +24,7 @@
  * @author Julius Bünger
  */
 #include "platform.h"
+#include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_peerinfo_service.h"
@@ -2233,14 +2234,24 @@ rps_start (struct GNUNET_SERVER_Handle *server)
  * @param server the initialized server
  * @param c configuration to use
  */
-  static void
+static void
 run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
+    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH        ,
+      sizeof (struct GNUNET_MessageHeader)},
+    {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
+      sizeof (struct GNUNET_MessageHeader)},
+    {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
+    {NULL, 0, 0}
+  };
+
   int size;
   int out_size;
   char* fn_valid_peers;
+  struct GNUNET_HashCode port;
 
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
   cfg = c;
@@ -2326,20 +2337,16 @@ run (void *cls,
 
 
   /* Initialise cadet */
-  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH        ,
-      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
-      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
-    {NULL, 0, 0}
-  };
   cadet_handle = GNUNET_CADET_connect (cfg,
                                        cls,
                                        &cleanup_destroyed_channel,
                                        cadet_handlers);
   GNUNET_assert (NULL != cadet_handle);
-  GNUNET_CADET_open_port (cadet_handle, GC_u2h (GNUNET_RPS_CADET_PORT),
+  GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
+                      strlen (GNUNET_APPLICATION_PORT_RPS),
+                      &port);
+  GNUNET_CADET_open_port (cadet_handle,
+                          &port,
                           &Peers_handle_inbound_channel, cls);
 
 

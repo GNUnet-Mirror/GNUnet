@@ -24,6 +24,7 @@
  * @author Julius Bünger
  */
 #include "platform.h"
+#include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
 #include <inttypes.h>
@@ -271,6 +272,7 @@ get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   return ctx;
 }
 
+
 /**
  * @brief Create a new #PeerContext and insert it into the peer map
  *
@@ -296,6 +298,7 @@ create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   return ctx;
 }
 
+
 /**
  * @brief Create or get a #PeerContext
  *
@@ -312,6 +315,7 @@ create_or_get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   }
   return get_peer_ctx (peer);
 }
+
 
 /**
  * @brief Check whether we have a connection to this @a peer
@@ -347,6 +351,7 @@ Peers_check_connected (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_YES;
 }
 
+
 /**
  * @brief The closure to #get_rand_peer_iterator.
  */
@@ -364,6 +369,7 @@ struct GetRandPeerIteratorCls
    */
   const struct GNUNET_PeerIdentity *peer;
 };
+
 
 /**
  * @brief Iterator function for #get_random_peer_from_peermap.
@@ -395,6 +401,7 @@ get_rand_peer_iterator (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * @brief Get a random peer from @a peer_map
  *
@@ -419,6 +426,7 @@ get_random_peer_from_peermap (const struct
   GNUNET_free (iterator_cls);
   return ret;
 }
+
 
 /**
  * @brief Add a given @a peer to valid peers.
@@ -447,6 +455,7 @@ add_valid_peer (const struct GNUNET_PeerIdentity *peer)
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   return ret;
 }
+
 
 /**
  * @brief Set the peer flag to living and
@@ -485,6 +494,7 @@ set_peer_live (struct PeerContext *peer_ctx)
   GNUNET_array_grow (peer_ctx->pending_ops, peer_ctx->num_pending_ops, 0);
 }
 
+
 /**
  * @brief Get the channel of a peer. If not existing, create.
  *
@@ -495,6 +505,7 @@ struct GNUNET_CADET_Channel *
 get_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
+  struct GNUNET_HashCode port;
 
   peer_ctx = get_peer_ctx (peer);
   if (NULL == peer_ctx->send_channel)
@@ -502,16 +513,20 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Trying to establish channel to peer %s\n",
          GNUNET_i2s (peer));
+    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
+                        strlen (GNUNET_APPLICATION_PORT_RPS),
+                        &port);
     peer_ctx->send_channel =
       GNUNET_CADET_channel_create (cadet_handle,
                                    peer_ctx->send_channel_flags, /* context */
                                    peer,
-                                   GC_u2h (GNUNET_RPS_CADET_PORT),
+                                   &port,
                                    GNUNET_CADET_OPTION_RELIABLE);
   }
   GNUNET_assert (NULL != peer_ctx->send_channel);
   return peer_ctx->send_channel;
 }
+
 
 /**
  * Get the message queue (#GNUNET_MQ_Handle) of a specific peer.
@@ -653,6 +668,7 @@ insert_pending_message (const struct GNUNET_PeerIdentity *peer,
   return pending_msg;
 }
 
+
 /**
  * @brief Remove a pending message from the respective DLL
  *
@@ -672,6 +688,7 @@ remove_pending_message (struct PendingMessage *pending_msg)
   /* GNUNET_MQ_send_cancel (peer_ctx->pending_messages_head->ev); */
   GNUNET_free (pending_msg);
 }
+
 
 /**
  * @brief Check whether function of type #PeerOp was already scheduled
@@ -699,6 +716,7 @@ check_operation_scheduled (const struct GNUNET_PeerIdentity *peer,
   return GNUNET_NO;
 }
 
+
 /**
  * Iterator over hash map entries. Deletes all contexts of peers.
  *
@@ -717,6 +735,7 @@ peermap_clear_iterator (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * @brief This is called once a message is sent.
  *
@@ -733,6 +752,7 @@ mq_notify_sent_cb (void *cls)
       pending_msg->type);
   remove_pending_message (pending_msg);
 }
+
 
 /**
  * @brief Iterator function for #store_valid_peers.
@@ -773,6 +793,7 @@ store_peer_presistently_iterator (void *cls,
   GNUNET_assert (size == ret);
   return GNUNET_YES;
 }
+
 
 /**
  * @brief Store the peers currently in #valid_peers to disk.
@@ -828,6 +849,7 @@ store_valid_peers ()
       GNUNET_CONTAINER_multipeermap_size (valid_peers));
 }
 
+
 /**
  * @brief Convert string representation of peer id to peer id.
  *
@@ -872,6 +894,7 @@ s2i_full (const char *string_repr)
   }
   return peer;
 }
+
 
 /**
  * @brief Restore the peers on disk to #valid_peers.
@@ -926,6 +949,7 @@ restore_valid_peers ()
       num_peers);
 }
 
+
 /**
  * @brief Initialise storage of peers
  *
@@ -945,6 +969,7 @@ Peers_initialise (char* fn_valid_peers,
   valid_peers = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
   restore_valid_peers ();
 }
+
 
 /**
  * @brief Delete storage of peers that was created with #Peers_initialise ()
@@ -1014,6 +1039,7 @@ Peers_get_valid_peers (PeersIterator iterator,
   return ret;
 }
 
+
 /**
  * @brief Add peer to known peers.
  *
@@ -1068,6 +1094,7 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
   return ret;
 }
 
+
 /**
  * @brief Remove unecessary data
  *
@@ -1101,6 +1128,7 @@ Peers_clean_peer (const struct GNUNET_PeerIdentity *peer)
   Peers_remove_peer (peer);
   return GNUNET_YES;
 }
+
 
 /**
  * @brief Remove peer
@@ -1173,6 +1201,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_YES;
 }
 
+
 /**
  * @brief set flags on a given peer.
  *
@@ -1188,6 +1217,7 @@ Peers_set_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlag
   set_peer_flag (peer_ctx, flags);
 }
 
+
 /**
  * @brief unset flags on a given peer.
  *
@@ -1202,6 +1232,7 @@ Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
   peer_ctx = get_peer_ctx (peer);
   unset_peer_flag (peer_ctx, flags);
 }
+
 
 /**
  * @brief Check whether flags on a peer are set.
@@ -1239,6 +1270,7 @@ Peers_set_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags)
   set_channel_flag (channel_flags, flags);
 }
 
+
 /**
  * @brief unset flags on a given channel.
  *
@@ -1250,6 +1282,7 @@ Peers_unset_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags
 {
   unset_channel_flag (channel_flags, flags);
 }
+
 
 /**
  * @brief Check whether flags on a channel are set.
@@ -1265,6 +1298,7 @@ Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags
 {
   return check_channel_flag_set (channel_flags, flags);
 }
+
 
 /**
  * @brief Check whether we have information about the given peer.
@@ -1282,6 +1316,7 @@ Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
 }
 
+
 /**
  * @brief Check whether @a peer is actually a peer.
  *
@@ -1298,6 +1333,7 @@ Peers_check_peer_valid (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_CONTAINER_multipeermap_contains (valid_peers, peer);
 }
 
+
 /**
  * @brief Indicate that we want to send to the other peer
  *
@@ -1311,6 +1347,7 @@ Peers_indicate_sending_intention (const struct GNUNET_PeerIdentity *peer)
   GNUNET_assert (GNUNET_YES == Peers_check_peer_known (peer));
   (void) get_channel (peer);
 }
+
 
 /**
  * @brief Check whether other peer has the intention to send/opened channel
@@ -1333,6 +1370,7 @@ Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer)
   }
   return GNUNET_NO;
 }
+
 
 /**
  * Handle the channel a peer opens to us.
@@ -1375,6 +1413,7 @@ Peers_handle_inbound_channel (void *cls,
   return peer_ctx->recv_channel_flags;
 }
 
+
 /**
  * @brief Check whether a sending channel towards the given peer exists
  *
@@ -1399,6 +1438,7 @@ Peers_check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
   }
   return GNUNET_YES;
 }
+
 
 /**
  * @brief check whether the given channel is the sending channel of the given
@@ -1436,6 +1476,7 @@ Peers_check_channel_role (const struct GNUNET_PeerIdentity *peer,
   }
   return GNUNET_NO;
 }
+
 
 /**
  * @brief Destroy the send channel of a peer e.g. stop indicating a sending
