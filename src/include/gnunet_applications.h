@@ -53,7 +53,12 @@ extern "C"
 /**
  * Transfer of blocks for non-anonymmous file-sharing.
  */
-#define GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER 3
+#define GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER "fs-block"
+
+/**
+ * Transfer of blocks for random peer sampling.
+ */
+#define GNUNET_APPLICATION_PORT_RPS "rps"
 
 /**
  * Internet DNS resolution (external DNS gateway).  This is a "well-known"
