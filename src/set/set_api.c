@@ -382,6 +382,7 @@ handle_result (void *cls,
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_Element e;
   enum GNUNET_SET_Status result_status;
+  int destroy_set;
 
   GNUNET_assert (NULL != set->mq);
   result_status = ntohs (msg->result_status);
@@ -422,6 +423,11 @@ do_final:
   GNUNET_CONTAINER_DLL_remove (set->ops_head,
                                set->ops_tail,
                                oh);
+  /* Need to do this calculation _before_ the result callback,
+     as IF the application still has a valid set handle, it
+     may trigger destruction of the set during the callback. */
+  destroy_set = (GNUNET_YES == set->destroy_requested) &&
+                (NULL == set->ops_head);
   if (NULL != oh->result_cb)
   {
     oh->result_cb (oh->result_cls,
@@ -433,8 +439,7 @@ do_final:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "No callback for final status\n");
   }
-  if ( (GNUNET_YES == set->destroy_requested) &&
-       (NULL == set->ops_head) )
+  if (destroy_set)
     GNUNET_SET_destroy (set);
   GNUNET_free (oh);
   return;
