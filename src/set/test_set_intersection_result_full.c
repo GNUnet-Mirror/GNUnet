@@ -46,6 +46,12 @@ static const struct GNUNET_CONFIGURATION_Handle *config;
 
 static int iter_count;
 
+static struct GNUNET_SCHEDULER_Task *tt;
+
+static struct GNUNET_SET_OperationHandle *oh1;
+
+static struct GNUNET_SET_OperationHandle *oh2;
+
 
 static void
 result_cb_set1 (void *cls,
@@ -60,11 +66,14 @@ result_cb_set1 (void *cls,
     count++;
     break;
   case GNUNET_SET_STATUS_FAILURE:
+    oh1 = NULL;
     ret = 1;
     break;
   case GNUNET_SET_STATUS_DONE:
+    oh1 = NULL;
     GNUNET_assert (1 == count);
     GNUNET_SET_destroy (set1);
+    set1 = NULL;
     break;
   default:
     GNUNET_assert (0);
@@ -85,11 +94,14 @@ result_cb_set2 (void *cls,
     count++;
     break;
   case GNUNET_SET_STATUS_FAILURE:
+    oh2 = NULL;
     ret = 1;
     break;
   case GNUNET_SET_STATUS_DONE:
+    oh2 = NULL;
     GNUNET_assert (1 == count);
     GNUNET_SET_destroy (set2);
+    set2 = NULL;
     break;
   default:
     GNUNET_assert (0);
@@ -103,15 +115,16 @@ listen_cb (void *cls,
            const struct GNUNET_MessageHeader *context_msg,
            struct GNUNET_SET_Request *request)
 {
-  struct GNUNET_SET_OperationHandle *oh;
-
   GNUNET_assert (NULL != context_msg);
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
   GNUNET_SET_listen_cancel (listen_handle);
-  oh = GNUNET_SET_accept (request,
+  listen_handle = NULL;
+  oh2 = GNUNET_SET_accept (request,
                           GNUNET_SET_RESULT_FULL,
-                          &result_cb_set2, NULL);
-  GNUNET_SET_commit (oh, set2);
+                          &result_cb_set2,
+                          NULL);
+  GNUNET_SET_commit (oh2,
+                     set2);
 }
 
 
@@ -123,7 +136,6 @@ listen_cb (void *cls,
 static void
 start (void *cls)
 {
-  struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_MessageHeader context_msg;
 
   context_msg.size = htons (sizeof context_msg);
@@ -132,12 +144,14 @@ start (void *cls)
                                      GNUNET_SET_OPERATION_INTERSECTION,
                                      &app_id,
                                      &listen_cb, NULL);
-  oh = GNUNET_SET_prepare (&local_id,
+  oh1 = GNUNET_SET_prepare (&local_id,
                            &app_id,
                            &context_msg,
                            GNUNET_SET_RESULT_FULL,
-                           &result_cb_set1, NULL);
-  GNUNET_SET_commit (oh, set1);
+                           &result_cb_set1,
+                            NULL);
+  GNUNET_SET_commit (oh1,
+                     set1);
 }
 
 
@@ -216,7 +230,66 @@ test_iter ()
   element.data = "quux";
   element.size = strlen(element.data);
   GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
-  GNUNET_SET_iterate (iter_set, &iter_cb, iter_set);
+  GNUNET_SET_iterate (iter_set,
+                      &iter_cb,
+                      iter_set);
+}
+
+
+/**
+ * Function run on shutdown.
+ *
+ * @param cls closure
+ */
+static void
+do_shutdown (void *cls)
+{
+  if (NULL != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
+  if (NULL != oh1)
+  {
+    GNUNET_SET_operation_cancel (oh1);
+    oh1 = NULL;
+  }
+  if (NULL != oh2)
+  {
+    GNUNET_SET_operation_cancel (oh2);
+    oh2 = NULL;
+  }
+  if (NULL != set1)
+  {
+    GNUNET_SET_destroy (set1);
+    set1 = NULL;
+  }
+  if (NULL != set2)
+  {
+    GNUNET_SET_destroy (set2);
+    set2 = NULL;
+  }
+  if (NULL != listen_handle)
+  {
+    GNUNET_SET_listen_cancel (listen_handle);
+    listen_handle = NULL;
+  }
+}
+
+
+/**
+ * Function run on timeout.
+ *
+ * @param cls closure
+ */
+static void
+timeout_fail (void *cls)
+{
+  tt = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Testcase failed with timeout\n");
+  GNUNET_SCHEDULER_shutdown ();
+  ret = 1;
 }
 
 
@@ -237,9 +310,16 @@ run (void *cls,
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
   if (0) test_iter ();
 
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				     &timeout_fail,
+                                     NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_INTERSECTION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_INTERSECTION);
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    &app_id);
 
   /* test the real set reconciliation */
   init_set1 ();
@@ -255,4 +335,3 @@ main (int argc, char **argv)
     return 1;
   return ret;
 }
-
