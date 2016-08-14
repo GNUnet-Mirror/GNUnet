@@ -52,7 +52,7 @@ struct OperationRequestMessage
   /**
    * Application-specific identifier of the request.
    */
-  struct GNUNET_HashCode app_id;
+  struct GNUNET_HashCode app_idX;
 
   /* rest: optional message */
 };

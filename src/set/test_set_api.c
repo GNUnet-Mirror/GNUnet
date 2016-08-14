@@ -151,7 +151,7 @@ listen_cb (void *cls,
                            GNUNET_SET_RESULT_ADDED,
                            &result_cb_set2,
                            NULL);
-  GNUNET_SET_commit (oh,
+  GNUNET_SET_commit (oh2,
                      set2);
 }
 

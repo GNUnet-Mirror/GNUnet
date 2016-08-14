@@ -336,6 +336,9 @@ struct ElementEntry
 };
 
 
+struct Listener;
+
+
 /**
  * Operation context used to execute a set operation.
  */
@@ -352,6 +355,11 @@ struct Operation
    * Channel to the peer.
    */
   struct GNUNET_CADET_Channel *channel;
+
+  /**
+   * Port this operation runs on.
+   */
+  struct Listener *listener;
 
   /**
    * Message queue for the channel.

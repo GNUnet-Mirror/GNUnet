@@ -1597,7 +1597,6 @@ union_evaluate (struct Operation *op,
     return;
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
-  msg->app_id = op->spec->app_id;
   GNUNET_MQ_send (op->mq,
                   ev);
 

@@ -1036,7 +1036,6 @@ intersection_evaluate (struct Operation *op,
     return;
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_INTERSECTION);
-  msg->app_id = op->spec->app_id;
   msg->element_count = htonl (op->state->my_element_count);
   GNUNET_MQ_send (op->mq,
                   ev);
