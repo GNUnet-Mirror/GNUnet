@@ -603,7 +603,7 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
 {
   char *ret;
   va_list args;
-  enum EXTRACTOR_MetaType type;
+  int type;
 
   if (NULL == md)
     return NULL;
@@ -611,7 +611,7 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
   va_start (args, md);
   while (1)
   {
-    type = va_arg (args, enum EXTRACTOR_MetaType);
+    type = va_arg (args, int);
     if (-1 == type)
       break;
     if (NULL != (ret = GNUNET_CONTAINER_meta_data_get_by_type (md, type)))
