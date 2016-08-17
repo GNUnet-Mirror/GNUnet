@@ -89,7 +89,6 @@ struct GNUNET_PSYCSTORE_Handle
    */
   struct GNUNET_MQ_Handle *mq;
 
-
   /**
    * Async operations.
    */

@@ -107,7 +107,7 @@ struct GNUNET_PSYC_TransmitHandle;
  * Create a transmission handle.
  */
 struct GNUNET_PSYC_TransmitHandle *
-GNUNET_PSYC_transmit_create ();
+GNUNET_PSYC_transmit_create (struct GNUNET_MQ_Handle *mq);
 
 
 /**

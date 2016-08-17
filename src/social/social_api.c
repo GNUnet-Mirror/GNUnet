@@ -71,12 +71,27 @@ struct GNUNET_SOCIAL_App
   /**
    * Client connection to the service.
    */
-  struct GNUNET_CLIENT_MANAGER_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
-   * Message to send on reconnect.
+   * Message to send on connect.
    */
-  struct GNUNET_MessageHeader *connect_msg;
+  struct GNUNET_MQ_Envelope *connect_env;
+
+  /**
+   * Time to wait until we try to reconnect on failure.
+   */
+  struct GNUNET_TIME_Relative reconnect_delay;
+
+  /**
+   * Task for reconnecting when the listener fails.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Async operations.
+   */
+  struct GNUNET_OP_Handle *op;
 
   /**
    * Function called after disconnected from the service.
@@ -136,7 +151,27 @@ struct GNUNET_SOCIAL_Place
   /**
    * Client connection to the service.
    */
-  struct GNUNET_CLIENT_MANAGER_Connection *client;
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Message to send on connect.
+   */
+  struct GNUNET_MQ_Envelope *connect_env;
+
+  /**
+   * Time to wait until we try to reconnect on failure.
+   */
+  struct GNUNET_TIME_Relative reconnect_delay;
+
+  /**
+   * Task for reconnecting when the listener fails.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Async operations.
+   */
+  struct GNUNET_OP_Handle *op;
 
   /**
    * Transmission handle.
@@ -147,11 +182,6 @@ struct GNUNET_SOCIAL_Place
    * Slicer for processing incoming messages.
    */
   struct GNUNET_PSYC_Slicer *slicer;
-
-  /**
-   * Message to send on reconnect.
-   */
-  struct GNUNET_MessageHeader *connect_msg;
 
   /**
    * Function called after disconnected from the service.
@@ -337,7 +367,6 @@ struct ZoneAddPlaceHandle
 
 struct ZoneAddNymHandle
 {
-  struct ZoneAddNymRequest *req;
   GNUNET_ResultCallback result_cb;
   void *result_cls;
 };
@@ -481,109 +510,66 @@ host_recv_notice_place_leave_eom (void *cls,
 }
 
 
-/*** CLIENT ***/
-
-
-static void
-app_send_connect_msg (struct GNUNET_SOCIAL_App *app)
-{
-  uint16_t cmsg_size = ntohs (app->connect_msg->size);
-  struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
-  GNUNET_memcpy (cmsg, app->connect_msg, cmsg_size);
-  GNUNET_CLIENT_MANAGER_transmit_now (app->client, cmsg);
-  GNUNET_free (cmsg);
-}
-
-
-static void
-app_recv_disconnect (void *cls,
-                     struct GNUNET_CLIENT_MANAGER_Connection *client,
-                     const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
-
-  GNUNET_CLIENT_MANAGER_reconnect (client);
-  app_send_connect_msg (app);
-}
-
-
 /*** PLACE ***/
 
 
-static void
-place_send_connect_msg (struct GNUNET_SOCIAL_Place *plc)
+static int
+check_place_result (void *cls,
+                    const struct GNUNET_OperationResultMessage *res)
 {
-  uint16_t cmsg_size = ntohs (plc->connect_msg->size);
-  struct GNUNET_MessageHeader * cmsg = GNUNET_malloc (cmsg_size);
-  GNUNET_memcpy (cmsg, plc->connect_msg, cmsg_size);
-  GNUNET_CLIENT_MANAGER_transmit_now (plc->client, cmsg);
-  GNUNET_free (cmsg);
-}
-
-
-static void
-place_recv_disconnect (void *cls,
-                       struct GNUNET_CLIENT_MANAGER_Connection *client,
-                       const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
-
-  GNUNET_CLIENT_MANAGER_reconnect (client);
-  place_send_connect_msg (plc);
-}
-
-
-static void
-place_recv_result (void *cls,
-                   struct GNUNET_CLIENT_MANAGER_Connection *client,
-                   const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
-
-  const struct GNUNET_OperationResultMessage *
-    res = (const struct GNUNET_OperationResultMessage *) msg;
-
-  uint16_t size = ntohs (msg->size);
+  uint16_t size = ntohs (res->header.size);
   if (size < sizeof (*res))
   { /* Error, message too small. */
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
-
-  uint16_t data_size = size - sizeof (*res);
-  const char *data = (0 < data_size) ? (const char *) &res[1] : NULL;
-  GNUNET_CLIENT_MANAGER_op_result (plc->client, GNUNET_ntohll (res->op_id),
-                                   GNUNET_ntohll (res->result_code),
-                                   data, data_size);
+  return GNUNET_OK;
 }
 
 
 static void
-app_recv_result (void *cls,
-                 struct GNUNET_CLIENT_MANAGER_Connection *client,
-                 const struct GNUNET_MessageHeader *msg)
+handle_place_result (void *cls,
+                     const struct GNUNET_OperationResultMessage *res)
 {
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+  struct GNUNET_SOCIAL_Place *plc = cls;
 
-  const struct GNUNET_OperationResultMessage *
-    res = (const struct GNUNET_OperationResultMessage *) msg;
+  uint16_t size = ntohs (res->header.size);
+  uint16_t data_size = size - sizeof (*res);
+  const char *data = (0 < data_size) ? (const char *) &res[1] : NULL;
 
-  uint16_t size = ntohs (msg->size);
+  GNUNET_OP_result (plc->op, GNUNET_ntohll (res->op_id),
+                    GNUNET_ntohll (res->result_code),
+                    data, data_size, NULL);
+}
+
+
+static int
+check_app_result (void *cls,
+                  const struct GNUNET_OperationResultMessage *res)
+{
+  uint16_t size = ntohs (res->header.size);
   if (size < sizeof (*res))
   { /* Error, message too small. */
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
 
+
+static void
+handle_app_result (void *cls,
+                   const struct GNUNET_OperationResultMessage *res)
+{
+  struct GNUNET_SOCIAL_App *app = cls;
+
+  uint16_t size = ntohs (res->header.size);
   uint16_t data_size = size - sizeof (*res);
   const char *data = (0 < data_size) ? (const char *) &res[1] : NULL;
-  GNUNET_CLIENT_MANAGER_op_result (app->client, GNUNET_ntohll (res->op_id),
-                                   GNUNET_ntohll (res->result_code),
-                                   data, data_size);
+
+  GNUNET_OP_result (app->op, GNUNET_ntohll (res->op_id),
+                    GNUNET_ntohll (res->result_code),
+                    data, data_size, NULL);
 }
 
 
@@ -619,18 +605,30 @@ op_recv_state_result (void *cls, int64_t result,
 }
 
 
-static void
-place_recv_history_result (void *cls,
-                           struct GNUNET_CLIENT_MANAGER_Connection *client,
-                           const struct GNUNET_MessageHeader *msg)
+static int
+check_place_history_result (void *cls,
+                            const struct GNUNET_OperationResultMessage *res)
 {
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
-
-  const struct GNUNET_OperationResultMessage *
-    res = (const struct GNUNET_OperationResultMessage *) msg;
   struct GNUNET_PSYC_MessageHeader *
-    pmsg = (struct GNUNET_PSYC_MessageHeader *) &res[1];
+    pmsg = (struct GNUNET_PSYC_MessageHeader *) GNUNET_MQ_extract_nested_mh (res);
+  uint16_t size = ntohs (res->header.size);
+
+  if (NULL == pmsg || size < sizeof (*res) + sizeof (*pmsg))
+  { /* Error, message too small. */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+static void
+handle_place_history_result (void *cls,
+                             const struct GNUNET_OperationResultMessage *res)
+{
+  struct GNUNET_SOCIAL_Place *plc = cls;
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = (struct GNUNET_PSYC_MessageHeader *) GNUNET_MQ_extract_nested_mh (res);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%p Received historic fragment for message #%" PRIu64 ".\n",
@@ -639,9 +637,9 @@ place_recv_history_result (void *cls,
   GNUNET_ResultCallback result_cb = NULL;
   struct GNUNET_SOCIAL_HistoryRequest *hist = NULL;
 
-  if (GNUNET_YES != GNUNET_CLIENT_MANAGER_op_find (plc->client,
-                                                   GNUNET_ntohll (res->op_id),
-                                                   &result_cb, (void *) &hist))
+  if (GNUNET_YES != GNUNET_OP_get (plc->op,
+                                   GNUNET_ntohll (res->op_id),
+                                   &result_cb, (void *) &hist, NULL))
   { /* Operation not found. */
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "%p Replay operation not found for historic fragment of message #%"
@@ -650,50 +648,50 @@ place_recv_history_result (void *cls,
     return;
   }
 
-  uint16_t size = ntohs (msg->size);
-  if (size < sizeof (*res) + sizeof (*pmsg))
-  { /* Error, message too small. */
-    GNUNET_break (0);
-    return;
-  }
-
   GNUNET_PSYC_slicer_message (hist->slicer,
                               (const struct GNUNET_PSYC_MessageHeader *) pmsg);
 }
 
 
-static void
-place_recv_state_result (void *cls,
-                         struct GNUNET_CLIENT_MANAGER_Connection *client,
-                         const struct GNUNET_MessageHeader *msg)
+static int
+check_place_state_result (void *cls,
+                          const struct GNUNET_OperationResultMessage *res)
 {
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
-
-  const struct GNUNET_OperationResultMessage *
-    res = (const struct GNUNET_OperationResultMessage *) msg;
-
-  GNUNET_ResultCallback result_cb = NULL;
-  struct GNUNET_SOCIAL_LookHandle *look = NULL;
-
-  if (GNUNET_YES != GNUNET_CLIENT_MANAGER_op_find (plc->client,
-                                                   GNUNET_ntohll (res->op_id),
-                                                   &result_cb, (void *) &look))
-  { /* Operation not found. */
-    return;
-  }
-
-  const struct GNUNET_MessageHeader *
-    mod = (struct GNUNET_MessageHeader *) &res[1];
+  const struct GNUNET_MessageHeader *mod = GNUNET_MQ_extract_nested_mh (res);
   uint16_t mod_size = ntohs (mod->size);
-  if (ntohs (msg->size) - sizeof (*res) != mod_size)
+  uint16_t size = ntohs (res->header.size);
+
+  if (NULL == mod || size - sizeof (*res) != mod_size)
   {
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Invalid modifier size in state result: %u - %u != %u\n",
-         ntohs (msg->size), sizeof (*res), mod_size);
+         ntohs (res->header.size), sizeof (*res), mod_size);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+static void
+handle_place_state_result (void *cls,
+                           const struct GNUNET_OperationResultMessage *res)
+{
+  struct GNUNET_SOCIAL_Place *plc = cls;
+
+  GNUNET_ResultCallback result_cb = NULL;
+  struct GNUNET_SOCIAL_LookHandle *look = NULL;
+
+  if (GNUNET_YES != GNUNET_OP_get (plc->op,
+                                   GNUNET_ntohll (res->op_id),
+                                   &result_cb, (void *) &look, NULL))
+  { /* Operation not found. */
     return;
   }
+
+  const struct GNUNET_MessageHeader *mod = GNUNET_MQ_extract_nested_mh (res);
+  uint16_t mod_size = ntohs (mod->size);
+
   switch (ntohs (mod->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
@@ -737,52 +735,58 @@ place_recv_state_result (void *cls,
 
 
 static void
-place_recv_message_ack (void *cls,
-                        struct GNUNET_CLIENT_MANAGER_Connection *client,
-                        const struct GNUNET_MessageHeader *msg)
+handle_place_message_ack (void *cls,
+                          const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
+  struct GNUNET_SOCIAL_Place *plc = cls;
+
   GNUNET_PSYC_transmit_got_ack (plc->tmit);
 }
 
 
-static void
-place_recv_message (void *cls,
-                    struct GNUNET_CLIENT_MANAGER_Connection *client,
-                    const struct GNUNET_MessageHeader *msg)
+static int
+check_place_message (void *cls,
+                     const struct GNUNET_PSYC_MessageHeader *pmsg)
 {
-  struct GNUNET_SOCIAL_Place *
-    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
-  GNUNET_PSYC_slicer_message (plc->slicer,
-                               (const struct GNUNET_PSYC_MessageHeader *) msg);
+  return GNUNET_OK;
 }
 
 
 static void
-host_recv_message (void *cls,
-                   struct GNUNET_CLIENT_MANAGER_Connection *client,
-                   const struct GNUNET_MessageHeader *msg)
+handle_place_message (void *cls,
+                      const struct GNUNET_PSYC_MessageHeader *pmsg)
 {
-  struct GNUNET_SOCIAL_Host *
-    hst = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (hst->plc));
-  GNUNET_PSYC_slicer_message (hst->slicer,
-                              (const struct GNUNET_PSYC_MessageHeader *) msg);
-  GNUNET_PSYC_slicer_message (hst->plc.slicer,
-                              (const struct GNUNET_PSYC_MessageHeader *) msg);
+  struct GNUNET_SOCIAL_Place *plc = cls;
+
+  GNUNET_PSYC_slicer_message (plc->slicer, pmsg);
+}
+
+
+static int
+check_host_message (void *cls,
+                    const struct GNUNET_PSYC_MessageHeader *pmsg)
+{
+  return GNUNET_OK;
 }
 
 
 static void
-host_recv_enter_ack (void *cls,
-                     struct GNUNET_CLIENT_MANAGER_Connection *client,
-                     const struct GNUNET_MessageHeader *msg)
+handle_host_message (void *cls,
+                     const struct GNUNET_PSYC_MessageHeader *pmsg)
 {
-  struct GNUNET_SOCIAL_Host *
-    hst = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
-                                                   sizeof (struct GNUNET_SOCIAL_Place));
+  struct GNUNET_SOCIAL_Host *hst = cls;
 
-  struct HostEnterAck *hack = (struct HostEnterAck *) msg;
+  GNUNET_PSYC_slicer_message (hst->slicer, pmsg);
+  GNUNET_PSYC_slicer_message (hst->plc.slicer, pmsg);
+}
+
+
+static void
+handle_host_enter_ack (void *cls,
+                       const struct HostEnterAck *hack)
+{
+  struct GNUNET_SOCIAL_Host *hst = cls;
+
   hst->plc.pub_key = hack->place_pub_key;
 
   int32_t result = ntohl (hack->result_code);
@@ -792,14 +796,20 @@ host_recv_enter_ack (void *cls,
 }
 
 
-static void
-host_recv_enter_request (void *cls,
-                         struct GNUNET_CLIENT_MANAGER_Connection *client,
-                         const struct GNUNET_MessageHeader *msg)
+static int
+check_host_enter_request (void *cls,
+                          const struct GNUNET_PSYC_JoinRequestMessage *req)
 {
-  struct GNUNET_SOCIAL_Host *
-    hst = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
-                                                   sizeof (struct GNUNET_SOCIAL_Place));
+  return GNUNET_OK;
+}
+
+
+static void
+handle_host_enter_request (void *cls,
+                           const struct GNUNET_PSYC_JoinRequestMessage *req)
+{
+  struct GNUNET_SOCIAL_Host *hst = cls;
+
   if (NULL == hst->answer_door_cb)
      return;
 
@@ -809,15 +819,13 @@ host_recv_enter_request (void *cls,
   const void *data = NULL;
   uint16_t data_size = 0;
   char *str;
-  const struct GNUNET_PSYC_JoinRequestMessage *
-    req = (const struct GNUNET_PSYC_JoinRequestMessage *) msg;
   const struct GNUNET_PSYC_Message *join_msg = NULL;
 
   do
   {
     if (sizeof (*req) + sizeof (*join_msg) <= ntohs (req->header.size))
     {
-      join_msg = (struct GNUNET_PSYC_Message *) &req[1];
+      join_msg = (struct GNUNET_PSYC_Message *) GNUNET_MQ_extract_nested_mh (req);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received join_msg of type %u and size %u.\n",
            ntohs (join_msg->header.type), ntohs (join_msg->header.size));
@@ -850,16 +858,11 @@ host_recv_enter_request (void *cls,
 
 
 static void
-guest_recv_enter_ack (void *cls,
-                     struct GNUNET_CLIENT_MANAGER_Connection *client,
-                     const struct GNUNET_MessageHeader *msg)
+handle_guest_enter_ack (void *cls,
+                        const struct GNUNET_PSYC_CountersResultMessage *cres)
 {
-  struct GNUNET_SOCIAL_Guest *
-    gst = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
-                                                   sizeof (struct GNUNET_SOCIAL_Place));
+  struct GNUNET_SOCIAL_Guest *gst = cls;
 
-  struct GNUNET_PSYC_CountersResultMessage *
-    cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
   int32_t result = ntohl (cres->result_code);
   if (NULL != gst->enter_cb)
     gst->enter_cb (gst->cb_cls, result, &gst->plc.pub_key,
@@ -867,36 +870,42 @@ guest_recv_enter_ack (void *cls,
 }
 
 
-static void
-guest_recv_join_decision (void *cls,
-                          struct GNUNET_CLIENT_MANAGER_Connection *client,
-                          const struct GNUNET_MessageHeader *msg)
+static int
+check_guest_enter_decision (void *cls,
+                            const struct GNUNET_PSYC_JoinDecisionMessage *dcsn)
 {
-  struct GNUNET_SOCIAL_Guest *
-    gst = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
-                                                   sizeof (struct GNUNET_SOCIAL_Place));
-  const struct GNUNET_PSYC_JoinDecisionMessage *
-    dcsn = (const struct GNUNET_PSYC_JoinDecisionMessage *) msg;
+  return GNUNET_OK;
+}
+
+
+static void
+handle_guest_enter_decision (void *cls,
+                             const struct GNUNET_PSYC_JoinDecisionMessage *dcsn)
+{
+  struct GNUNET_SOCIAL_Guest *gst = cls;
 
   struct GNUNET_PSYC_Message *pmsg = NULL;
   if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*pmsg))
-    pmsg = (struct GNUNET_PSYC_Message *) &dcsn[1];
+    pmsg = (struct GNUNET_PSYC_Message *) GNUNET_MQ_extract_nested_mh (dcsn);
 
   if (NULL != gst->entry_dcsn_cb)
     gst->entry_dcsn_cb (gst->cb_cls, ntohl (dcsn->is_admitted), pmsg);
 }
 
 
-static void
-app_recv_ego (void *cls,
-              struct GNUNET_CLIENT_MANAGER_Connection *client,
-              const struct GNUNET_MessageHeader *msg)
+static int
+check_app_ego (void *cls,
+               const struct AppEgoMessage *emsg)
 {
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+  return GNUNET_OK;
+}
 
-  struct AppEgoMessage *
-    emsg = (struct AppEgoMessage *) msg;
+
+static void
+handle_app_ego (void *cls,
+                const struct AppEgoMessage *emsg)
+{
+  struct GNUNET_SOCIAL_App *app = cls;
 
   uint16_t name_size = ntohs (emsg->header.size) - sizeof (*emsg);
 
@@ -928,25 +937,26 @@ app_recv_ego (void *cls,
 
 
 static void
-app_recv_ego_end (void *cls,
-                  struct GNUNET_CLIENT_MANAGER_Connection *client,
-                  const struct GNUNET_MessageHeader *msg)
+handle_app_ego_end (void *cls,
+                    const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+  //struct GNUNET_SOCIAL_App *app = cls;
+}
+
+
+static int
+check_app_place (void *cls,
+                 const struct AppPlaceMessage *pmsg)
+{
+  return GNUNET_OK;
 }
 
 
 static void
-app_recv_place (void *cls,
-                struct GNUNET_CLIENT_MANAGER_Connection *client,
-                const struct GNUNET_MessageHeader *msg)
+handle_app_place (void *cls,
+                  const struct AppPlaceMessage *pmsg)
 {
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
-
-  struct AppPlaceMessage *
-    pmsg = (struct AppPlaceMessage *) msg;
+  struct GNUNET_SOCIAL_App *app = cls;
 
   if ((GNUNET_YES == pmsg->is_host && NULL == app->host_cb)
       || (GNUNET_NO == pmsg->is_host && NULL == app->guest_cb))
@@ -987,120 +997,14 @@ app_recv_place (void *cls,
 
 
 static void
-app_recv_place_end (void *cls,
-                  struct GNUNET_CLIENT_MANAGER_Connection *client,
-                  const struct GNUNET_MessageHeader *msg)
+handle_app_place_end (void *cls,
+                      const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_SOCIAL_App *
-    app = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*app));
+  struct GNUNET_SOCIAL_App *app = cls;
 
   if (NULL != app->connected_cb)
     app->connected_cb (app->cb_cls);
 }
-
-
-static struct GNUNET_CLIENT_MANAGER_MessageHandler host_handlers[] =
-{
-  { host_recv_enter_ack, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
-    sizeof (struct HostEnterAck), GNUNET_NO },
-
-  { host_recv_enter_request, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
-    sizeof (struct GNUNET_PSYC_JoinRequestMessage), GNUNET_YES },
-
-  { host_recv_message, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-    sizeof (struct GNUNET_PSYC_MessageHeader), GNUNET_YES },
-
-  { place_recv_message_ack, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
-
-  { place_recv_history_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_state_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_disconnect, NULL, 0, 0, GNUNET_NO },
-
-  { NULL, NULL, 0, 0, GNUNET_NO }
-};
-
-
-static struct GNUNET_CLIENT_MANAGER_MessageHandler guest_handlers[] =
-{
-  { guest_recv_enter_ack, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
-    sizeof (struct GNUNET_PSYC_CountersResultMessage), GNUNET_NO },
-
-  { host_recv_enter_request, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
-    sizeof (struct GNUNET_PSYC_JoinRequestMessage), GNUNET_YES },
-
-  { place_recv_message, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-    sizeof (struct GNUNET_PSYC_MessageHeader), GNUNET_YES },
-
-  { place_recv_message_ack, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
-
-  { guest_recv_join_decision, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
-    sizeof (struct GNUNET_PSYC_JoinDecisionMessage), GNUNET_YES },
-
-  { place_recv_history_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_state_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { place_recv_disconnect, NULL, 0, 0, GNUNET_NO },
-
-  { NULL, NULL, 0, 0, GNUNET_NO }
-};
-
-
-static struct GNUNET_CLIENT_MANAGER_MessageHandler app_handlers[] =
-{
-  { app_recv_ego, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO,
-    sizeof (struct AppEgoMessage), GNUNET_YES },
-
-  { app_recv_ego_end, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END,
-    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
-
-  { app_recv_place, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE,
-    sizeof (struct AppPlaceMessage), GNUNET_NO },
-
-  { app_recv_place_end, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END,
-    sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
-
-  { app_recv_result, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
-
-  { app_recv_disconnect, NULL, 0, 0, GNUNET_NO },
-
-  { NULL, NULL, 0, 0, GNUNET_NO }
-};
 
 
 static void
@@ -1114,18 +1018,26 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
               GNUNET_h2s (&place_pub_hash));
 
   if (NULL != plc->tmit)
+  {
     GNUNET_PSYC_transmit_destroy (plc->tmit);
-  if (NULL != plc->connect_msg)
-    GNUNET_free (plc->connect_msg);
+    plc->tmit = NULL;
+  }
+  if (NULL != plc->connect_env)
+  {
+    GNUNET_MQ_discard (plc->connect_env);
+    plc->connect_env = NULL;
+  }
   if (NULL != plc->disconnect_cb)
+  {
     plc->disconnect_cb (plc->disconnect_cls);
+    plc->disconnect_cb = NULL;
+  }
 }
 
 
 static void
-host_cleanup (void *cls)
+host_cleanup (struct GNUNET_SOCIAL_Host *hst)
 {
-  struct GNUNET_SOCIAL_Host *hst = cls;
   place_cleanup (&hst->plc);
   if (NULL != hst->slicer)
   {
@@ -1137,15 +1049,111 @@ host_cleanup (void *cls)
 
 
 static void
-guest_cleanup (void *cls)
+guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
 {
-  struct GNUNET_SOCIAL_Guest *gst = cls;
   place_cleanup (&gst->plc);
   GNUNET_free (gst);
 }
 
 
 /*** HOST ***/
+
+
+static void
+host_connect (struct GNUNET_SOCIAL_Host *hst);
+
+
+static void
+host_reconnect (void *cls)
+{
+  host_connect (cls);
+}
+
+
+/**
+ * Host client disconnected from service.
+ *
+ * Reconnect after backoff period.
+ */
+static void
+host_disconnected (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_SOCIAL_Host *hst = cls;
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Host client disconnected (%d), re-connecting\n",
+       (int) error);
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
+  if (NULL != plc->tmit)
+  {
+    GNUNET_PSYC_transmit_destroy (plc->tmit);
+    plc->tmit = NULL;
+  }
+
+  plc->reconnect_task = GNUNET_SCHEDULER_add_delayed (plc->reconnect_delay,
+                                                      host_reconnect,
+                                                      hst);
+  plc->reconnect_delay = GNUNET_TIME_STD_BACKOFF (plc->reconnect_delay);
+}
+
+
+static void
+host_connect (struct GNUNET_SOCIAL_Host *hst)
+{
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc;
+
+  GNUNET_MQ_hd_fixed_size (host_enter_ack,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
+                           struct HostEnterAck);
+
+  GNUNET_MQ_hd_var_size (host_enter_request,
+                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
+                         struct GNUNET_PSYC_JoinRequestMessage);
+
+  GNUNET_MQ_hd_var_size (host_message,
+                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                         struct GNUNET_PSYC_MessageHeader);
+
+  GNUNET_MQ_hd_fixed_size (place_message_ack,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                           struct GNUNET_MessageHeader);
+
+  GNUNET_MQ_hd_var_size (place_history_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                         struct GNUNET_OperationResultMessage);
+
+  GNUNET_MQ_hd_var_size (place_state_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                         struct GNUNET_OperationResultMessage);
+
+  GNUNET_MQ_hd_var_size (place_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                         struct GNUNET_OperationResultMessage);
+
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_host_enter_ack_handler (hst),
+    make_host_enter_request_handler (hst),
+    make_host_message_handler (plc),
+    make_place_message_ack_handler (plc),
+    make_place_history_result_handler (plc),
+    make_place_state_result_handler (plc),
+    make_place_result_handler (plc),
+    GNUNET_MQ_handler_end ()
+  };
+
+  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+                                   handlers, host_disconnected, hst);
+  GNUNET_assert (NULL != plc->mq);
+  plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
+
+  GNUNET_MQ_send_copy (plc->mq, plc->connect_env);
+}
+
 
 /**
  * Enter a place as host.
@@ -1194,10 +1202,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
   hst->farewell_cb = farewell_cb;
   hst->cb_cls = cls;
 
-  plc->client = GNUNET_CLIENT_MANAGER_connect (plc->cfg, "social", host_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, hst, sizeof (*plc));
-
-  plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
+  plc->op = GNUNET_OP_create ();
 
   hst->slicer = GNUNET_PSYC_slicer_create ();
   GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave", NULL,
@@ -1206,16 +1211,14 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
                                  NULL, host_recv_notice_place_leave_eom, hst);
 
   uint16_t app_id_size = strlen (app->id) + 1;
-  struct HostEnterRequest *hreq = GNUNET_malloc (sizeof (*hreq) + app_id_size);
-  hreq->header.size = htons (sizeof (*hreq) + app_id_size);
-  hreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
+  struct HostEnterRequest *hreq;
+  plc->connect_env = GNUNET_MQ_msg_extra (hreq, app_id_size,
+                                          GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
   hreq->policy = policy;
   hreq->ego_pub_key = ego->pub_key;
   GNUNET_memcpy (&hreq[1], app->id, app_id_size);
 
-  plc->connect_msg = &hreq->header;
-  place_send_connect_msg (plc);
-
+  host_connect (hst);
   return hst;
 }
 
@@ -1250,9 +1253,6 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   struct GNUNET_SOCIAL_Host *hst = GNUNET_malloc (sizeof (*hst));
   struct GNUNET_SOCIAL_Place *plc = &hst->plc;
 
-  size_t app_id_size = strlen (hconn->app->id) + 1;
-  struct HostEnterRequest *hreq = GNUNET_malloc (sizeof (*hreq) + app_id_size);
-
   hst->enter_cb = enter_cb;
   hst->answer_door_cb = answer_door_cb;
   hst->farewell_cb = farewell_cb;
@@ -1264,10 +1264,7 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   plc->pub_key = hconn->plc_msg.place_pub_key;
   plc->ego_pub_key = hconn->plc_msg.ego_pub_key;
 
-  plc->client = GNUNET_CLIENT_MANAGER_connect (plc->cfg, "social", host_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, hst, sizeof (*plc));
-
-  plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
+  plc->op = GNUNET_OP_create ();
 
   hst->slicer = GNUNET_PSYC_slicer_create ();
   GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave", NULL,
@@ -1275,15 +1272,15 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
                                  host_recv_notice_place_leave_modifier,
                                  NULL, host_recv_notice_place_leave_eom, hst);
 
-  hreq->header.size = htons (sizeof (*hreq) + app_id_size);
-  hreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
+  size_t app_id_size = strlen (hconn->app->id) + 1;
+  struct HostEnterRequest *hreq;
+  plc->connect_env = GNUNET_MQ_msg_extra (hreq, app_id_size,
+                                          GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
   hreq->place_pub_key = hconn->plc_msg.place_pub_key;
   hreq->ego_pub_key = hconn->plc_msg.ego_pub_key;
   GNUNET_memcpy (&hreq[1], hconn->app->id, app_id_size);
 
-  plc->connect_msg = &hreq->header;
-  place_send_connect_msg (plc);
-
+  host_connect (hst);
   return hst;
 }
 
@@ -1316,6 +1313,7 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
                                    int is_admitted,
                                    const struct GNUNET_PSYC_Message *entry_resp)
 {
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc;
   struct GNUNET_PSYC_JoinDecisionMessage *dcsn;
   uint16_t entry_resp_size
     = (NULL != entry_resp) ? ntohs (entry_resp->header.size) : 0;
@@ -1323,17 +1321,16 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
   if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < sizeof (*dcsn) + entry_resp_size)
     return GNUNET_SYSERR;
 
-  dcsn = GNUNET_malloc (sizeof (*dcsn) + entry_resp_size);
-  dcsn->header.size = htons (sizeof (*dcsn) + entry_resp_size);
-  dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (dcsn, entry_resp_size,
+                               GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
   dcsn->is_admitted = htonl (is_admitted);
   dcsn->slave_pub_key = nym->pub_key;
 
   if (0 < entry_resp_size)
     GNUNET_memcpy (&dcsn[1], entry_resp, entry_resp_size);
 
-  GNUNET_CLIENT_MANAGER_transmit (hst->plc.client, &dcsn->header);
-  GNUNET_free (dcsn);
+  GNUNET_MQ_send (plc->mq, env);
   return GNUNET_OK;
 }
 
@@ -1524,10 +1521,11 @@ GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *hst)
 void
 place_leave (struct GNUNET_SOCIAL_Place *plc)
 {
-  struct GNUNET_MessageHeader msg;
-  msg.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
-  msg.size = htons (sizeof (msg));
-  GNUNET_CLIENT_MANAGER_transmit (plc->client, &msg);
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+
+  GNUNET_MQ_send (plc->mq, env);
 }
 
 
@@ -1539,10 +1537,12 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
   plc->disconnect_cb = disconnect_cb;
   plc->disconnect_cls = disconnect_cls;
 
-  GNUNET_CLIENT_MANAGER_disconnect (plc->client, GNUNET_YES,
-                                    GNUNET_YES == plc->is_host
-                                    ? host_cleanup : guest_cleanup,
-                                    plc);
+  // FIXME: wait till queued messages are sent
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
 }
 
 
@@ -1560,6 +1560,7 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
                                void *cls)
 {
   place_disconnect (&hst->plc, disconnect_cb, cls);
+  host_cleanup (hst);
 }
 
 
@@ -1595,7 +1596,104 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
 
 /*** GUEST ***/
 
-static struct GuestEnterRequest *
+
+static void
+guest_connect (struct GNUNET_SOCIAL_Guest *gst);
+
+
+static void
+guest_reconnect (void *cls)
+{
+  guest_connect (cls);
+}
+
+
+/**
+ * Guest client disconnected from service.
+ *
+ * Reconnect after backoff period.
+ */
+static void
+guest_disconnected (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_SOCIAL_Guest *gst = cls;
+  struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Guest client disconnected (%d), re-connecting\n",
+       (int) error);
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
+  if (NULL != plc->tmit)
+  {
+    GNUNET_PSYC_transmit_destroy (plc->tmit);
+    plc->tmit = NULL;
+  }
+
+  plc->reconnect_task = GNUNET_SCHEDULER_add_delayed (plc->reconnect_delay,
+                                                      guest_reconnect,
+                                                      gst);
+  plc->reconnect_delay = GNUNET_TIME_STD_BACKOFF (plc->reconnect_delay);
+}
+
+
+static void
+guest_connect (struct GNUNET_SOCIAL_Guest *gst)
+{
+  struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+
+  GNUNET_MQ_hd_fixed_size (guest_enter_ack,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
+                           struct GNUNET_PSYC_CountersResultMessage);
+
+  GNUNET_MQ_hd_var_size (guest_enter_decision,
+                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
+                         struct GNUNET_PSYC_JoinDecisionMessage);
+
+  GNUNET_MQ_hd_var_size (place_message,
+                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                         struct GNUNET_PSYC_MessageHeader);
+
+  GNUNET_MQ_hd_fixed_size (place_message_ack,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                           struct GNUNET_MessageHeader);
+
+  GNUNET_MQ_hd_var_size (place_history_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                         struct GNUNET_OperationResultMessage);
+
+  GNUNET_MQ_hd_var_size (place_state_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                         struct GNUNET_OperationResultMessage);
+
+  GNUNET_MQ_hd_var_size (place_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                         struct GNUNET_OperationResultMessage);
+
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_guest_enter_ack_handler (gst),
+    make_guest_enter_decision_handler (gst),
+    make_place_message_handler (plc),
+    make_place_message_ack_handler (plc),
+    make_place_history_result_handler (plc),
+    make_place_state_result_handler (plc),
+    make_place_result_handler (plc),
+    GNUNET_MQ_handler_end ()
+  };
+
+  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+                                   handlers, guest_disconnected, gst);
+  GNUNET_assert (NULL != plc->mq);
+  plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
+
+  GNUNET_MQ_send_copy (plc->mq, plc->connect_env);
+}
+
+
+static struct GNUNET_MQ_Envelope *
 guest_enter_request_create (const char *app_id,
                             const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
                             const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
@@ -1608,11 +1706,10 @@ guest_enter_request_create (const char *app_id,
   uint16_t join_msg_size = ntohs (join_msg->header.size);
   uint16_t relay_size = relay_count * sizeof (*relays);
 
-  struct GuestEnterRequest *
-    greq = GNUNET_malloc (sizeof (*greq) + app_id_size + relay_size + join_msg_size);
-
-  greq->header.size = htons (sizeof (*greq) + app_id_size + relay_size + join_msg_size);
-  greq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER);
+  struct GuestEnterRequest *greq;
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (greq, app_id_size + relay_size + join_msg_size,
+                               GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER);
   greq->place_pub_key = *place_pub_key;
   greq->ego_pub_key = *ego_pub_key;
   greq->origin = *origin;
@@ -1629,7 +1726,7 @@ guest_enter_request_create (const char *app_id,
   }
 
   GNUNET_memcpy (p, join_msg, join_msg_size);
-  return greq;
+  return env;
 }
 
 
@@ -1686,20 +1783,17 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
   plc->is_host = GNUNET_NO;
   plc->slicer = slicer;
 
+  plc->op = GNUNET_OP_create ();
+
+  plc->connect_env
+    = guest_enter_request_create (app->id, &ego->pub_key, &plc->pub_key,
+                                  origin, relay_count, relays, entry_msg);
+
   gst->enter_cb = local_enter_cb;
   gst->entry_dcsn_cb = entry_dcsn_cb;
   gst->cb_cls = cls;
 
-  plc->client = GNUNET_CLIENT_MANAGER_connect (plc->cfg, "social", guest_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
-
-  plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-
-  struct GuestEnterRequest *
-    greq = guest_enter_request_create (app->id, &ego->pub_key, &plc->pub_key,
-                                       origin, relay_count, relays, entry_msg);
-  plc->connect_msg = &greq->header;
-  place_send_connect_msg (plc);
+  guest_connect (gst);
   return gst;
 }
 
@@ -1755,11 +1849,12 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
   if (NULL != join_msg)
     join_msg_size = ntohs (join_msg->header.size);
 
-  uint16_t greq_size = sizeof (struct GuestEnterByNameRequest)
-    + app_id_size + gns_name_size + password_size + join_msg_size;
-  struct GuestEnterByNameRequest *greq = GNUNET_malloc (greq_size);
-  greq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME);
-  greq->header.size = htons (greq_size);
+  struct GuestEnterByNameRequest *greq;
+  plc->connect_env
+    = GNUNET_MQ_msg_extra (greq, app_id_size + gns_name_size
+                           + password_size + join_msg_size,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME);
+
   greq->ego_pub_key = ego->pub_key;
 
   char *p = (char *) &greq[1];
@@ -1772,23 +1867,18 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
   if (NULL != join_msg)
     GNUNET_memcpy (p, join_msg, join_msg_size);
 
-  gst->enter_cb = local_enter_cb;
-  gst->entry_dcsn_cb = entry_decision_cb;
-  gst->cb_cls = cls;
-
   plc->ego_pub_key = ego->pub_key;
   plc->cfg = app->cfg;
   plc->is_host = GNUNET_NO;
   plc->slicer = slicer;
 
-  plc->client = GNUNET_CLIENT_MANAGER_connect (app->cfg, "social", guest_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
+  plc->op = GNUNET_OP_create ();
 
-  plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
+  gst->enter_cb = local_enter_cb;
+  gst->entry_dcsn_cb = entry_decision_cb;
+  gst->cb_cls = cls;
 
-  plc->connect_msg = &greq->header;
-  place_send_connect_msg (plc);
-
+  guest_connect (gst);
   return gst;
 }
 
@@ -1821,18 +1911,15 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
   uint16_t app_id_size = strlen (gconn->app->id) + 1;
-  uint16_t greq_size = sizeof (struct GuestEnterRequest) + app_id_size;
-  struct GuestEnterRequest *greq = GNUNET_malloc (greq_size);
-  greq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER);
-  greq->header.size = htons (greq_size);
+  struct GuestEnterRequest *greq;
+  plc->connect_env
+    = GNUNET_MQ_msg_extra (greq, app_id_size,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER);
   greq->ego_pub_key = gconn->plc_msg.ego_pub_key;
   greq->place_pub_key = gconn->plc_msg.place_pub_key;
   greq->flags = htonl (flags);
 
   GNUNET_memcpy (&greq[1], gconn->app->id, app_id_size);
-
-  gst->enter_cb = local_enter_cb;
-  gst->cb_cls = cls;
 
   plc->cfg = gconn->app->cfg;
   plc->is_host = GNUNET_NO;
@@ -1840,14 +1927,12 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   plc->pub_key = gconn->plc_msg.place_pub_key;
   plc->ego_pub_key = gconn->plc_msg.ego_pub_key;
 
-  plc->client = GNUNET_CLIENT_MANAGER_connect (plc->cfg, "social", guest_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
+  plc->op = GNUNET_OP_create ();
 
-  plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
+  gst->enter_cb = local_enter_cb;
+  gst->cb_cls = cls;
 
-  plc->connect_msg = &greq->header;
-  place_send_connect_msg (plc);
-
+  guest_connect (gst);
   return gst;
 }
 
@@ -1931,6 +2016,7 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
                                 void *cls)
 {
   place_disconnect (&gst->plc, disconnect_cb, cls);
+  guest_cleanup (gst);
 }
 
 
@@ -2015,15 +2101,14 @@ GNUNET_SOCIAL_place_msg_proc_set (struct GNUNET_SOCIAL_Place *plc,
                                   GNUNET_SERVER_MAX_MESSAGE_SIZE
                                   - sizeof (*mpreq)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
-  mpreq = GNUNET_malloc (sizeof (*mpreq) + method_size);
 
-  mpreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET);
-  mpreq->header.size = htons (sizeof (*mpreq) + method_size);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (mpreq, method_size,
+                               GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET);
   mpreq->flags = htonl (flags);
   GNUNET_memcpy (&mpreq[1], method_prefix, method_size);
 
-  GNUNET_CLIENT_MANAGER_transmit (plc->client, &mpreq->header);
-  GNUNET_free (mpreq);
+  GNUNET_MQ_send (plc->mq, env);
 }
 
 
@@ -2033,10 +2118,11 @@ GNUNET_SOCIAL_place_msg_proc_set (struct GNUNET_SOCIAL_Place *plc,
 void
 GNUNET_SOCIAL_place_msg_proc_clear (struct GNUNET_SOCIAL_Place *plc)
 {
-  struct GNUNET_MessageHeader req;
-  req.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR);
-  req.size = htons (sizeof (req));
-  GNUNET_CLIENT_MANAGER_transmit (plc->client, &req);
+  struct GNUNET_MessageHeader *req;
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg (req, GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR);
+
+  GNUNET_MQ_send (plc->mq, env);
 }
 
 
@@ -2057,17 +2143,17 @@ place_history_replay (struct GNUNET_SOCIAL_Place *plc,
   hist->slicer = slicer;
   hist->result_cb = result_cb;
   hist->cls = cls;
-  hist->op_id = GNUNET_CLIENT_MANAGER_op_add (plc->client,
-                                              &op_recv_history_result, hist);
+  hist->op_id = GNUNET_OP_add (plc->op, op_recv_history_result, hist, NULL);
 
   GNUNET_assert (NULL != method_prefix);
   uint16_t method_size = strnlen (method_prefix,
                                   GNUNET_SERVER_MAX_MESSAGE_SIZE
                                   - sizeof (*req)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
-  req = GNUNET_malloc (sizeof (*req) + method_size);
-  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY);
-  req->header.size = htons (sizeof (*req) + method_size);
+
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (req, method_size,
+                               GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY);
   req->start_message_id = GNUNET_htonll (start_message_id);
   req->end_message_id = GNUNET_htonll (end_message_id);
   req->message_limit = GNUNET_htonll (message_limit);
@@ -2075,8 +2161,7 @@ place_history_replay (struct GNUNET_SOCIAL_Place *plc,
   req->op_id = GNUNET_htonll (hist->op_id);
   GNUNET_memcpy (&req[1], method_prefix, method_size);
 
-  GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
-  GNUNET_free (req);
+  GNUNET_MQ_send (plc->mq, env);
   return hist;
 }
 
@@ -2165,7 +2250,7 @@ GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
 void
 GNUNET_SOCIAL_place_history_replay_cancel (struct GNUNET_SOCIAL_HistoryRequest *hist)
 {
-  GNUNET_CLIENT_MANAGER_op_cancel (hist->plc->client, hist->op_id);
+  GNUNET_OP_remove (hist->plc->op, hist->op_id);
   GNUNET_free (hist);
 }
 
@@ -2185,20 +2270,17 @@ place_state_get (struct GNUNET_SOCIAL_Place *plc,
   look->var_cb = var_cb;
   look->result_cb = result_cb;
   look->cls = cls;
-  look->op_id = GNUNET_CLIENT_MANAGER_op_add (plc->client,
-                                              &op_recv_state_result, look);
+  look->op_id = GNUNET_OP_add (plc->op, &op_recv_state_result, look, NULL);
 
   GNUNET_assert (NULL != name);
   size_t name_size = strnlen (name, GNUNET_SERVER_MAX_MESSAGE_SIZE
                               - sizeof (*req)) + 1;
-  req = GNUNET_malloc (sizeof (*req) + name_size);
-  req->header.type = htons (type);
-  req->header.size = htons (sizeof (*req) + name_size);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (req, name_size, type);
   req->op_id = GNUNET_htonll (look->op_id);
   GNUNET_memcpy (&req[1], name, name_size);
 
-  GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
-  GNUNET_free (req);
+  GNUNET_MQ_send (plc->mq, env);
   return look;
 }
 
@@ -2265,7 +2347,7 @@ GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *plc,
 void
 GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *look)
 {
-  GNUNET_CLIENT_MANAGER_op_cancel (look->plc->client, look->op_id);
+  GNUNET_OP_remove (look->plc->op, look->op_id);
   GNUNET_free (look);
 }
 
@@ -2331,14 +2413,14 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
   size_t name_size = strlen (name) + 1;
   size_t password_size = strlen (password) + 1;
   size_t relay_size = relay_count * sizeof (*relays);
-  size_t preq_size = sizeof (*preq) + name_size + password_size + relay_size;
+  size_t payload_size = name_size + password_size + relay_size;
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < preq_size)
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (*preq) + payload_size)
     return GNUNET_SYSERR;
 
-  preq = GNUNET_malloc (preq_size);
-  preq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE);
-  preq->header.size = htons (preq_size);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (preq, payload_size,
+                               GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE);
   preq->expiration_time = GNUNET_htonll (expiration_time.abs_value_us);
   preq->ego_pub_key = ego->pub_key;
   preq->place_pub_key = *place_pub_key;
@@ -2357,10 +2439,11 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
   add_plc->result_cb = result_cb;
   add_plc->result_cls = result_cls;
 
-  preq->op_id = GNUNET_htonll (GNUNET_CLIENT_MANAGER_op_add (app->client,
-                                                             op_recv_zone_add_place_result,
-                                                             add_plc));
-  GNUNET_CLIENT_MANAGER_transmit_now (app->client, &preq->header);
+  preq->op_id = GNUNET_htonll (GNUNET_OP_add (app->op,
+                                              op_recv_zone_add_place_result,
+                                              add_plc, NULL));
+
+  GNUNET_MQ_send (app->mq, env);
   return GNUNET_OK;
 }
 
@@ -2376,7 +2459,6 @@ op_recv_zone_add_nym_result (void *cls, int64_t result,
   if (NULL != add_nym->result_cb)
     add_nym->result_cb (add_nym->result_cls, result, err_msg, err_msg_size);
 
-  GNUNET_free (add_nym->req);
   GNUNET_free (add_nym);
 }
 
@@ -2417,24 +2499,103 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (*nreq) + name_size)
     return GNUNET_SYSERR;
 
-  nreq = GNUNET_malloc (sizeof (*nreq) + name_size);
-  nreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM);
-  nreq->header.size = htons (sizeof (*nreq) + name_size);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_extra (nreq, name_size,
+                               GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM);
   nreq->expiration_time = GNUNET_htonll (expiration_time.abs_value_us);
   nreq->ego_pub_key = ego->pub_key;
   nreq->nym_pub_key = *nym_pub_key;
   GNUNET_memcpy (&nreq[1], name, name_size);
 
-  struct ZoneAddNymHandle * add_nym = GNUNET_malloc (sizeof (*add_nym));
-  add_nym->req = nreq;
+  struct ZoneAddNymHandle *add_nym = GNUNET_malloc (sizeof (*add_nym));
   add_nym->result_cb = result_cb;
   add_nym->result_cls = result_cls;
 
-  nreq->op_id = GNUNET_htonll (GNUNET_CLIENT_MANAGER_op_add (app->client,
-                                                             op_recv_zone_add_nym_result,
-                                                             add_nym));
-  GNUNET_CLIENT_MANAGER_transmit_now (app->client, &nreq->header);
+  nreq->op_id = GNUNET_htonll (GNUNET_OP_add (app->op,
+                                              op_recv_zone_add_nym_result,
+                                              add_nym, NULL));
+
+  GNUNET_MQ_send (app->mq, env);
   return GNUNET_OK;
+}
+
+
+/*** APP ***/
+
+
+static void
+app_connect (struct GNUNET_SOCIAL_App *app);
+
+
+static void
+app_reconnect (void *cls)
+{
+  app_connect (cls);
+}
+
+
+/**
+ * App client disconnected from service.
+ *
+ * Reconnect after backoff period.
+ */
+static void
+app_disconnected (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_SOCIAL_App *app = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "App client disconnected (%d), re-connecting\n",
+       (int) error);
+  if (NULL != app->mq)
+  {
+    GNUNET_MQ_destroy (app->mq);
+    app->mq = NULL;
+  }
+
+  app->reconnect_task = GNUNET_SCHEDULER_add_delayed (app->reconnect_delay,
+                                                      app_reconnect,
+                                                      app);
+  app->reconnect_delay = GNUNET_TIME_STD_BACKOFF (app->reconnect_delay);
+}
+
+
+static void
+app_connect (struct GNUNET_SOCIAL_App *app)
+{
+  GNUNET_MQ_hd_var_size (app_ego,
+                         GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO,
+                         struct AppEgoMessage);
+
+  GNUNET_MQ_hd_fixed_size (app_ego_end,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END,
+                           struct GNUNET_MessageHeader);
+
+  GNUNET_MQ_hd_var_size (app_place,
+                         GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE,
+                         struct AppPlaceMessage);
+
+  GNUNET_MQ_hd_fixed_size (app_place_end,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END,
+                           struct GNUNET_MessageHeader);
+
+  GNUNET_MQ_hd_var_size (app_result,
+                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                         struct GNUNET_OperationResultMessage);
+
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    make_app_ego_handler (app),
+    make_app_ego_end_handler (app),
+    make_app_place_handler (app),
+    make_app_place_end_handler (app),
+    make_app_result_handler (app),
+    GNUNET_MQ_handler_end ()
+  };
+
+  app->mq = GNUNET_CLIENT_connecT (app->cfg, "social",
+                                   handlers, app_disconnected, app);
+  GNUNET_assert (NULL != app->mq);
+  GNUNET_MQ_send_copy (app->mq, app->connect_env);
 }
 
 
@@ -2482,21 +2643,16 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   app->connected_cb = connected_cb;
   app->cb_cls = cls;
   app->egos = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  app->client = GNUNET_CLIENT_MANAGER_connect (cfg, "social",
-                                               app_handlers);
-  GNUNET_CLIENT_MANAGER_set_user_context_ (app->client, app, sizeof (*app));
-
+  app->op = GNUNET_OP_create ();
   app->id = GNUNET_malloc (app_id_size);
   GNUNET_memcpy (app->id, id, app_id_size);
 
-  struct AppConnectRequest *creq = GNUNET_malloc (sizeof (*creq) + app_id_size);
-  creq->header.size = htons (sizeof (*creq) + app_id_size);
-  creq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT);
+  struct AppConnectRequest *creq;
+  app->connect_env = GNUNET_MQ_msg_extra (creq, app_id_size,
+                                          GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT);
   GNUNET_memcpy (&creq[1], app->id, app_id_size);
 
-  app->connect_msg = &creq->header;
-  app_send_connect_msg (app);
-
+  app_connect (app);
   return app;
 }
 
@@ -2516,8 +2672,15 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
                               GNUNET_ContinuationCallback disconnect_cb,
                               void *disconnect_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (app->client, GNUNET_NO,
-                                    disconnect_cb, disconnect_cls);
+  // FIXME: wait till queued messages are sent
+  if (NULL != app->mq)
+  {
+    GNUNET_MQ_destroy (app->mq);
+    app->mq = NULL;
+  }
+
+  if (NULL != disconnect_cb)
+    disconnect_cb (disconnect_cls);
 }
 
 
@@ -2538,11 +2701,12 @@ void
 GNUNET_SOCIAL_app_detach (struct GNUNET_SOCIAL_App *app,
                           struct GNUNET_SOCIAL_Place *plc)
 {
-  struct AppDetachRequest dreq;
-  dreq.header.size = htons (sizeof (dreq));
-  dreq.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH);
-  dreq.place_pub_key = plc->pub_key;
-  GNUNET_CLIENT_MANAGER_transmit_now (plc->client, &dreq.header);
+  struct AppDetachRequest *dreq;
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg (dreq, GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH);
+  dreq->place_pub_key = plc->pub_key;
+
+  GNUNET_MQ_send (app->mq, env);
 }
 
 

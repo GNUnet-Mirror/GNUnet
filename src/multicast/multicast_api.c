@@ -76,6 +76,11 @@ struct GNUNET_MULTICAST_Group
   struct GNUNET_MQ_Handle *mq;
 
   /**
+   * Message to send on connect.
+   */
+  struct GNUNET_MQ_Envelope *connect_env;
+
+  /**
    * Time to wait until we try to reconnect on failure.
    */
   struct GNUNET_TIME_Relative reconnect_delay;
@@ -84,11 +89,6 @@ struct GNUNET_MULTICAST_Group
    * Task for reconnecting when the listener fails.
    */
   struct GNUNET_SCHEDULER_Task *reconnect_task;
-
-  /**
-   * Message to send on connect.
-   */
-  struct GNUNET_MQ_Envelope *connect_env;
 
   GNUNET_MULTICAST_JoinRequestCallback join_req_cb;
   GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
@@ -522,7 +522,7 @@ handle_member_join_decision (void *cls,
 static void
 group_cleanup (struct GNUNET_MULTICAST_Group *grp)
 {
-  GNUNET_free (grp->connect_env);
+  GNUNET_MQ_discard (grp->connect_env);
   if (NULL != grp->disconnect_cb)
     grp->disconnect_cb (grp->disconnect_cls);
 }
@@ -724,7 +724,7 @@ origin_disconnected (void *cls, enum GNUNET_MQ_Error error)
   }
 
   grp->reconnect_task = GNUNET_SCHEDULER_add_delayed (grp->reconnect_delay,
-                                                      &origin_reconnect,
+                                                      origin_reconnect,
                                                       orig);
   grp->reconnect_delay = GNUNET_TIME_STD_BACKOFF (grp->reconnect_delay);
 }
@@ -829,10 +829,11 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   grp->connect_env = GNUNET_MQ_msg (start,
                                     GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START);
   start->max_fragment_id = max_fragment_id;
-  GNUNET_memcpy (&start->group_key, priv_key, sizeof (*priv_key));
+  start->group_key = *priv_key;
 
-  grp->is_origin = GNUNET_YES;
   grp->cfg = cfg;
+  grp->is_origin = GNUNET_YES;
+  grp->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
 
   grp->cb_cls = cls;
   grp->join_req_cb = join_request_cb;
@@ -1024,7 +1025,7 @@ member_disconnected (void *cls, enum GNUNET_MQ_Error error)
   grp->mq = NULL;
 
   grp->reconnect_task = GNUNET_SCHEDULER_add_delayed (grp->reconnect_delay,
-                                                      &member_reconnect,
+                                                      member_reconnect,
                                                       mem);
   grp->reconnect_delay = GNUNET_TIME_STD_BACKOFF (grp->reconnect_delay);
 }
@@ -1162,9 +1163,9 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (0 < join_msg_size)
     GNUNET_memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
 
-  grp->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
-  grp->is_origin = GNUNET_NO;
   grp->cfg = cfg;
+  grp->is_origin = GNUNET_NO;
+  grp->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
 
   mem->join_dcsn_cb = join_decision_cb;
   grp->join_req_cb = join_request_cb;
