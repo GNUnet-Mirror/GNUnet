@@ -548,29 +548,17 @@ channel_cleanup (struct GNUNET_PSYC_Channel *chn)
     GNUNET_MQ_discard (chn->connect_env);
     chn->connect_env = NULL;
   }
+  if (NULL != chn->mq)
+  {
+    GNUNET_MQ_destroy (chn->mq);
+    chn->mq = NULL;
+  }
   if (NULL != chn->disconnect_cb)
   {
     chn->disconnect_cb (chn->disconnect_cls);
     chn->disconnect_cb = NULL;
   }
-}
-
-
-static void
-master_cleanup (void *cls)
-{
-  struct GNUNET_PSYC_Master *mst = cls;
-  channel_cleanup (&mst->chn);
-  GNUNET_free (mst);
-}
-
-
-static void
-slave_cleanup (void *cls)
-{
-  struct GNUNET_PSYC_Slave *slv = cls;
-  channel_cleanup (&slv->chn);
-  GNUNET_free (slv);
+  GNUNET_free (chn);
 }
 
 
@@ -583,11 +571,22 @@ channel_disconnect (struct GNUNET_PSYC_Channel *chn,
   chn->disconnect_cb = cb;
   chn->disconnect_cls = cls;
 
-  // FIXME: wait till queued messages are sent
   if (NULL != chn->mq)
   {
-    GNUNET_MQ_destroy (chn->mq);
-    chn->mq = NULL;
+    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (chn->mq);
+    if (NULL != last)
+    {
+      GNUNET_MQ_notify_sent (last,
+                             (GNUNET_MQ_NotifyCallback) channel_cleanup, chn);
+    }
+    else
+    {
+      channel_cleanup (chn);
+    }
+  }
+  else
+  {
+    channel_cleanup (chn);
   }
 }
 
@@ -772,7 +771,6 @@ GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst,
   /* FIXME: send msg to service */
 
   channel_disconnect (chn, stop_cb, stop_cls);
-  master_cleanup (mst);
 }
 
 
@@ -1107,7 +1105,6 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv,
   /* FIXME: send msg to service */
 
   channel_disconnect (chn, part_cb, part_cls);
-  slave_cleanup (slv);
 }
 
 

@@ -359,7 +359,6 @@ struct GNUNET_SOCIAL_LookHandle
 
 struct ZoneAddPlaceHandle
 {
-  struct ZoneAddPlaceRequest *req;
   GNUNET_ResultCallback result_cb;
   void *result_cls;
 };
@@ -1007,6 +1006,28 @@ handle_app_place_end (void *cls,
 }
 
 
+/*** CLEANUP / DISCONNECT ***/
+
+
+static void
+host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+{
+  if (NULL != hst->slicer)
+  {
+    GNUNET_PSYC_slicer_destroy (hst->slicer);
+    hst->slicer = NULL;
+  }
+  GNUNET_free (hst);
+}
+
+
+static void
+guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
+{
+  GNUNET_free (gst);
+}
+
+
 static void
 place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
@@ -1027,32 +1048,59 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
     GNUNET_MQ_discard (plc->connect_env);
     plc->connect_env = NULL;
   }
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
   if (NULL != plc->disconnect_cb)
   {
     plc->disconnect_cb (plc->disconnect_cls);
     plc->disconnect_cb = NULL;
   }
+
+  (GNUNET_YES == plc->is_host)
+    ? host_cleanup ((struct GNUNET_SOCIAL_Host *) plc)
+    : guest_cleanup ((struct GNUNET_SOCIAL_Guest *) plc);
 }
 
 
-static void
-host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+void
+place_disconnect (struct GNUNET_SOCIAL_Place *plc,
+                  GNUNET_ContinuationCallback disconnect_cb,
+                  void *disconnect_cls)
 {
-  place_cleanup (&hst->plc);
-  if (NULL != hst->slicer)
+  plc->disconnect_cb = disconnect_cb;
+  plc->disconnect_cls = disconnect_cls;
+
+  if (NULL != plc->mq)
   {
-    GNUNET_PSYC_slicer_destroy (hst->slicer);
-    hst->slicer = NULL;
+    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (plc->mq);
+    if (NULL != last)
+    {
+      GNUNET_MQ_notify_sent (last,
+                             (GNUNET_MQ_NotifyCallback) place_cleanup, plc);
+    }
+    else
+    {
+      place_cleanup (plc);
+    }
   }
-  GNUNET_free (hst);
+  else
+  {
+    place_cleanup (plc);
+  }
 }
 
 
-static void
-guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
+void
+place_leave (struct GNUNET_SOCIAL_Place *plc)
 {
-  place_cleanup (&gst->plc);
-  GNUNET_free (gst);
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+
+  GNUNET_MQ_send (plc->mq, env);
 }
 
 
@@ -1518,34 +1566,6 @@ GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *hst)
 }
 
 
-void
-place_leave (struct GNUNET_SOCIAL_Place *plc)
-{
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Envelope *
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
-
-  GNUNET_MQ_send (plc->mq, env);
-}
-
-
-void
-place_disconnect (struct GNUNET_SOCIAL_Place *plc,
-                  GNUNET_ContinuationCallback disconnect_cb,
-                  void *disconnect_cls)
-{
-  plc->disconnect_cb = disconnect_cb;
-  plc->disconnect_cls = disconnect_cls;
-
-  // FIXME: wait till queued messages are sent
-  if (NULL != plc->mq)
-  {
-    GNUNET_MQ_destroy (plc->mq);
-    plc->mq = NULL;
-  }
-}
-
-
 /**
  * Disconnect from a home.
  *
@@ -1560,7 +1580,6 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
                                void *cls)
 {
   place_disconnect (&hst->plc, disconnect_cb, cls);
-  host_cleanup (hst);
 }
 
 
@@ -2016,7 +2035,6 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
                                 void *cls)
 {
   place_disconnect (&gst->plc, disconnect_cb, cls);
-  guest_cleanup (gst);
 }
 
 
@@ -2363,7 +2381,6 @@ op_recv_zone_add_place_result (void *cls, int64_t result,
   if (NULL != add_plc->result_cb)
     add_plc->result_cb (add_plc->result_cls, result, err_msg, err_msg_size);
 
-  GNUNET_free (add_plc->req);
   GNUNET_free (add_plc);
 }
 
@@ -2435,7 +2452,6 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
   GNUNET_memcpy (p, relays, relay_size);
 
   struct ZoneAddPlaceHandle * add_plc = GNUNET_malloc (sizeof (*add_plc));
-  add_plc->req = preq;
   add_plc->result_cb = result_cb;
   add_plc->result_cls = result_cls;
 
@@ -2657,6 +2673,22 @@ GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
+static void
+app_cleanup (struct GNUNET_SOCIAL_App *app)
+{
+  if (NULL != app->mq)
+  {
+    GNUNET_MQ_destroy (app->mq);
+    app->mq = NULL;
+  }
+  if (NULL != app->disconnect_cb)
+  {
+    app->disconnect_cb (app->disconnect_cls);
+    app->disconnect_cb = NULL;
+  }
+  GNUNET_free (app);
+}
+
 /**
  * Disconnect application.
  *
@@ -2672,15 +2704,26 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
                               GNUNET_ContinuationCallback disconnect_cb,
                               void *disconnect_cls)
 {
-  // FIXME: wait till queued messages are sent
+  app->disconnect_cb = disconnect_cb;
+  app->disconnect_cls = disconnect_cls;
+
   if (NULL != app->mq)
   {
-    GNUNET_MQ_destroy (app->mq);
-    app->mq = NULL;
+    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (app->mq);
+    if (NULL != last)
+    {
+      GNUNET_MQ_notify_sent (last,
+                             (GNUNET_MQ_NotifyCallback) app_cleanup, app);
+    }
+    else
+    {
+      app_cleanup (app);
+    }
   }
-
-  if (NULL != disconnect_cb)
-    disconnect_cb (disconnect_cls);
+  else
+  {
+    app_cleanup (app);
+  }
 }
 
 

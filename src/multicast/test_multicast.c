@@ -239,7 +239,7 @@ member_recv_join_request (void *cls,
                           const struct GNUNET_MessageHeader *join_msg,
                           struct GNUNET_MULTICAST_JoinHandle *jh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_recv_join_request()\n", test);
 }
 
@@ -247,7 +247,7 @@ member_recv_join_request (void *cls,
 static void
 origin_stopped (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_stopped()\n", test);
   end ();
 }
@@ -267,7 +267,7 @@ schedule_origin_stop (void *cls)
 static void
 member_parted (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_parted()\n", test);
   member = NULL;
 
@@ -283,7 +283,7 @@ member_parted (void *cls)
 
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Invalid test #%d in member_recv_join_decision()\n", test);
+                "Invalid test #%d in member_parted()\n", test);
     GNUNET_assert (0);
   }
 }
@@ -292,7 +292,7 @@ member_parted (void *cls)
 static void
 schedule_member_part (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: schedule_member_part()\n", test);
   GNUNET_MULTICAST_member_part (member, member_parted, NULL);
 }
@@ -312,7 +312,7 @@ static void
 member_replay_ok ()
 {
   test = TEST_MEMBER_REPLAY_OK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_replay_ok()\n", test);
   replay_fragment_id = 1;
   replay_flags = 1 | 1<<11;
@@ -325,7 +325,7 @@ static void
 member_replay_error ()
 {
   test = TEST_MEMBER_REPLAY_ERROR;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_replay_error()\n", test);
   replay_fragment_id = 1234;
   replay_flags = 11 | 1<<11;
@@ -342,7 +342,7 @@ origin_recv_replay_msg (void *cls,
                         uint64_t flags,
                         struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_recv_replay_msg()\n", test);
   GNUNET_assert (0);
 }
@@ -356,7 +356,7 @@ member_recv_replay_msg (void *cls,
                         uint64_t flags,
                         struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_recv_replay_msg()\n", test);
   GNUNET_assert (0);
 }
@@ -369,7 +369,7 @@ origin_recv_replay_frag (void *cls,
                          uint64_t flags,
                          struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_recv_replay_frag()"
               " - fragment_id=%" PRIu64 " flags=%" PRIu64 "\n",
               test, fragment_id, flags);
@@ -416,7 +416,7 @@ member_recv_replay_frag (void *cls,
                          uint64_t flags,
                          struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_recv_replay_frag()\n", test);
   GNUNET_assert (0);
 }
@@ -427,7 +427,7 @@ origin_recv_request (void *cls,
                      const struct GNUNET_MULTICAST_RequestHeader *req)
 {
   struct OriginClosure *ocls = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_recv_request()\n", test);
   if (++ocls->n != ocls->msgs_expected)
     return;
@@ -446,7 +446,7 @@ static void
 member_to_origin ()
 {
   test = TEST_MEMBER_TO_ORIGIN;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_to_origin()\n", test);
 
   struct TransmitClosure *tmit = &tmit_cls;
@@ -471,7 +471,7 @@ member_recv_message (void *cls,
 {
   struct MemberClosure *mcls = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_recv_message() %u/%u\n",
               test,
               (unsigned int) (mcls->n + 1),
@@ -505,7 +505,7 @@ origin_recv_message (void *cls,
                      const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
   struct OriginClosure *ocls = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_recv_message() %u/%u\n",
               test, ocls->n + 1, ocls->msgs_expected);
   if (++ocls->n != ocls->msgs_expected)
@@ -562,7 +562,7 @@ member_recv_join_decision (void *cls,
                            const struct GNUNET_PeerIdentity *relays,
                            const struct GNUNET_MessageHeader *join_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_recv_join_decision() - is_admitted: %d\n",
               test, is_admitted);
 
@@ -597,7 +597,7 @@ origin_recv_join_request (void *cls,
                           const struct GNUNET_MessageHeader *join_msg,
                           struct GNUNET_MULTICAST_JoinHandle *jh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: origin_recv_join_request()\n", test);
 
   GNUNET_assert (0 == memcmp (mem_key, &member_pub_key, sizeof (member_pub_key)));

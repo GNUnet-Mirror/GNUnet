@@ -522,27 +522,51 @@ handle_member_join_decision (void *cls,
 static void
 group_cleanup (struct GNUNET_MULTICAST_Group *grp)
 {
-  GNUNET_MQ_discard (grp->connect_env);
+  if (NULL != grp->connect_env)
+  {
+    GNUNET_MQ_discard (grp->connect_env);
+    grp->connect_env = NULL;
+  }
+  if (NULL != grp->mq)
+  {
+    GNUNET_MQ_destroy (grp->mq);
+    grp->mq = NULL;
+  }
   if (NULL != grp->disconnect_cb)
+  {
     grp->disconnect_cb (grp->disconnect_cls);
+    grp->disconnect_cb = NULL;
+  }
+  GNUNET_free (grp);
 }
 
 
 static void
-origin_cleanup (void *cls)
+group_disconnect (struct GNUNET_MULTICAST_Group *grp,
+                  GNUNET_ContinuationCallback cb,
+                  void *cls)
 {
-  struct GNUNET_MULTICAST_Origin *orig = cls;
-  group_cleanup (&orig->grp);
-  GNUNET_free (orig);
-}
+  grp->is_disconnecting = GNUNET_YES;
+  grp->disconnect_cb = cb;
+  grp->disconnect_cls = cls;
 
-
-static void
-member_cleanup (void *cls)
-{
-  struct GNUNET_MULTICAST_Member *mem = cls;
-  group_cleanup (&mem->grp);
-  GNUNET_free (mem);
+  if (NULL != grp->mq)
+  {
+    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (grp->mq);
+    if (NULL != last)
+    {
+      GNUNET_MQ_notify_sent (last,
+                             (GNUNET_MQ_NotifyCallback) group_cleanup, grp);
+    }
+    else
+    {
+      group_cleanup (grp);
+    }
+  }
+  else
+  {
+    group_cleanup (grp);
+  }
 }
 
 
@@ -861,17 +885,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig,
 {
   struct GNUNET_MULTICAST_Group *grp = &orig->grp;
 
-  grp->is_disconnecting = GNUNET_YES;
-  grp->disconnect_cb = stop_cb;
-  grp->disconnect_cls = stop_cls;
-
-  // FIXME: wait till queued messages are sent
-  if (NULL != grp->mq)
-  {
-    GNUNET_MQ_destroy (grp->mq);
-    grp->mq = NULL;
-  }
-  origin_cleanup (orig);
+  group_disconnect (grp, stop_cb, stop_cls);
 }
 
 
@@ -1198,23 +1212,13 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p Member parting.\n", mem);
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
 
-  grp->is_disconnecting = GNUNET_YES;
-  grp->disconnect_cb = part_cb;
-  grp->disconnect_cls = part_cls;
-
   mem->join_dcsn_cb = NULL;
   grp->join_req_cb = NULL;
   grp->message_cb = NULL;
   grp->replay_msg_cb = NULL;
   grp->replay_frag_cb = NULL;
 
-  // FIXME: wait till queued messages are sent
-  if (NULL != grp->mq)
-  {
-    GNUNET_MQ_destroy (grp->mq);
-    grp->mq = NULL;
-  }
-  member_cleanup (mem);
+  group_disconnect (grp, part_cb, part_cls);
 }
 
 
