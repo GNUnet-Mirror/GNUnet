@@ -434,14 +434,24 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
 
 
 /**
- * Function to obtain the current envelope from
- * within #GNUNET_MQ_SendImpl implementations.
+ * Function to obtain the current envelope
+ * from within #GNUNET_MQ_SendImpl implementations.
  *
  * @param mq message queue to interrogate
  * @return the current envelope
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ * Function to obtain the last envelope in the queue.
+ *
+ * @param mq message queue to interrogate
+ * @return the last envelope in the queue
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_get_last_envelope (struct GNUNET_MQ_Handle *mq);
 
 
 /**

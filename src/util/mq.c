@@ -82,7 +82,7 @@ struct GNUNET_MQ_Envelope
    * Did the application call #GNUNET_MQ_env_set_options()?
    */
   int have_custom_options;
-  
+
 };
 
 
@@ -159,7 +159,7 @@ struct GNUNET_MQ_Handle
    * #GNUNET_MQ_set_options().  Default is 0.
    */
   const void *default_extra;
-  
+
   /**
    * Flags that were set for this queue by
    * #GNUNET_MQ_set_options().   Default is 0.
@@ -1074,8 +1074,8 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
 
 
 /**
- * Function to obtain the current envelope from
- * within #GNUNET_MQ_SendImpl implementations.
+ * Function to obtain the current envelope
+ * from within #GNUNET_MQ_SendImpl implementations.
  *
  * @param mq message queue to interrogate
  * @return the current envelope
@@ -1084,6 +1084,19 @@ struct GNUNET_MQ_Envelope *
 GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq)
 {
   return mq->current_envelope;
+}
+
+
+/**
+ * Function to obtain the last envelope in the queue.
+ *
+ * @param mq message queue to interrogate
+ * @return the last envelope in the queue
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_get_last_envelope (struct GNUNET_MQ_Handle *mq)
+{
+  return mq->envelope_tail;
 }
 
 
@@ -1119,7 +1132,7 @@ GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
 			   uint64_t *flags)
 {
   struct GNUNET_MQ_Handle *mq = env->parent_queue;
-  
+
   if (GNUNET_YES == env->have_custom_options)
   {
     *flags = env->flags;
