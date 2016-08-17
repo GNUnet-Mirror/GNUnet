@@ -222,6 +222,11 @@ struct Group
   struct GNUNET_HashCode pub_key_hash;
 
   /**
+   * CADET port hash.
+   */
+  struct GNUNET_HashCode cadet_port_hash;
+
+  /**
    * Is this an origin (#GNUNET_YES), or member (#GNUNET_NO)?
    */
   uint8_t is_origin;
@@ -789,7 +794,7 @@ cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
   chn->direction = DIR_OUTGOING;
   chn->join_status = JOIN_WAITING;
   chn->channel = GNUNET_CADET_channel_create (cadet, chn, &chn->peer,
-                                              GC_u2h (GNUNET_APPLICATION_TYPE_MULTICAST),
+                                              &grp->cadet_port_hash,
                                               GNUNET_CADET_OPTION_RELIABLE);
   GNUNET_CONTAINER_multihashmap_put (channels_out, &chn->group_pub_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -895,6 +900,63 @@ cadet_send_parents (struct GNUNET_HashCode *pub_key_hash,
 
 
 /**
+ * New incoming CADET channel.
+ */
+static void *
+cadet_notify_channel_new (void *cls,
+                          struct GNUNET_CADET_Channel *channel,
+                          const struct GNUNET_PeerIdentity *initiator,
+                          const struct GNUNET_HashCode *port,
+                          enum GNUNET_CADET_ChannelOption options)
+{
+  return NULL;
+}
+
+
+/**
+ * CADET channel is being destroyed.
+ */
+static void
+cadet_notify_channel_end (void *cls,
+                          const struct GNUNET_CADET_Channel *channel,
+                          void *ctx)
+{
+  if (NULL == ctx)
+    return;
+
+  struct Channel *chn = ctx;
+  if (NULL != chn->grp)
+  {
+    if (GNUNET_NO == chn->grp->is_origin)
+    {
+      struct Member *mem = (struct Member *) chn->grp;
+      if (chn == mem->origin_channel)
+        mem->origin_channel = NULL;
+    }
+  }
+
+  while (GNUNET_YES == replay_req_remove_cadet (chn));
+
+  GNUNET_free (chn);
+}
+
+
+static void
+group_set_cadet_port_hash (struct Group *grp)
+{
+  struct CadetPort {
+    struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+    uint32_t app_type;
+  } port = {
+    grp->pub_key,
+    GNUNET_APPLICATION_TYPE_MULTICAST,
+  };
+
+  GNUNET_CRYPTO_hash (&port, sizeof (port), &grp->cadet_port_hash);
+}
+
+
+/**
  * Handle a connecting client starting an origin.
  */
 static void
@@ -926,6 +988,10 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
 
     GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    group_set_cadet_port_hash (grp);
+    GNUNET_CADET_open_port (cadet, &grp->cadet_port_hash,
+                            cadet_notify_channel_new, NULL);
+
   }
   else
   {
@@ -984,6 +1050,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     grp->is_origin = GNUNET_NO;
     grp->pub_key = msg->group_pub_key;
     grp->pub_key_hash = pub_key_hash;
+    group_set_cadet_port_hash (grp);
 
     if (NULL == grp_mem)
     {
@@ -1480,48 +1547,6 @@ static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
 
 
 /**
- * New incoming CADET channel.
- */
-static void *
-cadet_notify_channel_new (void *cls,
-                          struct GNUNET_CADET_Channel *channel,
-                          const struct GNUNET_PeerIdentity *initiator,
-                          const struct GNUNET_HashCode *port,
-                          enum GNUNET_CADET_ChannelOption options)
-{
-  return NULL;
-}
-
-
-/**
- * CADET channel is being destroyed.
- */
-static void
-cadet_notify_channel_end (void *cls,
-                          const struct GNUNET_CADET_Channel *channel,
-                          void *ctx)
-{
-  if (NULL == ctx)
-    return;
-
-  struct Channel *chn = ctx;
-  if (NULL != chn->grp)
-  {
-    if (GNUNET_NO == chn->grp->is_origin)
-    {
-      struct Member *mem = (struct Member *) chn->grp;
-      if (chn == mem->origin_channel)
-        mem->origin_channel = NULL;
-    }
-  }
-
-  while (GNUNET_YES == replay_req_remove_cadet (chn));
-
-  GNUNET_free (chn);
-}
-
-
-/**
  * Incoming join request message from CADET.
  */
 int
@@ -1832,8 +1857,6 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
                                 &cadet_notify_channel_end,
                                 cadet_handlers);
   GNUNET_assert (NULL != cadet);
-  GNUNET_CADET_open_port (cadet, GC_u2h (GNUNET_APPLICATION_TYPE_MULTICAST),
-                          &cadet_notify_channel_new, NULL);
 
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, server_handlers);
