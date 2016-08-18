@@ -1155,42 +1155,35 @@ host_connect (struct GNUNET_SOCIAL_Host *hst)
 {
   struct GNUNET_SOCIAL_Place *plc = &hst->plc;
 
-  GNUNET_MQ_hd_fixed_size (host_enter_ack,
-                           GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
-                           struct HostEnterAck);
-
-  GNUNET_MQ_hd_var_size (host_enter_request,
-                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
-                         struct GNUNET_PSYC_JoinRequestMessage);
-
-  GNUNET_MQ_hd_var_size (host_message,
-                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-                         struct GNUNET_PSYC_MessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (place_message_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (place_history_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (place_state_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (place_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-                         struct GNUNET_OperationResultMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_host_enter_ack_handler (hst),
-    make_host_enter_request_handler (hst),
-    make_host_message_handler (plc),
-    make_place_message_ack_handler (plc),
-    make_place_history_result_handler (plc),
-    make_place_state_result_handler (plc),
-    make_place_result_handler (plc),
+    GNUNET_MQ_hd_fixed_size (host_enter_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
+                             struct HostEnterAck,
+                             hst),
+    GNUNET_MQ_hd_var_size (host_enter_request,
+                           GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
+                           struct GNUNET_PSYC_JoinRequestMessage,
+                           hst),
+    GNUNET_MQ_hd_var_size (host_message,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                           struct GNUNET_PSYC_MessageHeader,
+                           hst),
+    GNUNET_MQ_hd_fixed_size (place_message_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
+    GNUNET_MQ_hd_var_size (place_history_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
+    GNUNET_MQ_hd_var_size (place_state_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
+    GNUNET_MQ_hd_var_size (place_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
     GNUNET_MQ_handler_end ()
   };
 
@@ -1664,42 +1657,35 @@ guest_connect (struct GNUNET_SOCIAL_Guest *gst)
 {
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
-  GNUNET_MQ_hd_fixed_size (guest_enter_ack,
-                           GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
-                           struct GNUNET_PSYC_CountersResultMessage);
-
-  GNUNET_MQ_hd_var_size (guest_enter_decision,
-                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
-                         struct GNUNET_PSYC_JoinDecisionMessage);
-
-  GNUNET_MQ_hd_var_size (place_message,
-                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-                         struct GNUNET_PSYC_MessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (place_message_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (place_history_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (place_state_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (place_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-                         struct GNUNET_OperationResultMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_guest_enter_ack_handler (gst),
-    make_guest_enter_decision_handler (gst),
-    make_place_message_handler (plc),
-    make_place_message_ack_handler (plc),
-    make_place_history_result_handler (plc),
-    make_place_state_result_handler (plc),
-    make_place_result_handler (plc),
+    GNUNET_MQ_hd_fixed_size (guest_enter_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
+                             struct GNUNET_PSYC_CountersResultMessage,
+                             gst),
+    GNUNET_MQ_hd_var_size (guest_enter_decision,
+                           GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
+                           struct GNUNET_PSYC_JoinDecisionMessage,
+                           gst),
+    GNUNET_MQ_hd_var_size (place_message,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                           struct GNUNET_PSYC_MessageHeader,
+                           plc),
+    GNUNET_MQ_hd_fixed_size (place_message_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
+    GNUNET_MQ_hd_var_size (place_history_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
+    GNUNET_MQ_hd_var_size (place_state_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
+    GNUNET_MQ_hd_var_size (place_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                           struct GNUNET_OperationResultMessage,
+                           plc),
     GNUNET_MQ_handler_end ()
   };
 
@@ -2579,32 +2565,27 @@ app_disconnected (void *cls, enum GNUNET_MQ_Error error)
 static void
 app_connect (struct GNUNET_SOCIAL_App *app)
 {
-  GNUNET_MQ_hd_var_size (app_ego,
-                         GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO,
-                         struct AppEgoMessage);
-
-  GNUNET_MQ_hd_fixed_size (app_ego_end,
-                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (app_place,
-                         GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE,
-                         struct AppPlaceMessage);
-
-  GNUNET_MQ_hd_fixed_size (app_place_end,
-                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (app_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-                         struct GNUNET_OperationResultMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_app_ego_handler (app),
-    make_app_ego_end_handler (app),
-    make_app_place_handler (app),
-    make_app_place_end_handler (app),
-    make_app_result_handler (app),
+    GNUNET_MQ_hd_var_size (app_ego,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO,
+                           struct AppEgoMessage,
+                           app),
+    GNUNET_MQ_hd_fixed_size (app_ego_end,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END,
+                             struct GNUNET_MessageHeader,
+                             app),
+    GNUNET_MQ_hd_var_size (app_place,
+                           GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE,
+                           struct AppPlaceMessage,
+                           app),
+    GNUNET_MQ_hd_fixed_size (app_place_end,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END,
+                             struct GNUNET_MessageHeader,
+                             app),
+    GNUNET_MQ_hd_var_size (app_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                           struct GNUNET_OperationResultMessage,
+                           app),
     GNUNET_MQ_handler_end ()
   };
 

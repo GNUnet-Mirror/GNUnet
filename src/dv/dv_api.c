@@ -314,23 +314,23 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_DV_ServiceHandle *sh)
 {
-  GNUNET_MQ_hd_fixed_size (connect,
-                           GNUNET_MESSAGE_TYPE_DV_CONNECT,
-                           struct GNUNET_DV_ConnectMessage);
-  GNUNET_MQ_hd_fixed_size (disconnect,
-                           GNUNET_MESSAGE_TYPE_DV_DISCONNECT,
-                           struct GNUNET_DV_DisconnectMessage);
-  GNUNET_MQ_hd_fixed_size (distance_update,
-                           GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED,
-                           struct GNUNET_DV_DistanceUpdateMessage);
-  GNUNET_MQ_hd_var_size (received,
-                         GNUNET_MESSAGE_TYPE_DV_RECV,
-                         struct GNUNET_DV_ReceivedMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_connect_handler (sh),
-    make_disconnect_handler (sh),
-    make_distance_update_handler (sh),
-    make_received_handler (sh),
+    GNUNET_MQ_hd_fixed_size (connect,
+                             GNUNET_MESSAGE_TYPE_DV_CONNECT,
+                             struct GNUNET_DV_ConnectMessage,
+                             sh),
+    GNUNET_MQ_hd_fixed_size (disconnect,
+                             GNUNET_MESSAGE_TYPE_DV_DISCONNECT,
+                             struct GNUNET_DV_DisconnectMessage,
+                             sh),
+    GNUNET_MQ_hd_fixed_size (distance_update,
+                             GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED,
+                             struct GNUNET_DV_DistanceUpdateMessage,
+                             sh),
+    GNUNET_MQ_hd_var_size (received,
+                           GNUNET_MESSAGE_TYPE_DV_RECV,
+                           struct GNUNET_DV_ReceivedMessage,
+                           sh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *sm;

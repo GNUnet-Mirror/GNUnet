@@ -440,15 +440,15 @@ handle_end_iteration (void *cls,
 static void
 reconnect (struct GNUNET_PEERINFO_Handle *h)
 {
-  GNUNET_MQ_hd_var_size (info,
-                         GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
-                         struct InfoMessage);
-  GNUNET_MQ_hd_fixed_size (end_iteration,
-                           GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_info_handler (h),
-    make_end_iteration_handler (h),
+    GNUNET_MQ_hd_var_size (info,
+                           GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
+                           struct InfoMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (end_iteration,
+                             GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END,
+                             struct GNUNET_MessageHeader,
+                             h),
     GNUNET_MQ_handler_end ()
   };
 

@@ -2298,19 +2298,19 @@ handle_dht_p2p_result (void *cls,
 int
 GDS_NEIGHBOURS_init ()
 {
-  GNUNET_MQ_hd_var_size (dht_p2p_get,
-			 GNUNET_MESSAGE_TYPE_DHT_P2P_GET,
-			 struct PeerGetMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_put,
-			 GNUNET_MESSAGE_TYPE_DHT_P2P_PUT,
-			 struct PeerPutMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_result,
-			 GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT,
-			 struct PeerResultMessage);
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_dht_p2p_get_handler (NULL),
-    make_dht_p2p_put_handler (NULL),
-    make_dht_p2p_result_handler (NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_get,
+                           GNUNET_MESSAGE_TYPE_DHT_P2P_GET,
+                           struct PeerGetMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_put,
+                           GNUNET_MESSAGE_TYPE_DHT_P2P_PUT,
+                           struct PeerPutMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_result,
+                           GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT,
+                           struct PeerResultMessage,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   unsigned long long temp_config_num;

@@ -136,11 +136,11 @@ task (void *cls)
   socklen_t slens[2];
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
-  GNUNET_MQ_hd_fixed_size (bounce,
-                           MY_TYPE,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler chandlers[] = {
-    make_bounce_handler (cls),
+    GNUNET_MQ_hd_fixed_size (bounce,
+                             MY_TYPE,
+                             struct GNUNET_MessageHeader,
+                             cls),
     GNUNET_MQ_handler_end ()
   };
 

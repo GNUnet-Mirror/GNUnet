@@ -323,27 +323,23 @@ do_connect (struct GNUNET_PSYCSTORE_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to PSYCstore service.\n");
 
-  GNUNET_MQ_hd_var_size (result_code,
-                         GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE,
-                         struct OperationResult);
-
-  GNUNET_MQ_hd_fixed_size (result_counters,
-                           GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS,
-                           struct CountersResult);
-
-  GNUNET_MQ_hd_var_size (result_fragment,
-                         GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_FRAGMENT,
-                         struct FragmentResult);
-
-  GNUNET_MQ_hd_var_size (result_state,
-                         GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE,
-                         struct StateResult);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_result_code_handler (h),
-    make_result_counters_handler (h),
-    make_result_fragment_handler (h),
-    make_result_state_handler (h),
+    GNUNET_MQ_hd_var_size (result_code,
+                           GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE,
+                           struct OperationResult,
+                           h),
+    GNUNET_MQ_hd_fixed_size (result_counters,
+                             GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS,
+                             struct CountersResult,
+                             h),
+    GNUNET_MQ_hd_var_size (result_fragment,
+                           GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_FRAGMENT,
+                           struct FragmentResult,
+                           h),
+    GNUNET_MQ_hd_var_size (result_state,
+                           GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE,
+                           struct StateResult,
+                           h),
     GNUNET_MQ_handler_end ()
   };
 

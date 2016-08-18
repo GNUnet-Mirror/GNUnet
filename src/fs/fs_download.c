@@ -1325,12 +1325,12 @@ download_mq_error_handler (void *cls,
 static void
 do_reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (put,
-                         GNUNET_MESSAGE_TYPE_FS_PUT,
-                         struct ClientPutMessage);
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_put_handler (dc),
+    GNUNET_MQ_hd_var_size (put,
+                           GNUNET_MESSAGE_TYPE_FS_PUT,
+                           struct ClientPutMessage,
+                           dc),
     GNUNET_MQ_handler_end ()
   };
 

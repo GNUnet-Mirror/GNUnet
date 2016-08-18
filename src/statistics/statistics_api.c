@@ -646,23 +646,23 @@ handle_statistics_end (void *cls,
 static int
 try_connect (struct GNUNET_STATISTICS_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (test,
-                           GNUNET_MESSAGE_TYPE_TEST,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_fixed_size (statistics_end,
-                           GNUNET_MESSAGE_TYPE_STATISTICS_END,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (statistics_value,
-                         GNUNET_MESSAGE_TYPE_STATISTICS_VALUE,
-                         struct GNUNET_STATISTICS_ReplyMessage);
-  GNUNET_MQ_hd_fixed_size (statistics_watch_value,
-                           GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE,
-                           struct GNUNET_STATISTICS_WatchValueMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_test_handler (h),
-    make_statistics_end_handler (h),
-    make_statistics_value_handler (h),
-    make_statistics_watch_value_handler (h),
+    GNUNET_MQ_hd_fixed_size (test,
+                             GNUNET_MESSAGE_TYPE_TEST,
+                             struct GNUNET_MessageHeader,
+                             h),
+    GNUNET_MQ_hd_fixed_size (statistics_end,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_END,
+                             struct GNUNET_MessageHeader,
+                             h),
+    GNUNET_MQ_hd_var_size (statistics_value,
+                           GNUNET_MESSAGE_TYPE_STATISTICS_VALUE,
+                           struct GNUNET_STATISTICS_ReplyMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (statistics_watch_value,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE,
+                             struct GNUNET_STATISTICS_WatchValueMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_STATISTICS_GetHandle *gh;

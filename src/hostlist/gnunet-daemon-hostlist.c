@@ -296,11 +296,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MQ_hd_var_size (advertisement,
-			 GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
-			 struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler learn_handlers[] = {
-    make_advertisement_handler (NULL),
+    GNUNET_MQ_hd_var_size (advertisement,
+                           GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
+                           struct GNUNET_MessageHeader,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_MessageHandler no_learn_handlers[] = {

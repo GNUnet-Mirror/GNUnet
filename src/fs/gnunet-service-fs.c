@@ -617,22 +617,22 @@ static int
 main_init (struct GNUNET_SERVER_Handle *server,
            const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_MQ_hd_var_size (p2p_get,
-			 GNUNET_MESSAGE_TYPE_FS_GET,
-			 struct GetMessage);
-  GNUNET_MQ_hd_var_size (p2p_put,
-			 GNUNET_MESSAGE_TYPE_FS_PUT,
-			 struct PutMessage);
-  GNUNET_MQ_hd_fixed_size (p2p_migration_stop,
-			   GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
-			   struct MigrationStopMessage);
   struct GNUNET_MQ_MessageHandler no_p2p_handlers[] = {
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_MessageHandler p2p_handlers[] = {
-    make_p2p_get_handler (NULL),
-    make_p2p_put_handler (NULL),
-    make_p2p_migration_stop_handler (NULL),
+    GNUNET_MQ_hd_var_size (p2p_get,
+                           GNUNET_MESSAGE_TYPE_FS_GET,
+                           struct GetMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_put,
+                           GNUNET_MESSAGE_TYPE_FS_PUT,
+                           struct PutMessage,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (p2p_migration_stop,
+                             GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
+                             struct MigrationStopMessage,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {

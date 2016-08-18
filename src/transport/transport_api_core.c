@@ -748,32 +748,32 @@ handle_set_quota (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (hello,
-                         GNUNET_MESSAGE_TYPE_HELLO,
-                         struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_fixed_size (connect,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT,
-                           struct ConnectInfoMessage);
-  GNUNET_MQ_hd_fixed_size (disconnect,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT,
-                           struct DisconnectInfoMessage);
-  GNUNET_MQ_hd_fixed_size (send_ok,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK,
-                           struct SendOkMessage);
-  GNUNET_MQ_hd_var_size (recv,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_RECV,
-                         struct InboundMessage);
-  GNUNET_MQ_hd_fixed_size (set_quota,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA,
-                           struct QuotaSetMessage);
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_hello_handler (h),
-    make_connect_handler (h),
-    make_disconnect_handler (h),
-    make_send_ok_handler (h),
-    make_recv_handler (h),
-    make_set_quota_handler (h),
+    GNUNET_MQ_hd_var_size (hello,
+                           GNUNET_MESSAGE_TYPE_HELLO,
+                           struct GNUNET_MessageHeader,
+                           h),
+    GNUNET_MQ_hd_fixed_size (connect,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT,
+                             struct ConnectInfoMessage,
+                             h),
+    GNUNET_MQ_hd_fixed_size (disconnect,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT,
+                             struct DisconnectInfoMessage,
+                             h),
+    GNUNET_MQ_hd_fixed_size (send_ok,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK,
+                             struct SendOkMessage,
+                             h),
+    GNUNET_MQ_hd_var_size (recv,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_RECV,
+                           struct InboundMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (set_quota,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA,
+                             struct QuotaSetMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

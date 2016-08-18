@@ -1484,16 +1484,16 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_MQ_hd_fixed_size (p2p_estimate,
-			   GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD,
-			   struct GNUNET_NSE_FloodMessage);
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start_message, NULL, GNUNET_MESSAGE_TYPE_NSE_START,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_p2p_estimate_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (p2p_estimate,
+                             GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD,
+                             struct GNUNET_NSE_FloodMessage,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
   char *proof;

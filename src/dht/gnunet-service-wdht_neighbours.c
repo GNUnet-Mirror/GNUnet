@@ -1666,23 +1666,23 @@ handle_dht_p2p_trail_route (void *cls,
 int
 GDS_NEIGHBOURS_init (void)
 {
-  GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk,
-			   GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK,
-			   struct RandomWalkMessage);
-  GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk_response,
-			   GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE,
-			   struct RandomWalkResponseMessage);
-  GNUNET_MQ_hd_fixed_size (dht_p2p_trail_destroy,
-			   GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY,
-			   struct TrailDestroyMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_trail_route,
-			 GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
-			 struct TrailRouteMessage);
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_dht_p2p_random_walk_handler (NULL),
-    make_dht_p2p_random_walk_response_handler (NULL),
-    make_dht_p2p_trail_destroy_handler (NULL),
-    make_dht_p2p_trail_route_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk,
+                             GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK,
+                             struct RandomWalkMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (dht_p2p_random_walk_response,
+                             GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE,
+                             struct RandomWalkResponseMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (dht_p2p_trail_destroy,
+                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY,
+                             struct TrailDestroyMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_trail_route,
+                           GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
+                           struct TrailRouteMessage,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
 

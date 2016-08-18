@@ -767,31 +767,31 @@ handle_send_ready (void *cls,
 static void
 reconnect (struct GNUNET_CORE_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (init_reply,
-                           GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY,
-                           struct InitReplyMessage);
-  GNUNET_MQ_hd_fixed_size (connect_notify,
-                           GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT,
-                           struct ConnectNotifyMessage);
-  GNUNET_MQ_hd_fixed_size (disconnect_notify,
-                           GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT,
-                           struct DisconnectNotifyMessage);
-  GNUNET_MQ_hd_var_size (notify_inbound,
-                         GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND,
-                         struct NotifyTrafficMessage);
-  GNUNET_MQ_hd_var_size (notify_outbound,
-                         GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND,
-                         struct NotifyTrafficMessage);
-  GNUNET_MQ_hd_fixed_size (send_ready,
-                           GNUNET_MESSAGE_TYPE_CORE_SEND_READY,
-                           struct SendMessageReady);
- struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_init_reply_handler (h),
-    make_connect_notify_handler (h),
-    make_disconnect_notify_handler (h),
-    make_notify_inbound_handler (h),
-    make_notify_outbound_handler (h),
-    make_send_ready_handler (h),
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_fixed_size (init_reply,
+                             GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY,
+                             struct InitReplyMessage,
+                             h),
+    GNUNET_MQ_hd_fixed_size (connect_notify,
+                             GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT,
+                             struct ConnectNotifyMessage,
+                             h),
+    GNUNET_MQ_hd_fixed_size (disconnect_notify,
+                             GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT,
+                             struct DisconnectNotifyMessage,
+                             h),
+    GNUNET_MQ_hd_var_size (notify_inbound,
+                           GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND,
+                           struct NotifyTrafficMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (notify_outbound,
+                           GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND,
+                           struct NotifyTrafficMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (send_ready,
+                             GNUNET_MESSAGE_TYPE_CORE_SEND_READY,
+                             struct SendMessageReady,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct InitMessage *init;

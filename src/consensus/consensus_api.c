@@ -202,17 +202,17 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          GNUNET_CONSENSUS_ElementCallback new_element_cb,
                          void *new_element_cls)
 {
-  GNUNET_MQ_hd_var_size (new_element,
-                         GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT,
-                         struct GNUNET_CONSENSUS_ElementMessage);
-  GNUNET_MQ_hd_fixed_size (conclude_done,
-                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_CONSENSUS_Handle *consensus
     = GNUNET_new (struct GNUNET_CONSENSUS_Handle);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_new_element_handler (consensus),
-    make_conclude_done_handler (consensus),
+    GNUNET_MQ_hd_var_size (new_element,
+                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT,
+                           struct GNUNET_CONSENSUS_ElementMessage,
+                           consensus),
+    GNUNET_MQ_hd_fixed_size (conclude_done,
+                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE,
+                             struct GNUNET_MessageHeader,
+                             consensus),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_CONSENSUS_JoinMessage *join_msg;

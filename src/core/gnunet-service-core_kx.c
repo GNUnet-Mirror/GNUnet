@@ -1814,23 +1814,23 @@ int
 GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
              struct GNUNET_SERVER_Handle *server)
 {
-  GNUNET_MQ_hd_fixed_size (ephemeral_key,
-			   GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY,
-			   struct EphemeralKeyMessage);
-  GNUNET_MQ_hd_fixed_size (ping,
-			   GNUNET_MESSAGE_TYPE_CORE_PING,
-			   struct PingMessage);
-  GNUNET_MQ_hd_fixed_size (pong,
-			   GNUNET_MESSAGE_TYPE_CORE_PONG,
-			   struct PongMessage);
-  GNUNET_MQ_hd_var_size (encrypted,
-			 GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE,
-			 struct EncryptedMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_ephemeral_key_handler (NULL),
-    make_ping_handler (NULL),
-    make_pong_handler (NULL),
-    make_encrypted_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (ephemeral_key,
+                             GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY,
+                             struct EphemeralKeyMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (ping,
+                             GNUNET_MESSAGE_TYPE_CORE_PING,
+                             struct PingMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (pong,
+                             GNUNET_MESSAGE_TYPE_CORE_PONG,
+                             struct PongMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (encrypted,
+                           GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE,
+                           struct EncryptedMessage,
+                           NULL),
     GNUNET_MQ_handler_end()
   };
 

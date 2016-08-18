@@ -243,15 +243,15 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
 {
-  GNUNET_MQ_hd_fixed_size (sync,
-                           GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (result,
-                         GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
-                         struct RecordResultMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_sync_handler (zm),
-    make_result_handler (zm),
+    GNUNET_MQ_hd_fixed_size (sync,
+                             GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC,
+                             struct GNUNET_MessageHeader,
+                             zm),
+    GNUNET_MQ_hd_var_size (result,
+                           GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
+                           struct RecordResultMessage,
+                           zm),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

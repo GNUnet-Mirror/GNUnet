@@ -762,32 +762,27 @@ origin_connect (struct GNUNET_MULTICAST_Origin *orig)
 {
   struct GNUNET_MULTICAST_Group *grp = &orig->grp;
 
-  GNUNET_MQ_hd_var_size (group_message,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
-                         struct GNUNET_MULTICAST_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (origin_request,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST,
-                         struct GNUNET_MULTICAST_RequestHeader);
-
-  GNUNET_MQ_hd_fixed_size (group_fragment_ack,
-                           GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (group_join_request,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
-                         struct MulticastJoinRequestMessage);
-
-  GNUNET_MQ_hd_fixed_size (group_replay_request,
-                           GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
-                           struct MulticastReplayRequestMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_group_message_handler (grp),
-    make_origin_request_handler (orig),
-    make_group_fragment_ack_handler (grp),
-    make_group_join_request_handler (grp),
-    make_group_replay_request_handler (grp),
+    GNUNET_MQ_hd_var_size (group_message,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
+                           struct GNUNET_MULTICAST_MessageHeader,
+                           grp),
+    GNUNET_MQ_hd_var_size (origin_request,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST,
+                           struct GNUNET_MULTICAST_RequestHeader,
+                           orig),
+    GNUNET_MQ_hd_fixed_size (group_fragment_ack,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
+                             struct GNUNET_MessageHeader,
+                             grp),
+    GNUNET_MQ_hd_var_size (group_join_request,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
+                           struct MulticastJoinRequestMessage,
+                           grp),
+    GNUNET_MQ_hd_fixed_size (group_replay_request,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
+                             struct MulticastReplayRequestMessage,
+                             grp),
     GNUNET_MQ_handler_end ()
   };
 
@@ -1053,37 +1048,31 @@ member_connect (struct GNUNET_MULTICAST_Member *mem)
 {
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
 
-  GNUNET_MQ_hd_var_size (group_message,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
-                         struct GNUNET_MULTICAST_MessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (group_fragment_ack,
-                           GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (group_join_request,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
-                         struct MulticastJoinRequestMessage);
-
-  GNUNET_MQ_hd_var_size (member_join_decision,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION,
-                         struct MulticastJoinDecisionMessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (group_replay_request,
-                           GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
-                           struct MulticastReplayRequestMessage);
-
-  GNUNET_MQ_hd_var_size (member_replay_response,
-                         GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE,
-                         struct MulticastReplayResponseMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_group_message_handler (grp),
-    make_group_fragment_ack_handler (grp),
-    make_group_join_request_handler (grp),
-    make_member_join_decision_handler (mem),
-    make_group_replay_request_handler (grp),
-    make_member_replay_response_handler (mem),
+    GNUNET_MQ_hd_var_size (group_message,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
+                           struct GNUNET_MULTICAST_MessageHeader,
+                           grp),
+    GNUNET_MQ_hd_fixed_size (group_fragment_ack,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
+                             struct GNUNET_MessageHeader,
+                             grp),
+    GNUNET_MQ_hd_var_size (group_join_request,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
+                           struct MulticastJoinRequestMessage,
+                           grp),
+    GNUNET_MQ_hd_var_size (member_join_decision,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION,
+                           struct MulticastJoinDecisionMessageHeader,
+                           mem),
+    GNUNET_MQ_hd_fixed_size (group_replay_request,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
+                             struct MulticastReplayRequestMessage,
+                             grp),
+    GNUNET_MQ_hd_var_size (member_replay_response,
+                           GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE,
+                           struct MulticastReplayResponseMessage,
+                           mem),
     GNUNET_MQ_handler_end ()
   };
 

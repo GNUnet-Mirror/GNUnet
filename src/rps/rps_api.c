@@ -211,11 +211,11 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_RPS_Handle *h)
 {
-  GNUNET_MQ_hd_var_size (reply,
-                         GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
-                         struct GNUNET_RPS_CS_ReplyMessage);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_reply_handler (h),
+    GNUNET_MQ_hd_var_size (reply,
+                           GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
+                           struct GNUNET_RPS_CS_ReplyMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
 

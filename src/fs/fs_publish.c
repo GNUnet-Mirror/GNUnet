@@ -795,16 +795,16 @@ static void
 hash_for_index_cb (void *cls,
 		   const struct GNUNET_HashCode *res)
 {
-  GNUNET_MQ_hd_fixed_size (index_start_ok,
-                           GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (index_start_failed,
-                         GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED,
-                         struct GNUNET_MessageHeader);
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_index_start_ok_handler (pc),
-    make_index_start_failed_handler (pc),
+    GNUNET_MQ_hd_fixed_size (index_start_ok,
+                             GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK,
+                             struct GNUNET_MessageHeader,
+                             pc),
+    GNUNET_MQ_hd_var_size (index_start_failed,
+                           GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED,
+                           struct GNUNET_MessageHeader,
+                           pc),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_FS_FileInformation *p;
@@ -1003,11 +1003,11 @@ loc_mq_error_handler (void *cls,
 static void
 create_loc_uri (struct GNUNET_FS_PublishContext *pc)
 {
-  GNUNET_MQ_hd_fixed_size (signature_response,
-                           GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE,
-                           struct ResponseLocSignatureMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_signature_response_handler (pc),
+    GNUNET_MQ_hd_fixed_size (signature_response,
+                             GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE,
+                             struct ResponseLocSignatureMessage,
+                             pc),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

@@ -230,13 +230,13 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
                                          GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
                                          void *cont_cls)
 {
-  GNUNET_MQ_hd_var_size (response,
-			 GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT,
-			 struct ClientResponseMessage);
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h
     = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_response_handler (h),
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT,
+                           struct ClientResponseMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
@@ -388,13 +388,13 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
                                         GNUNET_SCALARPRODUCT_DatumProcessor cont,
                                         void *cont_cls)
 {
-  GNUNET_MQ_hd_var_size (response,
-			 GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT,
-			 struct ClientResponseMessage);
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h
     = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_response_handler (h),
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT,
+                           struct ClientResponseMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

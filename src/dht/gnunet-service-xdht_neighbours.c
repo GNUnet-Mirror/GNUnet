@@ -6039,55 +6039,55 @@ finger_table_init ()
 int
 GDS_NEIGHBOURS_init (void)
 {
-  GNUNET_MQ_hd_var_size (dht_p2p_put,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT,
-                         struct PeerPutMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_get,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_GET,
-                         struct PeerGetMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_get_result,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT,
-                         struct PeerGetResultMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_trail_setup,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP,
-                         struct PeerTrailSetupMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_trail_setup_result,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT,
-                         struct PeerTrailSetupResultMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_verify_successor,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR,
-                         struct PeerVerifySuccessorMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_verify_successor_result,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT,
-                         struct PeerVerifySuccessorResultMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_notify_new_successor,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR,
-                         struct PeerNotifyNewSuccessorMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_trail_setup_rejection,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION,
-                         struct PeerTrailRejectionMessage);
-  GNUNET_MQ_hd_fixed_size (dht_p2p_trail_teardown,
-			   GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN,
-			   struct PeerTrailTearDownMessage);
-  GNUNET_MQ_hd_var_size (dht_p2p_add_trail,
-                         GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL,
-                         struct PeerAddTrailMessage);
-  GNUNET_MQ_hd_fixed_size (dht_p2p_notify_succ_confirmation,
-			   GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION,
-			   struct PeerNotifyConfirmationMessage);
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_dht_p2p_put_handler (NULL),
-    make_dht_p2p_get_handler (NULL),
-    make_dht_p2p_get_result_handler (NULL),
-    make_dht_p2p_trail_setup_handler (NULL),
-    make_dht_p2p_trail_setup_result_handler (NULL),
-    make_dht_p2p_verify_successor_handler (NULL),
-    make_dht_p2p_verify_successor_result_handler (NULL),
-    make_dht_p2p_notify_new_successor_handler (NULL),
-    make_dht_p2p_trail_setup_rejection_handler (NULL),
-    make_dht_p2p_trail_teardown_handler (NULL),
-    make_dht_p2p_add_trail_handler (NULL),
-    make_dht_p2p_notify_succ_confirmation_handler (NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_put,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT,
+                           struct PeerPutMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_get,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_GET,
+                           struct PeerGetMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_get_result,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT,
+                           struct PeerGetResultMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_trail_setup,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP,
+                           struct PeerTrailSetupMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_trail_setup_result,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT,
+                           struct PeerTrailSetupResultMessag,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_verify_successor,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR,
+                           struct PeerVerifySuccessorMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_verify_successor_result,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT,
+                           struct PeerVerifySuccessorResultMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_notify_new_successor,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR,
+                           struct PeerNotifyNewSuccessorMessage,
+                           NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_trail_setup_rejection,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION,
+                           struct PeerTrailRejectionMessage,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (dht_p2p_trail_teardown,
+                             GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN,
+                             struct PeerTrailTearDownMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (dht_p2p_add_trail,
+                           GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL,
+                           struct PeerAddTrailMessage,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (dht_p2p_notify_succ_confirmation,
+                             GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION,
+                             struct PeerNotifyConfirmationMessage,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
 

@@ -1234,12 +1234,12 @@ search_mq_error_handler (void *cls,
 static void
 do_reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (result,
-                         GNUNET_MESSAGE_TYPE_FS_PUT,
-                         struct ClientPutMessage);
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_result_handler (sc),
+    GNUNET_MQ_hd_var_size (result,
+                           GNUNET_MESSAGE_TYPE_FS_PUT,
+                           struct ClientPutMessage,
+                           sc),
     GNUNET_MQ_handler_end ()
   };
 

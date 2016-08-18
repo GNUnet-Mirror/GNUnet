@@ -453,19 +453,19 @@ mq_error_handler (void *cls,
 static int
 reconnect_arm (struct GNUNET_ARM_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (arm_result,
-                           GNUNET_MESSAGE_TYPE_ARM_RESULT,
-                           struct GNUNET_ARM_ResultMessage);
-  GNUNET_MQ_hd_var_size (arm_list_result,
-                         GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
-                         struct GNUNET_ARM_ListResultMessage);
-  GNUNET_MQ_hd_fixed_size (confirm,
-                           GNUNET_MESSAGE_TYPE_TEST,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_arm_result_handler (h),
-    make_arm_list_result_handler (h),
-    make_confirm_handler (h),
+    GNUNET_MQ_hd_fixed_size (arm_result,
+                             GNUNET_MESSAGE_TYPE_ARM_RESULT,
+                             struct GNUNET_ARM_ResultMessage,
+                             h),
+    GNUNET_MQ_hd_var_size (arm_list_result,
+                           GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
+                           struct GNUNET_ARM_ListResultMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (confirm,
+                             GNUNET_MESSAGE_TYPE_TEST,
+                             struct GNUNET_MessageHeader,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *test;

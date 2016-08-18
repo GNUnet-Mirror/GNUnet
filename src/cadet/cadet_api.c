@@ -1239,43 +1239,43 @@ handle_get_tunnel (void *cls,
 static int
 do_reconnect (struct GNUNET_CADET_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (channel_created,
-                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
-                           struct GNUNET_CADET_ChannelCreateMessage);
-  GNUNET_MQ_hd_fixed_size (channel_destroy,
-                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
-                           struct GNUNET_CADET_ChannelDestroyMessage);
-  GNUNET_MQ_hd_var_size (local_data,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
-                         struct GNUNET_CADET_LocalData);
-  GNUNET_MQ_hd_fixed_size (local_ack,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
-                           struct GNUNET_CADET_LocalAck);
-  GNUNET_MQ_hd_var_size (get_peers,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
-                         struct GNUNET_CADET_LocalInfoPeer);
-  GNUNET_MQ_hd_var_size (get_peer,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
-                         struct GNUNET_CADET_LocalInfoPeer);
-  GNUNET_MQ_hd_var_size (get_tunnels,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
-                         struct GNUNET_CADET_LocalInfoTunnel);
-  GNUNET_MQ_hd_var_size (get_tunnel,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
-                         struct GNUNET_CADET_LocalInfoTunnel);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_fixed_size (channel_created,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
+                             struct GNUNET_CADET_ChannelCreateMessage,
+                             h),
+    GNUNET_MQ_hd_fixed_size (channel_destroy,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
+                             struct GNUNET_CADET_ChannelDestroyMessage,
+                             h),
+    GNUNET_MQ_hd_var_size (local_data,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
+                           struct GNUNET_CADET_LocalData,
+                           h),
+    GNUNET_MQ_hd_fixed_size (local_ack,
+                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
+                             struct GNUNET_CADET_LocalAck,
+                             h),
+    GNUNET_MQ_hd_var_size (get_peers,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                           struct GNUNET_CADET_LocalInfoPeer,
+                           h),
+    GNUNET_MQ_hd_var_size (get_peer,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
+                           struct GNUNET_CADET_LocalInfoPeer,
+                           h),
+    GNUNET_MQ_hd_var_size (get_tunnels,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+                           struct GNUNET_CADET_LocalInfoTunnel,
+                           h),
+    GNUNET_MQ_hd_var_size (get_tunnel,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
+                           struct GNUNET_CADET_LocalInfoTunnel,
+                           h),
   // FIXME
 //   GNUNET_MQ_hd_fixed_Y       size (channel_destroyed,
 //                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK,
 //                            struct GNUNET_CADET_ChannelDestroyMessage);
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_channel_created_handler (h),
-    make_channel_destroy_handler (h),
-    make_local_data_handler (h),
-    make_local_ack_handler (h),
-    make_get_peers_handler (h),
-    make_get_peer_handler (h),
-    make_get_tunnels_handler (h),
-    make_get_tunnel_handler (h),
     GNUNET_MQ_handler_end ()
   };
 

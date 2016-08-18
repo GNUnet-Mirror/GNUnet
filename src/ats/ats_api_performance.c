@@ -566,19 +566,19 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
 {
-  GNUNET_MQ_hd_var_size (peer_information,
-                         GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION,
-                         struct PeerInformationMessage);
-  GNUNET_MQ_hd_fixed_size (reservation_result,
-                           GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT,
-                           struct ReservationResultMessage);
-  GNUNET_MQ_hd_var_size (address_list,
-                         GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE,
-                         struct PeerInformationMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_peer_information_handler (ph),
-    make_reservation_result_handler (ph),
-    make_address_list_handler (ph),
+    GNUNET_MQ_hd_var_size (peer_information,
+                           GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION,
+                           struct PeerInformationMessage,
+                           ph),
+    GNUNET_MQ_hd_fixed_size (reservation_result,
+                             GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT,
+                             struct ReservationResultMessage,
+                             ph),
+    GNUNET_MQ_hd_var_size (address_list,
+                           GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE,
+                           struct PeerInformationMessage,
+                           ph),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

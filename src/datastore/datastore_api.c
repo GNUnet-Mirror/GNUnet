@@ -848,20 +848,20 @@ handle_data_end (void *cls,
 static void
 try_reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (status,
-                         GNUNET_MESSAGE_TYPE_DATASTORE_STATUS,
-                         struct StatusMessage);
-  GNUNET_MQ_hd_var_size (data,
-                         GNUNET_MESSAGE_TYPE_DATASTORE_DATA,
-                         struct DataMessage);
-  GNUNET_MQ_hd_fixed_size (data_end,
-                           GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_DATASTORE_Handle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_status_handler (h),
-    make_data_handler (h),
-    make_data_end_handler (h),
+    GNUNET_MQ_hd_var_size (status,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_STATUS,
+                           struct StatusMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (data,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_DATA,
+                           struct DataMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (data_end,
+                             GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END,
+                             struct GNUNET_MessageHeader,
+                             h),
     GNUNET_MQ_handler_end ()
   };
 

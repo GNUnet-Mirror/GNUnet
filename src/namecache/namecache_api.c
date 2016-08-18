@@ -324,15 +324,15 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_NAMECACHE_Handle *h)
 {
-  GNUNET_MQ_hd_var_size (lookup_block_response,
-                         GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE,
-                         struct LookupBlockResponseMessage);
-  GNUNET_MQ_hd_fixed_size (block_cache_response,
-                           GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE,
-                           struct BlockCacheResponseMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_lookup_block_response_handler (h),
-    make_block_cache_response_handler (h),
+    GNUNET_MQ_hd_var_size (lookup_block_response,
+                           GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE,
+                           struct LookupBlockResponseMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (block_cache_response,
+                             GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE,
+                             struct BlockCacheResponseMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   GNUNET_assert (NULL == h->mq);

@@ -783,23 +783,23 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_NAMESTORE_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (record_store_response,
-                           GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE,
-                           struct RecordStoreResponseMessage);
-  GNUNET_MQ_hd_var_size (zone_to_name_response,
-                         GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE,
-                         struct ZoneToNameResponseMessage);
-  GNUNET_MQ_hd_var_size (record_result,
-                         GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
-                         struct RecordResultMessage);
-  GNUNET_MQ_hd_var_size (lookup_result,
-                         GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE,
-                         struct LabelLookupResponseMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_record_store_response_handler (h),
-    make_zone_to_name_response_handler (h),
-    make_record_result_handler (h),
-    make_lookup_result_handler (h),
+    GNUNET_MQ_hd_fixed_size (record_store_response,
+                             GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE,
+                             struct RecordStoreResponseMessage,
+                             h),
+    GNUNET_MQ_hd_var_size (zone_to_name_response,
+                           GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE,
+                           struct ZoneToNameResponseMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (record_result,
+                           GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
+                           struct RecordResultMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (lookup_result,
+                           GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE,
+                           struct LabelLookupResponseMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_NAMESTORE_ZoneIterator *it;

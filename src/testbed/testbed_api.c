@@ -1549,49 +1549,49 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                                    GNUNET_TESTBED_ControllerCallback cc,
                                    void *cc_cls)
 {
-  GNUNET_MQ_hd_var_size (add_host_confirm,
-                         GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS,
-                         struct GNUNET_TESTBED_HostConfirmedMessage);
-  GNUNET_MQ_hd_fixed_size (peer_conevent,
-                           GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT,
-                           struct GNUNET_TESTBED_ConnectionEventMessage);
-  GNUNET_MQ_hd_fixed_size (opsuccess,
-                           GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS,
-                           struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);
-  GNUNET_MQ_hd_var_size (op_fail_event,
-                         GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT,
-                         struct GNUNET_TESTBED_OperationFailureEventMessage);
-  GNUNET_MQ_hd_fixed_size (peer_create_success,
-                           GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS,
-                           struct GNUNET_TESTBED_PeerCreateSuccessEventMessage);
-  GNUNET_MQ_hd_fixed_size (peer_event,
-                           GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT,
-                           struct GNUNET_TESTBED_PeerEventMessage);
-  GNUNET_MQ_hd_var_size (peer_config,
-                         GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION,
-                         struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
-  GNUNET_MQ_hd_var_size (slave_config,
-                         GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
-                         struct GNUNET_TESTBED_SlaveConfiguration);
-  GNUNET_MQ_hd_var_size (link_controllers_result,
-                         GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT,
-                         struct GNUNET_TESTBED_ControllerLinkResponse);
-  GNUNET_MQ_hd_var_size (barrier_status,
-                         GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
-                         const struct GNUNET_TESTBED_BarrierStatusMsg);
   struct GNUNET_TESTBED_Controller *controller
     = GNUNET_new (struct GNUNET_TESTBED_Controller);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_add_host_confirm_handler (controller),
-    make_peer_conevent_handler (controller),
-    make_opsuccess_handler (controller),
-    make_op_fail_event_handler (controller),
-    make_peer_create_success_handler (controller),
-    make_peer_event_handler (controller),
-    make_peer_config_handler (controller),
-    make_slave_config_handler (controller),
-    make_link_controllers_result_handler (controller),
-    make_barrier_status_handler (controller),
+    GNUNET_MQ_hd_var_size (add_host_confirm,
+                           GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS,
+                           struct GNUNET_TESTBED_HostConfirmedMessage,
+                           controller),
+    GNUNET_MQ_hd_fixed_size (peer_conevent,
+                             GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT,
+                             struct GNUNET_TESTBED_ConnectionEventMessage,
+                             controller),
+    GNUNET_MQ_hd_fixed_size (opsuccess,
+                             GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS,
+                             struct GNUNET_TESTBED_GenericOperationSuccessEventMessage,
+                             controller),
+    GNUNET_MQ_hd_var_size (op_fail_event,
+                           GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT,
+                           struct GNUNET_TESTBED_OperationFailureEventMessage,
+                           controller),
+    GNUNET_MQ_hd_fixed_size (peer_create_success,
+                             GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS,
+                             struct GNUNET_TESTBED_PeerCreateSuccessEventMessage,
+                             controller),
+    GNUNET_MQ_hd_fixed_size (peer_event,
+                             GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT,
+                             struct GNUNET_TESTBED_PeerEventMessage,
+                             controller),
+    GNUNET_MQ_hd_var_size (peer_config,
+                           GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION,
+                           struct GNUNET_TESTBED_PeerConfigurationInformationMessage,
+                           controller),
+    GNUNET_MQ_hd_var_size (slave_config,
+                           GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
+                           struct GNUNET_TESTBED_SlaveConfiguration,
+                           controller),
+    GNUNET_MQ_hd_var_size (link_controllers_result,
+                           GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT,
+                           struct GNUNET_TESTBED_ControllerLinkResponse,
+                           controller),
+    GNUNET_MQ_hd_var_size (barrier_status,
+                           GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
+                           const struct GNUNET_TESTBED_BarrierStatusMsg,
+                           controller),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_TESTBED_InitMessage *msg;

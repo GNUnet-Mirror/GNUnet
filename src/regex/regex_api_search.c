@@ -155,11 +155,11 @@ mq_error_handler (void *cls,
 static void
 search_reconnect (struct GNUNET_REGEX_Search *s)
 {
-  GNUNET_MQ_hd_var_size (search_response,
-                         GNUNET_MESSAGE_TYPE_REGEX_RESULT,
-                         struct ResultMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_search_response_handler (s),
+    GNUNET_MQ_hd_var_size (search_response,
+                           GNUNET_MESSAGE_TYPE_REGEX_RESULT,
+                           struct ResultMessage,
+                           s),
     GNUNET_MQ_handler_end ()
   };
   size_t slen = strlen (s->string) + 1;

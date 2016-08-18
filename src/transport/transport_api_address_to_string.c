@@ -182,13 +182,13 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
                                     GNUNET_TRANSPORT_AddressToStringCallback aluc,
                                     void *aluc_cls)
 {
-  GNUNET_MQ_hd_var_size (reply,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY,
-                         struct AddressToStringResultMessage);
   struct GNUNET_TRANSPORT_AddressToStringContext *alc
     = GNUNET_new (struct GNUNET_TRANSPORT_AddressToStringContext);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_reply_handler (alc),
+    GNUNET_MQ_hd_var_size (reply,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY,
+                           struct AddressToStringResultMessage,
+                           alc),
     GNUNET_MQ_handler_end ()
   };
   size_t alen;

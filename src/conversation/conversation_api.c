@@ -551,27 +551,27 @@ clean_up_callers (struct GNUNET_CONVERSATION_Phone *phone)
 static void
 reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
 {
-  GNUNET_MQ_hd_fixed_size (phone_ring,
-			   GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING,
-			   struct ClientPhoneRingMessage);
-  GNUNET_MQ_hd_fixed_size (phone_hangup,
-			   GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
-			   struct ClientPhoneHangupMessage);
-  GNUNET_MQ_hd_fixed_size (phone_suspend,
-			   GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
-			   struct ClientPhoneSuspendMessage);
-  GNUNET_MQ_hd_fixed_size (phone_resume,
-			   GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
-			   struct ClientPhoneResumeMessage);
-  GNUNET_MQ_hd_var_size (phone_audio,
-			 GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
-			 struct ClientAudioMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_phone_ring_handler (phone),
-    make_phone_hangup_handler (phone),
-    make_phone_suspend_handler (phone),
-    make_phone_resume_handler (phone),
-    make_phone_audio_handler (phone),
+    GNUNET_MQ_hd_fixed_size (phone_ring,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING,
+                             struct ClientPhoneRingMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_hangup,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+                             struct ClientPhoneHangupMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_suspend,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
+                             struct ClientPhoneSuspendMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_resume,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
+                             struct ClientPhoneResumeMessage,
+                             phone),
+    GNUNET_MQ_hd_var_size (phone_audio,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
+                           struct ClientAudioMessage,
+                           phone),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *e;

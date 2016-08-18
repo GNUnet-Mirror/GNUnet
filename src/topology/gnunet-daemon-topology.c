@@ -1147,11 +1147,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_MQ_hd_var_size (hello,
-			 GNUNET_MESSAGE_TYPE_HELLO,
-			 struct GNUNET_HELLO_Message);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_hello_handler (NULL),
+    GNUNET_MQ_hd_var_size (hello,
+                           GNUNET_MESSAGE_TYPE_HELLO,
+                           struct GNUNET_HELLO_Message,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   unsigned long long opt;

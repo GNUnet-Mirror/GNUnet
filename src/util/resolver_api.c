@@ -722,12 +722,12 @@ loopback_resolution (void *cls)
 static void
 reconnect_task (void *cls)
 {
-  GNUNET_MQ_hd_var_size (response,
-                         GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE,
-                         struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-     make_response_handler (NULL),
-     GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_handler_end ()
   };
 
   r_task = NULL;

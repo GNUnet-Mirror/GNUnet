@@ -543,29 +543,29 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				GNUNET_CONVERSATION_CallEventHandler event_handler,
 				void *event_handler_cls)
 {
-  GNUNET_MQ_hd_fixed_size (call_suspend,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
-                           struct ClientPhoneSuspendMessage);
-  GNUNET_MQ_hd_fixed_size (call_resume,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
-                           struct ClientPhoneResumeMessage);
-  GNUNET_MQ_hd_fixed_size (call_picked_up,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP,
-                           struct ClientPhonePickedupMessage);
-  GNUNET_MQ_hd_fixed_size (call_hangup,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
-                           struct ClientPhoneHangupMessage);
-  GNUNET_MQ_hd_var_size (call_audio,
-                         GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
-                         struct ClientAudioMessage);
   struct GNUNET_CONVERSATION_Call *call
     = GNUNET_new (struct GNUNET_CONVERSATION_Call);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_call_suspend_handler (call),
-    make_call_resume_handler (call),
-    make_call_picked_up_handler (call),
-    make_call_hangup_handler (call),
-    make_call_audio_handler (call),
+    GNUNET_MQ_hd_fixed_size (call_suspend,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
+                             struct ClientPhoneSuspendMessage,
+                             call),
+    GNUNET_MQ_hd_fixed_size (call_resume,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
+                             struct ClientPhoneResumeMessage,
+                             call),
+    GNUNET_MQ_hd_fixed_size (call_picked_up,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP,
+                             struct ClientPhonePickedupMessage,
+                             call),
+    GNUNET_MQ_hd_fixed_size (call_hangup,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+                             struct ClientPhoneHangupMessage,
+                             call),
+    GNUNET_MQ_hd_var_size (call_audio,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
+                           struct ClientAudioMessage,
+                           call),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;

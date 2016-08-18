@@ -198,11 +198,11 @@ mq_error_handler (void *cls,
 static int
 reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
 {
-  GNUNET_MQ_hd_var_size (monitor_notify,
-                         GNUNET_MESSAGE_TYPE_ARM_STATUS,
-                         struct GNUNET_ARM_StatusMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_monitor_notify_handler (h),
+    GNUNET_MQ_hd_var_size (monitor_notify,
+                           GNUNET_MESSAGE_TYPE_ARM_STATUS,
+                           struct GNUNET_ARM_StatusMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *msg;

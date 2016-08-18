@@ -323,27 +323,26 @@ struct GNUNET_MQ_MessageHandler
  *                      const struct GNUNET_MessageTest *msg)
  * { ... }
  *
- * GNUNET_MQ_hd_fixed_size(test_message,
- *                         GNUNET_MESSAGE_TYPE_TEST,
- *                         struct GNUNET_MessageTest);
  * struct GNUNET_MQ_MessageHandler handlers[] = {
- *   make_test_message_handler (NULL),
+ *   GNUNET_MQ_hd_fixed_size(test_message,
+ *                           GNUNET_MESSAGE_TYPE_TEST,
+ *                           struct GNUNET_MessageTest,
+ *                           "context"),
  *   GNUNET_MQ_handler_end()
  * };
  *
  * @param name unique basename for the functions
  * @param code message type constant
  * @param str type of the message (a struct)
+ * @param ctx context for the callbacks
  */
-#define GNUNET_MQ_hd_fixed_size(name,code,str)   \
-  struct GNUNET_MQ_MessageHandler 	                     \
-  make_##name##_handler (void *cls) {                        \
-    void (*cb)(void *cls, const str *msg) = &handle_##name;  \
-    struct GNUNET_MQ_MessageHandler mh = {		     \
-      NULL, (GNUNET_MQ_MessageCallback) cb,                  \
-      cls, code, sizeof (str) };                             \
-    return mh;                                               \
-  }
+#define GNUNET_MQ_hd_fixed_size(name,code,str,ctx)           \
+  ({                                                         \
+    void (*_cb)(void *cls, const str *msg) = &handle_##name; \
+    ((struct GNUNET_MQ_MessageHandler) {                     \
+      NULL, (GNUNET_MQ_MessageCallback) _cb,                 \
+      (ctx), (code), sizeof (str) });                        \
+  })
 
 
 /**
@@ -356,9 +355,6 @@ struct GNUNET_MQ_MessageHandler
  * The macro is to be used as follows:
  * <code>
  * struct GNUNET_MessageTest { ... }; // can be variable size
- * GNUNET_MQ_hd_var_size(test_message,
- *                       GNUNET_MESSAGE_TYPE_TEST,
- *                       struct GNUNET_MessageTest);
  * static int
  * check_test (void *cls,
  *             const struct GNUNET_MessageTest *msg)
@@ -377,25 +373,27 @@ struct GNUNET_MQ_MessageHandler
  * }
  *
  * struct GNUNET_MQ_MessageHandler handlers[] = {
- *   make_test_message_handler ("context"),
+ *   GNUNET_MQ_hd_var_size(test_message,
+ *                         GNUNET_MESSAGE_TYPE_TEST,
+ *                         struct GNUNET_MessageTest,
+ *                         "context"),
  *   GNUNET_MQ_handler_end()
  * };
  *
  * @param name unique basename for the functions
  * @param code message type constant
  * @param str type of the message (a struct)
+ * @param ctx context for the callbacks
  */
-#define GNUNET_MQ_hd_var_size(name,code,str)               \
-  struct GNUNET_MQ_MessageHandler 	                   \
-  make_##name##_handler (void *ctx) { 	                   \
-    int (*mv)(void *cls, const str *msg) = &check_##name;  \
-    void (*cb)(void *cls, const str *msg) = &handle_##name;\
-    struct GNUNET_MQ_MessageHandler mh =                   \
-      { (GNUNET_MQ_MessageValidationCallback) mv,          \
-	(GNUNET_MQ_MessageCallback) cb,                    \
-	ctx, code, sizeof (str) };			   \
-    return mh;                                             \
-  }
+#define GNUNET_MQ_hd_var_size(name,code,str,ctx)             \
+  ({                                                         \
+    int (*_mv)(void *cls, const str *msg) = &check_##name;   \
+    void (*_cb)(void *cls, const str *msg) = &handle_##name; \
+    ((struct GNUNET_MQ_MessageHandler)                       \
+      { (GNUNET_MQ_MessageValidationCallback) _mv,           \
+        (GNUNET_MQ_MessageCallback) _cb,                     \
+        (ctx), (code), sizeof (str) });                      \
+  })
 
 
 /**

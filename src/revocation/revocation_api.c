@@ -113,13 +113,13 @@ GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 GNUNET_REVOCATION_Callback func,
                          void *func_cls)
 {
-  GNUNET_MQ_hd_fixed_size (revocation_query_response,
-                           GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE,
-                           struct QueryResponseMessage);
   struct GNUNET_REVOCATION_Query *q
     = GNUNET_new (struct GNUNET_REVOCATION_Query);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_revocation_query_response_handler (q),
+    GNUNET_MQ_hd_fixed_size (revocation_query_response,
+                             GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE,
+                             struct QueryResponseMessage,
+                             q),
     GNUNET_MQ_handler_end ()
   };
   struct QueryMessage *qm;
@@ -255,13 +255,13 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  GNUNET_REVOCATION_Callback func,
                           void *func_cls)
 {
-  GNUNET_MQ_hd_fixed_size (revocation_response,
-                           GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE,
-                           struct RevocationResponseMessage);
   struct GNUNET_REVOCATION_Handle *h
     = GNUNET_new (struct GNUNET_REVOCATION_Handle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_revocation_response_handler (h),
+    GNUNET_MQ_hd_fixed_size (revocation_response,
+                             GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE,
+                             struct RevocationResponseMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   unsigned long long matching_bits;

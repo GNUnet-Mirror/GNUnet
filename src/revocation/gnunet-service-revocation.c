@@ -777,9 +777,6 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_MQ_hd_fixed_size (p2p_revoke,
-			   GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
-			   struct RevokeMessage);
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_query_message, NULL, GNUNET_MESSAGE_TYPE_REVOCATION_QUERY,
      sizeof (struct QueryMessage)},
@@ -788,7 +785,10 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_p2p_revoke_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (p2p_revoke,
+                             GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
+                             struct RevokeMessage,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
   char *fn;

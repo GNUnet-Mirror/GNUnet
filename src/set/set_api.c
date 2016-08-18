@@ -561,24 +561,24 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  enum GNUNET_SET_OperationType op,
                  const uint32_t *cookie)
 {
-  GNUNET_MQ_hd_var_size (result,
-			 GNUNET_MESSAGE_TYPE_SET_RESULT,
-			 struct GNUNET_SET_ResultMessage);
-  GNUNET_MQ_hd_var_size (iter_element,
-			 GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
-			 struct GNUNET_SET_IterResponseMessage);
-  GNUNET_MQ_hd_fixed_size (iter_done,
-			   GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
-			   struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_fixed_size (copy_lazy,
-			   GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE,
-			   struct GNUNET_SET_CopyLazyResponseMessage);
   struct GNUNET_SET_Handle *set = GNUNET_new (struct GNUNET_SET_Handle);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_result_handler (set),
-    make_iter_element_handler (set),
-    make_iter_done_handler (set),
-    make_copy_lazy_handler (set),
+    GNUNET_MQ_hd_var_size (result,
+                           GNUNET_MESSAGE_TYPE_SET_RESULT,
+                           struct GNUNET_SET_ResultMessage,
+                           set),
+    GNUNET_MQ_hd_var_size (iter_element,
+                           GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
+                           struct GNUNET_SET_IterResponseMessage,
+                           set),
+    GNUNET_MQ_hd_fixed_size (iter_done,
+                             GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
+                             struct GNUNET_MessageHeader,
+                             set),
+    GNUNET_MQ_hd_fixed_size (copy_lazy,
+                             GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE,
+                             struct GNUNET_SET_CopyLazyResponseMessage,
+                             set),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *mqm;
@@ -901,12 +901,12 @@ handle_client_listener_error (void *cls,
 static void
 listen_connect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (request,
-			 GNUNET_MESSAGE_TYPE_SET_REQUEST,
-			 struct GNUNET_SET_RequestMessage);
   struct GNUNET_SET_ListenHandle *lh = cls;
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_request_handler (lh),
+    GNUNET_MQ_hd_var_size (request,
+                           GNUNET_MESSAGE_TYPE_SET_REQUEST,
+                           struct GNUNET_SET_RequestMessage,
+                           lh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *mqm;

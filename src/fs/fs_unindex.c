@@ -288,11 +288,11 @@ unindex_mq_error_handler (void *cls,
 static void
 unindex_finish (struct GNUNET_FS_UnindexContext *uc)
 {
-  GNUNET_MQ_hd_fixed_size (unindex_response,
-                           GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_unindex_response_handler (uc),
+    GNUNET_MQ_hd_fixed_size (unindex_response,
+                             GNUNET_MESSAGE_TYPE_FS_UNINDEX_OK,
+                             struct GNUNET_MessageHeader,
+                             uc),
     GNUNET_MQ_handler_end ()
   };
   char *emsg;

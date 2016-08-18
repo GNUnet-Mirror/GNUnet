@@ -322,12 +322,12 @@ static void
 init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
-  GNUNET_MQ_hd_var_size (test,
-			 MTYPE,
-			 struct TestMessage);
   struct PeerContext *p = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_test_handler (NULL),
+    GNUNET_MQ_hd_var_size (test,
+                           MTYPE,
+                           struct TestMessage,
+                           NULL);
     GNUNET_MQ_handler_end ()
   };
 
@@ -442,11 +442,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MQ_hd_fixed_size (test,
-			   MTYPE,
-			   struct TestMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_test_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (test,
+                             MTYPE,
+                             struct TestMessage,
+                             NULL);
     GNUNET_MQ_handler_end ()
   };
 

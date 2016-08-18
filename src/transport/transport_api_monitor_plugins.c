@@ -372,16 +372,16 @@ mq_error_handler (void *cls,
 static void
 do_plugin_connect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (event,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
-                         struct TransportPluginMonitorMessage);
-  GNUNET_MQ_hd_fixed_size (sync,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_event_handler (pm),
-    make_sync_handler (pm),
+    GNUNET_MQ_hd_var_size (event,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
+                           struct TransportPluginMonitorMessage,
+                           pm),
+    GNUNET_MQ_hd_fixed_size (sync,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC,
+                             struct GNUNET_MessageHeader,
+                             pm),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *msg;

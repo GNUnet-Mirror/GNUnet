@@ -842,27 +842,27 @@ handle_put_confirmation (void *cls,
 static int
 try_connect (struct GNUNET_DHT_Handle *h)
 {
-  GNUNET_MQ_hd_var_size (monitor_get,
-                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
-                         struct GNUNET_DHT_MonitorGetMessage);
-  GNUNET_MQ_hd_var_size (monitor_get_resp,
-                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP,
-                         struct GNUNET_DHT_MonitorGetRespMessage);
-  GNUNET_MQ_hd_var_size (monitor_put,
-                         GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
-                         struct GNUNET_DHT_MonitorPutMessage);
-  GNUNET_MQ_hd_var_size (client_result,
-                         GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT,
-                         struct GNUNET_DHT_ClientResultMessage);
-  GNUNET_MQ_hd_fixed_size (put_confirmation,
-                           GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK,
-                           struct GNUNET_DHT_ClientPutConfirmationMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_monitor_get_handler (h),
-    make_monitor_get_resp_handler (h),
-    make_monitor_put_handler (h),
-    make_client_result_handler (h),
-    make_put_confirmation_handler (h),
+    GNUNET_MQ_hd_var_size (monitor_get,
+                           GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
+                           struct GNUNET_DHT_MonitorGetMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (monitor_get_resp,
+                           GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP,
+                           struct GNUNET_DHT_MonitorGetRespMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (monitor_put,
+                           GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
+                           struct GNUNET_DHT_MonitorPutMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (client_result,
+                           GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT,
+                           struct GNUNET_DHT_ClientResultMessage,
+                           h),
+    GNUNET_MQ_hd_fixed_size (put_confirmation,
+                             GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK,
+                             struct GNUNET_DHT_ClientPutConfirmationMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   if (NULL != h->mq)

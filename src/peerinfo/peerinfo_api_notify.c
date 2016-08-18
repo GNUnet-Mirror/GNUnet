@@ -179,12 +179,12 @@ handle_notification (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (notification,
-                         GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
-                         struct InfoMessage);
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_notification_handler (nc),
+    GNUNET_MQ_hd_var_size (notification,
+                           GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
+                           struct InfoMessage,
+                           nc),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

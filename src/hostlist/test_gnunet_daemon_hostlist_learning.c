@@ -394,11 +394,11 @@ static void
 setup_learn_peer (struct PeerContext *p,
 		  const char *cfgname)
 {
-  GNUNET_MQ_hd_var_size (ad_arrive,
-			 GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
-			 struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler learn_handlers[] = {
-    make_ad_arrive_handler (NULL),
+    GNUNET_MQ_hd_var_size (ad_arrive,
+                           GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
+                           struct GNUNET_MessageHeader,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   char *filename;

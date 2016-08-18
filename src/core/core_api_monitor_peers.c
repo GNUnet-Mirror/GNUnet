@@ -114,11 +114,11 @@ handle_receive_info (void *cls,
 static void
 reconnect (struct GNUNET_CORE_MonitorHandle *mh)
 {
-  GNUNET_MQ_hd_fixed_size (receive_info,
-                           GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
-                           struct MonitorNotifyMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_receive_info_handler (mh),
+    GNUNET_MQ_hd_fixed_size (receive_info,
+                             GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
+                             struct MonitorNotifyMessage,
+                             mh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

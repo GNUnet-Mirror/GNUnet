@@ -348,16 +348,16 @@ static void *
 transport_connect_adapter (void *cls,
                            const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MQ_hd_fixed_size (ping,
-                           TEST_MESSAGE_TYPE_PING,
-                           struct TestMessage);
-  GNUNET_MQ_hd_fixed_size (pong,
-                           TEST_MESSAGE_TYPE_PONG,
-                           struct TestMessage);
   struct BenchmarkPeer *me = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_ping_handler (me),
-    make_pong_handler (me),
+    GNUNET_MQ_hd_fixed_size (ping,
+                             TEST_MESSAGE_TYPE_PING,
+                             struct TestMessage,
+                             me),
+    GNUNET_MQ_hd_fixed_size (pong,
+                             TEST_MESSAGE_TYPE_PONG,
+                             struct TestMessage,
+                             me),
     GNUNET_MQ_handler_end ()
   };
 
@@ -390,16 +390,16 @@ static void *
 core_connect_adapter (void *cls,
 		      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MQ_hd_fixed_size (ping,
-                           TEST_MESSAGE_TYPE_PING,
-                           struct TestMessage);
-  GNUNET_MQ_hd_fixed_size (pong,
-                           TEST_MESSAGE_TYPE_PONG,
-                           struct TestMessage);
   struct BenchmarkPeer *me = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_ping_handler (me),
-    make_pong_handler (me),
+    GNUNET_MQ_hd_fixed_size (ping,
+                             TEST_MESSAGE_TYPE_PING,
+                             struct TestMessage,
+                             me),
+    GNUNET_MQ_hd_fixed_size (pong,
+                             TEST_MESSAGE_TYPE_PONG,
+                             struct TestMessage,
+                             me),
     GNUNET_MQ_handler_end ()
   };
 

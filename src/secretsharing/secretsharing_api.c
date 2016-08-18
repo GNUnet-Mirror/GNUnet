@@ -249,13 +249,13 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      GNUNET_SECRETSHARING_SecretReadyCallback cb,
                                      void *cls)
 {
-  GNUNET_MQ_hd_var_size (secret_ready,
-                         GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY,
-                         struct GNUNET_SECRETSHARING_SecretReadyMessage);
   struct GNUNET_SECRETSHARING_Session *s
     = GNUNET_new (struct GNUNET_SECRETSHARING_Session);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_secret_ready_handler (s),
+    GNUNET_MQ_hd_var_size (secret_ready,
+                           GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY,
+                           struct GNUNET_SECRETSHARING_SecretReadyMessage,
+                           s),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *ev;
@@ -333,13 +333,13 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls)
 {
-  GNUNET_MQ_hd_fixed_size (decrypt_done,
-                           GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE,
-                           struct GNUNET_SECRETSHARING_DecryptResponseMessage);
   struct GNUNET_SECRETSHARING_DecryptionHandle *s
     = GNUNET_new (struct GNUNET_SECRETSHARING_DecryptionHandle);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_decrypt_done_handler (s),
+    GNUNET_MQ_hd_fixed_size (decrypt_done,
+                             GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE,
+                             struct GNUNET_SECRETSHARING_DecryptResponseMessage,
+                             s),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *ev;

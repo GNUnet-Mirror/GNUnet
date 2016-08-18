@@ -205,12 +205,12 @@ handle_request (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (request,
-                         GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST,
-                         struct GNUNET_DNS_Request);
   struct GNUNET_DNS_Handle *dh = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_request_handler (dh),
+    GNUNET_MQ_hd_var_size (request,
+                           GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST,
+                           struct GNUNET_DNS_Request,
+                           dh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

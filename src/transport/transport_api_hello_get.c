@@ -167,12 +167,12 @@ mq_error_handler (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (hello,
-                         GNUNET_MESSAGE_TYPE_HELLO,
-                         struct GNUNET_MessageHeader);
   struct GNUNET_TRANSPORT_HelloGetHandle *ghh = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_hello_handler (ghh),
+    GNUNET_MQ_hd_var_size (hello,
+                           GNUNET_MESSAGE_TYPE_HELLO,
+                           struct GNUNET_MessageHeader,
+                           ghh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

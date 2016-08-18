@@ -135,12 +135,12 @@ handle_estimate (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_fixed_size (estimate,
-                           GNUNET_MESSAGE_TYPE_NSE_ESTIMATE,
-                           struct GNUNET_NSE_ClientMessage);
   struct GNUNET_NSE_Handle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_estimate_handler (h),
+    GNUNET_MQ_hd_fixed_size (estimate,
+                             GNUNET_MESSAGE_TYPE_NSE_ESTIMATE,
+                             struct GNUNET_NSE_ClientMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *msg;

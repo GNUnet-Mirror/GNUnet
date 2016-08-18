@@ -344,16 +344,16 @@ mq_error_handler (void *cls,
 static void
 do_peer_connect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (response,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE,
-                         struct PeerIterateResponseMessage);
-  GNUNET_MQ_hd_fixed_size (response_end,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END,
-                           struct GNUNET_MessageHeader);
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_response_handler (pal_ctx),
-    make_response_end_handler (pal_ctx),
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE,
+                           struct PeerIterateResponseMessage,
+                           pal_ctx),
+    GNUNET_MQ_hd_fixed_size (response_end,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END,
+                             struct GNUNET_MessageHeader,
+                             pal_ctx),
     GNUNET_MQ_handler_end ()
   };
   struct PeerMonitorMessage *msg;

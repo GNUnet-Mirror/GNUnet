@@ -314,11 +314,11 @@ static void
 connect_task (void *cls)
 {
   struct GNUNET_VPN_Handle *vh = cls;
-  GNUNET_MQ_hd_var_size (use_ip,
-                         GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP,
-                         struct RedirectToIpResponseMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_use_ip_handler (cls),
+    GNUNET_MQ_hd_var_size (use_ip,
+                           GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP,
+                           struct RedirectToIpResponseMessage,
+                           cls),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_VPN_RedirectionRequest *rr;

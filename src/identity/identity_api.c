@@ -552,20 +552,20 @@ handle_identity_set_default (void *cls,
 static void
 reconnect (void *cls)
 {
-  GNUNET_MQ_hd_var_size (identity_result_code,
-                         GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
-                         struct GNUNET_IDENTITY_ResultCodeMessage);
-  GNUNET_MQ_hd_var_size (identity_update,
-                         GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE,
-                         struct GNUNET_IDENTITY_UpdateMessage);
-  GNUNET_MQ_hd_var_size (identity_set_default,
-                         GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT,
-                         struct GNUNET_IDENTITY_SetDefaultMessage);
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_identity_result_code_handler (h),
-    make_identity_update_handler (h),
-    make_identity_set_default_handler (h),
+    GNUNET_MQ_hd_var_size (identity_result_code,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
+                           struct GNUNET_IDENTITY_ResultCodeMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (identity_update,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE,
+                           struct GNUNET_IDENTITY_UpdateMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (identity_set_default,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT,
+                           struct GNUNET_IDENTITY_SetDefaultMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

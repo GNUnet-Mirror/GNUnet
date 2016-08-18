@@ -2033,11 +2033,11 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_MQ_hd_var_size (dv_route_message,
-			 GNUNET_MESSAGE_TYPE_DV_ROUTE,
-			 struct RouteMessage);
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
-    make_dv_route_message_handler (NULL),
+    GNUNET_MQ_hd_var_size (dv_route_message,
+                           GNUNET_MESSAGE_TYPE_DV_ROUTE,
+                           struct RouteMessage,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {

@@ -786,19 +786,19 @@ handle_watch_record (void *cls,
 static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
-  GNUNET_MQ_hd_fixed_size (iterate_end,
-                           GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (iterate_result,
-                         GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD,
-                         struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (watch_record,
-                         GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD,
-                         struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    make_iterate_end_handler (h),
-    make_iterate_result_handler (h),
-    make_watch_record_handler (h),
+    GNUNET_MQ_hd_fixed_size (iterate_end,
+                             GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END,
+                             struct GNUNET_MessageHeader,
+                             h),
+    GNUNET_MQ_hd_var_size (iterate_result,
+                           GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD,
+                           struct GNUNET_MessageHeader,
+                           h),
+    GNUNET_MQ_hd_var_size (watch_record,
+                           GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD,
+                           struct GNUNET_MessageHeader,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_PEERSTORE_IterateContext *ic;

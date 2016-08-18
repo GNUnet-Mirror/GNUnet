@@ -169,17 +169,17 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                              GNUNET_FS_IndexedFileProcessor iterator,
                              void *iterator_cls)
 {
-  GNUNET_MQ_hd_fixed_size (index_info_end,
-                           GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END,
-                           struct GNUNET_MessageHeader);
-  GNUNET_MQ_hd_var_size (index_info,
-                         GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY,
-                         struct IndexInfoMessage);
   struct GNUNET_FS_GetIndexedContext *gic
     = GNUNET_new (struct GNUNET_FS_GetIndexedContext);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_index_info_end_handler (gic),
-    make_index_info_handler (gic),
+    GNUNET_MQ_hd_fixed_size (index_info_end,
+                             GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END,
+                             struct GNUNET_MessageHeader,
+                             gic),
+    GNUNET_MQ_hd_var_size (index_info,
+                           GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY,
+                           struct IndexInfoMessage,
+                           gic),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

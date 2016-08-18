@@ -442,12 +442,6 @@ connect_check_run (void *cls,
                    const char *cfgfile,
                    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MQ_hd_var_size (test,
-			 GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
-			 struct GNUNET_TRANSPORT_TESTING_TestMessage);
-  GNUNET_MQ_hd_var_size (test2,
-			 GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
-			 struct GNUNET_TRANSPORT_TESTING_TestMessage);
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
   int ok;
 
@@ -461,8 +455,14 @@ connect_check_run (void *cls,
   for (unsigned int i=0;i<ccc->num_peers;i++)
   {
     struct GNUNET_MQ_MessageHandler handlers[] = {
-      make_test_handler (NULL),
-      make_test2_handler (NULL),
+      GNUNET_MQ_hd_var_size (test,
+                             GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+                             struct GNUNET_TRANSPORT_TESTING_TestMessage,
+                             NULL),
+      GNUNET_MQ_hd_var_size (test2,
+                             GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
+                             struct GNUNET_TRANSPORT_TESTING_TestMessage,
+                             NULL),
       GNUNET_MQ_handler_end()
     };
     ccc->p[i] = GNUNET_TRANSPORT_TESTING_start_peer (ccc->tth,

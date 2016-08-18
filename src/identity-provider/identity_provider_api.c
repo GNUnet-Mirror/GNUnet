@@ -363,15 +363,15 @@ handle_result (void *cls,
 static void
 reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
 {
-  GNUNET_MQ_hd_var_size (result,
-                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT,
-                         struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage);
-  GNUNET_MQ_hd_var_size (exchange_result,
-                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT,
-                         struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_result_handler (h),
-    make_exchange_result_handler (h),
+    GNUNET_MQ_hd_var_size (result,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT,
+                           struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (exchange_result,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT,
+                           struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;

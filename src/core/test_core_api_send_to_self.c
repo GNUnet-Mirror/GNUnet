@@ -150,11 +150,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_MQ_hd_fixed_size (test,
-			   GNUNET_MESSAGE_TYPE_DUMMY,
-			   struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_test_handler (NULL),
+    GNUNET_MQ_hd_fixed_size (test,
+                             GNUNET_MESSAGE_TYPE_DUMMY,
+                             struct GNUNET_MessageHeader,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
 

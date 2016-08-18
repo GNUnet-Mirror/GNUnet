@@ -171,13 +171,13 @@ GNUNET_TESTBED_barrier_wait (const char *name,
                              GNUNET_TESTBED_barrier_wait_cb cb,
                              void *cb_cls)
 {
-  GNUNET_MQ_hd_var_size (status,
-                         GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
-                         struct GNUNET_TESTBED_BarrierStatusMsg);
   struct GNUNET_TESTBED_BarrierWaitHandle *h
     = GNUNET_new (struct GNUNET_TESTBED_BarrierWaitHandle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_status_handler (h),
+    GNUNET_MQ_hd_var_size (status,
+                           GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
+                           struct GNUNET_TESTBED_BarrierStatusMsg,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;

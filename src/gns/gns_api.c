@@ -264,11 +264,11 @@ handle_result (void *cls,
 static void
 reconnect (struct GNUNET_GNS_Handle *handle)
 {
-  GNUNET_MQ_hd_var_size (result,
-                         GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT,
-                         struct GNUNET_GNS_ClientLookupResultMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_result_handler (handle),
+    GNUNET_MQ_hd_var_size (result,
+                           GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT,
+                           struct GNUNET_GNS_ClientLookupResultMessage,
+                           handle),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_GNS_LookupRequest *lh;

@@ -515,15 +515,15 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 static void
 reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
 {
-  GNUNET_MQ_hd_fixed_size (ats_session_release,
-			   GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE,
-			   struct GNUNET_ATS_SessionReleaseMessage);
-  GNUNET_MQ_hd_fixed_size (ats_address_suggestion,
-			   GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
-			   struct AddressSuggestionMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_ats_session_release_handler (sh),
-    make_ats_address_suggestion_handler (sh),
+    GNUNET_MQ_hd_fixed_size (ats_session_release,
+                             GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE,
+                             struct GNUNET_ATS_SessionReleaseMessage,
+                             sh),
+    GNUNET_MQ_hd_fixed_size (ats_address_suggestion,
+                             GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
+                             struct AddressSuggestionMessage,
+                             sh),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *ev;

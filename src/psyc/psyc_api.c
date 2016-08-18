@@ -642,42 +642,35 @@ master_connect (struct GNUNET_PSYC_Master *mst)
 {
   struct GNUNET_PSYC_Channel *chn = &mst->chn;
 
-  GNUNET_MQ_hd_fixed_size (master_start_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK,
-                           struct GNUNET_PSYC_CountersResultMessage);
-
-  GNUNET_MQ_hd_var_size (master_join_request,
-                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
-                         struct GNUNET_PSYC_JoinRequestMessage);
-
-  GNUNET_MQ_hd_var_size (channel_message,
-                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-                         struct GNUNET_PSYC_MessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (channel_message_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (channel_history_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (channel_state_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (channel_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-                         struct GNUNET_OperationResultMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_master_start_ack_handler (mst),
-    make_master_join_request_handler (mst),
-    make_channel_message_handler (chn),
-    make_channel_message_ack_handler (chn),
-    make_channel_history_result_handler (chn),
-    make_channel_state_result_handler (chn),
-    make_channel_result_handler (chn),
+    GNUNET_MQ_hd_fixed_size (master_start_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK,
+                             struct GNUNET_PSYC_CountersResultMessage,
+                             mst),
+    GNUNET_MQ_hd_var_size (master_join_request,
+                           GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
+                           struct GNUNET_PSYC_JoinRequestMessage,
+                           mst),
+    GNUNET_MQ_hd_var_size (channel_message,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                           struct GNUNET_PSYC_MessageHeader,
+                           chn),
+    GNUNET_MQ_hd_fixed_size (channel_message_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                             struct GNUNET_MessageHeader,
+                             chn),
+    GNUNET_MQ_hd_var_size (channel_history_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
+    GNUNET_MQ_hd_var_size (channel_state_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
+    GNUNET_MQ_hd_var_size (channel_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
     GNUNET_MQ_handler_end ()
   };
 
@@ -948,42 +941,35 @@ slave_connect (struct GNUNET_PSYC_Slave *slv)
 {
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
 
-  GNUNET_MQ_hd_fixed_size (slave_join_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK,
-                           struct GNUNET_PSYC_CountersResultMessage);
-
-  GNUNET_MQ_hd_var_size (slave_join_decision,
-                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
-                         struct GNUNET_PSYC_JoinDecisionMessage);
-
-  GNUNET_MQ_hd_var_size (channel_message,
-                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
-                         struct GNUNET_PSYC_MessageHeader);
-
-  GNUNET_MQ_hd_fixed_size (channel_message_ack,
-                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
-                           struct GNUNET_MessageHeader);
-
-  GNUNET_MQ_hd_var_size (channel_history_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (channel_state_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
-                         struct GNUNET_OperationResultMessage);
-
-  GNUNET_MQ_hd_var_size (channel_result,
-                         GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
-                         struct GNUNET_OperationResultMessage);
-
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_slave_join_ack_handler (slv),
-    make_slave_join_decision_handler (slv),
-    make_channel_message_handler (chn),
-    make_channel_message_ack_handler (chn),
-    make_channel_history_result_handler (chn),
-    make_channel_state_result_handler (chn),
-    make_channel_result_handler (chn),
+    GNUNET_MQ_hd_fixed_size (slave_join_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK,
+                             struct GNUNET_PSYC_CountersResultMessage,
+                             slv),
+    GNUNET_MQ_hd_var_size (slave_join_decision,
+                           GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
+                           struct GNUNET_PSYC_JoinDecisionMessage,
+                           slv),
+    GNUNET_MQ_hd_var_size (channel_message,
+                           GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
+                           struct GNUNET_PSYC_MessageHeader,
+                           chn),
+    GNUNET_MQ_hd_fixed_size (channel_message_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
+                             struct GNUNET_MessageHeader,
+                             chn),
+    GNUNET_MQ_hd_var_size (channel_history_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
+    GNUNET_MQ_hd_var_size (channel_state_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
+    GNUNET_MQ_hd_var_size (channel_result,
+                           GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+                           struct GNUNET_OperationResultMessage,
+                           chn),
     GNUNET_MQ_handler_end ()
   };
 

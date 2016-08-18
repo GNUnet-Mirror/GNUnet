@@ -509,11 +509,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
-  GNUNET_MQ_hd_var_size (dummy,
-                         GNUNET_MESSAGE_TYPE_DUMMY,
-                         struct GNUNET_MessageHeader);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_dummy_handler (NULL),
+    GNUNET_MQ_hd_var_size (dummy,
+                           GNUNET_MESSAGE_TYPE_DUMMY,
+                           struct GNUNET_MessageHeader,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   

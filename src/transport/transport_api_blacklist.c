@@ -120,11 +120,11 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  GNUNET_MQ_hd_fixed_size (query,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY,
-                           struct BlacklistMessage);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    make_query_handler (br),
+    GNUNET_MQ_hd_fixed_size (query,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY,
+                             struct BlacklistMessage,
+                             br),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
