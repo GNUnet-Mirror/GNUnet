@@ -1067,11 +1067,11 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 
 void
 place_disconnect (struct GNUNET_SOCIAL_Place *plc,
-                  GNUNET_ContinuationCallback disconnect_cb,
-                  void *disconnect_cls)
+                  GNUNET_ContinuationCallback cb,
+                  void *cls)
 {
-  plc->disconnect_cb = disconnect_cb;
-  plc->disconnect_cls = disconnect_cls;
+  plc->disconnect_cb = cb;
+  plc->disconnect_cls = cls;
 
   if (NULL != plc->mq)
   {
