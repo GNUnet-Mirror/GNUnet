@@ -923,7 +923,7 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Disconnect from the transport service.
  *
- * @param handle handle to the service as returned from #GNUNET_TRANSPORT_connect()
+ * @param handle handle to the service as returned from #GNUNET_TRANSPORT_core_connect()
  */
 void
 GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle)
