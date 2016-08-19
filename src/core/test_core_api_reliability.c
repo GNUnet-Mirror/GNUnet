@@ -159,7 +159,7 @@ do_shutdown (void *cls)
   }
   terminate_peer (&p1);
   terminate_peer (&p2);
-  
+
 }
 
 
@@ -313,7 +313,7 @@ handle_test (void *cls,
     {
       send_message (p1.mq,
 		    tr_n);
-    }  
+    }
   }
 }
 
@@ -327,7 +327,7 @@ init_notify (void *cls,
     GNUNET_MQ_hd_var_size (test,
                            MTYPE,
                            struct TestMessage,
-                           NULL);
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
 
@@ -446,7 +446,7 @@ run (void *cls,
     GNUNET_MQ_hd_fixed_size (test,
                              MTYPE,
                              struct TestMessage,
-                             NULL);
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
 

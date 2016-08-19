@@ -302,7 +302,7 @@ run (void *cls,
     GNUNET_MQ_hd_fixed_size (test,
                              MTYPE,
                              struct GNUNET_MessageHeader,
-                             NULL);
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
 
