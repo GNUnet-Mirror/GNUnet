@@ -6058,7 +6058,7 @@ GDS_NEIGHBOURS_init (void)
                            NULL),
     GNUNET_MQ_hd_var_size (dht_p2p_trail_setup_result,
                            GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT,
-                           struct PeerTrailSetupResultMessag,
+                           struct PeerTrailSetupResultMessage,
                            NULL),
     GNUNET_MQ_hd_var_size (dht_p2p_verify_successor,
                            GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR,
