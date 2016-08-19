@@ -573,11 +573,10 @@ channel_disconnect (struct GNUNET_PSYC_Channel *chn,
 
   if (NULL != chn->mq)
   {
-    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (chn->mq);
-    if (NULL != last)
+    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (chn->mq);
+    if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (last,
-                             (GNUNET_MQ_NotifyCallback) channel_cleanup, chn);
+      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) channel_cleanup, chn);
     }
     else
     {
@@ -619,17 +618,16 @@ master_disconnected (void *cls, enum GNUNET_MQ_Error error)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Master client disconnected (%d), re-connecting\n",
        (int) error);
-  if (NULL != chn->mq)
-  {
-    GNUNET_MQ_destroy (chn->mq);
-    chn->mq = NULL;
-  }
   if (NULL != chn->tmit)
   {
     GNUNET_PSYC_transmit_destroy (chn->tmit);
     chn->tmit = NULL;
   }
-
+  if (NULL != chn->mq)
+  {
+    GNUNET_MQ_destroy (chn->mq);
+    chn->mq = NULL;
+  }
   chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
                                                       master_reconnect,
                                                       mst);
@@ -919,15 +917,15 @@ slave_disconnected (void *cls, enum GNUNET_MQ_Error error)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Slave client disconnected (%d), re-connecting\n",
        (int) error);
-  if (NULL != chn->mq)
-  {
-    GNUNET_MQ_destroy (chn->mq);
-    chn->mq = NULL;
-  }
   if (NULL != chn->tmit)
   {
     GNUNET_PSYC_transmit_destroy (chn->tmit);
     chn->tmit = NULL;
+  }
+  if (NULL != chn->mq)
+  {
+    GNUNET_MQ_destroy (chn->mq);
+    chn->mq = NULL;
   }
   chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
                                                       slave_reconnect,

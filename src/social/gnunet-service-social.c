@@ -507,7 +507,7 @@ cleanup_guest (struct Guest *gst)
   struct Place *plc = &gst->plc;
   struct GNUNET_CONTAINER_MultiHashMap *
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests,
-                                                &plc->pub_key_hash);
+                                                 &plc->pub_key_hash);
   GNUNET_assert (NULL != plc_gst); // FIXME
   GNUNET_CONTAINER_multihashmap_remove (plc_gst, &plc->ego_pub_hash, gst);
 

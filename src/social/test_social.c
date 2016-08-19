@@ -1123,7 +1123,7 @@ host_answer_door (void *cls,
     break;
 
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid test: #%u\n", test);
     GNUNET_assert (0);
   }
 }

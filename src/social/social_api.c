@@ -1075,11 +1075,10 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
 
   if (NULL != plc->mq)
   {
-    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (plc->mq);
-    if (NULL != last)
+    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
+    if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (last,
-                             (GNUNET_MQ_NotifyCallback) place_cleanup, plc);
+      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) place_cleanup, plc);
     }
     else
     {
@@ -1132,15 +1131,15 @@ host_disconnected (void *cls, enum GNUNET_MQ_Error error)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Host client disconnected (%d), re-connecting\n",
        (int) error);
-  if (NULL != plc->mq)
-  {
-    GNUNET_MQ_destroy (plc->mq);
-    plc->mq = NULL;
-  }
   if (NULL != plc->tmit)
   {
     GNUNET_PSYC_transmit_destroy (plc->tmit);
     plc->tmit = NULL;
+  }
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
   }
 
   plc->reconnect_task = GNUNET_SCHEDULER_add_delayed (plc->reconnect_delay,
@@ -1634,15 +1633,15 @@ guest_disconnected (void *cls, enum GNUNET_MQ_Error error)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Guest client disconnected (%d), re-connecting\n",
        (int) error);
-  if (NULL != plc->mq)
-  {
-    GNUNET_MQ_destroy (plc->mq);
-    plc->mq = NULL;
-  }
   if (NULL != plc->tmit)
   {
     GNUNET_PSYC_transmit_destroy (plc->tmit);
     plc->tmit = NULL;
+  }
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
   }
 
   plc->reconnect_task = GNUNET_SCHEDULER_add_delayed (plc->reconnect_delay,
@@ -2690,11 +2689,10 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
 
   if (NULL != app->mq)
   {
-    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (app->mq);
-    if (NULL != last)
+    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (app->mq);
+    if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (last,
-                             (GNUNET_MQ_NotifyCallback) app_cleanup, app);
+      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) app_cleanup, app);
     }
     else
     {
