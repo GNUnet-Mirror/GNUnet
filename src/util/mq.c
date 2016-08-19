@@ -1096,7 +1096,10 @@ GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq)
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_get_last_envelope (struct GNUNET_MQ_Handle *mq)
 {
-  return mq->envelope_tail;
+  if (NULL != mq->envelope_tail)
+    return mq->envelope_tail;
+
+  return mq->current_envelope;
 }
 
 
