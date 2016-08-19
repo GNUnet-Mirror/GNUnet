@@ -163,7 +163,7 @@ connect_notify (void *cls,
   {
     uint64_t flags;
     const void *extra;
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) for transmission to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
@@ -209,7 +209,7 @@ handle_test (void *cls,
 	     const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_PeerIdentity *peer = cls;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving message from `%s'.\n",
               GNUNET_i2s (peer));
@@ -230,7 +230,7 @@ init_notify (void *cls,
     GNUNET_MQ_hd_fixed_size (test,
                              MTYPE,
                              struct GNUNET_MessageHeader,
-                             NULL);
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
 
