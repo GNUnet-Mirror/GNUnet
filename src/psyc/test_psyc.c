@@ -192,7 +192,7 @@ end_normally (void *cls)
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Ending tests.\n");
 
   if (end_badly_task != NULL)
   {
@@ -208,7 +208,7 @@ static void
 master_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_assert (NULL != msg);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Master got PSYC message fragment of size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
               test, ntohs (msg->header.size),
@@ -229,7 +229,7 @@ master_message_part_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg,
   uint16_t type = ntohs (pmsg->type);
   uint16_t size = ntohs (pmsg->size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Master got message part of type %u and size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
               test, type, size, message_id, flags);
@@ -278,7 +278,7 @@ static void
 slave_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_assert (NULL != msg);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Slave got PSYC message fragment of size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
               test, ntohs (msg->header.size),
@@ -300,7 +300,7 @@ slave_message_part_cb (void *cls,
   uint16_t type = ntohs (pmsg->type);
   uint16_t size = ntohs (pmsg->size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Slave got message part of type %u and size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
               test, type, size, message_id, flags);
@@ -349,9 +349,9 @@ static void
 slave_state_get_prefix_result (void *cls, int64_t result,
                                const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_state_get_prefix:\t%" PRId64 " (%.*s)\n",
-              result,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_state_get_prefix:\t%" PRId64 " (%.*s)\n",
+              test, result,
               (int) err_msg_size,
               (const char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
@@ -375,8 +375,9 @@ static void
 master_state_get_prefix_result (void *cls, int64_t result,
                                 const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "master_state_get_prefix:\t%" PRId64 " (%s)\n", result, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: master_state_get_prefix:\t%" PRId64 " (%s)\n",
+              test, result, (char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
   slave_state_get_prefix ();
 }
@@ -398,9 +399,9 @@ static void
 slave_state_get_result (void *cls, int64_t result,
                         const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_state_get:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_state_get:\t%" PRId64 " (%.*s)\n",
+              test, result, err_msg_size, (char *) err_msg);
   // FIXME: GNUNET_assert (2 == result);
   master_state_get_prefix ();
 }
@@ -422,9 +423,9 @@ static void
 master_state_get_result (void *cls, int64_t result,
                          const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "master_state_get:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: master_state_get:\t%" PRId64 " (%.*s)\n",
+              test, result, err_msg_size, (char *) err_msg);
   // FIXME: GNUNET_assert (1 == result);
   slave_state_get ();
 }
@@ -445,9 +446,9 @@ static void
 slave_history_replay_result (void *cls, int64_t result,
                              const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_history_replay:\t%" PRId64 " (%.*s)\n",
-              result,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_history_replay:\t%" PRId64 " (%.*s)\n",
+              test, result,
               (int) err_msg_size,
               (const char *) err_msg);
   GNUNET_assert (9 == result);
@@ -475,9 +476,9 @@ static void
 master_history_replay_result (void *cls, int64_t result,
                               const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "master_history_replay:\t%" PRId64 " (%.*s)\n",
-              result,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: master_history_replay:\t%" PRId64 " (%.*s)\n",
+              test, result,
               (int) err_msg_size,
               (const char *) err_msg);
   GNUNET_assert (9 == result);
@@ -505,9 +506,9 @@ static void
 slave_history_replay_latest_result (void *cls, int64_t result,
                                     const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_history_replay_latest:\t%" PRId64 " (%.*s)\n",
-              result,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_history_replay_latest:\t%" PRId64 " (%.*s)\n",
+              test, result,
               (int) err_msg_size,
               (const char *) err_msg);
   GNUNET_assert (9 == result);
@@ -536,9 +537,9 @@ static void
 master_history_replay_latest_result (void *cls, int64_t result,
                                      const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "master_history_replay_latest:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: master_history_replay_latest:\t%" PRId64 " (%.*s)\n",
+              test, result, err_msg_size, (char *) err_msg);
   GNUNET_assert (9 == result);
 
   slave_history_replay_latest ();
@@ -561,7 +562,8 @@ master_history_replay_latest ()
 static void
 transmit_resume (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%d: Transmission resumed.\n", test);
   struct TransmitClosure *tmit = cls;
   if (NULL != tmit->mst_tmit)
     GNUNET_PSYC_master_transmit_resume (tmit->mst_tmit);
@@ -697,7 +699,7 @@ static void
 slave_transmit ()
 {
   test = TEST_SLAVE_TRANSMIT;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Slave sending request to master.\n", test);
 
   tmit = GNUNET_new (struct TransmitClosure);
@@ -721,9 +723,9 @@ static void
 slave_remove_cb (void *cls, int64_t result,
                  const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_remove:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_remove:\t%" PRId64 " (%.*s)\n",
+              test, result, err_msg_size, (char *) err_msg);
 
   slave_transmit ();
 }
@@ -743,9 +745,9 @@ static void
 slave_add_cb (void *cls, int64_t result,
               const void *err_msg, uint16_t err_msg_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "slave_add:\t%" PRId64 " (%.*s)\n",
-              result, err_msg_size, (char *) err_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: slave_add:\t%" PRId64 " (%.*s)\n",
+              test, result, err_msg_size, (char *) err_msg);
   slave_remove ();
 }
 
@@ -780,7 +782,7 @@ join_decision_cb (void *cls,
                   int is_admitted,
                   const struct GNUNET_PSYC_Message *join_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Slave got join decision: %d\n", test, is_admitted);
 
   switch (test)
@@ -812,7 +814,7 @@ join_request_cb (void *cls,
 {
   struct GNUNET_HashCode slave_key_hash;
   GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Got join request #%u from %s.\n",
               test, join_req_count, GNUNET_h2s (&slave_key_hash));
 
@@ -825,7 +827,7 @@ join_request_cb (void *cls,
 static void
 slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Slave connected: %d, max_message_id: %" PRIu64 "\n",
               test, result, max_message_id);
   GNUNET_assert (TEST_SLAVE_JOIN_REJECT == test || TEST_SLAVE_JOIN_ACCEPT == test);
@@ -837,7 +839,8 @@ static void
 slave_join (int t)
 {
   test = t;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Joining slave.\n", t);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: Joining slave.\n", t);
 
   struct GNUNET_PeerIdentity origin = this_peer;
   struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
@@ -864,7 +867,7 @@ static void
 master_transmit ()
 {
   test = TEST_MASTER_TRANSMIT;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%d: Master sending message to all.\n", test);
   end_count = 0;
 
@@ -931,7 +934,8 @@ static void
 master_start ()
 {
   test = TEST_MASTER_START;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Starting master.\n", test);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%d: Starting master.\n", test);
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
                                   &master_start_cb, &join_request_cb,
                                   &master_message_cb, &master_message_part_cb,
