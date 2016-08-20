@@ -251,6 +251,11 @@ struct Origin
   struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
 
   /**
+   * CADET port.
+   */
+  struct GNUNET_CADET_Port *cadet_port;
+
+  /**
    * Last message fragment ID sent to the group.
    */
   uint64_t max_fragment_id;
@@ -363,6 +368,12 @@ cleanup_origin (struct Origin *orig)
 {
   struct Group *grp = &orig->grp;
   GNUNET_CONTAINER_multihashmap_remove (origins, &grp->pub_key_hash, orig);
+  if (NULL != orig->cadet_port)
+  {
+    GNUNET_CADET_close_port (orig->cadet_port);
+    orig->cadet_port = NULL;
+  }
+  GNUNET_free (orig);
 }
 
 
@@ -391,6 +402,7 @@ cleanup_member (struct Member *mem)
     mem->join_dcsn = NULL;
   }
   GNUNET_CONTAINER_multihashmap_remove (members, &grp->pub_key_hash, mem);
+  GNUNET_free (mem);
 }
 
 
@@ -403,8 +415,6 @@ cleanup_group (struct Group *grp)
   (GNUNET_YES == grp->is_origin)
     ? cleanup_origin ((struct Origin *) grp)
     : cleanup_member ((struct Member *) grp);
-
-  GNUNET_free (grp);
 }
 
 
@@ -951,7 +961,6 @@ group_set_cadet_port_hash (struct Group *grp)
     grp->pub_key,
     GNUNET_APPLICATION_TYPE_MULTICAST,
   };
-
   GNUNET_CRYPTO_hash (&port, sizeof (port), &grp->cadet_port_hash);
 }
 
@@ -988,10 +997,10 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
 
     GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    group_set_cadet_port_hash (grp);
-    GNUNET_CADET_open_port (cadet, &grp->cadet_port_hash,
-                            cadet_notify_channel_new, NULL);
 
+    group_set_cadet_port_hash (grp);
+    orig->cadet_port = GNUNET_CADET_open_port (cadet, &grp->cadet_port_hash,
+                                               cadet_notify_channel_new, NULL);
   }
   else
   {
