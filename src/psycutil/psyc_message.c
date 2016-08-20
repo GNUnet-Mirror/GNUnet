@@ -841,6 +841,9 @@ GNUNET_PSYC_transmit_got_ack (struct GNUNET_PSYC_TransmitHandle *tmit)
   }
   tmit->acks_pending--;
 
+  if (GNUNET_YES == tmit->paused)
+    return;
+
   switch (tmit->state)
   {
   case GNUNET_PSYC_MESSAGE_STATE_MODIFIER:
