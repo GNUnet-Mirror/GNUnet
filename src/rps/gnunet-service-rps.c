@@ -2369,8 +2369,8 @@ run (void *cls,
   pull_map = CustomPeerMap_create (4);
 
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
-  GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
+  //LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
+  //GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
   // TODO send push/pull to each of those peers?
   // TODO read stored valid peers from last run
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting stored valid peers\n");
