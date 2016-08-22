@@ -842,6 +842,10 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   }
 
   /* verify signature (guards against Lenstra's attack with fault injection...) */
+  /* Removed because Lenstra protection was first added to libgcrypt 1.6.4
+   * with commit c17f84bd02d7ee93845e92e20f6ddba814961588.  Do not run with 
+   * an earlier libgcrypt.  Or uncomment if you must.  */
+  /*
   public_key = GNUNET_CRYPTO_rsa_private_key_get_public (key);
   if (0 !=
       gcry_pk_verify (result,
@@ -855,6 +859,7 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
     return NULL;
   }
   GNUNET_CRYPTO_rsa_public_key_free (public_key);
+  */
 
   /* return signature */
   gcry_sexp_release (data);
