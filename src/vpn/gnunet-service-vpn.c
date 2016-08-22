@@ -192,7 +192,7 @@ struct ChannelMessageQueueEntry
   struct ChannelMessageQueueEntry *prev;
 
   /**
-   * Number of bytes in 'msg'.
+   * Number of bytes in @e msg.
    */
   size_t len;
 
@@ -396,7 +396,7 @@ static unsigned long long max_channel_mappings;
 
 /**
  * Compute the key under which we would store an entry in the
- * destination_map for the given IP address.
+ * #destination_map for the given IP address.
  *
  * @param af address family (AF_INET or AF_INET6)
  * @param address IP address, struct in_addr or struct in6_addr
@@ -518,7 +518,9 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
   res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
   res->result_af = htonl (result_af);
   res->request_id = request_id;
-  GNUNET_memcpy (&res[1], addr, rlen);
+  GNUNET_memcpy (&res[1],
+                 addr,
+                 rlen);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
@@ -795,11 +797,12 @@ create_channel_to_destination (struct DestinationChannel *dt,
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
   if (dt->destination->is_service)
   {
-    ts->channel = GNUNET_CADET_channel_create (cadet_handle,
-                                               ts,
-                                               &dt->destination->details.service_destination.target,
-                                               &ts->destination.details.service_destination.service_descriptor,
-                                               GNUNET_CADET_OPTION_DEFAULT);
+    ts->channel
+      = GNUNET_CADET_channel_create (cadet_handle,
+                                     ts,
+                                     &dt->destination->details.service_destination.target,
+                                     &ts->destination.details.service_destination.service_descriptor,
+                                     GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
       GNUNET_break (0);
@@ -810,7 +813,7 @@ create_channel_to_destination (struct DestinationChannel *dt,
 		"Creating channel %p to peer %s offering service %s\n",
                 ts->channel,
 		GNUNET_i2s (&dt->destination->details.service_destination.target),
-		GNUNET_h2s (&dt->destination->details.service_destination.service_descriptor));
+		GNUNET_h2s (&ts->destination.details.service_destination.service_descriptor));
   }
   else
   {
@@ -1169,7 +1172,6 @@ route_packet (struct DestinationEntry *destination,
 	 meaning; if not, we pick a random port (this is a heuristic) */
       usm->source_port = (ntohs (udp->source_port) < 32000) ? udp->source_port : 0;
       usm->destination_port = udp->destination_port;
-      usm->service_descriptor = destination->details.service_destination.service_descriptor;
       GNUNET_memcpy (&usm[1],
                      &udp[1],
                      payload_length - sizeof (struct GNUNET_TUN_UdpHeader));
@@ -1238,7 +1240,6 @@ route_packet (struct DestinationEntry *destination,
 	tsm->header.size = htons ((uint16_t) mlen);
 	tsm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START);
 	tsm->reserved = htonl (0);
-	tsm->service_descriptor = destination->details.service_destination.service_descriptor;
 	tsm->tcp_header = *tcp;
 	GNUNET_memcpy (&tsm[1],
                        &tcp[1],
@@ -1328,7 +1329,6 @@ route_packet (struct DestinationEntry *destination,
       ism = (struct GNUNET_EXIT_IcmpServiceMessage *) &tnq[1];
       ism->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE);
       ism->af = htonl (af); /* need to tell destination ICMP protocol family! */
-      ism->service_descriptor = destination->details.service_destination.service_descriptor;
       ism->icmp_header = *icmp;
       /* ICMP protocol translation will be done by the receiver (as we don't know
 	 the target AF); however, we still need to possibly discard the payload
@@ -2743,11 +2743,14 @@ service_redirect_to_service (void *cls,
 
   /* allocate response IP */
   result_af = (int) htonl (msg->result_af);
-  if (GNUNET_OK != allocate_response_ip (&result_af,
-					 &addr,
-					 &v4, &v6))
+  if (GNUNET_OK !=
+      allocate_response_ip (&result_af,
+                            &addr,
+                            &v4,
+                            &v6))
   {
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   send_client_reply (client,
@@ -2779,8 +2782,8 @@ service_redirect_to_service (void *cls,
   /* setup destination record */
   de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_YES;
-  de->details.service_destination.service_descriptor = msg->service_descriptor;
   de->details.service_destination.target = msg->target;
+  de->details.service_destination.service_descriptor = msg->service_descriptor;
   get_destination_key_from_ip (result_af,
 			       addr,
 			       &key);
@@ -2790,9 +2793,10 @@ service_redirect_to_service (void *cls,
 						    &key,
 						    de,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
-						de,
-						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value_us);
+  de->heap_node
+    = GNUNET_CONTAINER_heap_insert (destination_heap,
+                                    de,
+                                    GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value_us);
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
 
@@ -2802,7 +2806,8 @@ service_redirect_to_service (void *cls,
 			       de->dt_tail,
 			       dt);
   /* we're done */
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -2993,11 +2998,15 @@ run (void *cls,
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "VPN", "MAX_MAPPING",
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "VPN",
+                                             "MAX_MAPPING",
 					     &max_destination_mappings))
     max_destination_mappings = 200;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "VPN", "MAX_TUNNELS",
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "VPN",
+                                             "MAX_TUNNELS",
 					     &max_channel_mappings))
     max_channel_mappings = 200;
 
@@ -3099,10 +3108,11 @@ run (void *cls,
   }
   vpn_argv[6] = NULL;
 
-  cadet_handle =
-    GNUNET_CADET_connect (cfg_, NULL,
-                          &channel_cleaner,
-                          cadet_handlers);
+  cadet_handle
+    = GNUNET_CADET_connect (cfg_,
+                            NULL,
+                            &channel_cleaner,
+                            cadet_handlers);
     // FIXME never opens ports???
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,

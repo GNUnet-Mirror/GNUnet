@@ -37,7 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_EXIT_TcpServiceStartMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START
    */
   struct GNUNET_MessageHeader header;
 
@@ -45,11 +45,6 @@ struct GNUNET_EXIT_TcpServiceStartMessage
    * Always 0.
    */
   uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Identification for the desired service.
-   */
-  struct GNUNET_HashCode service_descriptor;
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
@@ -68,7 +63,7 @@ struct GNUNET_EXIT_TcpServiceStartMessage
 struct GNUNET_EXIT_TcpInternetStartMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START
    */
   struct GNUNET_MessageHeader header;
 
@@ -99,7 +94,7 @@ struct GNUNET_EXIT_TcpInternetStartMessage
 struct GNUNET_EXIT_TcpDataMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_TCP_DATA
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_DATA
    */
   struct GNUNET_MessageHeader header;
 
@@ -125,7 +120,7 @@ struct GNUNET_EXIT_TcpDataMessage
 struct GNUNET_EXIT_UdpServiceMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE
    */
   struct GNUNET_MessageHeader header;
 
@@ -139,11 +134,6 @@ struct GNUNET_EXIT_UdpServiceMessage
    */
   uint16_t destination_port GNUNET_PACKED;
 
-  /**
-   * Identification for the desired service.
-   */
-  struct GNUNET_HashCode service_descriptor;
-
   /* followed by UDP payload */
 };
 
@@ -155,7 +145,7 @@ struct GNUNET_EXIT_UdpServiceMessage
 struct GNUNET_EXIT_UdpInternetMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET
    */
   struct GNUNET_MessageHeader header;
 
@@ -188,7 +178,7 @@ struct GNUNET_EXIT_UdpInternetMessage
 struct GNUNET_EXIT_UdpReplyMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY
    */
   struct GNUNET_MessageHeader header;
 
@@ -215,7 +205,7 @@ struct GNUNET_EXIT_UdpReplyMessage
 struct GNUNET_EXIT_IcmpServiceMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE
    */
   struct GNUNET_MessageHeader header;
 
@@ -226,11 +216,6 @@ struct GNUNET_EXIT_IcmpServiceMessage
    * ICMP version (if possible).
    */
   int32_t af GNUNET_PACKED;
-
-  /**
-   * Identification for the desired service.
-   */
-  struct GNUNET_HashCode service_descriptor;
 
   /**
    * ICMP header to use.
@@ -251,7 +236,7 @@ struct GNUNET_EXIT_IcmpServiceMessage
 struct GNUNET_EXIT_IcmpInternetMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET
    */
   struct GNUNET_MessageHeader header;
 
@@ -286,7 +271,7 @@ struct GNUNET_EXIT_IcmpInternetMessage
 struct GNUNET_EXIT_IcmpToVPNMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN
    */
   struct GNUNET_MessageHeader header;
 
