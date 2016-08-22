@@ -704,7 +704,8 @@ del_monitor (void *cls,
     del_qe = GNUNET_NAMESTORE_records_store (ns,
                                              &zone_pkey,
                                              name,
-                                             0, NULL,
+                                             0,
+                                             NULL,
                                              &del_continuation,
                                              NULL);
     return;
@@ -740,7 +741,8 @@ del_monitor (void *cls,
   del_qe = GNUNET_NAMESTORE_records_store (ns,
                                            &zone_pkey,
                                            name,
-                                           rd_left, rdx,
+                                           rd_left,
+                                           rdx,
                                            &del_continuation,
                                            NULL);
 }
@@ -809,7 +811,9 @@ testservice_task (void *cls,
     type = GNUNET_GNSRECORD_typename_to_number (typestring);
     if (UINT32_MAX == type)
     {
-      fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
+      fprintf (stderr,
+               _("Unsupported type `%s'\n"),
+               typestring);
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
       return;
@@ -829,7 +833,8 @@ testservice_task (void *cls,
 					  &data,
 					  &data_size))
     {
-      fprintf (stderr, _("Value `%s' invalid for record type `%s'\n"),
+      fprintf (stderr,
+               _("Value `%s' invalid for record type `%s'\n"),
 	       value,
 	       typestring);
       GNUNET_SCHEDULER_shutdown ();
@@ -845,7 +850,8 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    if (0 == strcmp (expirationstring, "never"))
+    if (0 == strcmp (expirationstring,
+                     "never"))
     {
       etime_abs = GNUNET_TIME_UNIT_FOREVER_ABS;
       etime_is_rel = GNUNET_NO;

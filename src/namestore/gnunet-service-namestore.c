@@ -830,6 +830,7 @@ handle_record_lookup (void *cls,
   struct RecordLookupContext rlc;
   const char *name_tmp;
   char *res_name;
+  char *conv_name;
   uint32_t name_len;
   size_t src_size;
   size_t res_size;
@@ -857,32 +858,47 @@ handle_record_lookup (void *cls,
   if ('\0' != name_tmp[name_len -1])
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message for name `%s'\n",
-              "NAMESTORE_RECORD_LOOKUP", name_tmp);
+              "Received NAMESTORE_RECORD_LOOKUP message for name `%s'\n",
+              name_tmp);
 
   if (NULL == (client_lookup (client)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
-  rlc.label = name_tmp;
+  conv_name = GNUNET_GNSRECORD_string_to_lowercase (name_tmp);
+  if (NULL == conv_name)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error converting name `%s'\n",
+                name_tmp);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    return;
+  }
+  rlc.label = conv_name;
   rlc.found = GNUNET_NO;
   rlc.res_rd_count = 0;
   rlc.res_rd = NULL;
   rlc.rd_ser_len = 0;
   rlc.nick = get_nick_record (&ll_msg->zone);
-
   res = GSN_database->lookup_records (GSN_database->cls,
-        &ll_msg->zone, name_tmp, &lookup_it, &rlc);
-
+                                      &ll_msg->zone,
+                                      conv_name,
+                                      &lookup_it,
+                                      &rlc);
+  GNUNET_free (conv_name);
   res_size = sizeof (struct LabelLookupResponseMessage) + name_len + rlc.rd_ser_len;
   llr_msg = GNUNET_malloc (res_size);
   llr_msg->gns_header.header.size = htons (res_size);
@@ -897,11 +913,16 @@ handle_record_lookup (void *cls,
     llr_msg->found = ntohs (GNUNET_YES);
   else
     llr_msg->found = ntohs (GNUNET_NO);
-  GNUNET_memcpy (&llr_msg[1], name_tmp, name_len);
-  GNUNET_memcpy (&res_name[name_len], rlc.res_rd, rlc.rd_ser_len);
-
-  GNUNET_SERVER_notification_context_unicast (snc, client, &llr_msg->gns_header.header,
-      GNUNET_NO);
+  GNUNET_memcpy (&llr_msg[1],
+                 name_tmp,
+                 name_len);
+  GNUNET_memcpy (&res_name[name_len],
+                 rlc.res_rd,
+                 rlc.rd_ser_len);
+  GNUNET_SERVER_notification_context_unicast (snc,
+                                              client,
+                                              &llr_msg->gns_header.header,
+                                              GNUNET_NO);
 
   GNUNET_free_non_null (rlc.res_rd);
   GNUNET_free (llr_msg);
@@ -935,8 +956,7 @@ handle_record_store (void *cls,
   struct ZoneMonitor *zm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "NAMESTORE_RECORD_STORE");
+	      "Received NAMESTORE_RECORD_STORE message\n");
   if (ntohs (message->size) < sizeof (struct RecordStoreMessage))
   {
     GNUNET_break (0);
@@ -954,13 +974,15 @@ handle_record_store (void *cls,
   if (msg_size != msg_size_exp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   if ((0 == name_len) || (name_len > MAX_NAME_LEN))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   name_tmp = (const char *) &rp_msg[1];
@@ -968,7 +990,8 @@ handle_record_store (void *cls,
   if ('\0' != name_tmp[name_len -1])
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   (void) client_lookup (client);
@@ -976,21 +999,26 @@ handle_record_store (void *cls,
     struct GNUNET_GNSRECORD_Data rd[rd_count];
 
     if (GNUNET_OK !=
-	GNUNET_GNSRECORD_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
+	GNUNET_GNSRECORD_records_deserialize (rd_ser_len,
+                                              rd_ser,
+                                              rd_count,
+                                              rd))
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
 
     /* Extracting and converting private key */
     GNUNET_CRYPTO_ecdsa_key_get_public (&rp_msg->private_key,
-				      &pubkey);
+                                        &pubkey);
     conv_name = GNUNET_GNSRECORD_string_to_lowercase (name_tmp);
     if (NULL == conv_name)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Error converting name `%s'\n", name_tmp);
+                  "Error converting name `%s'\n",
+                  name_tmp);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -1003,7 +1031,10 @@ handle_record_store (void *cls,
     if ( (0 == rd_count) &&
          (GNUNET_NO ==
           GSN_database->iterate_records (GSN_database->cls,
-                                         &rp_msg->private_key, 0, NULL, 0)) )
+                                         &rp_msg->private_key,
+                                         0,
+                                         NULL,
+                                         0)) )
     {
       /* This name does not exist, so cannot be removed */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1030,7 +1061,8 @@ handle_record_store (void *cls,
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
 					 conv_name,
-					 rd_clean_off, rd_clean);
+					 rd_clean_off,
+                                         rd_clean);
       if (GNUNET_OK == res)
       {
         for (zm = monitor_head; NULL != zm; zm = zm->next)
@@ -1072,14 +1104,18 @@ handle_record_store (void *cls,
                      &rp_msg->private_key,
                      conv_name,
                      rd_count, rd);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_OK);
       GNUNET_free (conv_name);
       return;
     }
     GNUNET_free (conv_name);
   }
-  send_store_response (client, res, rid);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  send_store_response (client,
+                       res,
+                       rid);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -1671,12 +1707,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   namecache = GNUNET_NAMECACHE_connect (cfg);
   /* Loading database plugin */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "namestore", "database",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "namestore",
+                                             "database",
                                              &database))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No database backend configured\n");
 
-  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
-  GSN_database = GNUNET_PLUGIN_load (db_lib_name, (void *) GSN_cfg);
+  GNUNET_asprintf (&db_lib_name,
+                   "libgnunet_plugin_namestore_%s",
+                   database);
+  GSN_database = GNUNET_PLUGIN_load (db_lib_name,
+                                     (void *) GSN_cfg);
   GNUNET_free (database);
   if (NULL == GSN_database)
   {

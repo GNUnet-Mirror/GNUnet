@@ -1026,8 +1026,8 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 
   name_tmp = (char *) &msg[1];
   GNUNET_memcpy (name_tmp,
-          label,
-          name_len);
+                 label,
+                 name_len);
   rd_ser = &name_tmp[name_len];
   GNUNET_assert (rd_ser_len ==
                  GNUNET_GNSRECORD_records_serialize (rd_count,
