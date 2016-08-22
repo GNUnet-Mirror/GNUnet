@@ -921,7 +921,8 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     return;
   GNUNET_assert (GNUNET_NO == h->do_destroy); /* Don't call twice. */
   if ( (sync_first) &&
-       (0 != GNUNET_MQ_get_length (h->mq)) &&
+       (NULL != h->mq) &&
+       (0 != GNUNET_MQ_get_length (h->mq))
        (GNUNET_YES == try_connect (h)) )
   {
     if ( (NULL != h->current) &&
