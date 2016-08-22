@@ -694,6 +694,7 @@ del_monitor (void *cls,
     FPRINTF (stderr,
              _("There are no records under label `%s' that could be deleted.\n"),
              label);
+    ret = 1;
     test_finished ();
     return;
   }
