@@ -2798,19 +2798,24 @@ extern "C"
 /* P2P Messages */
 
 /**
+ * RPS check liveliness message to check liveliness of other peer
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE     950
+
+/**
  * RPS PUSH message to push own ID to another peer
  */
-#define GNUNET_MESSAGE_TYPE_RPS_PP_PUSH           950
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PUSH           951
 
 /**
  * RPS PULL REQUEST message to request the local view of another peer
  */
-#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST   951
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST   952
 
 /**
  * RPS PULL REPLY message which contains the view of the other peer
  */
-#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY     952
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY     953
 
 
 
@@ -2819,28 +2824,28 @@ extern "C"
 /**
  * RPS CS REQUEST Message for the Client to request (a) random peer(s)
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST        953
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST        954
 
 /**
  * RPS CS REPLY Message for the Server to send (a) random peer(s)
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY          954
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY          955
 
 /**
  * RPS CS REQUEST CANCEL Message for the Client to cancel a request
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL 955
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL 956
 
 /**
  * RPS CS SEED Message for the Client to seed peers into rps
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           956
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           957
 
 #ifdef ENABLE_MALICIOUS
 /**
  * Turn RPS service malicious
  */
-#define GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS     957
+#define GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS     958
 
 #endif /* ENABLE_MALICIOUS */
 
