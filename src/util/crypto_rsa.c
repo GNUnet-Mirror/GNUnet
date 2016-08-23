@@ -820,7 +820,6 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
               gcry_mpi_t value)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig;
-  struct GNUNET_CRYPTO_RsaPublicKey *public_key;
   gcry_sexp_t data;
   gcry_sexp_t result;
   int rc;
