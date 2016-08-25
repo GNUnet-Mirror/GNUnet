@@ -137,16 +137,20 @@ create_indices (sqlite3 * dbh)
 {
   /* create indices */
   if ( (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)",
+	sqlite3_exec (dbh,
+                      "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)",
+	sqlite3_exec (dbh,
+                      "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)",
+	sqlite3_exec (dbh,
+                      "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)",
 		      NULL, NULL, NULL)) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
-	 "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
+	 "Failed to create indices: %s\n",
+         sqlite3_errmsg (dbh));
 }
 
 
@@ -178,16 +182,21 @@ database_setup (struct Plugin *plugin)
 #endif
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "namestore-sqlite",
-                                               "FILENAME", &afsdir))
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
+                                               "namestore-sqlite",
+                                               "FILENAME",
+                                               &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "namestore-sqlite", "FILENAME");
+			       "namestore-sqlite",
+                               "FILENAME");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_test (afsdir))
   {
-    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
+    if (GNUNET_OK !=
+        GNUNET_DISK_directory_create_for_file (afsdir))
     {
       GNUNET_break (0);
       GNUNET_free (afsdir);
@@ -206,28 +215,37 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA temp_store=MEMORY", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA temp_store=MEMORY", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA synchronous=NORMAL", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA synchronous=NORMAL", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA legacy_file_format=OFF", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL", NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA auto_vacuum=INCREMENTAL", NULL,
                        NULL, ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"", NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA encoding=\"UTF-8\"", NULL,
                        NULL, ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA page_size=4092", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA page_size=4092", NULL, NULL,
                        ENULL));
 
-  CHECK (SQLITE_OK == sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS));
+  CHECK (SQLITE_OK ==
+         sqlite3_busy_timeout (plugin->dbh,
+                               BUSY_TIMEOUT_MS));
 
 
   /* Create table */
@@ -248,7 +266,8 @@ database_setup (struct Plugin *plugin)
 	")",
 	NULL, NULL, NULL) != SQLITE_OK))
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR,
+                "sqlite3_exec");
     sqlite3_finalize (stmt);
     return GNUNET_SYSERR;
   }
@@ -371,14 +390,17 @@ namestore_sqlite_store_records (void *cls,
   for (i=0;i<rd_count;i++)
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
-      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
+      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) ==
+                    rd[i].data_size);
       GNUNET_memcpy (&pkey,
-              rd[i].data,
-              rd[i].data_size);
+                     rd[i].data,
+                     rd[i].data_size);
       break;
     }
-  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                     UINT64_MAX);
+  data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
+                                                 rd);
   if (data_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -387,17 +409,29 @@ namestore_sqlite_store_records (void *cls,
   {
     char data[data_size];
 
-    if (data_size != GNUNET_GNSRECORD_records_serialize (rd_count, rd,
-							 data_size, data))
+    if (data_size !=
+        GNUNET_GNSRECORD_records_serialize (rd_count,
+                                            rd,
+                                            data_size,
+                                            data))
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
 
     /* First delete 'old' records */
-    if ((SQLITE_OK != sqlite3_bind_blob (plugin->delete_records, 1,
-					 zone_key, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_text (plugin->delete_records, 2, label, -1, SQLITE_STATIC)))
+    if ((SQLITE_OK !=
+         sqlite3_bind_blob (plugin->delete_records,
+                            1,
+                            zone_key,
+                            sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                            SQLITE_STATIC)) ||
+	(SQLITE_OK !=
+         sqlite3_bind_text (plugin->delete_records,
+                            2,
+                            label,
+                            -1,
+                            SQLITE_STATIC)))
     {
       LOG_SQLITE (plugin,
 		  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -416,14 +450,30 @@ namestore_sqlite_store_records (void *cls,
 
     if (0 != rd_count)
     {
-      if ((SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 1,
-					   zone_key, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), SQLITE_STATIC)) ||
-	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 2,
-					   &pkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey), SQLITE_STATIC)) ||
-	  (SQLITE_OK != sqlite3_bind_int64 (plugin->store_records, 3, rvalue)) ||
-	  (SQLITE_OK != sqlite3_bind_int (plugin->store_records, 4, rd_count)) ||
-	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 5, data, data_size, SQLITE_STATIC)) ||
-	  (SQLITE_OK != sqlite3_bind_text (plugin->store_records, 6, label, -1, SQLITE_STATIC)))
+      if ((SQLITE_OK !=
+           sqlite3_bind_blob (plugin->store_records,
+                              1,
+                              zone_key,
+                              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                              SQLITE_STATIC)) ||
+	  (SQLITE_OK !=
+           sqlite3_bind_blob (plugin->store_records,
+                              2,
+                              &pkey,
+                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
+                              SQLITE_STATIC)) ||
+	  (SQLITE_OK !=
+           sqlite3_bind_int64 (plugin->store_records, 3, rvalue)) ||
+	  (SQLITE_OK !=
+           sqlite3_bind_int (plugin->store_records, 4, rd_count)) ||
+	  (SQLITE_OK !=
+           sqlite3_bind_blob (plugin->store_records, 5,
+                              data, data_size,
+                              SQLITE_STATIC)) ||
+	  (SQLITE_OK !=
+           sqlite3_bind_text (plugin->store_records, 6,
+                              label, -1,
+                              SQLITE_STATIC)))
       {
 	LOG_SQLITE (plugin,
 		    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

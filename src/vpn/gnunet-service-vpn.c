@@ -2749,6 +2749,7 @@ service_redirect_to_service (void *cls,
                             &v4,
                             &v6))
   {
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
     return;
@@ -2762,7 +2763,8 @@ service_redirect_to_service (void *cls,
     /* failure, we're done */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to allocate IP address for new destination\n"));
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
 

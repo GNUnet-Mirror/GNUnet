@@ -354,7 +354,8 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
   struct tm tv;
   time_t t;
 
-  if (0 == strcasecmp ("end of time", fancy_time))
+  if (0 == strcasecmp ("end of time",
+                       fancy_time))
   {
     *atime = GNUNET_TIME_UNIT_FOREVER_ABS;
     return GNUNET_OK;

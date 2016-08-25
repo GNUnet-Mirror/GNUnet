@@ -411,7 +411,8 @@ display_record (void *cls,
 					  rd[i].data_size);
     if (NULL == s)
     {
-      FPRINTF (stdout, _("\tCorrupt or unsupported record of type %u\n"),
+      FPRINTF (stdout,
+               _("\tCorrupt or unsupported record of type %u\n"),
 	       (unsigned int) rd[i].record_type);
       continue;
     }
@@ -579,7 +580,9 @@ get_existing_record (void *cls,
     break;
   }
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
-  GNUNET_memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
+  GNUNET_memcpy (&rdn[1],
+                 rd,
+                 rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
   rde = &rdn[0];
   rde->data = data;
   rde->data_size = data_size;
@@ -846,7 +849,8 @@ testservice_task (void *cls,
     {
       fprintf (stderr,
 	       _("Missing option `%s' for operation `%s'\n"),
-	       "-e", _("add"));
+	       "-e",
+               _("add"));
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
       return;
@@ -862,12 +866,19 @@ testservice_task (void *cls,
                                                     &etime_rel))
     {
       etime_is_rel = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Storing record with relative expiration time of %s\n",
+                  GNUNET_STRINGS_relative_time_to_string (etime_rel,
+                                                          GNUNET_NO));
     }
     else if (GNUNET_OK ==
              GNUNET_STRINGS_fancy_time_to_absolute (expirationstring,
                                                     &etime_abs))
     {
       etime_is_rel = GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Storing record with absolute expiration time of %s\n",
+                  GNUNET_STRINGS_absolute_time_to_string (etime_abs));
     }
     else
     {
@@ -996,8 +1007,11 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    add_qe_uri = GNUNET_NAMESTORE_set_nick(ns, &zone_pkey, nickstring,
-        &add_continuation, &add_qe_uri);
+    add_qe_uri = GNUNET_NAMESTORE_set_nick(ns,
+                                           &zone_pkey,
+                                           nickstring,
+                                           &add_continuation,
+                                           &add_qe_uri);
   }
   if (monitor)
   {
@@ -1084,7 +1098,8 @@ id_connect_cb (void *cls,
   {
     get_default = GNUNET_IDENTITY_get (idh,
                                        "namestore",
-                                       &default_ego_cb, (void *) cfg);
+                                       &default_ego_cb,
+                                       (void *) cfg);
   }
 }
 
@@ -1093,6 +1108,7 @@ static void
 testservice_id_task (void *cls, int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
   if (result != GNUNET_YES)
   {
     fprintf (stderr,
@@ -1101,11 +1117,14 @@ testservice_id_task (void *cls, int result)
     ret = -1;
     return;
   }
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, (void *) cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 (void *) cfg);
 
   if (NULL == ego_name)
   {
-    idh = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, (void *) cfg);
+    idh = GNUNET_IDENTITY_connect (cfg,
+                                   &id_connect_cb,
+                                   (void *) cfg);
     if (NULL == idh)
       fprintf (stderr, _("Cannot connect to identity service\n"));
     ret = -1;
@@ -1127,7 +1146,9 @@ testservice_id_task (void *cls, int result)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if ( (NULL != args[0]) && (NULL == uri) )
@@ -1148,7 +1169,8 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   is_public = -1;
   is_shadow = -1;
@@ -1202,9 +1224,13 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  GNUNET_log_setup ("gnunet-namestore", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-namestore",
+                    "WARNING",
+                    NULL);
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-namestore",
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-namestore",
 			  _("GNUnet zone manipulation tool"),
 			  options,
 			  &run, NULL))

@@ -48,7 +48,7 @@ struct NetworkRecord
 
   /**
    * Expiration time for the DNS record; relative or absolute depends
-   * on 'flags', network byte order.
+   * on @e flags, network byte order.
    */
   uint64_t expiration_time GNUNET_PACKED;
 
@@ -119,24 +119,26 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
   off = 0;
   for (i=0;i<rd_count;i++)
   {
-#if 0
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Serializing record %u with flags %d and expiration time %llu\n",
          i,
          rd[i].flags,
          (unsigned long long) rd[i].expiration_time);
-#endif
     rec.expiration_time = GNUNET_htonll (rd[i].expiration_time);
     rec.data_size = htonl ((uint32_t) rd[i].data_size);
     rec.record_type = htonl (rd[i].record_type);
     rec.flags = htonl (rd[i].flags);
     if (off + sizeof (rec) > dest_size)
       return -1;
-    GNUNET_memcpy (&dest[off], &rec, sizeof (rec));
+    GNUNET_memcpy (&dest[off],
+                   &rec,
+                   sizeof (rec));
     off += sizeof (rec);
     if (off + rd[i].data_size > dest_size)
       return -1;
-    GNUNET_memcpy (&dest[off], rd[i].data, rd[i].data_size);
+    GNUNET_memcpy (&dest[off],
+                   rd[i].data,
+                   rd[i].data_size);
     off += rd[i].data_size;
   }
   return off;
@@ -177,13 +179,11 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
       return GNUNET_SYSERR;
     dest[i].data = &src[off];
     off += dest[i].data_size;
-#if 0
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Deserialized record %u with flags %d and expiration time %llu\n",
          i,
          dest[i].flags,
          (unsigned long long) dest[i].expiration_time);
-#endif
   }
   return GNUNET_OK;
 }
