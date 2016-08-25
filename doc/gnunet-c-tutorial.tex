@@ -76,7 +76,7 @@ $ gpg --verify gnunet-0.10.x.tar.gz.sig gnunet-0.10.x.tar.gz
 After successfully verifying the integrity you can extract the tarball using
 \begin{lstlisting}
 $ tar xvzf gnunet-0.10.x.tar.gz
-$ mv gnunet-0.10.x gnunet # we will use the directory "gnunet" in the remainder of this document
+$ mv gnunet-0.10.x gnunet		# we will use the directory "gnunet" in the remainder of this document
 $ cd gnunet
 \end{lstlisting}
 
@@ -153,7 +153,7 @@ $ make install
 
 After installing GNUnet you have to add your GNUnet installation to your path
 environmental variable. In addition you have to create the \lstinline|.gnunet|
-directory in your home directory where GNUnet stores it's data and an empty
+directory in your home directory where GNUnet stores its data and an empty
 GNUnet configuration file:
 
 \lstset{language=bash}
@@ -181,7 +181,7 @@ $
 \end{lstlisting}
 check your {\tt PATH} variable to ensure GNUnet's {\tt bin} directory is included.
 
-GNUnet provides tests for all of it's subcomponents. Run
+GNUnet provides tests for all of its subcomponents. Run
 \begin{lstlisting}
 $ make check
 \end{lstlisting}
@@ -247,7 +247,7 @@ the programmer.
 \section{First Steps with GNUnet}
 
 \subsection{Configure your peer}
-First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and it's services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
+First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and its services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
 
 Since we want to start additional peers later, we need
 some modifications from the default configuration. We need to create a separate service home and a file containing our modifications for this peer:
@@ -262,9 +262,9 @@ network since this could lead to confusing output. This modifications
 will replace the default settings:
 \begin{lstlisting}
 [PATHS]
-GNUNET_HOME = ~/gnunet1/ # Use this directory to store GNUnet data
+GNUNET_HOME = ~/gnunet1/		# Use this directory to store GNUnet data
 [hostlist]
-SERVERS = # prevent bootstrapping
+SERVERS =				# prevent bootstrapping
 \end{lstlisting}
 
 \subsection{Start a peer}
@@ -298,23 +298,23 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 In this section, we will monitor the behaviour of our peer's DHT service with respect to a
 specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
 to monitor the PUT and GET commands we issue ussing the \lstinline|gnunet-dht-put| and
-\lstinline|gnunet-dht-get| command. Using the ``monitor'' line given below, you can observe the behavior of
+\lstinline|gnunet-dht-get| commands. Using the ``monitor'' line given below, you can observe the behavior of
 your own peer's DHT with respect to the specified KEY:
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ gnunet-arm -c ~/peer1.conf -s # start gnunet with all default services
-$ gnunet-arm -c ~/peer1.conf -i dht # start DHT service
+$ gnunet-arm -c ~/peer1.conf -s			# start gnunet with all default services
+$ gnunet-arm -c ~/peer1.conf -i dht		# start DHT service
 $ cd ~/gnunet/src/dht;
 $ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 \end{lstlisting}
 Now open a separate terminal and change again to the \lstinline|gnunet/src/dht| directory:
 \begin{lstlisting}
 $ cd ~/gnunet/src/dht
-$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE # put VALUE under KEY in the DHT
-$ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY # get key KEY from the DHT
-$ gnunet-statistics -c ~/peer1.conf # print statistics about current GNUnet state
-$ gnunet-statistics -c ~/peer1.conf -s dht # print statistics about DHT service
+$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE		# put VALUE under KEY in the DHT
+$ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY	# get key KEY from the DHT
+$ gnunet-statistics -c ~/peer1.conf		# print statistics about current GNUnet state
+$ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 \end{lstlisting}
 % $
 \subsection{Starting Two Peers by Hand}
@@ -390,9 +390,9 @@ OPTIONS = -p
 Then change {\tt peer2.conf} and replace the ``\texttt{SERVERS}'' line in the ``\texttt{[hostlist]}'' section with
 ``\texttt{http://localhost:8080/}''.  Restart both peers using:
 \begin{lstlisting}
-$ gnunet-arm -c peer1.conf -e # stop first peer
-$ gnunet-arm -c peer1.conf -s # start first peer
-$ gnunet-arm -c peer2.conf -s # start second peer
+$ gnunet-arm -c peer1.conf -e		# stop first peer
+$ gnunet-arm -c peer1.conf -s		# start first peer
+$ gnunet-arm -c peer2.conf -s		# start second peer
 \end{lstlisting}
 
 Note that if you start your peers without changing these settings, they
@@ -416,7 +416,7 @@ Check that they are connected using {\tt gnunet-core -c peer1.conf}, which shoul
 peer identity:
 \begin{lstlisting}
 $ gnunet-core -c peer1.conf
-Peer `9TVUCS8P5A7ILLBGO6JSTSSN2B44H3D2MUIFJMLKAITC0I22UVFBFP1H8NRK2IA35VKAK16LLO0MFS7TAQ9M1KNBJ4NGCHP3JPVULDG'
+Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
 \end{lstlisting}
 
 \subsection{Starting Peers Using the Testbed Service}
@@ -444,9 +444,12 @@ configuration file.  Various available options and details about them can be
 found in the testbed default configuration file \texttt{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
+% <lynX> Is there a way to pick a more readable font for this include?
 \lstinputlisting[language=C]{testbed_test.c}
 The source code for the above listing can be found at
-\url{https://gnunet.org/svn/gnunet/doc/testbed_test.c}.  After installing GNUnet, the above source code can be compiled as:
+\url{https://gnunet.org/svn/gnunet/doc/testbed_test.c}
+or in the doc folder of your repository check-out.
+After installing GNUnet, the above source code can be compiled as:
 \lstset{language=bash}
 \begin{lstlisting}
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
