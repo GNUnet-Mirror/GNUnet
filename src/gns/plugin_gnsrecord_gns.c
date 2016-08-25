@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2013, 2014 GNUnet e.V.
+     Copyright (C) 2013, 2014, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -93,41 +93,47 @@ gns_value_to_string (void *cls,
     }
   case GNUNET_GNSRECORD_TYPE_VPN:
     {
-      const struct GNUNET_TUN_GnsVpnRecord *vpn;
+      struct GNUNET_TUN_GnsVpnRecord vpn;
       char* vpn_str;
 
       cdata = data;
-      if ( (data_size <= sizeof (struct GNUNET_TUN_GnsVpnRecord)) ||
+      if ( (data_size <= sizeof (vpn)) ||
 	   ('\0' != cdata[data_size - 1]) )
 	return NULL; /* malformed */
-      vpn = data;
+      /* need to memcpy for alignment */
+      memcpy (&vpn,
+              data,
+              sizeof (vpn));
       GNUNET_asprintf (&vpn_str,
                        "%u %s %s",
-                       (unsigned int) ntohs (vpn->proto),
-                       (const char*) GNUNET_i2s_full (&vpn->peer),
-                       (const char*) &vpn[1]);
+                       (unsigned int) ntohs (vpn.proto),
+                       (const char*) GNUNET_i2s_full (&vpn.peer),
+                       (const char*) &cdata[sizeof (vpn)]);
       return vpn_str;
     }
   case GNUNET_GNSRECORD_TYPE_BOX:
     {
-      const struct GNUNET_GNSRECORD_BoxRecord *box;
+      struct GNUNET_GNSRECORD_BoxRecord box;
       uint32_t rt;
       char *box_str;
       char *ival;
 
+      cdata = data;
       if (data_size < sizeof (struct GNUNET_GNSRECORD_BoxRecord))
 	return NULL; /* malformed */
-      box = data;
-      rt = ntohl (box->record_type);
+      memcpy (&box,
+              data,
+              sizeof (box));
+      rt = ntohl (box.record_type);
       ival = GNUNET_GNSRECORD_value_to_string (rt,
-                                               &box[1],
-                                               data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord));
+                                               &cdata[sizeof (box)],
+                                               data_size - sizeof (box));
       if (NULL == ival)
         return NULL; /* malformed */
       GNUNET_asprintf (&box_str,
                        "%u %u %u %s",
-                       (unsigned int) ntohs (box->protocol),
-                       (unsigned int) ntohs (box->service),
+                       (unsigned int) ntohs (box.protocol),
+                       (unsigned int) ntohs (box.service),
                        (unsigned int) rt,
                        ival);
       GNUNET_free (ival);
