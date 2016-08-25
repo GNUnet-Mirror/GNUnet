@@ -166,6 +166,7 @@ struct LocalService
 
 };
 
+
 /**
  * Information we use to track a connection (the classical 6-tuple of
  * IP-version, protocol, source-IP, destination-IP, source-port and
@@ -629,7 +630,7 @@ receive_dns_request (void *cls GNUNET_UNUSED,
 
 /**
  * Given IP information about a connection, calculate the respective
- * hash we would use for the 'connections_map'.
+ * hash we would use for the #connections_map.
  *
  * @param hash resulting hash
  * @param ri information about the connection
@@ -742,10 +743,12 @@ get_redirect_state (int af,
     ri.local_address.address.ipv6 = * ((struct in6_addr*) local_ip);
   ri.local_address.port = local_port;
   ri.local_address.proto = protocol;
-  hash_redirect_info (&key, &ri);
+  hash_redirect_info (&key,
+                      &ri);
   if (NULL != state_key)
     *state_key = key;
-  state = GNUNET_CONTAINER_multihashmap_get (connections_map, &key);
+  state = GNUNET_CONTAINER_multihashmap_get (connections_map,
+                                             &key);
   if (NULL == state)
     return NULL;
   /* Mark this connection as freshly used */
@@ -1079,19 +1082,26 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   switch (protocol)
   {
   case IPPROTO_ICMP:
-    state = get_redirect_state (af, IPPROTO_ICMP,
-				source_ip, 0,
-				destination_ip, 0,
+    state = get_redirect_state (af,
+                                IPPROTO_ICMP,
+				source_ip,
+                                0,
+				destination_ip,
+                                0,
 				NULL);
     break;
   case IPPROTO_ICMPV6:
-    state = get_redirect_state (af, IPPROTO_ICMPV6,
-				source_ip, 0,
-				destination_ip, 0,
+    state = get_redirect_state (af,
+                                IPPROTO_ICMPV6,
+				source_ip,
+                                0,
+				destination_ip,
+                                0,
 				NULL);
     break;
   case IPPROTO_UDP:
-    state = get_redirect_state (af, IPPROTO_UDP,
+    state = get_redirect_state (af,
+                                IPPROTO_UDP,
 				source_ip,
 				source_port,
 				destination_ip,
@@ -1099,7 +1109,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 				NULL);
     break;
   case IPPROTO_TCP:
-    state = get_redirect_state (af, IPPROTO_TCP,
+    state = get_redirect_state (af,
+                                IPPROTO_TCP,
 				source_ip,
 				source_port,
 				destination_ip,
@@ -1109,7 +1120,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   default:
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# ICMP packets dropped (not allowed)"),
-			      1, GNUNET_NO);
+			      1,
+                              GNUNET_NO);
     return;
   }
   if (NULL == state)
@@ -1182,7 +1194,8 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
     GNUNET_break (0);
     return;
   }
-  state = get_redirect_state (af, IPPROTO_UDP,
+  state = get_redirect_state (af,
+                              IPPROTO_UDP,
 			      source_ip,
 			      ntohs (udp->source_port),
 			      destination_ip,
@@ -1256,7 +1269,8 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
     GNUNET_break (0);
     return;
   }
-  state = get_redirect_state (af, IPPROTO_TCP,
+  state = get_redirect_state (af,
+                              IPPROTO_TCP,
 			      source_ip,
 			      ntohs (tcp->source_port),
 			      destination_ip,
@@ -1585,20 +1599,22 @@ setup_state_record (struct ChannelState *state)
       setup_fresh_address (state->specifics.tcp_udp.serv->address.af,
 			   state->specifics.tcp_udp.serv->address.proto,
 			   &state->specifics.tcp_udp.ri.local_address);
-  } while (NULL != get_redirect_state (state->specifics.tcp_udp.ri.remote_address.af,
-				       state->specifics.tcp_udp.ri.remote_address.proto,
-				       &state->specifics.tcp_udp.ri.remote_address.address,
-				       state->specifics.tcp_udp.ri.remote_address.port,
-				       &state->specifics.tcp_udp.ri.local_address.address,
-				       state->specifics.tcp_udp.ri.local_address.port,
-				       &key));
+  } while (NULL !=
+           get_redirect_state (state->specifics.tcp_udp.ri.remote_address.af,
+                               state->specifics.tcp_udp.ri.remote_address.proto,
+                               &state->specifics.tcp_udp.ri.remote_address.address,
+                               state->specifics.tcp_udp.ri.remote_address.port,
+                               &state->specifics.tcp_udp.ri.local_address.address,
+                               state->specifics.tcp_udp.ri.local_address.port,
+                               &key));
   {
     char buf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Picked local address %s:%u for new connection\n",
 		inet_ntop (state->specifics.tcp_udp.ri.local_address.af,
 			   &state->specifics.tcp_udp.ri.local_address.address,
-			   buf, sizeof (buf)),
+			   buf,
+                           sizeof (buf)),
 		(unsigned int) state->specifics.tcp_udp.ri.local_address.port);
   }
   state->specifics.tcp_udp.state_key = key;
@@ -1790,7 +1806,9 @@ prepare_ipv6_packet (const void *payload,
 					  pkt6_udp,
 					  payload,
 					  payload_length);
-      GNUNET_memcpy (&pkt6_udp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt6_udp[1],
+                     payload,
+                     payload_length);
     }
     break;
   case IPPROTO_TCP:
@@ -1805,7 +1823,9 @@ prepare_ipv6_packet (const void *payload,
 					  pkt6_tcp,
 					  payload,
 					  payload_length);
-      GNUNET_memcpy (&pkt6_tcp[1], payload, payload_length);
+      GNUNET_memcpy (&pkt6_tcp[1],
+                     payload,
+                     payload_length);
     }
     break;
   default:
