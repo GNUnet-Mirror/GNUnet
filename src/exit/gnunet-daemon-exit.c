@@ -154,12 +154,6 @@ struct LocalService
   struct GNUNET_CADET_Port *port;
 
   /**
-   * Port I am listening on within GNUnet for this service, in host
-   * byte order.  (as we may redirect ports).
-   */
-  uint16_t my_port;
-
-  /**
    * #GNUNET_YES if this is a UDP service, otherwise TCP.
    */
   int16_t is_udp;
@@ -836,31 +830,33 @@ store_service (int proto,
 	       uint16_t destination_port,
 	       struct LocalService *service)
 {
-  char key[sizeof (struct GNUNET_HashCode) + sizeof (uint16_t)];
+  struct GNUNET_HashCode cadet_port;
 
+  service->name = GNUNET_strdup (name);
   GNUNET_TUN_service_name_to_hash (name,
                                    &service->descriptor);
-  service->name = GNUNET_strdup (name);
-  GNUNET_memcpy (&key[0],
-                 &destination_port,
-                 sizeof (uint16_t));
-  GNUNET_memcpy (&key[sizeof(uint16_t)],
-                 &service->descriptor,
-                 sizeof (struct GNUNET_HashCode));
+  GNUNET_TUN_compute_service_cadet_port (&service->descriptor,
+                                         destination_port,
+                                         &cadet_port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Opening CADET port %s for SERVICE exit %s on port %u\n",
+              GNUNET_h2s (&cadet_port),
+              name,
+              (unsigned int) destination_port);
   service->port = GNUNET_CADET_open_port (cadet_handle,
-                                          &service->descriptor,
+                                          &cadet_port,
                                           &new_service_channel,
                                           service);
   service->is_udp = (IPPROTO_UDP == proto);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (services,
-					 (struct GNUNET_HashCode *) key,
+					 &cadet_port,
 					 service,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
-    free_service_record (NULL,
-                         (struct GNUNET_HashCode *) key,
-                         service);
+    GNUNET_CADET_close_port (service->port);
+    GNUNET_free_non_null (service->name);
+    GNUNET_free (service);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Got duplicate service records for `%s:%u'\n"),
 		name,
@@ -3322,8 +3318,8 @@ add_services (int proto,
   GNUNET_assert (slen >= 8);
   n = GNUNET_strndup (name, slen - 8 /* remove .gnunet. */);
 
-  for (redirect = strtok (cpy, " "); redirect != NULL;
-       redirect = strtok (NULL, " "))
+  for (redirect = strtok (cpy, " ;"); redirect != NULL;
+       redirect = strtok (NULL, " ;"))
   {
     if (NULL == (hostname = strstr (redirect, ":")))
     {
@@ -3368,7 +3364,6 @@ add_services (int proto,
 
     serv = GNUNET_new (struct LocalService);
     serv->address.proto = proto;
-    serv->my_port = (uint16_t) local_port;
     serv->address.port = remote_port;
     if (0 == strcmp ("localhost4",
                      hostname))

@@ -910,11 +910,26 @@ GNUNET_TUN_ipv4policy2regex (const char *policy);
  * the network.
  *
  * @param service_name a string
- * @param hc corresponding hash
+ * @param[out] hc corresponding hash
  */
 void
 GNUNET_TUN_service_name_to_hash (const char *service_name,
                                  struct GNUNET_HashCode *hc);
+
+
+/**
+ * Compute the CADET port given a service descriptor
+ * (returned from #GNUNET_TUN_service_name_to_hash) and
+ * a TCP/UDP port @a ip_port.
+ *
+ * @param desc service shared secret
+ * @param ip_port TCP/UDP port, use 0 for ICMP
+ * @param[out] cadet_port CADET port to use
+ */
+void
+GNUNET_TUN_compute_service_cadet_port (const struct GNUNET_HashCode *desc,
+                                       uint16_t ip_port,
+                                       struct GNUNET_HashCode *cadet_port);
 
 #endif
 

@@ -810,4 +810,27 @@ GNUNET_TUN_service_name_to_hash (const char *service_name,
 }
 
 
+/**
+ * Compute the CADET port given a service descriptor
+ * (returned from #GNUNET_TUN_service_name_to_hash) and
+ * a TCP/UDP port @a ip_port.
+ *
+ * @param desc service shared secret
+ * @param ip_port TCP/UDP port, use 0 for ICMP
+ * @param[out] cadet_port CADET port to use
+ */
+void
+GNUNET_TUN_compute_service_cadet_port (const struct GNUNET_HashCode *desc,
+                                       uint16_t ip_port,
+                                       struct GNUNET_HashCode *cadet_port)
+{
+  uint16_t be_port = htons (ip_port);
+
+  *cadet_port = *desc;
+  GNUNET_memcpy (cadet_port,
+                 &be_port,
+                 sizeof (uint16_t));
+}
+
+
 /* end of regex.c */

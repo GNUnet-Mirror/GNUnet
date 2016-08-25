@@ -795,13 +795,19 @@ create_channel_to_destination (struct DestinationChannel *dt,
   ts->af = client_af;
   ts->destination = *dt->destination;
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
+  ts->destination_port = dt->destination_port;
   if (dt->destination->is_service)
   {
+    struct GNUNET_HashCode cadet_port;
+
+    GNUNET_TUN_compute_service_cadet_port (&ts->destination.details.service_destination.service_descriptor,
+                                           ts->destination_port,
+                                           &cadet_port);
     ts->channel
       = GNUNET_CADET_channel_create (cadet_handle,
                                      ts,
                                      &dt->destination->details.service_destination.target,
-                                     &ts->destination.details.service_destination.service_descriptor,
+                                     &cadet_port,
                                      GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
@@ -810,10 +816,10 @@ create_channel_to_destination (struct DestinationChannel *dt,
       return NULL;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating channel %p to peer %s offering service %s\n",
-                ts->channel,
+		"Creating channel to peer %s offering service %s on port %u\n",
 		GNUNET_i2s (&dt->destination->details.service_destination.target),
-		GNUNET_h2s (&ts->destination.details.service_destination.service_descriptor));
+		GNUNET_h2s (&ts->destination.details.service_destination.service_descriptor),
+                (unsigned int) ts->destination_port);
   }
   else
   {
@@ -1072,7 +1078,9 @@ route_packet (struct DestinationEntry *destination,
 		  GNUNET_h2s (&destination->details.service_destination.service_descriptor),
 		  GNUNET_i2s (&destination->details.service_destination.target));
     }
-    dt = destination->dt_head;
+    for (dt = destination->dt_head; NULL != dt; dt = dt->next)
+      if (dt->destination_port == destination_port)
+	break;
   }
   if (NULL == dt)
   {
@@ -1094,7 +1102,8 @@ route_packet (struct DestinationEntry *destination,
                 GNUNET_h2s (&key));
     /* need to either use the existing channel from the destination (if still
        available) or create a fresh one */
-    ts = create_channel_to_destination (dt, af);
+    ts = create_channel_to_destination (dt,
+                                        af);
     if (NULL == ts)
       return;
     /* now bind existing "unbound" channel to our IP/port tuple */
