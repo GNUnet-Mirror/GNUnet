@@ -3641,6 +3641,7 @@ advertise_dns_exit ()
 			       "dns",
                                "DNS_RESOLVER",
 			       _("need a valid IPv4 or IPv6 address\n"));
+    GNUNET_free_non_null (dns_exit);
     return;
   }
   /* open port */
