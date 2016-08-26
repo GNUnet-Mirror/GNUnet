@@ -274,6 +274,7 @@ member_parted (void *cls)
   switch (test)
   {
   case TEST_MEMBER_JOIN_REFUSE:
+    // Test 3 starts here 
     member_join (TEST_MEMBER_JOIN_ADMIT);
     break;
 
@@ -304,6 +305,7 @@ member_part ()
   test = TEST_MEMBER_PART;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_part()\n", test);
+  // Test 10 starts here 
   GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
 }
 
@@ -311,6 +313,7 @@ member_part ()
 static void
 member_replay_ok ()
 {
+  // Execution of test 8 here 
   test = TEST_MEMBER_REPLAY_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_replay_ok()\n", test);
@@ -377,6 +380,7 @@ origin_recv_replay_frag (void *cls,
   switch (test)
   {
   case TEST_MEMBER_REPLAY_ERROR:
+    // Test 8 starts here 
     GNUNET_MULTICAST_replay_response (rh, NULL, GNUNET_SYSERR);
     member_replay_ok ();
     break;
@@ -435,9 +439,12 @@ origin_recv_request (void *cls,
   GNUNET_assert (0 == memcmp (&req->member_pub_key,
                               &member_pub_key, sizeof (member_pub_key)));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: verify message content, take first 3 bytes: %.3s\n", 
+              test, &req[1]);
+  GNUNET_assert (0 == memcmp (&req[1], "abc", 3));
 
-  // FIXME: check message content
-
+  // Test 7 starts here 
   member_replay_error ();
 }
 
@@ -471,7 +478,8 @@ member_recv_message (void *cls,
 {
   struct MemberClosure *mcls = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  // Test 5 starts here after message has been received from origin
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%u: member_recv_message() %u/%u\n",
               test,
               (unsigned int) (mcls->n + 1),
@@ -484,10 +492,12 @@ member_recv_message (void *cls,
   switch (test)
   {
   case TEST_ORIGIN_TO_ALL_RECV:
+    // Test 6 starts here
     member_to_origin ();
     break;
 
   case TEST_MEMBER_REPLAY_OK:
+    // Test 9 starts here 
     GNUNET_assert (replay_fragment_id == GNUNET_ntohll (msg->fragment_id));
     member_part ();
     break;
@@ -516,6 +526,7 @@ origin_recv_message (void *cls,
   switch (test)
   {
   case TEST_ORIGIN_TO_ALL:
+    // Prepare to execute test 5
     test = TEST_ORIGIN_TO_ALL_RECV;
     break;
 
@@ -574,12 +585,14 @@ member_recv_join_decision (void *cls,
   {
   case TEST_MEMBER_JOIN_REFUSE:
     GNUNET_assert (0 == relay_count);
+    // Test 3 starts here 
     GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
     break;
 
   case TEST_MEMBER_JOIN_ADMIT:
     GNUNET_assert (1 == relay_count);
     GNUNET_assert (0 == memcmp (relays, &this_peer, sizeof (this_peer)));
+    // Test 4 starts here 
     origin_to_all ();
     break;
 
@@ -590,7 +603,9 @@ member_recv_join_decision (void *cls,
   }
 }
 
-
+/**
+ * Test: origin receives join request
+ */
 static void
 origin_recv_join_request (void *cls,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *mem_key,
@@ -615,10 +630,12 @@ origin_recv_join_request (void *cls,
   switch (test)
   {
   case TEST_MEMBER_JOIN_REFUSE:
+    // Test 3 starts here 
     GNUNET_MULTICAST_join_decision (jh, GNUNET_NO, 0, NULL, join_resp);
     break;
 
   case TEST_MEMBER_JOIN_ADMIT:
+    // Test 3 is running
     GNUNET_MULTICAST_join_decision (jh, GNUNET_YES, 1, &this_peer, join_resp);
     break;
 
@@ -630,7 +647,9 @@ origin_recv_join_request (void *cls,
   }
 }
 
-
+/**
+ * Test: member joins multicast group
+ */
 static void
 member_join (int t)
 {
@@ -661,7 +680,9 @@ member_join (int t)
                                          &member_cls);
 }
 
-
+/** 
+ * Test: Start a multicast group as origin
+ */
 static void
 origin_start ()
 {
@@ -679,6 +700,7 @@ origin_start ()
                                           origin_recv_request,
                                           origin_recv_message,
                                           &origin_cls);
+  // Test 2 starts here
   member_join (TEST_MEMBER_JOIN_REFUSE);
 }
 
@@ -687,6 +709,8 @@ static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
   this_peer = *my_identity;
+  
+  // Test 1 starts here
   origin_start ();
 }
 
