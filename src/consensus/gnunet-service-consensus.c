@@ -1758,7 +1758,10 @@ task_start_apply_round (struct TaskEntry *task)
 
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (rfn_in->rfn_elements);
 
-  while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ri))
+  while (GNUNET_YES ==
+         GNUNET_CONTAINER_multihashmap_iterator_next (iter,
+                                                      NULL,
+                                                      (const void **) &ri))
   {
     uint16_t majority_num;
     enum ReferendumVote majority_vote;
@@ -1775,7 +1778,7 @@ task_start_apply_round (struct TaskEntry *task)
         GNUNET_assert (GNUNET_OK ==
                        GNUNET_SET_add_element (set_out->h,
                                                ri->element,
-                                               set_mutation_done,
+                                               &set_mutation_done,
                                                progress_cls));
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "P%u: apply round: adding element %s with %u-majority.\n",
@@ -1787,7 +1790,7 @@ task_start_apply_round (struct TaskEntry *task)
         GNUNET_assert (GNUNET_OK ==
                        GNUNET_SET_remove_element (set_out->h,
                                                   ri->element,
-                                                  set_mutation_done,
+                                                  &set_mutation_done,
                                                   progress_cls));
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "P%u: apply round: deleting element %s with %u-majority.\n",
@@ -1807,7 +1810,7 @@ task_start_apply_round (struct TaskEntry *task)
     }
   }
 
-  if (progress_cls->num_pending == 0)
+  if (0 == progress_cls->num_pending)
   {
     // call closure right now, no pending ops
     GNUNET_free (progress_cls);
@@ -1858,7 +1861,7 @@ task_start_apply_round (struct TaskEntry *task)
                   session->local_peer_idx);
     }
   }
-
+  GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
 }
 
 
@@ -1896,7 +1899,10 @@ task_start_grade (struct TaskEntry *task)
 
   apply_diff_to_rfn (input_diff, output_rfn, task->key.leader, session->num_peers);
 
-  while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ri))
+  while (GNUNET_YES ==
+         GNUNET_CONTAINER_multihashmap_iterator_next (iter,
+                                                      NULL,
+                                                      (const void **) &ri))
   {
     uint16_t majority_num;
     enum ReferendumVote majority_vote;
@@ -1922,6 +1928,7 @@ task_start_grade (struct TaskEntry *task)
         break;
     }
   }
+  GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
 
   {
     uint16_t noncontested;
@@ -2158,7 +2165,7 @@ task_start_eval_echo (struct TaskEntry *task)
 
   GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
 
-  if (progress_cls->num_pending == 0)
+  if (0 == progress_cls->num_pending)
   {
     // call closure right now, no pending ops
     GNUNET_free (progress_cls);
