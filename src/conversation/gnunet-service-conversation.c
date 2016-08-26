@@ -1243,7 +1243,7 @@ inbound_end (void *cls,
 	     void *channel_ctx)
 {
   struct Channel *ch = channel_ctx;
-  struct Line *line = ch->line;
+  struct Line *line;
   struct ClientPhoneHangupMessage hup;
 
   if (NULL == ch)
@@ -1251,6 +1251,7 @@ inbound_end (void *cls,
     GNUNET_break (0);
     return;
   }
+  line = ch->line;
   GNUNET_assert (channel == ch->channel);
   ch->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
