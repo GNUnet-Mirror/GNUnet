@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2013-2015 GNUnet e.V.
+      Copyright (C) 2013-2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -873,7 +873,7 @@ decode_and_send (struct Operation *op)
        diff_ibf->size);
 
   num_decoded = 0;
-  last_key.key_val = 0;
+  key.key_val = 0; /* just to avoid compiler thinking we use undef'ed variable */
 
   while (1)
   {
@@ -890,7 +890,8 @@ decode_and_send (struct Operation *op)
            (unsigned long) key.key_val);
       num_decoded += 1;
       if ( (num_decoded > diff_ibf->size) ||
-           (num_decoded > 1 && last_key.key_val == key.key_val) )
+           ( (num_decoded > 1) &&
+             (last_key.key_val == key.key_val) ) )
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "detected cyclic ibf (decoded %u/%u)\n",
