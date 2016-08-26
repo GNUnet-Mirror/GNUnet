@@ -105,42 +105,48 @@ run (void *cls,
   token = NULL;
 
   if (print_token)
-    printf ("Token:\nHeader:\t\t%s\nPayload:\t%s\n", header, payload);
+    printf ("Token:\nHeader:\t\t%s\nPayload:\t%s\n",
+            header,
+            payload);
   GNUNET_free (header);
-  GNUNET_free (payload);
 
   payload_json = json_loads (payload, 0, &error);
-  if ((NULL == payload_json) || !json_is_object (payload_json))
+  GNUNET_free (payload);
+
+  if ((NULL == payload_json) || (! json_is_object (payload_json)) )
   {
     GNUNET_free (val);
     return;
   }
   keystring_json =  json_object_get (payload_json, "iss");
-  if (!json_is_string (keystring_json))
+  if (! json_is_string (keystring_json))
   {
     GNUNET_free (val);
     return;
   }
   keystring = json_string_value (keystring_json);
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_public_key_from_string (keystring,
-                                                               strlen (keystring),
-                                                               &key))
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (keystring,
+                                                  strlen (keystring),
+                                                  &key))
   {
     GNUNET_free (val);
     return;
   }
   GNUNET_STRINGS_string_to_data (signature_b32,
-                                strlen (signature_b32),
-                                &sig,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+                                 strlen (signature_b32),
+                                 &sig,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
 
   if (print_token)
-    printf ("Signature:\t%s\n", keystring);
+    printf ("Signature:\t%s\n",
+            keystring);
 
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN,
-                                              purpose,
-                                              &sig,
-                                              &key))
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN,
+                                 purpose,
+                                 &sig,
+                                 &key))
     printf("Signature not OK!\n");
   else
     printf("Signature OK!\n");

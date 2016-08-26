@@ -154,7 +154,8 @@ database_setup (struct Plugin *plugin)
   buffer[size] = '\0';
 
   GNUNET_DISK_file_close (fh);
-  if (0 < size) {
+  if (0 < size)
+  {
     line = strtok (buffer, "\n");
     while (line != NULL) {
       query = strtok (line, ",");
