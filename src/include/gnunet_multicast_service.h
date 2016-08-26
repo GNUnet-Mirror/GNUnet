@@ -225,11 +225,11 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Maximum size of a multicast message fragment.
  */
-#define GNUNET_MULTICAST_FRAGMENT_MAX_SIZE 63 * 1024
+#define GNUNET_MULTICAST_FRAGMENT_MAX_SIZE (63 * 1024)
 
 #define GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD           \
-  GNUNET_MULTICAST_FRAGMENT_MAX_SIZE                    \
-  - sizeof (struct GNUNET_MULTICAST_MessageHeader)
+  (GNUNET_MULTICAST_FRAGMENT_MAX_SIZE                   \
+   - sizeof (struct GNUNET_MULTICAST_MessageHeader))
 
 
 /**

@@ -542,7 +542,9 @@ cleanup_channel (struct Channel *chn)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Cleaning up channel %s. master? %u\n",
-              chn, GNUNET_h2s (&chn->pub_key_hash), chn->is_master);
+              chn,
+              GNUNET_h2s (&chn->pub_key_hash),
+              chn->is_master);
   message_queue_drop (chn);
   GNUNET_CONTAINER_multihashmap_destroy (chn->recv_frags);
   chn->recv_frags = NULL;
@@ -579,14 +581,16 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   if (NULL == chn)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%p User context is NULL in client_disconnect()\n", chn);
+                "%p User context is NULL in client_disconnect()\n",
+                chn);
     GNUNET_break (0);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client (%s) disconnected from channel %s\n",
-              chn, (GNUNET_YES == chn->is_master) ? "master" : "slave",
+              chn,
+              (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
 
   struct Client *cli = chn->clients_head;
@@ -616,7 +620,8 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   { /* Last client disconnected. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p Last client (%s) disconnected from channel %s\n",
-                chn, (GNUNET_YES == chn->is_master) ? "master" : "slave",
+                chn,
+                (GNUNET_YES == chn->is_master) ? "master" : "slave",
                 GNUNET_h2s (&chn->pub_key_hash));
     chn->is_disconnected = GNUNET_YES;
     if (NULL != chn->tmit_head)
@@ -639,7 +644,8 @@ client_send_msg (const struct Channel *chn,
                  const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending message to clients.\n", chn);
+              "%p Sending message to clients.\n",
+              chn);
 
   struct Client *cli = chn->clients_head;
   while (NULL != cli)
@@ -680,9 +686,11 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
     GNUNET_memcpy (&res[1], data, data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%p Sending result to client for operation #%" PRIu64 ": "
-              "%" PRId64 " (size: %u)\n",
-	      client, GNUNET_ntohll (op_id), result_code, data_size);
+	      "%p Sending result to client for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
+	      client,
+              GNUNET_ntohll (op_id),
+              result_code,
+              data_size);
 
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_notification_context_unicast (nc, client, &res->header,
@@ -748,9 +756,11 @@ mcast_recv_join_request (void *cls,
                          struct GNUNET_MULTICAST_JoinHandle *jh)
 {
   struct Channel *chn = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p Got join request.\n", chn);
-
   uint16_t join_msg_size = 0;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Got join request.\n",
+              chn);
   if (NULL != join_msg)
   {
     if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE == ntohs (join_msg->type))
@@ -761,7 +771,8 @@ mcast_recv_join_request (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "%p Got join message with invalid type %u.\n",
-                  chn, ntohs (join_msg->type));
+                  chn,
+                  ntohs (join_msg->type));
     }
   }
 
@@ -798,7 +809,9 @@ mcast_recv_join_decision (void *cls, int is_admitted,
   struct Slave *slv = cls;
   struct Channel *chn = &slv->chn;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Got join decision: %d\n", slv, is_admitted);
+              "%p Got join decision: %d\n",
+              slv,
+              is_admitted);
   if (GNUNET_YES == chn->is_ready)
   {
     /* Already admitted */
@@ -840,14 +853,19 @@ store_recv_fragment_replay (void *cls,
  * Received result of GNUNET_PSYCSTORE_fragment_get() for multicast replay.
  */
 static void
-store_recv_fragment_replay_result (void *cls, int64_t result,
-                                   const char *err_msg, uint16_t err_msg_size)
+store_recv_fragment_replay_result (void *cls,
+                                   int64_t result,
+                                   const char *err_msg,
+                                   uint16_t err_msg_size)
 {
   struct GNUNET_MULTICAST_ReplayHandle *rh = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Fragment replay: PSYCSTORE returned %" PRId64 " (%.*s)\n",
-              rh, result, err_msg_size, err_msg);
-
+              rh,
+              result,
+              err_msg_size,
+              err_msg);
   switch (result)
   {
   case GNUNET_YES:
@@ -996,9 +1014,9 @@ client_send_mcast_msg (struct Channel *chn,
                        uint32_t flags)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending multicast message to client. "
-              "fragment_id: %" PRIu64 ", message_id: %" PRIu64 "\n",
-              chn, GNUNET_ntohll (mmsg->fragment_id),
+              "%p Sending multicast message to client. fragment_id: %" PRIu64 ", message_id: %" PRIu64 "\n",
+              chn,
+              GNUNET_ntohll (mmsg->fragment_id),
               GNUNET_ntohll (mmsg->message_id));
 
   struct GNUNET_PSYC_MessageHeader *
@@ -1022,9 +1040,9 @@ client_send_mcast_req (struct Master *mst,
   uint16_t psize = sizeof (*pmsg) + size - sizeof (*req);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending multicast request to client. "
-              "fragment_id: %" PRIu64 ", message_id: %" PRIu64 "\n",
-              chn, GNUNET_ntohll (req->fragment_id),
+              "%p Sending multicast request to client. fragment_id: %" PRIu64 ", message_id: %" PRIu64 "\n",
+              chn,
+              GNUNET_ntohll (req->fragment_id),
               GNUNET_ntohll (req->request_id));
 
   pmsg = GNUNET_malloc (psize);
@@ -1095,13 +1113,15 @@ fragment_queue_insert (struct Channel *chn,
   if (NULL == cache_entry)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%p Adding message fragment to cache. "
-                "message_id: %" PRIu64 ", fragment_id: %" PRIu64 "\n",
-                chn, GNUNET_ntohll (mmsg->message_id),
+                "%p Adding message fragment to cache. message_id: %" PRIu64 ", fragment_id: %" PRIu64 "\n",
+                chn,
+                GNUNET_ntohll (mmsg->message_id),
                 GNUNET_ntohll (mmsg->fragment_id));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p header_size: %" PRIu64 " + %u\n",
-                chn, fragq->header_size, size);
+                chn,
+                fragq->header_size,
+                size);
     cache_entry = GNUNET_new (struct RecvCacheEntry);
     cache_entry->ref_count = 1;
     cache_entry->mmsg = GNUNET_malloc (size);
@@ -1113,11 +1133,11 @@ fragment_queue_insert (struct Channel *chn,
   {
     cache_entry->ref_count++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%p Message fragment is already in cache. "
-                "message_id: %" PRIu64 ", fragment_id: %" PRIu64
-                ", ref_count: %u\n",
-                chn, GNUNET_ntohll (mmsg->message_id),
-                GNUNET_ntohll (mmsg->fragment_id), cache_entry->ref_count);
+                "%p Message fragment is already in cache. message_id: %" PRIu64 ", fragment_id: %" PRIu64 ", ref_count: %u\n",
+                chn,
+                GNUNET_ntohll (mmsg->message_id),
+                GNUNET_ntohll (mmsg->fragment_id),
+                cache_entry->ref_count);
   }
 
   if (MSG_FRAG_STATE_HEADER == fragq->state)
@@ -1139,20 +1159,23 @@ fragment_queue_insert (struct Channel *chn,
     { /* header is now complete */
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Header of message %" PRIu64 " is complete.\n",
-                  chn, GNUNET_ntohll (mmsg->message_id));
+                  chn,
+                  GNUNET_ntohll (mmsg->message_id));
 
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Adding message %" PRIu64 " to queue.\n",
-                  chn, GNUNET_ntohll (mmsg->message_id));
+                  chn,
+                  GNUNET_ntohll (mmsg->message_id));
       fragq->state = MSG_FRAG_STATE_DATA;
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%p Header of message %" PRIu64 " is NOT complete yet: "
-                  "%" PRIu64 " != %" PRIu64 "\n",
-                  chn, GNUNET_ntohll (mmsg->message_id),
-                  frag_offset, fragq->header_size);
+                  "%p Header of message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
+                  chn,
+                  GNUNET_ntohll (mmsg->message_id),
+                  frag_offset,
+                  fragq->header_size);
     }
   }
 
@@ -1163,10 +1186,11 @@ fragment_queue_insert (struct Channel *chn,
       fragq->state = MSG_FRAG_STATE_END;
     else
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%p Message %" PRIu64 " is NOT complete yet: "
-                  "%" PRIu64 " != %" PRIu64 "\n",
-                  chn, GNUNET_ntohll (mmsg->message_id),
-                  frag_offset, fragq->size);
+                  "%p Message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
+                  chn,
+                  GNUNET_ntohll (mmsg->message_id),
+                  frag_offset,
+                  fragq->size);
     break;
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
@@ -1217,9 +1241,10 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
                     struct FragmentQueue *fragq, uint8_t drop)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Running message fragment queue for message %" PRIu64
-              " (state: %u).\n",
-              chn, msg_id, fragq->state);
+              "%p Running message fragment queue for message %" PRIu64 " (state: %u).\n",
+              chn,
+              msg_id,
+              fragq->state);
 
   struct GNUNET_CONTAINER_MultiHashMap
     *chan_msgs = GNUNET_CONTAINER_multihashmap_get (recv_cache,
@@ -2274,9 +2299,6 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t size = ntohs (msg->size);
   if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size - sizeof (*msg))
   {
-    /* Coverity says this printf has incompatible args
-     * but I don't see anything wrong with it.. FIXME
-     */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Message payload too large: %u < %u.\n",
                 chn,
