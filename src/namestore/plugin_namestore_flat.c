@@ -180,11 +180,11 @@ database_setup (struct Plugin *plugin)
          afsdir);
     return GNUNET_SYSERR;
   }
-
-  if (GNUNET_SYSERR == GNUNET_DISK_file_size (afsdir,
-                                              &size,
-                                              GNUNET_YES,
-                                              GNUNET_YES))
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_file_size (afsdir,
+                             &size,
+                             GNUNET_YES,
+                             GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
          _("Unable to get filesize: %s.\n"),
@@ -192,20 +192,21 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
 
-  buffer = GNUNET_malloc (size);
-
-  if (GNUNET_SYSERR == GNUNET_DISK_file_read (fh,
-                                              buffer,
-                                              size))
+  buffer = GNUNET_malloc (size) + 1;
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_file_read (fh,
+                             buffer,
+                             size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
          _("Unable to read file: %s.\n"),
          afsdir);
     return GNUNET_SYSERR;
   }
-
   GNUNET_DISK_file_close (fh);
-  if (0 < size) {
+
+  if (0 < size)
+  {
     line = strtok (buffer, "\n");
     while (line != NULL) {
       zone_private_key = strtok (line, ",");
@@ -346,6 +347,7 @@ store_and_free_entries (void *cls,
   GNUNET_free (entry);
   return GNUNET_YES;
 }
+
 
 /**
  * Shutdown database connection and associate data
