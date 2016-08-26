@@ -42,7 +42,7 @@ struct Plugin
    * Database filename.
    */
   char *fn;
-  
+
   /**
    * HashMap
    */
@@ -138,7 +138,7 @@ database_setup (struct Plugin *plugin)
     return GNUNET_OK;
   }
 
-  buffer = GNUNET_malloc (size) + 1;
+  buffer = GNUNET_malloc (size + 1);
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_read (fh,
                                               buffer,
@@ -171,7 +171,7 @@ database_setup (struct Plugin *plugin)
                                     strlen (block),
                                     &block_buffer);
       entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
-      if (GNUNET_OK != 
+      if (GNUNET_OK !=
           GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                              &entry->query,
                                              entry,
@@ -330,7 +330,7 @@ namecache_cache_block (void *cls,
   entry->block = GNUNET_malloc (block_size);
   GNUNET_memcpy (entry->block, block, block_size);
   GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, &query);
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                          &query,
                                          entry,
