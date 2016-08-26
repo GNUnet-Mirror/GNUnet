@@ -69,9 +69,9 @@ run (void *cls,
   header_b64 = strtok (token, ".");
   payload_b64 = strtok (NULL, ".");
   signature_b32 = strtok (NULL, ".");
-  if ( (NULL != header_b64) ||
-       (NULL != payload_b64) ||
-       (NULL != signature_b32) )
+  if ( (NULL == header_b64) ||
+       (NULL == payload_b64) ||
+       (NULL == signature_b32) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Token `%s' is malformed\n"),
