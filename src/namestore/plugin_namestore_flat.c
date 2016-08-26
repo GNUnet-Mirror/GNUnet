@@ -142,10 +142,10 @@ database_setup (struct Plugin *plugin)
   size_t key_len;
   struct GNUNET_HashCode hkey;
   struct GNUNET_DISK_FileHandle *fh;
-  struct FlatFileEntry *entry; 
+  struct FlatFileEntry *entry;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, 
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
                                                "namestore-flat",
                                                "FILENAME", &afsdir))
   {
@@ -243,7 +243,7 @@ database_setup (struct Plugin *plugin)
       record_data_size = GNUNET_STRINGS_base64_decode (record_data_b64,
                                                        strlen (record_data_b64),
                                                        &record_data);
-      entry->record_data = 
+      entry->record_data =
         GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * entry->record_count);
       if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize (record_data_size,
                                                              record_data,
@@ -271,7 +271,7 @@ database_setup (struct Plugin *plugin)
                           key_len,
                           &hkey);
       GNUNET_free (key);
-      if (GNUNET_OK != 
+      if (GNUNET_OK !=
           GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                              &hkey,
                                              entry,
@@ -301,46 +301,40 @@ store_and_free_entries (void *cls,
   struct FlatFileEntry *entry = value;
   char *line;
   char *zone_private_key;
-  char *rvalue;
-  char *record_count;
   char *record_data_b64;
   size_t data_size;
 
   GNUNET_STRINGS_base64_encode ((char*)entry->private_key,
                                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
                                 &zone_private_key);
-  GNUNET_asprintf (&rvalue, "%lu", entry->rvalue);
-  GNUNET_asprintf (&record_count, "%u", entry->record_count);
-
   data_size = GNUNET_GNSRECORD_records_get_size (entry->record_count,
                                                  entry->record_data);
-  char data[data_size];
-  if (data_size != GNUNET_GNSRECORD_records_serialize (entry->record_count,
-                                                       entry->record_data,
-                                                       data_size,
-                                                       data))
   {
-    GNUNET_break (0);
-    GNUNET_free (zone_private_key);
-    GNUNET_free (rvalue);
-    GNUNET_free (record_count);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_STRINGS_base64_encode (data,
-                                data_size,
-                                &record_data_b64);
+    char data[data_size];
 
+    if (data_size !=
+        GNUNET_GNSRECORD_records_serialize (entry->record_count,
+                                            entry->record_data,
+                                            data_size,
+                                            data))
+    {
+      GNUNET_break (0);
+      GNUNET_free (zone_private_key);
+      return GNUNET_SYSERR;
+    }
+    GNUNET_STRINGS_base64_encode (data,
+                                  data_size,
+                                  &record_data_b64);
+  }
   GNUNET_asprintf (&line,
-                   "%s,%s,%s,%s,%s\n",
+                   "%s,%lu,%u,%s,%s\n",
                    zone_private_key,
-                   rvalue,
-                   record_count,
+                   entry->rvalue,
+                   entry->record_count,
                    record_data_b64,
                    entry->label);
-
-  GNUNET_free (rvalue);
-  GNUNET_free (record_count);
   GNUNET_free (record_data_b64);
+  GNUNET_free (zone_private_key);
 
   GNUNET_DISK_file_write (fh,
                           line,
