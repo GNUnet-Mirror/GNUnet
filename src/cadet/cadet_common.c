@@ -206,20 +206,6 @@ GC_m2s (uint16_t m)
       break;
 
       /**
-       * New ephemeral key.
-       */
-    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
-      s = "KX_EPHM";
-      break;
-
-      /**
-       * Answer to session key challenge.
-       */
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
-      s = "KX_PONG";
-      break;
-
-      /**
        * Request the destuction of a path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
@@ -287,13 +273,6 @@ GC_m2s (uint16_t m)
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       s = "CHAN_NACK";
-      break;
-
-      /**
-       * OTR encrypted payload.
-       */
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      s = "OTR";
       break;
 
       /**

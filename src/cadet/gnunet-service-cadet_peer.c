@@ -538,7 +538,6 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&GCC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
     sizeof (struct GNUNET_CADET_Poll)},
   {&GCC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
-  {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0},
   {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_AX, 0},
   {NULL, 0, 0}
 };
@@ -724,11 +723,9 @@ get_priority (struct CadetPeerQueue *q)
   }
 
   /* Bulky payload has lower priority, control traffic has higher. */
-  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type
-      || GNUNET_MESSAGE_TYPE_CADET_AX == q->type)
+  if (GNUNET_MESSAGE_TYPE_CADET_AX == q->type)
     return low;
-  else
-    return high;
+  return high;
 }
 
 
@@ -1022,7 +1019,6 @@ queue_is_sendable (struct CadetPeerQueue *q)
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       return GNUNET_YES;
 
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
     case GNUNET_MESSAGE_TYPE_CADET_AX:
       break;
 
@@ -1140,12 +1136,6 @@ fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
 
   switch (queue->type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      *pid = GCC_get_pid (queue->c, queue->fwd);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  otr payload ID %u\n", *pid);
-      msg_size = send_core_data_raw (queue->cls, size, buf);
-      ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (*pid);
-      break;
     case GNUNET_MESSAGE_TYPE_CADET_AX:
       *pid = GCC_get_pid (queue->c, queue->fwd);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  ax payload ID %u\n", *pid);
@@ -1425,7 +1415,6 @@ GCP_queue_destroy (struct CadetPeerQueue *queue,
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_CADET_KX:
-      case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       case GNUNET_MESSAGE_TYPE_CADET_AX:
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
@@ -1733,7 +1722,6 @@ GCP_connection_pop (struct CadetPeer *peer,
         continue;
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:
-      case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       case GNUNET_MESSAGE_TYPE_CADET_AX:
       case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
         msg = (struct GNUNET_MessageHeader *) q->cls;

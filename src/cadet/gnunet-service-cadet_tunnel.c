@@ -94,54 +94,6 @@ struct CadetTConnection
   uint32_t throughput;
 };
 
-/**
- * Structure used during a Key eXchange.
- */
-struct CadetTunnelKXCtx
-{
-  /**
-   * Encryption ("our") old "confirmed" key, for encrypting traffic sent by us
-   * end before the key exchange is finished or times out.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old;
-
-  /**
-   * Decryption ("their") old "confirmed" key, for decrypting traffic sent by
-   * the other end before the key exchange started.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
-
-  /**
-   * Same as @c e_key_old, for the case of two simultaneous KX.
-   * This can happen if cadet decides to start a re-key while the peer has also
-   * started its re-key (due to network delay this is impossible to avoid).
-   * In this case, the key material generated with the peer's old ephemeral
-   * *might* (but doesn't have to) be incorrect.
-   * Since no more than two re-keys can happen simultaneously, this is enough.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old2;
-
-  /**
-   * Same as @c d_key_old, for the case described in @c e_key_old2.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old2;
-
-  /**
-   * Challenge to send and expect in the PONG.
-   */
-  uint32_t challenge;
-
-  /**
-   * When the rekey started. One minute after this the new key will be used.
-   */
-  struct GNUNET_TIME_Absolute rekey_start_time;
-
-  /**
-   * Task for delayed destruction of the Key eXchange context, to allow delayed
-   * messages with the old key to be decrypted successfully.
-   */
-  struct GNUNET_SCHEDULER_Task *finish_task;
-};
 
 /**
  * Encryption systems possible.
@@ -151,12 +103,8 @@ enum CadetTunnelEncryption
   /**
    * Default Axolotl system.
    */
-  CADET_Axolotl,
+  CADET_Axolotl
 
-  /**
-   * Fallback OTR-style encryption.
-   */
-  CADET_OTR
 };
 
 /**
@@ -339,11 +287,6 @@ struct CadetTunnel
   enum CadetTunnelEState estate;
 
   /**
-   * Key eXchange context.
-   */
-  struct CadetTunnelKXCtx *kx_ctx;
-
-  /**
    * Peer's ephemeral key, to recreate @c e_key and @c d_key when own ephemeral
    * key changes.
    */
@@ -362,7 +305,7 @@ struct CadetTunnel
   /**
    * Task to start the rekey process.
    */
-  struct GNUNET_SCHEDULER_Task * rekey_task;
+  struct GNUNET_SCHEDULER_Task *rekey_task;
 
   /**
    * Paths that are actively used to reach the destination peer.
@@ -502,11 +445,6 @@ extern int shutting_down;
 static struct GNUNET_CONTAINER_MultiPeerMap *tunnels;
 
 /**
- * Default TTL for payload packets.
- */
-static unsigned long long default_ttl;
-
-/**
  * Own Peer ID private key.
  */
 const static struct GNUNET_CRYPTO_EddsaPrivateKey *id_key;
@@ -523,29 +461,6 @@ static unsigned long long ratchet_messages;
  * How long until we trigger a ratched advance.
  */
 static struct GNUNET_TIME_Relative ratchet_time;
-
-
-/********************************    OTR   ***********************************/
-
-/**
- * Own global OTR ephemeral private key.
- */
-static struct GNUNET_CRYPTO_EcdhePrivateKey *otr_ephemeral_key;
-
-/**
- * Cached message used to perform a OTR key exchange.
- */
-static struct GNUNET_CADET_KX_Ephemeral otr_kx_msg;
-
-/**
- * Task to generate a new OTR ephemeral key.
- */
-static struct GNUNET_SCHEDULER_Task *rekey_task;
-
-/**
- * OTR Rekey period.
- */
-static struct GNUNET_TIME_Relative rekey_period;
 
 
 /******************************************************************************/
@@ -644,56 +559,6 @@ is_ready (struct CadetTunnel *t)
 
 
 /**
- * Check if a key is invalid (NULL pointer or all 0)
- *
- * @param key Key to check.
- *
- * @return #GNUNET_YES if key is null, #GNUNET_NO if exists and is not 0.
- */
-static int
-is_key_null (struct GNUNET_CRYPTO_SymmetricSessionKey *key)
-{
-  struct GNUNET_CRYPTO_SymmetricSessionKey null_key;
-
-  if (NULL == key)
-    return GNUNET_YES;
-
-  memset (&null_key, 0, sizeof (null_key));
-  if (0 == memcmp (key, &null_key, sizeof (null_key)))
-    return GNUNET_YES;
-  return GNUNET_NO;
-}
-
-
-/**
- * Ephemeral key message purpose size.
- *
- * @return Size of the part of the ephemeral key message that must be signed.
- */
-static size_t
-ephemeral_purpose_size (void)
-{
-  return sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-         sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-         sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-         sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
-         sizeof (struct GNUNET_PeerIdentity);
-}
-
-
-/**
- * Size of the encrypted part of a ping message.
- *
- * @return Size of the encrypted part of a ping message.
- */
-static size_t
-ping_encryption_size (void)
-{
-  return sizeof (uint32_t);
-}
-
-
-/**
  * Get the channel's buffer. ONLY FOR NON-LOOPBACK CHANNELS!!
  *
  * @param tch Tunnel's channel handle.
@@ -770,110 +635,6 @@ get_connection_allowed (const struct CadetTConnection *tc)
 
 
 /**
- * Check that a ephemeral key message s well formed and correctly signed.
- *
- * @param t Tunnel on which the message came.
- * @param msg The ephemeral key message.
- *
- * @return #GNUNET_OK if message is fine, #GNUNET_SYSERR otherwise.
- */
-int
-check_ephemeral (struct CadetTunnel *t,
-                 const struct GNUNET_CADET_KX_Ephemeral *msg)
-{
-  /* Check message size */
-  if (ntohs (msg->header.size) != sizeof (struct GNUNET_CADET_KX_Ephemeral))
-  {
-    /* This is probably an old "MESH" version. */
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Expected ephemeral of size %u, got %u\n",
-         sizeof (struct GNUNET_CADET_KX_Ephemeral),
-         ntohs (msg->header.size));
-    return GNUNET_SYSERR;
-  }
-
-  /* Check signature size */
-  if (ntohl (msg->purpose.size) != ephemeral_purpose_size ())
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Expected signature purpose of size %u, got %u\n",
-         ephemeral_purpose_size (),
-         ntohs (msg->purpose.size));
-    return GNUNET_SYSERR;
-  }
-
-  /* Check origin */
-  if (0 != memcmp (&msg->origin_identity,
-                   GCP_get_id (t->peer),
-                   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unexpected origin, got %s\n",
-         GNUNET_i2s (&msg->origin_identity));
-    return GNUNET_SYSERR;
-  }
-
-  /* Check signature */
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_CADET_KX,
-                                  &msg->purpose,
-                                  &msg->signature,
-                                  &msg->origin_identity.public_key))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Signature invalid\n");
-    return GNUNET_SYSERR;
-  }
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Select the best key to use for encryption (send), based on KX status.
- *
- * Normally, return the current key. If there is a KX in progress and the old
- * key is fresh enough, return the old key.
- *
- * @param t Tunnel to choose the key from.
- *
- * @return The optimal key to encrypt/hmac outgoing traffic.
- */
-static const struct GNUNET_CRYPTO_SymmetricSessionKey *
-select_key (const struct CadetTunnel *t)
-{
-  const struct GNUNET_CRYPTO_SymmetricSessionKey *key;
-
-  if (NULL != t->kx_ctx
-      && NULL == t->kx_ctx->finish_task)
-  {
-    struct GNUNET_TIME_Relative age;
-
-    age = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  key exchange in progress, started %s ago\n",
-         GNUNET_STRINGS_relative_time_to_string (age, GNUNET_YES));
-    // FIXME make duration of old keys configurable
-    if (age.rel_value_us < GNUNET_TIME_UNIT_MINUTES.rel_value_us)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using old key\n");
-      key = &t->kx_ctx->e_key_old;
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key (old key too old)\n");
-      key = &t->e_key;
-    }
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no KX: using current key\n");
-    key = &t->e_key;
-  }
-  return key;
-}
-
-
-/**
  * Create a new Axolotl ephemeral (ratchet) key.
  *
  * @param t Tunnel.
@@ -924,43 +685,6 @@ t_hmac (const void *plaintext, size_t size,
   /* Two step: CADET_Hash is only 256 bits, HashCode is 512. */
   GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
   GNUNET_memcpy (hmac, &hash, sizeof (*hmac));
-}
-
-
-/**
- * Encrypt daforce_newest_keyta with the tunnel key.
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the encrypted data.
- * @param src Source of the plaintext. Can overlap with @c dst.
- * @param size Size of the plaintext.
- * @param iv Initialization Vector to use.
- * @param force_newest_key Force the use of the newest key, otherwise
- *                         CADET will use the old key when allowed.
- *                         This can happen in the case when a KX is going on
- *                         and the old one hasn't expired.
- */
-static int
-t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
-           size_t size, uint32_t iv, int force_newest_key)
-{
-  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
-  const struct GNUNET_CRYPTO_SymmetricSessionKey *key;
-  size_t out_size;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
-
-  key = GNUNET_YES == force_newest_key ? &t->e_key : select_key (t);
-  #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) key));
-  #endif
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
-  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, key, &siv, dst);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
-
-  return out_size;
 }
 
 
@@ -1195,134 +919,6 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_AX *src,
   GNUNET_assert (AX_HEADER_SIZE == out_size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_decrypt end\n");
-}
-
-
-/**
- * Decrypt and verify data with the appropriate tunnel key.
- *
- * @param key Key to use.
- * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data. Can overlap with @c dst.
- * @param size Size of the encrypted data.
- * @param iv Initialization Vector to use.
- *
- * @return Size of the decrypted data, -1 if an error was encountered.
- */
-static int
-decrypt (const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
-         void *dst, const void *src, size_t size, uint32_t iv)
-{
-  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
-  size_t out_size;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt start\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt iv\n");
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt iv done\n");
-  out_size = GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt end\n");
-
-  return out_size;
-}
-
-
-/**
- * Decrypt and verify data with the most recent tunnel key.
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data. Can overlap with @c dst.
- * @param size Size of the encrypted data.
- * @param iv Initialization Vector to use.
- *
- * @return Size of the decrypted data, -1 if an error was encountered.
- */
-static int
-t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
-           size_t size, uint32_t iv)
-{
-  size_t out_size;
-
-#if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
-#endif
-  if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
-  {
-    GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "got data on %s without a valid key\n",
-         GCT_2s (t));
-    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-    return -1;
-  }
-
-  out_size = decrypt (&t->d_key, dst, src, size, iv);
-
-  return out_size;
-}
-
-
-/**
- * Decrypt and verify data with the appropriate tunnel key and verify that the
- * data has not been altered since it was sent by the remote peer.
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data. Can overlap with @c dst.
- * @param size Size of the encrypted data.
- * @param iv Initialization Vector to use.
- * @param msg_hmac HMAC of the message, cannot be NULL.
- *
- * @return Size of the decrypted data, -1 if an error was encountered.
- */
-static int
-t_decrypt_and_validate (struct CadetTunnel *t,
-                        void *dst, const void *src,
-                        size_t size, uint32_t iv,
-                        const struct GNUNET_CADET_Hash *msg_hmac)
-{
-  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
-  struct GNUNET_CADET_Hash hmac;
-  int decrypted_size;
-
-  /* Try primary (newest) key */
-  key = &t->d_key;
-  decrypted_size = decrypt (key, dst, src, size, iv);
-  t_hmac (src, size, iv, key, &hmac);
-  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
-    return decrypted_size;
-
-  /* If no key exchange is going on, we just failed. */
-  if (NULL == t->kx_ctx)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed checksum validation on tunnel %s with no KX\n",
-                GCT_2s (t));
-    GNUNET_STATISTICS_update (stats, "# wrong HMAC no KX", 1, GNUNET_NO);
-    return -1;
-  }
-
-  /* Try secondary key, from previous KX period. */
-  key = &t->kx_ctx->d_key_old;
-  decrypted_size = decrypt (key, dst, src, size, iv);
-  t_hmac (src, size, iv, key, &hmac);
-  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
-    return decrypted_size;
-
-  /* Hail Mary, try tertiary, key, in case of parallel re-keys. */
-  key = &t->kx_ctx->d_key_old2;
-  decrypted_size = decrypt (key, dst, src, size, iv);
-  t_hmac (src, size, iv, key, &hmac);
-  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
-    return decrypted_size;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Failed checksum validation on tunnel %s with KX\n",
-              GCT_2s (t));
-  GNUNET_STATISTICS_update (stats, "# wrong HMAC with KX", 1, GNUNET_NO);
-  return -1;
 }
 
 
@@ -1604,175 +1200,6 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
 
 
 /**
- * Create key material by doing ECDH on the local and remote ephemeral keys.
- *
- * @param key_material Where to store the key material.
- * @param ephemeral Peer's public ephemeral key.
- *
- * @return GNUNET_OK if it went fine, GNUNET_SYSERR otherwise.
- */
-static int
-derive_otr_key_material (struct GNUNET_HashCode *key_material,
-                         const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral)
-{
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_ecdh (otr_ephemeral_key, ephemeral, key_material))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Create a symmetic key from the identities of both ends and the key material
- * from ECDH.
- *
- * @param key Destination for the generated key.
- * @param sender ID of the peer that will encrypt with @c key.
- * @param receiver ID of the peer that will decrypt with @c key.
- * @param key_material Hash created with ECDH with the ephemeral keys.
- */
-void
-derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
-                  const struct GNUNET_PeerIdentity *sender,
-                  const struct GNUNET_PeerIdentity *receiver,
-                  const struct GNUNET_HashCode *key_material)
-{
-  const char salt[] = "CADET kx salt";
-
-  GNUNET_CRYPTO_kdf (key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-                     salt, sizeof (salt),
-                     key_material, sizeof (struct GNUNET_HashCode),
-                     sender, sizeof (struct GNUNET_PeerIdentity),
-                     receiver, sizeof (struct GNUNET_PeerIdentity),
-                     NULL);
-}
-
-
-/**
- * Derive the tunnel's keys using our own and the peer's ephemeral keys.
- *
- * @param t Tunnel for which to create the keys.
- *
- * @return GNUNET_OK if successful, GNUNET_SYSERR otherwise.
- */
-static int
-create_otr_keys (struct CadetTunnel *t)
-{
-  struct GNUNET_HashCode km;
-
-  if (GNUNET_OK != derive_otr_key_material (&km, &t->peers_ephemeral_key))
-    return GNUNET_SYSERR;
-  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
-  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
-  #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
-  LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->e_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "DK: %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
-  #endif
-  return GNUNET_OK;
-}
-
-
-/**
- * Create a new Key eXchange context for the tunnel.
- *
- * If the old keys were verified, keep them for old traffic. Create a new KX
- * timestamp and a new nonce.
- *
- * @param t Tunnel for which to create the KX ctx.
- *
- * @return GNUNET_OK if successful, GNUNET_SYSERR otherwise.
- */
-static int
-create_kx_ctx (struct CadetTunnel *t)
-{
-  LOG (GNUNET_ERROR_TYPE_INFO, "  new kx ctx for %s\n", GCT_2s (t));
-
-  if (NULL != t->kx_ctx)
-  {
-    if (NULL != t->kx_ctx->finish_task)
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO, "  resetting exisiting finish task\n");
-      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
-      t->kx_ctx->finish_task = NULL;
-    }
-  }
-  else
-  {
-    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
-    t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                                     UINT32_MAX);
-  }
-
-  if (CADET_TUNNEL_KEY_OK == t->estate)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO, "  backing up keys\n");
-    t->kx_ctx->d_key_old = t->d_key;
-    t->kx_ctx->e_key_old = t->e_key;
-  }
-  else
-    LOG (GNUNET_ERROR_TYPE_INFO, "  old keys not valid, not saving\n");
-  t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
-  return create_otr_keys (t);
-}
-
-
-/**
- * @brief Finish the Key eXchange and destroy the old keys.
- *
- * @param cls Closure (Tunnel for which to finish the KX).
- */
-static void
-finish_kx (void *cls)
-{
-  struct CadetTunnel *t = cls;
-
-  LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
-  GNUNET_free (t->kx_ctx);
-  t->kx_ctx = NULL;
-}
-
-
-/**
- * Destroy a Key eXchange context for the tunnel. This function only schedules
- * the destruction, the freeing of the memory (and clearing of old key material)
- * happens after a delay!
- *
- * @param t Tunnel whose KX ctx to destroy.
- */
-static void
-destroy_kx_ctx (struct CadetTunnel *t)
-{
-  struct GNUNET_TIME_Relative delay;
-
-  if (NULL == t->kx_ctx || NULL != t->kx_ctx->finish_task)
-    return;
-
-  if (is_key_null (&t->kx_ctx->e_key_old))
-  {
-    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_now (&finish_kx, t);
-    return;
-  }
-
-  delay = GNUNET_TIME_relative_divide (rekey_period, 4);
-  delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
-
-  t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay,
-							 &finish_kx, t);
-}
-
-
-
-/**
  * Pick a connection on which send the next data message.
  *
  * @param t Tunnel on which to send the message.
@@ -1904,27 +1331,25 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
  * @param existing_q In case this a transmission of previously queued data,
  *                   this should be TunnelQueue given to the client.
  *                   Otherwise, NULL.
- *
  * @return Handle to cancel message.
  *         NULL if @c cont is NULL or an error happens and message is dropped.
  */
 static struct CadetTunnelQueue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       struct CadetTunnel *t, struct CadetConnection *c,
-                       int force, GCT_sent cont, void *cont_cls,
+                       struct CadetTunnel *t,
+                       struct CadetConnection *c,
+                       int force,
+                       GCT_sent cont,
+                       void *cont_cls,
                        struct CadetTunnelQueue *existing_q)
 {
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_CADET_Encrypted *otr_msg;
   struct GNUNET_CADET_AX *ax_msg;
   struct CadetTunnelQueue *tq;
   size_t size = ntohs (message->size);
-  const uint16_t max_overhead = sizeof (struct GNUNET_CADET_Encrypted)
-                                + sizeof (struct GNUNET_CADET_AX);
-  char cbuf[max_overhead + size];
+  char cbuf[sizeof (struct GNUNET_CADET_AX) + size] GNUNET_ALIGN;
   size_t esize;
   uint32_t mid;
-  uint32_t iv;
   uint16_t type;
   int fwd;
 
@@ -1950,32 +1375,17 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
-  if (CADET_Axolotl == t->enc_type)
-  {
-    ax_msg = (struct GNUNET_CADET_AX *) cbuf;
-    msg = &ax_msg->header;
-    msg->size = htons (sizeof (struct GNUNET_CADET_AX) + size);
-    msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_AX);
-    ax_msg->reserved = 0;
-    esize = t_ax_encrypt (t, &ax_msg[1], message, size);
-    ax_msg->Ns = htonl (t->ax->Ns++);
-    ax_msg->PNs = htonl (t->ax->PNs);
-    GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &ax_msg->DHRs);
-    t_h_encrypt (t, ax_msg);
-    t_hmac (&ax_msg->Ns, AX_HEADER_SIZE + esize, 0, &t->ax->HKs, &ax_msg->hmac);
-  }
-  else
-  {
-    otr_msg = (struct GNUNET_CADET_Encrypted *) cbuf;
-    msg = &otr_msg->header;
-    iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-    otr_msg->iv = iv;
-    esize = t_encrypt (t, &otr_msg[1], message, size, iv, GNUNET_NO);
-    t_hmac (&otr_msg[1], size, iv, select_key (t), &otr_msg->hmac);
-    msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
-    msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
-    otr_msg->ttl = htonl (default_ttl);
-  }
+  GNUNET_assert (CADET_Axolotl == t->enc_type);
+  ax_msg = (struct GNUNET_CADET_AX *) cbuf;
+  msg = &ax_msg->header;
+  msg->size = htons (sizeof (struct GNUNET_CADET_AX) + size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_AX);
+  esize = t_ax_encrypt (t, &ax_msg[1], message, size);
+  ax_msg->Ns = htonl (t->ax->Ns++);
+  ax_msg->PNs = htonl (t->ax->PNs);
+  GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &ax_msg->DHRs);
+  t_h_encrypt (t, ax_msg);
+  t_hmac (&ax_msg->Ns, AX_HEADER_SIZE + esize, 0, &t->ax->HKs, &ax_msg->hmac);
   GNUNET_assert (esize == size);
 
   if (NULL == c)
@@ -2147,28 +1557,6 @@ ephm_sent (void *cls,
 
 
 /**
- * Callback called when a queued message is sent.
- *
- * @param cls Closure.
- * @param c Connection this message was on.
- * @param type Type of message sent.
- * @param fwd Was this a FWD going message?
- * @param size Size of the message.
- */
-static void
-pong_sent (void *cls,
-           struct CadetConnection *c,
-           struct CadetConnectionQueue *q,
-           uint16_t type, int fwd, size_t size)
-{
-  struct CadetTunnel *t = cls;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "pong_sent %s\n", GC_m2s (type));
-
-  t->pong_h = NULL;
-}
-
-
-/**
  * Sends key exchange message on a tunnel, choosing the best connection.
  * Should not be called on loopback tunnels.
  *
@@ -2232,16 +1620,10 @@ send_kx (struct CadetTunnel *t,
   }
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
     case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
       GNUNET_assert (NULL == t->ephm_h);
       cont = &ephm_sent;
       break;
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
-      GNUNET_assert (NULL == t->pong_h);
-      cont = &pong_sent;
-      break;
-
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
       GNUNET_assert (0);
@@ -2253,213 +1635,6 @@ send_kx (struct CadetTunnel *t,
   return GCC_send_prebuilt_message (&msg->header, type, 0, c,
                                     fwd, GNUNET_YES,
                                     cont, t);
-}
-
-
-/**
- * Send the ephemeral key on a tunnel.
- *
- * @param t Tunnel on which to send the key.
- */
-static void
-send_ephemeral (struct CadetTunnel *t)
-{
-  LOG (GNUNET_ERROR_TYPE_INFO, "==> EPHM for %s\n", GCT_2s (t));
-  if (NULL != t->ephm_h)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
-    return;
-  }
-
-  otr_kx_msg.sender_status = htonl (t->estate);
-  otr_kx_msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  otr_kx_msg.nonce = t->kx_ctx->challenge;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce c %u\n", otr_kx_msg.nonce);
-  t_encrypt (t, &otr_kx_msg.nonce, &otr_kx_msg.nonce,
-             ping_encryption_size(), otr_kx_msg.iv, GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce e %u\n", otr_kx_msg.nonce);
-  t->ephm_h = send_kx (t, &otr_kx_msg.header);
-}
-
-
-/**
- * Send a pong message on a tunnel.
- *d_
- * @param t Tunnel on which to send the pong.
- * @param challenge Value sent in the ping that we have to send back.
- */
-static void
-send_pong (struct CadetTunnel *t, uint32_t challenge)
-{
-  struct GNUNET_CADET_KX_Pong msg;
-
-  LOG (GNUNET_ERROR_TYPE_INFO, "==> PONG for %s\n", GCT_2s (t));
-  if (NULL != t->pong_h)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
-    return;
-  }
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PONG);
-  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  msg.nonce = challenge;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
-  t_encrypt (t, &msg.nonce, &msg.nonce,
-             sizeof (msg.nonce), msg.iv, GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
-
-  t->pong_h = send_kx (t, &msg.header);
-}
-
-
-/**
- * Initiate a rekey with the remote peer.
- *
- * @param cls Closure (tunnel).
- */
-static void
-rekey_tunnel (void *cls)
-{
-  struct CadetTunnel *t = cls;
-
-  t->rekey_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_INFO, "Re-key Tunnel %s\n", GCT_2s (t));
-  GNUNET_assert (NULL != t->kx_ctx);
-  struct GNUNET_TIME_Relative duration;
-
-  duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " kx started %s ago\n",
-       GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
-
-  // FIXME make duration of old keys configurable
-  if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " deleting old keys\n");
-    memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
-    memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
-  }
-
-  send_ephemeral (t);
-
-  switch (t->estate)
-  {
-    case CADET_TUNNEL_KEY_UNINITIALIZED:
-      GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
-      break;
-
-    case CADET_TUNNEL_KEY_SENT:
-      break;
-
-    case CADET_TUNNEL_KEY_OK:
-      /* Inconsistent!
-       * - state should have changed during rekey_iterator
-       * - task should have been canceled at pong_handle
-       */
-      GNUNET_break (0);
-      GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
-      break;
-
-    case CADET_TUNNEL_KEY_PING:
-    case CADET_TUNNEL_KEY_REKEY:
-      break;
-
-    default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
-  }
-
-  // FIXME exponential backoff
-  struct GNUNET_TIME_Relative delay;
-
-  delay = GNUNET_TIME_relative_divide (rekey_period, 16);
-  delay = GNUNET_TIME_relative_min (delay, REKEY_WAIT);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  next call in %s\n",
-       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-  t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
-}
-
-
-/**
- * Our ephemeral key has changed, create new session key on all tunnels.
- *
- * Each tunnel will start the Key Exchange with a random delay between
- * 0 and number_of_tunnels*100 milliseconds, so there are 10 key exchanges
- * per second, on average.
- *
- * @param cls Closure (size of the hashmap).
- * @param key Current public key.
- * @param value Value in the hash map (tunnel).
- *
- * @return #GNUNET_YES, so we should continue to iterate,
- */
-static int
-rekey_iterator (void *cls,
-                const struct GNUNET_PeerIdentity *key,
-                void *value)
-{
-  struct CadetTunnel *t = value;
-  struct GNUNET_TIME_Relative delay;
-  long n = (long) cls;
-  uint32_t r;
-
-  if (NULL != t->rekey_task)
-    return GNUNET_YES;
-
-  if (GNUNET_YES == GCT_is_loopback (t))
-    return GNUNET_YES;
-
-  if (CADET_OTR != t->enc_type)
-    return GNUNET_YES;
-
-  r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
-  t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
-  if (GNUNET_OK == create_kx_ctx (t))
-    GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
-  else
-  {
-    GNUNET_break (0);
-    // FIXME restart kx
-  }
-
-  return GNUNET_YES;
-}
-
-
-/**
- * Create a new ephemeral key and key message, schedule next rekeying.
- *
- * @param cls Closure (unused).
- */
-static void
-global_otr_rekey (void *cls)
-{
-  struct GNUNET_TIME_Absolute time;
-  long n;
-
-  rekey_task = NULL;
-  GNUNET_free_non_null (otr_ephemeral_key);
-  otr_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
-
-  time = GNUNET_TIME_absolute_get ();
-  otr_kx_msg.creation_time = GNUNET_TIME_absolute_hton (time);
-  time = GNUNET_TIME_absolute_add (time, rekey_period);
-  time = GNUNET_TIME_absolute_add (time, GNUNET_TIME_UNIT_MINUTES);
-  otr_kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
-  GNUNET_CRYPTO_ecdhe_key_get_public (otr_ephemeral_key, &otr_kx_msg.ephemeral_key);
-  LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL OTR RE-KEY, NEW EPHM: %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
-
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (id_key,
-                                           &otr_kx_msg.purpose,
-                                           &otr_kx_msg.signature));
-
-  n = (long) GNUNET_CONTAINER_multipeermap_size (tunnels);
-  GNUNET_CONTAINER_multipeermap_iterate (tunnels, &rekey_iterator, (void *) n);
-
-  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period,
-                                             &global_otr_rekey, NULL);
 }
 
 
@@ -2784,138 +1959,6 @@ destroy_ax (struct CadetTunnel *t)
 
 
 /**
- * The peer's ephemeral key has changed: update the symmetrical keys.
- *
- * @param t Tunnel this message came on.
- * @param msg Key eXchange message.
- */
-static void
-handle_ephemeral (struct CadetTunnel *t,
-                  const struct GNUNET_CADET_KX_Ephemeral *msg)
-{
-  LOG (GNUNET_ERROR_TYPE_INFO, "<== EPHM for %s\n", GCT_2s (t));
-
-  /* Some old versions are still around, don't log as error. */
-  if (GNUNET_OK != check_ephemeral (t, msg))
-    return;
-
-  /* If we get a proper OTR-style ephemeral, fallback to old crypto. */
-  if (NULL != t->ax)
-  {
-    destroy_ax (t);
-    t->enc_type = CADET_OTR;
-    if (NULL != t->rekey_task)
-      GNUNET_SCHEDULER_cancel (t->rekey_task);
-    if (GNUNET_OK != create_kx_ctx (t))
-    {
-      // FIXME restart kx
-      GNUNET_break (0);
-      return;
-    }
-    rekey_tunnel (t);
-    GNUNET_STATISTICS_update (stats, "# otr-downgrades", -1, GNUNET_NO);
-  }
-
-  /**
-   * If the key is different from what we know, derive the new E/D keys.
-   * Else destroy the rekey ctx (duplicate EPHM after successful KX).
-   */
-  if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
-                   sizeof (msg->ephemeral_key)))
-  {
-    #if DUMP_KEYS_TO_STDERR
-    LOG (GNUNET_ERROR_TYPE_INFO, "OLD: %s\n",
-         GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
-    LOG (GNUNET_ERROR_TYPE_INFO, "NEW: %s\n",
-         GNUNET_i2s ((struct GNUNET_PeerIdentity *) &msg->ephemeral_key));
-    #endif
-    t->peers_ephemeral_key = msg->ephemeral_key;
-
-    if (GNUNET_OK != create_kx_ctx (t))
-    {
-      // FIXME restart kx
-      GNUNET_break (0);
-      return;
-    }
-
-    if (CADET_TUNNEL_KEY_OK == t->estate)
-    {
-      GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
-    }
-    if (NULL != t->rekey_task)
-      GNUNET_SCHEDULER_cancel (t->rekey_task);
-    t->rekey_task = GNUNET_SCHEDULER_add_now (&rekey_tunnel, t);
-  }
-  if (CADET_TUNNEL_KEY_SENT == t->estate)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending challenge\n");
-    send_ephemeral (t);
-    GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
-  }
-
-  if (CADET_TUNNEL_KEY_UNINITIALIZED != ntohl(msg->sender_status))
-  {
-    uint32_t nonce;
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv nonce e %u\n", msg->nonce);
-    t_decrypt (t, &nonce, &msg->nonce, ping_encryption_size (), msg->iv);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv nonce c %u\n", nonce);
-    send_pong (t, nonce);
-  }
-}
-
-
-/**
- * Peer has answer to our challenge.
- * If answer is successful, consider the key exchange finished and clean
- * up all related state.
- *
- * @param t Tunnel this message came on.
- * @param msg Key eXchange Pong message.
- */
-static void
-handle_pong (struct CadetTunnel *t,
-             const struct GNUNET_CADET_KX_Pong *msg)
-{
-  uint32_t challenge;
-
-  LOG (GNUNET_ERROR_TYPE_INFO, "<== PONG for %s\n", GCT_2s (t));
-  if (NULL == t->rekey_task)
-  {
-    GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
-    return;
-  }
-  if (NULL == t->kx_ctx)
-  {
-    GNUNET_STATISTICS_update (stats, "# stray PONG messages", 1, GNUNET_NO);
-    return;
-  }
-
-  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
-  if (challenge != t->kx_ctx->challenge)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge on %s\n", GCT_2s (t));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG: %u (e: %u). Expected: %u.\n",
-         challenge, msg->nonce, t->kx_ctx->challenge);
-    send_ephemeral (t);
-    return;
-  }
-  GNUNET_SCHEDULER_cancel (t->rekey_task);
-  t->rekey_task = NULL;
-
-  /* Don't free the old keys right away, but after a delay.
-   * Rationale: the KX could have happened over a very fast connection,
-   * with payload traffic still signed with the old key stuck in a slower
-   * connection.
-   * Don't keep the keys longer than 1/4 the rekey period, and no longer than
-   * one minute.
-   */
-  destroy_kx_ctx (t);
-  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
-}
-
-
-/**
  * Handle Axolotl handshake.
  *
  * @param t Tunnel this message came on.
@@ -2936,7 +1979,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   if (NULL == t->ax)
   {
     /* Something is wrong if ax is NULL. Whose fault it is? */
-    GNUNET_break_op (CADET_OTR == t->enc_type);
     GNUNET_break (CADET_Axolotl == t->enc_type);
     return;
   }
@@ -3148,18 +2190,6 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   type = ntohs (msg->type);
   switch (type)
   {
-  case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-    {
-      const struct GNUNET_CADET_Encrypted *emsg;
-      size_t payload_size;
-
-      GNUNET_STATISTICS_update (stats, "# received OTR", 1, GNUNET_NO);
-      emsg = (const struct GNUNET_CADET_Encrypted *) msg;
-      payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
-      decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
-                                               emsg->iv, &emsg->hmac);
-    }
-    break;
   case GNUNET_MESSAGE_TYPE_CADET_AX:
     {
       const struct GNUNET_CADET_AX *emsg;
@@ -3229,18 +2259,9 @@ GCT_handle_kx (struct CadetTunnel *t,
   GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
-      handle_ephemeral (t, (const struct GNUNET_CADET_KX_Ephemeral *) message);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
-      handle_pong (t, (const struct GNUNET_CADET_KX_Pong *) message);
-      break;
-
     case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
       handle_kx_ax (t, (const struct GNUNET_CADET_AX_KX *) message);
       break;
-
     default:
       GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_WARNING, "kx message %s unknown\n", GC_m2s (type));
@@ -3257,40 +2278,32 @@ void
 GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key)
 {
-  int expected_overhead;
+  unsigned int expected_overhead;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
 
   expected_overhead = 0;
-  expected_overhead += sizeof (struct GNUNET_CADET_Encrypted);
+  expected_overhead += sizeof (struct GNUNET_CADET_AX);
   expected_overhead += sizeof (struct GNUNET_CADET_Data);
   expected_overhead += sizeof (struct GNUNET_CADET_ACK);
   GNUNET_assert (GNUNET_CONSTANTS_CADET_P2P_OVERHEAD == expected_overhead);
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DEFAULT_TTL",
-                                             &default_ttl))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_DEBUG,
-                               "CADET", "DEFAULT_TTL", "USING DEFAULT");
-    default_ttl = 64;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "REKEY_PERIOD",
-                                           &rekey_period))
-  {
-    rekey_period = GNUNET_TIME_UNIT_DAYS;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "RATCHET_MESSAGES",
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "RATCHET_MESSAGES",
                                              &ratchet_messages))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "CADET", "RATCHET_MESSAGES", "USING DEFAULT");
+                               "CADET",
+                               "RATCHET_MESSAGES",
+                               "USING DEFAULT");
     ratchet_messages = 64;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "RATCHET_TIME",
+      GNUNET_CONFIGURATION_get_value_time (c,
+                                           "CADET",
+                                           "RATCHET_TIME",
                                            &ratchet_time))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
@@ -3300,13 +2313,6 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 
 
   id_key = key;
-
-  otr_kx_msg.header.size = htons (sizeof (otr_kx_msg));
-  otr_kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
-  otr_kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
-  otr_kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
-  otr_kx_msg.origin_identity = my_full_id;
-  rekey_task = GNUNET_SCHEDULER_add_now (&global_otr_rekey, NULL);
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
 }
 
@@ -3318,11 +2324,6 @@ void
 GCT_shutdown (void)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down tunnels\n");
-  if (NULL != rekey_task)
-  {
-    GNUNET_SCHEDULER_cancel (rekey_task);
-    rekey_task = NULL;
-  }
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
 }
@@ -3845,13 +2846,6 @@ GCT_destroy (struct CadetTunnel *t)
     GNUNET_SCHEDULER_cancel (t->rekey_task);
     t->rekey_task = NULL;
   }
-  if (NULL != t->kx_ctx)
-  {
-    if (NULL != t->kx_ctx->finish_task)
-      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
-    GNUNET_free (t->kx_ctx);
-  }
-
   if (NULL != t->ax)
     destroy_ax (t);
 
@@ -4566,8 +3560,6 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
   LOG2 (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
-  LOG2 (level, "TTT  kx_ctx %p, rekey_task %u, finish task %u\n",
-        t->kx_ctx, t->rekey_task, t->kx_ctx ? t->kx_ctx->finish_task : 0);
 #if DUMP_KEYS_TO_STDERR
   if (CADET_Axolotl == t->enc_type)
   {
@@ -4575,21 +3567,12 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   }
   else
   {
-    LOG2 (level, "TTT  my EPHM\t %s\n",
-          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
     LOG2 (level, "TTT  peers EPHM:\t %s\n",
           GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
     LOG2 (level, "TTT  ENC key:\t %s\n",
           GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->e_key));
     LOG2 (level, "TTT  DEC key:\t %s\n",
           GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
-    if (t->kx_ctx)
-    {
-      LOG2 (level, "TTT  OLD ENC key:\t %s\n",
-            GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->kx_ctx->e_key_old));
-      LOG2 (level, "TTT  OLD DEC key:\t %s\n",
-            GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->kx_ctx->d_key_old));
-    }
   }
 #endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);

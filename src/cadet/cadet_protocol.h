@@ -52,23 +52,23 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct GNUNET_CADET_ConnectionCreate
 {
-    /**
-     * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
-     *
-     * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
-     *       path_length * sizeof (struct GNUNET_PeerIdentity)
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
+   *
+   * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
+   *       path_length * sizeof (struct GNUNET_PeerIdentity)
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the connection
-     */
+  /**
+   * ID of the connection
+   */
   struct GNUNET_CADET_Hash cid;
 
-    /**
-     * path_length structs defining the *whole* path from the origin [0] to the
-     * final destination [path_length-1].
-     */
+  /**
+   * path_length structs defining the *whole* path from the origin [0] to the
+   * final destination [path_length-1].
+   */
   /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
@@ -160,147 +160,14 @@ struct GNUNET_CADET_AX_KX
 
 
 /**
- * Message transmitted with the signed ephemeral key of a peer.  The
- * session key is then derived from the two ephemeral keys (ECDHE).
- *
- * As far as possible, same as CORE's EphemeralKeyMessage.
- */
-struct GNUNET_CADET_KX_Ephemeral
-{
-
-  /**
-   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Status of the sender (should be in "enum PeerStateMachine"), nbo.
-   */
-  int32_t sender_status GNUNET_PACKED;
-
-  /**
-   * An ECC signature of the 'origin' asserting the validity of
-   * the given ephemeral key.
-   */
-  struct GNUNET_CRYPTO_EddsaSignature signature;
-
-  /**
-   * Information about what is being signed.
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * At what time was this key created (beginning of validity).
-   */
-  struct GNUNET_TIME_AbsoluteNBO creation_time;
-
-  /**
-   * When does the given ephemeral key expire (end of validity).
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration_time;
-
-  /**
-   * Ephemeral public ECC key (always for NIST P-521) encoded in a format
-   * suitable for network transmission as created using 'gcry_sexp_sprint'.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
-
-  /**
-   * Public key of the signing peer
-   * (persistent version, not the ephemeral public key).
-   */
-  struct GNUNET_PeerIdentity origin_identity;
-
-  /**
-   * Seed for the IV of nonce.
-   */
-  uint32_t iv GNUNET_PACKED;
-
-  /**
-   * Nonce to check liveness of peer.
-   */
-  uint32_t nonce GNUNET_PACKED;
-};
-
-
-/**
- * Response to a PING.  Includes data from the original PING.
- */
-struct GNUNET_CADET_KX_Pong
-{
-  /**
-   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_PONG.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Seed for the IV
-   */
-  uint32_t iv GNUNET_PACKED;
-
-  /**
-   * Same nonce as in the reve.
-   */
-  uint32_t nonce GNUNET_PACKED;
-};
-
-
-/**
- * Tunnel(ed) message.
- */
-struct GNUNET_CADET_Encrypted
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_CADET_Hash cid;
-
-  /**
-   * ID of the packet (hop by hop).
-   */
-  uint32_t pid GNUNET_PACKED;
-
-  /**
-   * Number of hops to live.
-   */
-  uint32_t ttl GNUNET_PACKED;
-
-  /**
-   * Initialization Vector for payload encryption.
-   */
-  uint32_t iv GNUNET_PACKED;
-
-  /**
-   * MAC of the encrypted message, used to verify message integrity.
-   * Everything after this value  will be encrypted and authenticated.
-   */
-  struct GNUNET_CADET_Hash hmac;
-
-  /**
-   * Encrypted content follows.
-   */
-};
-
-
-/**
  * Axolotl tunnel message.
  */
 struct GNUNET_CADET_AX
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_AXOLOTL_DATA
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_AXOLOTL_DATA
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_CADET_Hash cid;
 
   /**
    * ID of the packet (hop by hop).
@@ -308,9 +175,9 @@ struct GNUNET_CADET_AX
   uint32_t pid GNUNET_PACKED;
 
   /**
-   * Reserved field for 64b alignment.
+   * ID of the connection.
    */
-  uint32_t reserved GNUNET_PACKED;
+  struct GNUNET_CADET_Hash cid;
 
   /**
    * MAC of the encrypted message, used to verify message integrity.
@@ -324,12 +191,12 @@ struct GNUNET_CADET_AX
   /**
    * Number of messages sent with the current ratchet key.
    */
-  uint32_t Ns;
+  uint32_t Ns GNUNET_PACKED;
 
   /**
    * Number of messages sent with the previous ratchet key.
    */
-  uint32_t PNs;
+  uint32_t PNs GNUNET_PACKED;
 
   /**
    * Current ratchet key.
@@ -350,7 +217,7 @@ struct GNUNET_CADET_AX
 struct GNUNET_CADET_ChannelCreate
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
    */
   struct GNUNET_MessageHeader header;
 
@@ -377,7 +244,7 @@ struct GNUNET_CADET_ChannelCreate
 struct GNUNET_CADET_ChannelManage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
    */
   struct GNUNET_MessageHeader header;
 
@@ -393,25 +260,25 @@ struct GNUNET_CADET_ChannelManage
  */
 struct GNUNET_CADET_Data
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_UNICAST,
-     *       GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
+   *       #GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * Unique ID of the payload message
-     */
+  /**
+   * Unique ID of the payload message
+   */
   uint32_t mid GNUNET_PACKED;
 
-    /**
-     * ID of the channel
-     */
+  /**
+   * ID of the channel
+   */
   CADET_ChannelNumber chid GNUNET_PACKED;
 
-    /**
-     * Payload follows
-     */
+  /**
+   * Payload follows
+   */
 };
 
 
@@ -449,19 +316,19 @@ struct GNUNET_CADET_DataACK
  */
 struct GNUNET_CADET_ACK
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_ACK
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_ACK
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * Maximum packet ID authorized.
-     */
+  /**
+   * Maximum packet ID authorized.
+   */
   uint32_t ack GNUNET_PACKED;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 };
 
@@ -471,19 +338,19 @@ struct GNUNET_CADET_ACK
  */
 struct GNUNET_CADET_Poll
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_POLL
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_POLL
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * Last packet sent.
-     */
+  /**
+   * Last packet sent.
+   */
   uint32_t pid GNUNET_PACKED;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 
 };
@@ -494,24 +361,24 @@ struct GNUNET_CADET_Poll
  */
 struct GNUNET_CADET_ConnectionBroken
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 
-    /**
-     * ID of the endpoint
-     */
+  /**
+   * ID of the endpoint
+   */
   struct GNUNET_PeerIdentity peer1;
 
-    /**
-     * ID of the endpoint
-     */
+  /**
+   * ID of the endpoint
+   */
   struct GNUNET_PeerIdentity peer2;
 };
 
@@ -521,14 +388,14 @@ struct GNUNET_CADET_ConnectionBroken
  */
 struct GNUNET_CADET_ConnectionDestroy
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 };
 

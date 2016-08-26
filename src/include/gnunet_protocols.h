@@ -847,16 +847,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_KX                     262
 
 /**
- * New ephemeral key.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL           263
-
-/**
- * Answer to session key challenge.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KX_PONG                265
-
-/**
  * Request the destuction of a connection
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY     266
@@ -896,11 +886,6 @@ extern "C"
  * Reject the creation of a channel
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK           276
-
-/**
- * Encrypted data. (Payload, channel management, keepalive)
- */
-#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED              280
 
 /**
  * Axolotl key exchange.

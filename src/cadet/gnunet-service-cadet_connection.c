@@ -665,8 +665,7 @@ conn_message_sent (void *cls,
     }
     GNUNET_free (q);
   }
-  else if (type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
-           || type == GNUNET_MESSAGE_TYPE_CADET_AX)
+  else if (type == GNUNET_MESSAGE_TYPE_CADET_AX)
   {
     /* If NULL == q and ENCRYPTED == type, message must have been ch_mngmnt */
     forced = GNUNET_YES;
@@ -708,7 +707,6 @@ conn_message_sent (void *cls,
         schedule_next_keepalive (c, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
     case GNUNET_MESSAGE_TYPE_CADET_AX:
       if (GNUNET_YES == sent)
       {
@@ -2458,8 +2456,7 @@ check_message (const struct GNUNET_MessageHeader *message,
 
   /* Check PID for payload messages */
   type = ntohs (message->type);
-  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type
-      || GNUNET_MESSAGE_TYPE_CADET_AX == type)
+  if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
   {
     fc = fwd ? &c->bck_fc : &c->fwd_fc;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
@@ -2522,33 +2519,20 @@ static int
 handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_CADET_Encrypted *otr_msg;
   const struct GNUNET_CADET_AX *ax_msg;
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
   size_t minimum_size;
   size_t overhead;
   uint32_t pid;
-  uint32_t ttl;
   int fwd;
 
   GCC_check_connections ();
-  if (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type))
-  {
-    overhead = sizeof (struct GNUNET_CADET_AX);
-    ax_msg = (const struct GNUNET_CADET_AX *) message;
-    cid = &ax_msg->cid;
-    pid = ntohl (ax_msg->pid);
-    otr_msg = NULL;
-  }
-  else
-  {
-    overhead = sizeof (struct GNUNET_CADET_Encrypted);
-    otr_msg = (const struct GNUNET_CADET_Encrypted *) message;
-    cid = &otr_msg->cid;
-    pid = ntohl (otr_msg->pid);
-  }
-
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type));
+  overhead = sizeof (struct GNUNET_CADET_AX);
+  ax_msg = (const struct GNUNET_CADET_AX *) message;
+  cid = &ax_msg->cid;
+  pid = ntohl (ax_msg->pid);
   log_message (message, peer, cid);
 
   minimum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
@@ -2585,20 +2569,6 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
 
   /* Message not for us: forward to next hop */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  if (NULL != otr_msg) /* only otr has ttl */
-  {
-    ttl = ntohl (otr_msg->ttl);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
-    if (ttl == 0)
-    {
-      GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-      LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-      GCC_send_ack (c, fwd, GNUNET_NO);
-      GCC_check_connections ();
-      return GNUNET_OK;
-    }
-  }
-
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
   GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
                                                     GNUNET_NO, NULL, NULL));
@@ -3501,34 +3471,15 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   switch (type)
   {
     struct GNUNET_CADET_AX        *axmsg;
-    struct GNUNET_CADET_Encrypted *emsg;
     struct GNUNET_CADET_KX        *kmsg;
     struct GNUNET_CADET_ACK       *amsg;
     struct GNUNET_CADET_Poll      *pmsg;
     struct GNUNET_CADET_ConnectionDestroy *dmsg;
     struct GNUNET_CADET_ConnectionBroken  *bmsg;
-    uint32_t ttl;
 
     case GNUNET_MESSAGE_TYPE_CADET_AX:
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
-      {
-        emsg = (struct GNUNET_CADET_Encrypted *) data;
-        ttl = ntohl (emsg->ttl);
-        if (0 == ttl)
-        {
-          GNUNET_break_op (0);
-          GNUNET_free (data);
-          return NULL;
-        }
-        emsg->cid = c->id;
-        emsg->ttl = htonl (ttl - 1);
-      }
-      else
-      {
-        axmsg = (struct GNUNET_CADET_AX *) data;
-        axmsg->cid = c->id;
-      }
+      axmsg = (struct GNUNET_CADET_AX *) data;
+      axmsg->cid = c->id;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
@@ -3588,8 +3539,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
          fc->queue_n, fc->queue_max);
-    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type
-        || GNUNET_MESSAGE_TYPE_CADET_AX == type)
+    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
     {
       fc->queue_n--;
     }
