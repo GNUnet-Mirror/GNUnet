@@ -1316,7 +1316,8 @@ handle_exchange_message (void *cls,
                                      &xchange_handle->ticket))
   {
     GNUNET_free (xchange_handle);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for token under %s\n",
@@ -1326,16 +1327,18 @@ handle_exchange_message (void *cls,
                    xchange_handle->ticket->payload->label);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_set_user_context (client, xchange_handle);
+  GNUNET_SERVER_client_set_user_context (client,
+                                         xchange_handle);
   xchange_handle->client = client;
-  xchange_handle->lookup_request = GNUNET_GNS_lookup (gns_handle,
-                                                      lookup_query,
-                                                      &xchange_handle->ticket->payload->identity_key,
-                                                      GNUNET_GNSRECORD_TYPE_ID_TOKEN,
-                                                      GNUNET_GNS_LO_LOCAL_MASTER,
-                                                      NULL,
-                                                      &process_lookup_result,
-                                                      xchange_handle);
+  xchange_handle->lookup_request
+    = GNUNET_GNS_lookup (gns_handle,
+                         lookup_query,
+                         &xchange_handle->ticket->payload->identity_key,
+                         GNUNET_GNSRECORD_TYPE_ID_TOKEN,
+                         GNUNET_GNS_LO_LOCAL_MASTER,
+                         NULL,
+                         &process_lookup_result,
+                         xchange_handle);
   GNUNET_free (lookup_query);
 
 }
@@ -1526,19 +1529,21 @@ handle_issue_message (void *cls,
   }
   im = (const struct GNUNET_IDENTITY_PROVIDER_IssueMessage *) message;
   scopes = (const char *) &im[1];
+  if ('\0' != scopes[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed scopes received!\n");
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    return;
+  }
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
-  if ('\0' != scopes[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) - 1])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed scopes received!\n");
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   scopes_tmp = GNUNET_strdup (scopes);
-  scope = strtok(scopes_tmp, ",");
-  for (; NULL != scope; scope = strtok (NULL, ","))
+
+  for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
   {
     GNUNET_CRYPTO_hash (scope,
                         strlen (scope),
