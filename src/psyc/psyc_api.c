@@ -720,10 +720,10 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_PSYC_MessagePartCallback message_part_cb,
                           void *cls)
 {
-  struct GNUNET_PSYC_Master *mst = GNUNET_malloc (sizeof (*mst));
+  struct GNUNET_PSYC_Master *mst = GNUNET_new (struct GNUNET_PSYC_Master);
   struct GNUNET_PSYC_Channel *chn = &mst->chn;
+  struct MasterStartRequest *req;
 
-  struct MasterStartRequest *req = GNUNET_malloc (sizeof (*req));
   chn->connect_env = GNUNET_MQ_msg (req,
                                     GNUNET_MESSAGE_TYPE_PSYC_MASTER_START);
   req->channel_key = *channel_key;
