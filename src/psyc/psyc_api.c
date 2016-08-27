@@ -304,7 +304,8 @@ check_channel_history_result (void *cls,
     pmsg = (struct GNUNET_PSYC_MessageHeader *) GNUNET_MQ_extract_nested_mh (res);
   uint16_t size = ntohs (res->header.size);
 
-  if (NULL == pmsg || size < sizeof (*res) + sizeof (*pmsg))
+  if ( (NULL == pmsg) ||
+       (size < sizeof (*res) + sizeof (*pmsg)) )
   { /* Error, message too small. */
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -320,13 +321,13 @@ handle_channel_history_result (void *cls,
   struct GNUNET_PSYC_Channel *chn = cls;
   struct GNUNET_PSYC_MessageHeader *
     pmsg = (struct GNUNET_PSYC_MessageHeader *) GNUNET_MQ_extract_nested_mh (res);
+  GNUNET_ResultCallback result_cb = NULL;
+  struct GNUNET_PSYC_HistoryRequest *hist = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%p Received historic fragment for message #%" PRIu64 ".\n",
-       chn, GNUNET_ntohll (pmsg->message_id));
-
-  GNUNET_ResultCallback result_cb = NULL;
-  struct GNUNET_PSYC_HistoryRequest *hist = NULL;
+       chn,
+       GNUNET_ntohll (pmsg->message_id));
 
   if (GNUNET_YES != GNUNET_OP_get (chn->op,
                                    GNUNET_ntohll (res->op_id),
@@ -349,10 +350,17 @@ check_channel_state_result (void *cls,
                             const struct GNUNET_OperationResultMessage *res)
 {
   const struct GNUNET_MessageHeader *mod = GNUNET_MQ_extract_nested_mh (res);
-  uint16_t mod_size = ntohs (mod->size);
-  uint16_t size = ntohs (res->header.size);
+  uint16_t mod_size;
+  uint16_t size;
 
-  if (NULL == mod || size - sizeof (*res) != mod_size)
+  if (NULL == mod)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  mod_size = ntohs (mod->size);
+  size = ntohs (res->header.size);
+  if (size - sizeof (*res) != mod_size)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -458,6 +466,12 @@ static int
 check_master_join_request (void *cls,
                            const struct GNUNET_PSYC_JoinRequestMessage *req)
 {
+  if ( ((sizeof (*req) + sizeof (struct GNUNET_PSYC_Message)) <= ntohs (req->header.size)) &&
+       (NULL == GNUNET_MQ_extract_nested_mh (req)) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -477,7 +491,8 @@ handle_master_join_request (void *cls,
     join_msg = (struct GNUNET_PSYC_Message *) GNUNET_MQ_extract_nested_mh (req);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received join_msg of type %u and size %u.\n",
-         ntohs (join_msg->header.type), ntohs (join_msg->header.size));
+         ntohs (join_msg->header.type),
+         ntohs (join_msg->header.size));
   }
 
   struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
