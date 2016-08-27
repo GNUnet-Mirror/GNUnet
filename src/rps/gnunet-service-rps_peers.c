@@ -895,6 +895,10 @@ restore_valid_peers ()
   buf = GNUNET_malloc (file_size);
   size_read = GNUNET_DISK_file_read (fh, buf, file_size);
   GNUNET_assert (size_read == file_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Restoring %" PRIu32 " peers from file `%s'\n",
+      num_peers,
+      filename_valid_peers);
   for (iter_buf = buf; iter_buf < buf + file_size - 1; iter_buf += 53)
   {
     str_repr = GNUNET_strndup (iter_buf, 53);
@@ -908,11 +912,15 @@ restore_valid_peers ()
       "num_peers: %" PRIu32 ", _size (valid_peers): %u\n",
       num_peers,
       GNUNET_CONTAINER_multipeermap_size (valid_peers));
-  GNUNET_assert (num_peers == GNUNET_CONTAINER_multipeermap_size (valid_peers));
+  if (num_peers != GNUNET_CONTAINER_multipeermap_size (valid_peers))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Number of restored peers does not match file size. Have probably duplicates.\n");
+  }
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Restored %u valid peers from disk\n",
-      num_peers);
+      GNUNET_CONTAINER_multipeermap_size (valid_peers));
 }
 
 
