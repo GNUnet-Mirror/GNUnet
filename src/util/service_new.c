@@ -110,6 +110,16 @@ struct GNUNET_SERVICE_Handle
   struct ServiceListenContext *slc_tail;
 
   /**
+   * Our clients, kept in a DLL.
+   */
+  struct GNUNET_SERVICE_Client *clients_head;
+
+  /**
+   * Our clients, kept in a DLL.
+   */
+  struct GNUNET_SERVICE_Client *clients_tail;
+
+  /**
    * Message handlers to use for all clients.
    */
   const struct GNUNET_MQ_MessageHandler *handlers;
@@ -158,6 +168,12 @@ struct GNUNET_SERVICE_Handle
   int match_gid;
 
   /**
+   * Set to #GNUNET_YES if we got a shutdown signal and terminate
+   * the service if #have_non_monitor_clients() returns #GNUNET_YES.
+   */
+  int got_shutdown;
+
+  /**
    * Our options.
    */
   enum GNUNET_SERVICE_Options options;
@@ -170,6 +186,16 @@ struct GNUNET_SERVICE_Handle
  */
 struct GNUNET_SERVICE_Client
 {
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_SERVICE_Client *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_SERVICE_Client *prev;
 
   /**
    * Server that this client belongs to.
@@ -209,13 +235,78 @@ struct GNUNET_SERVICE_Client
 };
 
 
+/**
+ * Check if any of the clients we have left are unrelated to
+ * monitoring.
+ *
+ * @param sh service to check clients for
+ * @return #GNUNET_YES if we have non-monitoring clients left
+ */
+static int
+have_non_monitor_clients (struct GNUNET_SERVICE_Handle *sh)
+{
+  struct GNUNET_SERVICE_Client *client;
+
+  for (client = sh->clients_head;NULL != client; client = client->next)
+  {
+    if (client->is_monitor)
+      continue;
+    return GNUNET_YES;
+  }
+  return GNUNET_NO;
+}
+
+
+/**
+ * Shutdown task triggered when a service should be terminated.
+ * This considers active clients and the service options to see
+ * how this specific service is to be terminated, and depending
+ * on this proceeds with the shutdown logic.
+ *
+ * @param cls our `struct GNUNET_SERVICE_Handle`
+ */
+static void
+service_main (void *cls)
+{
+  struct GNUNET_SERVICE_Handle *sh = cls;
+  struct GNUNET_SERVICE_Client *client;
+  int alive;
+
+  switch (sh->options)
+  {
+  case GNUNET_SERVICE_OPTION_NONE:
+    GNUNET_SERVICE_shutdown (sh);
+    break;
+  case GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN:
+    /* This task should never be run if we are using
+       the manual shutdown. */
+    GNUNET_assert (0);
+    break;
+  case GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN:
+    sh->got_shutdown = GNUNET_YES;
+    GNUNET_SERVICE_suspend (sh);
+    if (GNUNET_NO == have_non_monitor_clients (sh))
+      GNUNET_SERVICE_shutdown (sh);
+    break;
+  }
+}
+
+
+/**
+ * First task run by any service.  Initializes our shutdown task,
+ * starts the listening operation on our listen sockets and launches
+ * the custom logic of the application service.
+ *
+ * @param cls our `struct GNUNET_SERVICE_Handle`
+ */
 static void
 service_main (void *cls)
 {
   struct GNUNET_SERVICE_Handle *sh = cls;
 
-  GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
-                                 sh);
+  if (GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN != sh->options)
+    GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
+                                   sh);
   GNUNET_SERVICE_resume (sh);
   sh->service_init_cb (sh->cb_cls,
                        sh->cfg,
@@ -294,7 +385,33 @@ GNUNET_SERVICE_ruN_ (int argc,
 void
 GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh)
 {
-  GNUNET_break (0); // not implemented
+  struct ServiceListenContext *slc;
+
+  for (slc = slc_head; NULL != slc; slc = slc->next)
+  {
+    if (NULL != slc->listen_task)
+      {
+        GNUNET_SCHEDULER_cancel (slc->listen_task);
+        slc->listen_task = NULL;
+      }
+  }
+}
+
+
+/**
+ * We have a client. Accept the incoming socket(s) (and reschedule
+ * the listen task).
+ */
+static void
+accept_client (void *cls)
+{
+  struct ServiceListenContext *slc = cls;
+
+  slc->listen_task = NULL;
+  // FIXME: accept!
+  slc->listen_task = GNUNET_SCHEDULER_add_read (slc->listen_socket,
+                                                &accept_client,
+                                                slc);
 }
 
 
@@ -306,7 +423,15 @@ GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh)
 void
 GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh)
 {
-  GNUNET_break (0); // not implemented
+  struct ServiceListenContext *slc;
+
+  for (slc = slc_head; NULL != slc; slc = slc->next)
+  {
+    GNUNET_assert (NULL == slc->listen_task);
+    slc->listen_task = GNUNET_SCHEDULER_add_read (slc->listen_socket,
+                                                  &accept_client,
+                                                  slc);
+  }
 }
 
 
@@ -356,21 +481,44 @@ GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c)
 void
 GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
 {
-  GNUNET_break (0); // not implemented
+  struct GNUNET_SERVICE_Handle *sh = c->sh;
+
+  GNUNET_CONTAINER_DLL_remove (sh->clients_head,
+                               sh->clients_tail,
+                               c);
+  sh->disconnect_cb (sh->cb_cls,
+                     c,
+                     c->user_context);
+  if (NULL != c->warn_task)
+  {
+    GNUNET_SCHEDULER_cancel (c->warn_task);
+    c->warn_task = NULL;
+  }
+  if (GNUNET_NO == c->persist)
+  {
+    GNUNET_break (0); // FIXME: close socket, etc.
+  }
+  GNUNET_free (c);
+  if ( (GNUNET_YES == sh->got_shutdown) &&
+       (GNUNET_NO == have_non_monitor_clients (sh)) )
+    GNUNET_SERVICE_shutdown (sh);
 }
 
 
 /**
- * Stop the listen socket and get ready to shutdown the server once
- * only clients marked using #GNUNET_SERVER_client_mark_monitor are
- * left.
+ * Explicitly stops the service.
  *
- * @param sh server to stop listening on
+ * @param sh server to shutdown
  */
 void
-GNUNET_SERVICE_stop_listening (struct GNUNET_SERVICE_Handle *sh)
+GNUNET_SERVICE_shutdown (struct GNUNET_SERVICE_Handle *sh)
 {
-  GNUNET_break (0); // not implemented
+  struct GNUNET_SERVICE_Client *client;
+
+  GNUNET_SERVICE_suspend (sh);
+  sh->got_shutdown = GNUNET_NO;
+  while (NULL != (client = sh->clients_head))
+    GNUNET_SERVICE_client_drop (client);
 }
 
 
@@ -389,7 +537,10 @@ GNUNET_SERVICE_stop_listening (struct GNUNET_SERVICE_Handle *sh)
 void
 GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c)
 {
-  GNUNET_break (0); // not implemented
+  c->is_monitor = GNUNET_YES;
+  if ( (GNUNET_YES == sh->got_shutdown) &&
+       (GNUNET_NO == have_non_monitor_clients (sh)) )
+    GNUNET_SERVICE_shutdown (sh);
 }
 
 
@@ -403,9 +554,8 @@ GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c)
 void
 GNUNET_SERVICE_client_persist (struct GNUNET_SERVICE_Client *c)
 {
-  GNUNET_break (0); // not implemented
+  c->persist = GNUNET_YES;
 }
-
 
 
 /* end of service_new.c */

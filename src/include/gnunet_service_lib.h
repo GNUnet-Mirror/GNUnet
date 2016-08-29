@@ -95,13 +95,15 @@ typedef void
 enum GNUNET_SERVICE_Options
 {
   /**
-   * Use defaults.
+   * Use defaults.  Terminates all client connections and the listen
+   * sockets immediately upon receiving the shutdown signal.
    */
   GNUNET_SERVICE_OPTION_NONE = 0,
 
   /**
-   * Do not trigger server shutdown on signals, allow for the user
-   * to terminate the server explicitly when needed.
+   * Do not trigger server shutdown on signal at all; instead, allow
+   * for the user to terminate the server explicitly when needed
+   * by calling #GNUNET_SERVICE_shutdown().
    */
   GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1,
 
@@ -412,14 +414,12 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c);
 
 
 /**
- * Stop the listen socket and get ready to shutdown the server once
- * only clients marked using #GNUNET_SERVER_client_mark_monitor are
- * left.
+ * Explicitly stops the service.
  *
- * @param sh server to stop listening on
+ * @param sh server to shutdown
  */
 void
-GNUNET_SERVICE_stop_listening (struct GNUNET_SERVICE_Handle *sh);
+GNUNET_SERVICE_shutdown (struct GNUNET_SERVICE_Handle *sh);
 
 
 /**
