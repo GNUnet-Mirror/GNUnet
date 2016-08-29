@@ -31,6 +31,40 @@
 
 
 /**
+ * Information the service tracks per listen operation.
+ */
+struct ServiceListenContext
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct ServiceListenContext *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct ServiceListenContext *prev;
+
+  /**
+   * Service this listen context belongs to.
+   */
+  struct GNUNET_SERVICE_Handle *sh;
+
+  /**
+   * Socket we are listening on.
+   */
+  struct GNUNET_NETWORK_Handle *listen_socket;
+
+  /**
+   * Task scheduled to do the listening.
+   */
+  struct GNUNET_SCHEDULER_Task *listen_task;
+
+};
+
+
+/**
  * Handle to a service.
  */
 struct GNUNET_SERVICE_Handle
@@ -64,6 +98,16 @@ struct GNUNET_SERVICE_Handle
    * Closure for @e service_init_cb, @e connect_cb, @e disconnect_cb.
    */
   void *cb_cls;
+
+  /**
+   * DLL of listen sockets used to accept new connections.
+   */
+  struct ServiceListenContext *slc_head;
+
+  /**
+   * DLL of listen sockets used to accept new connections.
+   */
+  struct ServiceListenContext *slc_tail;
 
   /**
    * Message handlers to use for all clients.
