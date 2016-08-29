@@ -129,6 +129,7 @@ database_setup (struct Plugin *plugin)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Unable to get filesize: %s.\n"),
                 afsdir);
+    GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
   }
 

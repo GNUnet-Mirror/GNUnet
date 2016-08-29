@@ -52,7 +52,7 @@ GNUNET_JSONAPI_resource_to_json (const struct GNUNET_JSONAPI_Resource *res,
         default:
           res_json = json_array ();
           rel_res = NULL;
-          for (rel_res = rel_res->relationship->res_list_head;
+          for (rel_res = res->relationship->res_list_head;
                rel_res != NULL;
                rel_res = rel_res->next)
           {

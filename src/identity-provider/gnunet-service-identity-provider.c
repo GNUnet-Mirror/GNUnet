@@ -597,6 +597,7 @@ token_collect (void *cls,
   const struct GNUNET_GNSRECORD_Data *token_record;
   const struct GNUNET_GNSRECORD_Data *token_metadata_record;
   struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key;
+  struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key;
 
   //There should be only a single record for a token under a label
   if (2 != rd_count)
@@ -627,8 +628,9 @@ token_collect (void *cls,
   }
 
   //Get metadata and decrypt token
-  ecdhe_privkey = *((struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data);
-  aud_key = (struct GNUNET_CRYPTO_EcdsaPublicKey *)&(&ecdhe_privkey)[1];
+  priv_key = (struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data;
+  ecdhe_privkey = *priv_key;
+  aud_key = (struct GNUNET_CRYPTO_EcdsaPublicKey *)&priv_key[1];
   scopes = GNUNET_strdup ((char*) aud_key+sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
   token_parse2 (token_record->data,
@@ -717,10 +719,11 @@ attribute_collect (void *cls,
       GNUNET_CONTAINER_DLL_insert (attr->val_head,
                                    attr->val_tail,
                                    val);
-      GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
-                                         &key,
-                                         attr,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      GNUNET_assert (GNUNET_OK == 
+                     GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
+                                                        &key,
+                                                        attr,
+                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     }
 
     GNUNET_NAMESTORE_zone_iterator_next (ns_it);

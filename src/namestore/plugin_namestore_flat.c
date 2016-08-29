@@ -192,7 +192,7 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
 
-  buffer = GNUNET_malloc (size) + 1;
+  buffer = GNUNET_malloc (size + 1);
   if (GNUNET_SYSERR ==
       GNUNET_DISK_file_read (fh,
                              buffer,
@@ -201,8 +201,11 @@ database_setup (struct Plugin *plugin)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
          _("Unable to read file: %s.\n"),
          afsdir);
+    GNUNET_free (buffer);
+    GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
   }
+  buffer[size] = '\0';
   GNUNET_DISK_file_close (fh);
 
   if (0 < size)
@@ -341,6 +344,7 @@ store_and_free_entries (void *cls,
                           line,
                           strlen (line));
 
+  GNUNET_free (line);
   GNUNET_free (entry->private_key);
   GNUNET_free (entry->label);
   GNUNET_free (entry->record_data);
