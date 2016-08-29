@@ -112,7 +112,7 @@ struct GNUNET_SERVICE_Handle
   /**
    * Message handlers to use for all clients.
    */
-  struct GNUNET_MQ_MessageHandler *handlers;
+  const struct GNUNET_MQ_MessageHandler *handlers;
 
   /**
    * Closure for @e task.
@@ -209,6 +209,20 @@ struct GNUNET_SERVICE_Client
 };
 
 
+static void
+service_main (void *cls)
+{
+  struct GNUNET_SERVICE_Handle *sh = cls;
+
+  GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
+                                 sh);
+  GNUNET_SERVICE_resume (sh);
+  sh->service_init_cb (sh->cb_cls,
+                       sh->cfg,
+                       sh);
+}
+
+
 /**
  * Creates the "main" function for a GNUnet service.  You
  * should almost always use the #GNUNET_SERVICE_MAIN macro
@@ -261,7 +275,12 @@ GNUNET_SERVICE_ruN_ (int argc,
                      void *cls,
                      const struct GNUNET_MQ_MessageHandler *handlers)
 {
-  GNUNET_break (0); // not implemented
+  struct GNUNET_SERVICE_Handle sh;
+
+  // FIXME: setup (parse command line, configuration, init sh)
+  GNUNET_SCHEDULER_run (&service_main,
+                        &sh);
+  // FIXME: cleanup
   return 1;
 }
 
