@@ -1139,7 +1139,9 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     *tok = '\0';
   if (NULL != (tok = strchr (hdr_val, '\t')))
     *tok = '\0';
-  if (0 != strlen (hdr_val))
+  if ( (0 != strlen (hdr_val) ) && 
+       /* We do chunked transfer encoding */
+       (0 != strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, hdr_type)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Adding header %s: %s to MHD response\n",
