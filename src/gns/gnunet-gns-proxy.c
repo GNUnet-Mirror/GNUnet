@@ -1688,7 +1688,7 @@ create_response (void *cls,
   /* continuing to process request */
   if (0 != *upload_data_size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Processing %lu bytes UPLOAD\n", *upload_data_size);
     left = GNUNET_MIN (*upload_data_size,
                        sizeof (s5r->io_buf) - s5r->io_len);
@@ -1704,13 +1704,13 @@ create_response (void *cls,
   }
   if (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Finished processing UPLOAD\n");
     s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
   }
   if (NULL == s5r->response)
     return MHD_YES; /* too early to queue response, did not yet get headers from cURL */
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queueing response with MHD\n");
   run_mhd_now (s5r->hd);
   return MHD_queue_response (con,
@@ -1782,11 +1782,11 @@ mhd_connection_cb (void *cls,
   int sock;
 
   if (MHD_CONNECTION_NOTIFY_STARTED == cnc)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection started...\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection started...\n");
 
   if (MHD_CONNECTION_NOTIFY_CLOSED != cnc)
     return; //Ignore
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection closed... cleaning up\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
 
   ci = MHD_get_connection_info (connection,
                                 MHD_CONNECTION_INFO_CONNECTION_FD);
@@ -1803,7 +1803,7 @@ mhd_connection_cb (void *cls,
 
   if (NULL == s5r)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection stale!\n");
     return;
   }
   cleanup_s5r (s5r);
