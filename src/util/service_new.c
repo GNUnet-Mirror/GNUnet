@@ -454,8 +454,8 @@ process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret,
  *              zero (in this case, `*addrs` and `*addr_lens` will be
  *              set to NULL).
  */
-int
-GNUNET_SERVICE_get_server_addresses (const char *service_name,
+static int
+get_server_addresses (const char *service_name,
                                      const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      struct sockaddr ***addrs,
                                      socklen_t ** addr_lens)
@@ -1058,7 +1058,7 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
     socklen_t *addrlens;
     int num;
 
-    num = GNUNET_SERVICE_get_server_addresses (sh->service_name, sh->cfg,
+    num = get_server_addresses (sh->service_name, sh->cfg,
                                                &addrs, &addrlens)));
     if (GNUNET_SYSERR == num)
       return GNUNET_SYSERR;
@@ -1074,11 +1074,6 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
     }
   }
 
-  if ((NULL == sh->lsocks) &&
-      (GNUNET_SYSERR ==
-       GNUNET_SERVICE_get_server_addresses (sh->service_name, sh->cfg,
-                                            &sh->addrs, &sh->addrlens)))
-    return GNUNET_SYSERR;
   sh->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
   sh->match_uid =
       GNUNET_CONFIGURATION_get_value_yesno (sh->cfg, sh->service_name,
