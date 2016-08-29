@@ -35,6 +35,69 @@
  */
 struct GNUNET_SERVICE_Handle
 {
+  /**
+   * Our configuration.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Name of our service.
+   */
+  const char *service_name;
+
+  /**
+   * Main service-specific task to run.
+   */
+  GNUNET_SERVICE_Main task;
+
+  /**
+   * Closure for @e task.
+   */
+  void *task_cls;
+
+  /**
+   * IPv4 addresses that are not allowed to connect.
+   */
+  struct GNUNET_STRINGS_IPv4NetworkPolicy *v4_denied;
+
+  /**
+   * IPv6 addresses that are not allowed to connect.
+   */
+  struct GNUNET_STRINGS_IPv6NetworkPolicy *v6_denied;
+
+  /**
+   * IPv4 addresses that are allowed to connect (if not
+   * set, all are allowed).
+   */
+  struct GNUNET_STRINGS_IPv4NetworkPolicy *v4_allowed;
+
+  /**
+   * IPv6 addresses that are allowed to connect (if not
+   * set, all are allowed).
+   */
+  struct GNUNET_STRINGS_IPv6NetworkPolicy *v6_allowed;
+
+  /**
+   * Do we require a matching UID for UNIX domain socket connections?
+   * #GNUNET_NO means that the UID does not have to match (however,
+   * @e match_gid may still impose other access control checks).
+   */
+  int match_uid;
+
+  /**
+   * Do we require a matching GID for UNIX domain socket connections?
+   * Ignored if @e match_uid is #GNUNET_YES.  Note that this is about
+   * checking that the client's UID is in our group OR that the
+   * client's GID is our GID.  If both "match_gid" and @e match_uid are
+   * #GNUNET_NO, all users on the local system have access.
+   */
+  int match_gid;
+
+  /**
+   * Our options.
+   */
+  enum GNUNET_SERVICE_Options options;
+
 };
 
 
@@ -43,12 +106,42 @@ struct GNUNET_SERVICE_Handle
  */
 struct GNUNET_SERVICE_Client
 {
+
+  /**
+   * Server that this client belongs to.
+   */
+  struct GNUNET_SERVER_Handle *server;
+
   /**
    * Task that warns about missing calls to
    * #GNUNET_SERVICE_client_continue().
    */
   struct GNUNET_SCHEDULER_Task *warn_task;
 
+  /**
+   * User context value, value returned from
+   * the connect callback.
+   */
+  void *user_context;
+
+  /**
+   * Persist the file handle for this client no matter what happens,
+   * force the OS to close once the process actually dies.  Should only
+   * be used in special cases!
+   */
+  int persist;
+
+  /**
+   * Is this client a 'monitor' client that should not be counted
+   * when deciding on destroying the server during soft shutdown?
+   * (see also #GNUNET_SERVICE_start)
+   */
+  int is_monitor;
+
+  /**
+   * Type of last message processed (for warn_no_receive_done).
+   */
+  uint16_t warn_type;
 };
 
 
