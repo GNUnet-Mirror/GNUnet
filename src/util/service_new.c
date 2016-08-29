@@ -48,7 +48,27 @@ struct GNUNET_SERVICE_Handle
   /**
    * Main service-specific task to run.
    */
-  GNUNET_SERVICE_Main task;
+  GNUNET_SERVICE_InitCallback service_init_cb;
+
+  /**
+   * Function to call when clients connect.
+   */
+  GNUNET_SERVICE_ConnectHandler connect_cb;
+
+  /**
+   * Function to call when clients disconnect / are disconnected.
+   */
+  GNUNET_SERVICE_DisconnectHandler disconnect_cb;
+
+  /**
+   * Closure for @e service_init_cb, @e connect_cb, @e disconnect_cb.
+   */
+  void *cb_cls;
+
+  /**
+   * Message handlers to use for all clients.
+   */
+  struct GNUNET_MQ_MessageHandler *handlers;
 
   /**
    * Closure for @e task.
