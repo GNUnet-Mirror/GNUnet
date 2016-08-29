@@ -274,15 +274,17 @@ typedef void
  * dropped. Additionally, clients can be dropped at any time using
  * #GNUNET_SERVICE_client_drop().
  *
- * @param argc
- * @param argv
- * @param service_name
- * @param options
- * @param service_init_cb
- * @param connect_cb
- * @param disconnect_cb
- * @param cls
- * @param handlers
+ * @param argc number of command-line arguments in @a argv
+ * @param argv array of command-line arguments
+ * @param service_name name of the service to run
+ * @param options options controlling shutdown of the service
+ * @param service_init_cb function to call once the service is ready
+ * @param connect_cb function to call whenever a client connects
+ * @param disconnect_cb function to call whenever a client disconnects
+ * @param cls closure argument for @a service_init_cb, @a connect_cb and @a disconnect_cb
+ * @param handlers NULL-terminated array of message handlers for the service,
+ *                 the closure will be set to the value returned by
+ *                 the @a connect_cb for the respective connection
  * @return 0 on success, non-zero on error
  */
 int
@@ -326,15 +328,15 @@ GNUNET_SERVICE_ruN_ (int argc,
  * dropped. Additionally, clients can be dropped at any time using
  * #GNUNET_SERVICE_client_drop().
  *
- * @param argc
- * @param argv
- * @param service_name
- * @param options
- * @param service_init_cb
- * @param connect_cb
- * @param disconnect_cb
- * @param cls
- * @param handlers
+ * @param service_name name of the service to run
+ * @param options options controlling shutdown of the service
+ * @param service_init_cb function to call once the service is ready
+ * @param connect_cb function to call whenever a client connects
+ * @param disconnect_cb function to call whenever a client disconnects
+ * @param cls closure argument for @a service_init_cb, @a connect_cb and @a disconnect_cb
+ * @param handlers NULL-terminated array of message handlers for the service,
+ *                 the closure will be set to the value returned by
+ *                 the @a connect_cb for the respective connection
  * @return 0 on success, non-zero on error
  */
 #define GNUNET_SERVICE_MAIN(service_name,service_options,init_cb,connect_cb,disconnect_cb,cls,handlers) \
@@ -399,7 +401,9 @@ GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c)
  * Ask the server to disconnect from the given client.  This is the
  * same as returning #GNUNET_SYSERR within the check procedure when
  * handling a message, wexcept that it allows dropping of a client even
- * when not handling a message from that client.
+ * when not handling a message from that client.  The `disconnect_cb`
+ * will be called on @a c even if the application closes the connection
+ * using this function.
  *
  * @param c client to disconnect now
  */
