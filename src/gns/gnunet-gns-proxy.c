@@ -1438,6 +1438,8 @@ con_val_iter (void *cls,
     value = s5r->leho;
   if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, key))
     return MHD_YES;
+  if (0 == strcasecmp (MHD_HTTP_HEADER_ACCEPT_ENCODING, key))
+    return MHD_YES;
   GNUNET_asprintf (&hdr,
                    "%s: %s",
                    key,
@@ -1810,6 +1812,7 @@ mhd_connection_cb (void *cls,
     return;
   }
   cleanup_s5r (s5r);
+  curl_download_prepare ();
   *con_cls = NULL;
 }
 
