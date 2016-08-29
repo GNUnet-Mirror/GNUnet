@@ -802,7 +802,6 @@ mhd_content_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Completed MHD download\n");
-    s5r->state = SOCKS5_SOCKET_WITH_MHD;
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   GNUNET_memcpy (buf, s5r->io_buf, bytes_to_copy);
@@ -1139,9 +1138,8 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     *tok = '\0';
   if (NULL != (tok = strchr (hdr_val, '\t')))
     *tok = '\0';
-  if ( (0 != strlen (hdr_val) ) && 
-       /* We do chunked transfer encoding */
-       (0 != strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, hdr_type)))
+  if ((0 != strlen (hdr_val) ) &&
+      (0 != strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, hdr_type)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Adding header %s: %s to MHD response\n",
@@ -1381,11 +1379,6 @@ curl_task_download (void *cls)
               run_mhd_now (s5r->hd);
               break;
           }
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Cleaning up cURL handle\n");
-          curl_multi_remove_handle (curl_multi, s5r->curl);
-          curl_easy_cleanup (s5r->curl);
-          s5r->curl = NULL;
           if (NULL == s5r->response)
             s5r->response = curl_failure_response;
           break;
@@ -1443,8 +1436,8 @@ con_val_iter (void *cls,
   if ( (0 == strcasecmp (MHD_HTTP_HEADER_HOST, key)) &&
        (NULL != s5r->leho) )
     value = s5r->leho;
-  /*if (0 == strcasecmp (MHD_HTTP_HEADER_CONNECTION, key))
-    value = "Close";*/
+  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, key))
+    return MHD_YES;
   GNUNET_asprintf (&hdr,
                    "%s: %s",
                    key,
@@ -1508,7 +1501,7 @@ create_response (void *cls,
     GNUNET_break (0);
     return MHD_NO;
   }
-  //Fresh connection. Maybe move to notify callback??
+  //Fresh connection.
   if (SOCKS5_SOCKET_WITH_MHD == s5r->state)
   {
     /* first time here, initialize curl handle */
@@ -1679,7 +1672,8 @@ create_response (void *cls,
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
                                &con_val_iter, s5r);
-    //TODO is this sane?
+    //TODO is this sane? Basically we disable cURLs built-in expect:
+    //100-continue
     s5r->headers = curl_slist_append (s5r->headers,
                                       "Expect:");
     curl_easy_setopt (s5r->curl, CURLOPT_HTTPHEADER, s5r->headers);
@@ -1750,16 +1744,23 @@ mhd_completed_cb (void *cls,
   if (NULL != s5r->curl)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Cleaning up cURL handle\n");
+                "Resetting cURL handle\n");
     curl_multi_remove_handle (curl_multi, s5r->curl);
-    curl_easy_cleanup (s5r->curl);
-    s5r->curl = NULL;
+    curl_slist_free_all (s5r->headers);
+    s5r->headers = NULL;
+    curl_easy_reset (s5r->curl);
+    s5r->rbuf_len = 0;
+    s5r->wbuf_len = 0;
+    s5r->io_len = 0;
   }
   if ( (NULL != s5r->response) &&
        (curl_failure_response != s5r->response) )
     MHD_destroy_response (s5r->response);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished request for %s\n", s5r->url);
+  GNUNET_free (s5r->url);
+  s5r->state = SOCKS5_SOCKET_WITH_MHD;
+  s5r->url = NULL;
   s5r->response = NULL;
-  curl_download_prepare();
   *con_cls = NULL;
 }
 
@@ -1805,7 +1806,7 @@ mhd_connection_cb (void *cls,
 
   if (NULL == s5r)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection stale!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
     return;
   }
   cleanup_s5r (s5r);
@@ -1836,6 +1837,7 @@ mhd_log_callback (void *cls,
 
   ci = MHD_get_connection_info (connection,
                                 MHD_CONNECTION_INFO_CONNECTION_FD);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing %s\n", url);
   if (NULL == ci)
   {
     GNUNET_break (0);
@@ -1852,8 +1854,10 @@ mhd_log_callback (void *cls,
         return NULL;
       }
       s5r->url = GNUNET_strdup (url);
-      GNUNET_SCHEDULER_cancel (s5r->timeout_task);
+      if (NULL != s5r->timeout_task)
+        GNUNET_SCHEDULER_cancel (s5r->timeout_task);
       s5r->timeout_task = NULL;
+      GNUNET_assert (s5r->state == SOCKS5_SOCKET_WITH_MHD);
       return s5r;
     }
   }
