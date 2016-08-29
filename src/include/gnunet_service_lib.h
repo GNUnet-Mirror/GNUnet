@@ -363,6 +363,7 @@ GNUNET_SERVICE_ruN_ (int argc,
 void
 GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh);
 
+
 /**
  * Resume accepting connections from the listen socket.
  *
@@ -370,6 +371,7 @@ GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh);
  */
 void
 GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
+
 
 /**
  * Continue receiving further messages from the given client.
@@ -380,39 +382,67 @@ GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
 void
 GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c);
 
+
 /**
+ * Disable the warning the server issues if a message is not
+ * acknowledged in a timely fashion.  Use this call if a client is
+ * intentionally delayed for a while.  Only applies to the current
+ * message.
+ *
+ * @param c client for which to disable the warning
  */
 void
 GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c);
 
+
 /**
+ * Ask the server to disconnect from the given client.  This is the
+ * same as returning #GNUNET_SYSERR within the check procedure when
+ * handling a message, wexcept that it allows dropping of a client even
+ * when not handling a message from that client.
  *
- * @param c
+ * @param c client to disconnect now
  */
 void
 GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c);
 
+
 /**
+ * Stop the listen socket and get ready to shutdown the server once
+ * only clients marked using #GNUNET_SERVER_client_mark_monitor are
+ * left.
  *
- * @param sh
+ * @param sh server to stop listening on
  */
 void
 GNUNET_SERVICE_stop_listening (struct GNUNET_SERVICE_Handle *sh);
 
+
 /**
+ * Set the 'monitor' flag on this client.  Clients which have been
+ * marked as 'monitors' won't prevent the server from shutting down
+ * once #GNUNET_SERVICE_stop_listening() has been invoked.  The idea is
+ * that for "normal" clients we likely want to allow them to process
+ * their requests; however, monitor-clients are likely to 'never'
+ * disconnect during shutdown and thus will not be considered when
+ * determining if the server should continue to exist after
+ * shutdown has been triggered.
  *
- * @param c
+ * @param c client to mark as a monitor
  */
 void
 GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c);
 
+
 /**
+ * Set the persist option on this client.  Indicates that the
+ * underlying socket or fd should never really be closed.  Used for
+ * indicating process death.
  *
- * @param c
+ * @param c client to persist the socket (never to be closed)
  */
 void
 GNUNET_SERVICE_client_persist (struct GNUNET_SERVICE_Client *c);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
