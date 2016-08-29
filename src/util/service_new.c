@@ -31,6 +31,28 @@
 
 
 /**
+ * Handle to a service.
+ */
+struct GNUNET_SERVICE_Handle
+{
+};
+
+
+/**
+ * Handle to a client that is connected to a service.
+ */
+struct GNUNET_SERVICE_Client
+{
+  /**
+   * Task that warns about missing calls to
+   * #GNUNET_SERVICE_client_continue().
+   */
+  struct GNUNET_SCHEDULER_Task *warn_task;
+
+};
+
+
+/**
  * Creates the "main" function for a GNUnet service.  You
  * should almost always use the #GNUNET_SERVICE_MAIN macro
  * instead of calling this function directly (except
@@ -136,7 +158,12 @@ GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c)
 void
 GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c)
 {
-  GNUNET_break (0); // not implemented
+  GNUNET_break (NULL != c->warn_task);
+  if (NULL != c->warn_task)
+  {
+    GNUNET_SCHEDULER_cancel (c->warn_task);
+    c->warn_task = NULL;
+  }
 }
 
 
