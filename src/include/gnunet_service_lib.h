@@ -195,23 +195,23 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 /* **************** NEW SERVICE API ********************** */
 
 /**
- *
+ * Handle to a service.
  */
 struct GNUNET_SERVICE_Handle;
 
 
 /**
- *
+ * Handle to a client that is connected to a service.
  */
 struct GNUNET_SERVICE_Client;
 
 
 /**
+ * Callback to initialize a service, called exactly once when the service is run.
  *
- *
- * @param cls
- * @param cfg
- * @param sh
+ * @param cls closure passed to #GNUNET_SERVICE_MAIN
+ * @param cfg configuration to use for this service
+ * @param sh handle to the newly create service
  */
 typedef void
 (*GNUNET_SERVICE_InitCallback)(void *cls,
@@ -220,12 +220,12 @@ typedef void
 
 
 /**
+ * Callback to be called when a client connects to the service.
  *
- *
- * @param cls
- * @param c
- * @param mq
- * @return
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return the client-specific (`internal') closure
  */
 typedef void *
 (*GNUNET_SERVICE_ConnectHandler)(void *cls,
@@ -234,11 +234,11 @@ typedef void *
 
 
 /**
+ * Callback to be called when a client disconnected from the service
  *
- *
- * @param cls
- * @param c
- * @param internal_cls
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls the client-specific (`internal') closure
  */
 typedef void
 (*GNUNET_SERVICE_DisconnectHandler)(void *cls,
