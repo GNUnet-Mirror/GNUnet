@@ -355,29 +355,32 @@ GNUNET_SERVICE_ruN_ (int argc,
 
 
 /**
+ * Suspend accepting connections from the listen socket temporarily.
+ * Resume activity using #GNUNET_SERVICE_resume.
  *
- * @param sh
+ * @param sh service to stop accepting connections.
  */
 void
 GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh);
 
 /**
+ * Resume accepting connections from the listen socket.
  *
- * @param sh
+ * @param sh service to resume accepting connections.
  */
 void
 GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
 
 /**
+ * Continue receiving further messages from the given client.
+ * Must be called after each message received.
  *
- * @param c
+ * @param c the client to continue receiving from
  */
 void
 GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c);
 
 /**
- *
- * @param c
  */
 void
 GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c);
