@@ -49,12 +49,12 @@ struct GNUNET_SERVER_MessageStreamTokenizer
   GNUNET_SERVER_MessageTokenizerCallback cb;
 
   /**
-   * Closure for cb.
+   * Closure for @e cb.
    */
   void *cb_cls;
 
   /**
-   * Size of the buffer (starting at 'hdr').
+   * Size of the buffer (starting at @e hdr).
    */
   size_t curr_buf;
 
