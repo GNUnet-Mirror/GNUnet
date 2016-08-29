@@ -71,6 +71,7 @@ gnunetinclude_HEADERS = \
   gnunet_cadet_service.h \
   gnunet_microphone_lib.h \
   gnunet_multicast_service.h \
+  gnunet_mst_lib.h \
   gnunet_mq_lib.h \
   gnunet_my_lib.h \
   gnunet_mysql_lib.h \

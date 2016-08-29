@@ -92,6 +92,7 @@ libgnunetutil_la_SOURCES = \
   getopt_helpers.c \
   helper.c \
   load.c \
+  mst.c \
   mq.c \
   network.c \
   op.c \

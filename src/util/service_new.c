@@ -447,24 +447,6 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Implements the destruction of a message queue.  Implementations
- * must not free @a mq, but should take care of @a impl_state.
- * Not sure there is anything to do here! (FIXME!)
- *
- * @param mq the message queue to destroy
- * @param impl_state state of the implementation
- */
-static void
-service_mq_destroy (struct GNUNET_MQ_Handle *mq,
-                    void *impl_state)
-{
-  struct GNUNET_SERVICE_Client *client = cls;
-
-  // FIXME
-}
-
-
-/**
  * Implementation function that cancels the currently sent message.
  *
  * @param mq message queue
@@ -476,7 +458,8 @@ service_mq_cancel (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  // FIXME: semantics? What to do!?
+  // FIXME: stop transmission! (must be possible, otherwise
+  // we must have told MQ that the message was sent!)
 }
 
 
@@ -561,7 +544,7 @@ start_client (struct GNUNET_SERVICE_Handle *sh,
   client->sh = sh;
   client->sock = csock;
   client->mq = GNUNET_MQ_queue_for_callbacks (&service_mq_send,
-                                              &service_mq_destroy,
+                                              NULL,
                                               &service_mq_cancel,
                                               client,
                                               sh->handlers,
