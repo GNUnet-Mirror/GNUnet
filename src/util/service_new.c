@@ -200,7 +200,17 @@ struct GNUNET_SERVICE_Client
   /**
    * Server that this client belongs to.
    */
-  struct GNUNET_SERVER_Handle *server;
+  struct GNUNET_SERVER_Handle *sh;
+
+  /**
+   * Socket of this client.
+   */
+  struct GNUNET_NETWORK_Handle *sock;
+
+  /**
+   * Message queue for the client.
+   */
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Task that warns about missing calls to
@@ -399,8 +409,36 @@ GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * We have successfully accepted a connection from a client.  Now
+ * setup the client (with the scheduler) and tell the application.
+ *
+ * @param sh service that accepted the client
+ * @param sock socket associated with the client
+ */
+static void
+start_client (struct GNUNET_SERVICE_Handle *sh,
+              struct GNUNET_NETWORK_Handle *csock)
+{
+  struct GNUNET_SERVICE_Client *client;
+
+  client = GNUNET_new (struct GNUNET_SERVICE_Client);
+  GNUNET_CONTAINER_DLL_insert (sh->clients_head,
+                               sh->clients_tail,
+                               client);
+  client->sh = sh;
+  client->sock = csock;
+  client->mq = NULL; // FIXME!
+  client->user_context = sh->connect_cb (sh->cb_cls,
+                                         client,
+                                         client->mq);
+}
+
+
+/**
  * We have a client. Accept the incoming socket(s) (and reschedule
  * the listen task).
+ *
+ * @param cls the `struct ServiceListenContext` of the ready listen socket
  */
 static void
 accept_client (void *cls)
@@ -408,7 +446,70 @@ accept_client (void *cls)
   struct ServiceListenContext *slc = cls;
 
   slc->listen_task = NULL;
-  // FIXME: accept!
+  while (1)
+    {
+      struct GNUNET_NETWORK_Handle *sock;
+      struct sockaddr_in *v4;
+      struct sockaddr_in6 *v6;
+      struct sockaddr_storage sa;
+      socklen_t addrlen;
+      int ok;
+
+      addrlen = sizeof (sa);
+      sock = GNUNET_NETWORK_socket_accept (slc->listen_socket,
+                                           (struct sockaddr *) &sa,
+                                           &addrlen);
+      if (NULL == sock)
+        break;
+      switch (sa.sa_family)
+      {
+      case AF_INET:
+        GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
+        v4 = (const struct sockaddr_in *) addr;
+        ok = ( ( (NULL == sh->v4_allowed) ||
+                 (check_ipv4_listed (sh->v4_allowed,
+                                     &i4->sin_addr))) &&
+               ( (NULL == sh->v4_denied) ||
+                 (! check_ipv4_listed (sh->v4_denied,
+                                       &i4->sin_addr)) ) );
+        break;
+      case AF_INET6:
+        GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
+        v6 = (const struct sockaddr_in6 *) addr;
+        ok = ( ( (NULL == sh->v6_allowed) ||
+                 (check_ipv6_listed (sh->v6_allowed,
+                                     &i6->sin6_addr))) &&
+               ( (NULL == sh->v6_denied) ||
+                 (! check_ipv6_listed (sh->v6_denied,
+                                       &i6->sin6_addr)) ) );
+        break;
+#ifndef WINDOWS
+      case AF_UNIX:
+        ok = GNUNET_OK;            /* controlled using file-system ACL now */
+        break;
+#endif
+      default:
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("Unknown address family %d\n"),
+             addr->sa_family);
+        return GNUNET_SYSERR;
+      }
+      if (! ok)
+        {
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "Service rejected incoming connection from %s due to policy.\n",
+               GNUNET_a2s ((const struct sockaddr *) &sa,
+                           addrlen));
+          GNUNET_NETWORK_socket_close (sock);
+          continue;
+        }
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Service accepted incoming connection from %s.\n",
+           GNUNET_a2s ((const struct sockaddr *) &sa,
+                       addrlen));
+      start_client (slc->sh,
+                    sock);
+    }
   slc->listen_task = GNUNET_SCHEDULER_add_read (slc->listen_socket,
                                                 &accept_client,
                                                 slc);
@@ -494,9 +595,14 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
     GNUNET_SCHEDULER_cancel (c->warn_task);
     c->warn_task = NULL;
   }
+  GNUNET_MQ_destroy (c->mq);
   if (GNUNET_NO == c->persist)
   {
-    GNUNET_break (0); // FIXME: close socket, etc.
+    GNUNET_NETWORK_socket_close (c->sock);
+  }
+  else
+  {
+    GNUNET_NETWORK_socket_free_memory_only_ (c->sock);
   }
   GNUNET_free (c);
   if ( (GNUNET_YES == sh->got_shutdown) &&
