@@ -1538,7 +1538,7 @@ create_response (void *cls,
         }
         GNUNET_snprintf (ipaddr,
                          sizeof (ipaddr),
-                         "[%s]",
+                         "%s",
                          ipstring);
         port = ntohs (s6->sin6_port);
         break;
@@ -1676,8 +1676,8 @@ create_response (void *cls,
                                &con_val_iter, s5r);
     //TODO is this sane? Basically we disable cURLs built-in expect:
     //100-continue
-    s5r->headers = curl_slist_append (s5r->headers,
-                                      "Expect:");
+    //s5r->headers = curl_slist_append (s5r->headers,
+    //                                  "Expect:");
     curl_easy_setopt (s5r->curl, CURLOPT_HTTPHEADER, s5r->headers);
     curl_download_prepare ();
     return MHD_YES;
