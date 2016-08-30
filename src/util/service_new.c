@@ -317,7 +317,7 @@ have_non_monitor_clients (struct GNUNET_SERVICE_Handle *sh)
  * @param cls our `struct GNUNET_SERVICE_Handle`
  */
 static void
-service_main (void *cls)
+service_shutdown (void *cls)
 {
   struct GNUNET_SERVICE_Handle *sh = cls;
   struct GNUNET_SERVICE_Client *client;
@@ -340,6 +340,28 @@ service_main (void *cls)
       GNUNET_SERVICE_shutdown (sh);
     break;
   }
+}
+
+
+/**
+ * First task run by any service.  Initializes our shutdown task,
+ * starts the listening operation on our listen sockets and launches
+ * the custom logic of the application service.
+ *
+ * @param cls our `struct GNUNET_SERVICE_Handle`
+ */
+static void
+service_main (void *cls)
+{
+  struct GNUNET_SERVICE_Handle *sh = cls;
+
+  if (GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN != sh->options)
+    GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
+                                   sh);
+  GNUNET_SERVICE_resume (sh);
+  sh->service_init_cb (sh->cb_cls,
+                       sh->cfg,
+                       sh);
 }
 
 
