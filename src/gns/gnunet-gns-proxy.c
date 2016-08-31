@@ -606,7 +606,11 @@ struct Socks5Request
    * Headers from response
    */
   struct HttpResponseHeader *header_tail;
-
+  
+  /**
+   * SSL Certificate status
+   */
+  int ssl_checked;
 };
 
 
@@ -869,6 +873,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
   gnutls_x509_crt_t x509_cert;
   int rc;
   const char *name;
+  
+  s5r->ssl_checked = GNUNET_YES;
 
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
@@ -1033,13 +1039,13 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   size_t delta_cdomain;
   int domain_matched;
   char *tok;
-
+  
   /* first, check SSL certificate */
-  if ( (HTTPS_PORT == s5r->port) &&
+  if ( (GNUNET_YES != s5r->ssl_checked) &&
+       (HTTPS_PORT == s5r->port) &&
        (GNUNET_OK != check_ssl_certificate (s5r)) )
     return GNUNET_SYSERR;
-
-
+  
   ndup = GNUNET_strndup (buffer, bytes);
   hdr_type = strtok (ndup, ":");
   if (NULL == hdr_type)
@@ -1743,10 +1749,6 @@ create_response (void *cls,
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
                                &con_val_iter, s5r);
-    //TODO is this sane? Basically we disable cURLs built-in expect:
-    //100-continue
-    //s5r->headers = curl_slist_append (s5r->headers,
-    //                                  "Expect:");
     curl_easy_setopt (s5r->curl, CURLOPT_HTTPHEADER, s5r->headers);
     curl_download_prepare ();
     return MHD_YES;
@@ -1784,7 +1786,7 @@ create_response (void *cls,
     curl_download_prepare ();
   }
   if (NULL == s5r->response)
-    return MHD_YES; /* too early to queue response, did not yet get headers from cURL */
+    return MHD_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queueing response with MHD\n");
   run_mhd_now (s5r->hd);
@@ -1884,7 +1886,6 @@ mhd_connection_cb (void *cls,
         GNUNET_break (0);
         return;
       }
-
       sock = ci->connect_fd;
       for (s5r = s5r_head; NULL != s5r; s5r = s5r->next)
       {
@@ -1897,6 +1898,7 @@ mhd_connection_cb (void *cls,
       }
       if (NULL == s5r)
         GNUNET_break (0);
+      s5r->ssl_checked = GNUNET_NO;
       break;
     case MHD_CONNECTION_NOTIFY_CLOSED:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
