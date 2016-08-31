@@ -875,7 +875,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   const char *name;
   
   s5r->ssl_checked = GNUNET_YES;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "XXXXXX\n");
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
@@ -1041,10 +1041,12 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   char *tok;
   
   /* first, check SSL certificate */
-  if ( (GNUNET_YES != s5r->ssl_checked) &&
-       (HTTPS_PORT == s5r->port) &&
-       (GNUNET_OK != check_ssl_certificate (s5r)) )
-    return GNUNET_SYSERR;
+  if ((GNUNET_YES != s5r->ssl_checked) &&
+      (HTTPS_PORT == s5r->port))
+  {
+      if (GNUNET_OK != check_ssl_certificate (s5r))
+        return 0;
+  }
   
   ndup = GNUNET_strndup (buffer, bytes);
   hdr_type = strtok (ndup, ":");
@@ -1775,7 +1777,6 @@ create_response (void *cls,
     *upload_data_size -= left;
     GNUNET_assert (NULL != s5r->curl);
     curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
-    curl_download_prepare ();
     return MHD_YES;
   }
   if (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state)
@@ -1783,7 +1784,6 @@ create_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Finished processing UPLOAD\n");
     s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
-    curl_download_prepare ();
   }
   if (NULL == s5r->response)
     return MHD_YES;
