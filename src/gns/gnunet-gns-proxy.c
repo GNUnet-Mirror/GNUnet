@@ -430,6 +430,31 @@ enum SocksPhase
 };
 
 
+/**
+ * A header list
+ */
+struct HttpResponseHeader
+{
+  /**
+   * DLL
+   */
+  struct HttpResponseHeader *next;
+
+  /**
+   * DLL
+   */
+  struct HttpResponseHeader *prev;
+
+  /**
+   * Header type
+   */
+  char *type;
+
+  /**
+   * Header value
+   */
+  char *value;
+};
 
 /**
  * A structure for socks requests
@@ -571,6 +596,16 @@ struct Socks5Request
    * Desired destination port.
    */
   uint16_t port;
+
+  /**
+   * Headers from response
+   */
+  struct HttpResponseHeader *header_head;
+
+  /**
+   * Headers from response
+   */
+  struct HttpResponseHeader *header_tail;
 
 };
 
@@ -986,12 +1021,12 @@ static size_t
 curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 {
   struct Socks5Request *s5r = cls;
+  struct HttpResponseHeader *header;
   size_t bytes = size * nmemb;
   char *ndup;
   const char *hdr_type;
   const char *cookie_domain;
   char *hdr_val;
-  long resp_code;
   char *new_cookie_hdr;
   char *new_location;
   size_t offset;
@@ -999,49 +1034,11 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   int domain_matched;
   char *tok;
 
-  if (NULL == s5r->response)
-  {
-    /* first, check SSL certificate */
-    if ( (HTTPS_PORT == s5r->port) &&
-	 (GNUNET_OK != check_ssl_certificate (s5r)) )
-      return 0;
+  /* first, check SSL certificate */
+  if ( (HTTPS_PORT == s5r->port) &&
+       (GNUNET_OK != check_ssl_certificate (s5r)) )
+    return GNUNET_SYSERR;
 
-    GNUNET_break (CURLE_OK ==
-		  curl_easy_getinfo (s5r->curl,
-				     CURLINFO_RESPONSE_CODE,
-				     &resp_code));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating MHD response with code %d\n",
-		(int) resp_code);
-    s5r->response_code = resp_code;
-    s5r->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-						       IO_BUFFERSIZE,
-						       &mhd_content_cb,
-						       s5r,
-						       NULL);
-    if (NULL != s5r->leho)
-    {
-      char *cors_hdr;
-
-      GNUNET_asprintf (&cors_hdr,
-		       (HTTPS_PORT == s5r->port)
-		       ? "https://%s"
-		       : "http://%s",
-		       s5r->leho);
-
-      GNUNET_break (MHD_YES ==
-		    MHD_add_response_header (s5r->response,
-					     MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-					     cors_hdr));
-      GNUNET_free (cors_hdr);
-    }
-    /* force connection to be closed after each request, as we
-       do not support HTTP pipelining (yet, FIXME!) */
-    /*GNUNET_break (MHD_YES ==
-		  MHD_add_response_header (s5r->response,
-					   MHD_HTTP_HEADER_CONNECTION,
-					   "close"));*/
-  }
 
   ndup = GNUNET_strndup (buffer, bytes);
   hdr_type = strtok (ndup, ":");
@@ -1063,41 +1060,41 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   new_cookie_hdr = NULL;
   if ( (NULL != s5r->leho) &&
        (0 == strcasecmp (hdr_type,
-			 MHD_HTTP_HEADER_SET_COOKIE)) )
+                         MHD_HTTP_HEADER_SET_COOKIE)) )
 
   {
     new_cookie_hdr = GNUNET_malloc (strlen (hdr_val) +
-				    strlen (s5r->domain) + 1);
+                                    strlen (s5r->domain) + 1);
     offset = 0;
     domain_matched = GNUNET_NO; /* make sure we match domain at most once */
     for (tok = strtok (hdr_val, ";"); NULL != tok; tok = strtok (NULL, ";"))
     {
       if ( (0 == strncasecmp (tok, " domain", strlen (" domain"))) &&
-	   (GNUNET_NO == domain_matched) )
+           (GNUNET_NO == domain_matched) )
       {
-	domain_matched = GNUNET_YES;
+        domain_matched = GNUNET_YES;
         cookie_domain = tok + strlen (" domain") + 1;
         if (strlen (cookie_domain) < strlen (s5r->leho))
         {
           delta_cdomain = strlen (s5r->leho) - strlen (cookie_domain);
           if (0 == strcasecmp (cookie_domain, s5r->leho + delta_cdomain))
-	  {
+          {
             offset += sprintf (new_cookie_hdr + offset,
-			       " domain=%s;",
-			       s5r->domain);
+                               " domain=%s;",
+                               s5r->domain);
             continue;
           }
         }
         else if (0 == strcmp (cookie_domain, s5r->leho))
         {
-	  offset += sprintf (new_cookie_hdr + offset,
-			     " domain=%s;",
-			     s5r->domain);
-	  continue;
+          offset += sprintf (new_cookie_hdr + offset,
+                             " domain=%s;",
+                             s5r->domain);
+          continue;
         }
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _("Cookie domain `%s' supplied by server is invalid\n"),
-		    tok);
+                    tok);
       }
       GNUNET_memcpy (new_cookie_hdr + offset, tok, strlen (tok));
       offset += strlen (tok);
@@ -1112,21 +1109,21 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     char *leho_host;
 
     GNUNET_asprintf (&leho_host,
-		     (HTTPS_PORT != s5r->port)
-		     ? "http://%s"
-		     : "https://%s",
-		     s5r->leho);
+                     (HTTPS_PORT != s5r->port)
+                     ? "http://%s"
+                     : "https://%s",
+                     s5r->leho);
     if (0 == strncmp (leho_host,
-		      hdr_val,
-		      strlen (leho_host)))
+                      hdr_val,
+                      strlen (leho_host)))
     {
       GNUNET_asprintf (&new_location,
-		       "%s%s%s",
-		       (HTTPS_PORT != s5r->port)
-		       ? "http://"
-		       : "https://",
-		       s5r->domain,
-		       hdr_val + strlen (leho_host));
+                       "%s%s%s",
+                       (HTTPS_PORT != s5r->port)
+                       ? "http://"
+                       : "https://",
+                       s5r->domain,
+                       hdr_val + strlen (leho_host));
       hdr_val = new_location;
     }
     GNUNET_free (leho_host);
@@ -1138,17 +1135,18 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     *tok = '\0';
   if (NULL != (tok = strchr (hdr_val, '\t')))
     *tok = '\0';
-  if ((0 != strlen (hdr_val) ) &&
-      (0 != strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, hdr_type)))
+  if (0 != strlen (hdr_val)) /* Rely in MHD to set those */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Adding header %s: %s to MHD response\n",
-		hdr_type,
-		hdr_val);
-    GNUNET_break (MHD_YES ==
-		  MHD_add_response_header (s5r->response,
-					   hdr_type,
-					   hdr_val));
+                "Adding header %s: %s to MHD response\n",
+                hdr_type,
+                hdr_val);
+    header = GNUNET_new (struct HttpResponseHeader);
+    header->type = GNUNET_strndup (hdr_type, strlen (hdr_type));
+    header->value = GNUNET_strndup (hdr_val, strlen (hdr_val));
+    GNUNET_CONTAINER_DLL_insert (s5r->header_head,
+                                 s5r->header_tail,
+                                 header);
   }
   GNUNET_free (ndup);
   GNUNET_free_non_null (new_cookie_hdr);
@@ -1156,6 +1154,69 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   return bytes;
 }
 
+static int
+create_mhd_response_from_s5r (struct Socks5Request *s5r)
+{
+  long resp_code;
+  double content_length;
+  struct HttpResponseHeader *header;
+
+  if (NULL != s5r->response)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Response already set!\n");
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_break (CURLE_OK ==
+                curl_easy_getinfo (s5r->curl,
+                                   CURLINFO_RESPONSE_CODE,
+                                   &resp_code));
+  GNUNET_break (CURLE_OK ==
+                curl_easy_getinfo (s5r->curl,
+                                   CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                   &content_length));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating MHD response with code %d and size %d\n",
+              (int) resp_code, (int) content_length);
+  s5r->response_code = resp_code;
+  s5r->response = MHD_create_response_from_callback ((-1 == content_length) ? MHD_SIZE_UNKNOWN : content_length,
+                                                     IO_BUFFERSIZE,
+                                                     &mhd_content_cb,
+                                                     s5r,
+                                                     NULL);
+  for (header = s5r->header_head; NULL != header; header = header->next)
+  {
+    GNUNET_break (MHD_YES ==
+                  MHD_add_response_header (s5r->response,
+                                           header->type,
+                                           header->value));
+
+  }
+  if (NULL != s5r->leho)
+  {
+    char *cors_hdr;
+
+    GNUNET_asprintf (&cors_hdr,
+                     (HTTPS_PORT == s5r->port)
+                     ? "https://%s"
+                     : "http://%s",
+                     s5r->leho);
+
+    GNUNET_break (MHD_YES ==
+                  MHD_add_response_header (s5r->response,
+                                           MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                           cors_hdr));
+    GNUNET_free (cors_hdr);
+  }
+  /* force connection to be closed after each request, as we
+     do not support HTTP pipelining (yet, FIXME!) */
+  /*GNUNET_break (MHD_YES ==
+    MHD_add_response_header (s5r->response,
+    MHD_HTTP_HEADER_CONNECTION,
+    "close"));*/
+  return GNUNET_OK;
+}
 
 /**
  * Handle response payload data from cURL.  Copies it into our `io_buf` to make
@@ -1173,6 +1234,9 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   struct Socks5Request *s5r = ctx;
   size_t total = size * nmemb;
 
+  if (NULL == s5r->response)
+    GNUNET_assert (GNUNET_OK == create_mhd_response_from_s5r (s5r));
+
   if ( (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state) ||
        (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
@@ -1180,18 +1244,18 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
        start the download, the IO buffer is still full
        with upload data. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Pausing CURL download, waiting for UPLOAD to finish\n");
+                "Pausing CURL download, waiting for UPLOAD to finish\n");
     return CURL_WRITEFUNC_PAUSE; /* not yet ready for data download */
   }
   if (sizeof (s5r->io_buf) - s5r->io_len < total)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Pausing CURL download, not enough space\n");
+                "Pausing CURL download, not enough space\n");
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
   }
   GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
-	  ptr,
-	  total);
+                 ptr,
+                 total);
   s5r->io_len += total;
   if (s5r->io_len == total)
     run_mhd_now (s5r->hd);
@@ -1215,12 +1279,12 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
   struct Socks5Request *s5r = cls;
   size_t len = size * nmemb;
   size_t to_copy;
-
+  
   if ( (0 == s5r->io_len) &&
        (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Pausing CURL UPLOAD, need more data\n");
+                "Pausing CURL UPLOAD, need more data\n");
     return CURL_READFUNC_PAUSE;
   }
   if ( (0 == s5r->io_len) &&
@@ -1228,7 +1292,7 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
   {
     s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Completed CURL UPLOAD\n");
+                "Completed CURL UPLOAD\n");
     return 0; /* upload finished, can now download */
   }
   if ( (SOCKS5_SOCKET_UPLOAD_STARTED != s5r->state) &&
@@ -1238,11 +1302,11 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
     return CURL_READFUNC_ABORT;
   }
   to_copy = GNUNET_MIN (s5r->io_len,
-			len);
+                        len);
   GNUNET_memcpy (buf, s5r->io_buf, to_copy);
   memmove (s5r->io_buf,
-	   &s5r->io_buf[to_copy],
-	   s5r->io_len - to_copy);
+           &s5r->io_buf[to_copy],
+           s5r->io_len - to_copy);
   s5r->io_len -= to_copy;
   if (s5r->io_len + to_copy == sizeof (s5r->io_buf))
     run_mhd_now (s5r->hd); /* got more space for upload now */
@@ -1309,9 +1373,9 @@ curl_download_prepare ()
     GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
     GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
     curl_download_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-						      rtime,
-						      grs, gws,
-						      &curl_task_download, curl_multi);
+                                                      rtime,
+                                                      grs, gws,
+                                                      &curl_task_download, curl_multi);
     GNUNET_NETWORK_fdset_destroy (gws);
     GNUNET_NETWORK_fdset_destroy (grs);
   }
@@ -1367,6 +1431,8 @@ curl_task_download (void *cls)
             case CURLE_GOT_NOTHING:
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "CURL download completed.\n");
+              if (NULL == s5r->response)
+                GNUNET_assert (GNUNET_OK == create_mhd_response_from_s5r (s5r));
               s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
               run_mhd_now (s5r->hd);
               break;
@@ -1605,8 +1671,8 @@ create_response (void *cls,
     else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
       s5r->state = SOCKS5_SOCKET_UPLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_POST, 1);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_POST, 1L);
+            curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
       curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
       curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
       curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
@@ -1654,7 +1720,10 @@ create_response (void *cls,
     if (HTTPS_PORT == s5r->port)
     {
       curl_easy_setopt (s5r->curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
-      curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 1L);
+      if (NULL != s5r->dane_data)
+        curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+      else
+        curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 1L);
       /* Disable cURL checking the hostname, as we will check ourselves
          as only we have the domain name or the LEHO or the DANE record */
       curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -1686,8 +1755,15 @@ create_response (void *cls,
   /* continuing to process request */
   if (0 != *upload_data_size)
   {
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Processing %lu bytes UPLOAD\n", *upload_data_size);
+    
+    /* FIXME: This must be set or a header with Transfer-Encoding: chunked. Else
+     * upload callback is not called!
+     */
+    curl_easy_setopt (s5r->curl, CURLOPT_POSTFIELDSIZE, *upload_data_size);
+
     left = GNUNET_MIN (*upload_data_size,
                        sizeof (s5r->io_buf) - s5r->io_len);
     GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
@@ -1705,6 +1781,7 @@ create_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Finished processing UPLOAD\n");
     s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
+    curl_download_prepare ();
   }
   if (NULL == s5r->response)
     return MHD_YES; /* too early to queue response, did not yet get headers from cURL */
@@ -1736,6 +1813,7 @@ mhd_completed_cb (void *cls,
                   enum MHD_RequestTerminationCode toe)
 {
   struct Socks5Request *s5r = *con_cls;
+  struct HttpResponseHeader *header;
 
   if (NULL == s5r)
     return;
@@ -1758,6 +1836,15 @@ mhd_completed_cb (void *cls,
   if ( (NULL != s5r->response) &&
        (curl_failure_response != s5r->response) )
     MHD_destroy_response (s5r->response);
+  for (header = s5r->header_head; header != NULL; header = s5r->header_head)
+  {
+    GNUNET_CONTAINER_DLL_remove (s5r->header_head,
+                                 s5r->header_head,
+                                 header);
+    GNUNET_free (header->type);
+    GNUNET_free (header->value);
+    GNUNET_free (header);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished request for %s\n", s5r->url);
   GNUNET_free (s5r->url);
   s5r->state = SOCKS5_SOCKET_WITH_MHD;
@@ -1786,34 +1873,46 @@ mhd_connection_cb (void *cls,
   const union MHD_ConnectionInfo *ci;
   int sock;
 
-  if (MHD_CONNECTION_NOTIFY_STARTED == cnc)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection started...\n");
-
-  if (MHD_CONNECTION_NOTIFY_CLOSED != cnc)
-    return; //Ignore
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
-
-  ci = MHD_get_connection_info (connection,
-                                MHD_CONNECTION_INFO_CONNECTION_FD);
-  if (NULL == ci)
+  switch (cnc)
   {
-    GNUNET_break (0);
-    return;
-  }
+    case MHD_CONNECTION_NOTIFY_STARTED:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection started...\n");
+      ci = MHD_get_connection_info (connection,
+                                    MHD_CONNECTION_INFO_CONNECTION_FD);
+      if (NULL == ci)
+      {
+        GNUNET_break (0);
+        return;
+      }
 
-  sock = ci->connect_fd;
-  for (s5r = s5r_head; NULL != s5r; s5r = s5r->next)
-    if (GNUNET_NETWORK_get_fd (s5r->sock) == sock)
+      sock = ci->connect_fd;
+      for (s5r = s5r_head; NULL != s5r; s5r = s5r->next)
+      {
+        if (GNUNET_NETWORK_get_fd (s5r->sock) == sock)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Context set...\n");
+          *con_cls = s5r;
+          break;
+        }
+      }
+      if (NULL == s5r)
+        GNUNET_break (0);
       break;
-
-  if (NULL == s5r)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
-    return;
+    case MHD_CONNECTION_NOTIFY_CLOSED:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
+      s5r = *con_cls;
+      if (NULL == s5r)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
+        return;
+      }
+      cleanup_s5r (s5r);
+      curl_download_prepare ();
+      *con_cls = NULL;
+      break;
+    default:
+      GNUNET_break (0);
   }
-  cleanup_s5r (s5r);
-  curl_download_prepare ();
-  *con_cls = NULL;
 }
 
 /**
@@ -1836,36 +1935,27 @@ mhd_log_callback (void *cls,
 {
   struct Socks5Request *s5r;
   const union MHD_ConnectionInfo *ci;
-  int sock;
 
   ci = MHD_get_connection_info (connection,
-                                MHD_CONNECTION_INFO_CONNECTION_FD);
+                                MHD_CONNECTION_INFO_SOCKET_CONTEXT);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing %s\n", url);
   if (NULL == ci)
   {
     GNUNET_break (0);
     return NULL;
   }
-  sock = ci->connect_fd;
-  for (s5r = s5r_head; NULL != s5r; s5r = s5r->next)
+  s5r = ci->socket_context;
+  if (NULL != s5r->url)
   {
-    if (GNUNET_NETWORK_get_fd (s5r->sock) == sock)
-    {
-      if (NULL != s5r->url)
-      {
-        GNUNET_break (0);
-        return NULL;
-      }
-      s5r->url = GNUNET_strdup (url);
-      if (NULL != s5r->timeout_task)
-        GNUNET_SCHEDULER_cancel (s5r->timeout_task);
-      s5r->timeout_task = NULL;
-      GNUNET_assert (s5r->state == SOCKS5_SOCKET_WITH_MHD);
-      return s5r;
-    }
+    GNUNET_break (0);
+    return NULL;
   }
-  GNUNET_break (0);
-  return NULL;
+  s5r->url = GNUNET_strdup (url);
+  if (NULL != s5r->timeout_task)
+    GNUNET_SCHEDULER_cancel (s5r->timeout_task);
+  s5r->timeout_task = NULL;
+  GNUNET_assert (s5r->state == SOCKS5_SOCKET_WITH_MHD);
+  return s5r;
 }
 
 
