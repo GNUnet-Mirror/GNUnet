@@ -1186,6 +1186,26 @@ handle_client_seed (void *cls,
 			      GNUNET_OK);
 }
 
+/**
+ * Handle a CHECK_LIVE message from another peer.
+ *
+ * This does nothing. But without calling #GNUNET_CADET_receive_done()
+ * the channel is blocked for all other communication.
+ *
+ * @param cls Closure
+ * @param channel The channel the CHECK was received over
+ * @param channel_ctx The context associated with this channel
+ * @param msg The message header
+ */
+static int
+handle_peer_check (void *cls,
+		  struct GNUNET_CADET_Channel *channel,
+		  void **channel_ctx,
+		  const struct GNUNET_MessageHeader *msg)
+{
+  GNUNET_CADET_receive_done (channel);
+  return GNUNET_OK;
+}
 
 /**
  * Handle a PUSH message from another peer.
@@ -2240,11 +2260,13 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH        ,
+    {&handle_peer_check       , GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
+      sizeof (struct GNUNET_MessageHeader)},
+    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH,
       sizeof (struct GNUNET_MessageHeader)},
     {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
       sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
+    {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY, 0},
     {NULL, 0, 0}
   };
 
