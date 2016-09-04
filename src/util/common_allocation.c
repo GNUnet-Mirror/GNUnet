@@ -367,7 +367,6 @@ GNUNET_xgrow_ (void **old,
   else
   {
     tmp = GNUNET_xmalloc_ (size, filename, linenumber);
-    memset (tmp, 0, size);      /* client code should not rely on this, though... */
     if (*oldCount > newCount)
       *oldCount = newCount;     /* shrink is also allowed! */
     if (NULL != *old)
