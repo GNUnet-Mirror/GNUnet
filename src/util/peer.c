@@ -133,6 +133,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   }
   if (0 == ret)
   {
+    memset (&table[0]->id, 0, sizeof (struct GNUNET_PeerIdentity));
     table[0]->pid = 0;
     table[0]->rc = 1;
     ret = 1;
@@ -243,6 +244,8 @@ GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
 const struct GNUNET_PeerIdentity *
 GNUNET_PEER_resolve2 (GNUNET_PEER_Id id)
 {
+  GNUNET_assert (id < size);
+  GNUNET_assert (table[id]->rc > 0);
   return &table[id]->id;
 }
 
