@@ -351,7 +351,7 @@ void
 GNUNET_xgrow_ (void **old,
 	       size_t elementSize,
 	       unsigned int *oldCount,
-               unsigned int newCount,
+         unsigned int newCount,
 	       const char *filename,
 	       int linenumber)
 {
@@ -360,20 +360,20 @@ GNUNET_xgrow_ (void **old,
 
   GNUNET_assert_at (INT_MAX / elementSize > newCount, filename, linenumber);
   size = newCount * elementSize;
-  if (size == 0)
+  if (0 == size)
   {
     tmp = NULL;
   }
   else
   {
     tmp = GNUNET_xmalloc_ (size, filename, linenumber);
-    if (*oldCount > newCount)
-      *oldCount = newCount;     /* shrink is also allowed! */
     if (NULL != *old)
-      GNUNET_memcpy (tmp, *old, elementSize * (*oldCount));
+    {
+      GNUNET_memcpy (tmp, *old, elementSize * GNUNET_MIN(*oldCount, newCount));
+    }
   }
 
-  if (*old != NULL)
+  if (NULL != *old)
   {
     GNUNET_xfree_ (*old, filename, linenumber);
   }
