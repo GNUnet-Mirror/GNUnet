@@ -224,6 +224,7 @@ transmit_content (struct MigrationReadyPeer *mrp,
   int ret;
 
   ppd = GSF_get_peer_performance_data_ (mrp->peer);
+  GNUNET_assert (NULL == mrp->env);
   mrp->env = GNUNET_MQ_msg_extra (msg,
 				  block->size,
 				  GNUNET_MESSAGE_TYPE_FS_PUT);
