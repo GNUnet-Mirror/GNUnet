@@ -340,13 +340,6 @@ client_disconnect_notification (void *cls,
 	      client);
   if (NULL == (nc = GNUNET_SERVER_client_get_user_context (client, struct NamestoreClient)))
     return;
-  while (NULL != (no = nc->op_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
-    GNUNET_free (no);
-  }
-  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
-  GNUNET_free (nc);
   for (zm = monitor_head; NULL != zm; zm = zm->next)
   {
     if (client == zm->nc->client)
@@ -363,6 +356,13 @@ client_disconnect_notification (void *cls,
       break;
     }
   }
+  while (NULL != (no = nc->op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+    GNUNET_free (no);
+  }
+  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
+  GNUNET_free (nc);
   for (cop = cop_head; NULL != cop; cop = cop->next)
     if (client == cop->client)
       cop->client = NULL;
