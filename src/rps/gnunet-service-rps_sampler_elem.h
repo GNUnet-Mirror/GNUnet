@@ -108,7 +108,7 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el);
 
 
 /**
- * (Re)Initialise given Sampler with random min-wise independent function.
+ * Create a sampler element and initialise it.
  *
  * In this implementation this means choosing an auth_key for later use in
  * a hmac at random.
