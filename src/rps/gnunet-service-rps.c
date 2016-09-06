@@ -1143,9 +1143,10 @@ handle_client_seed (void *cls,
 
   if (sizeof (struct GNUNET_RPS_CS_SeedMessage) > ntohs (message->size))
   {
-    GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
+    GNUNET_break_op (0);
+    return;
   }
 
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
@@ -1254,12 +1255,14 @@ handle_peer_push (void *cls,
                                    tmp_att_peer);
       add_peer_array_to_set (peer, 1, att_peer_set);
     }
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
 
 
   else if (2 == mal_type)
   { /* We attack one single well-known peer - simply ignore */
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
   else
@@ -1308,6 +1311,7 @@ handle_peer_pull_request (void *cls,
       || 3 == mal_type)
   { /* Try to maximise representation */
     send_pull_reply (peer, mal_peers, num_mal_peers);
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
 
@@ -1317,6 +1321,7 @@ handle_peer_pull_request (void *cls,
     {
       send_pull_reply (peer, mal_peers, num_mal_peers);
     }
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
   #endif /* ENABLE_MALICIOUS */
@@ -1388,8 +1393,8 @@ handle_peer_pull_reply (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer we didn't request one from!\n");
-    GNUNET_break_op (0);
     GNUNET_CADET_receive_done (channel);
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
@@ -1397,7 +1402,10 @@ handle_peer_pull_reply (void *cls,
   #ifdef ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
+  {
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
+  }
   #endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
@@ -1579,6 +1587,7 @@ handle_client_act_malicious (void *cls,
   /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
   {
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     GNUNET_break_op (0);
   }
 
@@ -1591,6 +1600,7 @@ handle_client_act_malicious (void *cls,
         ntohl (in_msg->num_peers),
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     GNUNET_break_op (0);
   }
 
@@ -1681,9 +1691,9 @@ handle_client_act_malicious (void *cls,
   else
   {
     GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
