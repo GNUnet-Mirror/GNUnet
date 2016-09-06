@@ -1292,6 +1292,7 @@ file_name_cb (void *cls, const char *filename)
     {
       RPS_sampler_elem_next (s_elem, &rps_peer_ids[i]);
     }
+    RPS_sampler_elem_destroy (s_elem);
   }
   return GNUNET_OK;
 }

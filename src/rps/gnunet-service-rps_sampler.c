@@ -327,7 +327,7 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
                "-%" PRIu32 ": %s",
                i,
                sampler->sampler_elements[i]->file_name);
-      GNUNET_free (sampler->sampler_elements[i]);
+      RPS_sampler_elem_destroy (sampler->sampler_elements[i]);
     }
 
     GNUNET_array_grow (sampler->sampler_elements,

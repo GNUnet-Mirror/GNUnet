@@ -120,6 +120,15 @@ RPS_sampler_elem_create (void);
 
 
 /**
+ * Destroy a sampler element.
+ *
+ * @param sampler_elem the element to destroy
+ */
+void
+RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem);
+
+
+/**
  * Input an PeerID into the given sampler element.
  *
  * @param sampler the sampler the @a s_elem belongs to.

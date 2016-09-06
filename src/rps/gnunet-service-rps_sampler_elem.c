@@ -99,6 +99,24 @@ RPS_sampler_elem_create (void)
 
 
 /**
+ * Destroy a sampler element.
+ *
+ * @param sampler_elem the element to destroy
+ */
+void
+RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem)
+{
+  #ifdef TO_FILE
+  if (NULL != sampler_elem->file_name)
+  {
+    GNUNET_free (sampler_elem->file_name);
+  }
+  #endif /* TO_FILE */
+  GNUNET_free (sampler_elem);
+}
+
+
+/**
  * Input an PeerID into the given sampler element.
  *
  * @param sampler the sampler the @a s_elem belongs to.
@@ -112,9 +130,11 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
 
   s_elem->num_peers++;
 
+  #ifdef TO_FILE
   to_file (s_elem->file_name,
            "Got id %s",
            GNUNET_i2s_full (other));
+  #endif /* TO_FILE */
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
   {
@@ -155,9 +175,11 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
   }
   s_elem->is_empty = NOT_EMPTY;
 
+  #ifdef TO_FILE
   to_file (s_elem->file_name,
            "Now holding %s",
            GNUNET_i2s_full (&s_elem->peer_id));
+  #endif /* TO_FILE */
 }
 
 /**
