@@ -504,16 +504,14 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
                                    const struct GNUNET_PeerIdentity *id)
 {
   uint32_t i;
-  struct RPS_SamplerElement *trash_entry;
 
-  for ( i = 0 ; i < sampler->sampler_size ; i++ )
+  for (i = 0; i < sampler->sampler_size; i++)
   {
-    if ( 0 == GNUNET_CRYPTO_cmp_peer_identity(id, &(sampler->sampler_elements[i]->peer_id)) )
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity(id,
+          &(sampler->sampler_elements[i]->peer_id)) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Reinitialising sampler\n");
-      trash_entry = GNUNET_new (struct RPS_SamplerElement);
-      *trash_entry = *(sampler->sampler_elements[i]);
-      to_file (trash_entry->file_name,
+      to_file (sampler->sampler_elements[i]->file_name,
                "--- non-active");
       RPS_sampler_elem_reinit (sampler->sampler_elements[i]);
     }
@@ -724,7 +722,9 @@ RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle)
                                  req_handle->gpc_tail,
                                  i);
     if (NULL != i->get_peer_task)
+    {
       GNUNET_SCHEDULER_cancel (i->get_peer_task);
+    }
     GNUNET_free (i);
   }
   GNUNET_CONTAINER_DLL_remove (req_handle->sampler->req_handle_head,
@@ -771,7 +771,9 @@ RPS_sampler_destroy (struct RPS_Sampler *sampler)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "There are still pending requests. Going to remove them.\n");
     while (NULL != sampler->req_handle_head)
+    {
       RPS_sampler_request_cancel (sampler->req_handle_head);
+    }
   }
   sampler_empty (sampler);
   GNUNET_free (sampler);
