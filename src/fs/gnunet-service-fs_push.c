@@ -518,9 +518,11 @@ process_migration_content (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Preparing to push best content to peer %s\n",
 		GNUNET_i2s (GSF_connected_peer_get_identity2_(pos->peer)));
-    if (GNUNET_YES == transmit_content (pos,
-					mb))
+    if ( (NULL == pos->env) &&
+         (GNUNET_YES == transmit_content (pos,
+                                          mb)) ) {
       break;                  /* 'mb' was freed! */
+    }
   }
   consider_gathering ();
 }
