@@ -86,6 +86,71 @@ GNUNET_xmalloc_ (size_t size,
 
 
 /**
+ * Allocate memory for a two dimensional array in one block
+ * and set up pointers. Aborts if no more memory is available.
+ * Don't use GNUNET_xnew_array_2d_ directly. Use the
+ * #GNUNET_new_array_2d macro.
+ * The memory of the elements will be zero'ed out.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param elementSize size of a single element in bytes
+ * @return allocated memory, never NULL
+ */
+void **
+GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize)
+{
+	/* use char pointer internally to avoid void pointer arithmetic warnings */
+	char **ret = GNUNET_malloc (n * sizeof (void *) +  /* 1. dim header */
+	                            n * m * elementSize);  /* element data */
+
+	for (size_t i = 0; i < n; i++)
+		ret[i] = (char *)ret +          /* base address */
+		         n * sizeof (void *) +  /* skip 1. dim header */
+		         i * m * elementSize;   /* skip to 2. dim row header */
+	return (void **)ret;
+}
+
+
+/**
+ * Allocate memory for a three dimensional array in one block
+ * and set up pointers. Aborts if no more memory is available.
+ * Don't use GNUNET_xnew_array_3d_ directly. Use the
+ * #GNUNET_new_array_3d macro.
+ * The memory of the elements will be zero'ed out.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param o size of the third dimension
+ * @param elementSize size of a single element in bytes
+ * @return allocated memory, never NULL
+ */
+void ***
+GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize)
+{
+	/* use char pointer internally to avoid void pointer arithmetic warnings */
+	char ***ret = GNUNET_malloc (n * sizeof (void **) +     /* 1. dim header */
+	                             n * m * sizeof (void *) +  /* 2. dim header */
+	                             n * m * o * elementSize);  /* element data */
+
+	for (size_t i = 0; i < n; i++)
+	{
+		/* need to cast to (char *) temporarily for byte level acuracy */
+		ret[i] = (char **)((char *)ret +             /* base address */
+		                   n * sizeof (void **) +    /* skip 1. dim header */
+		                   i * m * sizeof (void *)); /* skip to 2. dim header */
+		for (size_t j = 0; j < m; j++)
+			ret[i][j] = (char *)ret +              /* base address */
+			            n * sizeof (void **) +     /* skip 1. dim header */
+			            n * m * sizeof (void *) +  /* skip 2. dim header */
+			            i * m * o * elementSize +  /* skip to 2. dim part */
+			                j * o * elementSize;   /* skip to 3. dim row data */
+	}
+	return (void ***)ret;
+}
+
+
+/**
  * Allocate and initialize memory. Checks the return value, aborts if no more
  * memory is available.  Don't use #GNUNET_xmemdup_() directly. Use the
  * GNUNET_memdup() macro.

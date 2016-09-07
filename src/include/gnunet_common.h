@@ -800,6 +800,29 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
+ * Allocate a size @a n times @a m array
+ * with structs or unions of the given @a type.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param type name of the struct or union, i.e. pass 'struct Foo'.
+ */
+#define GNUNET_new_array_2d(n, m, type) (type **) GNUNET_xnew_array_2d_ (n, m, sizeof (type))
+
+/**
+ * @ingroup memory
+ * Allocate a size @a n times @a m times @a o array
+ * with structs or unions of the given @a type.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param o size of the third dimension
+ * @param type name of the struct or union, i.e. pass 'struct Foo'.
+ */
+#define GNUNET_new_array_3d(n, m, o, type) (type ***) GNUNET_xnew_array_3d_ (n, m, o, sizeof (type))
+
+/**
+ * @ingroup memory
  * Wrapper around malloc. Allocates size bytes of memory.
  * The memory will be zero'ed out.
  *
@@ -965,6 +988,39 @@ GNUNET_asprintf (char **buf, const char *format, ...);
  */
 void *
 GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
+
+
+/**
+ * Allocate memory for a two dimensional array in one block
+ * and set up pointers. Aborts if no more memory is available.
+ * Don't use GNUNET_xnew_array_2d_ directly. Use the
+ * #GNUNET_new_array_2d macro.
+ * The memory of the elements will be zero'ed out.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param elementSize size of a single element in bytes
+ * @return allocated memory, never NULL
+ */
+void **
+GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize);
+
+
+/**
+ * Allocate memory for a three dimensional array in one block
+ * and set up pointers. Aborts if no more memory is available.
+ * Don't use GNUNET_xnew_array_3d_ directly. Use the
+ * #GNUNET_new_array_3d macro.
+ * The memory of the elements will be zero'ed out.
+ *
+ * @param n size of the first dimension
+ * @param m size of the second dimension
+ * @param o size of the third dimension
+ * @param elementSize size of a single element in bytes
+ * @return allocated memory, never NULL
+ */
+void ***
+GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize);
 
 
 /**

@@ -30,6 +30,8 @@ check ()
 {
 #define MAX_TESTVAL 1024
   char *ptrs[MAX_TESTVAL];
+  unsigned int **a2;
+  char ***a3;
   int i;
   int j;
   int k;
@@ -93,6 +95,34 @@ check ()
   if (ptrs[0] != NULL)
     return 9;
 
+	/* GNUNET_new_array_2d tests */
+	a2 = GNUNET_new_array_2d (17, 22, unsigned int);
+	for (i = 0; i < 17; i++)
+	{
+		for (j = 0; j < 22; j++)
+		{
+			if (0 != a2[i][j])
+				return 10;
+			a2[i][j] = i * 100 + j;
+		}
+	}
+	free (a2);
+
+	/* GNUNET_new_array_3d tests */
+	a3 = GNUNET_new_array_3d (2, 3, 4, char);
+	for (i = 0; i < 2; i++)
+	{
+		for (j = 0; j < 3; j++)
+		{
+			for (k = 0; k < 4; k++)
+			{
+				if (0 != a3[i][j][k])
+					return 11;
+				a3[i][j][k] = i * 100 + j * 10 + k;
+			}
+		}
+	}
+	free (a3);
 
   return 0;
 }
