@@ -441,7 +441,7 @@ origin_recv_request (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%u: verify message content, take first 3 bytes: %.3s\n", 
-              test, &req[1]);
+              test, (char *)&req[1]);
   GNUNET_assert (0 == memcmp (&req[1], "abc", 3));
 
   // Test 7 starts here 

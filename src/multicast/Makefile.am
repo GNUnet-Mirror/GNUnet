@@ -52,7 +52,8 @@ gnunet_service_multicast_LDADD = \
 
 
 check_PROGRAMS = \
- test_multicast
+ test_multicast \
+ test_multicast_multipeer
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -64,5 +65,13 @@ test_multicast_SOURCES = \
 test_multicast_LDADD = \
   libgnunetmulticast.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la
+
+test_multicast_multipeer_SOURCE = \
+ test_multicast_multipeer.c
+test_multicast_multipeer_LDADD = \
+  libgnunetmulticast.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la
