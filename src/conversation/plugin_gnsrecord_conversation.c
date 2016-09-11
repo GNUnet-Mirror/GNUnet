@@ -60,10 +60,18 @@ conversation_value_to_string (void *cls,
       char *pkey;
 
       if (data_size != sizeof (struct GNUNET_CONVERSATION_PhoneRecord))
+      {
+	GNUNET_break_op (0);
 	return NULL;
+      }
       pr = data;
-      if (0 != ntohl (pr->version))
+      if (1 != ntohl (pr->version))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("PHONE version %u not supported\n"),
+		    ntohl (pr->version));
 	return NULL;
+      }
       pkey = GNUNET_CRYPTO_eddsa_public_key_to_string (&pr->peer.public_key);
       s = GNUNET_STRINGS_data_to_string_alloc (&pr->line_port,
                                                sizeof (struct GNUNET_HashCode));
@@ -101,7 +109,10 @@ conversation_string_to_value (void *cls,
                               size_t *data_size)
 {
   if (NULL == s)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   switch (type)
   {
   case GNUNET_GNSRECORD_TYPE_PHONE:

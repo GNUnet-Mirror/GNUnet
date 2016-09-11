@@ -165,7 +165,7 @@ static uint32_t type;
 static void *data;
 
 /**
- * Number of bytes in 'data'.
+ * Number of bytes in #data.
  */
 static size_t data_size;
 
@@ -933,8 +933,8 @@ testservice_task (void *cls,
 
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_pkey,
-                                                       strlen (reverse_pkey),
-                                                       &pubkey))
+						    strlen (reverse_pkey),
+						    &pubkey))
     {
       fprintf (stderr,
                _("Invalid public key for reverse lookup `%s'\n"),
@@ -1007,11 +1007,11 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    add_qe_uri = GNUNET_NAMESTORE_set_nick(ns,
-                                           &zone_pkey,
-                                           nickstring,
-                                           &add_continuation,
-                                           &add_qe_uri);
+    add_qe_uri = GNUNET_NAMESTORE_set_nick (ns,
+					    &zone_pkey,
+					    nickstring,
+					    &add_continuation,
+					    &add_qe_uri);
   }
   if (monitor)
   {
