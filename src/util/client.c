@@ -101,39 +101,6 @@ struct GNUNET_CLIENT_TransmitHandle
 
 
 /**
- * Context for processing
- * "GNUNET_CLIENT_transmit_and_get_response" requests.
- */
-struct TransmitGetResponseContext
-{
-  /**
-   * Client handle.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Message to transmit; do not free, allocated
-   * right after this struct.
-   */
-  const struct GNUNET_MessageHeader *hdr;
-
-  /**
-   * Timeout to use.
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Function to call when done.
-   */
-  GNUNET_CLIENT_MessageHandler rn;
-
-  /**
-   * Closure for @e rn.
-   */
-  void *rn_cls;
-};
-
-/**
  * Struct to refer to a GNUnet TCP connection.
  * This is more than just a socket because if the server
  * drops the connection, the client automatically tries
@@ -156,12 +123,6 @@ struct GNUNET_CLIENT_Connection
    * Name of the service we interact with.
    */
   char *service_name;
-
-  /**
-   * Context of a transmit_and_get_response operation, NULL
-   * if no such operation is pending.
-   */
-  struct TransmitGetResponseContext *tag;
 
   /**
    * Handler for current receiver task.
@@ -498,11 +459,6 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client)
   {
     GNUNET_SCHEDULER_cancel (client->receive_task);
     client->receive_task = NULL;
-  }
-  if (NULL != client->tag)
-  {
-    GNUNET_free (client->tag);
-    client->tag = NULL;
   }
   client->receiver_handler = NULL;
   GNUNET_array_grow (client->received_buf,
@@ -1337,103 +1293,6 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle 
   }
   th->client->th = NULL;
   GNUNET_free (th);
-}
-
-
-/**
- * Function called to notify a client about the socket
- * begin ready to queue the message.  @a buf will be
- * NULL and @a size zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure of type `struct TransmitGetResponseContext *`
- * @param size number of bytes available in @a buf
- * @param buf where the callee should write the message
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_for_response (void *cls,
-		       size_t size,
-		       void *buf)
-{
-  struct TransmitGetResponseContext *tc = cls;
-  uint16_t msize;
-
-  tc->client->tag = NULL;
-  msize = ntohs (tc->hdr->size);
-  if (NULL == buf)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Could not submit request, not expecting to receive a response.\n");
-    if (NULL != tc->rn)
-      tc->rn (tc->rn_cls, NULL);
-    GNUNET_free (tc);
-    return 0;
-  }
-  GNUNET_assert (size >= msize);
-  GNUNET_memcpy (buf, tc->hdr, msize);
-  GNUNET_CLIENT_receive (tc->client,
-                         tc->rn,
-                         tc->rn_cls,
-                         GNUNET_TIME_absolute_get_remaining (tc->timeout));
-  GNUNET_free (tc);
-  return msize;
-}
-
-
-/**
- * Convenience API that combines sending a request
- * to the service and waiting for a response.
- * If either operation times out, the callback
- * will be called with a "NULL" response (in which
- * case the connection should probably be destroyed).
- *
- * @param client connection to use
- * @param hdr message to transmit
- * @param timeout when to give up (for both transmission
- *         and for waiting for a response)
- * @param auto_retry if the connection to the service dies, should we
- *        automatically re-connect and retry (within the timeout period)
- *        or should we immediately fail in this case?  Pass GNUNET_YES
- *        if the caller does not care about temporary connection errors,
- *        for example because the protocol is stateless
- * @param rn function to call with the response
- * @param rn_cls closure for @a rn
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if a request
- *         is already pending
- */
-int
-GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client,
-                                         const struct GNUNET_MessageHeader *hdr,
-                                         struct GNUNET_TIME_Relative timeout,
-                                         int auto_retry,
-                                         GNUNET_CLIENT_MessageHandler rn,
-                                         void *rn_cls)
-{
-  struct TransmitGetResponseContext *tc;
-  uint16_t msize;
-
-  if (NULL != client->th)
-    return GNUNET_SYSERR;
-  GNUNET_assert (NULL == client->tag);
-  msize = ntohs (hdr->size);
-  tc = GNUNET_malloc (sizeof (struct TransmitGetResponseContext) + msize);
-  tc->client = client;
-  tc->hdr = (const struct GNUNET_MessageHeader *) &tc[1];
-  GNUNET_memcpy (&tc[1], hdr, msize);
-  tc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  tc->rn = rn;
-  tc->rn_cls = rn_cls;
-  if (NULL ==
-      GNUNET_CLIENT_notify_transmit_ready (client, msize, timeout, auto_retry,
-                                           &transmit_for_response, tc))
-  {
-    GNUNET_break (0);
-    GNUNET_free (tc);
-    return GNUNET_SYSERR;
-  }
-  client->tag = tc;
-  return GNUNET_OK;
 }
 
 
