@@ -137,6 +137,12 @@ GDS_CLIENTS_process_put (uint32_t options,
 void
 GDS_CLIENTS_init (void);
 
+/**
+ * Shutdown client subsystem.
+ */
+void
+GDS_CLIENTS_stop (void);
+
 
 /**
  * Shutdown client subsystem.

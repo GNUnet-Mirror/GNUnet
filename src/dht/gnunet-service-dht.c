@@ -125,6 +125,7 @@ shutdown_task (void *cls)
   }
   GNUNET_free_non_null (GDS_my_hello);
   GDS_my_hello = NULL;
+  GDS_CLIENTS_stop ();
 }
 
 

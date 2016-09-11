@@ -626,11 +626,17 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   /* start remote requests */
   if (NULL != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
-  retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task, NULL);
+  retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task,
+					 NULL);
   /* perform local lookup */
-  GDS_DATACACHE_handle_get (&get->key, cqr->type, cqr->xquery, xquery_size,
-                            NULL, 0);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GDS_DATACACHE_handle_get (&get->key,
+			    cqr->type,
+			    cqr->xquery,
+			    xquery_size,
+                            NULL,
+			    0);
+  GNUNET_SERVER_receive_done (client,
+			      GNUNET_OK);
 }
 
 
@@ -1515,15 +1521,23 @@ GDS_CLIENTS_init ()
  * Shutdown client subsystem.
  */
 void
-GDS_CLIENTS_done ()
+GDS_CLIENTS_stop ()
 {
-  GNUNET_assert (client_head == NULL);
-  GNUNET_assert (client_tail == NULL);
   if (NULL != retry_task)
   {
     GNUNET_SCHEDULER_cancel (retry_task);
     retry_task = NULL;
   }
+}
+
+/**
+ * Shutdown client subsystem.
+ */
+void
+GDS_CLIENTS_done ()
+{
+  GNUNET_assert (client_head == NULL);
+  GNUNET_assert (client_tail == NULL);
   if (NULL != retry_heap)
   {
     GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (retry_heap));
