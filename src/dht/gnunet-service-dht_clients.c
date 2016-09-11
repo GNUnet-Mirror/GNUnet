@@ -1417,7 +1417,7 @@ GDS_CLIENTS_process_put (uint32_t options,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,
-                         const struct GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode *key,
                          const void *data,
                          size_t size)
 {
@@ -1465,8 +1465,8 @@ GDS_CLIENTS_process_put (uint32_t options,
       if (path_length > 0)
       {
         GNUNET_memcpy (msg_path,
-                path,
-                path_length * sizeof (struct GNUNET_PeerIdentity));
+		       path,
+		       path_length * sizeof (struct GNUNET_PeerIdentity));
       }
       mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
       GNUNET_memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
@@ -1530,14 +1530,15 @@ GDS_CLIENTS_stop ()
   }
 }
 
+
 /**
  * Shutdown client subsystem.
  */
 void
 GDS_CLIENTS_done ()
 {
-  GNUNET_assert (client_head == NULL);
-  GNUNET_assert (client_tail == NULL);
+  GNUNET_assert (NULL == client_head);
+  GNUNET_assert (NULL == client_tail);
   if (NULL != retry_heap)
   {
     GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (retry_heap));
