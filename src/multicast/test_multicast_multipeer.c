@@ -39,7 +39,7 @@
 static struct GNUNET_TESTBED_Operation *multicast_peer0;
 static struct GNUNET_TESTBED_Operation *multicast_peer1;
 
-static struct GNUNET_SCHEDULER_Task * shutdown_tid;
+static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
 
 /**
@@ -55,33 +55,66 @@ static int result;
 static void
 shutdown_task (void *cls)
 {
-  shutdown_tid = NULL;
-  //if (NULL != dht_op)
-  //{
-    // GNUNET_TESTBED_operation_done (dht_op); 
-    //dht_op = NULL;
-    //dht_handle = NULL;
-  //}
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown (); /* Also kills the testbed */
+  if (NULL != multicast_peer0)
+  {
+    GNUNET_TESTBED_operation_done (multicast_peer0); 
+    multicast_peer0 = NULL;
+  }
+  if (NULL != timeout_tid)
+    {
+      GNUNET_SCHEDULER_cancel (timeout_tid);
+      timeout_tid = NULL;
+    }
+}
+
+
+static void
+timeout_task (void *cls)
+{
+  timeout_tid = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout!\n");
+  result = GNUNET_SYSERR;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void 
-service_close_peer0 (void *cls, void *op_result) {
-  /* Disconnect from service */
+service_close_peer0 (void *cls,
+		     void *op_result)
+{
+  struct GNUNET_MULTICAST_Origin *orig = op_result;
+  
+  GNUNET_MULTICAST_origin_stop (orig,
+				NULL,
+				NULL);
 }
+
 
 /**
  * Function run when service multicast has started and is providing us
  * with a configuration file.
  */ 
 static void *
-service_conf_peer0 (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+service_conf_peer0 (void *cls,
+		    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  /* Use the provided configuration to connect to service */
+  #if 0
+  return GNUNET_MULTICAST_origin_start (cfg,
+					priv_key,
+					42,
+					&join_rcb,
+					&reply_fcb,
+					&reply_mcb,
+					&request_cb,
+					&message_cb,
+					NULL);
+#else
   return NULL;
+
+#endif
 }
+
 
 /**
  * Test logic of peer "0" being origin starts here. 
@@ -95,13 +128,18 @@ service_conf_peer0 (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 static void
 service_connect_peer0 (void *cls,
-        struct GNUNET_TESTBED_Operation *op,
-        void *ca_result,
-        const char *emsg)
+		       struct GNUNET_TESTBED_Operation *op,
+		       void *ca_result,
+		       const char *emsg)
 {
+  struct GNUNET_MULTICAST_Origin *orig = ca_result;
+
   /* Connection to service successful. Here we'd usually do something with 
    * the service. */
+  result = GNUNET_OK;
+  GNUNET_SCHEDULER_shutdown (); /* Also kills the testbed */
 }
+
 
 /**
  * Main function inovked from TESTBED once all of the
@@ -135,16 +173,17 @@ test_master (void *cls,
       (NULL,                    /* Closure for operation */
        peers[0],                /* The peer whose service to connect to */
        "multicast",             /* The name of the service */
-       service_connect_peer0,   /* callback to call after a handle to service
+       &service_connect_peer0,   /* callback to call after a handle to service
                                    is opened */
        NULL,                    /* closure for the above callback */
-       service_conf_peer0,      /* callback to call with peer's configuration;
+       &service_conf_peer0,      /* callback to call with peer's configuration;
                                    this should open the needed service connection */
-       service_close_peer0,     /* callback to be called when closing the
+       &service_close_peer0,     /* callback to be called when closing the
                                    opened service connection */
        NULL);                   /* closure for the above two callbacks */
-  shutdown_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                               &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+					      &timeout_task, NULL);
 }
 
 
