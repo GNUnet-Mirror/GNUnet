@@ -796,178 +796,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DNS_HELPER 214
 
 
-/*******************************************************************************
- * CADET message types
- ******************************************************************************/
-
-/**
- * Type of message used to transport messages throug a CADET-tunnel (LEGACY)
- */
-#define GNUNET_MESSAGE_TYPE_CADET 215
-
-/**
- * Type of message used to send another peer which messages we want to receive
- * through a cadet-tunnel (LEGACY)
- */
-#define GNUNET_MESSAGE_TYPE_CADET_HELLO 216
-
-/**
- * Request the creation of a connection
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE      256
-
-/**
- * Send origin an ACK that the connection is complete
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK         257
-
-/**
- * Notify that a connection is no longer valid
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN      258
-
-/**
- * At some point, the route will spontaneously change TODO
- */
-#define GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED           259
-
-/**
- * Payload data (usually inside a encrypted tunnel).
- */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA                   260
-
-/**
- * Confirm payload data end-to-end.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA_ACK               261
-
-/**
- * Key exchange encapsulation.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KX                     262
-
-/**
- * Request the destuction of a connection
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY     266
-
-/**
- * Hop-by-hop, connection dependent ACK.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_ACK                    268
-
-/**
- * Poll for a hop-by-hop ACK.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_POLL                   269
-
-/**
- * Announce connection is still alive (direction sensitive).
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE              270
-
-
-/**
- * Ask the cadet service to create a new channel.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE         273
-
-/**
- * Ask the cadet service to destroy a channel.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY        274
-
-/**
- * Confirm the creation of a channel
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK            275
-
-/**
- * Reject the creation of a channel
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK           276
-
-/**
- * Axolotl key exchange.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_AX_KX                  281
-
-/**
- * Axolotl encrypted data.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_AX                     282
-
-/**
- * Payload client <-> service
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA             285
-
-/**
- * Local ACK for data.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK              286
-
-/**
- * Start listening on a port.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN        287
-
-/**
- * Stop listening on a port.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE       288
-
-/**
- * Local information about all channels of service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS    290
-
-/**
- * Local information of service about a specific channel.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL     291
-
-/**
- * Local information about all tunnels of service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS     292
-
-/**
- * Local information of service about a specific tunnel.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL      293
-
-/**
- * Local information about all connections of service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS 294
-
-/**
- * Local information of service about a specific connection.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION  295
-
-/**
- * Local information about all peers known to the service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS       296
-
-/**
- * Local information of service about a specific peer.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER        297
-
-/**
- * Traffic (net-cat style) used by the Command Line Interface.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CLI                    298
-
-/**
- * Debug request.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP        299
-
-
 
 /*******************************************************************************
  * CHAT message types START
@@ -1961,37 +1789,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_ACK 601
 
 
-/*******************************************************************************
- * EXPERIMENTATION message types
- ******************************************************************************/
-
-/**
- * Message for experimentation request
- */
-#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST 610
-
-/**
- * Message for experimentation response
- */
-#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE 611
-
-/**
- * Message for experimentation response
- */
-#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START 612
-
-/**
- * Message for experimentation response
- */
-#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START_ACK 613
-
-/**
- * Message for experimentation response
- */
-#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_STOP 614
-
-
-
 
 /**
  * Advertise regex capability.
@@ -2478,72 +2275,6 @@ extern "C"
 
 
 /*******************************************************************************
- * SENSOR message types
- ******************************************************************************/
-
-/**
- * Request information about all sensors
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_GETALL 800
-
-/**
- * Request information about one sensor
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_GET 801
-
-/**
- * Message carrying sensor information
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_INFO 802
-
-/**
- * End of an iteration sequence
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_END 803
-
-/**
- * Message carrying a single sensor reading
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_READING 804
-
-/**
- * Request for sensor list from update point
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ 805
-
-/**
- * Messsage carrying brief sensor information (name, version)
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_BRIEF 806
-
-/**
- * Request for full sensor information
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_FULL_REQ 807
-
-/**
- * Full sensor information
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_FULL 808
-
-/**
- * Sensor anomaly report
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT 809
-
-/**
- * Message sent from API to service to force a new sensor anomaly status
- * (For testing purposes only)
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE 810
-
-/**
- * Sensor anomaly report exchanged between peers
- */
-#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P 811
-
-
-/*******************************************************************************
  * PEERSTORE message types
  ******************************************************************************/
 
@@ -2851,9 +2582,184 @@ extern "C"
 
 /*******************************************************************************/
 
+
+/*******************************************************************************
+ * CADET message types
+ ******************************************************************************/
+
 /**
- * Next available: 970
+ * Type of message used to transport messages throug a CADET-tunnel (LEGACY)
  */
+#define GNUNET_MESSAGE_TYPE_CADET 1000
+
+/**
+ * Type of message used to send another peer which messages we want to receive
+ * through a cadet-tunnel (LEGACY)
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_HELLO 1001
+
+/**
+ * Request the creation of a connection
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE 1002
+
+/**
+ * Send origin an ACK that the connection is complete
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK 1003
+
+/**
+ * Notify that a connection is no longer valid
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN 1004
+
+/**
+ * At some point, the route will spontaneously change TODO
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED 1005
+
+/**
+ * Payload data (usually inside a encrypted tunnel).
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_DATA 1006
+
+/**
+ * Confirm payload data end-to-end.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_DATA_ACK 1007
+
+/**
+ * Key exchange encapsulation.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_KX 1008
+
+/**
+ * Request the destuction of a connection
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY 1009
+
+/**
+ * Hop-by-hop, connection dependent ACK.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_ACK 1010
+
+/**
+ * Poll for a hop-by-hop ACK.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_POLL 1011
+
+/**
+ * Announce connection is still alive (direction sensitive).
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE 1012
+
+
+/**
+ * Ask the cadet service to create a new channel.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE 1013
+
+/**
+ * Ask the cadet service to destroy a channel.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY 1014
+
+/**
+ * Confirm the creation of a channel
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK 1015
+
+/**
+ * Reject the creation of a channel
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK 1016
+
+/**
+ * Axolotl key exchange.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_AX_KX 1017
+
+/**
+ * Axolotl encrypted data.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_AX 1018
+
+/**
+ * Payload client <-> service
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA 1019
+
+/**
+ * Local ACK for data.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK 1020
+
+/**
+ * Start listening on a port.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN 1021
+
+/**
+ * Stop listening on a port.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE 1022
+
+/**
+ * Local information about all channels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS 1023
+
+/**
+ * Local information of service about a specific channel.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL 1024
+
+/**
+ * Local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS 1025
+
+/**
+ * Local information of service about a specific tunnel.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL 1026
+
+/**
+ * Local information about all connections of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS 1027
+
+/**
+ * Local information of service about a specific connection.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION 1028
+
+/**
+ * Local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS 1029
+
+/**
+ * Local information of service about a specific peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER 1030
+
+/**
+ * Traffic (net-cat style) used by the Command Line Interface.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_CLI 1031
+
+/**
+ * Debug request.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP 1032
+
+
+/**
+ * Next available: 1060
+ */
+
+
 
 /**
  * Type used to match 'all' message types.

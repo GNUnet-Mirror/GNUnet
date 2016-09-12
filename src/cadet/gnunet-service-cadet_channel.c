@@ -94,25 +94,25 @@ struct CadetChannelQueue
  */
 struct CadetReliableMessage
 {
-    /**
-     * Double linked list, FIFO style
-     */
+  /**
+   * Double linked list, FIFO style
+   */
   struct CadetReliableMessage   *next;
   struct CadetReliableMessage   *prev;
 
-    /**
-     * Type of message (payload, channel management).
-     */
+  /**
+   * Type of message (payload, channel management).
+   */
   int16_t                       type;
 
-    /**
-     * Tunnel Reliability queue this message is in.
-     */
+  /**
+   * Tunnel Reliability queue this message is in.
+   */
   struct CadetChannelReliability *rel;
 
-    /**
-     * ID of the message (ACK needed to free)
-     */
+  /**
+   * ID of the message (ACK needed to free)
+   */
   uint32_t                      mid;
 
   /**
@@ -120,9 +120,9 @@ struct CadetReliableMessage
    */
   struct CadetChannelQueue      *chq;
 
-    /**
-     * When was this message issued (to calculate ACK delay)
-     */
+  /**
+   * When was this message issued (to calculate ACK delay)
+   */
   struct GNUNET_TIME_Absolute   timestamp;
 
   /* struct GNUNET_CADET_Data with payload */
@@ -134,46 +134,46 @@ struct CadetReliableMessage
  */
 struct CadetChannelReliability
 {
-    /**
-     * Channel this is about.
-     */
+  /**
+   * Channel this is about.
+   */
   struct CadetChannel *ch;
 
-    /**
-     * DLL of messages sent and not yet ACK'd.
-     */
+  /**
+   * DLL of messages sent and not yet ACK'd.
+   */
   struct CadetReliableMessage        *head_sent;
   struct CadetReliableMessage        *tail_sent;
 
-    /**
-     * DLL of messages received out of order.
-     */
+  /**
+   * DLL of messages received out of order.
+   */
   struct CadetReliableMessage        *head_recv;
   struct CadetReliableMessage        *tail_recv;
 
-    /**
-     * Messages received.
-     */
+  /**
+   * Messages received.
+   */
   unsigned int                      n_recv;
 
-    /**
-     * Next MID to use for outgoing traffic.
-     */
+  /**
+   * Next MID to use for outgoing traffic.
+   */
   uint32_t                          mid_send;
 
-    /**
-     * Next MID expected for incoming traffic.
-     */
+  /**
+   * Next MID expected for incoming traffic.
+   */
   uint32_t                          mid_recv;
 
-    /**
-     * Handle for queued unique data CREATE, DATA_ACK.
-     */
+  /**
+   * Handle for queued unique data CREATE, DATA_ACK.
+   */
   struct CadetChannelQueue           *uniq;
 
-    /**
-     * Can we send data to the client?
-     */
+  /**
+   * Can we send data to the client?
+   */
   int                               client_ready;
 
   /**
@@ -181,19 +181,19 @@ struct CadetChannelReliability
    */
   int                               client_allowed;
 
-    /**
-     * Task to resend/poll in case no ACK is received.
-     */
+  /**
+   * Task to resend/poll in case no ACK is received.
+   */
   struct GNUNET_SCHEDULER_Task *   retry_task;
 
-    /**
-     * Counter for exponential backoff.
-     */
+  /**
+   * Counter for exponential backoff.
+   */
   struct GNUNET_TIME_Relative       retry_timer;
 
-    /**
-     * How long does it usually take to get an ACK.
-     */
+  /**
+   * How long does it usually take to get an ACK.
+   */
   struct GNUNET_TIME_Relative       expected_delay;
 };
 
@@ -203,85 +203,85 @@ struct CadetChannelReliability
  */
 struct CadetChannel
 {
-    /**
-     * Tunnel this channel is in.
-     */
+  /**
+   * Tunnel this channel is in.
+   */
   struct CadetTunnel *t;
 
-    /**
-     * Destination port of the channel.
-     */
+  /**
+   * Destination port of the channel.
+   */
   struct GNUNET_HashCode port;
 
-    /**
-     * Global channel number ( < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-     */
+  /**
+   * Global channel number ( < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+   */
   CADET_ChannelNumber gid;
 
-    /**
-     * Local tunnel number for root (owner) client.
-     * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
-     */
+  /**
+   * Local tunnel number for root (owner) client.
+   * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
+   */
   CADET_ChannelNumber lid_root;
-
-    /**
-     * Local tunnel number for local destination clients (incoming number)
-     * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV or 0).
-     */
+  
+  /**
+   * Local tunnel number for local destination clients (incoming number)
+   * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV or 0).
+   */
   CADET_ChannelNumber lid_dest;
 
-    /**
-     * Channel state.
-     */
+  /**
+   * Channel state.
+   */
   enum CadetChannelState state;
 
-    /**
-     * Is the tunnel bufferless (minimum latency)?
-     */
+  /**
+   * Is the tunnel bufferless (minimum latency)?
+   */
   int nobuffer;
 
-    /**
-     * Is the tunnel reliable?
-     */
+  /**
+   * Is the tunnel reliable?
+   */
   int reliable;
 
-    /**
-     * Last time the channel was used
-     */
+  /**
+   * Last time the channel was used
+   */
   struct GNUNET_TIME_Absolute timestamp;
 
-    /**
-     * Client owner of the tunnel, if any
-     */
+  /**
+   * Client owner of the tunnel, if any
+   */
   struct CadetClient *root;
 
-    /**
-     * Client destination of the tunnel, if any.
-     */
+  /**
+   * Client destination of the tunnel, if any.
+   */
   struct CadetClient *dest;
 
-    /**
-     * Flag to signal the destruction of the channel.
-     * If this is set GNUNET_YES the channel will be destroyed
-     * when the queue is empty.
-     */
+  /**
+   * Flag to signal the destruction of the channel.
+   * If this is set to #GNUNET_YES the channel will be destroyed
+   * when the queue is empty.
+   */
   int destroy;
 
-    /**
-     * Total (reliable) messages pending ACK for this channel.
-     */
+  /**
+   * Total (reliable) messages pending ACK for this channel.
+   */
   unsigned int pending_messages;
 
-    /**
-     * Reliability data.
-     * Only present (non-NULL) at the owner of a tunnel.
-     */
+  /**
+   * Reliability data.
+   * Only present (non-NULL) at the owner of a tunnel.
+   */
   struct CadetChannelReliability *root_rel;
 
-    /**
-     * Reliability data.
-     * Only present (non-NULL) at the destination of a tunnel.
-     */
+  /**
+   * Reliability data.
+   * Only present (non-NULL) at the destination of a tunnel.
+   */
   struct CadetChannelReliability *dest_rel;
 
 };

@@ -61,6 +61,11 @@ struct GNUNET_CADET_ConnectionCreate
   struct GNUNET_MessageHeader header;
 
   /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+  
+  /**
    * ID of the connection
    */
   struct GNUNET_CADET_Hash cid;
@@ -78,14 +83,19 @@ struct GNUNET_CADET_ConnectionCreate
  */
 struct GNUNET_CADET_ConnectionACK
 {
-    /**
-     * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 
 };
@@ -96,14 +106,19 @@ struct GNUNET_CADET_ConnectionACK
  */
 struct GNUNET_CADET_KX
 {
-    /**
-     * Type: #GNUNET_MESSAGE_TYPE_CADET_KX.
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_KX.
+   */
   struct GNUNET_MessageHeader header;
+  
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
-    /**
-     * ID of the connection.
-     */
+  /**
+   * ID of the connection.
+   */
   struct GNUNET_CADET_Hash cid;
 
   /* Specific KX message follows. */
@@ -222,9 +237,9 @@ struct GNUNET_CADET_ChannelCreate
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the channel
+   * Channel options.
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  uint32_t opt GNUNET_PACKED;
 
   /**
    * Destination port.
@@ -232,9 +247,9 @@ struct GNUNET_CADET_ChannelCreate
   struct GNUNET_HashCode port;
 
   /**
-   * Channel options.
+   * ID of the channel
    */
-  uint32_t opt GNUNET_PACKED;
+  CADET_ChannelNumber chid GNUNET_PACKED;
 };
 
 
@@ -367,6 +382,11 @@ struct GNUNET_CADET_ConnectionBroken
   struct GNUNET_MessageHeader header;
 
   /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * ID of the connection.
    */
   struct GNUNET_CADET_Hash cid;
@@ -392,6 +412,11 @@ struct GNUNET_CADET_ConnectionDestroy
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * ID of the connection.

@@ -96,7 +96,7 @@ struct CadetConnectionQueue;
  * Check invariants for all connections using #check_neighbours().
  */
 void
-GCC_check_connections ();
+GCC_check_connections (void);
 
 
 /**

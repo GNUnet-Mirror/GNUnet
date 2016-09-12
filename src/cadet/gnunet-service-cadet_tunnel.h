@@ -47,24 +47,24 @@ extern "C"
  */
 enum CadetTunnelCState
 {
-    /**
-     * Uninitialized status, should never appear in operation.
-     */
+  /**
+   * Uninitialized status, should never appear in operation.
+   */
   CADET_TUNNEL_NEW,
 
-    /**
-     * No path to the peer known yet.
-     */
+  /**
+   * No path to the peer known yet.
+   */
   CADET_TUNNEL_SEARCHING,
 
-    /**
-     * Request sent, not yet answered.
-     */
+  /**
+   * Request sent, not yet answered.
+   */
   CADET_TUNNEL_WAITING,
 
-    /**
-     * Peer connected and ready to accept data.
-     */
+  /**
+   * Peer connected and ready to accept data.
+   */
   CADET_TUNNEL_READY,
 
   /**
@@ -142,13 +142,18 @@ struct CadetTunnelQueue;
  * @param type Type of message sent.
  * @param size Size of the message.
  */
-typedef void (*GCT_sent) (void *cls,
-                          struct CadetTunnel *t,
-                          struct CadetTunnelQueue *q,
-                          uint16_t type, size_t size);
+typedef void
+(*GCT_sent) (void *cls,
+	     struct CadetTunnel *t,
+	     struct CadetTunnelQueue *q,
+	     uint16_t type, size_t size);
 
-typedef void (*GCT_conn_iter) (void *cls, struct CadetConnection *c);
-typedef void (*GCT_chan_iter) (void *cls, struct CadetChannel *ch);
+typedef void
+(*GCT_conn_iter) (void *cls, struct CadetConnection *c);
+
+
+typedef void
+(*GCT_chan_iter) (void *cls, struct CadetChannel *ch);
 
 
 /******************************************************************************/

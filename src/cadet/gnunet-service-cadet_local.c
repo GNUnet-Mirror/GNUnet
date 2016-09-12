@@ -47,51 +47,51 @@
  */
 struct CadetClient
 {
-    /**
-     * Linked list next
-     */
+  /**
+   * Linked list next
+   */
   struct CadetClient *next;
 
-    /**
-     * Linked list prev
-     */
+  /**
+   * Linked list prev
+   */
   struct CadetClient *prev;
 
-    /**
-     * Tunnels that belong to this client, indexed by local id
-     */
+  /**
+   * Tunnels that belong to this client, indexed by local id
+   */
   struct GNUNET_CONTAINER_MultiHashMap32 *own_channels;
-
-    /**
-     * Tunnels this client has accepted, indexed by incoming local id
-     */
+  
+  /**
+   * Tunnels this client has accepted, indexed by incoming local id
+   */
   struct GNUNET_CONTAINER_MultiHashMap32 *incoming_channels;
 
-    /**
-     * Channel ID for the next incoming channel.
-     */
+  /**
+   * Channel ID for the next incoming channel.
+   */
   CADET_ChannelNumber next_chid;
 
-    /**
-     * Handle to communicate with the client
-     */
+  /**
+   * Handle to communicate with the client
+   */
   struct GNUNET_SERVER_Client *handle;
 
-    /**
-     * Ports that this client has declared interest in.
-     * Indexed by port, contains *Client.
-     */
+  /**
+   * Ports that this client has declared interest in.
+   * Indexed by port, contains *Client.
+   */
   struct GNUNET_CONTAINER_MultiHashMap *ports;
 
-    /**
-     * Whether the client is active or shutting down (don't send confirmations
-     * to a client that is shutting down.
-     */
+  /**
+   * Whether the client is active or shutting down (don't send confirmations
+   * to a client that is shutting down.
+   */
   int shutting_down;
 
-    /**
-     * ID of the client, mainly for debug messages
-     */
+  /**
+   * ID of the client, mainly for debug messages
+   */
   unsigned int id;
 };
 
@@ -146,7 +146,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
  * @param key Port.
  * @param value Client structure.
  *
- * @return GNUNET_OK, keep iterating.
+ * @return #GNUNET_OK, keep iterating.
  */
 static int
 client_release_ports (void *cls,
@@ -174,7 +174,7 @@ client_release_ports (void *cls,
  * @param key The local channel id (used to access the hashmap).
  * @param value The value stored at the key (channel to destroy).
  *
- * @return GNUNET_OK, keep iterating.
+ * @return #GNUNET_OK, keep iterating.
  */
 static int
 channel_destroy_iterator (void *cls,
@@ -229,6 +229,7 @@ client_destroy (struct CadetClient *c)
   GNUNET_SERVER_client_set_user_context (c->handle, NULL);
   GNUNET_free (c);
 }
+
 
 /**
  * Create a client record, register data and initialize memory.

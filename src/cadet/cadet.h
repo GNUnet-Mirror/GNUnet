@@ -69,16 +69,17 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct GNUNET_CADET_PortMessage
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_[OPEN|CLOSE]
-     *
-     * Size: sizeof(struct GNUNET_CADET_ChannelMessage)
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN
+   * or #GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE
+   *
+   * Size: sizeof(struct GNUNET_CADET_ChannelMessage)
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * Port to open/close.
-     */
+  /**
+   * Port to open/close.
+   */
   struct GNUNET_HashCode port GNUNET_PACKED;
 };
 
@@ -96,31 +97,31 @@ typedef uint32_t CADET_ChannelNumber;
  */
 struct GNUNET_CADET_ChannelCreateMessage
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
-     *
-     * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessage)
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
+   *
+   * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessage)
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of a channel controlled by this client.
-     */
+  /**
+   * ID of a channel controlled by this client.
+   */
   CADET_ChannelNumber channel_id GNUNET_PACKED;
 
-    /**
-     * Channel's peer
-     */
+  /**
+   * Channel's peer
+   */
   struct GNUNET_PeerIdentity peer;
 
-    /**
-     * Port of the channel.
-     */
+  /**
+   * Port of the channel.
+   */
   struct GNUNET_HashCode port;
 
-    /**
-     * Options.
-     */
+  /**
+   * Options.
+   */
   uint32_t opt GNUNET_PACKED;
 };
 
@@ -130,16 +131,16 @@ struct GNUNET_CADET_ChannelCreateMessage
  */
 struct GNUNET_CADET_ChannelDestroyMessage
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY
-     *
-     * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY
+   *
+   * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
+   */
   struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a channel controlled by this client.
-     */
+  
+  /**
+   * ID of a channel controlled by this client.
+   */
   CADET_ChannelNumber channel_id GNUNET_PACKED;
 };
 
@@ -149,19 +150,19 @@ struct GNUNET_CADET_ChannelDestroyMessage
  */
 struct GNUNET_CADET_LocalData
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the channel
-     */
+  /**
+   * ID of the channel
+   */
   uint32_t id GNUNET_PACKED;
 
-    /**
-     * Payload follows
-     */
+  /**
+   * Payload follows
+   */
 };
 
 
@@ -171,14 +172,14 @@ struct GNUNET_CADET_LocalData
  */
 struct GNUNET_CADET_LocalAck
 {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK
-     */
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK
+   */
   struct GNUNET_MessageHeader header;
 
-    /**
-     * ID of the channel allowed to send more data.
-     */
+  /**
+   * ID of the channel allowed to send more data.
+   */
   CADET_ChannelNumber channel_id GNUNET_PACKED;
 
 };
@@ -190,7 +191,8 @@ struct GNUNET_CADET_LocalAck
 struct GNUNET_CADET_LocalInfo
 {
   /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO[_TUNNEL,_PEER]
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL or
+   * #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -217,7 +219,8 @@ struct GNUNET_CADET_LocalInfo
 struct GNUNET_CADET_LocalInfoPeer
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER[S]
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER or
+   * #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
    */
   struct GNUNET_MessageHeader header;
 
@@ -246,7 +249,8 @@ struct GNUNET_CADET_LocalInfoPeer
 struct GNUNET_CADET_LocalInfoTunnel
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL[S]
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL
+   * or #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS
    */
   struct GNUNET_MessageHeader header;
 

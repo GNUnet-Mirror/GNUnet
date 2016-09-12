@@ -211,6 +211,7 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
                            struct CadetClient *c,
                            int is_root);
 
+
 /**
  * Handle a channel create requested by a client.
  *
@@ -219,7 +220,7 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
  * @param c Client that requested the creation (will be the root).
  * @param msg Create Channel message.
  *
- * @return GNUNET_OK if everything went fine, GNUNET_SYSERR otherwise.
+ * @return #GNUNET_OK if everything went fine, #GNUNET_SYSERR otherwise.
  */
 int
 GCCH_handle_local_create (struct CadetClient *c,
@@ -240,6 +241,7 @@ GCCH_handle_data (struct CadetChannel *ch,
                   const struct GNUNET_CADET_Data *msg,
                   int fwd);
 
+
 /**
  * Handler for cadet network traffic end-to-end ACKs.
  *
@@ -255,6 +257,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
                       const struct GNUNET_CADET_DataACK *msg,
                       int fwd);
 
+
 /**
  * Handler for channel create messages.
  *
@@ -267,6 +270,7 @@ struct CadetChannel *
 GCCH_handle_create (struct CadetTunnel *t,
                     const struct GNUNET_CADET_ChannelCreate *msg);
 
+
 /**
  * Handler for channel NACK messages.
  *
@@ -276,6 +280,7 @@ GCCH_handle_create (struct CadetTunnel *t,
  */
 void
 GCCH_handle_nack (struct CadetChannel *ch);
+
 
 /**
  * Handler for channel ack messages.
@@ -292,6 +297,7 @@ GCCH_handle_ack (struct CadetChannel *ch,
                  const struct GNUNET_CADET_ChannelManage *msg,
                  int fwd);
 
+
 /**
  * Handler for channel destroy messages.
  *
@@ -306,6 +312,7 @@ void
 GCCH_handle_destroy (struct CadetChannel *ch,
                      const struct GNUNET_CADET_ChannelManage *msg,
                      int fwd);
+
 
 /**
  * Sends an already built message on a channel.
@@ -327,6 +334,7 @@ void
 GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct CadetChannel *ch, int fwd,
                             void *existing_copy);
+
 
 /**
  * Get the static string for identification of the channel.
