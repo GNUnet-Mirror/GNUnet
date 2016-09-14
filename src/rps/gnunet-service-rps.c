@@ -1237,14 +1237,14 @@ handle_peer_push (void *cls,
        "Received PUSH (%s)\n",
        GNUNET_i2s (peer));
 
-#ifdef ENABLE_MALICIOUS
+  #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 
-  tmp_att_peer = GNUNET_new (struct AttackedPeer);
-  GNUNET_memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
-  if (1 == mal_type
-      || 3 == mal_type)
+  if ( (1 == mal_type) ||
+       (3 == mal_type) )
   { /* Try to maximise representation */
+    tmp_att_peer = GNUNET_new (struct AttackedPeer);
+    GNUNET_memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
     if (NULL == att_peer_set)
       att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
     if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
@@ -1265,11 +1265,6 @@ handle_peer_push (void *cls,
     GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
-  else
-  {
-    GNUNET_free (tmp_att_peer);
-  }
-
   #endif /* ENABLE_MALICIOUS */
 
   /* Add the sending peer to the push_map */
