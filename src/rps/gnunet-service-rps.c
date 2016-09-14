@@ -1108,6 +1108,7 @@ handle_client_request_cancel (void *cls,
   struct ReplyCls *rep_cls;
 
   cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientContext);
+  GNUNET_assert (NULL != cli_ctx);
   GNUNET_assert (NULL != cli_ctx->rep_cls_head);
   rep_cls = cli_ctx->rep_cls_head;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
