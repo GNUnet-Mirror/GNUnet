@@ -1995,7 +1995,6 @@ do_round (void *cls)
     }
 
     GNUNET_array_grow (peers_to_clean, peers_to_clean_size, 0);
-    peers_to_clean = NULL;
   }
   else
   {
