@@ -909,6 +909,8 @@ restore_valid_peers ()
         "Restored valid peer %s from disk\n",
         GNUNET_i2s_full (peer));
   }
+  iter_buf = NULL;
+  GNUNET_free (buf);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "num_peers: %" PRIu32 ", _size (valid_peers): %u\n",
       num_peers,
