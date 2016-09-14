@@ -874,7 +874,7 @@ restore_valid_peers ()
   char *buf;
   ssize_t size_read;
   char *iter_buf;
-  const char *str_repr;
+  char *str_repr;
   const struct GNUNET_PeerIdentity *peer;
 
   if (0 == strncmp ("DISABLE", filename_valid_peers, 7))
@@ -903,6 +903,7 @@ restore_valid_peers ()
   {
     str_repr = GNUNET_strndup (iter_buf, 53);
     peer = s2i_full (str_repr);
+    GNUNET_free (str_repr);
     add_valid_peer (peer);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Restored valid peer %s from disk\n",
