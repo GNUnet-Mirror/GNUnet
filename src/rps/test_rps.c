@@ -399,12 +399,19 @@ tofile_ (const char *file_name, const char *line)
                 "Unable to write to file! (Size: %lu, size2: %lu)\n",
                 size,
                 size2);
+    if (GNUNET_YES != GNUNET_DISK_file_close (f))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Unable to close file\n");
+    }
     return;
   }
 
   if (GNUNET_YES != GNUNET_DISK_file_close (f))
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Unable to close file\n");
+  }
 }
 
 /**
