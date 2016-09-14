@@ -1242,6 +1242,7 @@ profiler_reply_handle (void *cls,
              "%s\n",
              GNUNET_i2s_full (&recv_peers[i]));
     rcv_rps_peer = GNUNET_CONTAINER_multipeermap_get (peer_map, &recv_peers[i]);
+    GNUNET_assert (NULL != rcv_rps_peer);
     tofile (file_name_dh,
              "%" PRIu32 "\n",
              (uint32_t) rcv_rps_peer->index);
