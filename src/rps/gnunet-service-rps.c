@@ -556,7 +556,7 @@ est_request_rate()
   if ( 1 < req_counter)
   {
     /* Shift last request deltas to the right */
-    GNUNET_memcpy (&request_deltas[1],
+    memmove (&request_deltas[1],
         request_deltas,
         (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
 
