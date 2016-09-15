@@ -593,10 +593,11 @@ info_cb (void *cb_cls,
   rps_peer_ids[entry->index] = *(pinfo->result.id);
   rps_peers[entry->index].peer_id = &rps_peer_ids[entry->index];
 
-  GNUNET_CONTAINER_multipeermap_put (peer_map,
-      &rps_peer_ids[entry->index],
-      &rps_peers[entry->index],
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_OK ==
+      GNUNET_CONTAINER_multipeermap_put (peer_map,
+        &rps_peer_ids[entry->index],
+        &rps_peers[entry->index],
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   tofile ("/tmp/rps/peer_ids",
            "%u\t%s\n",
            entry->index,

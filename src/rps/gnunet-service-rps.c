@@ -771,7 +771,7 @@ check_sending_channel_needed (const struct GNUNET_PeerIdentity *peer)
 static void
 remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
-  View_remove_peer (peer);
+  (void) View_remove_peer (peer);
   CustomPeerMap_remove_peer (pull_map, peer);
   CustomPeerMap_remove_peer (push_map, peer);
   RPS_sampler_reinitialise_by_value (prot_sampler, peer);
