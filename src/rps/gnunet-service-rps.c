@@ -1490,7 +1490,9 @@ compute_rand_delay (struct GNUNET_TIME_Relative mean,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Not accepting spread of 0\n");
     GNUNET_break (0);
+    GNUNET_assert (0);
   }
+  GNUNET_assert (0 != mean.rel_value_us);
 
   /* Compute random time value between spread * mean and spread * mean */
   half_interval = GNUNET_TIME_relative_divide (mean, spread);
