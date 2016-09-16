@@ -1153,11 +1153,15 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   }
   if (NULL != peer_ctx->send_channel)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Destroying send channel\n");
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
     peer_ctx->send_channel = NULL;
   }
   if (NULL != peer_ctx->recv_channel)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Destroying recv channel\n");
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
     peer_ctx->recv_channel = NULL;
   }
