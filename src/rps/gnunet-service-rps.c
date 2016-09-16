@@ -120,6 +120,11 @@ struct ClientContext
    */
   struct ReplyCls *rep_cls_head;
   struct ReplyCls *rep_cls_tail;
+
+  /**
+   * The client handle to send the reply to
+   */
+  struct GNUNET_SERVER_Client *client;
 };
 
 /**
@@ -2132,8 +2137,33 @@ process_peerinfo_peers (void *cls,
 static void
 shutdown_task (void *cls)
 {
+  struct ClientContext *client_ctx;
+  struct ReplyCls *reply_cls;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "RPS is going down\n");
+
+  /* Clean all clients */
+  for (client_ctx = cli_ctx_head;
+       NULL != cli_ctx_head;
+       client_ctx = cli_ctx_head)
+  {
+    /* Clean pending requests to the sampler */
+    for (reply_cls = client_ctx->rep_cls_head;
+         NULL != client_ctx->rep_cls_head;
+         reply_cls = client_ctx->rep_cls_head)
+    {
+      RPS_sampler_request_cancel (reply_cls->req_handle);
+      GNUNET_CONTAINER_DLL_remove (client_ctx->rep_cls_head,
+                                   client_ctx->rep_cls_tail,
+                                   reply_cls);
+      GNUNET_free (reply_cls);
+    }
+    GNUNET_MQ_destroy (client_ctx->mq);
+    GNUNET_SERVER_client_disconnect (client_ctx->client);
+    GNUNET_CONTAINER_DLL_remove (cli_ctx_head, cli_ctx_tail, client_ctx);
+    GNUNET_free (client_ctx);
+  }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
 
@@ -2187,6 +2217,7 @@ handle_client_connect (void *cls,
     return; /* Server was destroyed before a client connected. Shutting down */
   cli_ctx = GNUNET_new (struct ClientContext);
   cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
+  cli_ctx->client = client;
   GNUNET_SERVER_client_set_user_context (client, cli_ctx);
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,
                                cli_ctx_tail,
@@ -2249,8 +2280,7 @@ rps_start (struct GNUNET_SERVER_Handle *server)
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
