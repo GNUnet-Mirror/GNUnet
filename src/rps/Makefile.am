@@ -74,6 +74,7 @@ check_PROGRAMS = \
  test_service_rps_view \
  test_service_rps_custommap \
  test_service_rps_peers \
+ test_service_rps_sampler_elem \
  test_rps_malicious_1 \
  test_rps_malicious_2 \
  test_rps_malicious_3 \
@@ -111,6 +112,11 @@ test_service_rps_peers_LDADD = $(top_builddir)/src/util/libgnunetutil.la \
 test_service_rps_custommap_SOURCES = gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
 																 test_service_rps_custommap.c
 test_service_rps_custommap_LDADD = $(top_builddir)/src/util/libgnunetutil.la
+
+test_service_rps_sampler_elem_SOURCES = gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+																				rps-test_util.h rps-test_util.c \
+																        test_service_rps_sampler_elem.c
+test_service_rps_sampler_elem_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 
 test_rps_malicious_1_SOURCES = $(rps_test_src)
 test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
