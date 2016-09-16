@@ -826,11 +826,19 @@ SAVE_CPPFLAGS=$CPPFLAGS
 AC_MSG_CHECKING(for mysql)
 AC_ARG_WITH(mysql,
   [  --with-mysql=PFX        base of MySQL installation],
-  [AC_MSG_RESULT("$with_mysql")
-   if test "$with_mysql" != "no"
-   then
-    if test "$with_mysql" != "yes"
-    then
+  [AC_MSG_RESULT([$with_mysql])
+   case $with_mysql in
+   no)
+      ;;
+   yes|"")
+      AC_CHECK_HEADERS(mysql/mysql.h,
+       AC_CHECK_LIB(mysqlclient, mysql_init,
+        MYSQL_LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql"
+        MYSQL_CPPFLAGS="-I$with_mysql/include"
+
+        mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+      ;;
+   *)
       LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql $LDFLAGS $ZLIBS"
       CPPFLAGS="-I$with_mysql/include $CPPFLAGS"
       AC_CHECK_HEADERS(mysql/mysql.h,
@@ -839,8 +847,8 @@ AC_ARG_WITH(mysql,
         MYSQL_CPPFLAGS="-I$with_mysql/include"
 
         mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
-    fi
-   fi
+      ;;
+   esac
   ],
   [AC_MSG_RESULT([--with-mysql not specified])
    if test -d "/usr/lib64/mysql"; then
@@ -906,7 +914,7 @@ AC_ARG_WITH(microhttpd,
     case $with_microhttpd in
       no)
         ;;
-      yes)
+      yes|"")
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],

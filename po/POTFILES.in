@@ -461,6 +461,7 @@ src/util/gnunet-uri.c
 src/util/helper.c
 src/util/load.c
 src/util/mq.c
+src/util/mst.c
 src/util/network.c
 src/util/op.c
 src/util/os_installation.c
@@ -476,6 +477,7 @@ src/util/server_mst.c
 src/util/server_nc.c
 src/util/server_tc.c
 src/util/service.c
+src/util/service_new.c
 src/util/signal.c
 src/util/socks.c
 src/util/speedup.c
