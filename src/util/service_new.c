@@ -22,6 +22,7 @@
  * @file util/service_new.c
  * @brief functions related to starting services (redesign)
  * @author Christian Grothoff
+ * @author Florian Dold
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
