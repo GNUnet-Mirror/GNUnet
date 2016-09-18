@@ -1229,6 +1229,7 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
       struct ServiceListenContext *slc;
 
       slc = GNUNET_new (struct ServiceListenContext);
+      slc->sh = sh;
       slc->listen_socket = *ls;
       GNUNET_CONTAINER_DLL_insert (sh->slc_head,
 				   sh->slc_tail,
@@ -1254,6 +1255,7 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
       struct ServiceListenContext *slc;
 
       slc = GNUNET_new (struct ServiceListenContext);
+      slc->sh = sh;
       slc->listen_socket = open_listen_socket (addrs[i],
 					       addrlens[i]);
       GNUNET_break (NULL != slc->listen_socket);
@@ -1576,6 +1578,9 @@ GNUNET_SERVICE_ruN_ (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
+  memset (&sh,
+	  0,
+	  sizeof (sh));
   xdg = getenv ("XDG_CONFIG_HOME");
   if (NULL != xdg)
     GNUNET_asprintf (&cfg_filename,
@@ -1585,7 +1590,7 @@ GNUNET_SERVICE_ruN_ (int argc,
                      GNUNET_OS_project_data_get ()->config_file);
   else
     cfg_filename = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
-
+  sh.ready_confirm_fd = -1;
   sh.options = options;
   sh.cfg = cfg = GNUNET_CONFIGURATION_create ();
   sh.service_init_cb = service_init_cb;
@@ -1593,8 +1598,13 @@ GNUNET_SERVICE_ruN_ (int argc,
   sh.disconnect_cb = disconnect_cb;
   sh.cb_cls = cls;
   sh.handlers = handlers;
+  sh.service_name = service_name;
 
   /* setup subsystems */
+  loglev = NULL;
+  logfile = NULL;
+  opt_cfg_filename = NULL;
+  do_daemonize = 0;
   ret = GNUNET_GETOPT_run (service_name,
 			   service_options,
 			   argc,
@@ -1683,8 +1693,11 @@ GNUNET_SERVICE_ruN_ (int argc,
 shutdown:
   if (-1 != sh.ready_confirm_fd)
   {
-    if (1 != WRITE (sh.ready_confirm_fd, err ? "I" : "S", 1))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "write");
+    if (1 != WRITE (sh.ready_confirm_fd,
+		    err ? "I" : "S",
+		    1))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+		    "write");
     GNUNET_break (0 == CLOSE (sh.ready_confirm_fd));
   }
 #if HAVE_MALLINFO
@@ -1897,7 +1910,8 @@ service_client_recv (void *cls)
 			 GNUNET_YES);
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_break (0);
+    /* client closed connection (or IO error) */
+    GNUNET_assert (GNUNET_NO == client->needs_continue);
     GNUNET_SERVICE_client_drop (client);
     return;
   }
@@ -1906,6 +1920,8 @@ service_client_recv (void *cls)
 	       to be done processing */
   GNUNET_assert (GNUNET_OK == ret);
   if (GNUNET_YES == client->needs_continue)
+    return;
+  if (NULL != client->recv_task)
     return;
   /* MST needs more data, re-schedule read job */
   client->recv_task
@@ -2185,8 +2201,9 @@ GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c)
     GNUNET_SCHEDULER_cancel (c->warn_task);
     c->warn_task = NULL;
   }
-  c->recv_task = GNUNET_SCHEDULER_add_now (&resume_client_receive,
-					   c);
+  c->recv_task
+    = GNUNET_SCHEDULER_add_now (&resume_client_receive,
+				c);
 }
 
 
