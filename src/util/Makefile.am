@@ -109,6 +109,7 @@ libgnunetutil_la_SOURCES = \
   server_nc.c \
   server_tc.c \
   service.c \
+  service_new.c \
   signal.c \
   strings.c \
   time.c \
