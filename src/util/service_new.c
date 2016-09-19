@@ -266,6 +266,11 @@ struct GNUNET_SERVICE_Client
   struct GNUNET_SCHEDULER_Task *send_task;
 
   /**
+   * Pointer to the message to be transmitted by @e send_task.
+   */
+  const struct GNUNET_MessageHeader *msg;
+  
+  /**
    * User context value, value returned from
    * the connect callback.
    */
@@ -276,6 +281,11 @@ struct GNUNET_SERVICE_Client
    * to the application.
    */
   struct GNUNET_TIME_Absolute warn_start;
+
+  /**
+   * Current position in @e msg at which we are transmitting.
+   */
+  size_t msg_pos;
   
   /**
    * Persist the file handle for this client no matter what happens,
@@ -1776,24 +1786,86 @@ GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * Task run when we are ready to transmit data to the
+ * client.
+ *
+ * @param cls the `struct GNUNET_SERVICE_Client *` to send to
+ */
+static void
+do_send (void *cls)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  ssize_t ret;
+  size_t left;
+  const char *buf;
+
+  client->send_task = NULL;
+  buf = (const char *) client->msg;
+  left = ntohs (client->msg->size) - client->msg_pos;
+  ret = GNUNET_NETWORK_socket_send (client->sock,
+				    &buf[client->msg_pos],
+				    left);
+  GNUNET_assert (ret <= (ssize_t) left);
+  if (0 == ret)
+  {
+    GNUNET_MQ_inject_error (client->mq,
+			    GNUNET_MQ_ERROR_WRITE);
+    return;
+  }
+  if (-1 == ret)
+  {
+    if ( (EAGAIN == errno) ||
+	 (EINTR == errno) )
+    {
+      /* ignore */
+      ret = 0;
+    }
+    else
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "send");
+      GNUNET_MQ_inject_error (client->mq,
+			      GNUNET_MQ_ERROR_WRITE);
+      return;
+    }
+  }
+  client->msg_pos += ret;
+  if (left > ret)
+  {
+    client->send_task
+      = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					client->sock,
+					&do_send,
+					client);
+    return;
+  }
+  GNUNET_MQ_impl_send_continue (client->mq);
+}
+
+
+/**
  * Signature of functions implementing the sending functionality of a
  * message queue.
  *
  * @param mq the message queue
  * @param msg the message to send
- * @param impl_state state of the implementation
+ * @param impl_state our `struct GNUNET_SERVICE_Client *`
  */
 static void
 service_mq_send (struct GNUNET_MQ_Handle *mq,
                  const struct GNUNET_MessageHeader *msg,
                  void *impl_state)
 {
-  // struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = impl_state;
 
-  // FIXME 1: setup "client->send_task" for transmission.
-  // FIXME 2: I seriously hope we do not need to make a copy of `msg`!
-  // OPTIMIZATION: ideally, we'd like the ability to peak at the rest of
-  //               the queue and transmit more than one message if possible.
+  GNUNET_assert (NULL == client->send_task);
+  client->msg = msg;
+  client->msg_pos = 0;
+  client->send_task
+    = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+				      client->sock,
+				      &do_send,
+				      client);
 }
 
 
@@ -1807,8 +1879,9 @@ static void
 service_mq_cancel (struct GNUNET_MQ_Handle *mq,
                    void *impl_state)
 {
-  // struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = impl_state;
 
+  GNUNET_assert (0); // not implemented
   // FIXME: stop transmission! (must be possible, otherwise
   // we must have told MQ that the message was sent!)
 }
@@ -2331,6 +2404,19 @@ void
 GNUNET_SERVICE_client_persist (struct GNUNET_SERVICE_Client *c)
 {
   c->persist = GNUNET_YES;
+}
+
+
+/**
+ * Obtain the message queue of @a c.  Convenience function.
+ *
+ * @param c the client to continue receiving from
+ * @return the message queue of @a c
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_SERVICE_client_get_mq (struct GNUNET_SERVICE_Client *c)
+{
+  return c->mq;
 }
 
 

@@ -265,6 +265,7 @@ endif
 check_PROGRAMS = \
  test_bio \
  test_client.nc \
+ test_client_unix.nc \
  $(SSH_USING_TESTS) \
  test_common_allocation \
  test_common_endian \
@@ -299,7 +300,6 @@ check_PROGRAMS = \
  test_connection_timeout_no_connect.nc \
  test_connection_transmit_cancel.nc \
  test_mq \
- test_mq_client.nc \
  test_os_network \
  test_peer \
  test_plugin \
@@ -325,18 +325,18 @@ check_PROGRAMS = \
 # Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
 # sequential execution order for them
 TEST_EXTENSIONS = .nc
-test_connection.log: test_client.log
+test_connection.log: test_client.log 
 test_connection_addressing.log: test_connection.log
 test_connection_timeout_no_connect.log: test_connection_addressing.log
 test_connection_transmit_cancel.log: test_connection_timeout_no_connect.log
 test_connection_receive_cancel.log: test_connection_transmit_cancel.log
 test_connection_timeout.log: test_connection_receive_cancel.log
-test_mq_client.log: test_connection_timeout.log
-test_resolver_api.log: test_mq_client.log
+test_resolver_api.log: test_connection_timeout.log 
 test_server.log: test_resolver_api.log
 test_server_disconnect.log: test_server.log
 test_server_with_client.log: test_server_disconnect.log
 test_server_mst_interrupt.log: test_server_with_client.log
+test_client_unix.log: test_server_mst_interrupt.log
 
 test_bio_SOURCES = \
  test_bio.c
@@ -355,6 +355,11 @@ test_os_start_process_DEPENDENCIES = \
 test_client_nc_SOURCES = \
  test_client.c
 test_client_nc_LDADD = \
+ libgnunetutil.la
+
+test_client_unix_nc_SOURCES = \
+ test_client.c
+test_client_unix_nc_LDADD = \
  libgnunetutil.la
 
 test_socks_nc_SOURCES = \
@@ -538,11 +543,6 @@ test_mq_SOURCES = \
 test_mq_LDADD = \
  libgnunetutil.la
 
-test_mq_client_nc_SOURCES = \
- test_mq_client.c
-test_mq_client_nc_LDADD = \
- libgnunetutil.la
-
 test_os_network_SOURCES = \
  test_os_network.c
 test_os_network_LDADD = \
@@ -670,6 +670,8 @@ perf_malloc_LDADD = \
 
 
 EXTRA_DIST = \
+  test_client_data.conf \
+  test_client_unix.conf \
   test_configuration_data.conf \
   test_program_data.conf \
   test_resolver_api_data.conf \
