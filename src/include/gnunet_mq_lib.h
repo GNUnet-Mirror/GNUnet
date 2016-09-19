@@ -637,6 +637,36 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq);
 
 
 /**
+ * Handle we return for callbacks registered to be
+ * notified when #GNUNET_MQ_destroy() is called on a queue.
+ */
+struct GNUNET_MQ_DestroyNotificationHandle;
+
+
+/**
+ * Register function to be called whenever @a mq is being
+ * destroyed.
+ *
+ * @param mq message queue to watch
+ * @param cb function to call on @a mq destruction
+ * @param cb_cls closure for @a cb
+ * @return handle for #GNUNET_MQ_destroy_notify_cancel().
+ */
+struct GNUNET_MQ_DestroyNotificationHandle *
+GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
+			  GNUNET_SCHEDULER_TaskCallback cb,
+			  void *cb_cls);
+
+/**
+ * Cancel registration from #GNUNET_MQ_destroy_notify().
+ *
+ * @param dnh handle for registration to cancel
+ */
+void
+GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh);
+
+
+/**
  * Call the message message handler that was registered
  * for the type of the given message in the given message queue.
  *

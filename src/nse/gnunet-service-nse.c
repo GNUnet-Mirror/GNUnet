@@ -276,12 +276,12 @@ static unsigned int estimate_count;
 /**
  * Task scheduled to update our flood message for the next round.
  */
-static struct GNUNET_SCHEDULER_Task * flood_task;
+static struct GNUNET_SCHEDULER_Task *flood_task;
 
 /**
  * Task scheduled to compute our proof.
  */
-static struct GNUNET_SCHEDULER_Task * proof_task;
+static struct GNUNET_SCHEDULER_Task *proof_task;
 
 /**
  * Notification context, simplifies client broadcasts.

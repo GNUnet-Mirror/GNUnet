@@ -155,6 +155,16 @@ struct GNUNET_MQ_Handle
   struct GNUNET_SCHEDULER_Task *continue_task;
 
   /**
+   * Functions to call on queue destruction; kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *dnh_head;
+
+  /**
+   * Functions to call on queue destruction; kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *dnh_tail;
+
+  /**
    * Additional options buffer set for this queue by
    * #GNUNET_MQ_set_options().  Default is 0.
    */
@@ -1170,6 +1180,83 @@ GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
 {
   mq->default_flags = flags;
   mq->default_extra = extra;
+}
+
+
+/**
+ * Handle we return for callbacks registered to be
+ * notified when #GNUNET_MQ_destroy() is called on a queue.
+ */
+struct GNUNET_MQ_DestroyNotificationHandle
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *prev;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *next;
+
+  /**
+   * Queue to notify about.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Function to call.
+   */
+  GNUNET_SCHEDULER_TaskCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
+};
+
+
+/**
+ * Register function to be called whenever @a mq is being
+ * destroyed.
+ *
+ * @param mq message queue to watch
+ * @param cb function to call on @a mq destruction
+ * @param cb_cls closure for @a cb
+ * @return handle for #GNUNET_MQ_destroy_notify_cancel().
+ */
+struct GNUNET_MQ_DestroyNotificationHandle *
+GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
+			  GNUNET_SCHEDULER_TaskCallback cb,
+			  void *cb_cls)
+{
+  struct GNUNET_MQ_DestroyNotificationHandle *dnh;
+
+  dnh = GNUNET_new (struct GNUNET_MQ_DestroyNotificationHandle);
+  dnh->mq = mq;
+  dnh->cb = cb;
+  dnh->cb_cls = cb_cls;
+  GNUNET_CONTAINER_DLL_insert (mq->dnh_head,
+			       mq->dnh_tail,
+			       dnh);
+  return dnh;
+}
+
+
+/**
+ * Cancel registration from #GNUNET_MQ_destroy_notify().
+ *
+ * @param dnh handle for registration to cancel
+ */
+void
+GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh)
+{
+  struct GNUNET_MQ_Handle *mq = dnh->mq;
+  
+  GNUNET_CONTAINER_DLL_remove (mq->dnh_head,
+			       mq->dnh_tail,
+			       dnh);
+  GNUNET_free (dnh);
 }
 
 
