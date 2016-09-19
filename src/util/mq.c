@@ -952,19 +952,68 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
 }
 
 
+/**
+ * Call a callback once the envelope has been sent, that is,
+ * sending it can not be canceled anymore.
+ * There can be only one notify sent callback per envelope.
+ *
+ * @param ev message to call the notify callback for
+ * @param cb the notify callback
+ * @param cb_cls closure for the callback
+ */
 void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *mqm,
                        GNUNET_MQ_NotifyCallback cb,
-                       void *cls)
+                       void *cb_cls)
 {
   mqm->sent_cb = cb;
-  mqm->sent_cls = cls;
+  mqm->sent_cls = cb_cls;
 }
 
 
+/**
+ * Handle we return for callbacks registered to be
+ * notified when #GNUNET_MQ_destroy() is called on a queue.
+ */
+struct GNUNET_MQ_DestroyNotificationHandle
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *prev;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_MQ_DestroyNotificationHandle *next;
+
+  /**
+   * Queue to notify about.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Function to call.
+   */
+  GNUNET_SCHEDULER_TaskCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
+};
+
+
+/**
+ * Destroy the message queue.
+ *
+ * @param mq message queue to destroy
+ */
 void
 GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 {
+  struct GNUNET_MQ_DestroyNotificationHandle *dnh;
+  
   if (NULL != mq->destroy_impl)
   {
     mq->destroy_impl (mq, mq->impl_state);
@@ -996,6 +1045,8 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     mq->queue_length--;
   }
   GNUNET_assert (0 == mq->queue_length);
+  while (NULL != (dnh = mq->dnh_head))
+    dnh->cb (dnh->cb_cls);
   if (NULL != mq->assoc_map)
   {
     GNUNET_CONTAINER_multihashmap32_destroy (mq->assoc_map);
@@ -1181,39 +1232,6 @@ GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
   mq->default_flags = flags;
   mq->default_extra = extra;
 }
-
-
-/**
- * Handle we return for callbacks registered to be
- * notified when #GNUNET_MQ_destroy() is called on a queue.
- */
-struct GNUNET_MQ_DestroyNotificationHandle
-{
-  /**
-   * Kept in a DLL.
-   */
-  struct GNUNET_MQ_DestroyNotificationHandle *prev;
-
-  /**
-   * Kept in a DLL.
-   */
-  struct GNUNET_MQ_DestroyNotificationHandle *next;
-
-  /**
-   * Queue to notify about.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
-   * Function to call.
-   */
-  GNUNET_SCHEDULER_TaskCallback cb;
-
-  /**
-   * Closure for @e cb.
-   */
-  void *cb_cls;
-};
 
 
 /**

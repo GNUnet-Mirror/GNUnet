@@ -286,7 +286,7 @@ static struct GNUNET_SCHEDULER_Task *proof_task;
 /**
  * Notification context, simplifies client broadcasts.
  */
-static struct GNUNET_SERVER_NotificationContext *nc;
+static struct GNUNET_NotificationContext *nc;
 
 /**
  * The next major time.
@@ -313,11 +313,6 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static uint64_t my_proof;
 
-/**
- * Handle to this serivce's server.
- */
-static struct GNUNET_SERVER_Handle *srv;
-
 
 /**
  * Initialize a message to clients with the current network
@@ -328,8 +323,6 @@ static struct GNUNET_SERVER_Handle *srv;
 static void
 setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
 {
-  unsigned int i;
-  unsigned int j;
   double mean;
   double sum;
   double std_dev;
@@ -350,9 +343,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   sum = 0.0;
   sumweight = 0.0;
   variance = 0.0;
-  for (i = 0; i < estimate_count; i++)
+  for (unsigned int i = 0; i < estimate_count; i++)
   {
-    j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+    unsigned int j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+
     val = htonl (size_estimate_messages[j].matching_bits);
     weight = estimate_count + 1 - i;
 
@@ -375,9 +369,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   variance = 0.0;
   mean = 0.0;
 
-  for (i = 0; i < estimate_count; i++)
+  for (unsigned int i = 0; i < estimate_count; i++)
   {
-    j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+    unsigned int j = (estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE;
+
     val = htonl (size_estimate_messages[j].matching_bits);
     sum += val;
     vsq += val * val;
@@ -399,20 +394,22 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->header.type = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  double se = mean - 0.332747;
-  j = GNUNET_CONTAINER_multipeermap_size (peers);
-  if (0 == j)
-    j = 1; /* Avoid log2(0); can only happen if CORE didn't report
-              connection to self yet */
-  nsize = log2 (j);
-  em->size_estimate = GNUNET_hton_double (GNUNET_MAX (se,
-                                                      nsize));
-  em->std_deviation = GNUNET_hton_double (std_dev);
-  GNUNET_STATISTICS_set (stats,
-                         "# nodes in the network (estimate)",
-                         (uint64_t) pow (2, GNUNET_MAX (se,
-                                                        nsize)),
-                         GNUNET_NO);
+  {
+    double se = mean - 0.332747;
+    unsigned int j = GNUNET_CONTAINER_multipeermap_size (peers);
+    if (0 == j)
+      j = 1; /* Avoid log2(0); can only happen if CORE didn't report
+		connection to self yet */
+    nsize = log2 (j);
+    em->size_estimate = GNUNET_hton_double (GNUNET_MAX (se,
+							nsize));
+    em->std_deviation = GNUNET_hton_double (std_dev);
+    GNUNET_STATISTICS_set (stats,
+			   "# nodes in the network (estimate)",
+			   (uint64_t) pow (2, GNUNET_MAX (se,
+							  nsize)),
+			   GNUNET_NO);
+  }
 }
 
 
@@ -422,28 +419,28 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
  * Also, we remember the client for updates upon future
  * estimate measurements.
  *
- * @param cls unused
- * @param client who sent the message
+ * @param cls client who sent the message
  * @param message the message received
  */
 static void
-handle_start_message (void *cls,
-		      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+handle_start (void *cls,
+	      const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Handle *mq;
   struct GNUNET_NSE_ClientMessage em;
+  struct GNUNET_MQ_Envelope *env;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received START message from client\n");
-  GNUNET_SERVER_notification_context_add (nc,
-					  client);
+  mq = GNUNET_SERVICE_client_get_mq (client);
+  GNUNET_notification_context_add (nc,
+				   mq);
   setup_estimate_message (&em);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &em.header,
-                                              GNUNET_YES);
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+  env = GNUNET_MQ_msg_copy (&em.header);	
+  GNUNET_MQ_send (mq,
+		  env);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -676,9 +673,9 @@ update_network_size_estimate ()
   struct GNUNET_NSE_ClientMessage em;
 
   setup_estimate_message (&em);
-  GNUNET_SERVER_notification_context_broadcast (nc,
-						&em.header,
-						GNUNET_YES);
+  GNUNET_notification_context_broadcast (nc,
+					 &em.header,
+					 GNUNET_YES);
 }
 
 
@@ -1292,7 +1289,7 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (peers,
 						       peer,
                                                        pos));
-  if (pos->transmit_task != NULL)
+  if (NULL != pos->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = NULL;
@@ -1344,7 +1341,7 @@ shutdown_task (void *cls)
   }
   if (NULL != nc)
   {
-    GNUNET_SERVER_notification_context_destroy (nc);
+    GNUNET_notification_context_destroy (nc);
     nc = NULL;
   }
   if (NULL != core_api)
@@ -1476,19 +1473,14 @@ status_cb (void *cls,
  * Handle network size estimate clients.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_start_message, NULL, GNUNET_MESSAGE_TYPE_NSE_START,
-     sizeof (struct GNUNET_MessageHeader)},
-    {NULL, NULL, 0, 0}
-  };
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
     GNUNET_MQ_hd_fixed_size (p2p_estimate,
                              GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD,
@@ -1500,7 +1492,6 @@ run (void *cls,
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   cfg = c;
-  srv = server;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg,
 					   "NSE",
@@ -1614,9 +1605,7 @@ run (void *cls,
 
   peers = GNUNET_CONTAINER_multipeermap_create (128,
 						GNUNET_YES);
-  GNUNET_SERVER_add_handlers (srv,
-			      handlers);
-  nc = GNUNET_SERVER_notification_context_create (srv, 1);
+  nc = GNUNET_notification_context_create (1);
   /* Connect to core service and register core handlers */
   core_api = GNUNET_CORE_connecT (cfg,   /* Main configuration */
 				  NULL,       /* Closure passed to functions */
@@ -1635,24 +1624,53 @@ run (void *cls,
 
 
 /**
- * The main function for the network size estimation service.
+ * Callback called when a client connects to the service.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
  */
-int
-main (int argc,
-      char *const *argv)
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-			      argv,
-			      "nse",
-			      GNUNET_SERVICE_OPTION_NONE,
-                              &run,
-			      NULL)) ? 0 : 1;
+  return c;
 }
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  GNUNET_assert (c == internal_cls);
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("nse",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (start,
+			  GNUNET_MESSAGE_TYPE_NSE_START,
+			  struct GNUNET_MessageHeader,
+			  NULL),
+ GNUNET_MQ_handler_end ());
 
 
 #if defined(LINUX) && defined(__GLIBC__)

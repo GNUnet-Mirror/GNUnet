@@ -619,12 +619,12 @@ GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
  *
  * @param ev message to call the notify callback for
  * @param cb the notify callback
- * @param cls closure for the callback
+ * @param cb_cls closure for the callback
  */
 void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
                        GNUNET_MQ_NotifyCallback cb,
-                       void *cls);
+                       void *cb_cls);
 
 
 /**
