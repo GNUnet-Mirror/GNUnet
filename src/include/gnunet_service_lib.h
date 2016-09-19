@@ -336,16 +336,36 @@ GNUNET_SERVICE_ruN_ (int argc,
  * @param connect_cb function to call whenever a client connects
  * @param disconnect_cb function to call whenever a client disconnects
  * @param cls closure argument for @a service_init_cb, @a connect_cb and @a disconnect_cb
- * @param handlers NULL-terminated array of message handlers for the service,
+ * @param ... array of message handlers for the service, terminated
+ *            by #GNUNET_MQ_handler_end();
  *                 the closure will be set to the value returned by
  *                 the @a connect_cb for the respective connection
  * @return 0 on success, non-zero on error
+ *
+ * Sample invocation:
+ * <code>
+ * GNUNET_SERVICE_MAIN
+ * ("resolver",
+ *  GNUNET_SERVICE_OPTION_NONE,
+ *  &init_cb,
+ *  &connect_cb,
+ *  &disconnect_cb,
+ *  closure_for_cb,
+ *  GNUNET_MQ_hd_var_size (get,
+ *	 		   GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST,
+ * 			   struct GNUNET_RESOLVER_GetMessage,
+ *			   NULL),
+ *  GNUNET_MQ_handler_end ());
+ * </code>
  */
-#define GNUNET_SERVICE_MAIN(service_name,service_options,init_cb,connect_cb,disconnect_cb,cls,handlers) \
+#define GNUNET_SERVICE_MAIN(service_name,service_options,init_cb,connect_cb,disconnect_cb,cls,...) \
   int \
   main (int argc,\
         char *const *argv)\
   { \
+    struct GNUNET_MQ_MessageHandler mh[] = { \
+      __VA_ARGS__ \
+    };			      \
     return GNUNET_SERVICE_ruN_ (argc, \
                                 argv, \
                                 service_name, \
@@ -354,7 +374,7 @@ GNUNET_SERVICE_ruN_ (int argc,
                                 connect_cb, \
                                 disconnect_cb, \
                                 cls, \
-                                handlers); \
+                                mh); \
   }
 
 
@@ -385,6 +405,16 @@ GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
  */
 void
 GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c);
+
+
+/**
+ * Obtain the message queue of @a c.  Convenience function.
+ *
+ * @param c the client to continue receiving from
+ * @return the message queue of @a c
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_SERVICE_client_get_mq (struct GNUNET_SERVICE_Client *c);
 
 
 /**

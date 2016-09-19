@@ -359,6 +359,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL == ev->parent_queue);
 
+  mq->queue_length++;
   ev->parent_queue = mq;
   /* is the implementation busy? queue it! */
   if (NULL != mq->current_envelope)
@@ -366,11 +367,12 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
     GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head,
                                       mq->envelope_tail,
                                       ev);
-    mq->queue_length++;
     return;
   }
   mq->current_envelope = ev;
-  mq->send_impl (mq, ev->mh, mq->impl_state);
+  mq->send_impl (mq,
+		 ev->mh,
+		 mq->impl_state);
 }
 
 
@@ -422,6 +424,8 @@ impl_send_continue (void *cls)
   current_envelope = mq->current_envelope;
   GNUNET_assert (NULL != current_envelope);
   current_envelope->parent_queue = NULL;
+  GNUNET_assert (0 < mq->queue_length);
+  mq->queue_length--;
   if (NULL == mq->envelope_head)
   {
     mq->current_envelope = NULL;
@@ -432,7 +436,6 @@ impl_send_continue (void *cls)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                  mq->envelope_tail,
                                  mq->current_envelope);
-    mq->queue_length--;
     mq->send_impl (mq,
 		   mq->current_envelope->mh,
 		   mq->impl_state);
@@ -973,7 +976,6 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     mq->queue_length--;
     GNUNET_MQ_discard (ev);
   }
-  GNUNET_assert (0 == mq->queue_length);
   if (NULL != mq->current_envelope)
   {
     /* we can only discard envelopes that
@@ -981,7 +983,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     mq->current_envelope->parent_queue = NULL;
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
+    mq->queue_length--;
   }
+  GNUNET_assert (0 == mq->queue_length);
   if (NULL != mq->assoc_map)
   {
     GNUNET_CONTAINER_multihashmap32_destroy (mq->assoc_map);
@@ -1039,6 +1043,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   {
     // complex case, we already started with transmitting
     // the message
+    mq->queue_length--;
     mq->cancel_impl (mq,
 		     mq->impl_state);
     // continue sending the next message, if any

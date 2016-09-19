@@ -346,7 +346,7 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.  It will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out?
+ * @param delay when should this operation time out?
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task

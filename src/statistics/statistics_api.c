@@ -295,12 +295,18 @@ update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
   if (current_heap_size > h->peak_heap_size)
   {
     h->peak_heap_size = current_heap_size;
-    GNUNET_STATISTICS_set (h, "# peak heap size", current_heap_size, GNUNET_NO);
+    GNUNET_STATISTICS_set (h,
+			   "# peak heap size",
+			   current_heap_size,
+			   GNUNET_NO);
   }
   if (current_rss > h->peak_rss)
   {
     h->peak_rss = current_rss;
-    GNUNET_STATISTICS_set (h, "# peak resident set size", current_rss, GNUNET_NO);
+    GNUNET_STATISTICS_set (h,
+			   "# peak resident set size",
+			   current_rss,
+			   GNUNET_NO);
   }
 #endif
 }
@@ -739,7 +745,8 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
      */
     loss = GNUNET_NO;
     for (gh = h->action_head; NULL != gh; gh = gh->next)
-      if ( (gh->make_persistent) && (ACTION_SET == gh->type) )
+      if ( (gh->make_persistent) &&
+	   (ACTION_SET == gh->type) )
 	loss = GNUNET_YES;
     if (GNUNET_YES == loss)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -922,8 +929,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
   GNUNET_assert (GNUNET_NO == h->do_destroy); /* Don't call twice. */
   if ( (sync_first) &&
        (NULL != h->mq) &&
-       (0 != GNUNET_MQ_get_length (h->mq)) &&
-       (GNUNET_YES == try_connect (h)) )
+       (0 != GNUNET_MQ_get_length (h->mq)) )
   {
     if ( (NULL != h->current) &&
          (ACTION_GET == h->current->type) )
@@ -933,8 +939,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
     {
       next = pos->next;
       if ( (ACTION_GET == pos->type) ||
-           (ACTION_WATCH == pos->type) ||
-           (GNUNET_NO == pos->make_persistent) )
+           (ACTION_WATCH == pos->type) )
       {
 	GNUNET_CONTAINER_DLL_remove (h->action_head,
 				     h->action_tail,
@@ -1009,7 +1014,7 @@ schedule_action (void *cls)
     reconnect_later (h);
     return;
   }
-  if (0 < GNUNET_MQ_get_length (h->mq) )
+  if (0 < GNUNET_MQ_get_length (h->mq))
     return; /* Wait for queue to be reduced more */
   /* schedule next action */
   while (NULL == h->current)
@@ -1200,8 +1205,10 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
       continue;
     if ( (w->proc == proc) &&
 	 (w->proc_cls == proc_cls) &&
-	 (0 == strcmp (w->name, name)) &&
-	 (0 == strcmp (w->subsystem, subsystem)) )
+	 (0 == strcmp (w->name,
+		       name)) &&
+	 (0 == strcmp (w->subsystem,
+		       subsystem)) )
     {
       GNUNET_free (w->name);
       GNUNET_free (w->subsystem);
@@ -1291,8 +1298,10 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
 	ai->type = type;
       }
     }
-    ai->timeout = GNUNET_TIME_relative_to_absolute (SET_TRANSMIT_TIMEOUT);
-    ai->make_persistent = make_persistent;
+    ai->timeout
+      = GNUNET_TIME_relative_to_absolute (SET_TRANSMIT_TIMEOUT);
+    ai->make_persistent
+      = make_persistent;
     return;
   }
   /* no existing entry matches, create a fresh one */

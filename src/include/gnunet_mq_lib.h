@@ -171,7 +171,13 @@ enum GNUNET_MQ_Error
    * We received a message that was malformed and thus
    * could not be passed to its handler.
    */
-  GNUNET_MQ_ERROR_MALFORMED = 8
+  GNUNET_MQ_ERROR_MALFORMED = 8,
+
+  /**
+   * We received a message for which we have no matching
+   * handler.
+   */
+  GNUNET_MQ_ERROR_NO_MATCH = 16
 };
 
 
