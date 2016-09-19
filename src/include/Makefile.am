@@ -80,6 +80,7 @@ gnunetinclude_HEADERS = \
   gnunet_namestore_plugin.h \
   gnunet_namestore_service.h \
   gnunet_nat_lib.h \
+  gnunet_nc_lib.h \
   gnunet_network_lib.h \
   gnunet_nse_service.h \
   gnunet_op_lib.h \
