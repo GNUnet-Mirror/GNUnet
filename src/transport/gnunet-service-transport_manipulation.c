@@ -25,8 +25,6 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet-service-transport_blacklist.h"
-#include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
@@ -170,20 +168,14 @@ static struct GNUNET_SCHEDULER_Task *generic_send_delay_task;
 /**
  * Set traffic metric to manipulate
  *
- * @param cls closure
- * @param client client sending message
  * @param message containing information
  */
 void
-GST_manipulation_set_metric (void *cls,
-                             struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message)
+GST_manipulation_set_metric (const struct TrafficMetricMessage *tm)
 {
-  const struct TrafficMetricMessage *tm;
   static struct GNUNET_PeerIdentity zero;
   struct TM_Peer *tmp;
 
-  tm = (const struct TrafficMetricMessage *) message;
   if (0 == memcmp (&tm->peer,
                    &zero,
                    sizeof(struct GNUNET_PeerIdentity)))
@@ -192,13 +184,11 @@ GST_manipulation_set_metric (void *cls,
                 "Received traffic metrics for all peers\n");
     delay_in = GNUNET_TIME_relative_ntoh (tm->delay_in);
     delay_out = GNUNET_TIME_relative_ntoh (tm->delay_out);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_OK);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received traffic metrics for peer `%s'\n",
-              GNUNET_i2s(&tm->peer));
+              GNUNET_i2s (&tm->peer));
   if (NULL ==
       (tmp = GNUNET_CONTAINER_multipeermap_get (peers,
                                                 &tm->peer)))
@@ -214,8 +204,6 @@ GST_manipulation_set_metric (void *cls,
                               &tm->properties);
   tmp->delay_in = GNUNET_TIME_relative_ntoh (tm->delay_in);
   tmp->delay_out = GNUNET_TIME_relative_ntoh (tm->delay_out);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
 }
 
 
@@ -494,7 +482,9 @@ GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
   while (NULL != (dqe = next))
   {
     next = dqe->next;
-    if (0 == memcmp(peer, &dqe->id, sizeof(dqe->id)))
+    if (0 == memcmp (peer,
+		     &dqe->id,
+		     sizeof (dqe->id)))
     {
       GNUNET_CONTAINER_DLL_remove (generic_dqe_head,
                                    generic_dqe_tail,

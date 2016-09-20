@@ -59,6 +59,16 @@ do_free (void *cls)
 
 
 static void
+delayed_transmit (void *cls)
+{
+  struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
+  
+  start_delayed = GNUNET_TIME_absolute_get ();
+  GNUNET_TRANSPORT_TESTING_large_send (sc);
+}
+
+
+static void
 sendtask (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc;
@@ -76,14 +86,20 @@ sendtask (void *cls)
   }
   if (1 == messages_recv)
   {
-    memset (&prop, 0, sizeof (prop));
+    memset (&prop,
+	    0,
+	    sizeof (prop));
     delay = GNUNET_TIME_UNIT_SECONDS;
     GNUNET_TRANSPORT_manipulation_set (ccc->p[0]->tmh,
 				       &ccc->p[1]->id,
 				       &prop,
 				       GNUNET_TIME_UNIT_ZERO,
 				       delay);
-    start_delayed = GNUNET_TIME_absolute_get();
+    /* wait 1s to allow manipulation to go into effect */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				  &delayed_transmit,
+				  sc);
+    return;
   }
   GNUNET_TRANSPORT_TESTING_large_send (sc);
 }
@@ -120,7 +136,7 @@ notify_receive (void *cls,
   if (0 == messages_recv)
   {
     /* Received non-delayed message */
-    dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
+    dur_normal = GNUNET_TIME_absolute_get_duration (start_normal);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received non-delayed message %u after %s\n",
                 messages_recv,

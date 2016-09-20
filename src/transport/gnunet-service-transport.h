@@ -92,6 +92,83 @@ typedef void
 
 
 /**
+ * Continuation called from a blacklist test.
+ *
+ * @param cls closure
+ * @param peer identity of peer that was tested
+ * @param address address associated with the request
+ * @param session session associated with the request
+ * @param result #GNUNET_OK if the connection is allowed,
+ *               #GNUNET_NO if not,
+ *               #GNUNET_SYSERR if operation was aborted
+ */
+typedef void
+(*GST_BlacklistTestContinuation) (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+				  const struct GNUNET_HELLO_Address *address,
+				  struct GNUNET_ATS_Session *session,
+                                  int result);
+
+
+/**
+ * Add the given peer to the blacklist (for the given transport).
+ *
+ * @param peer peer to blacklist
+ * @param transport_name transport to blacklist for this peer, NULL for all
+ */
+void
+GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
+                        const char *transport_name);
+
+
+/**
+ * Handle to an active blacklist check.
+ */
+struct GST_BlacklistCheck;
+
+
+
+/**
+ * Test if a peer/transport combination is blacklisted.
+ *
+ * @param peer the identity of the peer to test
+ * @param transport_name name of the transport to test, never NULL
+ * @param cont function to call with result
+ * @param cont_cls closure for @a cont
+ * @param address address to pass back to @a cont, can be NULL
+ * @param session session to pass back to @a cont, can be NULL
+ * @return handle to the blacklist check, NULL if the decision
+ *        was made instantly and @a cont was already called
+ */
+struct GST_BlacklistCheck *
+GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
+                            const char *transport_name,
+                            GST_BlacklistTestContinuation cont, 
+			    void *cont_cls,
+			    const struct GNUNET_HELLO_Address *address,
+			    struct GNUNET_ATS_Session *session);
+
+
+/**
+ * Abort blacklist if @a address and @a session match.
+ *
+ * @param address address used to abort matching checks
+ * @param session session used to abort matching checks
+ */
+void
+GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
+			      struct GNUNET_ATS_Session *session);
+
+/**
+ * Cancel a blacklist check.
+ *
+ * @param bc check to cancel
+ */
+void
+GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
+
+
+/**
  * Function called by the transport for each received message.
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
@@ -109,6 +186,41 @@ GST_receive_callback (void *cls,
                       const struct GNUNET_HELLO_Address *address,
                       struct GNUNET_ATS_Session *session,
                       const struct GNUNET_MessageHeader *message);
+
+/**
+ * Broadcast the given message to all of our clients.
+ *
+ * @param msg message to broadcast
+ * @param may_drop #GNUNET_YES if the message can be dropped / is payload
+ */
+void
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
+                       int may_drop);
+
+
+/**
+ * Broadcast the new active address to all clients monitoring the peer.
+ *
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL on disconnect
+ * @param state the current state of the peer
+ * @param state_timeout the time out for the state
+ */
+void
+GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
+                                         const struct GNUNET_HELLO_Address *address,
+                                         enum GNUNET_TRANSPORT_PeerState state,
+                                         struct GNUNET_TIME_Absolute state_timeout);
+
+
+/**
+ * Notify all clients about a disconnect, and cancel
+ * pending SEND_OK messages for this peer.
+ *
+ * @param peer peer that disconnected
+ */
+void
+GST_clients_broadcast_disconnect (const struct GNUNET_PeerIdentity *peer);
 
 
 

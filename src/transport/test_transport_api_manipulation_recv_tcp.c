@@ -60,6 +60,16 @@ do_free (void *cls)
 
 
 static void
+delayed_transmit (void *cls)
+{
+  struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
+  
+  start_delayed = GNUNET_TIME_absolute_get ();
+  GNUNET_TRANSPORT_TESTING_large_send (sc);
+}
+
+
+static void
 sendtask (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc;
@@ -84,7 +94,11 @@ sendtask (void *cls)
 				       &prop,
 				       delay,
 				       GNUNET_TIME_UNIT_ZERO);
-    start_delayed = GNUNET_TIME_absolute_get();
+    /* wait 1s to allow manipulation to go into effect */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				  &delayed_transmit,
+				  sc);
+    return;
   }
   GNUNET_TRANSPORT_TESTING_large_send (sc);
 }

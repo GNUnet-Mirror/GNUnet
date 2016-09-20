@@ -28,8 +28,6 @@
 #define GNUNET_SERVICE_TRANSPORT_MANIPULATION_H
 
 #include "platform.h"
-#include "gnunet-service-transport_blacklist.h"
-#include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
@@ -41,14 +39,10 @@
 /**
  * Set traffic metric to manipulate
  *
- * @param cls closure
- * @param client client sending message
  * @param message containing information
  */
 void
-GST_manipulation_set_metric (void *cls,
-                             struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message);
+GST_manipulation_set_metric (const struct TrafficMetricMessage *tm);
 
 
 /**

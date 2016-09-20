@@ -25,8 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet-service-transport_ats.h"
-#include "gnunet-service-transport_blacklist.h"
-#include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
