@@ -504,18 +504,6 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply);
 
 
 /**
- * Sends an already built and encrypted message on a tunnel, choosing the best
- * connection. Useful for re-queueing messages queued on a destroyed connection.
- *
- * @param message Message to send. Function modifies it.
- * @param t Tunnel on which this message is transmitted.
- */
-void
-GCT_resend_message (const struct GNUNET_MessageHeader *message,
-                    struct CadetTunnel *t);
-
-
-/**
  * Is the tunnel directed towards the local peer?
  *
  * @param t Tunnel.

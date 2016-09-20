@@ -720,8 +720,6 @@ show_peer_iterator (void *cls,
   struct CadetPeer *p = value;
   struct CadetTunnel *t;
 
-  GCP_debug (p, GNUNET_ERROR_TYPE_ERROR);
-
   t = GCP_get_tunnel (p);
   if (NULL != t)
     GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);

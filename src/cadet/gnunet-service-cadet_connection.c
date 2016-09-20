@@ -268,7 +268,7 @@ struct CadetConnectionQueue
   /**
    * Peer queue handle, to cancel if necessary.
    */
-  struct CadetPeerQueue *q;
+  struct CadetPeerQueue *peer_q;
 
   /**
    * Continuation to call once sent.
@@ -312,7 +312,8 @@ static struct GNUNET_CONTAINER_MultiHashMap *connections;
 
 /**
  * How many connections are we willing to maintain.
- * Local connections are always allowed, even if there are more connections than max.
+ *  Local connections are always allowed,
+ * even if there are more connections than max.
  */
 static unsigned long long max_connections;
 
@@ -621,40 +622,94 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
 
 
 /**
+ * Update performance information if we are a connection's endpoint.
+ *
+ * @param c Connection to update.
+ * @param wait How much time did we wait to send the last message.
+ * @param size Size of the last message.
+ */
+static void
+update_perf (struct CadetConnection *c,
+             struct GNUNET_TIME_Relative wait,
+             uint16_t size)
+{
+  struct CadetConnectionPerformance *p;
+  double usecsperbyte;
+
+  if (NULL == c->perf)
+    return; /* Only endpoints are interested in timing. */
+
+  p = c->perf;
+  usecsperbyte = ((double) wait.rel_value_us) / size;
+  if (p->size == AVG_MSGS)
+  {
+    /* Array is full. Substract oldest value, add new one and store. */
+    p->avg -= (p->usecsperbyte[p->idx] / AVG_MSGS);
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg += (p->usecsperbyte[p->idx] / AVG_MSGS);
+  }
+  else
+  {
+    /* Array not yet full. Add current value to avg and store. */
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg *= p->size;
+    p->avg += p->usecsperbyte[p->idx];
+    p->size++;
+    p->avg /= p->size;
+  }
+  p->idx = (p->idx + 1) % AVG_MSGS;
+}
+
+
+/**
  * Callback called when a connection queued message is sent.
  *
  * Calculates the average time and connection packet tracking.
  *
- * @param cls Closure (ConnectionQueue Handle).
+ * @param cls Closure (ConnectionQueue Handle), can be NULL.
  * @param c Connection this message was on.
+ * @param fwd Was this a FWD going message?
  * @param sent Was it really sent? (Could have been canceled)
  * @param type Type of message sent.
- * @param pid Packet ID, or 0 if not applicable (create, destroy, etc).
- * @param fwd Was this a FWD going message?
+ * @param payload_type Type of payload, if applicable.
+ * @param pid Message ID, or 0 if not applicable (create, destroy, etc).
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
- * @return #GNUNET_YES if connection was destroyed, #GNUNET_NO otherwise.
  */
-static int
+static void
 conn_message_sent (void *cls,
-                   struct CadetConnection *c, int sent,
-                   uint16_t type, uint32_t pid, int fwd, size_t size,
+                   struct CadetConnection *c, int fwd, int sent,
+                   uint16_t type, uint16_t payload_type, uint32_t pid,
+                   size_t size,
                    struct GNUNET_TIME_Relative wait)
 {
-  struct CadetConnectionPerformance *p;
-  struct CadetFlowControl *fc;
   struct CadetConnectionQueue *q = cls;
-  double usecsperbyte;
+  struct CadetFlowControl *fc;
   int forced;
 
   GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
 
+  /* If c is NULL, nothing to update. */
+  if (NULL == c)
+  {
+    if (type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+        && type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Message %s sent on NULL connection!\n",
+           GC_m2s (type));
+    }
+    GCC_check_connections ();
+    return;
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
   GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
 
+  /* Update flow control info. */
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s pid %u\n",
-       sent ? "" : "not ", GC_f2s (fwd), GC_m2s (type), pid);
+       sent ? "" : "not ", GC_f2s (fwd),
+       GC_m2s (type), GC_m2s (payload_type), pid);
   if (NULL != q)
   {
     forced = q->forced;
@@ -674,17 +729,7 @@ conn_message_sent (void *cls,
   {
     forced = GNUNET_NO;
   }
-  if (NULL == c)
-  {
-    if (type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
-        && type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Message %s sent on NULL connection!\n",
-           GC_m2s (type));
-    }
-    GCC_check_connections ();
-    return GNUNET_NO;
-  }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
   if ( (GNUNET_YES == c->destroy) &&
@@ -694,8 +739,9 @@ conn_message_sent (void *cls,
          "!  destroying connection!\n");
     GCC_destroy (c);
     GCC_check_connections ();
-    return GNUNET_YES;
+    return;
   }
+
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
   {
@@ -758,30 +804,8 @@ conn_message_sent (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  message sent!\n");
 
-  if (NULL == c->perf)
-    return GNUNET_NO; /* Only endpoints are interested in timing. */
-
-  p = c->perf;
-  usecsperbyte = ((double) wait.rel_value_us) / size;
-  if (p->size == AVG_MSGS)
-  {
-    /* Array is full. Substract oldest value, add new one and store. */
-    p->avg -= (p->usecsperbyte[p->idx] / AVG_MSGS);
-    p->usecsperbyte[p->idx] = usecsperbyte;
-    p->avg += (p->usecsperbyte[p->idx] / AVG_MSGS);
-  }
-  else
-  {
-    /* Array not yet full. Add current value to avg and store. */
-    p->usecsperbyte[p->idx] = usecsperbyte;
-    p->avg *= p->size;
-    p->avg += p->usecsperbyte[p->idx];
-    p->size++;
-    p->avg /= p->size;
-  }
-  p->idx = (p->idx + 1) % AVG_MSGS;
+  update_perf (c, wait, size);
   GCC_check_connections ();
-  return GNUNET_NO;
 }
 
 
@@ -950,27 +974,26 @@ is_ooo_ok (uint32_t last_pid_recv, uint32_t ooo_pid, uint32_t ooo_bitmap)
  * Is traffic coming from this sender 'FWD' traffic?
  *
  * @param c Connection to check.
- * @param sender Peer identity of neighbor.
+ * @param sender Short peer identity of neighbor.
  *
  * @return #GNUNET_YES in case the sender is the 'prev' hop and therefore
  *         the traffic is 'FWD'.
  *         #GNUNET_NO for BCK.
- *         #GNUNET_SYSERR for errors.
+ *         #GNUNET_SYSERR for errors (sender isn't a hop in the connection).
  */
 static int
 is_fwd (const struct CadetConnection *c,
-        const struct GNUNET_PeerIdentity *sender)
+        const struct CadetPeer *sender)
 {
   GNUNET_PEER_Id id;
 
-  id = GNUNET_PEER_search (sender);
+  id = GCP_get_short_id (sender);
   if (GCP_get_short_id (get_prev_hop (c)) == id)
     return GNUNET_YES;
 
   if (GCP_get_short_id (get_next_hop (c)) == id)
     return GNUNET_NO;
 
-  GNUNET_break (0);
   return GNUNET_SYSERR;
 }
 
@@ -979,29 +1002,40 @@ is_fwd (const struct CadetConnection *c,
  * Sends a CONNECTION ACK message in reponse to a received CONNECTION_CREATE
  * or a first CONNECTION_ACK directed to us.
  *
- * @param connection Connection to confirm.
+ * @param c Connection to confirm.
  * @param fwd Should we send it FWD? (root->dest)
  *            (First (~SYNACK) goes BCK, second (~ACK) goes FWD)
  */
 static void
-send_connection_ack (struct CadetConnection *connection, int fwd)
+send_connection_ack (struct CadetConnection *c, int fwd)
 {
+  struct GNUNET_CADET_ConnectionACK msg;
   struct CadetTunnel *t;
   size_t size = sizeof (struct GNUNET_CADET_ConnectionACK);
 
   GCC_check_connections ();
-  t = connection->t;
+  t = c->t;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "==> { C %s ACK} %19s on conn %s (%p) %s [%5u]\n",
-       GC_f2s (!fwd), "", GCC_2s (connection), connection, GC_f2s (fwd), size);
-  GCP_queue_add (get_hop (connection, fwd), NULL,
-                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, UINT16_MAX, 0,
-                 size, connection, fwd, &conn_message_sent, NULL);
-  connection->pending_messages++;
+       GC_f2s (!fwd), "", GCC_2s (c), c, GC_f2s (fwd), size);
+
+  msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
+  msg.cid = c->id;
+
+  GNUNET_assert (NULL == c->maintenance_q);
+  c->maintenance_q = GCP_send (get_hop (c, fwd), &msg.header,
+                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0,
+                               c, fwd,
+                               &conn_message_sent, NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (conn`ACK)\n",
+       c, c->pending_messages);
+  c->pending_messages++;
+
   if (CADET_TUNNEL_NEW == GCT_get_cstate (t))
     GCT_change_cstate (t, CADET_TUNNEL_WAITING);
-  if (CADET_CONNECTION_READY != connection->state)
-    connection_change_state (connection, CADET_CONNECTION_SENT);
+  if (CADET_CONNECTION_READY != c->state)
+    connection_change_state (c, CADET_CONNECTION_SENT);
   GCC_check_connections ();
 }
 
@@ -1042,17 +1076,15 @@ send_broken (struct CadetConnection *c,
  * @param connection_id Connection ID.
  * @param id1 Peer that has disconnected, probably local peer.
  * @param id2 Peer that has disconnected can be NULL if unknown.
- * @param peer Peer to notify (neighbor who sent the connection).
+ * @param neighbor Peer to notify (neighbor who sent the connection).
  */
 static void
 send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
                      const struct GNUNET_PeerIdentity *id1,
                      const struct GNUNET_PeerIdentity *id2,
-                     const struct GNUNET_PeerIdentity *peer_id)
+                     struct CadetPeer *neighbor)
 {
   struct GNUNET_CADET_ConnectionBroken *msg;
-  struct CadetPeerQueue *q;
-  struct CadetPeer *neighbor;
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_INFO, "--> BROKEN on unknown connection %s\n",
@@ -1067,14 +1099,10 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
     msg->peer2 = *id2;
   else
     memset (&msg->peer2, 0, sizeof (msg->peer2));
-  neighbor = GCP_get (peer_id, GNUNET_NO); /* We MUST know neighbor. */
-  GNUNET_assert (NULL != neighbor);
-  q = GCP_queue_add (neighbor, msg, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-                     UINT16_MAX, 2,
-                     sizeof (struct GNUNET_CADET_ConnectionBroken),
-                     NULL, GNUNET_SYSERR, /* connection, fwd */
-                     NULL, NULL); /* continuation */
-  GNUNET_assert (NULL != q);
+  GNUNET_assert (NULL != GCP_send (neighbor, &msg->header,
+                                   UINT16_MAX, 2,
+                                   NULL, GNUNET_SYSERR, /* connection, fwd */
+                                   NULL, NULL)); /* continuation */
   GCC_check_connections ();
 }
 
@@ -1311,38 +1339,6 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
 
 
 /**
- * @brief Re-initiate traffic on this connection if necessary.
- *
- * Check if there is traffic queued towards this peer
- * and the core transmit handle is NULL (traffic was stalled).
- * If so, call core tmt rdy.
- *
- * @param c Connection on which initiate traffic.
- * @param fwd Is this about fwd traffic?
- */
-static void
-connection_unlock_queue (struct CadetConnection *c, int fwd)
-{
-  struct CadetPeer *peer;
-
-  GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "connection_unlock_queue %s on %s\n",
-       GC_f2s (fwd), GCC_2s (c));
-
-  if (GCC_is_terminal (c, fwd))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " is terminal, can unlock!\n");
-    return;
-  }
-
-  peer = get_hop (c, fwd);
-  GCP_queue_unlock (peer, c);
-  GCC_check_connections ();
-}
-
-
-/**
  * Cancel all transmissions that belong to a certain connection.
  *
  * If the connection is scheduled for destruction and no more messages are left,
@@ -1356,7 +1352,6 @@ connection_cancel_queues (struct CadetConnection *c,
                           int fwd)
 {
   struct CadetFlowControl *fc;
-  struct CadetPeer *peer;
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1380,8 +1375,6 @@ connection_cancel_queues (struct CadetConnection *c,
     GCC_cancel (fc->poll_msg);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cancelled POLL msg for fc %p\n", fc);
   }
-  peer = get_hop (c, fwd);
-  GCP_queue_cancel (peer, c);
   GCC_check_connections ();
 }
 
@@ -1471,53 +1464,6 @@ connection_poll (void *cls)
 
 
 /**
- * Resend all queued messages for a connection on other connections of the
- * same tunnel, if possible. The connection WILL BE DESTROYED by this function.
- *
- * @param c Connection whose messages to resend.
- * @param fwd Resend fwd messages?
- */
-static void
-resend_messages_and_destroy (struct CadetConnection *c, int fwd)
-{
-  struct GNUNET_MessageHeader *out_msg;
-  struct CadetTunnel *t = c->t;
-  struct CadetPeer *neighbor;
-  unsigned int pending;
-  int destroyed;
-
-  GCC_check_connections ();
-  mark_destroyed (c);
-
-  destroyed = GNUNET_NO;
-  neighbor = get_hop (c, fwd);
-  pending = c->pending_messages;
-
-  while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
-  {
-    if (NULL != t)
-      GCT_resend_message (out_msg, t);
-    GNUNET_free (out_msg);
-  }
-
-  /* All pending messages should have been popped,
-   * and the connection destroyed by the continuation.
-   */
-  if (GNUNET_YES != destroyed)
-  {
-    if (0 != pending)
-    {
-      GNUNET_break (0);
-      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-      if (NULL != t) GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-    }
-    GCC_destroy (c);
-  }
-  GCC_check_connections ();
-}
-
-
-/**
  * Generic connection timeout implementation.
  *
  * Timeout function due to lack of keepalive/traffic from an endpoint.
@@ -1529,10 +1475,7 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
 static void
 connection_timeout (struct CadetConnection *c, int fwd)
 {
-  struct CadetFlowControl *reverse_fc;
-
   GCC_check_connections ();
-  reverse_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Connection %s %s timed out. Destroying.\n",
@@ -1546,17 +1489,13 @@ connection_timeout (struct CadetConnection *c, int fwd)
     return;
   }
 
-  /* If dest, salvage queued traffic. */
+  /* If dest, send "broken" notification. */
   if (GCC_is_terminal (c, fwd))
   {
-    const struct GNUNET_PeerIdentity *next_hop;
+    struct CadetPeer *next_hop;
 
-    next_hop = GCP_get_id (fwd ? get_prev_hop (c) : get_next_hop (c));
+    next_hop = fwd ? get_prev_hop (c) : get_next_hop (c);
     send_broken_unknown (&c->id, &my_full_id, NULL, next_hop);
-    if (0 < reverse_fc->queue_n)
-      resend_messages_and_destroy (c, !fwd);
-    GCC_check_connections ();
-    return;
   }
 
   GCC_destroy (c);
@@ -1907,13 +1846,13 @@ add_to_peer (struct CadetConnection *c,
  * Log receipt of message on stderr (INFO level).
  *
  * @param message Message received.
- * @param peer Peer who sent the message.
- * @param hash Connection ID.
+ * @param peer    Peer who sent the message.
+ * @param conn_id Connection ID of the message.
  */
 static void
 log_message (const struct GNUNET_MessageHeader *message,
-             const struct GNUNET_PeerIdentity *peer,
-             const struct GNUNET_CADET_Hash *hash)
+             const struct CadetPeer *peer,
+             const struct GNUNET_CADET_Hash *conn_id)
 {
   uint16_t size;
   uint16_t type;
@@ -1933,8 +1872,8 @@ log_message (const struct GNUNET_MessageHeader *message,
       arrow = "--";
   }
   LOG (GNUNET_ERROR_TYPE_INFO, "<%s %s on conn %s from %s, %6u bytes\n",
-       arrow, GC_m2s (type), GNUNET_h2s (GC_h2hc (hash)),
-       GNUNET_i2s (peer), (unsigned int) size);
+       arrow, GC_m2s (type), GNUNET_h2s (GC_h2hc (conn_id)),
+       GCP_2s(peer), (unsigned int) size);
 }
 
 /******************************************************************************/
@@ -1942,22 +1881,17 @@ log_message (const struct GNUNET_MessageHeader *message,
 /******************************************************************************/
 
 /**
- * Core handler for connection creation.
+ * Handler for connection creation.
  *
- * @param cls Closure (unused).
- * @param peer Sender (neighbor).
- * @param message Message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_create (void *cls,
-                   const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_MessageHeader *message)
+void
+GCC_handle_create (struct CadetPeer *peer,
+                   const struct GNUNET_CADET_ConnectionCreate *msg)
 {
-  struct GNUNET_CADET_ConnectionCreate *msg;
+  const struct GNUNET_CADET_Hash *cid;
   struct GNUNET_PeerIdentity *id;
-  struct GNUNET_CADET_Hash *cid;
   struct CadetPeerPath *path;
   struct CadetPeer *dest_peer;
   struct CadetPeer *orig_peer;
@@ -1966,38 +1900,26 @@ GCC_handle_create (void *cls,
   uint16_t size;
 
   GCC_check_connections ();
-  /* Check size */
-  size = ntohs (message->size);
-  if (size < sizeof (struct GNUNET_CADET_ConnectionCreate))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
+  size = ntohs (msg->header.size);
 
   /* Calculate hops */
   size -= sizeof (struct GNUNET_CADET_ConnectionCreate);
-  if (size % sizeof (struct GNUNET_PeerIdentity))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
   if (0 != size % sizeof (struct GNUNET_PeerIdentity))
   {
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return;
   }
   size /= sizeof (struct GNUNET_PeerIdentity);
   if (1 > size)
   {
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
 
   /* Get parameters */
-  msg = (struct GNUNET_CADET_ConnectionCreate *) message;
   cid = &msg->cid;
-  log_message (message, peer, cid);
+  log_message (&msg->header, peer, cid);
   id = (struct GNUNET_PeerIdentity *) &msg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    origin: %s\n", GNUNET_i2s (id));
 
@@ -2012,16 +1934,15 @@ GCC_handle_create (void *cls,
       /* Path was malformed, probably our own ID was not in it. */
       GNUNET_STATISTICS_update (stats, "# malformed paths", 1, GNUNET_NO);
       GNUNET_break_op (0);
-      return GNUNET_OK;
+      return;
     }
-
     if (0 == own_pos)
     {
       /* We received this request from a neighbor, we cannot be origin */
       GNUNET_STATISTICS_update (stats, "# fake paths", 1, GNUNET_NO);
       GNUNET_break_op (0);
       path_destroy (path);
-      return GNUNET_OK;
+      return;
     }
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
@@ -2035,14 +1956,14 @@ GCC_handle_create (void *cls,
         GNUNET_break (0);
         path_destroy (path);
         GCC_check_connections ();
-        return GNUNET_OK;
+        return;
       }
       send_broken_unknown (cid, &my_full_id,
                            GNUNET_PEER_resolve2 (path->peers[own_pos + 1]),
                            peer);
       path_destroy (path);
       GCC_check_connections ();
-      return GNUNET_OK;
+      return;
     }
     GCP_add_path_to_all (path, GNUNET_NO);
     connection_reset_timeout (c, GNUNET_YES);
@@ -2092,40 +2013,32 @@ GCC_handle_create (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     GCP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     GCP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_NO);
-    GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c,
-                                                      GNUNET_YES, GNUNET_YES,
-                                                      NULL, NULL));
+    GNUNET_assert (NULL ==
+                   GCC_send_prebuilt_message (&msg->header, 0, 0, c,
+                                              GNUNET_YES, GNUNET_YES,
+                                              NULL, NULL));
   }
   path_destroy (path);
   GCC_check_connections ();
-  return GNUNET_OK;
 }
 
 
 /**
- * Core handler for path confirmations.
+ * Handler for connection confirmations.
  *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_confirm (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message)
+void
+GCC_handle_confirm (struct CadetPeer *peer,
+                    const struct GNUNET_CADET_ConnectionACK *msg)
 {
-  struct GNUNET_CADET_ConnectionACK *msg;
   struct CadetConnection *c;
-  struct CadetPeerPath *p;
-  struct CadetPeer *pi;
   enum CadetConnectionState oldstate;
   int fwd;
 
   GCC_check_connections ();
-  msg = (struct GNUNET_CADET_ConnectionACK *) message;
-  log_message (message, peer, &msg->cid);
+  log_message (&msg->header, peer, &msg->cid);
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
@@ -2135,30 +2048,30 @@ GCC_handle_confirm (void *cls,
          "  don't know the connection!\n");
     send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
-
   if (GNUNET_NO != c->destroy)
   {
     GNUNET_assert (CADET_CONNECTION_DESTROYED == c->state);
+    GNUNET_STATISTICS_update (stats, "# control on dying connection",
+                              1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connection %s being destroyed, ignoring confirm\n",
          GCC_2s (c));
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   oldstate = c->state;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n", GNUNET_i2s (peer));
-  pi = GCP_get (peer, GNUNET_YES);
-  if (get_next_hop (c) == pi)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n", GCP_2s (peer));
+  if (get_next_hop (c) == peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
     fwd = GNUNET_NO;
     if (CADET_CONNECTION_SENT == oldstate)
       connection_change_state (c, CADET_CONNECTION_ACK);
   }
-  else if (get_prev_hop (c) == pi)
+  else if (get_prev_hop (c) == peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  FINAL ACK\n");
     fwd = GNUNET_YES;
@@ -2166,17 +2079,18 @@ GCC_handle_confirm (void *cls,
   }
   else
   {
+    GNUNET_STATISTICS_update (stats, "# control on connection from wrong peer",
+                              1, GNUNET_NO);
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return;
   }
 
   connection_reset_timeout (c, fwd);
 
   /* Add path to peers? */
-  p = c->path;
-  if (NULL != p)
+  if (NULL != c->path)
   {
-    GCP_add_path_to_all (p, GNUNET_YES);
+    GCP_add_path_to_all (c->path, GNUNET_YES);
   }
   else
   {
@@ -2184,12 +2098,12 @@ GCC_handle_confirm (void *cls,
   }
 
   /* Message for us as creator? */
-  if (GCC_is_origin (c, GNUNET_YES))
+  if (GNUNET_YES == GCC_is_origin (c, GNUNET_YES))
   {
     if (GNUNET_NO != fwd)
     {
-      GNUNET_break_op (0);
-      return GNUNET_OK;
+      GNUNET_break (0);
+      return;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
 
@@ -2197,7 +2111,7 @@ GCC_handle_confirm (void *cls,
     if (CADET_CONNECTION_SENT == oldstate)
       connection_reset_timeout (c, GNUNET_YES);
 
-    /* Change connection state */
+    /* Change connection state, send ACK */
     connection_change_state (c, CADET_CONNECTION_READY);
     send_connection_ack (c, GNUNET_YES);
 
@@ -2205,7 +2119,7 @@ GCC_handle_confirm (void *cls,
     if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
       GCT_change_cstate (c->t, CADET_TUNNEL_READY);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   /* Message for us as destination? */
@@ -2213,8 +2127,8 @@ GCC_handle_confirm (void *cls,
   {
     if (GNUNET_YES != fwd)
     {
-      GNUNET_break_op (0);
-      return GNUNET_OK;
+      GNUNET_break (0);
+      return;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
 
@@ -2226,41 +2140,34 @@ GCC_handle_confirm (void *cls,
     if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
       GCT_change_cstate (c->t, CADET_TUNNEL_READY);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   GNUNET_assert (NULL ==
-                 GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                 GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
                                             GNUNET_YES, NULL, NULL));
   GCC_check_connections ();
-  return GNUNET_OK;
+  return;
 }
 
 
 /**
- * Core handler for notifications of broken connections.
+ * Handler for notifications of broken connections.
  *
- * @param cls Closure (unused).
- * @param id Peer identity of sending neighbor.
- * @param message Message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_broken (void* cls,
-                   const struct GNUNET_PeerIdentity* id,
-                   const struct GNUNET_MessageHeader* message)
+void
+GCC_handle_broken (struct CadetPeer *peer,
+                   const struct GNUNET_CADET_ConnectionBroken *msg)
 {
-  struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetConnection *c;
   struct CadetTunnel *t;
-  int pending;
   int fwd;
 
   GCC_check_connections ();
-  msg = (struct GNUNET_CADET_ConnectionBroken *) message;
-  log_message (message, id, &msg->cid);
+  log_message (&msg->header, peer, &msg->cid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
@@ -2269,13 +2176,21 @@ GCC_handle_broken (void* cls,
   if (NULL == c)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate CONNECTION_BROKEN\n");
+    GNUNET_STATISTICS_update (stats, "# duplicate CONNECTION_BROKEN",
+                              1, GNUNET_NO);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   t = c->t;
 
-  fwd = is_fwd (c, id);
+  fwd = is_fwd (c, peer);
+  if (GNUNET_SYSERR == fwd)
+  {
+    GNUNET_break_op (0);
+    GCC_check_connections ();
+    return;
+  }
   mark_destroyed (c);
   if (GCC_is_terminal (c, fwd))
   {
@@ -2286,7 +2201,7 @@ GCC_handle_broken (void* cls,
       /* A terminal connection should not have 't' set to NULL. */
       GNUNET_break (0);
       GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-      return GNUNET_OK;
+      return;
     }
     endpoint = GCP_get_short (c->path->peers[c->path->length - 1], GNUNET_YES);
     if (2 < c->path->length)
@@ -2297,44 +2212,35 @@ GCC_handle_broken (void* cls,
     GCT_remove_connection (t, c);
     c->t = NULL;
 
-    pending = c->pending_messages;
-    if (0 < pending)
-      resend_messages_and_destroy (c, !fwd);
-    else
-      GCC_destroy (c);
+    GCC_destroy (c);
   }
   else
   {
-    GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
-                                                      GNUNET_YES, NULL, NULL));
+    GNUNET_assert (NULL ==
+                   GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
+                                              GNUNET_YES, NULL, NULL));
     connection_cancel_queues (c, !fwd);
   }
   GCC_check_connections ();
-  return GNUNET_OK;
+  return;
 }
 
 
 /**
- * Core handler for tunnel destruction
+ * Handler for notifications of destroyed connections.
  *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_destroy (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message)
+void
+GCC_handle_destroy (struct CadetPeer *peer,
+                    const struct GNUNET_CADET_ConnectionDestroy *msg)
 {
-  const struct GNUNET_CADET_ConnectionDestroy *msg;
   struct CadetConnection *c;
   int fwd;
 
   GCC_check_connections ();
-  msg = (const struct GNUNET_CADET_ConnectionDestroy *) message;
-  log_message (message, peer, &msg->cid);
+  log_message (&msg->header, peer, &msg->cid);
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
@@ -2346,20 +2252,23 @@ GCC_handle_destroy (void *cls,
                               "# control on unknown connection",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  connection unknown: already destroyed?\n");
+         "  connection unknown destroyed: previously destroyed?\n");
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
+
   fwd = is_fwd (c, peer);
   if (GNUNET_SYSERR == fwd)
   {
-    GNUNET_break_op (0); /* FIXME */
-    return GNUNET_OK;
+    GNUNET_break_op (0);
+    GCC_check_connections ();
+    return;
   }
+
   if (GNUNET_NO == GCC_is_terminal (c, fwd))
   {
     GNUNET_assert (NULL ==
-                   GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                   GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
                                               GNUNET_YES, NULL, NULL));
   }
   else if (0 == c->pending_messages)
@@ -2367,7 +2276,7 @@ GCC_handle_destroy (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  directly destroying connection!\n");
     GCC_destroy (c);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
   mark_destroyed (c);
   if (NULL != c->t)
@@ -2376,7 +2285,139 @@ GCC_handle_destroy (void *cls,
     c->t = NULL;
   }
   GCC_check_connections ();
-  return GNUNET_OK;
+  return;
+}
+
+
+/**
+ * Handler for cadet network traffic hop-by-hop acks.
+ *
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
+ */
+void
+GCC_handle_ack (struct CadetPeer *peer,
+                const struct GNUNET_CADET_ACK *msg)
+{
+  struct CadetConnection *c;
+  struct CadetFlowControl *fc;
+  uint32_t ack;
+  int fwd;
+
+  GCC_check_connections ();
+  log_message (&msg->header, peer, &msg->cid);
+  c = connection_get (&msg->cid);
+  if (NULL == c)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# ack on unknown connection",
+                              1,
+                              GNUNET_NO);
+    send_broken_unknown (&msg->cid,
+                         &my_full_id,
+                         NULL,
+                         peer);
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Is this a forward or backward ACK? */
+  if (get_next_hop (c) == peer)
+  {
+    fc = &c->fwd_fc;
+    fwd = GNUNET_YES;
+  }
+  else if (get_prev_hop (c) == peer)
+  {
+    fc = &c->bck_fc;
+    fwd = GNUNET_NO;
+  }
+  else
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  ack = ntohl (msg->ack);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " %s ACK %u (was %u)\n",
+       GC_f2s (fwd), ack, fc->last_ack_recv);
+  if (GC_is_pid_bigger (ack, fc->last_ack_recv))
+    fc->last_ack_recv = ack;
+
+  /* Cancel polling if the ACK is big enough. */
+  if (NULL != fc->poll_task &&
+      GC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
+    GNUNET_SCHEDULER_cancel (fc->poll_task);
+    fc->poll_task = NULL;
+    fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
+  }
+
+  GCC_check_connections ();
+}
+
+
+/**
+ * Handler for cadet network traffic hop-by-hop data counter polls.
+ *
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
+ */
+void
+GCC_handle_poll (struct CadetPeer *peer,
+                 const struct GNUNET_CADET_Poll *msg)
+{
+  struct CadetConnection *c;
+  struct CadetFlowControl *fc;
+  uint32_t pid;
+  int fwd;
+
+  GCC_check_connections ();
+  log_message (&msg->header, peer, &msg->cid);
+  c = connection_get (&msg->cid);
+  if (NULL == c)
+  {
+    GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
+                              GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "POLL message on unknown connection %s!\n",
+         GNUNET_h2s (GC_h2hc (&msg->cid)));
+    send_broken_unknown (&msg->cid,
+                         &my_full_id,
+                         NULL,
+                         peer);
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Is this a forward or backward ACK?
+   * Note: a poll should never be needed in a loopback case,
+   * since there is no possiblility of packet loss there, so
+   * this way of discerining FWD/BCK should not be a problem.
+   */
+  if (get_next_hop (c) == peer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
+    fc = &c->fwd_fc;
+  }
+  else if (get_prev_hop (c) == peer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
+    fc = &c->bck_fc;
+  }
+  else
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  pid = ntohl (msg->pid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n", pid, fc->last_pid_recv);
+  fc->last_pid_recv = pid;
+  fwd = fc == &c->bck_fc;
+  GCC_send_ack (c, fwd, GNUNET_YES);
+  GCC_check_connections ();
 }
 
 
@@ -2386,33 +2427,25 @@ GCC_handle_destroy (void *cls,
  * Updates the PID, state and timeout values for the connection.
  *
  * @param message Message to check. It must belong to an existing connection.
- * @param minimum_size The message cannot be smaller than this value.
  * @param cid Connection ID (even if @a c is NULL, the ID is still needed).
  * @param c Connection this message should belong. If NULL, check fails.
- * @param neighbor Neighbor that sent the message.
+ * @param sender Neighbor that sent the message.
+ *
+ * @return #GNUNET_YES if the message goes FWD.
+ *         #GNUNET_NO if it goes BCK.
+ *         #GNUNET_SYSERR if there is an error (unauthorized sender, ...).
  */
 static int
 check_message (const struct GNUNET_MessageHeader *message,
-               size_t minimum_size,
                const struct GNUNET_CADET_Hash* cid,
                struct CadetConnection *c,
-               const struct GNUNET_PeerIdentity *neighbor,
+               struct CadetPeer *sender,
                uint32_t pid)
 {
-  GNUNET_PEER_Id neighbor_id;
   struct CadetFlowControl *fc;
   struct CadetPeer *hop;
   int fwd;
   uint16_t type;
-
-  /* Check size */
-  if (ntohs (message->size) < minimum_size)
-  {
-    GNUNET_break_op (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Size %u < %u\n",
-         ntohs (message->size), minimum_size);
-    return GNUNET_SYSERR;
-  }
 
   /* Check connection */
   if (NULL == c)
@@ -2427,14 +2460,13 @@ check_message (const struct GNUNET_MessageHeader *message,
     send_broken_unknown (cid,
                          &my_full_id,
                          NULL,
-                         neighbor);
+                         sender);
     return GNUNET_SYSERR;
   }
 
   /* Check if origin is as expected */
-  neighbor_id = GNUNET_PEER_search (neighbor);
   hop = get_prev_hop (c);
-  if (neighbor_id == GCP_get_short_id (hop))
+  if (sender == hop)
   {
     fwd = GNUNET_YES;
   }
@@ -2442,7 +2474,7 @@ check_message (const struct GNUNET_MessageHeader *message,
   {
     hop = get_next_hop (c);
     GNUNET_break (hop == c->next_peer);
-    if (neighbor_id == GCP_get_short_id (hop))
+    if (sender == hop)
     {
       fwd = GNUNET_NO;
     }
@@ -2508,37 +2540,84 @@ check_message (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Generic handler for cadet network encrypted traffic.
+ * Handler for key exchange traffic (Axolotl KX).
  *
- * @param peer Peer identity this notification is about.
- * @param msg Encrypted message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-static int
-handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_MessageHeader *message)
+void
+GCC_handle_kx (struct CadetPeer *peer,
+               const struct GNUNET_CADET_KX *msg)
 {
-  const struct GNUNET_CADET_AX *ax_msg;
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
-  size_t minimum_size;
-  size_t overhead;
+  int fwd;
+
+  GCC_check_connections ();
+  cid = &msg->cid;
+  log_message (&msg->header, peer, cid);
+
+  c = connection_get (cid);
+  fwd = check_message (&msg->header,
+                       cid,
+                       c,
+                       peer,
+                       0);
+
+  /* If something went wrong, discard message. */
+  if (GNUNET_SYSERR == fwd)
+  {
+    GNUNET_break_op (0);
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Is this message for us? */
+  if (GCC_is_terminal (c, fwd))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
+    GNUNET_STATISTICS_update (stats, "# received KX", 1, GNUNET_NO);
+    if (NULL == c->t)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    GCT_handle_kx (c->t, &msg[1].header);
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Message not for us: forward to next hop */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
+  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
+                                                    GNUNET_NO, NULL, NULL));
+  GCC_check_connections ();
+}
+
+
+/**
+ * Handler for encrypted cadet network traffic (channel mgmt, data).
+ *
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
+ */
+void
+GCC_handle_encrypted (struct CadetPeer *peer,
+                      const struct GNUNET_CADET_AX *msg)
+{
+  const struct GNUNET_CADET_Hash* cid;
+  struct CadetConnection *c;
   uint32_t pid;
   int fwd;
 
   GCC_check_connections ();
-  GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type));
-  overhead = sizeof (struct GNUNET_CADET_AX);
-  ax_msg = (const struct GNUNET_CADET_AX *) message;
-  cid = &ax_msg->cid;
-  pid = ntohl (ax_msg->pid);
-  log_message (message, peer, cid);
+  cid = &msg->cid;
+  pid = ntohl (msg->pid);
+  log_message (&msg->header, peer, cid);
 
-  minimum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
   c = connection_get (cid);
-  fwd = check_message (message,
-                       minimum_size,
+  fwd = check_message (&msg->header,
                        cid,
                        c,
                        peer,
@@ -2547,8 +2626,9 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* If something went wrong, discard message. */
   if (GNUNET_SYSERR == fwd)
   {
+    GNUNET_break_op (0);
     GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   /* Is this message for us? */
@@ -2559,72 +2639,12 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
     if (NULL == c->t)
     {
       GNUNET_break (GNUNET_NO != c->destroy);
-      return GNUNET_OK;
+      return;
     }
-    GCT_handle_encrypted (c->t, message);
+    GCT_handle_encrypted (c->t, &msg->header);
     GCC_send_ack (c, fwd, GNUNET_NO);
     GCC_check_connections ();
-    return GNUNET_OK;
-  }
-
-  /* Message not for us: forward to next hop */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
-                                                    GNUNET_NO, NULL, NULL));
-  GCC_check_connections ();
-  return GNUNET_OK;
-}
-
-
-/**
- * Generic handler for cadet network encrypted traffic.
- *
- * @param peer Peer identity this notification is about.
- * @param msg Encrypted message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_CADET_KX *msg)
-{
-  const struct GNUNET_CADET_Hash* cid;
-  struct CadetConnection *c;
-  size_t expected_size;
-  int fwd;
-
-  GCC_check_connections ();
-  cid = &msg->cid;
-  log_message (&msg->header, peer, cid);
-
-  expected_size = sizeof (struct GNUNET_CADET_KX)
-                  + sizeof (struct GNUNET_MessageHeader);
-  c = connection_get (cid);
-  fwd = check_message (&msg->header,
-                       expected_size,
-                       cid,
-                       c,
-                       peer,
-                       0);
-
-  /* If something went wrong, discard message. */
-  if (GNUNET_SYSERR == fwd)
-    return GNUNET_OK;
-
-  /* Is this message for us? */
-  if (GCC_is_terminal (c, fwd))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
-    GNUNET_STATISTICS_update (stats, "# received KX", 1, GNUNET_NO);
-    if (NULL == c->t)
-    {
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
-    GCT_handle_kx (c->t, &msg[1].header);
-    GCC_check_connections ();
-    return GNUNET_OK;
+    return;
   }
 
   /* Message not for us: forward to next hop */
@@ -2632,259 +2652,6 @@ handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
   GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
                                                     GNUNET_NO, NULL, NULL));
-  GCC_check_connections ();
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for key exchange traffic (ephemeral key, ping, pong).
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_kx (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
-{
-  GCC_check_connections ();
-  return handle_cadet_kx (peer, (struct GNUNET_CADET_KX *) message);
-}
-
-
-/**
- * Core handler for encrypted cadet network traffic (channel mgmt, data).
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message)
-{
-  GCC_check_connections ();
-  return handle_cadet_encrypted (peer, message);
-}
-
-
-/**
- * Core handler for cadet network traffic point-to-point acks.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_CADET_ACK *msg;
-  struct CadetConnection *c;
-  struct CadetFlowControl *fc;
-  GNUNET_PEER_Id id;
-  uint32_t ack;
-  int fwd;
-
-  GCC_check_connections ();
-  msg = (struct GNUNET_CADET_ACK *) message;
-  log_message (message, peer, &msg->cid);
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats,
-                              "# ack on unknown connection",
-                              1,
-                              GNUNET_NO);
-    send_broken_unknown (&msg->cid,
-                         &my_full_id,
-                         NULL,
-                         peer);
-    GCC_check_connections ();
-    return GNUNET_OK;
-  }
-
-  /* Is this a forward or backward ACK? */
-  id = GNUNET_PEER_search (peer);
-  if (GCP_get_short_id (get_next_hop (c)) == id)
-  {
-    fc = &c->fwd_fc;
-    fwd = GNUNET_YES;
-  }
-  else if (GCP_get_short_id (get_prev_hop (c)) == id)
-  {
-    fc = &c->bck_fc;
-    fwd = GNUNET_NO;
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  ack = ntohl (msg->ack);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " %s ACK %u (was %u)\n",
-       GC_f2s (fwd), ack, fc->last_ack_recv);
-  if (GC_is_pid_bigger (ack, fc->last_ack_recv))
-    fc->last_ack_recv = ack;
-
-  /* Cancel polling if the ACK is big enough. */
-  if (NULL != fc->poll_task &&
-      GC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
-    GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = NULL;
-    fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
-  }
-
-  connection_unlock_queue (c, fwd);
-  GCC_check_connections ();
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for cadet network traffic point-to-point ack polls.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_poll (void *cls,
-                 const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_CADET_Poll *msg;
-  struct CadetConnection *c;
-  struct CadetFlowControl *fc;
-  GNUNET_PEER_Id id;
-  uint32_t pid;
-  int fwd;
-
-  GCC_check_connections ();
-  msg = (struct GNUNET_CADET_Poll *) message;
-  log_message (message, peer, &msg->cid);
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
-                              GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "POLL message on unknown connection %s!\n",
-         GNUNET_h2s (GC_h2hc (&msg->cid)));
-    send_broken_unknown (&msg->cid,
-                         &my_full_id,
-                         NULL,
-                         peer);
-    GCC_check_connections ();
-    return GNUNET_OK;
-  }
-
-  /* Is this a forward or backward ACK?
-   * Note: a poll should never be needed in a loopback case,
-   * since there is no possiblility of packet loss there, so
-   * this way of discerining FWD/BCK should not be a problem.
-   */
-  id = GNUNET_PEER_search (peer);
-  if (GCP_get_short_id (get_next_hop (c)) == id)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
-    fc = &c->fwd_fc;
-  }
-  else if (GCP_get_short_id (get_prev_hop (c)) == id)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
-    fc = &c->bck_fc;
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  pid = ntohl (msg->pid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n", pid, fc->last_pid_recv);
-  fc->last_pid_recv = pid;
-  fwd = fc == &c->bck_fc;
-  GCC_send_ack (c, fwd, GNUNET_YES);
-  GCC_check_connections ();
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Send an ACK on the appropriate connection/channel, depending on
- * the direction and the position of the peer.
- *
- * @param c Which connection to send the hop-by-hop ACK.
- * @param fwd Is this a fwd ACK? (will go dest->root).
- * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
- */
-void
-GCC_send_ack (struct CadetConnection *c, int fwd, int force)
-{
-  unsigned int buffer;
-
-  GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCC send %s ACK on %s\n",
-       GC_f2s (fwd), GCC_2s (c));
-
-  if (NULL == c)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  if (GNUNET_NO != c->destroy)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother...\n");
-    GCC_check_connections ();
-    return;
-  }
-
-  /* Get available buffer space */
-  if (GCC_is_terminal (c, fwd))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all channels\n");
-    buffer = GCT_get_channels_buffer (c->t);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
-    buffer = GCC_get_buffer (c, fwd);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
-  if (0 == buffer && GNUNET_NO == force)
-  {
-    GCC_check_connections ();
-    return;
-  }
-
-  /* Send available buffer space */
-  if (GCC_is_origin (c, fwd))
-  {
-    GNUNET_assert (NULL != c->t);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channels...\n");
-    GCT_unchoke_channels (c->t);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
-    send_ack (c, buffer, fwd, force);
-  }
   GCC_check_connections ();
 }
 
@@ -2974,12 +2741,13 @@ GCC_shutdown (void)
  * Create a connection.
  *
  * @param cid Connection ID (either created locally or imposed remotely).
- * @param t Tunnel this connection belongs to (or NULL);
+ * @param t Tunnel this connection belongs to (or NULL for transit connections);
  * @param path Path this connection has to use (copy is made).
  * @param own_pos Own position in the @c path path.
  *
- * @return Newly created connection, NULL in case of error (own id not in path).
- */
+ * @return Newly created connection.
+ *         NULL in case of error: own id not in path, wrong neighbors, ...
+*/
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
          struct CadetTunnel *t,
@@ -3036,6 +2804,14 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
 }
 
 
+/**
+ * Connection is no longer needed: destroy it.
+ *
+ * Cancels all pending traffic (including possible DESTROY messages), all
+ * maintenance tasks and removes the connection from neighbor peers and tunnel.
+ *
+ * @param c Connection to destroy.
+ */
 void
 GCC_destroy (struct CadetConnection *c)
 {
@@ -3428,6 +3204,7 @@ GCC_is_direct (struct CadetConnection *c)
  * @param message Message to send. Function makes a copy of it.
  *                If message is not hop-by-hop, decrements TTL of copy.
  * @param payload_type Type of payload, in case the message is encrypted.
+ * @param payload_id ID of the payload (PID, ACK, ...).
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
  * @param force Force the connection to accept the message (buffer overfill).
@@ -3446,7 +3223,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 {
   struct CadetFlowControl *fc;
   struct CadetConnectionQueue *q;
-  void *data;
+  struct GNUNET_MessageHeader *copy;
   size_t size;
   uint16_t type;
   int droppable;
@@ -3460,8 +3237,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   size = ntohs (message->size);
-  data = GNUNET_malloc (size);
-  GNUNET_memcpy (data, message, size);
+  copy = GNUNET_malloc (size);
+  GNUNET_memcpy (copy, message, size);
   type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
@@ -3478,7 +3255,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_CADET_ConnectionBroken  *bmsg;
 
     case GNUNET_MESSAGE_TYPE_CADET_AX:
-      axmsg = (struct GNUNET_CADET_AX *) data;
+      axmsg = (struct GNUNET_CADET_AX *) copy;
       axmsg->cid = c->id;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
@@ -3494,41 +3271,42 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_KX:
-      kmsg = (struct GNUNET_CADET_KX *) data;
+      kmsg = (struct GNUNET_CADET_KX *) copy;
       kmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      amsg = (struct GNUNET_CADET_ACK *) data;
+      amsg = (struct GNUNET_CADET_ACK *) copy;
       amsg->cid = c->id;
       LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
       droppable = GNUNET_NO;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      pmsg = (struct GNUNET_CADET_Poll *) data;
+      pmsg = (struct GNUNET_CADET_Poll *) copy;
       pmsg->cid = c->id;
       LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL %u\n", ntohl (pmsg->pid));
       droppable = GNUNET_NO;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      dmsg = (struct GNUNET_CADET_ConnectionDestroy *) data;
+      dmsg = (struct GNUNET_CADET_ConnectionDestroy *) copy;
       dmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      bmsg = (struct GNUNET_CADET_ConnectionBroken *) data;
+      bmsg = (struct GNUNET_CADET_ConnectionBroken *) copy;
       bmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+      GNUNET_break (0); /* Should've used specific functions. */
       break;
 
     default:
       GNUNET_break (0);
-      GNUNET_free (data);
+      GNUNET_free (copy);
       return NULL;
   }
 
@@ -3543,7 +3321,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     {
       fc->queue_n--;
     }
-    GNUNET_free (data);
+    GNUNET_free (copy);
     return NULL; /* Drop this message */
   }
 
@@ -3553,12 +3331,14 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   q = GNUNET_new (struct CadetConnectionQueue);
   q->forced = !droppable;
-  q->q = GCP_queue_add (get_hop (c, fwd), data, type, payload_type, payload_id,
-                        size, c, fwd, &conn_message_sent, q);
-  if (NULL == q->q)
+  q->peer_q = GCP_send (get_hop (c, fwd), copy,
+                        payload_type, payload_id,
+                        c, fwd,
+                        &conn_message_sent, q);
+  if (NULL == q->peer_q)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "dropping msg on %s, NULL q\n", GCC_2s (c));
-    GNUNET_free (data);
+    GNUNET_free (copy);
     GNUNET_free (q);
     GCC_check_connections ();
     return NULL;
@@ -3584,8 +3364,8 @@ GCC_cancel (struct CadetConnectionQueue *q)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  GCC cancel message\n");
 
-  /* queue destroy calls message_sent, which calls q->cont and frees q */
-  GCP_queue_destroy (q->q, GNUNET_YES, GNUNET_NO, 0);
+  /* send_cancel calls message_sent, which calls q->cont and frees q */
+  GCP_send_cancel (q->peer_q);
   GCC_check_connections ();
 }
 
@@ -3594,35 +3374,116 @@ GCC_cancel (struct CadetConnectionQueue *q)
  * Sends a CREATE CONNECTION message for a path to a peer.
  * Changes the connection and tunnel states if necessary.
  *
- * @param connection Connection to create.
+ * @param c Connection to create.
  */
 void
-GCC_send_create (struct CadetConnection *connection)
+GCC_send_create (struct CadetConnection *c)
 {
   enum CadetTunnelCState state;
   size_t size;
 
   GCC_check_connections ();
   size = sizeof (struct GNUNET_CADET_ConnectionCreate);
-  size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
+  size += c->path->length * sizeof (struct GNUNET_PeerIdentity);
+  {
+    /* Allocate message on the stack */
+    unsigned char cbuf[size];
+    struct GNUNET_CADET_ConnectionCreate *msg;
+    struct GNUNET_PeerIdentity *peers;
+
+    msg = (struct GNUNET_CADET_ConnectionCreate *) cbuf;
+    msg->header.size = htons (size);
+    msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
+    msg->cid = *GCC_get_id (c);
+    peers = (struct GNUNET_PeerIdentity *) &msg[1];
+    for (int i = 0; i < c->path->length; i++)
+    {
+      GNUNET_PEER_resolve (c->path->peers[i], peers++);
+    }
+    GNUNET_assert (NULL == c->maintenance_q);
+    c->maintenance_q = GCP_send (get_next_hop (c),
+                                 &msg->header,
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0,
+                                 c, GNUNET_YES,
+                                 &conn_message_sent, NULL);
+  }
 
   LOG (GNUNET_ERROR_TYPE_INFO, "==> %s %19s on conn %s (%p) FWD [%5u]\n",
        GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE), "",
-       GCC_2s (connection), connection, size);
+       GCC_2s (c), c, size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
-       connection, connection->pending_messages);
-  connection->pending_messages++;
+         c, c->pending_messages);
+  c->pending_messages++;
 
-  connection->maintenance_q =
-    GCP_queue_add (get_next_hop (connection), NULL,
-                   GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, UINT16_MAX, 0,
-                   size, connection, GNUNET_YES, &conn_message_sent, NULL);
-
-  state = GCT_get_cstate (connection->t);
+  state = GCT_get_cstate (c->t);
   if (CADET_TUNNEL_SEARCHING == state || CADET_TUNNEL_NEW == state)
-    GCT_change_cstate (connection->t, CADET_TUNNEL_WAITING);
-  if (CADET_CONNECTION_NEW == connection->state)
-    connection_change_state (connection, CADET_CONNECTION_SENT);
+    GCT_change_cstate (c->t, CADET_TUNNEL_WAITING);
+  if (CADET_CONNECTION_NEW == c->state)
+    connection_change_state (c, CADET_CONNECTION_SENT);
+  GCC_check_connections ();
+}
+
+
+/**
+ * Send an ACK on the appropriate connection/channel, depending on
+ * the direction and the position of the peer.
+ *
+ * @param c Which connection to send the hop-by-hop ACK.
+ * @param fwd Is this a fwd ACK? (will go dest->root).
+ * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
+ */
+void
+GCC_send_ack (struct CadetConnection *c, int fwd, int force)
+{
+  unsigned int buffer;
+
+  GCC_check_connections ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCC send %s ACK on %s\n",
+       GC_f2s (fwd), GCC_2s (c));
+
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  if (GNUNET_NO != c->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother...\n");
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Get available buffer space */
+  if (GCC_is_terminal (c, fwd))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all channels\n");
+    buffer = GCT_get_channels_buffer (c->t);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
+    buffer = GCC_get_buffer (c, fwd);
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
+  if (0 == buffer && GNUNET_NO == force)
+  {
+    GCC_check_connections ();
+    return;
+  }
+
+  /* Send available buffer space */
+  if (GNUNET_YES == GCC_is_origin (c, fwd))
+  {
+    GNUNET_assert (NULL != c->t);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channels...\n");
+    GCT_unchoke_channels (c->t);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
+    send_ack (c, buffer, fwd, force);
+  }
   GCC_check_connections ();
 }
 

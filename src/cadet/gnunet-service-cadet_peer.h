@@ -47,7 +47,7 @@ extern "C"
 struct CadetPeer;
 
 /**
- * Struct containing info about a queued transmission to this peer
+ * Handle to queued messages on a peer level.
  */
 struct CadetPeerQueue;
 
@@ -59,18 +59,19 @@ struct CadetPeerQueue;
  *
  * @param cls Closure.
  * @param c Connection this message was on.
+ * @param fwd Was this a FWD going message?
  * @param sent Was it really sent? (Could have been canceled)
  * @param type Type of message sent.
- * @param pid Packet ID, or 0 if not applicable (create, destroy, etc).
- * @param fwd Was this a FWD going message?
+ * @param payload_type Type of payload, if applicable.
+ * @param pid Message ID, or 0 if not applicable (create, destroy, etc).
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
- * @return #GNUNET_YES if connection was destroyed, #GNUNET_NO otherwise.
  */
-typedef int
+typedef void
 (*GCP_sent) (void *cls,
-             struct CadetConnection *c, int sent,
-             uint16_t type, uint32_t pid, int fwd, size_t size,
+             struct CadetConnection *c, int fwd, int sent,
+             uint16_t type, uint16_t payload_type, uint32_t pid,
+             size_t size,
              struct GNUNET_TIME_Relative wait);
 
 /**
@@ -146,97 +147,40 @@ void
 GCP_connect (struct CadetPeer *peer);
 
 /**
- * Free a transmission that was already queued with all resources
- * associated to the request.
- *
- * If connection was marked to be destroyed, and this was the last queued
- * message on it, the connection will be free'd as a result.
- *
- * @param queue Queue handler to cancel.
- * @param clear_cls Is it necessary to free associated cls?
- * @param sent Was it really sent? (Could have been canceled)
- * @param pid PID, if relevant (was sent and was a payload message).
- *
- * @return #GNUNET_YES if connection was destroyed as a result,
- *         #GNUNET_NO otherwise.
- */
-int
-GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
-                   int sent, uint32_t pid);
-
-/**
- * @brief Queue and pass message to core when possible.
+ * @brief Send a message to another peer (using CORE).
  *
  * @param peer Peer towards which to queue the message.
- * @param cls Closure (@c type dependant). It will be used by queue_send to
- *            build the message to be sent if not already prebuilt.
- * @param type Type of the message.
- * @param payload_type Type of the message's payload
+ * @param message Message to send.
+ * @param payload_type Type of the message's payload, for debug messages.
  *                     0 if the message is a retransmission (unknown payload).
  *                     UINT16_MAX if the message does not have payload.
  * @param payload_id ID of the payload (MID, ACK #, etc)
- * @param size Size of the message.
  * @param c Connection this message belongs to (can be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param cont Continuation to be called once CORE has taken the message.
+ * @param cont Continuation to be called once CORE has sent the message.
  * @param cont_cls Closure for @c cont.
- *
- * @return Handle to cancel the message before it is sent. Once cont is called
- *         message has been sent and therefore the handle is no longer valid.
  */
 struct CadetPeerQueue *
-GCP_queue_add (struct CadetPeer *peer,
-               void *cls,
-               uint16_t type,
-               uint16_t payload_type,
-               uint32_t payload_id,
-               size_t size,
-               struct CadetConnection *c,
-               int fwd,
-               GCP_sent cont,
-               void *cont_cls);
+GCP_send (struct CadetPeer *peer,
+          const struct GNUNET_MessageHeader *message,
+          uint16_t payload_type,
+          uint32_t payload_id,
+          struct CadetConnection *c,
+          int fwd,
+          GCP_sent cont,
+          void *cont_cls);
 
 /**
- * Cancel all queued messages to a peer that belong to a certain connection.
+ * Cancel sending a message. Message must have been sent with
+ * #GCP_send before.  May not be called after the notify sent
+ * callback has been called.
  *
- * @param peer Peer towards whom to cancel.
- * @param c Connection whose queued messages to cancel. Might be destroyed by
- *          the sent continuation call.
+ * It does NOT call the continuation given to #GCP_send.
+ *
+ * @param q Queue handle to cancel
  */
 void
-GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
-
-/**
- * Get the first message for a connection and unqueue it.
- *
- * Only tunnel (or higher) level messages are unqueued. Connection specific
- * messages are silently destroyed upon encounter.
- *
- * @param peer Neighboring peer.
- * @param c Connection.
- * @param destroyed[in/out] Was the connection destroyed as a result?.
- *                          Can NOT be NULL.
- *
- *
- * @return First message for this connection.
- */
-struct GNUNET_MessageHeader *
-GCP_connection_pop (struct CadetPeer *peer,
-                    struct CadetConnection *c,
-                    int *destroyed);
-
-/**
- * Unlock a possibly locked queue for a connection.
- *
- * If there is a message that can be sent on this connection, call core for it.
- * Otherwise (if core transmit is already called or there is no sendable
- * message) do nothing.
- *
- * @param peer Peer who keeps the queue.
- * @param c Connection whose messages to unlock.
- */
-void
-GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
+GCP_send_cancel (struct CadetPeerQueue *q);
 
 /**
  * Set tunnel.

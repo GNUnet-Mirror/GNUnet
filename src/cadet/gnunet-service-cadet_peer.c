@@ -44,77 +44,6 @@
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
 
-/**
- * Struct containing info about a queued transmission to this peer
- */
-struct CadetPeerQueue
-{
-  /**
-   * DLL next
-   */
-  struct CadetPeerQueue *next;
-
-  /**
-   * DLL previous
-   */
-  struct CadetPeerQueue *prev;
-
-  /**
-   * Peer this transmission is directed to.
-   */
-  struct CadetPeer *peer;
-
-  /**
-   * Connection this message belongs to.
-   */
-  struct CadetConnection *c;
-
-  /**
-   * Is FWD in c?
-   */
-  int fwd;
-
-  /**
-   * Pointer to info stucture used as cls.
-   */
-  void *cls;
-
-  /**
-   * Type of message
-   */
-  uint16_t type;
-
-  /**
-   * Type of message
-   */
-  uint16_t payload_type;
-
-  /**
-   * Type of message
-   */
-  uint32_t payload_id;
-
-  /**
-   * Size of the message
-   */
-  size_t size;
-
-  /**
-   * Set when this message starts waiting for CORE.
-   */
-  struct GNUNET_TIME_Absolute start_waiting;
-
-  /**
-   * Function to call on sending.
-   */
-  GCP_sent cont;
-
-  /**
-   * Closure for callback.
-   */
-  void *cont_cls;
-};
-
 
 /**
  * Struct containing all information regarding a given peer
@@ -162,24 +91,9 @@ struct CadetPeer
   struct GNUNET_CONTAINER_MultiHashMap *connections;
 
   /**
-   * Handle for queued transmissions
+   * Handle for core transmissions.
    */
-  struct GNUNET_CORE_TransmitHandle *core_transmit;
-
-  /**
-   * Timestamp
-   */
-  struct GNUNET_TIME_Absolute tmt_time;
-
-  /**
-   * Transmission queue to core DLL head
-   */
-  struct CadetPeerQueue *queue_head;
-
-  /**
-   * Transmission queue to core DLL tail
-   */
-  struct CadetPeerQueue *queue_tail;
+  struct GNUNET_MQ_Handle *core_mq;
 
   /**
    * How many messages are in the queue to this peer.
@@ -202,6 +116,73 @@ struct CadetPeer
    */
   struct GNUNET_ATS_ConnectivitySuggestHandle *connectivity_suggestion;
 
+};
+
+
+/**
+ * Information about a queued message on the peer level.
+ */
+struct CadetPeerQueue {
+
+  /**
+   * Envelope to cancel message before MQ sends it.
+   */
+  struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * Peer (neighbor) this message is being sent to.
+   */
+  struct CadetPeer *peer;
+
+  /**
+   * Continuation to call to notify higher layers about message sent.
+   */
+  GCP_sent cont;
+
+  /**
+   * Closure for @a cont.
+   */
+  void *cont_cls;
+
+  /**
+   * Time when message was queued for sending.
+   */
+  struct GNUNET_TIME_Absolute queue_timestamp;
+
+  /**
+   * #GNUNET_YES if message was management traffic (POLL, ACK, ...).
+   */
+  int management_traffic;
+
+  /**
+   * Message type.
+   */
+  uint16_t type;
+
+  /**
+   * Message size.
+   */
+  uint16_t size;
+
+  /**
+   * Type of the message's payload, if it was encrypted data.
+   */
+  uint16_t payload_type;
+
+  /**
+   *ID of the payload (PID, ACK #, ...).
+   */
+  uint16_t payload_id;
+
+  /**
+   * Connection this message was sent on.
+   */
+  struct CadetConnection *c;
+
+  /**
+   * Direction in @a c this message was send on (#GNUNET_YES = FWD).
+   */
+  int c_fwd;
 };
 
 
@@ -258,98 +239,6 @@ static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
  * Shutdown falg.
  */
 static int in_shutdown;
-
-
-/******************************************************************************/
-/*****************************     DEBUG      *********************************/
-/******************************************************************************/
-
-/**
- * Log all kinds of info about the queueing status of a peer.
- *
- * @param p Peer whose queue to show.
- * @param level Error level to use for logging.
- */
-static void
-queue_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
-{
-  struct GNUNET_TIME_Relative core_wait_time;
-  struct CadetPeerQueue *q;
-  int do_log;
-
-  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
-                                       "cadet-p2p",
-                                       __FILE__, __FUNCTION__, __LINE__);
-  if (0 == do_log)
-    return;
-
-  LOG2 (level, "QQQ Message queue towards %s\n", GCP_2s (p));
-  LOG2 (level, "QQQ  queue length: %u\n", p->queue_n);
-  LOG2 (level, "QQQ  core tmt rdy: %p\n", p->core_transmit);
-  if (NULL != p->core_transmit)
-  {
-    core_wait_time = GNUNET_TIME_absolute_get_duration (p->tmt_time);
-    LOG2 (level, "QQQ  core called %s ago\n",
-          GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
-  }
-  for (q = p->queue_head; NULL != q; q = q->next)
-  {
-    LOG2 (level, "QQQ  - %s %s on %s\n",
-         GC_m2s (q->type), GC_f2s (q->fwd), GCC_2s (q->c));
-    LOG2 (level, "QQQ    payload %s, %u\n",
-         GC_m2s (q->payload_type), q->payload_id);
-    LOG2 (level, "QQQ    size: %u bytes\n", q->size);
-  }
-
-  LOG2 (level, "QQQ End queue towards %s\n", GCP_2s (p));
-}
-
-
-/**
- * Log all kinds of info about a peer.
- *
- * @param peer Peer.
- */
-void
-GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
-{
-  struct CadetPeerPath *path;
-  unsigned int conns;
-  int do_log;
-
-  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
-                                       "cadet-p2p",
-                                       __FILE__, __FUNCTION__, __LINE__);
-  if (0 == do_log)
-    return;
-
-  if (NULL == p)
-  {
-    LOG2 (level, "PPP DEBUG PEER NULL\n");
-    return;
-  }
-
-  LOG2 (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
-  LOG2 (level, "PPP last contact %s\n",
-       GNUNET_STRINGS_absolute_time_to_string (p->last_contact));
-  for (path = p->path_head; NULL != path; path = path->next)
-  {
-    char *s;
-
-    s = path_2s (path);
-    LOG2 (level, "PPP path: %s\n", s);
-    GNUNET_free (s);
-  }
-
-  LOG2 (level, "PPP core transmit handle %p\n", p->core_transmit);
-  LOG2 (level, "PPP DHT GET handle %p\n", p->search_h);
-  conns = 0;
-  if (NULL != p->connections)
-    conns += GNUNET_CONTAINER_multihashmap_size (p->connections);
-  LOG2 (level, "PPP # connections over link to peer: %u\n", conns);
-  queue_debug (p, level);
-  LOG2 (level, "PPP DEBUG END\n");
-}
 
 
 /******************************************************************************/
@@ -415,12 +304,16 @@ pop_direct_path (struct CadetPeer *peer)
 /**
  * Method called whenever a given peer connects.
  *
- * @param cls closure
- * @param peer peer identity this notification is about
+ * @param cls Core closure (unused).
+ * @param peer Peer identity this notification is about
+ * @param mq Message Queue to this peer.
+ *
+ * @return Internal closure for handlers (CadetPeer struct).
  */
-static void
-core_connect (void *cls,
-              const struct GNUNET_PeerIdentity *peer)
+static void *
+core_connect_handler (void *cls,
+                      const struct GNUNET_PeerIdentity *peer,
+                      struct GNUNET_MQ_Handle *mq)
 {
   struct CadetPeer *neighbor;
   struct CadetPeerPath *path;
@@ -431,6 +324,8 @@ core_connect (void *cls,
                    sizeof (own_id),
                    "%s",
                    GNUNET_i2s (&my_full_id));
+
+  /* Save a path to the neighbor */
   neighbor = GCP_get (peer, GNUNET_YES);
   if (myid == neighbor->id)
   {
@@ -448,11 +343,14 @@ core_connect (void *cls,
     path = path_new (2);
     path->peers[1] = neighbor->id;
     GNUNET_PEER_change_rc (neighbor->id, 1);
+    GNUNET_assert (NULL == neighbor->core_mq);
+    neighbor->core_mq = mq;
   }
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   GCP_add_path (neighbor, path, GNUNET_YES);
 
+  /* Create the connections hashmap */
   GNUNET_assert (NULL == neighbor->connections);
   neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
@@ -462,42 +360,47 @@ core_connect (void *cls,
 
   if ( (NULL != GCP_get_tunnel (neighbor)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
+  {
     GCP_connect (neighbor);
+  }
   GCC_check_connections ();
+
+  return neighbor;
 }
 
 
 /**
  * Method called whenever a peer disconnects.
  *
- * @param cls closure
- * @param peer peer identity this notification is about
+ * @param cls Core closure (unused).
+ * @param peer Peer identity this notification is about.
+ * @param internal_cls Internal closure (CadetPeer struct).
  */
 static void
-core_disconnect (void *cls,
-                 const struct GNUNET_PeerIdentity *peer)
+core_disconnect_handler (void *cls,
+                         const struct GNUNET_PeerIdentity *peer,
+                         void *internal_cls)
 {
-  struct CadetPeer *p;
+  struct CadetPeer *p = internal_cls;
   struct CadetPeerPath *direct_path;
   char own_id[16];
 
   GCC_check_connections ();
   strncpy (own_id, GNUNET_i2s (&my_full_id), 16);
   own_id[15] = '\0';
-  p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
-  if (NULL == p)
-  {
-    GNUNET_break (GNUNET_YES == in_shutdown);
-    return;
-  }
   if (myid == p->id)
+  {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "DISCONNECTED %s (self)\n",
          own_id);
+  }
   else
+  {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "DISCONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
+    p->core_mq = NULL;
+  }
   direct_path = pop_direct_path (p);
   if (NULL != p->connections)
   {
@@ -506,12 +409,6 @@ core_disconnect (void *cls,
                                            p);
     GNUNET_CONTAINER_multihashmap_destroy (p->connections);
     p->connections = NULL;
-  }
-  if (NULL != p->core_transmit)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
-    p->core_transmit = NULL;
-    p->tmt_time.abs_value_us = 0;
   }
   GNUNET_STATISTICS_update (stats,
                             "# peers",
@@ -522,167 +419,283 @@ core_disconnect (void *cls,
 }
 
 
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+
 /**
- * Functions to handle messages from core
+ * Check if the create_connection message has the appropriate size.
+ *
+ * @param cls Closure (unused).
+ * @param msg Message to check.
+ *
+ * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
-static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&GCC_handle_create, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0},
-  {&GCC_handle_confirm, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
-    sizeof (struct GNUNET_CADET_ConnectionACK)},
-  {&GCC_handle_broken, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-    sizeof (struct GNUNET_CADET_ConnectionBroken)},
-  {&GCC_handle_destroy, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
-    sizeof (struct GNUNET_CADET_ConnectionDestroy)},
-  {&GCC_handle_ack, GNUNET_MESSAGE_TYPE_CADET_ACK,
-    sizeof (struct GNUNET_CADET_ACK)},
-  {&GCC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
-    sizeof (struct GNUNET_CADET_Poll)},
-  {&GCC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
-  {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_AX, 0},
-  {NULL, 0, 0}
-};
+static int
+check_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
+{
+  uint16_t size;
+
+  size = ntohs (msg->header.size);
+  if (size < sizeof (*msg))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_create (peer, msg);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionACK *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_confirm (peer, msg);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_broken (void *cls, const struct GNUNET_CADET_ConnectionBroken *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_broken (peer, msg);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_destroy (void *cls, const struct GNUNET_CADET_ConnectionDestroy *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_destroy (peer, msg);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_ACK
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_ack (void *cls, const struct GNUNET_CADET_ACK *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_ack (peer, msg);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_POLL
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_poll (void *cls, const struct GNUNET_CADET_Poll *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_poll (peer, msg);
+}
+
+
+/**
+ * Check if the Key eXchange message has the appropriate size.
+ *
+ * @param cls Closure (unused).
+ * @param msg Message to check.
+ *
+ * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
+ */
+static int
+check_kx (void *cls, const struct GNUNET_CADET_KX *msg)
+{
+  uint16_t size;
+  uint16_t expected_size;
+
+  size = ntohs (msg->header.size);
+  expected_size = sizeof (struct GNUNET_CADET_KX)
+                  + sizeof (struct GNUNET_MessageHeader);
+
+  if (size < expected_size)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_KX
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_kx (void *cls, const struct GNUNET_CADET_KX *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_kx (peer, msg);
+}
+
+
+/**
+ * Check if the encrypted message has the appropriate size.
+ *
+ * @param cls Closure (unused).
+ * @param msg Message to check.
+ *
+ * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
+ */
+static int
+check_encrypted (void *cls, const struct GNUNET_CADET_AX *msg)
+{
+  uint16_t size;
+  uint16_t minimum_size;
+
+  size = ntohs (msg->header.size);
+  minimum_size = sizeof (struct GNUNET_CADET_AX)
+                 + sizeof (struct GNUNET_MessageHeader);
+
+  if (size < minimum_size)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_AX (AXolotl encrypted traffic).
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_encrypted (void *cls, const struct GNUNET_CADET_AX *msg)
+{
+  struct CadetPeer *peer = cls;
+  GCC_handle_encrypted (peer, msg);
+}
 
 
 /**
  * To be called on core init/fail.
  *
  * @param cls Closure (config)
- * @param identity the public identity of this peer
+ * @param identity The public identity of this peer.
  */
 static void
-core_init (void *cls,
-           const struct GNUNET_PeerIdentity *identity)
+core_init_notify (void *cls,
+                  const struct GNUNET_PeerIdentity *identity);
+
+
+static void
+connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  struct GNUNET_MQ_MessageHandler core_handlers[] = {
+    GNUNET_MQ_hd_var_size (create,
+                           GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
+                           struct GNUNET_CADET_ConnectionCreate,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (confirm,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
+                             struct GNUNET_CADET_ConnectionACK,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (broken,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+                             struct GNUNET_CADET_ConnectionBroken,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (destroy,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
+                             struct GNUNET_CADET_ConnectionDestroy,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (ack,
+                             GNUNET_MESSAGE_TYPE_CADET_ACK,
+                             struct GNUNET_CADET_ACK,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (poll,
+                             GNUNET_MESSAGE_TYPE_CADET_POLL,
+                             struct GNUNET_CADET_Poll,
+                             NULL),
+    GNUNET_MQ_hd_var_size (kx,
+                           GNUNET_MESSAGE_TYPE_CADET_KX,
+                           struct GNUNET_CADET_KX,
+                           NULL),
+    GNUNET_MQ_hd_var_size (encrypted,
+                           GNUNET_MESSAGE_TYPE_CADET_AX,
+                           struct GNUNET_CADET_AX,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
+    core_handle = GNUNET_CORE_connecT (c, NULL,
+                                     &core_init_notify,
+                                     &core_connect_handler,
+                                     &core_disconnect_handler,
+                                     core_handlers);
+}
+
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+
+/**
+ * To be called on core init/fail.
+ *
+ * @param cls Closure (config)
+ * @param identity The public identity of this peer.
+ */
+static void
+core_init_notify (void *cls,
+                  const struct GNUNET_PeerIdentity *core_identity)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
-  static int i = 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
+  if (0 != memcmp (core_identity, &my_full_id, sizeof (my_full_id)))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
-    LOG (GNUNET_ERROR_TYPE_ERROR, " core id %s\n", GNUNET_i2s (identity));
+    LOG (GNUNET_ERROR_TYPE_ERROR, " core id %s\n", GNUNET_i2s (core_identity));
     LOG (GNUNET_ERROR_TYPE_ERROR, " my id %s\n", GNUNET_i2s (&my_full_id));
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                       NULL,      /* Closure passed to CADET functions */
-                                       &core_init,        /* Call core_init once connected */
-                                       &core_connect,     /* Handle connects */
-                                       &core_disconnect,  /* remove peers on disconnects */
-                                       NULL,      /* Don't notify about all incoming messages */
-                                       GNUNET_NO, /* For header only in notification */
-                                       NULL,      /* Don't notify about all outbound messages */
-                                       GNUNET_NO, /* For header-only out notification */
-                                       core_handlers);    /* Register these handlers */
-    if (10 < i++)
-      GNUNET_assert (0);
+    GNUNET_CORE_disconnecT (core_handle);
+    connect_to_core (c);
+    return;
   }
   GML_start ();
-}
-
-
-/**
-  * Core callback to write a pre-constructed data packet to core buffer
-  *
-  * @param cls Closure (CadetTransmissionDescriptor with data in "data" member).
-  * @param size Number of bytes available in buf.
-  * @param buf Where the to write the message.
-  *
-  * @return number of bytes written to buf
-  */
-static size_t
-send_core_data_raw (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg = cls;
-  size_t total_size;
-
-  GNUNET_assert (NULL != msg);
-  total_size = ntohs (msg->size);
-
-  if (total_size > size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  GNUNET_memcpy (buf, msg, total_size);
-  GNUNET_free (cls);
-  return total_size;
-}
-
-
-/**
- * Function to send a create connection message to a peer.
- *
- * @param c Connection to create.
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-send_core_connection_create (struct CadetConnection *c, size_t size, void *buf)
-{
-  struct GNUNET_CADET_ConnectionCreate *msg;
-  struct GNUNET_PeerIdentity *peer_ptr;
-  const struct CadetPeerPath *p = GCC_get_path (c);
-  size_t size_needed;
-  int i;
-
-  if (NULL == p)
-    return 0;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
-  size_needed =
-      sizeof (struct GNUNET_CADET_ConnectionCreate) +
-      p->length * sizeof (struct GNUNET_PeerIdentity);
-
-  if (size < size_needed || NULL == buf)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  msg = (struct GNUNET_CADET_ConnectionCreate *) buf;
-  msg->header.size = htons (size_needed);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
-  msg->cid = *GCC_get_id (c);
-
-  peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
-  for (i = 0; i < p->length; i++)
-  {
-    GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
-  }
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "CONNECTION CREATE (%u bytes long) sent!\n",
-       size_needed);
-  return size_needed;
-}
-
-
-/**
- * Creates a path ack message in buf and frees all unused resources.
- *
- * @param c Connection to send an ACK on.
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- *
- * @return number of bytes written to buf
- */
-static size_t
-send_core_connection_ack (struct CadetConnection *c, size_t size, void *buf)
-{
-  struct GNUNET_CADET_ConnectionACK *msg = buf;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
-  if (sizeof (struct GNUNET_CADET_ConnectionACK) > size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  msg->header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
-  msg->cid = *GCC_get_id (c);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
-  return sizeof (struct GNUNET_CADET_ConnectionACK);
 }
 
 
@@ -697,8 +710,11 @@ send_core_connection_ack (struct CadetConnection *c, size_t size, void *buf)
  * @param q Queued message
  *
  * @return CORE priority to use.
+ *
+ * FIXME make static
+ * FIXME use when sending
  */
-static enum GNUNET_CORE_Priority
+enum GNUNET_CORE_Priority
 get_priority (struct CadetPeerQueue *q)
 {
   enum GNUNET_CORE_Priority low;
@@ -711,7 +727,7 @@ get_priority (struct CadetPeerQueue *q)
   }
 
   /* Relayed traffic has lower priority, our own traffic has higher */
-  if (NULL == q->c || GNUNET_NO == GCC_is_origin (q->c, q->fwd))
+  if (NULL == q->c || GNUNET_NO == GCC_is_origin (q->c, q->c_fwd))
   {
     low = GNUNET_CORE_PRIO_BEST_EFFORT;
     high = GNUNET_CORE_PRIO_URGENT;
@@ -784,20 +800,6 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_ATS_connectivity_suggest_cancel (peer->connectivity_suggestion);
     peer->connectivity_suggestion = NULL;
   }
-  while (NULL != peer->queue_head)
-  {
-    /* This function destroys the current peer->queue_head but
-     * replaces it with the next in the queue, so it is correct
-     * to while() here.
-     */
-    GCP_queue_destroy (peer->queue_head, GNUNET_YES, GNUNET_NO, 0);
-  }
-  if (NULL != peer->core_transmit)
-  {
-    GNUNET_break (0); /* GCP_queue_destroy should've cancelled it! */
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-    peer->core_transmit = NULL;
-  }
 
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
@@ -829,7 +831,6 @@ shutdown_peer (void *cls,
   peer_destroy (p);
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -996,64 +997,6 @@ peer_get_best_path (const struct CadetPeer *peer)
 
 
 /**
- * Is this queue element sendable?
- *
- * - All management traffic is always sendable.
- * - For payload traffic, check the connection flow control.
- *
- * @param q Queue element to inspect.
- * @return #GNUNET_YES if it is sendable, #GNUNET_NO otherwise.
- */
-static int
-queue_is_sendable (struct CadetPeerQueue *q)
-{
-  /* Is PID-independent? */
-  switch (q->type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      return GNUNET_YES;
-
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
-      break;
-
-    default:
-      GNUNET_break (0);
-  }
-
-  return GCC_is_sendable (q->c, q->fwd);
-}
-
-
-/**
- * Get first sendable message.
- *
- * @param peer The destination peer.
- *
- * @return First transmittable message, if any. Otherwise, NULL.
- */
-static struct CadetPeerQueue *
-peer_get_first_message (const struct CadetPeer *peer)
-{
-  struct CadetPeerQueue *q;
-
-  for (q = peer->queue_head; NULL != q; q = q->next)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking q:%p on c:%s\n", q, GCC_2s (q->c));
-    if (queue_is_sendable (q))
-      return q;
-  }
-
-  return NULL;
-}
-
-
-/**
  * Function to process paths received for a new peer addition. The recorded
  * paths form the initial tunnel, which can be optimized later.
  * Called on each result obtained for the DHT search.
@@ -1090,19 +1033,6 @@ search_handler (void *cls, const struct CadetPeerPath *path)
 
 
 /**
- * Adjust core requested size to accomodate an ACK.
- *
- * @param message_size Requested size.
- *
- * @return Size enough to fit @c message_size and an ACK.
- */
-static size_t
-get_core_size (size_t message_size)
-{
-  return message_size + sizeof (struct GNUNET_CADET_ACK);
-}
-
-/**
  * Test if a message type is connection management traffic
  * or regular payload traffic.
  *
@@ -1119,85 +1049,13 @@ is_connection_management (uint16_t type)
 
 
 /**
- * Fill a core buffer with the appropriate data for the queued message.
- *
- * @param queue Queue element for the message.
- * @param buf Core buffer to fill.
- * @param size Size remaining in @c buf.
- * @param[out] pid In case its an encrypted payload, set payload.
- *
- * @return Bytes written to @c buf.
- */
-static size_t
-fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
-{
-  struct CadetConnection *c = queue->c;
-  size_t msg_size;
-
-  switch (queue->type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
-      *pid = GCC_get_pid (queue->c, queue->fwd);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  ax payload ID %u\n", *pid);
-      msg_size = send_core_data_raw (queue->cls, size, buf);
-      ((struct GNUNET_CADET_AX *) buf)->pid = htonl (*pid);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GC_m2s (queue->type));
-      msg_size = send_core_data_raw (queue->cls, size, buf);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
-      if (GCC_is_origin (c, GNUNET_YES))
-        msg_size = send_core_connection_create (c, size, buf);
-      else
-        msg_size = send_core_data_raw (queue->cls, size, buf);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
-      if (GCC_is_origin (c, GNUNET_NO) ||
-          GCC_is_origin (c, GNUNET_YES))
-      {
-        msg_size = send_core_connection_ack (c, size, buf);
-      }
-      else
-      {
-        msg_size = send_core_data_raw (queue->cls, size, buf);
-      }
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      /* This should be encapsulted */
-      msg_size = 0;
-      GNUNET_assert (0);
-      break;
-    default:
-      GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "  type unknown: %u\n", queue->type);
-      msg_size = 0;
-  }
-
-  GNUNET_assert (size >= msg_size);
-
-  return msg_size;
-}
-
-
-/**
  * Debug function should NEVER return true in production code, useful to
  * simulate losses for testcases.
- *
- * @param q Queue handle with info about the message.
  *
  * @return #GNUNET_YES or #GNUNET_NO with the decision to drop.
  */
 static int
-should_I_drop (struct CadetPeerQueue *q)
+should_I_drop (void)
 {
   if (0 == drop_percent)
     return GNUNET_NO;
@@ -1209,297 +1067,87 @@ should_I_drop (struct CadetPeerQueue *q)
 }
 
 
-/**
- * Core callback to write a queued packet to core buffer
- *
- * @param cls Closure (peer info).
- * @param size Number of bytes available in buf.
- * @param buf Where the to write the message.
- *
- * @return number of bytes written to buf
- */
-static size_t
-queue_send (void *cls, size_t size, void *buf)
-{
-  struct CadetPeer *peer = cls;
-  struct CadetConnection *c;
-  struct CadetPeerQueue *queue;
-  struct GNUNET_TIME_Relative core_wait_time;
-  const char *wait_s;
-  const struct GNUNET_PeerIdentity *dst_id;
-  size_t msg_size;
-  size_t total_size;
-  size_t rest;
-  char *dst;
-  uint32_t pid;
-
-  GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue send towards %s (max %u)\n",
-       GCP_2s (peer), size);
-
-  /* Sanity checking */
-  if (NULL == buf || 0 == size)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not allowed/\n");
-    if (GNUNET_NO == in_shutdown)
-    {
-      queue = peer_get_first_message (peer);
-      if (NULL == queue)
-      {
-        peer->core_transmit = NULL;
-        peer->tmt_time.abs_value_us = 0;
-        GCC_check_connections ();
-        return 0;
-      }
-      dst_id = GNUNET_PEER_resolve2 (peer->id);
-      peer->core_transmit =
-          GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             GNUNET_NO, get_priority (queue),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             dst_id,
-                                             get_core_size (queue->size),
-                                             &queue_send,
-                                             peer);
-      peer->tmt_time = GNUNET_TIME_absolute_get ();
-    }
-    else
-    {
-      peer->core_transmit = NULL;
-      peer->tmt_time.abs_value_us = 0;
-    }
-    GCC_check_connections ();
-    return 0;
-  }
-
-  /* Init */
-  rest = size;
-  total_size = 0;
-  dst = (char *) buf;
-  pid = 0;
-  peer->core_transmit = NULL;
-  queue = peer_get_first_message (peer);
-  if (NULL == queue)
-  {
-    GNUNET_break (0); /* Core tmt_rdy should've been canceled */
-    peer->tmt_time.abs_value_us = 0;
-    return 0;
-  }
-  core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
-  wait_s = GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES);
-  if (core_wait_time.rel_value_us >= 1000000)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         " %s: core wait time %s (> 1 second) for %u bytes\n",
-         GCP_2s (peer), wait_s, queue->size);
-  }
-  peer->tmt_time.abs_value_us = 0;
-
-  /* Copy all possible messages to the core buffer */
-  while (NULL != queue && rest >= queue->size)
-  {
-    c = queue->c;
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  on conn %s %s\n",
-         GCC_2s (c), GC_f2s(queue->fwd));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok (%u/%u)\n",
-         queue->size, total_size, size);
-
-    msg_size = fill_buf (queue, (void *) dst, size, &pid);
-
-    if (should_I_drop (queue))
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
-           GC_m2s (queue->type), GC_m2s (queue->payload_type),
-           queue->payload_id, GCC_2s (c), GC_f2s (queue->fwd));
-      msg_size = 0;
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO,
-           ">>> %s (%s %4u) on conn %s (%p) %s [%5u], after %s\n",
-           GC_m2s (queue->type), GC_m2s (queue->payload_type),
-           queue->payload_id, GCC_2s (c), c,
-           GC_f2s (queue->fwd), msg_size, wait_s);
-    }
-    total_size += msg_size;
-    rest -= msg_size;
-    dst = &dst[msg_size];
-    msg_size = 0;
-
-    /* Free queue, but cls was freed by send_core_* in fill_buf. */
-    (void) GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
-
-    /* Next! */
-    queue = peer_get_first_message (peer);
-  }
-
-  /* If more data in queue, send next */
-  if (NULL != queue)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  more data! (%u)\n", queue->size);
-    if (NULL == peer->core_transmit)
-    {
-      dst_id = GNUNET_PEER_resolve2 (peer->id);
-      peer->core_transmit =
-          GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             GNUNET_NO, get_priority (queue),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             dst_id,
-                                             get_core_size (queue->size),
-                                             &queue_send,
-                                             peer);
-      peer->tmt_time = GNUNET_TIME_absolute_get ();
-      queue->start_waiting = GNUNET_TIME_absolute_get ();
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   tmt rdy called somewhere else\n");
-    }
-//     GCC_start_poll (); FIXME needed?
-  }
-  else
-  {
-//     GCC_stop_poll(); FIXME needed?
-  }
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", total_size);
-  queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
-  GCC_check_connections ();
-  return total_size;
-}
-
-
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
 
-
 /**
- * Free a transmission that was already queued with all resources
- * associated to the request.
+ * Call the continuation after a message has been sent or dropped.
  *
- * If connection was marked to be destroyed, and this was the last queued
- * message on it, the connection will be free'd as a result.
- *
- * @param queue Queue handler to cancel.
- * @param clear_cls Is it necessary to free associated cls?
- * @param sent Was it really sent? (Could have been canceled)
- * @param pid PID, if relevant (was sent and was a payload message).
- *
- * @return #GNUNET_YES if connection was destroyed as a result,
- *         #GNUNET_NO otherwise.
+ * @param q Queue handle.
+ * @param sent #GNUNET_YES if was sent to CORE, #GNUNET_NO if dropped.
  */
-int
-GCP_queue_destroy (struct CadetPeerQueue *queue,
-                   int clear_cls,
-                   int sent,
-                   uint32_t pid)
+static void
+call_peer_cont (const struct CadetPeerQueue *q, int sent)
 {
-  struct CadetPeer *peer;
-  int connection_destroyed;
-
-  GCC_check_connections ();
-  peer = queue->peer;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy %s\n", GC_m2s (queue->type));
-  if (GNUNET_YES == clear_cls)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " free cls\n");
-    switch (queue->type)
-    {
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-        LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
-        /* fall through */
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      case GNUNET_MESSAGE_TYPE_CADET_KX:
-      case GNUNET_MESSAGE_TYPE_CADET_AX:
-      case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      case GNUNET_MESSAGE_TYPE_CADET_POLL:
-        GNUNET_free_non_null (queue->cls);
-        break;
-
-      default:
-        GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_ERROR, " type %s unknown!\n",
-             GC_m2s (queue->type));
-    }
-  }
-  GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
-
-  if (!is_connection_management (queue->type))
-  {
-    peer->queue_n--;
-  }
-
-  if (NULL != queue->cont)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " core mq just sent %s\n", GC_m2s (q->type));
+  if (NULL != q->cont)
   {
     struct GNUNET_TIME_Relative wait_time;
 
-    wait_time = GNUNET_TIME_absolute_get_duration (queue->start_waiting);
+    wait_time = GNUNET_TIME_absolute_get_duration (q->queue_timestamp);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback, time elapsed %s\n",
          GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
-    connection_destroyed = queue->cont (queue->cont_cls,
-                                        queue->c, sent, queue->type, pid,
-                                        queue->fwd, queue->size, wait_time);
+    q->cont (q->cont_cls,
+             q->c, q->c_fwd, sent,
+             q->type, q->payload_type, q->payload_id,
+             q->size, wait_time);
   }
-  else
-  {
-    connection_destroyed = GNUNET_NO;
-  }
-
-  if (NULL == peer_get_first_message (peer) && NULL != peer->core_transmit)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-    peer->core_transmit = NULL;
-    peer->tmt_time.abs_value_us = 0;
-  }
-
-  GNUNET_free (queue);
-  GCC_check_connections ();
-  return connection_destroyed;
 }
 
 
 /**
- * @brief Queue and pass message to core when possible.
+ * Function called by MQ when a message is sent to CORE.
+ *
+ * @param cls Closure (queue handle).
+ */
+static void
+mq_sent (void *cls)
+{
+  struct CadetPeerQueue *q = cls;
+
+  if (GNUNET_NO == q->management_traffic)
+  {
+    q->peer->queue_n--;
+  }
+  call_peer_cont (q, GNUNET_YES);
+  GNUNET_free (q);
+}
+
+
+/**
+ * @brief Send a message to another peer (using CORE).
  *
  * @param peer Peer towards which to queue the message.
- * @param cls Closure (@c type dependant). It will be used by queue_send to
- *            build the message to be sent if not already prebuilt.
- * @param type Type of the message.
- * @param payload_type Type of the message's payload
+ * @param message Message to send.
+ * @param payload_type Type of the message's payload, for debug messages.
  *                     0 if the message is a retransmission (unknown payload).
  *                     UINT16_MAX if the message does not have payload.
  * @param payload_id ID of the payload (MID, ACK #, etc)
- * @param size Size of the message.
  * @param c Connection this message belongs to (can be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param cont Continuation to be called once CORE has taken the message.
+ * @param cont Continuation to be called once CORE has sent the message.
  * @param cont_cls Closure for @c cont.
  *
- * @return Handle to cancel the message before it is sent. Once cont is called
- *         message has been sent and therefore the handle is no longer valid.
+ * @return A handle to the message in the queue or NULL (if dropped).
  */
 struct CadetPeerQueue *
-GCP_queue_add (struct CadetPeer *peer,
-               void *cls,
-               uint16_t type,
-               uint16_t payload_type,
-               uint32_t payload_id,
-               size_t size,
-               struct CadetConnection *c,
-               int fwd,
-               GCP_sent cont,
-               void *cont_cls)
+GCP_send (struct CadetPeer *peer,
+          const struct GNUNET_MessageHeader *message,
+          uint16_t payload_type,
+          uint32_t payload_id,
+          struct CadetConnection *c,
+          int fwd,
+          GCP_sent cont,
+          void *cont_cls)
 {
   struct CadetPeerQueue *q;
-  int priority;
-  int call_core;
+  uint16_t type;
+  uint16_t size;
 
   GCC_check_connections ();
+  type = ntohs (message->type);
+  size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "que %s (%s %4u) on conn %s (%p) %s towards %s (size %u)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id,
@@ -1508,282 +1156,68 @@ GCP_queue_add (struct CadetPeer *peer,
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
+    GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_INFO, "%s not a neighbor\n", GCP_2s (peer));
     GNUNET_STATISTICS_update (stats, "# messages dropped due to wrong hop", 1,
                               GNUNET_NO);
     return NULL;
   }
 
-  priority = 0;
-  if (is_connection_management (type))
-  {
-    priority = 100;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
-
-  call_core = (NULL == c || GNUNET_MESSAGE_TYPE_CADET_KX == type) ?
-               GNUNET_YES : GCC_is_sendable (c, fwd);
   q = GNUNET_new (struct CadetPeerQueue);
-  q->cls = cls;
-  q->type = type;
-  q->payload_type = payload_type;
-  q->payload_id = payload_id;
-  q->size = size;
+  q->env = GNUNET_MQ_msg_copy (message);
   q->peer = peer;
-  q->c = c;
-  q->fwd = fwd;
   q->cont = cont;
   q->cont_cls = cont_cls;
-  if (100 > priority)
+  q->queue_timestamp = GNUNET_TIME_absolute_get ();
+  q->management_traffic = is_connection_management (type);
+  q->type = type;
+  q->size = size;
+  q->payload_type = payload_type;
+  q->payload_id = payload_id;
+  q->c = c;
+  q->c_fwd = fwd;
+  GNUNET_MQ_notify_sent (q->env, mq_sent, q);
+
+  if (GNUNET_YES == q->management_traffic)
   {
-    GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, q);
+    GNUNET_MQ_send (peer->core_mq, q->env);  // FIXME implement "_urgent", use
+  }
+  else
+  {
+    if (GNUNET_YES == should_I_drop())
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
+           GC_m2s (q->type), GC_m2s (q->payload_type),
+           q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
+      GNUNET_MQ_discard (q->env);
+      call_peer_cont (q, GNUNET_NO);
+      GNUNET_free (q);
+      return NULL;
+    }
+    GNUNET_MQ_send (peer->core_mq, q->env);
     peer->queue_n++;
   }
-  else
-  {
-    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, q);
-    call_core = GNUNET_YES;
-  }
 
-  q->start_waiting = GNUNET_TIME_absolute_get ();
-  if (NULL == peer->core_transmit && GNUNET_YES == call_core)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "calling core tmt rdy towards %s for %u bytes\n",
-         GCP_2s (peer), size);
-    peer->core_transmit =
-        GNUNET_CORE_notify_transmit_ready (core_handle,
-                                           GNUNET_NO, get_priority (q),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_PEER_resolve2 (peer->id),
-                                           get_core_size (size),
-                                           &queue_send, peer);
-    peer->tmt_time = GNUNET_TIME_absolute_get ();
-  }
-  else if (GNUNET_NO == call_core)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s not needed\n",
-         GCP_2s (peer));
-
-  }
-  else
-  {
-    struct GNUNET_TIME_Relative elapsed;
-    elapsed = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s already called %s\n",
-         GCP_2s (peer),
-         GNUNET_STRINGS_relative_time_to_string (elapsed, GNUNET_NO));
-
-  }
-  queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
   GCC_check_connections ();
   return q;
 }
 
 
 /**
- * Cancel all queued messages to a peer that belong to a certain connection.
+ * Cancel sending a message. Message must have been sent with
+ * #GCP_send before.  May not be called after the notify sent
+ * callback has been called.
  *
- * @param peer Peer towards whom to cancel.
- * @param c Connection whose queued messages to cancel. Might be destroyed by
- *          the sent continuation call.
+ * It DOES call the continuation given to #GCP_send.
+ *
+ * @param q Queue handle to cancel
  */
 void
-GCP_queue_cancel (struct CadetPeer *peer,
-                  struct CadetConnection *c)
+GCP_send_cancel (struct CadetPeerQueue *q)
 {
-  struct CadetPeerQueue *q;
-  struct CadetPeerQueue *next;
-  struct CadetPeerQueue *prev;
-  int connection_destroyed;
-
-  GCC_check_connections ();
-  connection_destroyed = GNUNET_NO;
-  for (q = peer->queue_head; NULL != q; q = next)
-  {
-    prev = q->prev;
-    if (q->c == c)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "GMP queue cancel %s\n",
-           GC_m2s (q->type));
-      GNUNET_assert (GNUNET_NO == connection_destroyed);
-      if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY == q->type)
-      {
-        q->c = NULL;
-      }
-      else
-      {
-        connection_destroyed = GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
-      }
-
-      /* Get next from prev, q->next might be already freed:
-       * queue destroy -> callback -> GCC_destroy -> cancel_queues -> here
-       */
-      if (NULL == prev)
-        next = peer->queue_head;
-      else
-        next = prev->next;
-    }
-    else
-    {
-      next = q->next;
-    }
-  }
-
-  if ( (NULL == peer->queue_head) &&
-       (NULL != peer->core_transmit) )
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-    peer->core_transmit = NULL;
-    peer->tmt_time.abs_value_us = 0;
-  }
-  GCC_check_connections ();
-}
-
-
-/**
- * Get the first transmittable message for a connection.
- *
- * @param peer Neighboring peer.
- * @param c Connection.
- *
- * @return First transmittable message.
- */
-static struct CadetPeerQueue *
-connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
-{
-  struct CadetPeerQueue *q;
-
-  for (q = peer->queue_head; NULL != q; q = q->next)
-  {
-    if (q->c != c)
-      continue;
-    if (queue_is_sendable (q))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  sendable!!\n");
-      return q;
-    }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not sendable\n");
-  }
-
-  return NULL;
-}
-
-
-/**
- * Get the first message for a connection and unqueue it.
- *
- * Only tunnel (or higher) level messages are unqueued. Connection specific
- * messages are silently destroyed upon encounter.
- *
- * @param peer Neighboring peer.
- * @param c Connection.
- * @param destroyed[in/out] Was the connection destroyed (prev/as a result)?.
- *                          Can NOT be NULL.
- *
- * @return First message for this connection.
- */
-struct GNUNET_MessageHeader *
-GCP_connection_pop (struct CadetPeer *peer,
-                    struct CadetConnection *c,
-                    int *destroyed)
-{
-  struct CadetPeerQueue *q;
-  struct CadetPeerQueue *next;
-  struct GNUNET_MessageHeader *msg;
-  int dest;
-
-  GCC_check_connections ();
-  GNUNET_assert (NULL != destroyed);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on conn %p\n", c);
-  for (q = peer->queue_head; NULL != q; q = next)
-  {
-    next = q->next;
-    if (q->c != c)
-      continue;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " - queued: %s (%s %u), cont: %p\n",
-         GC_m2s (q->type), GC_m2s (q->payload_type), q->payload_id,
-         q->cont);
-    switch (q->type)
-    {
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      case GNUNET_MESSAGE_TYPE_CADET_POLL:
-        dest = GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
-        if (GNUNET_YES == dest)
-        {
-          GNUNET_break (GNUNET_NO == *destroyed);
-          *destroyed = GNUNET_YES;
-        }
-        continue;
-
-      case GNUNET_MESSAGE_TYPE_CADET_KX:
-      case GNUNET_MESSAGE_TYPE_CADET_AX:
-      case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
-        msg = (struct GNUNET_MessageHeader *) q->cls;
-        dest = GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
-        if (GNUNET_YES == dest)
-        {
-          GNUNET_break (GNUNET_NO == *destroyed);
-          *destroyed = GNUNET_YES;
-        }
-        return msg;
-
-      default:
-        GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Unknown message %s\n", GC_m2s (q->type));
-    }
-  }
-  GCC_check_connections ();
-  return NULL;
-}
-
-
-/**
- * Unlock a possibly locked queue for a connection.
- *
- * If there is a message that can be sent on this connection, call core for it.
- * Otherwise (if core transmit is already called or there is no sendable
- * message) do nothing.
- *
- * @param peer Peer who keeps the queue.
- * @param c Connection whose messages to unlock.
- */
-void
-GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
-{
-  struct CadetPeerQueue *q;
-  size_t size;
-
-  GCC_check_connections ();
-  if (NULL != peer->core_transmit)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
-    return; /* Already unlocked */
-  }
-
-  q = connection_get_first_message (peer, c);
-  if (NULL == q)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
-    return; /* Nothing to transmit */
-  }
-
-  size = q->size;
-  peer->core_transmit =
-      GNUNET_CORE_notify_transmit_ready (core_handle,
-                                         GNUNET_NO, get_priority (q),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_PEER_resolve2 (peer->id),
-                                         get_core_size (size),
-                                         &queue_send,
-                                         peer);
-  peer->tmt_time = GNUNET_TIME_absolute_get ();
-  GCC_check_connections ();
+  call_peer_cont (q, GNUNET_NO);
+  GNUNET_MQ_send_cancel (q->env);
+  GNUNET_free (q);
 }
 
 
@@ -1824,23 +1258,12 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
     LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
   }
   ats_ch = GNUNET_ATS_connectivity_init (c);
-  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to CADET functions */
-                                     &core_init,        /* Call core_init once connected */
-                                     &core_connect,     /* Handle connects */
-                                     &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Don't notify about all incoming messages */
-                                     GNUNET_NO, /* For header only in notification */
-                                     NULL,      /* Don't notify about all outbound messages */
-                                     GNUNET_NO, /* For header-only out notification */
-                                     core_handlers);    /* Register these handlers */
+  connect_to_core (c);
   if (NULL == core_handle)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
-    return;
   }
-
 }
 
 
@@ -1853,13 +1276,10 @@ GCP_shutdown (void)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Shutting down peer subsystem\n");
   in_shutdown = GNUNET_YES;
-  GNUNET_CONTAINER_multipeermap_iterate (peers,
-                                         &shutdown_peer,
-                                         NULL);
   if (NULL != core_handle)
   {
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = NULL;
+    GNUNET_CORE_disconnecT (core_handle);
+        core_handle = NULL;
   }
   if (NULL != ats_ch)
   {
@@ -1867,6 +1287,12 @@ GCP_shutdown (void)
     ats_ch = NULL;
   }
   GNUNET_PEER_change_rc (myid, -1);
+  /* With MQ API, CORE calls the disconnect handler for every peer
+   * after calling GNUNET_CORE_disconnecT, shutdown must occur *after* that.
+   */
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
+                                         &shutdown_peer,
+                                         NULL);
   GNUNET_CONTAINER_multipeermap_destroy (peers);
   peers = NULL;
 }
@@ -2054,7 +1480,6 @@ GCP_is_neighbor (const struct CadetPeer *peer)
   }
 
   /* Is not a neighbor but connections is not NULL, probably disconnecting */
-  GNUNET_break (0);
   return GNUNET_NO;
 }
 
@@ -2254,7 +1679,8 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
 {
   unsigned int i;
 
-  /* TODO: invert and add */
+  /* TODO: invert and add to origin */
+  /* TODO: replace all "GCP_add_path" with this, make the other one static */
   GCC_check_connections ();
   for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)

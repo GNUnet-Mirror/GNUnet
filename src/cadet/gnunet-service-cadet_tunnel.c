@@ -1600,7 +1600,6 @@ send_kx (struct CadetTunnel *t,
     {
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-      GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
     }
     return NULL;
   }
@@ -2245,6 +2244,10 @@ GCT_handle_encrypted (struct CadetTunnel *t,
  *
  * @param t Tunnel on which the message came.
  * @param message Payload of KX message.
+ *
+ * FIXME: not needed anymore
+ *  - substitute with call to kx_ax
+ *  - eliminate encapsulation
  */
 void
 GCT_handle_kx (struct CadetTunnel *t,
@@ -3363,34 +3366,6 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
   t->ephm_h = send_kx (t, &msg.header);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
-}
-
-
-/**
- * Sends an already built and encrypted message on a tunnel, choosing the best
- * connection. Useful for re-queueing messages queued on a destroyed connection.
- *
- * @param message Message to send. Function modifies it.
- * @param t Tunnel on which this message is transmitted.
- */
-void
-GCT_resend_message (const struct GNUNET_MessageHeader *message,
-                    struct CadetTunnel *t)
-{
-  struct CadetConnection *c;
-  int fwd;
-
-  c = tunnel_get_connection (t);
-  if (NULL == c)
-  {
-    /* TODO queue in tunnel, marked as encrypted */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "No connection available, dropping.\n");
-    return;
-  }
-  fwd = GCC_is_origin (c, GNUNET_YES);
-  GNUNET_break (NULL == GCC_send_prebuilt_message (message, UINT16_MAX, 0,
-                                                   c, fwd,
-                                                   GNUNET_YES, NULL, NULL));
 }
 
 

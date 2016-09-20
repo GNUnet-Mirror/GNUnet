@@ -118,90 +118,86 @@ typedef void
 
 
 /**
- * Core handler for connection creation.
+ * Handler for connection creation.
  *
- * @param cls Closure (unused).
- * @param peer Sender (neighbor).
- * @param message Message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_create (void *cls,
-                   const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_MessageHeader *message);
+void
+GCC_handle_create (struct CadetPeer *peer,
+                   const struct GNUNET_CADET_ConnectionCreate *msg);
 
 
 /**
- * Core handler for path confirmations.
+ * Handler for connection confirmations.
  *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_confirm (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message);
+void
+GCC_handle_confirm (struct CadetPeer *peer,
+                    const struct GNUNET_CADET_ConnectionACK *msg);
 
 
 /**
- * Core handler for notifications of broken paths
+ * Handler for notifications of broken connections.
  *
- * @param cls Closure (unused).
- * @param id Peer identity of sending neighbor.
- * @param message Message.
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_broken (void* cls,
-                   const struct GNUNET_PeerIdentity* id,
-                   const struct GNUNET_MessageHeader* message);
+void
+GCC_handle_broken (struct CadetPeer *peer,
+                   const struct GNUNET_CADET_ConnectionBroken *msg);
 
 /**
- * Core handler for tunnel destruction
+ * Handler for notifications of destroyed connections.
  *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message);
+void
+GCC_handle_destroy (struct CadetPeer *peer,
+                    const struct GNUNET_CADET_ConnectionDestroy *msg);
 
 /**
- * Core handler for key exchange traffic (ephemeral key, ping, pong).
+ * Handler for cadet network traffic hop-by-hop acks.
  *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message);
+void
+GCC_handle_ack (struct CadetPeer *peer,
+                const struct GNUNET_CADET_ACK *msg);
 
 /**
- * Core handler for encrypted cadet network traffic (channel mgmt, data).
+ * Handler for cadet network traffic hop-by-hop data counter polls.
  *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
  */
-int
-GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message);
+void
+GCC_handle_poll (struct CadetPeer *peer,
+                 const struct GNUNET_CADET_Poll *msg);
+
+/**
+ * Handler for key exchange traffic (Axolotl KX).
+ *
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
+ */
+void
+GCC_handle_kx (struct CadetPeer *peer,
+               const struct GNUNET_CADET_KX *msg);
+
+/**
+ * Handler for encrypted cadet network traffic (channel mgmt, data).
+ *
+ * @param peer Message sender (neighbor).
+ * @param msg Message itself.
+ */
+void
+GCC_handle_encrypted (struct CadetPeer *peer,
+                      const struct GNUNET_CADET_AX *msg);
 
 /**
  * Core handler for axolotl key exchange traffic.
@@ -228,34 +224,6 @@ GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
 int
 GCC_handle_ax (void *cls, const struct GNUNET_PeerIdentity *peer,
                struct GNUNET_MessageHeader *message);
-
-/**
- * Core handler for cadet network traffic point-to-point acks.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message);
-
-/**
- * Core handler for cadet network traffic point-to-point ack polls.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GCC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_MessageHeader *message);
 
 /**
  * Core handler for cadet keepalives.
@@ -301,11 +269,12 @@ GCC_shutdown (void);
  * Create a connection.
  *
  * @param cid Connection ID (either created locally or imposed remotely).
- * @param t Tunnel this connection belongs to (or NULL);
+ * @param t Tunnel this connection belongs to (or NULL for transit connections);
  * @param path Path this connection has to use (copy is made).
  * @param own_pos Own position in the @c path path.
  *
- * @return Newly created connection, NULL in case of error (own id not in path).
+ * @return Newly created connection.
+ *         NULL in case of error: own id not in path, wrong neighbors, ...
  */
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
@@ -525,6 +494,7 @@ GCC_cancel (struct CadetConnectionQueue *q);
  * @param message Message to send. Function makes a copy of it.
  *                If message is not hop-by-hop, decrements TTL of copy.
  * @param payload_type Type of payload, in case the message is encrypted.
+ * @param payload_id ID of the payload (PID, ACK, ...).
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
  * @param force Force the connection to accept the message (buffer overfill).
