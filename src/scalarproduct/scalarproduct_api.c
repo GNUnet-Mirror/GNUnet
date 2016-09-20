@@ -294,7 +294,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
     size = todo * sizeof (struct GNUNET_SCALARPRODUCT_Element);
     env = GNUNET_MQ_msg_extra (mmsg,
                                size,
-                               GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART_BOB);
+                               GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_BOB);
     mmsg->element_count_contained = htonl (todo);
     GNUNET_memcpy (&mmsg[1],
             &elements[element_count_transfered],
@@ -454,7 +454,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
     size = todo * sizeof (struct GNUNET_SCALARPRODUCT_Element);
     env = GNUNET_MQ_msg_extra (mmsg,
                                size,
-                               GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART_ALICE);
+                               GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE);
     mmsg->element_count_contained = htonl (todo);
     GNUNET_memcpy (&mmsg[1],
             &elements[element_count_transfered],
