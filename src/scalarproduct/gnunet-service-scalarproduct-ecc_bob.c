@@ -79,7 +79,7 @@ struct BobServiceSession
   /**
    * The client this request is related to.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Client message queue.
@@ -241,7 +241,6 @@ static struct GNUNET_CADET_Handle *my_cadet;
 static struct GNUNET_CRYPTO_EccDlogContext *edc;
 
 
-
 /**
  * Finds a not terminated client session in the respective map based on
  * session key.
@@ -318,14 +317,9 @@ destroy_service_session (struct BobServiceSession *s)
     s->cadet = NULL;
     destroy_cadet_session (in);
   }
-  if (NULL != s->client_mq)
-  {
-    GNUNET_MQ_destroy (s->client_mq);
-    s->client_mq = NULL;
-  }
   if (NULL != s->client)
   {
-    GNUNET_SERVER_client_disconnect (s->client);
+    GNUNET_SERVICE_client_drop (s->client);
     s->client = NULL;
   }
   GNUNET_assert (GNUNET_YES ==
@@ -919,48 +913,22 @@ cb_channel_incoming (void *cls,
 
 
 /**
- * We're receiving additional set data. Add it to our
- * set and if we are done, initiate the transaction.
+ * We're receiving additional set data. Check it is well-formed.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-static void
-GSS_handle_bob_client_message_multipart (void *cls,
-                                         struct GNUNET_SERVER_Client *client,
-                                         const struct GNUNET_MessageHeader *message)
+static int
+check_bob_client_message_multipart (void *cls,
+				    const struct ComputationBobCryptodataMultipartMessage *msg)
 {
-  const struct ComputationBobCryptodataMultipartMessage * msg;
-  struct BobServiceSession *s;
+  struct BobServiceSession *s = cls;
   uint32_t contained_count;
-  const struct GNUNET_SCALARPRODUCT_Element *elements;
-  uint32_t i;
   uint16_t msize;
-  struct GNUNET_SET_Element set_elem;
-  struct GNUNET_SCALARPRODUCT_Element *elem;
 
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct BobServiceSession);
-  if (NULL == s)
-  {
-    /* session needs to already exist */
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct ComputationBobCryptodataMultipartMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct ComputationBobCryptodataMultipartMessage *) message;
+  msize = ntohs (msg->header.size);
   contained_count = ntohl (msg->element_count_contained);
-
   if ( (msize != (sizeof (struct ComputationBobCryptodataMultipartMessage) +
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
        (0 == contained_count) ||
@@ -968,18 +936,38 @@ GSS_handle_bob_client_message_multipart (void *cls,
        (s->total == s->client_received_element_count) ||
        (s->total < s->client_received_element_count + contained_count) )
   {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
+
+
+/**
+ * We're receiving additional set data. Add it to our
+ * set and if we are done, initiate the transaction.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ */
+static void
+handle_bob_client_message_multipart (void *cls,
+				     const struct ComputationBobCryptodataMultipartMessage *msg)
+{
+  struct BobServiceSession *s = cls;
+  uint32_t contained_count;
+  const struct GNUNET_SCALARPRODUCT_Element *elements;
+  struct GNUNET_SET_Element set_elem;
+  struct GNUNET_SCALARPRODUCT_Element *elem;
+
+  contained_count = ntohl (msg->element_count_contained);
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
-  for (i = 0; i < contained_count; i++)
+  for (uint32_t i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
     GNUNET_memcpy (elem,
-            &elements[i],
-            sizeof (struct GNUNET_SCALARPRODUCT_Element));
+		   &elements[i],
+		   sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
         GNUNET_CONTAINER_multihashmap_put (s->intersected_elements,
                                            &elem->key,
@@ -998,8 +986,7 @@ GSS_handle_bob_client_message_multipart (void *cls,
                             NULL, NULL);
   }
   s->client_received_element_count += contained_count;
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (s->client);
   if (s->total != s->client_received_element_count)
   {
     /* more to come */
@@ -1015,50 +1002,28 @@ GSS_handle_bob_client_message_multipart (void *cls,
 
 
 /**
- * Handler for Bob's a client request message.  Bob is in the response
- * role, keep the values + session and waiting for a matching session
- * or process a waiting request from Alice.
+ * Handler for Bob's a client request message.  Check @a msg is
+ * well-formed.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-static void
-GSS_handle_bob_client_message (void *cls,
-                               struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_MessageHeader *message)
+static int
+check_bob_client_message (void *cls,
+			  const struct BobComputationMessage *msg)
 {
-  const struct BobComputationMessage *msg;
-  struct BobServiceSession *s;
-  struct CadetIncomingSession *in;
+  struct BobServiceSession *s = cls;
   uint32_t contained_count;
   uint32_t total_count;
-  const struct GNUNET_SCALARPRODUCT_Element *elements;
-  uint32_t i;
-  struct GNUNET_SET_Element set_elem;
-  struct GNUNET_SCALARPRODUCT_Element *elem;
   uint16_t msize;
 
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct BobServiceSession);
-  if (NULL != s)
-  {
-    /* only one concurrent session per client connection allowed,
-       simplifies logic a lot... */
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct BobComputationMessage))
+  if (GNUNET_SCALARPRODUCT_STATUS_INIT != s->status)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
-  msg = (const struct BobComputationMessage *) message;
+  msize = ntohs (msg->header.size);
   total_count = ntohl (msg->element_count_total);
   contained_count = ntohl (msg->element_count_contained);
   if ( (0 == total_count) ||
@@ -1068,22 +1033,41 @@ GSS_handle_bob_client_message (void *cls,
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) )
   {
     GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
   if (NULL != find_matching_client_session (&msg->session_key))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
 
-  s = GNUNET_new (struct BobServiceSession);
+
+/**
+ * Handler for Bob's a client request message.  Bob is in the response
+ * role, keep the values + session and waiting for a matching session
+ * or process a waiting request from Alice.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ */
+static void
+handle_bob_client_message (void *cls,
+			   const struct BobComputationMessage *msg)
+{
+  struct BobServiceSession *s = cls;
+  struct CadetIncomingSession *in;
+  uint32_t contained_count;
+  uint32_t total_count;
+  const struct GNUNET_SCALARPRODUCT_Element *elements;
+  struct GNUNET_SET_Element set_elem;
+  struct GNUNET_SCALARPRODUCT_Element *elem;
+
+  total_count = ntohl (msg->element_count_total);
+  contained_count = ntohl (msg->element_count_contained);
+
   s->status = GNUNET_SCALARPRODUCT_STATUS_ACTIVE;
-  s->client = client;
-  s->client_mq = GNUNET_MQ_queue_for_server_client (client);
   s->total = total_count;
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
@@ -1094,9 +1078,7 @@ GSS_handle_bob_client_message (void *cls,
   if (NULL == s->port)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    GNUNET_free (s);
+    GNUNET_SERVICE_client_drop (s->client);
     return;
   }
   GNUNET_break (GNUNET_YES ==
@@ -1105,11 +1087,13 @@ GSS_handle_bob_client_message (void *cls,
                                                    s,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
-  s->intersected_elements = GNUNET_CONTAINER_multihashmap_create (s->total,
-                                                                  GNUNET_YES);
-  s->intersection_set = GNUNET_SET_create (cfg,
-                                           GNUNET_SET_OPERATION_INTERSECTION);
-  for (i = 0; i < contained_count; i++)
+  s->intersected_elements
+    = GNUNET_CONTAINER_multihashmap_create (s->total,
+					    GNUNET_YES);
+  s->intersection_set
+    = GNUNET_SET_create (cfg,
+			 GNUNET_SET_OPERATION_INTERSECTION);
+  for (uint32_t i = 0; i < contained_count; i++)
   {
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
@@ -1135,10 +1119,7 @@ GSS_handle_bob_client_message (void *cls,
                             NULL, NULL);
     s->used_element_count++;
   }
-  GNUNET_SERVER_client_set_user_context (client,
-                                         s);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_YES);
+  GNUNET_SERVICE_client_continue (s->client);
   if (s->total != s->client_received_element_count)
   {
     /* multipart msg */
@@ -1187,6 +1168,30 @@ shutdown_task (void *cls)
 
 
 /**
+ * A client connected.
+ *
+ * Setup the associated data structure.
+ *
+ * @param cls closure, NULL
+ * @param client identification of the client
+ * @param mq message queue to communicate with @a client
+ * @return our `struct BobServiceSession`
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  struct BobServiceSession *s;
+
+  s = GNUNET_new (struct BobServiceSession);
+  s->client = client;
+  s->client_mq = mq;
+  return s;
+}
+
+
+/**
  * A client disconnected.
  *
  * Remove the associated session(s), release data structures
@@ -1194,21 +1199,17 @@ shutdown_task (void *cls)
  *
  * @param cls closure, NULL
  * @param client identification of the client
+ * @param app_cls our `struct BobServiceSession`
  */
 static void
-handle_client_disconnect (void *cls,
-                          struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_cls)
 {
-  struct BobServiceSession *s;
+  struct BobServiceSession *s = app_cls;
 
-  if (NULL == client)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client disconnected from us.\n");
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct BobServiceSession);
-  if (NULL == s)
-    return;
   s->client = NULL;
   destroy_service_session (s);
 }
@@ -1218,23 +1219,14 @@ handle_client_disconnect (void *cls,
  * Initialization of the program and message handlers
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    { &GSS_handle_bob_client_message, NULL,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB,
-      0},
-    { &GSS_handle_bob_client_message_multipart, NULL,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_BOB,
-      0},
-    { NULL, NULL, 0, 0}
-  };
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     { &handle_alices_computation_request,
       GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION,
@@ -1249,19 +1241,16 @@ run (void *cls,
   /* We don't really do DLOG, so we can setup with very minimal resources */
   edc = GNUNET_CRYPTO_ecc_dlog_prepare (4 /* max value */,
                                         2 /* RAM */);
-
-  GNUNET_SERVER_add_handlers (server,
-                              server_handlers);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &handle_client_disconnect,
-                                   NULL);
   client_sessions = GNUNET_CONTAINER_multihashmap_create (128,
                                                           GNUNET_YES);
   cadet_sessions = GNUNET_CONTAINER_multihashmap_create (128,
                                                          GNUNET_YES);
-  my_cadet = GNUNET_CADET_connect (cfg, NULL,
+  my_cadet = GNUNET_CADET_connect (cfg, 
+				   NULL,
                                    &cb_channel_destruction,
                                    cadet_handlers);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1269,27 +1258,28 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
 }
 
 
 /**
- * The main function for the scalarproduct service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc,
-      char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv,
-                              "scalarproduct-bob",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("scalarproduct-bob",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (bob_client_message,
+			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB,
+			struct BobComputationMessage,
+			NULL),
+GNUNET_MQ_hd_var_size (bob_client_message_multipart,
+		       GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_BOB,
+		       struct ComputationBobCryptodataMultipartMessage,
+		       NULL),
+ GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-scalarproduct-ecc_bob.c */
