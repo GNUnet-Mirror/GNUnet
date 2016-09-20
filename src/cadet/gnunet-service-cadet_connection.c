@@ -3067,7 +3067,6 @@ void
 GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
 {
   struct CadetFlowControl *fc;
-  struct CadetPeer *hop;
   char peer_name[16];
   int fwd;
 
@@ -3080,14 +3079,12 @@ GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
 
   invalidate_paths (c, peer);
 
-  hop = get_prev_hop (c);
-  if (NULL == hop)
+  fwd = is_fwd (c, peer);
+  if (GNUNET_SYSERR == fwd)
   {
-    /* Path was NULL, we should have deleted the connection. */
     GNUNET_break (0);
     return;
   }
-  fwd = (peer == hop);
   if ( (GNUNET_YES == GCC_is_terminal (c, fwd)) ||
        (GNUNET_NO != c->destroy) )
   {
