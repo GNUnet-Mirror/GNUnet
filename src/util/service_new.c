@@ -1693,6 +1693,8 @@ GNUNET_SERVICE_ruN_ (int argc,
 	 "Skewing clock by %dll ms\n",
 	 clock_offset);
   }
+  GNUNET_RESOLVER_connect (sh.cfg);
+  
   /* actually run service */
   err = 0;
   GNUNET_SCHEDULER_run (&service_main,
