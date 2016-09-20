@@ -55,7 +55,12 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
   /**
    * Operation is still active (never returned, used internally).
    */
-  GNUNET_SCALARPRODUCT_STATUS_ACTIVE = 0,
+  GNUNET_SCALARPRODUCT_STATUS_INIT = 0,
+
+  /**
+   * Operation is still active (never returned, used internally).
+   */
+  GNUNET_SCALARPRODUCT_STATUS_ACTIVE = 1,
 
   /**
    * The computation was successful.

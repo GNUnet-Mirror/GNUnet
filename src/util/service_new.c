@@ -384,9 +384,10 @@ service_main (void *cls)
     GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
                                    sh);
   GNUNET_SERVICE_resume (sh);
-  sh->service_init_cb (sh->cb_cls,
-                       sh->cfg,
-                       sh);
+  if (NULL != sh->service_init_cb)
+    sh->service_init_cb (sh->cb_cls,
+			 sh->cfg,
+			 sh);
 }
 
 
@@ -2250,6 +2251,8 @@ resume_client_receive (void *cls)
   if (GNUNET_YES == c->needs_continue)
     return; /* #GNUNET_MST_next() did give a message to the client */
   /* need to receive more data from the network first */
+  if (NULL != c->recv_task)
+    return;
   c->recv_task
     = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				     c->sock,
