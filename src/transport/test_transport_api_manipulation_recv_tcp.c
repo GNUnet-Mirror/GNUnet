@@ -87,7 +87,9 @@ sendtask (void *cls)
   }
   if (0 < messages_recv)
   {
-    memset (&prop, 0, sizeof (prop));
+    memset (&prop,
+	    0,
+	    sizeof (prop));
     delay = GNUNET_TIME_UNIT_SECONDS;
     GNUNET_TRANSPORT_manipulation_set (ccc->p[1]->tmh,
 				       &ccc->p[0]->id,
@@ -95,10 +97,13 @@ sendtask (void *cls)
 				       delay,
 				       GNUNET_TIME_UNIT_ZERO);
     /* wait 1s to allow manipulation to go into effect */
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				  &delayed_transmit,
-				  sc);
-    return;
+    if (1 == messages_recv)
+    {
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				    &delayed_transmit,
+				    sc);
+      return;
+    }
   }
   GNUNET_TRANSPORT_TESTING_large_send (sc);
 }
@@ -131,7 +136,7 @@ notify_receive (void *cls,
     return;
   }
 
-  if (messages_recv <= 1)
+  if (messages_recv <= 2)
   {
     /* Received non-delayed message */
     dur_normal = GNUNET_TIME_absolute_get_duration (start_normal);
