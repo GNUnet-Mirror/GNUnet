@@ -115,16 +115,6 @@ static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
- * Handle to this serivce's server.
- */
-static struct GNUNET_SERVER_Handle *srv;
-
-/**
- * Notification context for convenient sending of replies to the clients.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
  * File handle for the revocation database.
  */
 static struct GNUNET_DISK_FileHandle *revocation_db;
@@ -202,19 +192,51 @@ verify_revoke_message (const struct RevokeMessage *rm)
 
 
 /**
+ * Handle client connecting to the service.
+ *
+ * @param cls NULL
+ * @param client the new client
+ * @param mq the message queue of @a client
+ * @return @a client
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  return client;
+}
+
+
+/**
+ * Handle client connecting to the service.
+ *
+ * @param cls NULL
+ * @param client the new client
+ * @param app_cls must alias @a client
+ */
+static void 
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_cls)
+{
+  GNUNET_assert (client == app_cls);
+}
+
+
+/**
  * Handle QUERY message from client.
  *
- * @param cls unused
- * @param client who sent the message
- * @param message the message received
+ * @param cls client who sent the message
+ * @param qm the message received
  */
 static void
 handle_query_message (void *cls,
-		      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+                      const struct QueryMessage *qm)
 {
-  const struct QueryMessage *qm = (const struct QueryMessage *) message;
-  struct QueryResponseMessage qrm;
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct QueryResponseMessage *qrm;
   struct GNUNET_HashCode hc;
   int res;
 
@@ -228,17 +250,12 @@ handle_query_message (void *cls,
 	      ? "Received revocation check for valid key `%s' from client\n"
               : "Received revocation check for revoked key `%s' from client\n",
               GNUNET_h2s (&hc));
-  qrm.header.size = htons (sizeof (struct QueryResponseMessage));
-  qrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
-  qrm.is_valid = htonl ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &qrm.header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  env = GNUNET_MQ_msg (qrm,
+		       GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
+  qrm->is_valid = htonl ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+		  env);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -362,40 +379,32 @@ publicize_rm (const struct RevokeMessage *rm)
 /**
  * Handle REVOKE message from client.
  *
- * @param cls unused
- * @param client who sent the message
- * @param message the message received
+ * @param cls client who sent the message
+ * @param rm the message received
  */
 static void
 handle_revoke_message (void *cls,
-                       struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *message)
+                       const struct RevokeMessage *rm)
 {
-  const struct RevokeMessage *rm;
-  struct RevocationResponseMessage rrm;
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct RevocationResponseMessage *rrm;
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REVOKE message from client\n");
-  rm = (const struct RevokeMessage *) message;
   if (GNUNET_SYSERR == (ret = publicize_rm (rm)))
   {
     GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
-  rrm.header.size = htons (sizeof (struct RevocationResponseMessage));
-  rrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
-  rrm.is_valid = htonl ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &rrm.header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  env = GNUNET_MQ_msg (rrm,
+		       GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
+  rrm->is_valid = htonl ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+		  env);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -674,11 +683,6 @@ shutdown_task (void *cls)
     GNUNET_CONTAINER_multipeermap_destroy (peers);
     peers = NULL;
   }
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
-  }
   if (NULL != revocation_db)
   {
     GNUNET_DISK_file_close (revocation_db);
@@ -774,16 +778,9 @@ handle_revocation_union_request (void *cls,
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)     
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_query_message, NULL, GNUNET_MESSAGE_TYPE_REVOCATION_QUERY,
-     sizeof (struct QueryMessage)},
-    {&handle_revoke_message, NULL, GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
-     sizeof (struct RevokeMessage)},
-    {NULL, NULL, 0, 0}
-  };
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
     GNUNET_MQ_hd_fixed_size (p2p_revoke,
                              GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
@@ -796,6 +793,9 @@ run (void *cls,
   struct RevokeMessage *rm;
   struct GNUNET_HashCode hc;
 
+  GNUNET_CRYPTO_hash ("revocation-set-union-application-id",
+                      strlen ("revocation-set-union-application-id"),
+                      &revocation_set_union_app_id);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (c,
                                                "REVOCATION",
@@ -809,10 +809,8 @@ run (void *cls,
     return;
   }
   cfg = c;
-  srv = server;
   revocation_map = GNUNET_CONTAINER_multihashmap_create (16,
 							 GNUNET_NO);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "REVOCATION",
@@ -895,8 +893,7 @@ run (void *cls,
 				 NULL);
   peers = GNUNET_CONTAINER_multipeermap_create (128,
                                                 GNUNET_YES);
-  GNUNET_SERVER_add_handlers (srv, handlers);
-   /* Connect to core service and register core handlers */
+  /* Connect to core service and register core handlers */
   core_api = GNUNET_CORE_connecT (cfg,   /* Main configuration */
 				  NULL,       /* Closure passed to functions */
 				  &core_init,    /* Call core_init once connected */
@@ -908,47 +905,46 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  stats = GNUNET_STATISTICS_create ("revocation", cfg);
+  stats = GNUNET_STATISTICS_create ("revocation",
+				    cfg);
 }
 
 
 /**
- * The main function for the network size estimation service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc,
-      char *const *argv)
-{
-  GNUNET_CRYPTO_hash ("revocation-set-union-application-id",
-                      strlen ("revocation-set-union-application-id"),
-                      &revocation_set_union_app_id);
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "revocation",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("revocation",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (query_message,
+			  GNUNET_MESSAGE_TYPE_REVOCATION_QUERY,
+			  struct QueryMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (revoke_message,
+			  GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
+			  struct RevokeMessage,
+			  NULL),
+ GNUNET_MQ_handler_end ());
 
 
 #if defined(LINUX) && defined(__GLIBC__)
 #include <malloc.h>
 
-
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
 void __attribute__ ((constructor))
-GNUNET_ARM_memory_init ()
+GNUNET_REVOCATION_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
 #endif
 
 
