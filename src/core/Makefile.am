@@ -41,7 +41,6 @@ bin_PROGRAMS = \
 
 gnunet_service_core_SOURCES = \
  gnunet-service-core.c gnunet-service-core.h \
- gnunet-service-core_clients.c gnunet-service-core_clients.h \
  gnunet-service-core_kx.c gnunet-service-core_kx.h \
  gnunet-service-core_sessions.c gnunet-service-core_sessions.h \
  gnunet-service-core_typemap.c gnunet-service-core_typemap.h

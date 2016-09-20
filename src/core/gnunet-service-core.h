@@ -29,6 +29,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_core_service.h"
 #include "core.h"
+#include "gnunet-service-core_typemap.h"
+
 
 /**
  * Opaque handle to a client.
@@ -97,6 +99,84 @@ struct GSC_ClientActiveRequest
   uint16_t smr_id;
 
 };
+
+
+/**
+ * Tell a client that we are ready to receive the message.
+ *
+ * @param car request that is now ready; the responsibility
+ *        for the handle remains shared between CLIENTS
+ *        and SESSIONS after this call.
+ */
+void
+GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car);
+
+
+/**
+ * We will never be ready to transmit the given message in (disconnect
+ * or invalid request).  Frees resources associated with @a car.  We
+ * don't explicitly tell the client, he'll learn with the disconnect
+ * (or violated the protocol).
+ *
+ * @param car request that now permanently failed; the
+ *        responsibility for the handle is now returned
+ *        to CLIENTS (SESSIONS is done with it).
+ * @param drop_client #GNUNET_YES if the client violated the protocol
+ *        and we should thus drop the connection
+ */
+void
+GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car,
+                            int drop_client);
+
+
+/**
+ * Notify a particular client about a change to existing connection to
+ * one of our neighbours (check if the client is interested).  Called
+ * from #GSC_SESSIONS_notify_client_about_sessions().
+ *
+ * @param client client to notify
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap_old previous type map for the neighbour, NULL for connect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ */
+void
+GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
+                                           const struct GNUNET_PeerIdentity *neighbour,
+                                           const struct GSC_TypeMap *tmap_old,
+                                           const struct GSC_TypeMap *tmap_new);
+
+
+/**
+ * Deliver P2P message to interested clients.  Caller must have checked
+ * that the sending peer actually lists the given message type as one
+ * of its types.
+ *
+ * @param sender peer who sent us the message
+ * @param msg the message
+ * @param msize number of bytes to transmit
+ * @param options options for checking which clients should
+ *        receive the message
+ */
+void
+GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
+                             const struct GNUNET_MessageHeader *msg,
+                             uint16_t msize,
+                             uint32_t options);
+
+
+/**
+ * Notify all clients about a change to existing session.
+ * Called from SESSIONS whenever there is a change in sessions
+ * or types processed by the respective peer.
+ *
+ * @param neighbour identity of the neighbour that changed status
+ * @param tmap_old previous type map for the neighbour, NULL for connect
+ * @param tmap_new updated type map for the neighbour, NULL for disconnect
+ */
+void
+GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
+                                            const struct GSC_TypeMap *tmap_old,
+                                            const struct GSC_TypeMap *tmap_new);
 
 
 /**

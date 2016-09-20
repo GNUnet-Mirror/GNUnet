@@ -28,7 +28,6 @@
 #include "gnunet-service-core_kx.h"
 #include "gnunet-service-core_typemap.h"
 #include "gnunet-service-core_sessions.h"
-#include "gnunet-service-core_clients.h"
 #include "gnunet_constants.h"
 #include "core.h"
 

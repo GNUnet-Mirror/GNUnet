@@ -26,7 +26,6 @@
 #include "platform.h"
 #include "gnunet-service-core_kx.h"
 #include "gnunet-service-core.h"
-#include "gnunet-service-core_clients.h"
 #include "gnunet-service-core_sessions.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_core_service.h"
@@ -392,34 +391,9 @@ static struct GSC_KeyExchangeInfo *kx_tail;
 static struct GNUNET_SCHEDULER_Task *rekey_task;
 
 /**
- * Notification context for all monitors.
+ * Notification context for broadcasting to monitors.
  */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-
-/**
- * Inform the given monitor about the KX state of
- * the given peer.
- *
- * @param client client to inform
- * @param kx key exchange state to inform about
- */
-static void
-monitor_notify (struct GNUNET_SERVER_Client *client,
-                struct GSC_KeyExchangeInfo *kx)
-{
-  struct MonitorNotifyMessage msg;
-
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
-  msg.header.size = htons (sizeof (msg));
-  msg.state = htonl ((uint32_t) kx->status);
-  msg.peer = *kx->peer;
-  msg.timeout = GNUNET_TIME_absolute_hton (kx->timeout);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &msg.header,
-                                              GNUNET_NO);
-}
+static struct GNUNET_NotificationContext *nc;
 
 
 /**
@@ -453,9 +427,9 @@ monitor_notify_all (struct GSC_KeyExchangeInfo *kx)
   msg.state = htonl ((uint32_t) kx->status);
   msg.peer = *kx->peer;
   msg.timeout = GNUNET_TIME_absolute_hton (kx->timeout);
-  GNUNET_SERVER_notification_context_broadcast (nc,
-                                                &msg.header,
-                                                GNUNET_NO);
+  GNUNET_notification_context_broadcast (nc,
+					 &msg.header,
+					 GNUNET_NO);
   kx->last_notify_timeout = kx->timeout;
 }
 
@@ -1807,12 +1781,10 @@ do_rekey (void *cls)
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
- * @param server the server of the CORE service
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
-             struct GNUNET_SERVER_Handle *server)
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (ephemeral_key,
@@ -1834,8 +1806,6 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
     GNUNET_MQ_handler_end()
   };
 
-  nc = GNUNET_SERVER_notification_context_create (server,
-                                                  1);
   my_private_key = pk;
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
                                       &GSC_my_identity.public_key);
@@ -1848,10 +1818,12 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
     return GNUNET_SYSERR;
   }
   sign_ephemeral_key ();
+  nc = GNUNET_notification_context_create (1);
   rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
                                              &do_rekey,
                                              NULL);
-  mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
+  mst = GNUNET_SERVER_mst_create (&deliver_message,
+				  NULL);
   transport 
     = GNUNET_TRANSPORT_core_connect (GSC_cfg,
 				     &GSC_my_identity,
@@ -1902,7 +1874,7 @@ GSC_KX_done ()
   }
   if (NULL != nc)
   {
-    GNUNET_SERVER_notification_context_destroy (nc);
+    GNUNET_notification_context_destroy (nc);
     nc = NULL;
   }
 }
@@ -1940,34 +1912,36 @@ GSC_NEIGHBOURS_check_excess_bandwidth (const struct GSC_KeyExchangeInfo *kxinfo)
  * request.  All current peers are returned, regardless of which
  * message types they accept.
  *
- * @param cls unused
- * @param client client sending the iteration request
- * @param message iteration request message
+ * @param mq message queue to add for monitoring
  */
 void
-GSC_KX_handle_client_monitor_peers (void *cls,
-                                    struct GNUNET_SERVER_Client *client,
-                                    const struct GNUNET_MessageHeader *message)
+GSC_KX_handle_client_monitor_peers (struct GNUNET_MQ_Handle *mq)
 {
-  struct MonitorNotifyMessage done_msg;
+  struct GNUNET_MQ_Envelope *env;
+  struct MonitorNotifyMessage *done_msg;
   struct GSC_KeyExchangeInfo *kx;
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
+  GNUNET_notification_context_add (nc,
+				   mq);
   for (kx = kx_head; NULL != kx; kx = kx->next)
-    monitor_notify (client, kx);
-  done_msg.header.size = htons (sizeof (struct MonitorNotifyMessage));
-  done_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
-  done_msg.state = htonl ((uint32_t) GNUNET_CORE_KX_ITERATION_FINISHED);
-  memset (&done_msg.peer,
-	  0,
-	  sizeof (struct GNUNET_PeerIdentity));
-  done_msg.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &done_msg.header,
-                                              GNUNET_NO);
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct MonitorNotifyMessage *msg;
+    
+    env = GNUNET_MQ_msg (msg,
+			 GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
+    msg->state = htonl ((uint32_t) kx->status);
+    msg->peer = *kx->peer;
+    msg->timeout = GNUNET_TIME_absolute_hton (kx->timeout);
+    GNUNET_MQ_send (mq,
+		    env);
+  }
+  env = GNUNET_MQ_msg (done_msg,
+		       GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
+  done_msg->state = htonl ((uint32_t) GNUNET_CORE_KX_ITERATION_FINISHED);
+  done_msg->timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
+  GNUNET_MQ_send (mq,
+		  env);
 }
 
 

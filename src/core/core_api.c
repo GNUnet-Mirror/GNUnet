@@ -541,11 +541,12 @@ handle_notify_inbound (void *cls,
   uint16_t et;
 
   GNUNET_break (GNUNET_NO == h->currently_down);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received inbound message from `%s'.\n",
-       GNUNET_i2s (&ntm->peer));
   em = (const struct GNUNET_MessageHeader *) &ntm[1];
   et = ntohs (em->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received inbound message of type %d from `%s'.\n",
+       (int) et,
+       GNUNET_i2s (&ntm->peer));
   for (unsigned int hpos = 0; NULL != h->handlers[hpos].callback; hpos++)
   {
     const struct GNUNET_CORE_MessageHandler *mh;

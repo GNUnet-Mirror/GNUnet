@@ -53,12 +53,10 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
- * @param server the server of the CORE service
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
-             struct GNUNET_SERVER_Handle *server);
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
 
 
 /**
@@ -94,14 +92,10 @@ GSC_NEIGHBOURS_get_queue_length (const struct GSC_KeyExchangeInfo *target);
  * request.  All current peers are returned, regardless of which
  * message types they accept.
  *
- * @param cls unused
- * @param client client sending the iteration request
- * @param message iteration request message
+ * @param mq message queue to add for monitoring
  */
 void
-GSC_KX_handle_client_monitor_peers (void *cls,
-                                    struct GNUNET_SERVER_Client *client,
-                                    const struct GNUNET_MessageHeader *message);
+GSC_KX_handle_client_monitor_peers (struct GNUNET_MQ_Handle *mq);
 
 
 #endif
