@@ -384,9 +384,9 @@ GCC_get_qn (struct CadetConnection *c, int fwd);
  * @param c Connection.
  * @param fwd Is query about FWD traffic?
  *
- * @return Last PID used + 1.
+ * @return Next PID to use.
  */
-unsigned int
+uint32_t
 GCC_get_pid (struct CadetConnection *c, int fwd);
 
 /**

@@ -76,6 +76,11 @@ struct CadetFlowControl
   unsigned int queue_max;
 
   /**
+   * ID of the next packet to send.
+   */
+  uint32_t next_pid;
+
+  /**
    * ID of the last packet sent towards the peer.
    */
   uint32_t last_pid_sent;
@@ -439,7 +444,8 @@ GCC_state2s (enum CadetConnectionState s)
 static void
 fc_init (struct CadetFlowControl *fc)
 {
-  fc->last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
+  fc->next_pid = (uint32_t) 0;
+  fc->last_pid_sent = (uint32_t) -1;
   fc->last_pid_recv = (uint32_t) -1;
   fc->last_ack_sent = (uint32_t) 0;
   fc->last_ack_recv = (uint32_t) 0;
@@ -3016,16 +3022,18 @@ GCC_get_qn (struct CadetConnection *c, int fwd)
  * @param c Connection.
  * @param fwd Is query about FWD traffic?
  *
- * @return Last PID used + 1.
+ * @return Next PID to use.
  */
-unsigned int
+uint32_t
 GCC_get_pid (struct CadetConnection *c, int fwd)
 {
   struct CadetFlowControl *fc;
+  uint32_t pid;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-
-  return fc->last_pid_sent + 1;
+  pid = fc->next_pid;
+  fc->next_pid++;
+  return pid;
 }
 
 
@@ -3221,6 +3229,12 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct CadetConnection *c, int fwd, int force,
                            GCC_sent cont, void *cont_cls)
 {
+  struct GNUNET_CADET_AX        *axmsg;
+  struct GNUNET_CADET_KX        *kmsg;
+  struct GNUNET_CADET_ACK       *amsg;
+  struct GNUNET_CADET_Poll      *pmsg;
+  struct GNUNET_CADET_ConnectionDestroy *dmsg;
+  struct GNUNET_CADET_ConnectionBroken  *bmsg;
   struct CadetFlowControl *fc;
   struct CadetConnectionQueue *q;
   struct GNUNET_MessageHeader *copy;
@@ -3244,19 +3258,13 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
        GC_f2s(fwd), size);
-  droppable = GNUNET_NO == force;
+  droppable = (GNUNET_NO == force);
   switch (type)
   {
-    struct GNUNET_CADET_AX        *axmsg;
-    struct GNUNET_CADET_KX        *kmsg;
-    struct GNUNET_CADET_ACK       *amsg;
-    struct GNUNET_CADET_Poll      *pmsg;
-    struct GNUNET_CADET_ConnectionDestroy *dmsg;
-    struct GNUNET_CADET_ConnectionBroken  *bmsg;
-
     case GNUNET_MESSAGE_TYPE_CADET_AX:
       axmsg = (struct GNUNET_CADET_AX *) copy;
       axmsg->cid = c->id;
+      axmsg->pid = htonl (GCC_get_pid (c, fwd));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
