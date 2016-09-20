@@ -319,8 +319,10 @@ destroy_service_session (struct BobServiceSession *s)
   }
   if (NULL != s->client)
   {
-    GNUNET_SERVICE_client_drop (s->client);
+    struct GNUNET_SERVICE_Client *c = s->client;
+    
     s->client = NULL;
+    GNUNET_SERVICE_client_drop (c);
   }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (client_sessions,

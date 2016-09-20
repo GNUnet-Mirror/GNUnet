@@ -77,7 +77,7 @@ struct AliceServiceSession
   /**
    * The client this request is related to.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * The message queue for the client.
@@ -248,11 +248,6 @@ destroy_service_session (struct AliceServiceSession *s)
   if (GNUNET_YES == s->in_destroy)
     return;
   s->in_destroy = GNUNET_YES;
-  if (NULL != s->client_mq)
-  {
-    GNUNET_MQ_destroy (s->client_mq);
-    s->client_mq = NULL;
-  }
   if (NULL != s->cadet_mq)
   {
     GNUNET_MQ_destroy (s->cadet_mq);
@@ -260,10 +255,10 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->client)
   {
-    GNUNET_SERVER_client_set_user_context (s->client,
-                                           NULL);
-    GNUNET_SERVER_client_disconnect (s->client);
+    struct GNUNET_SERVICE_Client *c = s->client;
+    
     s->client = NULL;
+    GNUNET_SERVICE_client_drop (c);
   }
   if (NULL != s->channel)
   {
@@ -1115,48 +1110,23 @@ client_request_complete_alice (struct AliceServiceSession *s)
 
 
 /**
- * We're receiving additional set data. Add it to our
- * set and if we are done, initiate the transaction.
+ * We're receiving additional set data. Check if 
+ * @a msg is well-formed.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls client identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-static void
-GSS_handle_alice_client_message_multipart (void *cls,
-                                           struct GNUNET_SERVER_Client *client,
-                                           const struct GNUNET_MessageHeader *message)
+static int
+check_alice_client_message_multipart (void *cls,				       
+				      const struct ComputationBobCryptodataMultipartMessage *msg)
 {
-  const struct ComputationBobCryptodataMultipartMessage * msg;
-  struct AliceServiceSession *s;
+  struct AliceServiceSession *s = cls;
   uint32_t contained_count;
-  const struct GNUNET_SCALARPRODUCT_Element *elements;
-  uint32_t i;
   uint16_t msize;
-  struct GNUNET_SET_Element set_elem;
-  struct GNUNET_SCALARPRODUCT_Element *elem;
 
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct AliceServiceSession);
-  if (NULL == s)
-  {
-    /* session needs to already exist */
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct ComputationBobCryptodataMultipartMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct ComputationBobCryptodataMultipartMessage *) message;
+  msize = ntohs (msg->header.size);
   contained_count = ntohl (msg->element_count_contained);
-
   if ( (msize != (sizeof (struct ComputationBobCryptodataMultipartMessage) +
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
        (0 == contained_count) ||
@@ -1164,18 +1134,38 @@ GSS_handle_alice_client_message_multipart (void *cls,
        (s->total < s->client_received_element_count + contained_count) )
   {
     GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
+
+
+/**
+ * We're receiving additional set data. Add it to our
+ * set and if we are done, initiate the transaction.
+ *
+ * @param cls client identification of the client
+ * @param msg the actual message
+ */
+static void
+handle_alice_client_message_multipart (void *cls,				       
+				       const struct ComputationBobCryptodataMultipartMessage *msg)
+{
+  struct AliceServiceSession *s = cls;
+  uint32_t contained_count;
+  const struct GNUNET_SCALARPRODUCT_Element *elements;
+  struct GNUNET_SET_Element set_elem;
+  struct GNUNET_SCALARPRODUCT_Element *elem;
+
+  contained_count = ntohl (msg->element_count_contained);
   s->client_received_element_count += contained_count;
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
-  for (i = 0; i < contained_count; i++)
+  for (uint32_t i = 0; i < contained_count; i++)
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
     GNUNET_memcpy (elem,
-            &elements[i],
-            sizeof (struct GNUNET_SCALARPRODUCT_Element));
+		   &elements[i],
+		   sizeof (struct GNUNET_SCALARPRODUCT_Element));
     if (GNUNET_SYSERR ==
         GNUNET_CONTAINER_multihashmap_put (s->intersected_elements,
                                            &elem->key,
@@ -1194,8 +1184,7 @@ GSS_handle_alice_client_message_multipart (void *cls,
                             NULL, NULL);
     s->used_element_count++;
   }
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (s->client);
   if (s->total != s->client_received_element_count)
   {
     /* more to come */
@@ -1207,45 +1196,29 @@ GSS_handle_alice_client_message_multipart (void *cls,
 
 /**
  * Handler for Alice's client request message.
- * We are doing request-initiation to compute a scalar product with a peer.
+ * Check that @a msg is well-formed.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-static void
-GSS_handle_alice_client_message (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message)
+static int
+check_alice_client_message (void *cls,			     
+			    const struct AliceComputationMessage *msg)
 {
-  const struct AliceComputationMessage *msg;
-  struct AliceServiceSession *s;
-  uint32_t contained_count;
-  uint32_t total_count;
-  const struct GNUNET_SCALARPRODUCT_Element *elements;
-  uint32_t i;
+  struct AliceServiceSession *s = cls;
   uint16_t msize;
-  struct GNUNET_SET_Element set_elem;
-  struct GNUNET_SCALARPRODUCT_Element *elem;
+  uint32_t total_count;
+  uint32_t contained_count;
 
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct AliceServiceSession);
-  if (NULL != s)
+  if (NULL != s->intersected_elements)
   {
     /* only one concurrent session per client connection allowed,
        simplifies logic a lot... */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct AliceComputationMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct AliceComputationMessage *) message;
+  msize = ntohs (msg->header.size);
   total_count = ntohl (msg->element_count_total);
   contained_count = ntohl (msg->element_count_contained);
   if ( (0 == total_count) ||
@@ -1254,15 +1227,34 @@ GSS_handle_alice_client_message (void *cls,
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) )
   {
     GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
 
-  s = GNUNET_new (struct AliceServiceSession);
+  
+/**
+ * Handler for Alice's client request message.
+ * We are doing request-initiation to compute a scalar product with a peer.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ */
+static void
+handle_alice_client_message (void *cls,			     
+			     const struct AliceComputationMessage *msg)
+{
+  struct AliceServiceSession *s = cls;
+  uint32_t contained_count;
+  uint32_t total_count;
+  const struct GNUNET_SCALARPRODUCT_Element *elements;
+  struct GNUNET_SET_Element set_elem;
+  struct GNUNET_SCALARPRODUCT_Element *elem;
+
+  total_count = ntohl (msg->element_count_total);
+  contained_count = ntohl (msg->element_count_contained);
   s->peer = msg->peer;
   s->status = GNUNET_SCALARPRODUCT_STATUS_ACTIVE;
-  s->client = client;
-  s->client_mq = GNUNET_MQ_queue_for_server_client (client);
   s->total = total_count;
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
@@ -1271,7 +1263,8 @@ GSS_handle_alice_client_message (void *cls,
                                                                   GNUNET_YES);
   s->intersection_set = GNUNET_SET_create (cfg,
                                            GNUNET_SET_OPERATION_INTERSECTION);
-  for (i = 0; i < contained_count; i++)
+
+  for (uint32_t i = 0; i < contained_count; i++)
   {
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
@@ -1298,10 +1291,7 @@ GSS_handle_alice_client_message (void *cls,
                             NULL, NULL);
     s->used_element_count++;
   }
-  GNUNET_SERVER_client_set_user_context (client,
-                                         s);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (s->client);
   if (s->total != s->client_received_element_count)
   {
     /* wait for multipart msg */
@@ -1331,6 +1321,30 @@ shutdown_task (void *cls)
 
 
 /**
+ * A client connected.
+ *
+ * Setup the associated data structure.
+ *
+ * @param cls closure, NULL
+ * @param client identification of the client
+ * @param mq message queue to communicate with @a client
+ * @return our `struct AliceServiceSession`
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  struct AliceServiceSession *s;
+
+  s = GNUNET_new (struct AliceServiceSession);
+  s->client = client;
+  s->client_mq = mq;
+  return s;
+}
+
+
+/**
  * A client disconnected.
  *
  * Remove the associated session(s), release data structures
@@ -1338,25 +1352,20 @@ shutdown_task (void *cls)
  *
  * @param cls closure, NULL
  * @param client identification of the client
+ * @param app_cls our `struct AliceServiceSession`
  */
 static void
-handle_client_disconnect (void *cls,
-                          struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_cls)
 {
-  struct AliceServiceSession *s;
+  struct AliceServiceSession *s = app_cls;
 
-  if (NULL == client)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected from us.\n",
               client);
-  s = GNUNET_SERVER_client_get_user_context (client,
-                                             struct AliceServiceSession);
-  if (NULL == s)
-    return;
   s->client = NULL;
-  GNUNET_SERVER_client_set_user_context (client,
-                                         NULL);
+  s->client_mq = NULL;
   destroy_service_session (s);
 }
 
@@ -1365,13 +1374,13 @@ handle_client_disconnect (void *cls,
  * Initialization of the program and message handlers
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     { &handle_bobs_cryptodata_message,
@@ -1381,15 +1390,6 @@ run (void *cls,
       GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART,
       0},
     { NULL, 0, 0}
-  };
-  static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    { &GSS_handle_alice_client_message, NULL,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE,
-      0},
-    { &GSS_handle_alice_client_message_multipart, NULL,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE,
-      0},
-    { NULL, NULL, 0, 0}
   };
 
   cfg = c;
@@ -1403,14 +1403,12 @@ run (void *cls,
 
   GNUNET_CRYPTO_paillier_create (&my_pubkey,
                                  &my_privkey);
-  GNUNET_SERVER_add_handlers (server,
-                              server_handlers);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &handle_client_disconnect,
-                                   NULL);
-  my_cadet = GNUNET_CADET_connect (cfg, NULL,
+  my_cadet = GNUNET_CADET_connect (cfg,
+				   NULL,
                                    &cb_channel_destruction,
                                    cadet_handlers);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1418,28 +1416,28 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
-
 }
 
 
 /**
- * The main function for the scalarproduct service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc,
-      char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv,
-                              "scalarproduct-alice",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("scalarproduct-alice",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (alice_client_message,
+			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE,
+			struct AliceComputationMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (alice_client_message_multipart,
+			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE,
+			struct ComputationBobCryptodataMultipartMessage,
+			NULL),
+  GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-scalarproduct_alice.c */

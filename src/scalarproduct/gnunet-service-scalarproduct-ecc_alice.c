@@ -245,8 +245,10 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->client)
   {
-    GNUNET_SERVICE_client_drop (s->client);
+    struct GNUNET_SERVICE_Client *c = s->client;
+    
     s->client = NULL;
+    GNUNET_SERVICE_client_drop (c);
   }
   if (NULL != s->channel)
   {
