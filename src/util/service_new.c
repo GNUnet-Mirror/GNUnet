@@ -1954,6 +1954,7 @@ service_client_mst_cb (void *cls,
   client->needs_continue = GNUNET_YES;
   client->warn_type = ntohs (message->type);
   client->warn_start = GNUNET_TIME_absolute_get ();
+  GNUNET_assert (NULL == client->warn_task);
   client->warn_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
 				    &warn_no_client_continue,

@@ -1046,7 +1046,10 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
   }
   GNUNET_assert (0 == mq->queue_length);
   while (NULL != (dnh = mq->dnh_head))
+  {
     dnh->cb (dnh->cb_cls);
+    GNUNET_MQ_destroy_notify_cancel (dnh);
+  }
   if (NULL != mq->assoc_map)
   {
     GNUNET_CONTAINER_multihashmap32_destroy (mq->assoc_map);

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 GNUnet e.V.
+     Copyright (C) 2001, 2002, 2004-2007, 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -104,27 +104,35 @@ printer (void *cls,
          int is_persistent)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  const char * now_str;
+  const char *now_str;
 
   if (quiet == GNUNET_NO)
   {
     if (GNUNET_YES == watch)
     {
-      now_str = GNUNET_STRINGS_absolute_time_to_string(now);
-      FPRINTF (stdout, "%24s %s%12s %50s: %16llu \n",
+      now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+      FPRINTF (stdout,
+	       "%24s %s%12s %50s: %16llu\n",
                now_str,
                is_persistent ? "!" : " ",
-               subsystem, _(name), (unsigned long long) value);
+               subsystem,
+	       _(name),
+	       (unsigned long long) value);
     }
     else
     {
-      FPRINTF (stdout, "%s%12s %50s: %16llu \n",
+      FPRINTF (stdout,
+	       "%s%12s %50s: %16llu\n",
                is_persistent ? "!" : " ",
-               subsystem, _(name), (unsigned long long) value);
+               subsystem,
+	       _(name),
+	       (unsigned long long) value);
     }
   }
   else
-    FPRINTF (stdout, "%llu\n", (unsigned long long) value);
+    FPRINTF (stdout,
+	     "%llu\n",
+	     (unsigned long long) value);
 
   return GNUNET_OK;
 }
@@ -183,7 +191,8 @@ shutdown_task (void *cls)
 		   GNUNET_STATISTICS_watch_cancel (h,
                                                    subsystem,
                                                    name,
-                                                   &printer, h));
+                                                   &printer,
+						   h));
   GNUNET_STATISTICS_destroy (h,
                              GNUNET_NO);
   h = NULL;
@@ -205,17 +214,22 @@ main_task (void *cls)
   {
     if (NULL == subsystem)
     {
-      FPRINTF (stderr, "%s", _("Missing argument: subsystem \n"));
+      FPRINTF (stderr,
+	       "%s",
+	       _("Missing argument: subsystem \n"));
       ret = 1;
       return;
     }
     if (NULL == name)
     {
-      FPRINTF (stderr, "%s", _("Missing argument: name\n"));
+      FPRINTF (stderr,
+	       "%s",
+	       _("Missing argument: name\n"));
       ret = 1;
       return;
     }
-    h = GNUNET_STATISTICS_create (subsystem, cfg);
+    h = GNUNET_STATISTICS_create (subsystem,
+				  cfg);
     if (NULL == h)
     {
       ret = 1;
@@ -243,15 +257,19 @@ main_task (void *cls)
                                      subsystem,
                                      name,
                                      &cleanup,
-                                     &printer, h)) )
-      cleanup (h, GNUNET_SYSERR);
+                                     &printer,
+				     h)) )
+      cleanup (h,
+	       GNUNET_SYSERR);
   }
   else
   {
-    if ((NULL == subsystem) || (NULL == name))
+    if ( (NULL == subsystem) ||
+	 (NULL == name) )
     {
       printf (_("No subsystem or name given\n"));
-      GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+      GNUNET_STATISTICS_destroy (h,
+				 GNUNET_NO);
       h = NULL;
       ret = 1;
       return;
@@ -260,7 +278,8 @@ main_task (void *cls)
         GNUNET_STATISTICS_watch (h,
                                  subsystem,
                                  name,
-                                 &printer, h))
+                                 &printer,
+				 h))
     {
       fprintf (stderr,
                _("Failed to initialize watch routine\n"));
@@ -271,65 +290,6 @@ main_task (void *cls)
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  h);
-}
-
-
-/**
- * Function called with th test result to see if the resolver is
- * running.
- *
- * @param cls closure with our configuration
- * @param result #GNUNET_YES if the resolver is running
- */
-static void
-resolver_test_task (void *cls,
-		    int result)
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  if (GNUNET_YES != result)
-   {
-     FPRINTF (stderr,
-	      _("Trying to connect to remote host, but service `%s' is not running\n"),
-              "resolver");
-     return;
-   }
-  /* connect to a remote host */
-  if (0 == remote_port)
-  {
-    if (GNUNET_SYSERR ==
-        GNUNET_CONFIGURATION_get_value_number (cfg, "statistics",
-                                               "PORT",
-                                               &remote_port))
-    {
-      FPRINTF (stderr,
-               _("A port is required to connect to host `%s'\n"),
-               remote_host);
-      return;
-    }
-  }
-  else if (65535 <= remote_port)
-  {
-    FPRINTF (stderr,
-	     _("A port has to be between 1 and 65535 to connect to host `%s'\n"),
-             remote_host);
-    return;
-  }
-
-  /* Manipulate configuration */
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-					 "statistics",
-                                         "UNIXPATH",
-                                         "");
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-					 "statistics",
-                                         "HOSTNAME",
-                                         remote_host);
-  GNUNET_CONFIGURATION_set_value_number (cfg,
-					 "statistics",
-                                         "PORT",
-                                         remote_port);
-  GNUNET_SCHEDULER_add_now (&main_task, cfg);
 }
 
 
@@ -347,24 +307,64 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_CONFIGURATION_Handle *c;
+
+  c = (struct GNUNET_CONFIGURATION_Handle *) cfg;
   set_value = GNUNET_NO;
   if (NULL != args[0])
   {
-    if (1 != SSCANF (args[0], "%llu", &set_val))
+    if (1 != SSCANF (args[0],
+		     "%llu",
+		     &set_val))
     {
-      FPRINTF (stderr, _("Invalid argument `%s'\n"), args[0]);
+      FPRINTF (stderr,
+	       _("Invalid argument `%s'\n"),
+	       args[0]);
       ret = 1;
       return;
     }
     set_value = GNUNET_YES;
   }
   if (NULL != remote_host)
-    GNUNET_CLIENT_service_test ("resolver",
-                                cfg,
-                                GNUNET_TIME_UNIT_SECONDS,
-				&resolver_test_task, (void *) cfg);
-  else
-    GNUNET_SCHEDULER_add_now (&main_task, (void *) cfg);
+  {
+    if (0 == remote_port)
+    {
+      if (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_number (cfg,
+						 "statistics",
+						 "PORT",
+						 &remote_port))
+      {
+	FPRINTF (stderr,
+		 _("A port is required to connect to host `%s'\n"),
+		 remote_host);
+	return;
+      }
+    }
+    else if (65535 <= remote_port)
+    {
+      FPRINTF (stderr,
+	       _("A port has to be between 1 and 65535 to connect to host `%s'\n"),
+	       remote_host);
+      return;
+    }
+
+    /* Manipulate configuration */
+    GNUNET_CONFIGURATION_set_value_string (c,
+					   "statistics",
+					   "UNIXPATH",
+					   "");
+    GNUNET_CONFIGURATION_set_value_string (c,
+					   "statistics",
+					   "HOSTNAME",
+					   remote_host);
+    GNUNET_CONFIGURATION_set_value_number (c,
+					   "statistics",
+					   "PORT",
+					   remote_port);
+  }
+  GNUNET_SCHEDULER_add_now (&main_task,
+			    c);
 }
 
 
@@ -404,15 +404,20 @@ main (int argc, char *const *argv)
   };
   remote_port = 0;
   remote_host = NULL;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
-                                                 &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-statistics [options [value]]",
+	 GNUNET_PROGRAM_run (argc,
+			     argv,
+			     "gnunet-statistics [options [value]]",
 			     gettext_noop
 			     ("Print statistics about GNUnet operations."),
-			     options, &run, NULL)) ? ret : 1;
+			     options,
+			     &run,
+			     NULL)) ? ret : 1;
   GNUNET_free_non_null (remote_host);
   GNUNET_free ((void*) argv);
   return ret;

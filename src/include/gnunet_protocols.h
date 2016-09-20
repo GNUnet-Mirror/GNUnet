@@ -680,6 +680,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE 173
 
+/**
+ * Client is done sending service requests and will now disconnect.
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT 174
+
+/**
+ * Service confirms disconnect and that it is done processing
+ * all requests from the client.
+ */
+#define GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM 175
 
 /*******************************************************************************
  * VPN message types

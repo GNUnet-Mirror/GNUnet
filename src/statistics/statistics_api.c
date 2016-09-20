@@ -576,16 +576,16 @@ do_destroy (void *cls)
 
 
 /**
- * Handle a #GNUNET_MESSAGE_TYPE_TEST (sic) message. We receive this
- * message at the end of the shutdown when the service confirms that
- * all data has been written to disk.
+ * Handle a #GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM
+ * message. We receive this message at the end of the shutdown when
+ * the service confirms that all data has been written to disk.
  *
  * @param cls our `struct GNUNET_STATISTICS_Handle *`
  * @param msg the message
  */
 static void
-handle_test (void *cls,
-             const struct GNUNET_MessageHeader *msg)
+handle_disconnect_confirm (void *cls,
+			   const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -598,7 +598,7 @@ handle_test (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received TEST message from statistics, can complete disconnect\n");
+       "Received DISCONNNECT_CONFIRM message from statistics, can complete disconnect\n");
   if (NULL != h->destroy_task)
     GNUNET_SCHEDULER_cancel (h->destroy_task);
   h->destroy_task = GNUNET_SCHEDULER_add_now (&do_destroy,
@@ -653,8 +653,8 @@ static int
 try_connect (struct GNUNET_STATISTICS_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (test,
-                             GNUNET_MESSAGE_TYPE_TEST,
+    GNUNET_MQ_hd_fixed_size (disconnect_confirm,
+                             GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM,
                              struct GNUNET_MessageHeader,
                              h),
     GNUNET_MQ_hd_fixed_size (statistics_end,
@@ -1032,7 +1032,7 @@ schedule_action (void *cls)
                   "Notifying service that we are done\n");
       h->do_destroy = GNUNET_SYSERR; /* in 'TEST' mode */
       env = GNUNET_MQ_msg (hdr,
-                           GNUNET_MESSAGE_TYPE_TEST);
+                           GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT);
       GNUNET_MQ_notify_sent (env,
                              &schedule_action,
                              h);
