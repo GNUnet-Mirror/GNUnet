@@ -879,7 +879,7 @@ GAS_proportional_change_preference (void *solver,
  */
 static void
 GAS_proportional_feedback (void *solver,
-                           struct GNUNET_SERVER_Client *application,
+                           struct GNUNET_SERVICE_Client *application,
                            const struct GNUNET_PeerIdentity *peer,
                            const struct GNUNET_TIME_Relative scope,
                            enum GNUNET_ATS_PreferenceKind kind,

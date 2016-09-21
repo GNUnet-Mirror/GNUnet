@@ -46,14 +46,12 @@
 /**
  * Handle 'preference change' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param client the client that sent the request
+ * @param msg the request message
  */
 void
-GAS_handle_preference_change (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message);
+GAS_handle_preference_change (struct GNUNET_SERVICE_Client *client,
+			      const struct ChangePreferenceMessage *msg);
 
 
 /**
@@ -89,7 +87,7 @@ GAS_preference_get_by_peer (void *cls,
  * @param client the disconnecting client
  */
 void
-GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
+GAS_preference_client_disconnect (struct GNUNET_SERVICE_Client *client);
 
 
 #endif

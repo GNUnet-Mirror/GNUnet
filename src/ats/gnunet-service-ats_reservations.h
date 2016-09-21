@@ -27,6 +27,7 @@
 #define GNUNET_SERVICE_ATS_RESERVATIONS_H
 
 #include "gnunet_util_lib.h"
+#include "ats.h"
 
 
 /**
@@ -46,14 +47,12 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
 /**
  * Handle 'reservation request' messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
  * @param message the request message
  */
 void
-GAS_handle_reservation_request (void *cls,
-                                struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
+GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
+                                const struct ReservationRequestMessage *message);
 
 
 /**
@@ -62,7 +61,7 @@ GAS_handle_reservation_request (void *cls,
  * @param server handle to our server
  */
 void
-GAS_reservations_init (struct GNUNET_SERVER_Handle *server);
+GAS_reservations_init (void);
 
 
 /**

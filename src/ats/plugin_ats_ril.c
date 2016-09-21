@@ -2373,7 +2373,7 @@ GAS_ril_address_property_changed (void *solver,
  */
 static void
 GAS_ril_address_preference_feedback (void *solver,
-                                     struct GNUNET_SERVER_Client *application,
+                                     struct GNUNET_SERVICE_Client *application,
                                      const struct GNUNET_PeerIdentity *peer,
                                      const struct GNUNET_TIME_Relative scope,
                                      enum GNUNET_ATS_PreferenceKind kind,

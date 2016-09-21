@@ -40,7 +40,7 @@ struct ConnectionRequest
   /**
    * Client that made the request.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /* TODO: allow client to express a 'strength' for this request */
 };
@@ -75,17 +75,13 @@ GAS_connectivity_has_peer (void *cls,
 /**
  * Handle #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
  * @param message the request message
  */
 void
-GAS_handle_request_address (void *cls,
-                            struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message)
+GAS_handle_request_address (struct GNUNET_SERVICE_Client *client,
+			    const struct RequestAddressMessage *msg)
 {
-  const struct RequestAddressMessage *msg =
-      (const struct RequestAddressMessage *) message;
   struct ConnectionRequest *cr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -99,7 +95,6 @@ GAS_handle_request_address (void *cls,
                                             cr,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GAS_plugin_request_connect_start (&msg->peer);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -117,7 +112,7 @@ free_matching_requests (void *cls,
                         const struct GNUNET_PeerIdentity *pid,
                         void *value)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = cls;
   struct ConnectionRequest *cr = value;
 
   if (cr->client == client)
@@ -140,18 +135,13 @@ free_matching_requests (void *cls,
  * Handle #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL messages
  * from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param client the client that sent the request
+ * @param msg the request message
  */
 void
-GAS_handle_request_address_cancel (void *cls,
-                                   struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader *message)
+GAS_handle_request_address_cancel (struct GNUNET_SERVICE_Client *client,
+				   const struct RequestAddressMessage *msg)
 {
-  const struct RequestAddressMessage *msg =
-      (const struct RequestAddressMessage *) message;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL message for peer %s\n",
               GNUNET_i2s (&msg->peer));
@@ -160,7 +150,6 @@ GAS_handle_request_address_cancel (void *cls,
                                               &msg->peer,
                                               &free_matching_requests,
                                               client);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -171,7 +160,7 @@ GAS_handle_request_address_cancel (void *cls,
  * @param client handle of the (now dead) client
  */
 void
-GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client)
+GAS_connectivity_remove_client (struct GNUNET_SERVICE_Client *client)
 {
   GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
                                          &free_matching_requests,
@@ -185,7 +174,9 @@ GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client)
 void
 GAS_connectivity_init ()
 {
-  connection_requests = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
+  connection_requests
+    = GNUNET_CONTAINER_multipeermap_create (32,
+					    GNUNET_NO);
 }
 
 

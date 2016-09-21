@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011-2014 GNUnet e.V.
+     Copyright (C) 2011-2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,16 +29,10 @@
 #include "gnunet-service-ats_scheduling.h"
 #include "ats.h"
 
-
-/**
- * Context for sending messages to clients.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
 /**
  * Actual handle to the client.
  */
-static struct GNUNET_SERVER_Client *my_client;
+static struct GNUNET_SERVICE_Client *my_client;
 
 
 /**
@@ -48,7 +42,7 @@ static struct GNUNET_SERVER_Client *my_client;
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
+GAS_scheduling_add_client (struct GNUNET_SERVICE_Client *client)
 {
   if (NULL != my_client)
   {
@@ -57,10 +51,6 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
     return GNUNET_SYSERR;
   }
   my_client = client;
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
-  GNUNET_SERVER_client_set_user_context (client,
-                                         &nc);
   return GNUNET_OK;
 }
 
@@ -72,7 +62,7 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
  * @param client handle of the (now dead) client
  */
 void
-GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
+GAS_scheduling_remove_client (struct GNUNET_SERVICE_Client *client)
 {
   if (my_client != client)
     return;
@@ -96,7 +86,8 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
                                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  struct AddressSuggestionMessage msg;
+  struct GNUNET_MQ_Envelope *env;
+  struct AddressSuggestionMessage *msg;
 
   if (NULL == my_client)
     return;
@@ -104,55 +95,39 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
                             "# address suggestions made",
 			    1,
                             GNUNET_NO);
-  msg.header.size = htons (sizeof (struct AddressSuggestionMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION);
-  msg.peer = *peer;
-  msg.session_id = htonl (session_id);
-  msg.bandwidth_out = bandwidth_out;
-  msg.bandwidth_in = bandwidth_in;
+  env = GNUNET_MQ_msg (msg,
+		       GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION);
+  msg->peer = *peer;
+  msg->session_id = htonl (session_id);
+  msg->bandwidth_out = bandwidth_out;
+  msg->bandwidth_in = bandwidth_in;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS sends quota for peer `%s': (in/out) %u/%u\n",
               GNUNET_i2s (peer),
               (unsigned int) ntohl (bandwidth_in.value__),
               (unsigned int) ntohl (bandwidth_out.value__));
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              my_client,
-                                              &msg.header,
-                                              GNUNET_YES);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (my_client),
+		  env);
 }
 
 
 /**
  * Handle 'address add' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_add (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message)
+GAS_handle_address_add (const struct AddressAddMessage *m)
 {
-  const struct AddressAddMessage *m;
   const char *address;
   const char *plugin_name;
   uint16_t address_length;
   uint16_t plugin_name_length;
-  uint16_t size;
   struct GNUNET_ATS_Properties prop;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message\n",
               "ADDRESS_ADD");
-  size = ntohs (message->size);
-  if (size < sizeof (struct AddressAddMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  m = (const struct AddressAddMessage *) message;
   address_length = ntohs (m->address_length);
   plugin_name_length = ntohs (m->plugin_name_length);
   address = (const char *) &m[1];
@@ -160,16 +135,6 @@ GAS_handle_address_add (void *cls,
     plugin_name = &address[address_length];
   else
     plugin_name = "";
-
-  if ((address_length + plugin_name_length +
-       sizeof (struct AddressAddMessage) != ntohs (message->size)) ||
-       ( (plugin_name_length > 0) &&
-         (plugin_name[plugin_name_length - 1] != '\0') ) )
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   GNUNET_STATISTICS_update (GSA_stats,
                             "# addresses created",
                             1,
@@ -184,27 +149,19 @@ GAS_handle_address_add (void *cls,
                      ntohl (m->address_local_info),
                      ntohl (m->session_id),
                      &prop);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
 }
 
 
 /**
  * Handle 'address update' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_update (void *cls,
-                           struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *message)
+GAS_handle_address_update (const struct AddressUpdateMessage *m)
 {
-  const struct AddressUpdateMessage *m;
   struct GNUNET_ATS_Properties prop;
 
-  m = (const struct AddressUpdateMessage *) message;
   GNUNET_STATISTICS_update (GSA_stats,
                             "# address updates received",
                             1,
@@ -214,27 +171,20 @@ GAS_handle_address_update (void *cls,
   GAS_addresses_update (&m->peer,
                         ntohl (m->session_id),
                         &prop);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
 }
 
 
 /**
  * Handle 'address destroyed' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_destroyed (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message)
+GAS_handle_address_destroyed (const struct AddressDestroyedMessage *m)
 {
-  const struct AddressDestroyedMessage *m;
-  struct GNUNET_ATS_SessionReleaseMessage srm;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_ATS_SessionReleaseMessage *srm;
 
-  m = (const struct AddressDestroyedMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message\n",
               "ADDRESS_DESTROYED");
@@ -244,42 +194,12 @@ GAS_handle_address_destroyed (void *cls,
                             GNUNET_NO);
   GAS_addresses_destroy (&m->peer,
                          ntohl (m->session_id));
-  srm.header.type = ntohs (GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
-  srm.header.size = ntohs (sizeof (struct GNUNET_ATS_SessionReleaseMessage));
-  srm.session_id = m->session_id;
-  srm.peer = m->peer;
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &srm.header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Initialize scheduling subsystem.
- *
- * @param server handle to our server
- */
-void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server)
-{
-  nc = GNUNET_SERVER_notification_context_create (server, 128);
-}
-
-
-/**
- * Shutdown scheduling subsystem.
- */
-void
-GAS_scheduling_done ()
-{
-  if (NULL != my_client)
-  {
-    my_client = NULL;
-  }
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
+  env = GNUNET_MQ_msg (srm,
+		       GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
+  srm->session_id = m->session_id;
+  srm->peer = m->peer;
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (my_client),
+		  env);
 }
 
 

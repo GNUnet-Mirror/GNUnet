@@ -347,13 +347,13 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
  * known and current performance information. It has a solver component
  * responsible for the resource allocation. It tells the solver about changes
  * and receives updates when the solver changes the resource allocation.
- *
- * @param server handle to our server
  */
 void
-GAS_addresses_init (struct GNUNET_SERVER_Handle *server)
+GAS_addresses_init ()
 {
-  GSA_addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  GSA_addresses
+    = GNUNET_CONTAINER_multipeermap_create (128,
+					    GNUNET_NO);
   update_addresses_stat ();
 }
 
@@ -515,7 +515,7 @@ struct AddressIteration
   /**
    * Actual handle to the client.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Are we sending all addresses, or only those that are active?
@@ -558,30 +558,26 @@ transmit_req_addr (struct AddressIteration *ai,
                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 
 {
+  struct GNUNET_MQ_Envelope *env;
   struct PeerInformationMessage *msg;
   char *addrp;
   size_t plugin_name_length;
   size_t msize;
-  struct GNUNET_SERVER_NotificationContext **uc;
-  struct GNUNET_SERVER_NotificationContext *nc;
 
   if (NULL != plugin_name)
     plugin_name_length = strlen (plugin_name) + 1;
   else
     plugin_name_length = 0;
-  msize = sizeof (struct PeerInformationMessage) +
-          plugin_addr_len + plugin_name_length;
-  char buf[msize] GNUNET_ALIGN;
+  msize = plugin_addr_len + plugin_name_length;
 
-  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  msg = (struct PeerInformationMessage *) buf;
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE);
+  GNUNET_assert (sizeof (struct PeerInformationMessage) + msize
+		 < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  env = GNUNET_MQ_msg_extra (msg,
+			     msize,
+			     GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE);
   msg->id = htonl (ai->id);
   if (NULL != id)
     msg->peer = *id;
-  else
-    memset (&msg->peer, '\0', sizeof (struct GNUNET_PeerIdentity));
   msg->address_length = htons (plugin_addr_len);
   msg->address_active = ntohl (active);
   msg->plugin_name_length = htons (plugin_name_length);
@@ -590,28 +586,16 @@ transmit_req_addr (struct AddressIteration *ai,
   if (NULL != prop)
     GNUNET_ATS_properties_hton (&msg->properties,
                                 prop);
-  else
-    memset (&msg->properties,
-            0,
-            sizeof (struct GNUNET_ATS_Properties));
   msg->address_local_info = htonl ((uint32_t) local_address_info);
   addrp = (char *) &msg[1];
-  if (NULL != plugin_addr)
-    GNUNET_memcpy (addrp, plugin_addr, plugin_addr_len);
+  GNUNET_memcpy (addrp,
+		 plugin_addr,
+		 plugin_addr_len);
   if (NULL != plugin_name)
-    strcpy (&addrp[plugin_addr_len], plugin_name);
-  uc = GNUNET_SERVER_client_get_user_context (ai->client,
-                                              struct GNUNET_SERVER_NotificationContext *);
-  if (NULL == uc)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  nc = *uc;
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              ai->client,
-                                              &msg->header,
-                                              GNUNET_NO);
+    strcpy (&addrp[plugin_addr_len],
+	    plugin_name);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (ai->client),
+		  env);
 }
 
 
@@ -679,22 +663,18 @@ req_addr_peerinfo_it (void *cls,
 /**
  * Handle 'address list request' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param cls client that sent the request
+ * @param alrm the request message
  */
 void
-GAS_handle_request_address_list (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message)
+GAS_handle_request_address_list (struct GNUNET_SERVICE_Client *client,
+                                 const struct AddressListRequestMessage *alrm)
 {
   struct AddressIteration ai;
-  const struct AddressListRequestMessage *alrm;
   struct GNUNET_PeerIdentity allzeros;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ADDRESSLIST_REQUEST message\n");
-  alrm = (const struct AddressListRequestMessage *) message;
   ai.all = ntohl (alrm->all);
   ai.id = ntohl (alrm->id);
   ai.client = client;
@@ -728,8 +708,6 @@ GAS_handle_request_address_list (void *cls,
                      GNUNET_HELLO_ADDRESS_INFO_NONE,
                      GNUNET_BANDWIDTH_ZERO,
                      GNUNET_BANDWIDTH_ZERO);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
 }
 
 

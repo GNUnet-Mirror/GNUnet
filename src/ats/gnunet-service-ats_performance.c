@@ -36,12 +36,12 @@
 /**
  * Context for sending messages to performance clients without PIC.
  */
-static struct GNUNET_SERVER_NotificationContext *nc_no_pic;
+static struct GNUNET_NotificationContext *nc_no_pic;
 
 /**
  * Context for sending messages to performance clients with PIC.
  */
-static struct GNUNET_SERVER_NotificationContext *nc_pic;
+static struct GNUNET_NotificationContext *nc_pic;
 
 
 /**
@@ -63,7 +63,7 @@ static struct GNUNET_SERVER_NotificationContext *nc_pic;
  * @param bandwidth_in assigned inbound bandwidth
  */
 static void
-notify_client (struct GNUNET_SERVER_Client *client,
+notify_client (struct GNUNET_SERVICE_Client *client,
                const struct GNUNET_PeerIdentity *peer,
                const char *plugin_name,
                const void *plugin_addr,
@@ -81,8 +81,6 @@ notify_client (struct GNUNET_SERVER_Client *client,
     plugin_addr_len +
     plugin_name_length;
   char buf[msize] GNUNET_ALIGN;
-  struct GNUNET_SERVER_NotificationContext **uc;
-  struct GNUNET_SERVER_NotificationContext *nc;
   char *addrp;
 
   if (NULL != prop)
@@ -111,24 +109,17 @@ notify_client (struct GNUNET_SERVER_Client *client,
   strcpy (&addrp[plugin_addr_len], plugin_name);
   if (NULL == client)
   {
-    GNUNET_SERVER_notification_context_broadcast (nc_pic,
-                                                  &msg->header,
-                                                  GNUNET_YES);
+    GNUNET_notification_context_broadcast (nc_pic,
+					   &msg->header,
+					   GNUNET_YES);
   }
   else
   {
-    uc = GNUNET_SERVER_client_get_user_context (client,
-                                                 struct GNUNET_SERVER_NotificationContext *);
-    if (NULL == uc)
-    {
-      GNUNET_break (0);
-      return;
-    }
-    nc = *uc;
-    GNUNET_SERVER_notification_context_unicast (nc,
-                                                client,
-                                                &msg->header,
-                                                GNUNET_YES);
+    struct GNUNET_MQ_Envelope *env;
+
+    env = GNUNET_MQ_msg_copy (&msg->header);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+		    env);
   }
 }
 
@@ -183,7 +174,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
 /**
  * Iterator for called from #GAS_addresses_get_peer_info()
  *
- * @param cls closure with the `struct GNUNET_SERVER_Client *` to inform.
+ * @param cls closure with the `struct GNUNET_SERVICE_Client *` to inform.
  * @param id the peer id
  * @param plugin_name plugin name
  * @param plugin_addr address
@@ -206,7 +197,7 @@ peerinfo_it (void *cls,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = cls;
 
   if (NULL == id)
     return;
@@ -237,25 +228,24 @@ peerinfo_it (void *cls,
  * @param flag flag specifying the type of the client
  */
 void
-GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
+GAS_performance_add_client (struct GNUNET_SERVICE_Client *client,
                             enum StartFlag flag)
 {
+  struct GNUNET_MQ_Handle *mq;
+
+  mq = GNUNET_SERVICE_client_get_mq (client);
   if (START_FLAG_PERFORMANCE_WITH_PIC == flag)
   {
-    GNUNET_SERVER_notification_context_add (nc_pic,
-                                            client);
-    GNUNET_SERVER_client_set_user_context (client,
-                                           &nc_pic);
+    GNUNET_notification_context_add (nc_pic,
+				     mq);
     GAS_addresses_get_peer_info (NULL,
                                  &peerinfo_it,
                                  client);
   }
   else
   {
-    GNUNET_SERVER_notification_context_add (nc_no_pic,
-                                            client);
-    GNUNET_SERVER_client_set_user_context (client,
-                                           &nc_no_pic);
+    GNUNET_notification_context_add (nc_no_pic,
+				     mq);
   }
 }
 
@@ -266,10 +256,10 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
  * @param server handle to our server
  */
 void
-GAS_performance_init (struct GNUNET_SERVER_Handle *server)
+GAS_performance_init ()
 {
-  nc_no_pic = GNUNET_SERVER_notification_context_create (server, 32);
-  nc_pic = GNUNET_SERVER_notification_context_create (server, 32);
+  nc_no_pic = GNUNET_notification_context_create (32);
+  nc_pic = GNUNET_notification_context_create (32);
 }
 
 
@@ -279,9 +269,9 @@ GAS_performance_init (struct GNUNET_SERVER_Handle *server)
 void
 GAS_performance_done ()
 {
-  GNUNET_SERVER_notification_context_destroy (nc_no_pic);
+  GNUNET_notification_context_destroy (nc_no_pic);
   nc_no_pic = NULL;
-  GNUNET_SERVER_notification_context_destroy (nc_pic);
+  GNUNET_notification_context_destroy (nc_pic);
   nc_pic = NULL;
 }
 

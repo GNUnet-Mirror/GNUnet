@@ -61,7 +61,7 @@ struct ZoneIteration
   /**
    * Namestore client which intiated this zone iteration
    */
-  struct NamestoreClient *client;
+  struct NamestoreClient *nc;
 
   /**
    * The nick to add to the records
@@ -95,21 +95,17 @@ struct ZoneIteration
  */
 struct NamestoreClient
 {
-  /**
-   * Next element in the DLL
-   */
-  struct NamestoreClient *next;
-
-  /**
-   * Previous element in the DLL
-   */
-  struct NamestoreClient *prev;
 
   /**
    * The client
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
+  /**
+   * Message queue for transmission to @e client
+   */
+  struct GNUNET_MQ_Handle *mq;
+  
   /**
    * Head of the DLL of
    * Zone iteration operations in progress initiated by this client
@@ -152,7 +148,7 @@ struct ZoneMonitor
   /**
    * Task active during initial iteration.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Offset of the zone iteration used to address next result of the zone
@@ -190,7 +186,7 @@ struct CacheOperation
   /**
    * Client to notify about the result.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct NamestoreClient *nc;
 
   /**
    * Client's request ID.
@@ -225,21 +221,6 @@ static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
 static char *db_lib_name;
 
 /**
- * Our notification context.
- */
-static struct GNUNET_SERVER_NotificationContext *snc;
-
-/**
- * Head of the Client DLL
- */
-static struct NamestoreClient *client_head;
-
-/**
- * Tail of the Client DLL
- */
-static struct NamestoreClient *client_tail;
-
-/**
  * Head of cop DLL.
  */
 static struct CacheOperation *cop_head;
@@ -262,8 +243,7 @@ static struct ZoneMonitor *monitor_tail;
 /**
  * Notification context shared by all monitors.
  */
-static struct GNUNET_SERVER_NotificationContext *monitor_nc;
-
+static struct GNUNET_NotificationContext *monitor_nc;
 
 
 /**
@@ -274,17 +254,10 @@ static struct GNUNET_SERVER_NotificationContext *monitor_nc;
 static void
 cleanup_task (void *cls)
 {
-  struct ZoneIteration *no;
-  struct NamestoreClient *nc;
   struct CacheOperation *cop;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Stopping namestore service\n");
-  if (NULL != snc)
-  {
-    GNUNET_SERVER_notification_context_destroy (snc);
-    snc = NULL;
-  }
   while (NULL != (cop = cop_head))
   {
     GNUNET_NAMECACHE_cancel (cop->qe);
@@ -295,23 +268,13 @@ cleanup_task (void *cls)
   }
   GNUNET_NAMECACHE_disconnect (namecache);
   namecache = NULL;
-  while (NULL != (nc = client_head))
-  {
-    while (NULL != (no = nc->op_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
-      GNUNET_free (no);
-    }
-    GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
-    GNUNET_SERVER_client_set_user_context (nc->client, NULL);
-    GNUNET_free (nc);
-  }
-  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, 
+					      GSN_database));
   GNUNET_free (db_lib_name);
   db_lib_name = NULL;
   if (NULL != monitor_nc)
   {
-    GNUNET_SERVER_notification_context_destroy (monitor_nc);
+    GNUNET_notification_context_destroy (monitor_nc);
     monitor_nc = NULL;
   }
 }
@@ -323,26 +286,24 @@ cleanup_task (void *cls)
  *
  * @param cls closure
  * @param client identification of the client
+ * @param app_ctx the `struct NamestoreClient` of @a client
  */
 static void
-client_disconnect_notification (void *cls,
-				struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_ctx)
 {
+  struct NamestoreClient *nc = app_ctx;
   struct ZoneIteration *no;
-  struct NamestoreClient *nc;
   struct ZoneMonitor *zm;
   struct CacheOperation *cop;
 
-  if (NULL == client)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p disconnected\n",
 	      client);
-  if (NULL == (nc = GNUNET_SERVER_client_get_user_context (client, struct NamestoreClient)))
-    return;
   for (zm = monitor_head; NULL != zm; zm = zm->next)
   {
-    if (client == zm->nc->client)
+    if (nc == zm->nc)
     {
       GNUNET_CONTAINER_DLL_remove (monitor_head,
 				   monitor_tail,
@@ -358,40 +319,39 @@ client_disconnect_notification (void *cls,
   }
   while (NULL != (no = nc->op_head))
   {
-    GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+    GNUNET_CONTAINER_DLL_remove (nc->op_head,
+				 nc->op_tail,
+				 no);
     GNUNET_free (no);
   }
-  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
-  GNUNET_free (nc);
   for (cop = cop_head; NULL != cop; cop = cop->next)
-    if (client == cop->client)
-      cop->client = NULL;
+    if (nc == cop->nc)
+      cop->nc = NULL;
+  GNUNET_free (nc);
 }
 
 
 /**
- * Add a client to our list of active clients, if it is not yet
- * in there.
+ * Add a client to our list of active clients.
  *
+ * @param cls NULL
  * @param client client to add
+ * @param mq message queue for @a client
  * @return internal namestore client structure for this client
  */
-static struct NamestoreClient *
-client_lookup (struct GNUNET_SERVER_Client *client)
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
 {
   struct NamestoreClient *nc;
 
-  nc = GNUNET_SERVER_client_get_user_context (client, struct NamestoreClient);
-  if (NULL != nc)
-    return nc;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p connected\n",
 	      client);
   nc = GNUNET_new (struct NamestoreClient);
   nc->client = client;
-  GNUNET_SERVER_notification_context_add (snc, client);
-  GNUNET_CONTAINER_DLL_insert (client_head, client_tail, nc);
-  GNUNET_SERVER_client_set_user_context (client, nc);
+  nc->mq = mq;
   return nc;
 }
 
@@ -415,14 +375,13 @@ lookup_nick_it (void *cls,
                 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_GNSRECORD_Data **res = cls;
-  int c;
 
   if (0 != strcmp (label, GNUNET_GNS_MASTERZONE_STR))
   {
     GNUNET_break (0);
     return;
   }
-  for (c = 0; c < rd_count; c++)
+  for (unsigned int c = 0; c < rd_count; c++)
   {
     if (GNUNET_GNSRECORD_TYPE_NICK == rd[c].record_type)
     {
@@ -537,8 +496,7 @@ merge_with_nick_records (const struct GNUNET_GNSRECORD_Data *nick_rd,
  * Generate a `struct LookupNameResponseMessage` and send it to the
  * given client using the given notification context.
  *
- * @param nc notification context to use
- * @param client client to unicast to
+ * @param nc client to unicast to
  * @param request_id request ID to use
  * @param zone_key zone key of the zone
  * @param name name
@@ -546,21 +504,20 @@ merge_with_nick_records (const struct GNUNET_GNSRECORD_Data *nick_rd,
  * @param rd array of records
  */
 static void
-send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
-		      struct GNUNET_SERVER_Client *client,
+send_lookup_response (struct NamestoreClient *nc,
 		      uint32_t request_id,
 		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		      const char *name,
 		      unsigned int rd_count,
 		      const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct GNUNET_MQ_Envelope *env;
   struct RecordResultMessage *zir_msg;
   struct GNUNET_GNSRECORD_Data *nick;
   struct GNUNET_GNSRECORD_Data *res;
   unsigned int res_count;
   size_t name_len;
   size_t rd_ser_len;
-  size_t msg_size;
   char *name_tmp;
   char *rd_ser;
 
@@ -583,31 +540,30 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 
   name_len = strlen (name) + 1;
   rd_ser_len = GNUNET_GNSRECORD_records_get_size (res_count, res);
-  msg_size = sizeof (struct RecordResultMessage) + name_len + rd_ser_len;
-  (void) client_lookup (client);
-  zir_msg = GNUNET_malloc (msg_size);
-  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
-  zir_msg->gns_header.header.size = htons (msg_size);
+  env = GNUNET_MQ_msg_extra (zir_msg,
+			     name_len + rd_ser_len,
+			     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
   zir_msg->gns_header.r_id = htonl (request_id);
   zir_msg->name_len = htons (name_len);
   zir_msg->rd_count = htons (res_count);
   zir_msg->rd_len = htons (rd_ser_len);
   zir_msg->private_key = *zone_key;
   name_tmp = (char *) &zir_msg[1];
-  GNUNET_memcpy (name_tmp, name, name_len);
+  GNUNET_memcpy (name_tmp,
+		 name,
+		 name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_GNSRECORD_records_serialize (res_count, res, rd_ser_len, rd_ser);
+  GNUNET_GNSRECORD_records_serialize (res_count,
+				      res,
+				      rd_ser_len,
+				      rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending RECORD_RESULT message with %u records and size %zu\n",
-	      res_count,
-	      msg_size);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &zir_msg->gns_header.header,
-					      GNUNET_NO);
+	      "Sending RECORD_RESULT message with %u records\n",
+	      res_count);
+  GNUNET_MQ_send (nc->mq,
+		  env);
   if (rd != res)
     GNUNET_free (res);
-  GNUNET_free (zir_msg);
 }
 
 
@@ -619,22 +575,21 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
  * @param rid client's request ID
  */
 static void
-send_store_response (struct GNUNET_SERVER_Client *client,
+send_store_response (struct NamestoreClient *nc,
                      int res,
                      uint32_t rid)
 {
-  struct RecordStoreResponseMessage rcr_msg;
+  struct GNUNET_MQ_Envelope *env;
+  struct RecordStoreResponseMessage *rcr_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending `%s' message\n",
-	      "RECORD_STORE_RESPONSE");
-  rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE);
-  rcr_msg.gns_header.header.size = htons (sizeof (struct RecordStoreResponseMessage));
-  rcr_msg.gns_header.r_id = htonl (rid);
-  rcr_msg.op_result = htonl (res);
-  GNUNET_SERVER_notification_context_unicast (snc, client,
-					      &rcr_msg.gns_header.header,
-					      GNUNET_NO);
+	      "Sending RECORD_STORE_RESPONSE message\n");
+  env = GNUNET_MQ_msg (rcr_msg,
+		       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE);
+  rcr_msg->gns_header.r_id = htonl (rid);
+  rcr_msg->op_result = htonl (res);
+  GNUNET_MQ_send (nc->mq,
+		  env);
 }
 
 
@@ -662,8 +617,8 @@ finish_cache_operation (void *cls,
   GNUNET_CONTAINER_DLL_remove (cop_head,
                                cop_tail,
                                cop);
-  if (NULL != cop->client)
-    send_store_response (cop->client,
+  if (NULL != cop->nc)
+    send_store_response (cop->nc,
                          success,
                          cop->rid);
   GNUNET_free (cop);
@@ -674,7 +629,7 @@ finish_cache_operation (void *cls,
  * We just touched the plaintext information about a name in our zone;
  * refresh the corresponding (encrypted) block in the namecache.
  *
- * @param client client responsible for the request
+ * @param nc client responsible for the request, can be NULL
  * @param rid request ID of the client
  * @param zone_key private key of the zone
  * @param name label for the records
@@ -682,7 +637,7 @@ finish_cache_operation (void *cls,
  * @param rd records stored under the given @a name
  */
 static void
-refresh_block (struct GNUNET_SERVER_Client *client,
+refresh_block (struct NamestoreClient *nc,
                uint32_t rid,
                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                const char *name,
@@ -702,7 +657,10 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   if (NULL != nick)
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-    merge_with_nick_records (nick, rd_count,rd, &res_count, &res);
+    merge_with_nick_records (nick,
+			     rd_count,rd,
+			     &res_count,
+			     &res);
     GNUNET_free (nick);
   }
 
@@ -726,7 +684,7 @@ refresh_block (struct GNUNET_SERVER_Client *client,
               res_count,
               GNUNET_GNSRECORD_z2s (&pkey));
   cop = GNUNET_new (struct CacheOperation);
-  cop->client = client;
+  cop->nc = nc;
   cop->rid = rid;
   GNUNET_CONTAINER_DLL_insert (cop_head,
                                cop_tail,
@@ -824,66 +782,62 @@ lookup_it (void *cls,
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP message
  *
- * @param cls unused
- * @param client client sending the message
- * @param message message of type 'struct RecordCreateMessage'
+ * @param cls client sending the message
+ * @param ll_msg message of type `struct LabelLookupMessage`
+ * @return #GNUNET_OK if @a ll_msg is well-formed
  */
-static void
-handle_record_lookup (void *cls,
-                     struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *message)
+static int
+check_record_lookup (void *cls,
+		     const struct LabelLookupMessage *ll_msg)
 {
-  const struct LabelLookupMessage *ll_msg;
-  struct LabelLookupResponseMessage *llr_msg;
-  struct RecordLookupContext rlc;
-  const char *name_tmp;
-  char *res_name;
-  char *conv_name;
   uint32_t name_len;
   size_t src_size;
-  size_t res_size;
-  int res;
+  const char *name_tmp;
 
-  if (ntohs (message->size) < sizeof (struct LabelLookupMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
-  ll_msg = (const struct LabelLookupMessage *) message;
   name_len = ntohl (ll_msg->label_len);
-  src_size = ntohs (message->size);
-
-  if (name_len !=  src_size - sizeof (struct LabelLookupMessage))
+  src_size = ntohs (ll_msg->gns_header.header.size);
+  if (name_len != src_size - sizeof (struct LabelLookupMessage))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
 
   name_tmp = (const char *) &ll_msg[1];
   if ('\0' != name_tmp[name_len -1])
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
 
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP message
+ *
+ * @param cls client sending the message
+ * @param ll_msg message of type `struct LabelLookupMessage`
+ */
+static void
+handle_record_lookup (void *cls,
+		      const struct LabelLookupMessage *ll_msg)
+{
+  struct NamestoreClient *nc = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct LabelLookupResponseMessage *llr_msg;
+  struct RecordLookupContext rlc;
+  const char *name_tmp;
+  char *res_name;
+  char *conv_name;
+  uint32_t name_len;
+  int res;
+
+  name_len = ntohl (ll_msg->label_len);
+  name_tmp = (const char *) &ll_msg[1];
+  GNUNET_SERVICE_client_continue (nc->client);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received NAMESTORE_RECORD_LOOKUP message for name `%s'\n",
               name_tmp);
-
-  if (NULL == (client_lookup (client)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
 
   conv_name = GNUNET_GNSRECORD_string_to_lowercase (name_tmp);
   if (NULL == conv_name)
@@ -891,8 +845,7 @@ handle_record_lookup (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Error converting name `%s'\n",
                 name_tmp);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
   rlc.label = conv_name;
@@ -907,10 +860,9 @@ handle_record_lookup (void *cls,
                                       &lookup_it,
                                       &rlc);
   GNUNET_free (conv_name);
-  res_size = sizeof (struct LabelLookupResponseMessage) + name_len + rlc.rd_ser_len;
-  llr_msg = GNUNET_malloc (res_size);
-  llr_msg->gns_header.header.size = htons (res_size);
-  llr_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE);
+  env = GNUNET_MQ_msg_extra (llr_msg,
+			     name_len + rlc.rd_ser_len,
+			     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE);
   llr_msg->gns_header.r_id = ll_msg->gns_header.r_id;
   llr_msg->private_key = ll_msg->zone;
   llr_msg->name_len = htons (name_len);
@@ -927,31 +879,65 @@ handle_record_lookup (void *cls,
   GNUNET_memcpy (&res_name[name_len],
                  rlc.res_rd,
                  rlc.rd_ser_len);
-  GNUNET_SERVER_notification_context_unicast (snc,
-                                              client,
-                                              &llr_msg->gns_header.header,
-                                              GNUNET_NO);
+  GNUNET_MQ_send (nc->mq,
+		  env);
   GNUNET_free_non_null (rlc.res_rd);
-  GNUNET_free (llr_msg);
+}
+
+
+/**
+ * Checks a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE message
+ *
+ * @param cls client sending the message
+ * @param rp_msg message of type `struct RecordStoreMessage`
+ * @return #GNUNET_OK if @a rp_msg is well-formed
+ */
+static int
+check_record_store (void *cls,
+		    const struct RecordStoreMessage *rp_msg)
+{
+  size_t name_len;
+  size_t msg_size;
+  size_t msg_size_exp;
+  size_t rd_ser_len;
+  const char *name_tmp;
+
+  name_len = ntohs (rp_msg->name_len);
+  msg_size = ntohs (rp_msg->gns_header.header.size);
+  rd_ser_len = ntohs (rp_msg->rd_len);
+  msg_size_exp = sizeof (struct RecordStoreMessage) + name_len + rd_ser_len;
+  if (msg_size != msg_size_exp)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if ((0 == name_len) || (name_len > MAX_NAME_LEN))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  name_tmp = (const char *) &rp_msg[1];
+  if ('\0' != name_tmp[name_len -1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE message
  *
- * @param cls unused
- * @param client client sending the message
- * @param message message of type 'struct RecordCreateMessage'
+ * @param cls client sending the message
+ * @param rp_msg message of type `struct RecordStoreMessage`
  */
 static void
 handle_record_store (void *cls,
-                     struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *message)
+		     const struct RecordStoreMessage *rp_msg)
 {
-  const struct RecordStoreMessage *rp_msg;
+  struct NamestoreClient *nc = cls;
   size_t name_len;
-  size_t msg_size;
-  size_t msg_size_exp;
   size_t rd_ser_len;
   uint32_t rid;
   const char *name_tmp;
@@ -964,44 +950,13 @@ handle_record_store (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received NAMESTORE_RECORD_STORE message\n");
-  if (ntohs (message->size) < sizeof (struct RecordStoreMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  rp_msg = (const struct RecordStoreMessage *) message;
   rid = ntohl (rp_msg->gns_header.r_id);
   name_len = ntohs (rp_msg->name_len);
-  msg_size = ntohs (message->size);
   rd_count = ntohs (rp_msg->rd_count);
   rd_ser_len = ntohs (rp_msg->rd_len);
   GNUNET_break (0 == ntohs (rp_msg->reserved));
-  msg_size_exp = sizeof (struct RecordStoreMessage) + name_len + rd_ser_len;
-  if (msg_size != msg_size_exp)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  if ((0 == name_len) || (name_len > MAX_NAME_LEN))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
   name_tmp = (const char *) &rp_msg[1];
   rd_ser = &name_tmp[name_len];
-  if ('\0' != name_tmp[name_len -1])
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  (void) client_lookup (client);
   {
     struct GNUNET_GNSRECORD_Data rd[rd_count];
 
@@ -1012,8 +967,7 @@ handle_record_store (void *cls,
                                               rd))
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client,
-                                  GNUNET_SYSERR);
+      GNUNET_SERVICE_client_drop (nc->client);
       return;
     }
 
@@ -1026,7 +980,7 @@ handle_record_store (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error converting name `%s'\n",
                   name_tmp);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVICE_client_drop (nc->client);
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1052,12 +1006,11 @@ handle_record_store (void *cls,
     else
     {
       struct GNUNET_GNSRECORD_Data rd_clean[rd_count];
-      unsigned int i;
       unsigned int rd_clean_off;
 
       /* remove "NICK" records, unless this is for the "+" label */
       rd_clean_off = 0;
-      for (i=0;i<rd_count;i++)
+      for (unsigned int i=0;i<rd_count;i++)
       {
         rd_clean[rd_clean_off] = rd[i];
         if ( (0 == strcmp (GNUNET_GNS_MASTERZONE_STR,
@@ -1083,8 +1036,7 @@ handle_record_store (void *cls,
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "Notifying monitor about changes under label `%s'\n",
                         conv_name);
-            send_lookup_response (monitor_nc,
-                                  zm->nc->client,
+            send_lookup_response (zm->nc,
                                   0,
                                   &rp_msg->private_key,
                                   conv_name,
@@ -1107,22 +1059,22 @@ handle_record_store (void *cls,
     }
     if (GNUNET_OK == res)
     {
-      refresh_block (client, rid,
+      refresh_block (nc,
+		     rid,
                      &rp_msg->private_key,
                      conv_name,
-                     rd_count, rd);
-      GNUNET_SERVER_receive_done (client,
-                                  GNUNET_OK);
+                     rd_count,
+		     rd);
+      GNUNET_SERVICE_client_continue (nc->client);
       GNUNET_free (conv_name);
       return;
     }
     GNUNET_free (conv_name);
   }
-  send_store_response (client,
+  send_store_response (nc,
                        res,
                        rid);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -1168,6 +1120,7 @@ handle_zone_to_name_it (void *cls,
 			const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneToNameCtx *ztn_ctx = cls;
+  struct GNUNET_MQ_Envelope *env;
   struct ZoneToNameResponseMessage *ztnr_msg;
   int16_t res;
   size_t name_len;
@@ -1189,8 +1142,9 @@ handle_zone_to_name_it (void *cls,
     ztn_ctx->success = GNUNET_SYSERR;
     return;
   }
-  ztnr_msg = GNUNET_malloc (msg_size);
-  ztnr_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
+  env = GNUNET_MQ_msg_extra (ztnr_msg,
+			     name_len + rd_ser_len,
+			     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
   ztnr_msg->gns_header.header.size = htons (msg_size);
   ztnr_msg->gns_header.r_id = htonl (ztn_ctx->rid);
   ztnr_msg->res = htons (res);
@@ -1199,40 +1153,38 @@ handle_zone_to_name_it (void *cls,
   ztnr_msg->name_len = htons (name_len);
   ztnr_msg->zone = *zone_key;
   name_tmp = (char *) &ztnr_msg[1];
-  if (NULL != name)
-    GNUNET_memcpy (name_tmp, name, name_len);
+  GNUNET_memcpy (name_tmp,
+		 name,
+		 name_len);
   rd_tmp = &name_tmp[name_len];
-  GNUNET_GNSRECORD_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
+  GNUNET_GNSRECORD_records_serialize (rd_count,
+				      rd,
+				      rd_ser_len,
+				      rd_tmp);
   ztn_ctx->success = GNUNET_OK;
-  GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client,
-					      &ztnr_msg->gns_header.header,
-					      GNUNET_NO);
-  GNUNET_free (ztnr_msg);
+  GNUNET_MQ_send (ztn_ctx->nc->mq,
+		  env);
 }
 
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME message
  *
- * @param cls unused
- * @param client client sending the message
- * @param message message of type 'struct ZoneToNameMessage'
+ * @param cls client client sending the message
+ * @param ztn_msg message of type 'struct ZoneToNameMessage'
  */
 static void
 handle_zone_to_name (void *cls,
-                     struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *message)
+                     const struct ZoneToNameMessage *ztn_msg)
 {
-  struct NamestoreClient *nc;
-  const struct ZoneToNameMessage *ztn_msg;
+  struct NamestoreClient *nc = cls;
   struct ZoneToNameCtx ztn_ctx;
-  struct ZoneToNameResponseMessage ztnr_msg;
+  struct GNUNET_MQ_Envelope *env;
+  struct ZoneToNameResponseMessage *ztnr_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message\n",
 	      "ZONE_TO_NAME");
-  ztn_msg = (const struct ZoneToNameMessage *) message;
-  nc = client_lookup (client);
   ztn_ctx.rid = ntohl (ztn_msg->gns_header.r_id);
   ztn_ctx.nc = nc;
   ztn_ctx.success = GNUNET_NO;
@@ -1245,7 +1197,7 @@ handle_zone_to_name (void *cls,
     /* internal error, hang up instead of signalling something
        that might be wrong */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
   if (GNUNET_NO == ztn_ctx.success)
@@ -1253,17 +1205,14 @@ handle_zone_to_name (void *cls,
     /* no result found, send empty response */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Found no result for zone-to-name lookup.\n");
-    memset (&ztnr_msg, 0, sizeof (ztnr_msg));
-    ztnr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
-    ztnr_msg.gns_header.header.size = htons (sizeof (ztnr_msg));
-    ztnr_msg.gns_header.r_id = ztn_msg->gns_header.r_id;
-    ztnr_msg.res = htons (GNUNET_NO);
-    GNUNET_SERVER_notification_context_unicast (snc,
-						client,
-						&ztnr_msg.gns_header.header,
-						GNUNET_NO);
+    env = GNUNET_MQ_msg (ztnr_msg,
+			 GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
+    ztnr_msg->gns_header.r_id = ztn_msg->gns_header.r_id;
+    ztnr_msg->res = htons (GNUNET_NO);
+    GNUNET_MQ_send (nc->mq,
+		    env);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -1324,13 +1273,12 @@ struct ZoneIterationProcResult
  */
 static void
 zone_iterate_proc (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-                       const char *name,
-                       unsigned int rd_count,
-                       const struct GNUNET_GNSRECORD_Data *rd)
+		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+		   const char *name,
+		   unsigned int rd_count,
+		   const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneIterationProcResult *proc = cls;
-  unsigned int i;
   int do_refresh_block;
 
   if ((NULL == zone_key) && (NULL == name))
@@ -1348,22 +1296,22 @@ zone_iterate_proc (void *cls,
     return;
   }
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
-  send_lookup_response (snc,
-			proc->zi->client->client,
+  send_lookup_response (proc->zi->nc,
 			proc->zi->request_id,
 			zone_key,
 			name,
 			rd_count,
 			rd);
   do_refresh_block = GNUNET_NO;
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
     if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
       do_refresh_block = GNUNET_YES;
       break;
     }
   if (GNUNET_YES == do_refresh_block)
-    refresh_block (NULL, 0,
+    refresh_block (NULL,
+		   0,
                    zone_key,
                    name,
                    rd_count,
@@ -1381,7 +1329,8 @@ static void
 run_zone_iteration_round (struct ZoneIteration *zi)
 {
   struct ZoneIterationProcResult proc;
-  struct RecordResultMessage rrm;
+  struct GNUNET_MQ_Envelope *env;
+  struct RecordResultMessage *rrm;
   int ret;
 
   memset (&proc, 0, sizeof (proc));
@@ -1411,16 +1360,13 @@ run_zone_iteration_round (struct ZoneIteration *zi)
     return; /* more results later */
   }
   /* send empty response to indicate end of list */
-  memset (&rrm, 0, sizeof (rrm));
-  rrm.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
-  rrm.gns_header.header.size = htons (sizeof (rrm));
-  rrm.gns_header.r_id = htonl (zi->request_id);
-  GNUNET_SERVER_notification_context_unicast (snc,
-					      zi->client->client,
-					      &rrm.gns_header.header,
-					      GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (zi->client->op_head,
-			       zi->client->op_tail,
+  env = GNUNET_MQ_msg (rrm,
+		       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
+  rrm->gns_header.r_id = htonl (zi->request_id);
+  GNUNET_MQ_send (zi->nc->mq,
+		  env);
+  GNUNET_CONTAINER_DLL_remove (zi->nc->op_head,
+			       zi->nc->op_tail,
 			       zi);
   GNUNET_free (zi);
 }
@@ -1429,67 +1375,49 @@ run_zone_iteration_round (struct ZoneIteration *zi)
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START message
  *
- * @param cls unused
- * @param client the client sending the message
- * @param message message of type 'struct ZoneIterationStartMessage'
+ * @param cls the client sending the message
+ * @param zis_msg message from the client
  */
 static void
 handle_iteration_start (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message)
+			const struct ZoneIterationStartMessage *zis_msg)
 {
-  const struct ZoneIterationStartMessage *zis_msg;
-  struct NamestoreClient *nc;
+  struct NamestoreClient *nc = cls;
   struct ZoneIteration *zi;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_START");
-  if (NULL == (nc = client_lookup (client)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  zis_msg = (const struct ZoneIterationStartMessage *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received ZONE_ITERATION_START message\n");
   zi = GNUNET_new (struct ZoneIteration);
   zi->request_id = ntohl (zis_msg->gns_header.r_id);
   zi->offset = 0;
-  zi->client = nc;
+  zi->nc = nc;
   zi->zone = zis_msg->zone;
 
-
-  GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
+  GNUNET_CONTAINER_DLL_insert (nc->op_head,
+			       nc->op_tail,
+			       zi);
   run_zone_iteration_round (zi);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP message
  *
- * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
- * @param message message of type 'struct ZoneIterationStopMessage'
+ * @param cls the client sending the message
+ * @param zis_msg message from the client
  */
 static void
 handle_iteration_stop (void *cls,
-                       struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *message)
+		       const struct ZoneIterationStopMessage *zis_msg)
 {
-  struct NamestoreClient *nc;
+  struct NamestoreClient *nc = cls;
   struct ZoneIteration *zi;
-  const struct ZoneIterationStopMessage *zis_msg;
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message\n",
 	      "ZONE_ITERATION_STOP");
-  if (NULL == (nc = client_lookup(client)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  zis_msg = (const struct ZoneIterationStopMessage *) message;
   rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
@@ -1497,42 +1425,33 @@ handle_iteration_stop (void *cls,
   if (NULL == zi)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, zi);
+  GNUNET_CONTAINER_DLL_remove (nc->op_head,
+			       nc->op_tail,
+			       zi);
   GNUNET_free (zi);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message
  *
- * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
- * @param message message of type 'struct ZoneIterationNextMessage'
+ * @param cls the client sending the message
+ * @param message message from the client
  */
 static void
 handle_iteration_next (void *cls,
-                       struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *message)
+		       const struct ZoneIterationNextMessage *zis_msg)
 {
-  struct NamestoreClient *nc;
+  struct NamestoreClient *nc = cls;
   struct ZoneIteration *zi;
-  const struct ZoneIterationNextMessage *zis_msg;
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "ZONE_ITERATION_NEXT");
-  if (NULL == (nc = client_lookup(client)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  zis_msg = (const struct ZoneIterationNextMessage *) message;
+              "Received ZONE_ITERATION_NEXT message\n");
   rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
@@ -1540,11 +1459,11 @@ handle_iteration_next (void *cls,
   if (NULL == zi)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
   run_zone_iteration_round (zi);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -1556,14 +1475,13 @@ handle_iteration_next (void *cls,
 static void
 monitor_sync (struct ZoneMonitor *zm)
 {
-  struct GNUNET_MessageHeader sync;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *sync;
 
-  sync.size = htons (sizeof (struct GNUNET_MessageHeader));
-  sync.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC);
-  GNUNET_SERVER_notification_context_unicast (monitor_nc,
-					      zm->nc->client,
-					      &sync,
-					      GNUNET_NO);
+  env = GNUNET_MQ_msg (sync,
+		       GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC);
+  GNUNET_MQ_send (zm->nc->mq,
+		  env);
 }
 
 
@@ -1600,47 +1518,45 @@ monitor_iterate_cb (void *cls,
     monitor_sync (zm);
     return;
   }
-  send_lookup_response (monitor_nc,
-			zm->nc->client,
+  send_lookup_response (zm->nc,
 			0,
 			zone_key,
 			name,
 			rd_count,
 			rd);
-  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
+  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
+				       zm);
 }
 
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START message
  *
- * @param cls unused
- * @param client the client sending the message
- * @param message message of type 'struct ZoneMonitorStartMessage'
+ * @param cls the client sending the message
+ * @param message message from the client
  */
 static void
 handle_monitor_start (void *cls,
-		      struct GNUNET_SERVER_Client *client,
-		      const struct GNUNET_MessageHeader *message)
+		      const struct ZoneMonitorStartMessage *zis_msg)
 {
-  const struct ZoneMonitorStartMessage *zis_msg;
+  struct NamestoreClient *nc = cls;
   struct ZoneMonitor *zm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "ZONE_MONITOR_START");
-  zis_msg = (const struct ZoneMonitorStartMessage *) message;
+	      "Received ZONE_MONITOR_START message\n");
   zm = GNUNET_new (struct ZoneMonitor);
-  zm->offset = 0;
-  zm->nc = client_lookup (client);
+  zm->nc = nc;
   zm->zone = zis_msg->zone;
-  GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, zm);
-  GNUNET_SERVER_client_mark_monitor (client);
-  GNUNET_SERVER_disable_receive_done_warning (client);
-  GNUNET_SERVER_notification_context_add (monitor_nc,
-					  client);
+  GNUNET_CONTAINER_DLL_insert (monitor_head,
+			       monitor_tail,
+			       zm);
+  GNUNET_SERVICE_client_mark_monitor (nc->client);
+  GNUNET_SERVICE_client_disable_continue_warning (nc->client);
+  GNUNET_notification_context_add (monitor_nc,
+				   nc->mq);
   if (GNUNET_YES == ntohl (zis_msg->iterate_first))
-    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
+					 zm);
   else
     monitor_sync (zm);
 }
@@ -1659,14 +1575,17 @@ monitor_next (void *cls)
 
   zm->task = NULL;
   ret = GSN_database->iterate_records (GSN_database->cls,
-                                       (0 == memcmp (&zm->zone, &zero, sizeof (zero)))
+                                       (0 == memcmp (&zm->zone,
+						     &zero,
+						     sizeof (zero)))
                                        ? NULL
                                        : &zm->zone,
 				       zm->offset++,
-				       &monitor_iterate_cb, zm);
+				       &monitor_iterate_cb,
+				       zm);
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_SERVER_client_disconnect (zm->nc->client);
+    GNUNET_SERVICE_client_drop (zm->nc->client);
     return;
   }
   if (GNUNET_NO == ret)
@@ -1682,35 +1601,20 @@ monitor_next (void *cls)
  * Process namestore requests.
  *
  * @param cls closure
- * @param server the initialized server
  * @param cfg configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_record_store, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE, 0},
-    {&handle_record_lookup, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP, 0},
-    {&handle_zone_to_name, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME, sizeof (struct ZoneToNameMessage) },
-    {&handle_iteration_start, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START, sizeof (struct ZoneIterationStartMessage) },
-    {&handle_iteration_next, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT, sizeof (struct ZoneIterationNextMessage) },
-    {&handle_iteration_stop, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP, sizeof (struct ZoneIterationStopMessage) },
-    {&handle_monitor_start, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START, sizeof (struct ZoneMonitorStartMessage) },
-    {NULL, NULL, 0, 0}
-  };
   char *database;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting namestore service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting namestore service\n");
   GSN_cfg = cfg;
-  monitor_nc = GNUNET_SERVER_notification_context_create (server, 1);
+  monitor_nc = GNUNET_notification_context_create (1);
   namecache = GNUNET_NAMECACHE_connect (cfg);
   /* Loading database plugin */
   if (GNUNET_OK !=
@@ -1727,39 +1631,58 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSN_database = GNUNET_PLUGIN_load (db_lib_name,
                                      (void *) GSN_cfg);
   GNUNET_free (database);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
   if (NULL == GSN_database)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Could not load database backend `%s'\n",
 		db_lib_name);
-    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
-  /* Configuring server handles */
-  GNUNET_SERVER_add_handlers (server, handlers);
-  snc = GNUNET_SERVER_notification_context_create (server, 16);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect_notification,
-                                   NULL);
-  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
-				 NULL);
 }
 
 
 /**
- * The main function for the template service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "namestore",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("namestore",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (record_store,
+			GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE,
+			struct RecordStoreMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (record_lookup,
+			GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP,
+			struct LabelLookupMessage,
+			NULL),
+ GNUNET_MQ_hd_fixed_size (zone_to_name,
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME,
+			  struct ZoneToNameMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (iteration_start, 
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START,
+			  struct ZoneIterationStartMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (iteration_next, 
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT,
+			  struct ZoneIterationNextMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (iteration_stop, 
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP,
+			  struct ZoneIterationStopMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (monitor_start, 
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START,
+			  struct ZoneMonitorStartMessage,
+			  NULL),
+ GNUNET_MQ_handler_end ());
+			  
 
 /* end of gnunet-service-namestore.c */

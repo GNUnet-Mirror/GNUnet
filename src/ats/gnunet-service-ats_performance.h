@@ -68,7 +68,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
  * @param flag flag specifying the type of the client
  */
 void
-GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
+GAS_performance_add_client (struct GNUNET_SERVICE_Client *client,
                             enum StartFlag flag);
 
 
@@ -79,7 +79,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
  * @param addresses the address handle to use
  */
 void
-GAS_performance_init (struct GNUNET_SERVER_Handle *server);
+GAS_performance_init (void);
 
 
 /**

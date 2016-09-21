@@ -26,6 +26,8 @@
 #ifndef GNUNET_SERVICE_ATS_CONNECTIVITY_H
 #define GNUNET_SERVICE_ATS_CONNECTIVITY_H
 
+#include "ats.h"
+
 
 /**
  * Is the given peer in the list of peers for which we
@@ -43,27 +45,23 @@ GAS_connectivity_has_peer (void *cls,
 /**
  * Handle 'request address' messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
- * @param message the request message
+ * @param msg the request message
  */
 void
-GAS_handle_request_address (void *cls,
-                            struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message);
+GAS_handle_request_address (struct GNUNET_SERVICE_Client *client,
+                            const struct RequestAddressMessage *msg);
 
 
 /**
  * Cancel 'request address' messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
- * @param message the request message
+ * @param msg the request message
  */
 void
-GAS_handle_request_address_cancel (void *cls,
-                                   struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader *message);
+GAS_handle_request_address_cancel (struct GNUNET_SERVICE_Client *client,
+                                   const struct RequestAddressMessage *msg);
 
 
 /**
@@ -73,7 +71,7 @@ GAS_handle_request_address_cancel (void *cls,
  * @param client handle of the (now dead) client
  */
 void
-GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client);
+GAS_connectivity_remove_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**

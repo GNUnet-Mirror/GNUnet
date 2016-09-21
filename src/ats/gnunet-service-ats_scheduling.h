@@ -37,7 +37,7 @@
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client);
+GAS_scheduling_add_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -47,7 +47,7 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client);
  * @param client handle of the (now dead) client
  */
 void
-GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client);
+GAS_scheduling_remove_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -69,57 +69,29 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
 /**
  * Handle 'address add' messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_add (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message);
+GAS_handle_address_add (const struct AddressAddMessage *m);
 
 
 /**
  * Handle 'address update' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_update (void *cls,
-                           struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *message);
+GAS_handle_address_update (const struct AddressUpdateMessage *m);
 
 
 /**
  * Handle 'address destroyed' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param m the request message
  */
 void
-GAS_handle_address_destroyed (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Initialize scheduling subsystem.
- *
- * @param server handle to our server
- * @param ah the address handle to use
- */
-void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server);
-
-
-/**
- * Shutdown scheduling subsystem.
- */
-void
-GAS_scheduling_done (void);
+GAS_handle_address_destroyed (const struct AddressDestroyedMessage *m);
 
 
 #endif

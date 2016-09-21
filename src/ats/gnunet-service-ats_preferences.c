@@ -132,7 +132,7 @@ struct PreferenceClient
   /**
    * Client handle
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Mapping peer identities to `struct PreferencePeer` entry
@@ -553,7 +553,7 @@ update_iterator (void *cls,
  * @param score_abs the normalized score
  */
 static void
-update_preference (struct GNUNET_SERVER_Client *client,
+update_preference (struct GNUNET_SERVICE_Client *client,
                    const struct GNUNET_PeerIdentity *peer,
                    enum GNUNET_ATS_PreferenceKind kind,
                    float score_abs)
@@ -646,41 +646,17 @@ update_preference (struct GNUNET_SERVER_Client *client,
 /**
  * Handle 'preference change' messages from clients.
  *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
+ * @param client the client that sent the request
+ * @param msg the request message
  */
 void
-GAS_handle_preference_change (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message)
+GAS_handle_preference_change (struct GNUNET_SERVICE_Client *client,
+			      const struct ChangePreferenceMessage *msg)
 {
-  const struct ChangePreferenceMessage *msg;
   const struct PreferenceInformation *pi;
-  uint16_t msize;
   uint32_t nump;
-  uint32_t i;
 
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct ChangePreferenceMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct ChangePreferenceMessage *) message;
   nump = ntohl (msg->num_preferences);
-  if ( (msize !=
-        sizeof (struct ChangePreferenceMessage) +
-        nump * sizeof (struct PreferenceInformation)) ||
-       (UINT16_MAX / sizeof (struct PreferenceInformation) < nump) )
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received PREFERENCE_CHANGE message for peer `%s'\n",
               GNUNET_i2s (&msg->peer));
@@ -690,14 +666,12 @@ GAS_handle_preference_change (void *cls,
                             GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   GAS_plugin_solver_lock ();
-  for (i = 0; i < nump; i++)
+  for (uint32_t i = 0; i < nump; i++)
     update_preference (client,
                        &msg->peer,
                        (enum GNUNET_ATS_PreferenceKind) ntohl (pi[i].preference_kind),
                        pi[i].preference_value);
   GAS_plugin_solver_unlock ();
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
 }
 
 
@@ -782,7 +756,7 @@ GAS_preference_get_by_peer (void *cls,
  * @param client the client
  */
 void
-GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
+GAS_preference_client_disconnect (struct GNUNET_SERVICE_Client *client)
 {
   struct PreferenceClient *c_cur;
 

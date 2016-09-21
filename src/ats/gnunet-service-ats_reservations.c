@@ -138,63 +138,43 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
 /**
  * Handle 'reservation request' messages from clients.
  *
- * @param cls unused, NULL
  * @param client client that sent the request
- * @param message the request message
+ * @param msg the request message
  */
 void
-GAS_handle_reservation_request (void *cls,
-                                struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message)
+GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
+                                const struct ReservationRequestMessage *msg)
 {
-  const struct ReservationRequestMessage *msg =
-      (const struct ReservationRequestMessage *) message;
-  struct ReservationResultMessage result;
+  struct GNUNET_MQ_Envelope *env;
+  struct ReservationResultMessage *result;
   int32_t amount;
   struct GNUNET_TIME_Relative res_delay;
-  struct GNUNET_SERVER_NotificationContext **uc;
-  struct GNUNET_SERVER_NotificationContext *nc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received RESERVATION_REQUEST message\n");
-  uc = GNUNET_SERVER_client_get_user_context (client,
-                                              struct GNUNET_SERVER_NotificationContext *);
-  if (NULL == uc)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  nc = *uc;
   amount = (int32_t) ntohl (msg->amount);
   res_delay = reservations_reserve (&msg->peer, amount);
   if (res_delay.rel_value_us > 0)
     amount = 0;
-  result.header.size = htons (sizeof (struct ReservationResultMessage));
-  result.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
-  result.amount = htonl (amount);
-  result.peer = msg->peer;
-  result.res_delay = GNUNET_TIME_relative_hton (res_delay);
+  env = GNUNET_MQ_msg (result,
+		       GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
+  result->amount = htonl (amount);
+  result->peer = msg->peer;
+  result->res_delay = GNUNET_TIME_relative_hton (res_delay);
   GNUNET_STATISTICS_update (GSA_stats,
                             "# reservation requests processed",
                             1,
                             GNUNET_NO);
-
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              client,
-                                              &result.header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+		  env);
 }
 
 
 /**
  * Initialize reservations subsystem.
- *
- * @param server handle to our server
  */
 void
-GAS_reservations_init (struct GNUNET_SERVER_Handle *server)
+GAS_reservations_init ()
 {
   trackers = GNUNET_CONTAINER_multipeermap_create (128,
                                                    GNUNET_NO);
@@ -211,7 +191,8 @@ GAS_reservations_init (struct GNUNET_SERVER_Handle *server)
  */
 static int
 free_tracker (void *cls,
-	      const struct GNUNET_PeerIdentity *key, void *value)
+	      const struct GNUNET_PeerIdentity *key,
+	      void *value)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker = value;
 

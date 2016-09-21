@@ -105,7 +105,7 @@ GAS_plugin_delete_address (struct ATS_Address *address);
  * @param score_abs degree of the appreciation
  */
 void
-GAS_plugin_notify_feedback (struct GNUNET_SERVER_Client *application,
+GAS_plugin_notify_feedback (struct GNUNET_SERVICE_Client *application,
                             const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_TIME_Relative scope,
                             enum GNUNET_ATS_PreferenceKind kind,
