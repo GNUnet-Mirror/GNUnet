@@ -60,7 +60,6 @@ libgnunetutil_la_SOURCES = \
   bandwidth.c \
   bio.c \
   client.c \
-  client_manager.c \
   common_allocation.c \
   common_endian.c \
   common_logging.c \
