@@ -657,10 +657,17 @@ check_place_state_result (void *cls,
                           const struct GNUNET_OperationResultMessage *res)
 {
   const struct GNUNET_MessageHeader *mod = GNUNET_MQ_extract_nested_mh (res);
-  uint16_t mod_size = ntohs (mod->size);
-  uint16_t size = ntohs (res->header.size);
+  if (NULL == mod)
+  {
+    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Invalid modifier in state result\n");
+    return GNUNET_SYSERR;
+  }
 
-  if (NULL == mod || size - sizeof (*res) != mod_size)
+  uint16_t size = ntohs (res->header.size);
+  uint16_t mod_size = ntohs (mod->size);
+  if (size - sizeof (*res) != mod_size)
   {
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -700,7 +707,9 @@ handle_place_state_result (void *cls,
 
     const char *name = (const char *) &pmod[1];
     uint16_t name_size = ntohs (pmod->name_size);
-    if ('\0' != name[name_size - 1])
+    if (0 == name_size
+        || mod_size - sizeof (*pmod) < name_size
+        || '\0' != name[name_size - 1])
     {
       GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_WARNING,

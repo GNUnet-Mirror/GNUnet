@@ -122,7 +122,7 @@ check_result_code (void *cls, const struct OperationResult *opres)
 {
   uint16_t size = ntohs (opres->header.size);
   const char *str = (const char *) &opres[1];
-  if ( (sizeof (struct OperationResult) < size) &&
+  if ( (sizeof (*opres) < size) &&
        ('\0' != str[size - sizeof (*opres) - 1]) )
   {
     GNUNET_break (0);
@@ -244,9 +244,12 @@ static int
 check_result_state (void *cls, const struct StateResult *sres)
 {
   const char *name = (const char *) &sres[1];
+  uint16_t size = ntohs (sres->header.size);
   uint16_t name_size = ntohs (sres->name_size);
 
-  if (name_size <= 2 || '\0' != name[name_size - 1])
+  if (name_size <= 2
+      || size - sizeof (*sres) < name_size
+      || '\0' != name[name_size - 1])
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "check_result_state: Received state result message with invalid name.\n");

@@ -386,6 +386,11 @@ handle_channel_state_result (void *cls,
   }
 
   const struct GNUNET_MessageHeader *mod = GNUNET_MQ_extract_nested_mh (res);
+  if (NULL == mod)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
   uint16_t mod_size = ntohs (mod->size);
 
   switch (ntohs (mod->type))
@@ -397,9 +402,11 @@ handle_channel_state_result (void *cls,
 
     const char *name = (const char *) &pmod[1];
     uint16_t name_size = ntohs (pmod->name_size);
-    if ('\0' != name[name_size - 1])
+    if (0 == name_size
+        || mod_size - sizeof (*pmod) < name_size
+        || '\0' != name[name_size - 1])
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       return;
     }
     sr->var_cb (sr->cls, mod, name, name + name_size,
