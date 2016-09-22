@@ -1281,11 +1281,6 @@ GCP_shutdown (void)
     GNUNET_CORE_disconnecT (core_handle);
         core_handle = NULL;
   }
-  if (NULL != ats_ch)
-  {
-    GNUNET_ATS_connectivity_done (ats_ch);
-    ats_ch = NULL;
-  }
   GNUNET_PEER_change_rc (myid, -1);
   /* With MQ API, CORE calls the disconnect handler for every peer
    * after calling GNUNET_CORE_disconnecT, shutdown must occur *after* that.
@@ -1293,6 +1288,11 @@ GCP_shutdown (void)
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &shutdown_peer,
                                          NULL);
+  if (NULL != ats_ch)
+  {
+    GNUNET_ATS_connectivity_done (ats_ch);
+    ats_ch = NULL;
+  }
   GNUNET_CONTAINER_multipeermap_destroy (peers);
   peers = NULL;
 }
