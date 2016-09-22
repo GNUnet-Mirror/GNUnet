@@ -36,10 +36,24 @@
 
 #define NUM_PEERS 2
 
-static struct GNUNET_TESTBED_Operation *multicast_peer0;
-static struct GNUNET_TESTBED_Operation *multicast_peer1;
+static struct GNUNET_TESTBED_Operation *peer0;
+static struct GNUNET_TESTBED_Operation *peer1;
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
+
+struct GNUNET_CRYPTO_EddsaPrivateKey *group_key;
+struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
+
+struct GNUNET_CRYPTO_EcdsaPrivateKey *member1_key;
+struct GNUNET_CRYPTO_EcdsaPublicKey member1_pub_key;
+
+
+enum
+{
+  TEST_INIT          = 0,
+  TEST_ORIGIN_START  = 1,
+  TEST_MEMBER_JOIN   = 2,
+} test;
 
 
 /**
@@ -55,10 +69,10 @@ static int result;
 static void
 shutdown_task (void *cls)
 {
-  if (NULL != multicast_peer0)
+  if (NULL != peer0)
   {
-    GNUNET_TESTBED_operation_done (multicast_peer0); 
-    multicast_peer0 = NULL;
+    GNUNET_TESTBED_operation_done (peer0);
+    peer0 = NULL;
   }
   if (NULL != timeout_tid)
     {
@@ -79,45 +93,115 @@ timeout_task (void *cls)
 }
 
 
-static void 
+static void
+origin_recv_replay_msg (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                        uint64_t message_id,
+                        uint64_t fragment_offset,
+                        uint64_t flags,
+                        struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: origin_recv_replay_msg()\n", test);
+  GNUNET_assert (0);
+}
+
+
+static void
+member_recv_replay_msg (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                        uint64_t message_id,
+                        uint64_t fragment_offset,
+                        uint64_t flags,
+                        struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: member_recv_replay_msg()\n", test);
+  GNUNET_assert (0);
+}
+
+
+static void
+origin_recv_replay_frag (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                         uint64_t fragment_id,
+                         uint64_t flags,
+                         struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: origin_recv_replay_frag()"
+              " - fragment_id=%" PRIu64 " flags=%" PRIu64 "\n",
+              test, fragment_id, flags);
+}
+
+
+/**
+ * Test: origin receives join request
+ */
+static void
+origin_recv_join_request (void *cls,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *mem_key,
+                          const struct GNUNET_MessageHeader *join_msg,
+                          struct GNUNET_MULTICAST_JoinHandle *jh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: origin_recv_join_request()\n", test);
+}
+
+
+static void
+origin_recv_request (void *cls,
+                     const struct GNUNET_MULTICAST_RequestHeader *req)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: origin_recv_request()\n",
+              test);
+}
+
+
+static void
+origin_recv_message (void *cls,
+                     const struct GNUNET_MULTICAST_MessageHeader *msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Test #%u: origin_recv_message()\n",
+              test);
+}
+
+
+static void
 service_close_peer0 (void *cls,
 		     void *op_result)
 {
   struct GNUNET_MULTICAST_Origin *orig = op_result;
-  
-  GNUNET_MULTICAST_origin_stop (orig,
-				NULL,
-				NULL);
+
+  GNUNET_MULTICAST_origin_stop (orig, NULL, NULL);
 }
 
 
 /**
  * Function run when service multicast has started and is providing us
  * with a configuration file.
- */ 
+ */
 static void *
 service_conf_peer0 (void *cls,
 		    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  #if 0
-  return GNUNET_MULTICAST_origin_start (cfg,
-					priv_key,
-					42,
-					&join_rcb,
-					&reply_fcb,
-					&reply_mcb,
-					&request_cb,
-					&message_cb,
-					NULL);
-#else
-  return NULL;
+  group_key = GNUNET_CRYPTO_eddsa_key_create ();
+  GNUNET_CRYPTO_eddsa_key_get_public (group_key, &group_pub_key);
 
-#endif
+  return GNUNET_MULTICAST_origin_start (cfg, group_key, 0,
+                                        origin_recv_join_request,
+                                        origin_recv_replay_frag,
+                                        origin_recv_replay_msg,
+                                        origin_recv_request,
+                                        origin_recv_message,
+					NULL);
 }
 
 
 /**
- * Test logic of peer "0" being origin starts here. 
+ * Test logic of peer "0" being origin starts here.
  *
  * @param cls closure, for the example: NULL
  * @param op should be equal to "dht_op"
@@ -134,7 +218,7 @@ service_connect_peer0 (void *cls,
 {
   struct GNUNET_MULTICAST_Origin *orig = ca_result;
 
-  /* Connection to service successful. Here we'd usually do something with 
+  /* Connection to service successful. Here we'd usually do something with
    * the service. */
   result = GNUNET_OK;
   GNUNET_SCHEDULER_shutdown (); /* Also kills the testbed */
@@ -147,8 +231,8 @@ service_connect_peer0 (void *cls,
  * just to the multicast service of peer 0 and 1.
  * Peer 0 is going to be origin.
  * Peer 1 is going to be one member.
- * Origin will start a multicast group and the member will try to join it. 
- * After that we execute some multicast test. 
+ * Origin will start a multicast group and the member will try to join it.
+ * After that we execute some multicast test.
  *
  * @param cls closure
  * @param h the run handle
@@ -158,18 +242,18 @@ service_connect_peer0 (void *cls,
  * @param links_failed number of links testbed was unable to establish
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+run (void *cls,
+     struct GNUNET_TESTBED_RunHandle *h,
+     unsigned int num_peers,
+     struct GNUNET_TESTBED_Peer **peers,
+     unsigned int links_succeeded,
+     unsigned int links_failed)
 {
   /* Testbed is ready with peers running and connected in a pre-defined overlay
      topology (FIXME)  */
 
   /* connect to a peers service */
-  multicast_peer0 = GNUNET_TESTBED_service_connect
+  peer0 = GNUNET_TESTBED_service_connect
       (NULL,                    /* Closure for operation */
        peers[0],                /* The peer whose service to connect to */
        "multicast",             /* The name of the service */
@@ -200,8 +284,7 @@ main (int argc, char *argv[])
        0LL, /* Event mask - set to 0 for no event notifications */
        NULL, /* Controller event callback */
        NULL, /* Closure for controller event callback */
-       &test_master, /* continuation callback to be called when testbed setup is
-                        complete */
+       run, /* continuation callback to be called when testbed setup is complete */
        NULL); /* Closure for the test_master callback */
   if ( (GNUNET_OK != ret) || (GNUNET_OK != result) )
     return 1;
