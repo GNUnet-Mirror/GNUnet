@@ -81,13 +81,8 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Database filename.
+   * MySQL context.
    */
-  char *fn;
-
-  /**
-    *Handle to talk to Mysql
-    */
   struct GNUNET_MYSQL_Context *mc;
 
   /**
@@ -278,31 +273,8 @@ mysql_prepare (struct GNUNET_MYSQL_Context *mc,
 static int
 database_setup (struct Plugin *plugin)
 {
-  char *filename;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "psycstore-mysql",
-                                               "FILENAME", &filename))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "psycstore-mysql", "FILENAME");
-    return GNUNET_SYSERR;
-  }
-
-  if (GNUNET_OK != GNUNET_DISK_file_test (filename))
-  {
-    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (filename))
-    {
-      GNUNET_break (0);
-      GNUNET_free (filename);
-      return GNUNET_SYSERR;
-    }
-  }
-  /* filename should be UTF-8-encoded. If it isn't, it's a bug */
-  plugin->fn = filename;
-
   /* Open database and precompile statements */
-  plugin->mc = GNUNET_MYSQL_context_create(plugin->cfg, "psycstore-mysql");
+  plugin->mc = GNUNET_MYSQL_context_create (plugin->cfg, "psycstore-mysql");
 
   if (NULL == plugin->mc)
   {
@@ -601,9 +573,6 @@ static void
 database_shutdown (struct Plugin *plugin)
 {
   GNUNET_MYSQL_context_destroy (plugin->mc);
-
-  GNUNET_free_non_null (plugin->fn);
-
 }
 
 

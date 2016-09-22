@@ -17,4 +17,9 @@ DATABASE = sqlite
 FILENAME = $GNUNET_DATA_HOME/psycstore/sqlite.db
 
 [psycstore-mysql]
-FILENAME = $GNUNET_DATA_HOME/psycstore/mysql.sql
+DATABASE = gnunet
+CONFIG = ~/.my.cnf
+# USER = gnunet
+# PASSWORD =
+# HOST = localhost
+# PORT = 3306
