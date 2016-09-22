@@ -274,7 +274,7 @@ member_parted (void *cls)
   switch (test)
   {
   case TEST_MEMBER_JOIN_REFUSE:
-    // Test 3 starts here 
+    // Test 3 starts here
     member_join (TEST_MEMBER_JOIN_ADMIT);
     break;
 
@@ -305,7 +305,7 @@ member_part ()
   test = TEST_MEMBER_PART;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_part()\n", test);
-  // Test 10 starts here 
+  // Test 10 starts here
   GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
 }
 
@@ -313,7 +313,7 @@ member_part ()
 static void
 member_replay_ok ()
 {
-  // Execution of test 8 here 
+  // Execution of test 8 here
   test = TEST_MEMBER_REPLAY_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: member_replay_ok()\n", test);
@@ -380,7 +380,7 @@ origin_recv_replay_frag (void *cls,
   switch (test)
   {
   case TEST_MEMBER_REPLAY_ERROR:
-    // Test 8 starts here 
+    // Test 8 starts here
     GNUNET_MULTICAST_replay_response (rh, NULL, GNUNET_SYSERR);
     member_replay_ok ();
     break;
@@ -440,11 +440,11 @@ origin_recv_request (void *cls,
                               &member_pub_key, sizeof (member_pub_key)));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: verify message content, take first 3 bytes: %.3s\n", 
+              "Test #%u: verify message content, take first 3 bytes: %.3s\n",
               test, (char *)&req[1]);
   GNUNET_assert (0 == memcmp (&req[1], "abc", 3));
 
-  // Test 7 starts here 
+  // Test 7 starts here
   member_replay_error ();
 }
 
@@ -497,7 +497,7 @@ member_recv_message (void *cls,
     break;
 
   case TEST_MEMBER_REPLAY_OK:
-    // Test 9 starts here 
+    // Test 9 starts here
     GNUNET_assert (replay_fragment_id == GNUNET_ntohll (msg->fragment_id));
     member_part ();
     break;
@@ -585,14 +585,14 @@ member_recv_join_decision (void *cls,
   {
   case TEST_MEMBER_JOIN_REFUSE:
     GNUNET_assert (0 == relay_count);
-    // Test 3 starts here 
+    // Test 3 starts here
     GNUNET_SCHEDULER_add_now (&schedule_member_part, NULL);
     break;
 
   case TEST_MEMBER_JOIN_ADMIT:
     GNUNET_assert (1 == relay_count);
     GNUNET_assert (0 == memcmp (relays, &this_peer, sizeof (this_peer)));
-    // Test 4 starts here 
+    // Test 4 starts here
     origin_to_all ();
     break;
 
@@ -630,7 +630,7 @@ origin_recv_join_request (void *cls,
   switch (test)
   {
   case TEST_MEMBER_JOIN_REFUSE:
-    // Test 3 starts here 
+    // Test 3 starts here
     GNUNET_MULTICAST_join_decision (jh, GNUNET_NO, 0, NULL, join_resp);
     break;
 
@@ -680,7 +680,7 @@ member_join (int t)
                                          &member_cls);
 }
 
-/** 
+/**
  * Test: Start a multicast group as origin
  */
 static void
@@ -709,7 +709,7 @@ static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
   this_peer = *my_identity;
-  
+
   // Test 1 starts here
   origin_start ();
 }
