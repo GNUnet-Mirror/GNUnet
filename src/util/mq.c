@@ -1013,7 +1013,7 @@ void
 GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_MQ_DestroyNotificationHandle *dnh;
-  
+
   if (NULL != mq->destroy_impl)
   {
     mq->destroy_impl (mq, mq->impl_state);
@@ -1032,6 +1032,7 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 				 mq->envelope_tail,
 				 ev);
+    GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
     GNUNET_MQ_discard (ev);
   }
@@ -1042,6 +1043,7 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     mq->current_envelope->parent_queue = NULL;
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
+    GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
   }
   GNUNET_assert (0 == mq->queue_length);
@@ -1107,6 +1109,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   {
     // complex case, we already started with transmitting
     // the message
+    GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
     mq->cancel_impl (mq,
 		     mq->impl_state);
@@ -1121,7 +1124,6 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
-      mq->queue_length--;
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);
@@ -1133,6 +1135,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 				 mq->envelope_tail,
 				 ev);
+    GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
   }
 
@@ -1273,7 +1276,7 @@ void
 GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh)
 {
   struct GNUNET_MQ_Handle *mq = dnh->mq;
-  
+
   GNUNET_CONTAINER_DLL_remove (mq->dnh_head,
 			       mq->dnh_tail,
 			       dnh);
