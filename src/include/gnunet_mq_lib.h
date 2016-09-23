@@ -42,7 +42,8 @@
  * The allocated message will already have the type and size field set.
  *
  * @param mvar variable to store the allocated message in;
- *             must have a header field
+ *             must have a header field;
+ *             can be NULL
  * @param esize extra space to allocate after the message
  * @param type type of the message
  * @return the MQ message
@@ -54,7 +55,8 @@
  * The contained message will already have the type and size field set.
  *
  * @param mvar variable to store the allocated message in;
- *             must have a header field
+ *             must have a header field;
+ *             can be NULL
  * @param type type of the message
  * @return the allocated envelope
  */
@@ -111,6 +113,7 @@
  * @param mh message header to extract nested message header from
  * @param base_size size of the message before the nested message's header appears
  * @return pointer to the nested message, does not copy the message
+ *         OR NULL in case of a malformed message.
  */
 const struct GNUNET_MessageHeader *
 GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
