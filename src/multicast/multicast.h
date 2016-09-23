@@ -273,7 +273,6 @@ struct MulticastOriginStartMessage
    * we resume operating * a group.
    */
   uint64_t max_fragment_id;
-
 };
 
 
@@ -297,131 +296,6 @@ struct MulticastMemberJoinMessage
   /* Followed by struct GNUNET_MessageHeader join_msg */
 };
 
-
-#if NOT_USED
-/**
- * Message sent from the client to the service to broadcast to all group
- * members.
- */
-struct MulticastBroadcastMessage
-{
-
-  /**
-   *
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * #GNUNET_OK normally, #GNUNET_SYSERR if the origin aborted the
-   * transmission.
-   */
-  int32_t status;
-
-  /**
-   * Message ID.
-   */
-  uint64_t message_id;
-
-  /**
-   * Group generation.
-   */
-  uint64_t group_generation;
-
-  /**
-   * Total message size.
-   */
-  uint64_t total_size;
-
-};
-
-
-/**
- * Message sent from the client to the service to join a multicast group.
- */
-struct MulticastJoinMessage
-{
-
-  /**
-   *
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of relays we (think) we already know about.
-   */
-  uint32_t relay_count;
-
-  /**
-   * Public non-ephemeral key of the mutlicast group.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
-
-  /**
-   * Our private key for the group.
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey member_key;
-
-  /* followed by 'relay_count' `struct GNUNET_PeerIdentity`s */
-
-};
-
-
-
-/**
- * Message sent from the client to the service to unicast to the group origin.
- */
-struct MulticastUnicastToOriginMessage
-{
-
-  /**
-   *
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Reserved (always 0).
-   */
-  uint32_t reserved;
-
-  /**
-   * Message ID.
-   */
-  uint64_t message_id;
-
-  /**
-   * Total message size.
-   */
-  uint64_t total_size;
-
-  /* followed by payload */
-
-};
-
-
-/**
- * Message sent from the client to the service to
- * cancel unicast to the group origin.
- */
-struct MulticastUnicastToOriginCancelMessage
-{
-
-  /**
-   *
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Reserved (always 0).
-   */
-  uint32_t reserved;
-
-  /**
-   * Message ID.
-   */
-  uint64_t message_id;
-
-};
-#endif // NOT_USED
 
 GNUNET_NETWORK_STRUCT_END
 
