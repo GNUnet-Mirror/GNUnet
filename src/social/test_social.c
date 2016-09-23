@@ -32,7 +32,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_social_service.h"
-#include "gnunet_core_service.h"
 #include "gnunet_identity_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
@@ -54,7 +53,6 @@ struct GNUNET_SCHEDULER_Task *end_badly_task;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CORE_Handle *core;
 struct GNUNET_PeerIdentity this_peer;
 
 struct GNUNET_IDENTITY_Handle *id;
@@ -185,12 +183,6 @@ host_announce2 ();
 static void
 cleanup ()
 {
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
-  }
-
   if (NULL != id)
   {
     GNUNET_IDENTITY_disconnect (id);
@@ -406,11 +398,6 @@ app_connected (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Test #%u: App connected: %p\n", test, cls);
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
-  }
 }
 
 
@@ -1314,17 +1301,6 @@ identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
 }
 
 
-static void
-core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
-{
-  this_peer = *my_identity;
-  id = GNUNET_IDENTITY_connect (cfg, &identity_ego_cb, NULL);
-
-  test = TEST_HOST_CREATE;
-  GNUNET_IDENTITY_create (id, host_name, &id_host_created, NULL);
-}
-
-
 /**
  * Main function of the test, run from scheduler.
  *
@@ -1346,7 +1322,12 @@ run (void *cls,
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &end_badly, NULL);
 
-  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
+
+  id = GNUNET_IDENTITY_connect (cfg, &identity_ego_cb, NULL);
+
+  test = TEST_HOST_CREATE;
+  GNUNET_IDENTITY_create (id, host_name, &id_host_created, NULL);
 }
 
 

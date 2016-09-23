@@ -31,7 +31,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
-#include "gnunet_core_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
@@ -48,7 +47,6 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /* Handles to other services */
-static struct GNUNET_CORE_Handle *core;
 static struct GNUNET_IDENTITY_Handle *id;
 static struct GNUNET_GNS_Handle *gns;
 static struct GNUNET_NAMESTORE_Handle *namestore;
@@ -453,11 +451,6 @@ shutdown_task (void *cls)
   {
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
-  }
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
   }
   if (NULL != id)
   {
@@ -3468,16 +3461,6 @@ identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
 
 
 /**
- * Connected to core service.
- */
-static void
-core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
-{
-  this_peer = *my_identity;
-}
-
-
-/**
  * Initialize the PSYC service.
  *
  * @param cls Closure.
@@ -3489,6 +3472,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   hosts = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   guests = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
@@ -3500,7 +3484,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   apps_places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
   places_apps = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
 
-  core = GNUNET_CORE_connecT (cfg, NULL, core_connected, NULL, NULL, NULL);
   id = GNUNET_IDENTITY_connect (cfg, &identity_recv_ego, NULL);
   gns = GNUNET_GNS_connect (cfg);
   namestore = GNUNET_NAMESTORE_connect (cfg);

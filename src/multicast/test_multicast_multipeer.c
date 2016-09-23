@@ -31,7 +31,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
-#include "gnunet_core_service.h"
 #include "gnunet_multicast_service.h"
 
 #define NUM_PEERS 2

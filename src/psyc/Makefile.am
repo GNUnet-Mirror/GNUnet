@@ -63,7 +63,6 @@ test_psyc_LDADD = \
   libgnunetpsyc.la \
   $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \

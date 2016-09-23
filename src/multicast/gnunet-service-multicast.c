@@ -28,7 +28,6 @@
 #include "gnunet_signatures.h"
 #include "gnunet_applications.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_core_service.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_multicast_service.h"
 #include "multicast.h"
@@ -42,12 +41,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Server handle.
  */
 static struct GNUNET_SERVER_Handle *server;
-
-/**
- * Core handle.
- * Only used during initialization.
- */
-static struct GNUNET_CORE_Handle *core;
 
 /**
  * CADET handle.
@@ -341,11 +334,6 @@ struct ReplayRequestKey
 static void
 shutdown_task (void *cls)
 {
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
-  }
   if (NULL != cadet)
   {
     GNUNET_CADET_disconnect (cadet);
@@ -1846,12 +1834,21 @@ static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
 
 
 /**
- * Connected to core service.
+ * Service started.
+ *
+ * @param cls closure
+ * @param server the initialized server
+ * @param cfg configuration to use
  */
 static void
-core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
+run (void *cls,
+     struct GNUNET_SERVER_Handle *srv,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  this_peer = *my_identity;
+  cfg = c;
+  server = srv;
+  GNUNET_SERVER_connect_notify (server, &client_notify_connect, NULL);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   stats = GNUNET_STATISTICS_create ("multicast", cfg);
   origins = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
@@ -1873,25 +1870,6 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 				   &client_notify_disconnect, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
-}
-
-
-/**
- * Service started.
- *
- * @param cls closure
- * @param server the initialized server
- * @param cfg configuration to use
- */
-static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *srv,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  cfg = c;
-  server = srv;
-  GNUNET_SERVER_connect_notify (server, &client_notify_connect, NULL);
-  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected_cb, NULL, NULL, NULL);
 }
 
 

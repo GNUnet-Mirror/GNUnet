@@ -31,7 +31,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_core_service.h"
 #include "gnunet_multicast_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
@@ -48,7 +47,6 @@ static struct GNUNET_SCHEDULER_Task * end_badly_task;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CORE_Handle *core;
 struct GNUNET_PeerIdentity this_peer;
 
 struct GNUNET_MULTICAST_Origin *origin;
@@ -110,11 +108,6 @@ member_join (int t);
 static void
 cleanup ()
 {
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
-  }
   if (NULL != member)
   {
     GNUNET_MULTICAST_member_part (member, NULL, NULL);
@@ -705,16 +698,6 @@ origin_start ()
 }
 
 
-static void
-core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
-{
-  this_peer = *my_identity;
-
-  // Test 1 starts here
-  origin_start ();
-}
-
-
 /**
  * Main function of the test, run from scheduler.
  *
@@ -737,8 +720,10 @@ run (void *cls,
   cfg = c;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &end_badly, NULL);
-  core = GNUNET_CORE_connecT (cfg, NULL,
-			      &core_connected, NULL, NULL, NULL);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
+
+  // Test 1 starts here
+  origin_start ();
 }
 
 

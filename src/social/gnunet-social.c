@@ -29,7 +29,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_social_service.h"
-#include "gnunet_core_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -139,7 +138,6 @@ struct GNUNET_SCHEDULER_Task *timeout_task;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CORE_Handle *core;
 struct GNUNET_PeerIdentity peer, this_peer;
 
 struct GNUNET_SOCIAL_App *app;
@@ -1086,9 +1084,6 @@ app_recv_ego (void *cls,
 static void
 app_connect (void *cls)
 {
-  GNUNET_CORE_disconnecT (core);
-  core = NULL;
-
   app = GNUNET_SOCIAL_app_connect (cfg, opt_app,
                                    app_recv_ego,
                                    app_recv_host,
@@ -1096,20 +1091,6 @@ app_connect (void *cls)
                                    app_connected,
                                    NULL);
 }
-
-
-/* CORE */
-
-
-static void
-core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
-{
-  this_peer = *my_identity;
-  GNUNET_SCHEDULER_add_now (app_connect, NULL);
-}
-
-
-/* RUN */
 
 
 /**
@@ -1125,6 +1106,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   if (!opt_method)
     opt_method = "message";
@@ -1181,7 +1163,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   }
 
-  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
+  GNUNET_SCHEDULER_add_now (app_connect, NULL);
 }
 
 

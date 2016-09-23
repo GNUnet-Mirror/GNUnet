@@ -34,7 +34,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_psyc_service.h"
-#include "gnunet_core_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -45,7 +44,6 @@ static int res;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_CORE_Handle *core;
 static struct GNUNET_PeerIdentity this_peer;
 
 /**
@@ -143,11 +141,6 @@ slave_parted (void *cls)
 static void
 cleanup ()
 {
-  if (NULL != core)
-  {
-    GNUNET_CORE_disconnecT (core);
-    core = NULL;
-  }
   if (NULL != slv)
   {
     GNUNET_PSYC_slave_part (slv, GNUNET_NO, &slave_parted, NULL);
@@ -951,21 +944,6 @@ schedule_master_start (void *cls)
 }
 
 
-static void
-core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
-{
-  this_peer = *my_identity;
-
-#if DEBUG_TEST_PSYC
-  master_start ();
-#else
-  /* Allow some time for the services to initialize. */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                &schedule_master_start, NULL);
-#endif
-
-}
-
 /**
  * Main function of the test, run from scheduler.
  *
@@ -986,13 +964,21 @@ run (void *cls,
   cfg = c;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
+  GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
+
   channel_key = GNUNET_CRYPTO_eddsa_key_create ();
   slave_key = GNUNET_CRYPTO_ecdsa_key_create ();
 
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
-  core = GNUNET_CORE_connecT (cfg, NULL, &core_connected, NULL, NULL, NULL);
+#if DEBUG_TEST_PSYC
+  master_start ();
+#else
+  /* Allow some time for the services to initialize. */
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &schedule_master_start, NULL);
+#endif
 }
 
 
