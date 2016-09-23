@@ -38,9 +38,9 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Server handle.
+ * Service handle.
  */
-static struct GNUNET_SERVER_Handle *server;
+static struct GNUNET_SERVICE_Handle *service;
 
 /**
  * CADET handle.
@@ -56,11 +56,6 @@ static struct GNUNET_PeerIdentity this_peer;
  * Handle to the statistics service.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
-
-/**
- * Notification context, simplifies client broadcasts.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
  * All connected origin clients.
@@ -102,7 +97,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *replay_req_cadet;
 /**
  * Incoming replay requests from clients.
  * Group's pub_key_hash ->
- *   H(fragment_id, message_id, fragment_offset, flags) -> struct GNUNET_SERVER_Client *
+ *   H(fragment_id, message_id, fragment_offset, flags) -> struct GNUNET_SERVICE_Client *
  */
 static struct GNUNET_CONTAINER_MultiHashMap *replay_req_client;
 
@@ -135,7 +130,7 @@ struct Channel
    *
    * Only set for outgoing channels.
    */
-  struct Group *grp;
+  struct Group *group;
 
   /**
    * CADET channel.
@@ -193,11 +188,12 @@ struct ClientList
 {
   struct ClientList *prev;
   struct ClientList *next;
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 };
 
+
 /**
- * Common part of the client context for both an origin and member.
+ * Client context for an origin or member.
  */
 struct Group
 {
@@ -220,23 +216,28 @@ struct Group
   struct GNUNET_HashCode cadet_port_hash;
 
   /**
+   * Is the client disconnected? #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t disconnected;
+
+  /**
    * Is this an origin (#GNUNET_YES), or member (#GNUNET_NO)?
    */
   uint8_t is_origin;
 
-  /**
-   * Is the client disconnected? #GNUNET_YES or #GNUNET_NO
-   */
-  uint8_t disconnected;
+  union {
+    struct Origin *origin;
+    struct Member *member;
+  };
 };
 
 
 /**
- * Client context for a group's origin.
+* Client context for a group's origin.
  */
 struct Origin
 {
-  struct Group grp;
+  struct Group group;
 
   /**
    * Private key of the group.
@@ -260,7 +261,7 @@ struct Origin
  */
 struct Member
 {
-  struct Group grp;
+  struct Group group;
 
   /**
    * Private key of the member.
@@ -317,6 +318,15 @@ struct Member
 };
 
 
+/**
+ * Client context.
+ */
+struct Client {
+  struct GNUNET_SERVICE_Client *client;
+  struct Group *group;
+};
+
+
 struct ReplayRequestKey
 {
   uint64_t fragment_id;
@@ -354,7 +364,7 @@ shutdown_task (void *cls)
 static void
 cleanup_origin (struct Origin *orig)
 {
-  struct Group *grp = &orig->grp;
+  struct Group *grp = &orig->group;
   GNUNET_CONTAINER_multihashmap_remove (origins, &grp->pub_key_hash, orig);
   if (NULL != orig->cadet_port)
   {
@@ -371,7 +381,7 @@ cleanup_origin (struct Origin *orig)
 static void
 cleanup_member (struct Member *mem)
 {
-  struct Group *grp = &mem->grp;
+  struct Group *grp = &mem->group;
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members,
                                                  &grp->pub_key_hash);
@@ -401,8 +411,8 @@ static void
 cleanup_group (struct Group *grp)
 {
   (GNUNET_YES == grp->is_origin)
-    ? cleanup_origin ((struct Origin *) grp)
-    : cleanup_member ((struct Member *) grp);
+    ? cleanup_origin (grp->origin)
+    : cleanup_member (grp->member);
 }
 
 
@@ -435,7 +445,7 @@ replay_req_remove_cadet (struct Channel *chn)
 {
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,
-                                                        &chn->grp->pub_key_hash);
+                                                        &chn->group->pub_key_hash);
   if (NULL == grp_replay_req)
     return GNUNET_NO;
 
@@ -469,7 +479,7 @@ replay_req_remove_cadet (struct Channel *chn)
  *         #GNUNET_NO when reached end of hashmap.
  */
 static int
-replay_req_remove_client (struct Group *grp, struct GNUNET_SERVER_Client *client)
+replay_req_remove_client (struct Group *grp, struct GNUNET_SERVICE_Client *client)
 {
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_client,
@@ -480,7 +490,7 @@ replay_req_remove_client (struct Group *grp, struct GNUNET_SERVER_Client *client
   struct GNUNET_CONTAINER_MultiHashMapIterator *
     it = GNUNET_CONTAINER_multihashmap_iterator_create (grp_replay_req);
   struct GNUNET_HashCode key;
-  const struct GNUNET_SERVER_Client *c;
+  const struct GNUNET_SERVICE_Client *c;
   while (GNUNET_YES
          == GNUNET_CONTAINER_multihashmap_iterator_next (it, &key,
                                                          (const void **) &c))
@@ -498,77 +508,20 @@ replay_req_remove_client (struct Group *grp, struct GNUNET_SERVER_Client *client
 
 
 /**
- * Called whenever a client is disconnected.
- *
- * Frees our resources associated with that client.
- *
- * @param cls  Closure.
- * @param client  Client handle.
- */
-static void
-client_notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  if (NULL == client)
-    return;
-
-  struct Group *grp
-    = GNUNET_SERVER_client_get_user_context (client, struct Group);
-
-  if (NULL == grp)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%p User context is NULL in client_disconnect()\n", grp);
-    GNUNET_break (0);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client (%s) disconnected from group %s\n",
-              grp, (GNUNET_YES == grp->is_origin) ? "origin" : "member",
-              GNUNET_h2s (&grp->pub_key_hash));
-
-  struct ClientList *cl = grp->clients_head;
-  while (NULL != cl)
-  {
-    if (cl->client == client)
-    {
-      GNUNET_CONTAINER_DLL_remove (grp->clients_head, grp->clients_tail, cl);
-      GNUNET_free (cl);
-      break;
-    }
-    cl = cl->next;
-  }
-
-  while (GNUNET_YES == replay_req_remove_client (grp, client));
-
-  if (NULL == grp->clients_head)
-  { /* Last client disconnected. */
-#if FIXME
-    if (NULL != grp->tmit_head)
-    { /* Send pending messages via CADET before cleanup. */
-      transmit_message (grp);
-    }
-    else
-#endif
-    {
-      cleanup_group (grp);
-    }
-  }
-}
-
-
-/**
  * Send message to a client.
  */
 static void
-client_send (struct GNUNET_SERVER_Client *client,
+client_send (struct GNUNET_SERVICE_Client *client,
              const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%p Sending message to client.\n", client);
 
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc, client, msg, GNUNET_NO);
+  struct GNUNET_MQ_Envelope *
+    env = GNUNET_MQ_msg_copy (msg);
+
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
 }
 
 
@@ -585,8 +538,11 @@ client_send_group (const struct Group *grp,
   struct ClientList *cl = grp->clients_head;
   while (NULL != cl)
   {
-    GNUNET_SERVER_notification_context_add (nc, cl->client);
-    GNUNET_SERVER_notification_context_unicast (nc, cl->client, msg, GNUNET_NO);
+    struct GNUNET_MQ_Envelope *
+      env = GNUNET_MQ_msg_copy (msg);
+
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cl->client),
+                    env);
     cl = cl->next;
   }
 }
@@ -602,7 +558,7 @@ client_send_origin_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
   const struct GNUNET_MessageHeader *msg = cls;
   struct Member *orig = origin;
 
-  client_send_group (&orig->grp, msg);
+  client_send_group (&orig->group, msg);
   return GNUNET_YES;
 }
 
@@ -619,7 +575,7 @@ client_send_member_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
 
   if (NULL != mem->join_dcsn)
   { /* Only send message to admitted members */
-    client_send_group (&mem->grp, msg);
+    client_send_group (&mem->group, msg);
   }
   return GNUNET_YES;
 }
@@ -785,7 +741,7 @@ static struct Channel *
 cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
 {
   struct Channel *chn = GNUNET_malloc (sizeof (*chn));
-  chn->grp = grp;
+  chn->group = grp;
   chn->group_pub_key = grp->pub_key;
   chn->group_pub_hash = grp->pub_key_hash;
   chn->peer = *peer;
@@ -806,14 +762,14 @@ cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
 static void
 cadet_send_join_request (struct Member *mem)
 {
-  mem->origin_channel = cadet_channel_create (&mem->grp, &mem->origin);
+  mem->origin_channel = cadet_channel_create (&mem->group, &mem->origin);
   cadet_send_channel (mem->origin_channel, &mem->join_req->header);
 
   uint32_t i;
   for (i = 0; i < mem->relay_count; i++)
   {
     struct Channel *
-      chn = cadet_channel_create (&mem->grp, &mem->relays[i]);
+      chn = cadet_channel_create (&mem->group, &mem->relays[i]);
     cadet_send_channel (chn, &mem->join_req->header);
   }
 }
@@ -923,11 +879,11 @@ cadet_notify_channel_end (void *cls,
     return;
 
   struct Channel *chn = ctx;
-  if (NULL != chn->grp)
+  if (NULL != chn->group)
   {
-    if (GNUNET_NO == chn->grp->is_origin)
+    if (GNUNET_NO == chn->group->is_origin)
     {
-      struct Member *mem = (struct Member *) chn->grp;
+      struct Member *mem = (struct Member *) chn->group;
       if (chn == mem->origin_channel)
         mem->origin_channel = NULL;
     }
@@ -957,11 +913,11 @@ group_set_cadet_port_hash (struct Group *grp)
  * Handle a connecting client starting an origin.
  */
 static void
-client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *m)
+handle_client_origin_start (void *cls,
+                            const struct MulticastOriginStartMessage *msg)
 {
-  const struct MulticastOriginStartMessage *
-    msg = (const struct MulticastOriginStartMessage *) m;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
 
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
   struct GNUNET_HashCode pub_key_hash;
@@ -978,7 +934,9 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
     orig = GNUNET_new (struct Origin);
     orig->priv_key = msg->group_key;
     orig->max_fragment_id = GNUNET_ntohll (msg->max_fragment_id);
-    grp = &orig->grp;
+
+    grp = c->group = &orig->group;
+    grp->origin = orig;
     grp->is_origin = GNUNET_YES;
     grp->pub_key = pub_key;
     grp->pub_key_hash = pub_key_hash;
@@ -992,7 +950,7 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    grp = &orig->grp;
+    grp = &orig->group;
   }
 
   struct ClientList *cl = GNUNET_new (struct ClientList);
@@ -1002,9 +960,31 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client connected as origin to group %s.\n",
               orig, GNUNET_h2s (&grp->pub_key_hash));
+  GNUNET_SERVICE_client_continue (client);
+}
 
-  GNUNET_SERVER_client_set_user_context (client, grp);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
+static int
+check_client_member_join (void *cls,
+                          const struct MulticastMemberJoinMessage *msg)
+{
+  uint16_t msg_size = ntohs (msg->header.size);
+  struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
+  uint32_t relay_count = ntohl (msg->relay_count);
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  struct GNUNET_MessageHeader *join_msg = NULL;
+  uint16_t join_msg_size = 0;
+  if (sizeof (*msg) + relay_size + sizeof (struct GNUNET_MessageHeader)
+      <= msg_size)
+  {
+    join_msg = (struct GNUNET_MessageHeader *)
+      (((char *) &msg[1]) + relay_size);
+    join_msg_size = ntohs (join_msg->size);
+  }
+  return
+    msg_size == (sizeof (*msg) + relay_size + join_msg_size)
+    ? GNUNET_OK
+    : GNUNET_SYSERR;
 }
 
 
@@ -1012,11 +992,12 @@ client_recv_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
  * Handle a connecting client joining a group.
  */
 static void
-client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *m)
+handle_client_member_join (void *cls,
+                           const struct MulticastMemberJoinMessage *msg)
 {
-  const struct MulticastMemberJoinMessage *
-    msg = (const struct MulticastMemberJoinMessage *) m;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+
   uint16_t msg_size = ntohs (msg->header.size);
 
   struct GNUNET_CRYPTO_EcdsaPublicKey mem_pub_key;
@@ -1043,7 +1024,8 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     mem->pub_key_hash = mem_pub_key_hash;
     mem->max_fragment_id = 0; // FIXME
 
-    grp = &mem->grp;
+    grp = c->group = &mem->group;
+    grp->member = mem;
     grp->is_origin = GNUNET_NO;
     grp->pub_key = msg->group_pub_key;
     grp->pub_key_hash = pub_key_hash;
@@ -1062,7 +1044,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    grp = &mem->grp;
+    grp = &mem->group;
   }
 
   struct ClientList *cl = GNUNET_new (struct ClientList);
@@ -1078,15 +1060,13 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
               mem, GNUNET_h2s (&mem->pub_key_hash), str);
   GNUNET_free (str);
 
-  GNUNET_SERVER_client_set_user_context (client, grp);
-
   if (NULL != mem->join_dcsn)
   { /* Already got a join decision, send it to client. */
-    GNUNET_SERVER_notification_context_add (nc, client);
-    GNUNET_SERVER_notification_context_unicast (nc, client,
-                                                (struct GNUNET_MessageHeader *)
-                                                mem->join_dcsn,
-                                                GNUNET_NO);
+    struct GNUNET_MQ_Envelope *
+      env = GNUNET_MQ_msg_copy (&mem->join_dcsn->header);
+
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                    env);
   }
   else
   { /* First client of the group, send join request. */
@@ -1101,12 +1081,6 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
       join_msg = (struct GNUNET_MessageHeader *)
         (((char *) &msg[1]) + relay_size);
       join_msg_size = ntohs (join_msg->size);
-    }
-    if (sizeof (*msg) + relay_size + join_msg_size != msg_size)
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_client_disconnect (client);
-      return;
     }
 
     struct MulticastJoinRequestMessage *
@@ -1142,7 +1116,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
       cadet_send_join_request (mem);
     }
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1150,7 +1124,7 @@ static void
 client_send_join_decision (struct Member *mem,
                            const struct MulticastJoinDecisionMessageHeader *hdcsn)
 {
-  client_send_group (&mem->grp, &hdcsn->header);
+  client_send_group (&mem->group, &hdcsn->header);
 
   const struct MulticastJoinDecisionMessage *
     dcsn = (const struct MulticastJoinDecisionMessage *) &hdcsn[1];
@@ -1166,22 +1140,29 @@ client_send_join_decision (struct Member *mem,
 }
 
 
+static int
+check_client_join_decision (void *cls,
+                            const struct MulticastJoinDecisionMessageHeader *hdcsn)
+{
+  return GNUNET_OK;
+}
+
+
 /**
  * Join decision from client.
  */
 static void
-client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *m)
+handle_client_join_decision (void *cls,
+                             const struct MulticastJoinDecisionMessageHeader *hdcsn)
 {
-  struct Group *
-    grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  const struct MulticastJoinDecisionMessageHeader *
-    hdcsn = (const struct MulticastJoinDecisionMessageHeader *) m;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
 
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1210,7 +1191,15 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   { /* Look for remote member */
     cadet_send_join_decision (grp, hdcsn);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+static int
+check_client_multicast_message (void *cls,
+                                const struct GNUNET_MULTICAST_MessageHeader *msg)
+{
+  return GNUNET_OK;
 }
 
 
@@ -1218,25 +1207,25 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
  * Incoming message from a client.
  */
 static void
-client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_MessageHeader *m)
+handle_client_multicast_message (void *cls,
+                                 const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
-  struct Group *
-    grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  struct GNUNET_MULTICAST_MessageHeader *out;
-  struct Origin *orig;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
 
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_assert (GNUNET_YES == grp->is_origin);
-  orig = (struct Origin *) grp;
+  struct Origin *orig = grp->origin;
 
   /* FIXME: yucky, should use separate message structs for P2P and CS! */
-  out = (struct GNUNET_MULTICAST_MessageHeader *) GNUNET_copy_message (m);
+  struct GNUNET_MULTICAST_MessageHeader *
+    out = (struct GNUNET_MULTICAST_MessageHeader *) GNUNET_copy_message (&msg->header);
   out->fragment_id = GNUNET_htonll (++orig->max_fragment_id);
   out->purpose.size = htonl (ntohs (out->header.size)
                              - sizeof (out->header)
@@ -1257,7 +1246,15 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_free (out);
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+static int
+check_client_multicast_request (void *cls,
+                                const struct GNUNET_MULTICAST_RequestHeader *req)
+{
+  return GNUNET_OK;
 }
 
 
@@ -1265,23 +1262,25 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
  * Incoming request from a client.
  */
 static void
-client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_MessageHeader *m)
+handle_client_multicast_request (void *cls,
+                                 const struct GNUNET_MULTICAST_RequestHeader *req)
 {
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  struct Member *mem;
-  struct GNUNET_MULTICAST_RequestHeader *out;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
+
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_assert (GNUNET_NO == grp->is_origin);
-  mem = (struct Member *) grp;
+  struct Member *mem = grp->member;
 
   /* FIXME: yucky, should use separate message structs for P2P and CS! */
-  out = (struct GNUNET_MULTICAST_RequestHeader *) GNUNET_copy_message (m);
+  struct GNUNET_MULTICAST_RequestHeader *
+    out = (struct GNUNET_MULTICAST_RequestHeader *) GNUNET_copy_message (&req->header);
   out->member_pub_key = mem->pub_key;
   out->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
   out->purpose.size = htonl (ntohs (out->header.size)
@@ -1307,7 +1306,7 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
     else
     {
       /* FIXME: not yet connected to origin */
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVICE_client_drop (client);
       GNUNET_free (out);
       return;
     }
@@ -1317,7 +1316,7 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
     client_send_ack (&grp->pub_key_hash);
   }
   GNUNET_free (out);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1325,19 +1324,21 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
  * Incoming replay request from a client.
  */
 static void
-client_recv_replay_request (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *m)
+handle_client_replay_request (void *cls,
+                              const struct MulticastReplayRequestMessage *rep)
 {
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  struct Member *mem;
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
+
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_assert (GNUNET_NO == grp->is_origin);
-  mem = (struct Member *) grp;
+  struct Member *mem = grp->member;
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_client,
@@ -1349,28 +1350,27 @@ client_recv_replay_request (void *cls, struct GNUNET_SERVER_Client *client,
                                        &grp->pub_key_hash, grp_replay_req,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
-  struct MulticastReplayRequestMessage *
-    rep = (struct MulticastReplayRequestMessage *) m;
+
   struct GNUNET_HashCode key_hash;
   replay_key_hash (rep->fragment_id, rep->message_id, rep->fragment_offset,
                    rep->flags, &key_hash);
   GNUNET_CONTAINER_multihashmap_put (grp_replay_req, &key_hash, client,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  if (0 == client_send_origin (&grp->pub_key_hash, m))
+  if (0 == client_send_origin (&grp->pub_key_hash, &rep->header))
   { /* No local origin, replay from remote members / origin. */
     if (NULL != mem->origin_channel)
     {
-      cadet_send_channel (mem->origin_channel, m);
+      cadet_send_channel (mem->origin_channel, &rep->header);
     }
     else
     {
       /* FIXME: not yet connected to origin */
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVICE_client_drop (client);
       return;
     }
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1392,10 +1392,18 @@ client_send_replay_response_cb (void *cls,
                                 const struct GNUNET_HashCode *key_hash,
                                 void *value)
 {
-  struct GNUNET_SERVER_Client *client = value;
+  struct GNUNET_SERVICE_Client *client = value;
   struct GNUNET_MessageHeader *msg = cls;
 
   client_send (client, msg);
+  return GNUNET_OK;
+}
+
+
+static int
+check_client_replay_response_end (void *cls,
+                                  const struct MulticastReplayResponseMessage *res)
+{
   return GNUNET_OK;
 }
 
@@ -1404,19 +1412,19 @@ client_send_replay_response_cb (void *cls,
  * End of replay response from a client.
  */
 static void
-client_recv_replay_response_end (void *cls, struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *m)
+handle_client_replay_response_end (void *cls,
+                                   const struct MulticastReplayResponseMessage *res)
 {
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
+
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
-
-  struct MulticastReplayResponseMessage *
-    res = (struct MulticastReplayResponseMessage *) m;
 
   struct GNUNET_HashCode key_hash;
   replay_key_hash (res->fragment_id, res->message_id, res->fragment_offset,
@@ -1424,7 +1432,7 @@ client_recv_replay_response_end (void *cls, struct GNUNET_SERVER_Client *client,
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req_cadet = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,
-                                                                &grp->pub_key_hash);
+                                                              &grp->pub_key_hash);
   if (NULL != grp_replay_req_cadet)
   {
     GNUNET_CONTAINER_multihashmap_remove_all (grp_replay_req_cadet, &key_hash);
@@ -1436,7 +1444,24 @@ client_recv_replay_response_end (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_CONTAINER_multihashmap_remove_all (grp_replay_req_client, &key_hash);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+static int
+check_client_replay_response (void *cls,
+                              const struct MulticastReplayResponseMessage *res)
+{
+  const struct GNUNET_MessageHeader *msg = &res->header;
+  if (GNUNET_MULTICAST_REC_OK == res->error_code)
+  {
+    msg = GNUNET_MQ_extract_nested_mh (res);
+    if (NULL == msg)
+    {
+      return GNUNET_SYSERR;
+    }
+  }
+  return GNUNET_OK;
 }
 
 
@@ -1446,24 +1471,24 @@ client_recv_replay_response_end (void *cls, struct GNUNET_SERVER_Client *client,
  * Respond with a multicast message on success, or otherwise with an error code.
  */
 static void
-client_recv_replay_response (void *cls, struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *m)
+handle_client_replay_response (void *cls,
+                               const struct MulticastReplayResponseMessage *res)
 {
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
+  struct Client *c = cls;
+  struct GNUNET_SERVICE_Client *client = c->client;
+  struct Group *grp = c->group;
+
   if (NULL == grp)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
-  struct MulticastReplayResponseMessage *
-    res = (struct MulticastReplayResponseMessage *) m;
-
-  const struct GNUNET_MessageHeader *msg = m;
+  const struct GNUNET_MessageHeader *msg = &res->header;
   if (GNUNET_MULTICAST_REC_OK == res->error_code)
   {
-    msg = (struct GNUNET_MessageHeader *) &res[1];
+    msg = GNUNET_MQ_extract_nested_mh (res);
   }
 
   struct GNUNET_HashCode key_hash;
@@ -1493,54 +1518,11 @@ client_recv_replay_response (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    client_recv_replay_response_end (cls, client, m);
+    handle_client_replay_response_end (c, res);
     return;
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
-
-
-/**
- * A new client connected.
- */
-static void
-client_notify_connect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected: %p\n", client);
-  /* FIXME: send connect ACK */
-}
-
-
-/**
- * Message handlers for the server.
- */
-static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-  { client_recv_origin_start, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START, 0 },
-
-  { client_recv_member_join, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN, 0 },
-
-  { client_recv_join_decision, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION, 0 },
-
-  { client_recv_multicast_message, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },
-
-  { client_recv_multicast_request, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST, 0 },
-
-  { client_recv_replay_request, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST, 0 },
-
-  { client_recv_replay_response, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE, 0 },
-
-  { client_recv_replay_response_end, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END, 0 },
-
-  { NULL, NULL, 0, 0 }
-};
 
 
 /**
@@ -1623,7 +1605,7 @@ cadet_recv_join_decision (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (NULL == chn->grp || GNUNET_NO != chn->grp->is_origin)
+  if (NULL == chn->group || GNUNET_NO != chn->group->is_origin)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1646,7 +1628,7 @@ cadet_recv_join_decision (void *cls,
   hdcsn->peer = chn->peer;
   GNUNET_memcpy (&hdcsn[1], dcsn, sizeof (*hdcsn) + size);
 
-  struct Member *mem = (struct Member *) chn->grp;
+  struct Member *mem = (struct Member *) chn->group;
   client_send_join_decision (mem, hdcsn);
   GNUNET_free (hdcsn);
   if (GNUNET_YES == ntohs (dcsn->is_admitted))
@@ -1774,12 +1756,12 @@ cadet_recv_replay_request (void *cls,
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,
-                                                        &chn->grp->pub_key_hash);
+                                                        &chn->group->pub_key_hash);
   if (NULL == grp_replay_req)
   {
     grp_replay_req = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
     GNUNET_CONTAINER_multihashmap_put (replay_req_cadet,
-                                       &chn->grp->pub_key_hash, grp_replay_req,
+                                       &chn->group->pub_key_hash, grp_replay_req,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   struct GNUNET_HashCode key_hash;
@@ -1807,6 +1789,88 @@ cadet_recv_replay_response (void *cls,
   /* @todo FIXME: got replay error response, send request to other members */
 
   return GNUNET_OK;
+}
+
+
+/**
+ * A new client connected.
+ *
+ * @param cls NULL
+ * @param client client to add
+ * @param mq message queue for @a client
+ * @return @a client
+ */
+static void *
+client_notify_connect (void *cls,
+                       struct GNUNET_SERVICE_Client *client,
+                       struct GNUNET_MQ_Handle *mq)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected: %p\n", client);
+  /* FIXME: send connect ACK */
+
+  struct Client *c = GNUNET_new (struct Client);
+  c->client = client;
+
+  return c;
+}
+
+
+/**
+ * Called whenever a client is disconnected.
+ * Frees our resources associated with that client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param app_ctx must match @a client
+ */
+static void
+client_notify_disconnect (void *cls,
+                          struct GNUNET_SERVICE_Client *client,
+                          void *app_ctx)
+{
+  struct Client *c = app_ctx;
+  struct Group *grp = c->group;
+
+  if (NULL == grp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p User context is NULL in client_disconnect()\n", grp);
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Client (%s) disconnected from group %s\n",
+              grp, (GNUNET_YES == grp->is_origin) ? "origin" : "member",
+              GNUNET_h2s (&grp->pub_key_hash));
+
+  struct ClientList *cl = grp->clients_head;
+  while (NULL != cl)
+  {
+    if (cl->client == client)
+    {
+      GNUNET_CONTAINER_DLL_remove (grp->clients_head, grp->clients_tail, cl);
+      GNUNET_free (cl);
+      break;
+    }
+    cl = cl->next;
+  }
+
+  while (GNUNET_YES == replay_req_remove_client (grp, client));
+
+  if (NULL == grp->clients_head)
+  { /* Last client disconnected. */
+#if FIXME
+    if (NULL != grp->tmit_head)
+    { /* Send pending messages via CADET before cleanup. */
+      transmit_message (grp);
+    }
+    else
+#endif
+    {
+      cleanup_group (grp);
+    }
+  }
 }
 
 
@@ -1842,12 +1906,11 @@ static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *srv,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *svc)
 {
   cfg = c;
-  server = srv;
-  GNUNET_SERVER_connect_notify (server, &client_notify_connect, NULL);
+  service = svc;
   GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   stats = GNUNET_STATISTICS_create ("multicast", cfg);
@@ -1860,32 +1923,56 @@ run (void *cls,
   replay_req_client = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
 
   cadet = GNUNET_CADET_connect (cfg, NULL,
-                                &cadet_notify_channel_end,
+                                cadet_notify_channel_end,
                                 cadet_handlers);
   GNUNET_assert (NULL != cadet);
 
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
-  GNUNET_SERVER_add_handlers (server, server_handlers);
-  GNUNET_SERVER_disconnect_notify (server,
-				   &client_notify_disconnect, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
 
 
 /**
- * The main function for the multicast service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "multicast",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("multicast",
+ GNUNET_SERVICE_OPTION_NONE,
+ run,
+ client_notify_connect,
+ client_notify_disconnect,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (client_origin_start,
+                          GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START,
+                          struct MulticastOriginStartMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_member_join,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN,
+                        struct MulticastMemberJoinMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (client_join_decision,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION,
+                        struct MulticastJoinDecisionMessageHeader,
+                        NULL),
+ GNUNET_MQ_hd_var_size (client_multicast_message,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
+                        struct GNUNET_MULTICAST_MessageHeader,
+                        NULL),
+ GNUNET_MQ_hd_var_size (client_multicast_request,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST,
+                        struct GNUNET_MULTICAST_RequestHeader,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (client_replay_request,
+                          GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
+                          struct MulticastReplayRequestMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_replay_response,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE,
+                        struct MulticastReplayResponseMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (client_replay_response_end,
+                        GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END,
+                        struct MulticastReplayResponseMessage,
+                        NULL));
 
 /* end of gnunet-service-multicast.c */
