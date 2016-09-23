@@ -833,10 +833,8 @@ AC_ARG_WITH(mysql,
    yes|"")
       AC_CHECK_HEADERS(mysql/mysql.h,
        AC_CHECK_LIB(mysqlclient, mysql_init,
-        MYSQL_LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql"
-        MYSQL_CPPFLAGS="-I$with_mysql/include"
 
-        mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+       mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
       ;;
    *)
       LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql $LDFLAGS $ZLIBS"
