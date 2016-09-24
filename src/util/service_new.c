@@ -269,7 +269,7 @@ struct GNUNET_SERVICE_Client
    * Pointer to the message to be transmitted by @e send_task.
    */
   const struct GNUNET_MessageHeader *msg;
-  
+
   /**
    * User context value, value returned from
    * the connect callback.
@@ -286,7 +286,7 @@ struct GNUNET_SERVICE_Client
    * Current position in @e msg at which we are transmitting.
    */
   size_t msg_pos;
-  
+
   /**
    * Persist the file handle for this client no matter what happens,
    * force the OS to close once the process actually dies.  Should only
@@ -1234,7 +1234,7 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
   {
     /* listen only on inherited sockets if we have any */
     struct GNUNET_NETWORK_Handle **ls;
-    
+
     for (ls = lsocks; NULL != *ls; ls++)
     {
       struct ServiceListenContext *slc;
@@ -1694,7 +1694,7 @@ GNUNET_SERVICE_ruN_ (int argc,
 	 clock_offset);
   }
   GNUNET_RESOLVER_connect (sh.cfg);
-  
+
   /* actually run service */
   err = 0;
   GNUNET_SCHEDULER_run (&service_main,
@@ -1908,7 +1908,13 @@ service_mq_error_handler (void *cls,
 
   if ( (GNUNET_MQ_ERROR_NO_MATCH == error) &&
        (GNUNET_NO == sh->require_found) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No handler for message of type %u found\n",
+                (unsigned int) client->warn_type);
+    GNUNET_SERVICE_client_continue (client);
     return; /* ignore error */
+  }
   GNUNET_SERVICE_client_drop (client);
 }
 
@@ -1924,7 +1930,7 @@ warn_no_client_continue (void *cls)
   struct GNUNET_SERVICE_Client *client = cls;
 
   GNUNET_break (0 != client->warn_type); /* type should never be 0 here, as we don't use 0 */
-  client->warn_task 
+  client->warn_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &warn_no_client_continue,
 				    client);
@@ -2138,7 +2144,7 @@ accept_client (void *cls)
     struct sockaddr_storage sa;
     socklen_t addrlen;
     int ok;
-    
+
     addrlen = sizeof (sa);
     sock = GNUNET_NETWORK_socket_accept (slc->listen_socket,
 					 (struct sockaddr *) &sa,
@@ -2259,7 +2265,7 @@ resume_client_receive (void *cls)
     = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				     c->sock,
 				     &service_client_recv,
-				     c);  
+				     c);
 }
 
 
