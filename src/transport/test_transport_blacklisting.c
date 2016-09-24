@@ -177,11 +177,13 @@ testing_connect_cb (void *cls)
 
 
 static void
-connect_timeout(void *cls)
+connect_timeout (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peers not connected, next stage\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Peers not connected, next stage\n");
   timeout_task = NULL;
-  stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL);
+  stage_task = GNUNET_SCHEDULER_add_now (&run_stage,
+                                         NULL);
 }
 
 
@@ -189,12 +191,14 @@ static int started;
 
 
 static void
-start_cb(struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
+start_cb (void *cls)
 {
-
+  struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
   started++;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer %u (`%s') started\n", p->no,
-      GNUNET_i2s_full (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Peer %u (`%s') started\n",
+             p->no,
+             GNUNET_i2s_full (&p->id));
 
   if (started != 2)
     return;
@@ -202,8 +206,11 @@ start_cb(struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
   char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n", p1->no,
-      sender_c, p2->no, GNUNET_i2s (&p2->id));
+             "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
+             p1->no,
+             sender_c,
+             p2->no,
+             GNUNET_i2s (&p2->id));
   GNUNET_free(sender_c);
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (p1,
@@ -212,6 +219,7 @@ start_cb(struct GNUNET_TRANSPORT_TESTING_PeerContext *p, void *cls)
                                                NULL);
 
 }
+
 
 static int
 check_blacklist_config (const char *cfg_file,
