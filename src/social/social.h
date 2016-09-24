@@ -73,10 +73,14 @@ struct AppDetachRequest
   struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 
   /**
+   * Public key of ego.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  /**
    * Operation ID.
    */
   uint64_t op_id GNUNET_PACKED;
-
 };
 
 

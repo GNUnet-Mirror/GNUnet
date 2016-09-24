@@ -2736,6 +2736,7 @@ GNUNET_SOCIAL_app_detach (struct GNUNET_SOCIAL_App *app,
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg (dreq, GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH);
   dreq->place_pub_key = plc->pub_key;
+  dreq->ego_pub_key = plc->ego_pub_key;
 
   GNUNET_MQ_send (app->mq, env);
 }
