@@ -318,9 +318,10 @@ broadcast_status (const char *name,
                  namelen);
   if (NULL == unicast)
   {
-    GNUNET_notification_context_broadcast (notifier,
-                                           &msg->header,
-                                           GNUNET_YES);
+    if (NULL != notifier)
+      GNUNET_notification_context_broadcast (notifier,
+                                             &msg->header,
+                                             GNUNET_YES);
     GNUNET_MQ_discard (env);
   }
   else
