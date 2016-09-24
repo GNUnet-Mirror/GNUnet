@@ -463,7 +463,7 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
                            struct GNUNET_ARM_ListResultMessage,
                            h),
     GNUNET_MQ_hd_fixed_size (confirm,
-                             GNUNET_MESSAGE_TYPE_TEST,
+                             GNUNET_MESSAGE_TYPE_ARM_TEST,
                              struct GNUNET_MessageHeader,
                              h),
     GNUNET_MQ_handler_end ()
@@ -491,7 +491,7 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending TEST message to ARM\n");
   env = GNUNET_MQ_msg (test,
-                       GNUNET_MESSAGE_TYPE_TEST);
+                       GNUNET_MESSAGE_TYPE_ARM_TEST);
   GNUNET_MQ_send (h->mq,
                   env);
   return GNUNET_OK;

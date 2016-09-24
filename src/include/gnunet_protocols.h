@@ -56,6 +56,8 @@ extern "C"
 
 /**
  * Test if service is online.
+ *
+ * @deprecated!
  */
 #define GNUNET_MESSAGE_TYPE_TEST 1
 
@@ -116,6 +118,11 @@ extern "C"
  * Request to ARM to notify client of service status changes
  */
 #define GNUNET_MESSAGE_TYPE_ARM_MONITOR 14
+
+/**
+ * Test if ARM service is online.
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_TEST 15
 
 /*******************************************************************************
  * HELLO message types
