@@ -49,7 +49,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Service handle.
  */
-struct GNUNET_SERVICE_Handle *service;
+static struct GNUNET_SERVICE_Handle *service;
 
 /* Handles to other services */
 static struct GNUNET_IDENTITY_Handle *id;

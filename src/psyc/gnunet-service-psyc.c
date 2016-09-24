@@ -46,7 +46,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Service handle.
  */
-struct GNUNET_SERVICE_Handle *service;
+static struct GNUNET_SERVICE_Handle *service;
 
 /**
  * Handle to the statistics service.
