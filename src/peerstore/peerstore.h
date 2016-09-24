@@ -33,7 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message carrying a PEERSTORE record message
  */
-    struct StoreRecordMessage
+struct StoreRecordMessage
 {
 
   /**
@@ -78,8 +78,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
    * Options, needed only in case of a
    * store operation
    */
-             uint32_t /* enum GNUNET_PEERSTORE_StoreOption */ options
-             GNUNET_PACKED;
+  uint32_t /* enum GNUNET_PEERSTORE_StoreOption */ options GNUNET_PACKED;
+
+  /* Followed by key and value */
 
 };
 

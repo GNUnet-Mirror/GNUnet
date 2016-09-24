@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C)
+      Copyright (C) 2013-2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -23,7 +23,6 @@
  * @brief Helper peerstore functions
  * @author Omar Tarabai
  */
-
 #include "platform.h"
 #include "peerstore.h"
 
@@ -33,28 +32,10 @@
  */
 void
 PEERSTORE_hash_key (const char *sub_system,
-                    const struct GNUNET_PeerIdentity *peer, const char *key,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const char *key,
                     struct GNUNET_HashCode *ret);
 
-/**
- * Creates a record message ready to be sent
- *
- * @param sub_system sub system string
- * @param peer Peer identity (can be NULL)
- * @param key record key string (can be NULL)
- * @param value record value BLOB (can be NULL)
- * @param value_size record value size in bytes (set to 0 if value is NULL)
- * @param expiry absolute time after which the record expires
- * @param msg_type message type to be set in header
- * @return pointer to record message struct
- */
-struct StoreRecordMessage *
-PEERSTORE_create_record_message (const char *sub_system,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 const char *key, const void *value,
-                                 size_t value_size,
-                                 struct GNUNET_TIME_Absolute *expiry,
-                                 uint16_t msg_type);
 
 /**
  * Creates a MQ envelope for a single record
@@ -72,20 +53,23 @@ PEERSTORE_create_record_message (const char *sub_system,
 struct GNUNET_MQ_Envelope *
 PEERSTORE_create_record_mq_envelope (const char *sub_system,
                                      const struct GNUNET_PeerIdentity *peer,
-                                     const char *key, const void *value,
+                                     const char *key,
+                                     const void *value,
                                      size_t value_size,
                                      struct GNUNET_TIME_Absolute *expiry,
                                      enum GNUNET_PEERSTORE_StoreOption options,
                                      uint16_t msg_type);
 
+
 /**
  * Parses a message carrying a record
  *
- * @param message the actual message
- * @return Pointer to record or NULL if error
+ * @param srm the actual message
+ * @return Pointer to record or NULL on error
  */
 struct GNUNET_PEERSTORE_Record *
-PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message);
+PEERSTORE_parse_record_message (const struct StoreRecordMessage *srm);
+
 
 /**
  * Free any memory allocated for this record
@@ -94,3 +78,5 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message);
  */
 void
 PEERSTORE_destroy_record (struct GNUNET_PEERSTORE_Record *record);
+
+/* end of peerstore_common.h */

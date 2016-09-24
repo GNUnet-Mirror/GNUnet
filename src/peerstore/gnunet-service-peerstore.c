@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2014, 2015 GNUnet e.V.
+     Copyright (C) 2014, 2015, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,26 +29,6 @@
 #include "gnunet_peerstore_plugin.h"
 #include "peerstore_common.h"
 
-/**
- * Connected client entry
- */
-struct ClientEntry
-{
-  /**
-   * DLL.
-   */
-  struct ClientEntry *next;
-
-  /**
-   * DLL.
-   */
-  struct ClientEntry *prev;
-
-  /**
-   * Corresponding server handle.
-   */
-  struct GNUNET_SERVER_Client *client;
-};
 
 /**
  * Interval for expired records cleanup (in seconds)
@@ -76,21 +56,6 @@ static struct GNUNET_PEERSTORE_PluginFunctions *db;
 static struct GNUNET_CONTAINER_MultiHashMap *watchers;
 
 /**
- * Our notification context.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
- * Head of linked list of connected clients
- */
-static struct ClientEntry *client_head;
-
-/**
- * Tail of linked list of connected clients
- */
-static struct ClientEntry *client_tail;
-
-/**
  * Task run to clean up expired records.
  */
 static struct GNUNET_SCHEDULER_Task *expire_task;
@@ -101,6 +66,12 @@ static struct GNUNET_SCHEDULER_Task *expire_task;
 static int in_shutdown;
 
 /**
+ * Number of connected clients.
+ */
+static unsigned int num_clients;
+
+
+/**
  * Perform the actual shutdown operations
  */
 static void
@@ -108,14 +79,11 @@ do_shutdown ()
 {
   if (NULL != db_lib_name)
   {
-    GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, db));
+    GNUNET_break (NULL ==
+                  GNUNET_PLUGIN_unload (db_lib_name,
+                                        db));
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
-  }
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
   }
   if (NULL != watchers)
   {
@@ -140,14 +108,15 @@ static void
 shutdown_task (void *cls)
 {
   in_shutdown = GNUNET_YES;
-  if (NULL == client_head)      /* Only when no connected clients. */
+  if (0 == num_clients)      /* Only when no connected clients. */
     do_shutdown ();
 }
 
 
 /* Forward declaration */
 static void
-expire_records_continuation (void *cls, int success);
+expire_records_continuation (void *cls,
+                             int success);
 
 
 /**
@@ -160,15 +129,18 @@ cleanup_expired_records (void *cls)
 
   expire_task = NULL;
   GNUNET_assert (NULL != db);
-  ret = db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
-			    &expire_records_continuation, NULL);
+  ret = db->expire_records (db->cls,
+                            GNUNET_TIME_absolute_get (),
+			    &expire_records_continuation,
+                            NULL);
   if (GNUNET_OK != ret)
   {
     GNUNET_assert (NULL == expire_task);
     expire_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 						(GNUNET_TIME_UNIT_SECONDS,
 						 EXPIRED_RECORDS_CLEANUP_INTERVAL),
-						&cleanup_expired_records, NULL);
+						&cleanup_expired_records,
+                                                NULL);
   }
 }
 
@@ -191,23 +163,49 @@ expire_records_continuation (void *cls,
   expire_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 					      (GNUNET_TIME_UNIT_SECONDS,
 					       EXPIRED_RECORDS_CLEANUP_INTERVAL),
-					      &cleanup_expired_records, NULL);
+					      &cleanup_expired_records,
+                                              NULL);
+}
+
+
+/**
+ * A client disconnected.  Remove all of its data structure entries.
+ *
+ * @param cls closure, NULL
+ * @param client identification of the client
+ * @param mq the message queue
+ * @return
+ */
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
+{
+  num_clients++;
+  return client;
 }
 
 
 /**
  * Search for a disconnected client and remove it
  *
- * @param cls closuer, a 'struct GNUNET_PEERSTORE_Record *'
+ * @param cls closuer, a `struct GNUNET_SERVICE_Client`
  * @param key hash of record key
- * @param value the watcher client, a 'struct GNUNET_SERVER_Client *'
+ * @param value the watcher client, a `struct GNUNET_SERVICE_Client *`
  * @return #GNUNET_OK to continue iterating
  */
 static int
-client_disconnect_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+client_disconnect_it (void *cls,
+                      const struct GNUNET_HashCode *key,
+                      void *value)
 {
-  if (cls == value)
-    GNUNET_CONTAINER_multihashmap_remove (watchers, key, value);
+  if (value == cls)
+  {
+    GNUNET_CONTAINER_multihashmap_remove (watchers,
+                                          key,
+                                          value);
+    num_clients++;
+  }
   return GNUNET_OK;
 }
 
@@ -219,26 +217,19 @@ client_disconnect_it (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @param client identification of the client
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_cls)
 {
-  struct ClientEntry *ce;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "A client disconnected, cleaning up.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "A client disconnected, cleaning up.\n");
   if (NULL != watchers)
-    GNUNET_CONTAINER_multihashmap_iterate (watchers, &client_disconnect_it,
+    GNUNET_CONTAINER_multihashmap_iterate (watchers,
+                                           &client_disconnect_it,
                                            client);
-  ce = client_head;
-  while (ce != NULL)
-  {
-    if (ce->client == client)
-    {
-      GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
-      GNUNET_free (ce);
-      break;
-    }
-    ce = ce->next;
-  }
-  if (NULL == client_head && in_shutdown)
+  num_clients--;
+  if ( (0 == num_clients) &&
+       in_shutdown)
     do_shutdown ();
 }
 
@@ -252,36 +243,40 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @return #GNUNET_YES to continue iteration
  */
 static void
-record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+record_iterator (void *cls,
+                 const struct GNUNET_PEERSTORE_Record *record,
                  const char *emsg)
 {
   struct GNUNET_PEERSTORE_Record *cls_record = cls;
-  struct StoreRecordMessage *srm;
+  struct GNUNET_MQ_Envelope *env;
 
   if (NULL == record)
   {
     /* No more records */
-    struct GNUNET_MessageHeader endmsg;
+    struct GNUNET_MessageHeader *endmsg;
 
-    endmsg.size = htons (sizeof (struct GNUNET_MessageHeader));
-    endmsg.type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
-    GNUNET_SERVER_notification_context_unicast (nc, cls_record->client, &endmsg,
-                                                GNUNET_NO);
-    GNUNET_SERVER_receive_done (cls_record->client,
-                                NULL == emsg ? GNUNET_OK : GNUNET_SYSERR);
+    env = GNUNET_MQ_msg (endmsg,
+                         GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cls_record->client),
+                    env);
+    if (NULL == emsg)
+      GNUNET_SERVICE_client_continue (cls_record->client);
+    else
+      GNUNET_SERVICE_client_drop (cls_record->client);
     PEERSTORE_destroy_record (cls_record);
     return;
   }
 
-  srm =
-      PEERSTORE_create_record_message (record->sub_system, record->peer,
-                                       record->key, record->value,
-                                       record->value_size, record->expiry,
-                                       GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
-  GNUNET_SERVER_notification_context_unicast (nc, cls_record->client,
-                                              (struct GNUNET_MessageHeader *)
-                                              srm, GNUNET_NO);
-  GNUNET_free (srm);
+  env = PEERSTORE_create_record_mq_envelope (record->sub_system,
+                                             record->peer,
+                                             record->key,
+                                             record->value,
+                                             record->value_size,
+                                             record->expiry,
+                                             0,
+                                             GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cls_record->client),
+                  env);
 }
 
 
@@ -289,28 +284,32 @@ record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
  * Iterator over all watcher clients
  * to notify them of a new record
  *
- * @param cls closuer, a 'struct GNUNET_PEERSTORE_Record *'
+ * @param cls closure, a `struct GNUNET_PEERSTORE_Record *`
  * @param key hash of record key
- * @param value the watcher client, a 'struct GNUNET_SERVER_Client *'
+ * @param value the watcher client, a `struct GNUNET_SERVICE_Client *`
  * @return #GNUNET_YES to continue iterating
  */
 static int
-watch_notifier_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+watch_notifier_it (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   void *value)
 {
   struct GNUNET_PEERSTORE_Record *record = cls;
-  struct GNUNET_SERVER_Client *client = value;
-  struct StoreRecordMessage *srm;
+  struct GNUNET_SERVICE_Client *client = value;
+  struct GNUNET_MQ_Envelope *env;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found a watcher to update.\n");
-  srm =
-      PEERSTORE_create_record_message (record->sub_system, record->peer,
-                                       record->key, record->value,
-                                       record->value_size, record->expiry,
-                                       GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD);
-  GNUNET_SERVER_notification_context_unicast (nc, client,
-                                              (const struct GNUNET_MessageHeader
-                                               *) srm, GNUNET_NO);
-  GNUNET_free (srm);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Found a watcher to update.\n");
+  env = PEERSTORE_create_record_mq_envelope (record->sub_system,
+                                             record->peer,
+                                             record->key,
+                                             record->value,
+                                             record->value_size,
+                                             record->expiry,
+                                             0,
+                                             GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
   return GNUNET_YES;
 }
 
@@ -325,96 +324,127 @@ watch_notifier (struct GNUNET_PEERSTORE_Record *record)
 {
   struct GNUNET_HashCode keyhash;
 
-  PEERSTORE_hash_key (record->sub_system, record->peer, record->key, &keyhash);
-  GNUNET_CONTAINER_multihashmap_get_multiple (watchers, &keyhash,
-                                              &watch_notifier_it, record);
+  PEERSTORE_hash_key (record->sub_system,
+                      record->peer,
+                      record->key,
+                      &keyhash);
+  GNUNET_CONTAINER_multihashmap_get_multiple (watchers,
+                                              &keyhash,
+                                              &watch_notifier_it,
+                                              record);
 }
 
 
 /**
  * Handle a watch cancel request from client
  *
- * @param cls unused
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param hm the actual message
  */
 static void
-handle_watch_cancel (void *cls, struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *message)
+handle_watch_cancel (void *cls,
+                     const struct StoreKeyHashMessage *hm)
 {
-  struct StoreKeyHashMessage *hm;
+  struct GNUNET_SERVICE_Client *client = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a watch cancel request.\n");
-  hm = (struct StoreKeyHashMessage *) message;
-  GNUNET_CONTAINER_multihashmap_remove (watchers, &hm->keyhash, client);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received a watch cancel request.\n");
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_remove (watchers,
+                                            &hm->keyhash,
+                                            client))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
+  num_clients++;
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
 /**
  * Handle a watch request from client
  *
- * @param cls unused
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param hm the actual message
  */
 static void
-handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
-              const struct GNUNET_MessageHeader *message)
+handle_watch (void *cls,
+              const struct StoreKeyHashMessage *hm)
 {
-  struct StoreKeyHashMessage *hm;
+  struct GNUNET_SERVICE_Client *client = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a watch request.\n");
-  hm = (struct StoreKeyHashMessage *) message;
-  GNUNET_SERVER_client_mark_monitor (client);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_CONTAINER_multihashmap_put (watchers, &hm->keyhash, client,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received a watch request.\n");
+  num_clients--; /* do not count watchers */
+  GNUNET_SERVICE_client_mark_monitor (client);
+  GNUNET_CONTAINER_multihashmap_put (watchers,
+                                     &hm->keyhash,
+                                     client,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+/**
+ * Check an iterate request from client
+ *
+ * @param cls client identification of the client
+ * @param srm the actual message
+ * @return #GNUNET_OK if @a srm is well-formed
+ */
+static int
+check_iterate (void *cls,
+               const struct StoreRecordMessage *srm)
+{
+  struct GNUNET_PEERSTORE_Record *record;
+
+  record = PEERSTORE_parse_record_message (srm);
+  if (NULL == record)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == record->sub_system)
+  {
+    GNUNET_break (0);
+    PEERSTORE_destroy_record (record);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
 /**
  * Handle an iterate request from client
  *
- * @param cls unused
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param srm the actual message
  */
 static void
-handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
-                const struct GNUNET_MessageHeader *message)
+handle_iterate (void *cls,
+                const struct StoreRecordMessage *srm)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct GNUNET_PEERSTORE_Record *record;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received an iterate request.\n");
-  record = PEERSTORE_parse_record_message (message);
-  if (NULL == record)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Malformed iterate request.\n"));
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  if (NULL == record->sub_system)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Sub system not supplied in client iterate request.\n"));
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    PEERSTORE_destroy_record (record);
-    return;
-  }
+  record = PEERSTORE_parse_record_message (srm);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Iterate request: ss `%s', peer `%s', key `%s'\n",
               record->sub_system,
               (NULL == record->peer) ? "NULL" : GNUNET_i2s (record->peer),
               (NULL == record->key) ? "NULL" : record->key);
-  GNUNET_SERVER_notification_context_add (nc, client);
   record->client = client;
   if (GNUNET_OK !=
-      db->iterate_records (db->cls, record->sub_system, record->peer,
-                           record->key, &record_iterator, record))
+      db->iterate_records (db->cls,
+                           record->sub_system,
+                           record->peer,
+                           record->key,
+                           &record_iterator,
+                           record))
   {
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     PEERSTORE_destroy_record (record);
   }
 }
@@ -427,114 +457,93 @@ handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
  * @param success result
  */
 static void
-store_record_continuation (void *cls, int success)
+store_record_continuation (void *cls,
+                           int success)
 {
   struct GNUNET_PEERSTORE_Record *record = cls;
 
-  GNUNET_SERVER_receive_done (record->client, success);
   if (GNUNET_OK == success)
   {
     watch_notifier (record);
+    GNUNET_SERVICE_client_continue (record->client);
+  }
+  else
+  {
+    GNUNET_SERVICE_client_drop (record->client);
   }
   PEERSTORE_destroy_record (record);
 }
 
 
 /**
- * Handle a store request from client
+ * Check a store request from client
  *
- * @param cls unused
- * @param client identification of the client
- * @param message the actual message
+ * @param cls client identification of the client
+ * @param srm the actual message
+ * @return #GNUNET_OK if @a srm is well-formed
  */
-static void
-handle_store (void *cls, struct GNUNET_SERVER_Client *client,
-              const struct GNUNET_MessageHeader *message)
+static int
+check_store (void *cls,
+              const struct StoreRecordMessage *srm)
 {
   struct GNUNET_PEERSTORE_Record *record;
-  struct StoreRecordMessage *srm;
 
-  record = PEERSTORE_parse_record_message (message);
+  record = PEERSTORE_parse_record_message (srm);
   if (NULL == record)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Malformed store request from client\n"));
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
-  srm = (struct StoreRecordMessage *) message;
-  if (NULL == record->sub_system || NULL == record->peer || NULL == record->key)
+  if ( (NULL == record->sub_system) ||
+       (NULL == record->peer) ||
+       (NULL == record->key) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Full key not supplied in client store request\n"));
+    GNUNET_break (0);
     PEERSTORE_destroy_record (record);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+  PEERSTORE_destroy_record (record);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a store request from client
+ *
+ * @param cls client identification of the client
+ * @param srm the actual message
+ */
+static void
+handle_store (void *cls,
+              const struct StoreRecordMessage *srm)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_PEERSTORE_Record *record;
+
+  record = PEERSTORE_parse_record_message (srm);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request (size: %u). Sub system `%s' Peer `%s Key `%s' Options: %d.\n",
-	      (unsigned int) record->value_size,
+              "Received a store request. Sub system `%s' Peer `%s Key `%s' Options: %d.\n",
 	      record->sub_system,
               GNUNET_i2s (record->peer),
 	      record->key,
               ntohl (srm->options));
   record->client = client;
   if (GNUNET_OK !=
-      db->store_record (db->cls, record->sub_system, record->peer, record->key,
-                        record->value, record->value_size, *record->expiry,
-                        ntohl (srm->options), store_record_continuation,
+      db->store_record (db->cls,
+                        record->sub_system,
+                        record->peer,
+                        record->key,
+                        record->value,
+                        record->value_size,
+                        *record->expiry,
+                        ntohl (srm->options),
+                        &store_record_continuation,
                         record))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to store requested value, database error."));
     PEERSTORE_destroy_record (record);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
-}
-
-
-/**
- * Creates an entry for a new client or returns it if it already exists.
- *
- * @param client Client handle
- * @return Client entry struct
- */
-static struct ClientEntry *
-make_client_entry (struct GNUNET_SERVER_Client *client)
-{
-  struct ClientEntry *ce;
-
-  ce = client_head;
-  while (NULL != ce)
-  {
-    if (ce->client == client)
-      return ce;
-    ce = ce->next;
-  }
-  if (GNUNET_YES == in_shutdown)
-  {
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return NULL;
-  }
-  ce = GNUNET_new (struct ClientEntry);
-  ce->client = client;
-  GNUNET_CONTAINER_DLL_insert (client_head, client_tail, ce);
-  return ce;
-}
-
-
-/**
- * Callback on a new client connection
- *
- * @param cls closure (unused)
- * @param client identification of the client
- */
-static void
-handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New client connection created.\n");
-  make_client_entry (client);
 }
 
 
@@ -542,71 +551,80 @@ handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
  * Peerstore service runner.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_store, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE, 0},
-    {&handle_iterate, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE, 0},
-    {&handle_watch, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH,
-     sizeof (struct StoreKeyHashMessage)},
-    {&handle_watch_cancel, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL,
-     sizeof (struct StoreKeyHashMessage)},
-    {NULL, NULL, 0, 0}
-  };
   char *database;
 
   in_shutdown = GNUNET_NO;
   cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "peerstore", "DATABASE",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "peerstore",
+                                             "DATABASE",
                                              &database))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No database backend configured\n"));
-
-  else
   {
-    GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_peerstore_%s", database);
-    db = GNUNET_PLUGIN_load (db_lib_name, (void *) cfg);
-    GNUNET_free (database);
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "peerstore",
+                               "DATABASE");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
+  GNUNET_asprintf (&db_lib_name,
+                   "libgnunet_plugin_peerstore_%s",
+                   database);
+  db = GNUNET_PLUGIN_load (db_lib_name,
+                           (void *) cfg);
+  GNUNET_free (database);
   if (NULL == db)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not load database backend `%s'\n"),
 		db_lib_name);
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  nc = GNUNET_SERVER_notification_context_create (server, 16);
-  watchers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  watchers = GNUNET_CONTAINER_multihashmap_create (10,
+                                                   GNUNET_NO);
   expire_task = GNUNET_SCHEDULER_add_now (&cleanup_expired_records,
 					  NULL);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_connect_notify (server, &handle_client_connect, NULL);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
 
 
 /**
- * The main function for the peerstore service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "peerstore",
-                              GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN, &run,
-                              NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("peerstore",
+ GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (store,
+                        GNUNET_MESSAGE_TYPE_PEERSTORE_STORE,
+                        struct StoreRecordMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (iterate,
+                        GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE,
+                        struct StoreRecordMessage,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (watch,
+			  GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH,
+			  struct StoreKeyHashMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (watch_cancel,
+			  GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL,
+			  struct StoreKeyHashMessage,
+			  NULL),
+ GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-peerstore.c */

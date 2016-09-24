@@ -579,7 +579,7 @@ handle_iterate_end (void *cls,
  */
 static int
 check_iterate_result (void *cls,
-                      const struct GNUNET_MessageHeader *msg)
+                      const struct StoreRecordMessage *msg)
 {
   /* we defer validation to #handle_iterate_result */
   return GNUNET_OK;
@@ -594,7 +594,7 @@ check_iterate_result (void *cls,
  */
 static void
 handle_iterate_result (void *cls,
-                       const struct GNUNET_MessageHeader *msg)
+                       const struct StoreRecordMessage *msg)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_IterateContext *ic;
@@ -725,7 +725,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
  */
 static int
 check_watch_record (void *cls,
-                    const struct GNUNET_MessageHeader *msg)
+                    const struct StoreRecordMessage *msg)
 {
   /* we defer validation to #handle_watch_result */
   return GNUNET_OK;
@@ -740,7 +740,7 @@ check_watch_record (void *cls,
  */
 static void
 handle_watch_record (void *cls,
-                     const struct GNUNET_MessageHeader *msg)
+                     const struct StoreRecordMessage *msg)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_Record *record;
@@ -793,11 +793,11 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
                              h),
     GNUNET_MQ_hd_var_size (iterate_result,
                            GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD,
-                           struct GNUNET_MessageHeader,
+                           struct StoreRecordMessage,
                            h),
     GNUNET_MQ_hd_var_size (watch_record,
                            GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD,
-                           struct GNUNET_MessageHeader,
+                           struct StoreRecordMessage,
                            h),
     GNUNET_MQ_handler_end ()
   };
@@ -936,18 +936,20 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
   wc->h = h;
   wc->keyhash = hm->keyhash;
   if (NULL == h->watches)
-    h->watches = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
+    h->watches = GNUNET_CONTAINER_multihashmap_create (5,
+                                                       GNUNET_NO);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (h->watches,
                                                     &wc->keyhash,
                                                     wc,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending a watch request for ss `%s', peer `%s', key `%s'.\n",
+       "Sending a watch request for subsystem `%s', peer `%s', key `%s'.\n",
        sub_system,
        GNUNET_i2s (peer),
        key);
-  GNUNET_MQ_send (h->mq, ev);
+  GNUNET_MQ_send (h->mq,
+                  ev);
   return wc;
 }
 

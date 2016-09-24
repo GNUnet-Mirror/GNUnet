@@ -72,15 +72,15 @@ struct GNUNET_PEERSTORE_PluginFunctions
    */
   int
   (*store_record) (void *cls,
-      const char *sub_system,
-      const struct GNUNET_PeerIdentity *peer,
-      const char *key,
-      const void *value,
-      size_t size,
-      struct GNUNET_TIME_Absolute expiry,
-      enum GNUNET_PEERSTORE_StoreOption options,
-      GNUNET_PEERSTORE_Continuation cont,
-      void *cont_cls);
+                   const char *sub_system,
+                   const struct GNUNET_PeerIdentity *peer,
+                   const char *key,
+                   const void *value,
+                   size_t size,
+                   struct GNUNET_TIME_Absolute expiry,
+                   enum GNUNET_PEERSTORE_StoreOption options,
+                   GNUNET_PEERSTORE_Continuation cont,
+                   void *cont_cls);
 
   /**
    * Iterate over the records given an optional peer id
@@ -98,10 +98,11 @@ struct GNUNET_PEERSTORE_PluginFunctions
    */
   int
   (*iterate_records) (void *cls,
-      const char *sub_system,
-      const struct GNUNET_PeerIdentity *peer,
-      const char *key,
-      GNUNET_PEERSTORE_Processor iter, void *iter_cls);
+                      const char *sub_system,
+                      const struct GNUNET_PeerIdentity *peer,
+                      const char *key,
+                      GNUNET_PEERSTORE_Processor iter,
+                      void *iter_cls);
 
   /**
    * Delete expired records (expiry < now)
@@ -115,9 +116,9 @@ struct GNUNET_PEERSTORE_PluginFunctions
    */
   int
   (*expire_records) (void *cls,
-      struct GNUNET_TIME_Absolute now,
-      GNUNET_PEERSTORE_Continuation cont,
-      void *cont_cls);
+                     struct GNUNET_TIME_Absolute now,
+                     GNUNET_PEERSTORE_Continuation cont,
+                     void *cont_cls);
 
 };
 

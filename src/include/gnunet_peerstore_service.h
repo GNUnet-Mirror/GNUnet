@@ -109,9 +109,10 @@ struct GNUNET_PEERSTORE_Record
   struct GNUNET_TIME_Absolute *expiry;
 
   /**
-   * Client from which this record originated
+   * Client from which this record originated.
+   * NOTE: This is internal to the service.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 };
 
 

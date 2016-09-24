@@ -31,7 +31,8 @@
  */
 void
 PEERSTORE_hash_key (const char *sub_system,
-                    const struct GNUNET_PeerIdentity *peer, const char *key,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const char *key,
                     struct GNUNET_HashCode *ret)
 {
   size_t sssize;
@@ -58,64 +59,6 @@ PEERSTORE_hash_key (const char *sub_system,
 
 
 /**
- * Creates a record message ready to be sent
- *
- * @param sub_system sub system string
- * @param peer Peer identity (can be NULL)
- * @param key record key string (can be NULL)
- * @param value record value BLOB (can be NULL)
- * @param value_size record value size in bytes (set to 0 if value is NULL)
- * @param expiry absolute time after which the record expires
- * @param msg_type message type to be set in header
- * @return pointer to record message struct
- */
-struct StoreRecordMessage *
-PEERSTORE_create_record_message (const char *sub_system,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 const char *key, const void *value,
-                                 size_t value_size,
-                                 struct GNUNET_TIME_Absolute *expiry,
-                                 uint16_t msg_type)
-{
-  struct StoreRecordMessage *srm;
-  size_t ss_size;
-  size_t key_size;
-  size_t request_size;
-  void *dummy;
-
-  ss_size = strlen (sub_system) + 1;
-  if (NULL == key)
-    key_size = 0;
-  else
-    key_size = strlen (key) + 1;
-  request_size =
-      sizeof (struct StoreRecordMessage) + ss_size + key_size + value_size;
-  srm = GNUNET_malloc (request_size);
-  srm->header.size = htons (request_size);
-  srm->header.type = htons (msg_type);
-  srm->key_size = htons (key_size);
-  if (NULL != expiry)
-    srm->expiry = *expiry;
-  if (NULL == peer)
-    srm->peer_set = htons (GNUNET_NO);
-  else
-  {
-    srm->peer_set = htons (GNUNET_YES);
-    srm->peer = *peer;
-  }
-  srm->sub_system_size = htons (ss_size);
-  srm->value_size = htons (value_size);
-  dummy = &srm[1];
-  GNUNET_memcpy (dummy, sub_system, ss_size);
-  dummy += ss_size;
-  GNUNET_memcpy (dummy, key, key_size);
-  dummy += key_size;
-  GNUNET_memcpy (dummy, value, value_size);
-  return srm;
-}
-
-
-/**
  * Creates a MQ envelope for a single record
  *
  * @param sub_system sub system string
@@ -131,7 +74,8 @@ PEERSTORE_create_record_message (const char *sub_system,
 struct GNUNET_MQ_Envelope *
 PEERSTORE_create_record_mq_envelope (const char *sub_system,
                                      const struct GNUNET_PeerIdentity *peer,
-                                     const char *key, const void *value,
+                                     const char *key,
+                                     const void *value,
                                      size_t value_size,
                                      struct GNUNET_TIME_Absolute *expiry,
                                      enum GNUNET_PEERSTORE_StoreOption options,
@@ -178,13 +122,12 @@ PEERSTORE_create_record_mq_envelope (const char *sub_system,
 /**
  * Parses a message carrying a record
  *
- * @param message the actual message
+ * @param srm the actual message
  * @return Pointer to record or NULL if error
  */
 struct GNUNET_PEERSTORE_Record *
-PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
+PEERSTORE_parse_record_message (const struct StoreRecordMessage *srm)
 {
-  struct StoreRecordMessage *srm;
   struct GNUNET_PEERSTORE_Record *record;
   uint16_t req_size;
   uint16_t ss_size;
@@ -192,37 +135,20 @@ PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message)
   uint16_t value_size;
   char *dummy;
 
-  req_size = ntohs (message->size);
-  if (req_size < sizeof (struct StoreRecordMessage))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received message with invalid size: (%d < %d).\n",
-                (int) req_size,
-                (int) sizeof (struct StoreRecordMessage));
-    return NULL;
-  }
-  srm = (struct StoreRecordMessage *) message;
+  req_size = ntohs (srm->header.size) - sizeof (*srm);
   ss_size = ntohs (srm->sub_system_size);
   key_size = ntohs (srm->key_size);
   value_size = ntohs (srm->value_size);
-  if (ss_size + key_size + value_size + sizeof (struct StoreRecordMessage) !=
-      req_size)
+  if (ss_size + key_size + value_size != req_size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received message with invalid sizes: (%d + %d + %d + %d != %d).\n",
-                ss_size,
-                key_size,
-                value_size,
-                (int) sizeof (struct StoreRecordMessage),
-                req_size);
+    GNUNET_break (0);
     return NULL;
   }
   record = GNUNET_new (struct GNUNET_PEERSTORE_Record);
   if (GNUNET_YES == ntohs (srm->peer_set))
   {
     record->peer = GNUNET_new (struct GNUNET_PeerIdentity);
-
-    GNUNET_memcpy (record->peer, &srm->peer, sizeof (struct GNUNET_PeerIdentity));
+    *record->peer = srm->peer;
   }
   record->expiry = GNUNET_new (struct GNUNET_TIME_Absolute);
 
