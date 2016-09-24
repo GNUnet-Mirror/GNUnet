@@ -142,7 +142,7 @@ listen_cb (void *cls,
            struct GNUNET_SET_Request *request)
 {
   GNUNET_assert (NULL != context_msg);
-  GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
+  GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_DUMMY);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
@@ -169,7 +169,7 @@ start (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting reconciliation\n");
   context_msg.size = htons (sizeof context_msg);
-  context_msg.type = htons (GNUNET_MESSAGE_TYPE_TEST);
+  context_msg.type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   listen_handle = GNUNET_SET_listen (config,
                                      GNUNET_SET_OPERATION_UNION,
                                      &app_id,

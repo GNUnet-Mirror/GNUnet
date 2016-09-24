@@ -116,7 +116,7 @@ listen_cb (void *cls,
            struct GNUNET_SET_Request *request)
 {
   GNUNET_assert (NULL != context_msg);
-  GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
+  GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_DUMMY);
   GNUNET_SET_listen_cancel (listen_handle);
   listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
@@ -139,7 +139,7 @@ start (void *cls)
   struct GNUNET_MessageHeader context_msg;
 
   context_msg.size = htons (sizeof context_msg);
-  context_msg.type = htons (GNUNET_MESSAGE_TYPE_TEST);
+  context_msg.type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   listen_handle = GNUNET_SET_listen (config,
                                      GNUNET_SET_OPERATION_INTERSECTION,
                                      &app_id,
