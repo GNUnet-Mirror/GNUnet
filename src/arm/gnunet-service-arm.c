@@ -444,16 +444,16 @@ start_process (struct ServiceList *sl,
 
   /* obtain configuration */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             sl->name,
-                                             "PREFIX",
-                                             &loprefix))
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               sl->name,
+                                               "PREFIX",
+                                               &loprefix))
     loprefix = GNUNET_strdup (prefix_command);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             sl->name,
-                                             "OPTIONS",
-                                             &options))
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               sl->name,
+                                               "OPTIONS",
+                                               &options))
     options = NULL;
 
   {
@@ -1482,15 +1482,22 @@ setup_service (void *cls,
   if (strcasecmp (section, "arm") == 0)
     return;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "BINARY", &binary))
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               section,
+                                               "BINARY",
+                                               &binary))
   {
     /* not a service section */
     return;
   }
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_have_value (cfg, section, "USER_SERVICE")) &&
+       GNUNET_CONFIGURATION_have_value (cfg,
+                                        section,
+                                        "USER_SERVICE")) &&
       (GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "USER_SERVICE")))
+       GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                             section,
+                                             "USER_SERVICE")))
   {
     if (GNUNET_NO == start_user)
     {

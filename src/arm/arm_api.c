@@ -597,22 +597,22 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
   char *lopostfix;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "PREFIX",
-                                             &loprefix))
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+                                               "arm",
+                                               "PREFIX",
+                                               &loprefix))
     loprefix = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "OPTIONS",
-                                             &lopostfix))
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+                                               "arm",
+                                               "OPTIONS",
+                                               &lopostfix))
     lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "BINARY",
-                                             &cbinary))
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+                                               "arm",
+                                               "BINARY",
+                                               &cbinary))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
                                "arm",
