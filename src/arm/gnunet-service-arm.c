@@ -1513,10 +1513,10 @@ setup_service (void *cls,
                        "arm"))
     return;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               section,
-                                               "BINARY",
-                                               &binary))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             section,
+                                             "BINARY",
+                                             &binary))
   {
     /* not a service section */
     return;

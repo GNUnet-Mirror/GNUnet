@@ -609,10 +609,10 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
                                                &lopostfix))
     lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
-                                               "arm",
-                                               "BINARY",
-                                               &cbinary))
+      GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                             "arm",
+                                             "BINARY",
+                                             &cbinary))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
                                "arm",
