@@ -1830,6 +1830,7 @@ client_notify_disconnect (void *cls,
 {
   struct Client *c = app_ctx;
   struct Group *grp = c->group;
+  GNUNET_free (c);
 
   if (NULL == grp)
   {

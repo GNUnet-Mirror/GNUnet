@@ -595,6 +595,7 @@ client_notify_disconnect (void *cls,
 {
   struct Client *c = app_ctx;
   struct Channel *chn = c->channel;
+  GNUNET_free (c);
 
   if (NULL == chn)
   {
