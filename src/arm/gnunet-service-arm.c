@@ -380,18 +380,23 @@ start_process (struct ServiceList *sl,
 
   /* obtain configuration */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               sl->name,
-                                               "PREFIX",
-                                               &loprefix))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             sl->name,
+                                             "PREFIX",
+                                             &loprefix))
     loprefix = GNUNET_strdup (prefix_command);
+  else
+    loprefix = GNUNET_CONFIGURATION_expand_dollar (cfg,
+                                                   loprefix);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               sl->name,
-                                               "OPTIONS",
-                                               &options))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             sl->name,
+                                             "OPTIONS",
+                                             &options))
     options = NULL;
-
+  else
+    options = GNUNET_CONFIGURATION_expand_dollar (cfg,
+                                                  options);
   {
     char *new_options;
     char *optpos;
@@ -1555,7 +1560,8 @@ setup_service (void *cls,
   }
   config = NULL;
   if (( (GNUNET_OK !=
-	 GNUNET_CONFIGURATION_get_value_filename (cfg, section,
+	 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                  section,
                                                   "CONFIG",
                                                   &config)) &&
 	(GNUNET_OK !=
@@ -1744,12 +1750,18 @@ run (void *cls,
                                              "GLOBAL_PREFIX",
                                              &prefix_command))
     prefix_command = GNUNET_strdup ("");
+  else
+    prefix_command = GNUNET_CONFIGURATION_expand_dollar (cfg,
+                                                         prefix_command);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "ARM",
                                              "GLOBAL_POSTFIX",
                                              &final_option))
     final_option = GNUNET_strdup ("");
+  else
+    final_option = GNUNET_CONFIGURATION_expand_dollar (cfg,
+                                                       final_option);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
