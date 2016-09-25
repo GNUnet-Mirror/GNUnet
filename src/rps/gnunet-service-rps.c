@@ -926,6 +926,7 @@ destroy_reply_cls (struct ReplyCls *rep_cls)
 
   cli_ctx = rep_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);
+  RPS_sampler_request_cancel (rep_cls->req_handle);
   GNUNET_CONTAINER_DLL_remove (cli_ctx->rep_cls_head,
                                cli_ctx->rep_cls_tail,
                                rep_cls);
