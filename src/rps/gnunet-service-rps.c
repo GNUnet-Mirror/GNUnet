@@ -95,7 +95,7 @@ struct ReplyCls
   /**
    * The client handle to send the reply to
    */
-  struct GNUNET_SERVER_Client *client;
+  struct ClientContext *cli_ctx;
 };
 
 
@@ -124,7 +124,7 @@ struct ClientContext
   /**
    * The client handle to send the reply to
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 };
 
 /**
@@ -797,11 +797,14 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_NO == check_sending_channel_needed (peer))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Going to remove send channel to peer %s\n",
+        GNUNET_i2s (peer));
     #ifdef ENABLE_MALICIOUS
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
-      Peers_destroy_sending_channel (peer);
+      (void) Peers_destroy_sending_channel (peer);
     #else /* ENABLE_MALICIOUS */
-    Peers_destroy_sending_channel (peer);
+    (void) Peers_destroy_sending_channel (peer);
     #endif /* ENABLE_MALICIOUS */
   }
 
@@ -916,8 +919,7 @@ destroy_reply_cls (struct ReplyCls *rep_cls)
 {
   struct ClientContext *cli_ctx;
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (rep_cls->client,
-                                                   struct ClientContext);
+  cli_ctx = rep_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);
   GNUNET_CONTAINER_DLL_remove (cli_ctx->rep_cls_head,
                                cli_ctx->rep_cls_tail,
@@ -994,10 +996,10 @@ client_respond (void *cls,
                 struct GNUNET_PeerIdentity *peer_ids,
                 uint32_t num_peers)
 {
+  struct ReplyCls *reply_cls = cls;
   uint32_t i;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
-  struct ReplyCls *reply_cls = (struct ReplyCls *) cls;
   uint32_t size_needed;
   struct ClientContext *cli_ctx;
 
@@ -1029,8 +1031,7 @@ client_respond (void *cls,
           num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free (peer_ids);
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (reply_cls->client,
-                                                   struct ClientContext);
+  cli_ctx = reply_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);
   destroy_reply_cls (reply_cls);
   GNUNET_MQ_send (cli_ctx->mq, ev);
@@ -1046,17 +1047,13 @@ client_respond (void *cls,
  */
 static void
 handle_client_request (void *cls,
-                       struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *message)
+                       const struct GNUNET_RPS_CS_RequestMessage *msg)
 {
-  struct GNUNET_RPS_CS_RequestMessage *msg;
+  struct ClientContext *cli_ctx = cls;
   uint32_t num_peers;
   uint32_t size_needed;
   struct ReplyCls *reply_cls;
   uint32_t i;
-  struct ClientContext *cli_ctx;
-
-  msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
 
   num_peers = ntohl (msg->num_peers);
   size_needed = sizeof (struct GNUNET_RPS_CS_RequestMessage) +
@@ -1066,7 +1063,7 @@ handle_client_request (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Message received from client has size larger than expected\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (cli_ctx->client);
     return;
   }
 
@@ -1079,19 +1076,17 @@ handle_client_request (void *cls,
 
   reply_cls = GNUNET_new (struct ReplyCls);
   reply_cls->id = ntohl (msg->id);
-  reply_cls->client = client;
+  reply_cls->cli_ctx = cli_ctx;
   reply_cls->req_handle = RPS_sampler_get_n_rand_peers (client_sampler,
                                                         client_respond,
                                                         reply_cls,
                                                         num_peers);
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientContext);
   GNUNET_assert (NULL != cli_ctx);
   GNUNET_CONTAINER_DLL_insert (cli_ctx->rep_cls_head,
                                cli_ctx->rep_cls_tail,
                                reply_cls);
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -1104,15 +1099,11 @@ handle_client_request (void *cls,
  */
 static void
 handle_client_request_cancel (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message)
+                          const struct GNUNET_RPS_CS_RequestCancelMessage *msg)
 {
-  struct GNUNET_RPS_CS_RequestCancelMessage *msg =
-    (struct GNUNET_RPS_CS_RequestCancelMessage *) message;
-  struct ClientContext *cli_ctx;
+  struct ClientContext *cli_ctx = cls;
   struct ReplyCls *rep_cls;
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientContext);
   GNUNET_assert (NULL != cli_ctx);
   GNUNET_assert (NULL != cli_ctx->rep_cls_head);
   rep_cls = cli_ctx->rep_cls_head;
@@ -1125,8 +1116,7 @@ handle_client_request_cancel (void *cls,
   GNUNET_assert (rep_cls->id == ntohl (msg->id));
   RPS_sampler_request_cancel (rep_cls->req_handle);
   destroy_reply_cls (rep_cls);
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -1139,9 +1129,9 @@ handle_client_request_cancel (void *cls,
  */
 static void
 handle_client_seed (void *cls,
-                    struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
+  struct ClientContext *cli_ctx = cls;
   struct GNUNET_RPS_CS_SeedMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
   uint32_t num_peers;
@@ -1149,8 +1139,7 @@ handle_client_seed (void *cls,
 
   if (sizeof (struct GNUNET_RPS_CS_SeedMessage) > ntohs (message->size))
   {
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (cli_ctx->client);
     GNUNET_break_op (0);
     return;
   }
@@ -1165,8 +1154,7 @@ handle_client_seed (void *cls,
       sizeof (struct GNUNET_PeerIdentity) != num_peers)
   {
     GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (cli_ctx->client);
     return;
   }
 
@@ -1189,8 +1177,7 @@ handle_client_seed (void *cls,
 
   ////GNUNET_free (peers);
 
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+  GNUNET_SERVICE_client_drop (cli_ctx->client);
 }
 
 /**
@@ -1579,9 +1566,9 @@ do_mal_round (void *cls);
  */
 static void
 handle_client_act_malicious (void *cls,
-                             struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *msg)
 {
+  struct ClientContext *cli_ctx = cls;
   struct GNUNET_RPS_CS_ActMaliciousMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
   uint32_t num_mal_peers_sent;
@@ -1590,7 +1577,7 @@ handle_client_act_malicious (void *cls,
   /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
   {
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (cli_ctx->client);
     GNUNET_break_op (0);
   }
 
@@ -1603,7 +1590,7 @@ handle_client_act_malicious (void *cls,
         ntohl (in_msg->num_peers),
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (cli_ctx->client);
     GNUNET_break_op (0);
   }
 
@@ -1694,9 +1681,9 @@ handle_client_act_malicious (void *cls,
   else
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (cli_ctx->client);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -2052,10 +2039,6 @@ do_round (void *cls)
 }
 
 
-static void
-rps_start (struct GNUNET_SERVER_Handle *server);
-
-
 /**
  * This is called from GNUNET_CADET_get_peers().
  *
@@ -2160,7 +2143,6 @@ shutdown_task (void *cls)
       GNUNET_free (reply_cls);
     }
     GNUNET_MQ_destroy (client_ctx->mq);
-    GNUNET_SERVER_client_disconnect (client_ctx->client);
     GNUNET_CONTAINER_DLL_remove (cli_ctx_head, cli_ctx_tail, client_ctx);
     GNUNET_free (client_ctx);
   }
@@ -2200,42 +2182,48 @@ shutdown_task (void *cls)
 
 
 /**
- * @brief Get informed about a connecting client.
+ * Handle client connecting to the service.
  *
- * @param cls unused
- * @param client the client that connects
+ * @param cls NULL
+ * @param client the new client
+ * @param mq the message queue of @a client
+ * @return @a client
  */
-static void
-handle_client_connect (void *cls,
-                       struct GNUNET_SERVER_Client *client)
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct ClientContext *cli_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client connected\n");
   if (NULL == client)
-    return; /* Server was destroyed before a client connected. Shutting down */
+    return client; /* Server was destroyed before a client connected. Shutting down */
   cli_ctx = GNUNET_new (struct ClientContext);
-  cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
+  cli_ctx->mq = GNUNET_SERVICE_client_get_mq (client);
   cli_ctx->client = client;
-  GNUNET_SERVER_client_set_user_context (client, cli_ctx);
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,
                                cli_ctx_tail,
                                cli_ctx);
+  return cli_ctx;
 }
 
 /**
- * A client disconnected.  Remove all of its data structure entries.
+ * Callback called when a client disconnected from the service
  *
- * @param cls closure, NULL
- * @param client identification of the client
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
  */
 static void
-handle_client_disconnect (void *cls,
-			                    struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+		                  struct GNUNET_SERVICE_Client *client,
+		                  void *internal_cls)
 {
-  struct ClientContext *cli_ctx;
+  struct ClientContext *cli_ctx = internal_cls;
 
+  GNUNET_assert (client == cli_ctx->client);
   if (NULL == client)
   {/* shutdown task */
     while (NULL != cli_ctx_head)
@@ -2243,58 +2231,22 @@ handle_client_disconnect (void *cls,
   }
   else
   {
-    cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientContext);
     destroy_cli_ctx (cli_ctx);
   }
 }
 
 
 /**
- * Actually start the service.
- */
-  static void
-rps_start (struct GNUNET_SERVER_Handle *server)
-{
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_client_request,        NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
-      sizeof (struct GNUNET_RPS_CS_RequestMessage)},
-    {&handle_client_request_cancel, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL,
-      sizeof (struct GNUNET_RPS_CS_RequestCancelMessage)},
-    {&handle_client_seed,           NULL, GNUNET_MESSAGE_TYPE_RPS_CS_SEED, 0},
-    #ifdef ENABLE_MALICIOUS
-    {&handle_client_act_malicious,  NULL, GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS , 0},
-    #endif /* ENABLE_MALICIOUS */
-    {NULL, NULL, 0, 0}
-  };
-
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_connect_notify (server,
-                                &handle_client_connect,
-                                NULL);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &handle_client_disconnect,
-                                   NULL);
-  LOG (GNUNET_ERROR_TYPE_INFO, "Ready to receive requests from clients\n");
-
-
-  do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
-
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
-}
-
-
-/**
- * Process statistics requests.
+ * Handle random peer sampling clients.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     {&handle_peer_check       , GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
@@ -2440,26 +2392,43 @@ run (void *cls,
                                                    process_peerinfo_peers,
                                                    NULL);
 
-  rps_start (server);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Ready to receive requests from clients\n");
+
+  do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
+
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
 /**
- * The main function for the rps service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "rps",
-			      GNUNET_SERVICE_OPTION_NONE,
-			      &run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("rps",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (client_request,
+   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
+   struct GNUNET_RPS_CS_RequestMessage,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_request_cancel,
+   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL,
+   struct GNUNET_RPS_CS_RequestCancelMessage,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_seed,
+   GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
+   struct GNUNET_MessageHeader,
+   NULL),
+#ifdef ENABLE_MALICIOUS
+ GNUNET_MQ_hd_fixed_size (client_act_malicious,
+   GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS,
+   struct GNUNET_MessageHeader,
+   NULL),
+#endif /* ENABLE_MALICIOUS */
+ GNUNET_MQ_handler_end());
 
 /* end of gnunet-service-rps.c */
