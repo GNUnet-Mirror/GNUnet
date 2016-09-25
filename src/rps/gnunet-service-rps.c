@@ -937,10 +937,6 @@ static void
 destroy_cli_ctx (struct ClientContext *cli_ctx)
 {
   GNUNET_assert (NULL != cli_ctx);
-  if (NULL != cli_ctx->mq)
-  {
-    GNUNET_MQ_destroy (cli_ctx->mq);
-  }
   if (NULL != cli_ctx->rep_cls_head)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
