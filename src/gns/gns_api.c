@@ -193,7 +193,7 @@ mq_error_handler (void *cls,
  */
 static int
 check_result (void *cls,
-              const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg)
+              const struct LookupResultMessage *lookup_msg)
 {
   size_t mlen = ntohs (lookup_msg->header.size) - sizeof (*lookup_msg);
   uint32_t rd_count = ntohl (lookup_msg->rd_count);
@@ -220,7 +220,7 @@ check_result (void *cls,
  */
 static void
 handle_result (void *cls,
-               const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg)
+               const struct LookupResultMessage *lookup_msg)
 {
   struct GNUNET_GNS_Handle *handle = cls;
   size_t mlen = ntohs (lookup_msg->header.size) - sizeof (*lookup_msg);
@@ -267,7 +267,7 @@ reconnect (struct GNUNET_GNS_Handle *handle)
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (result,
                            GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT,
-                           struct GNUNET_GNS_ClientLookupResultMessage,
+                           struct LookupResultMessage,
                            handle),
     GNUNET_MQ_handler_end ()
   };
@@ -377,7 +377,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   void *proc_cls)
 {
   /* IPC to shorten gns names, return shorten_handle */
-  struct GNUNET_GNS_ClientLookupMessage *lookup_msg;
+  struct LookupMessage *lookup_msg;
   struct GNUNET_GNS_LookupRequest *lr;
   size_t nlen;
 

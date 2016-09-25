@@ -48,7 +48,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message from client to GNS service to lookup records.
  */
-struct GNUNET_GNS_ClientLookupMessage
+struct LookupMessage
 {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP
@@ -93,7 +93,7 @@ struct GNUNET_GNS_ClientLookupMessage
 /**
  * Message from GNS service to client: new results.
  */
-struct GNUNET_GNS_ClientLookupResultMessage
+struct LookupResultMessage
 {
   /**
     * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT

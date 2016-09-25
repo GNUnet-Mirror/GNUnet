@@ -77,6 +77,10 @@
  */
 #define DHT_GNS_REPLICATION_LEVEL 5
 
+/**
+ * GnsClient prototype
+ */
+struct GnsClient;
 
 /**
  * Handle to a lookup operation from api
@@ -93,11 +97,11 @@ struct ClientLookupHandle
    * We keep these in a DLL.
    */
   struct ClientLookupHandle *prev;
-
+  
   /**
-   * Handle to the requesting client
+   * Client handle
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GnsClient *gc;
 
   /**
    * Active handle for the lookup.
@@ -109,6 +113,29 @@ struct ClientLookupHandle
    */
   uint32_t request_id;
 
+};
+
+struct GnsClient
+{
+  /**
+   * The client
+   */
+  struct GNUNET_SERVICE_Client *client;
+
+  /**
+   * The MQ
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Head of the DLL.
+   */
+  struct ClientLookupHandle *clh_head;
+
+  /**
+   * Tail of the DLL.
+   */
+  struct ClientLookupHandle *clh_tail;
 };
 
 
@@ -174,21 +201,6 @@ static struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
  * Handle to monitor namestore changes to instant propagation.
  */
 static struct GNUNET_NAMESTORE_ZoneMonitor *zmon;
-
-/**
- * Our notification context.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
- * Head of the DLL.
- */
-static struct ClientLookupHandle *clh_head;
-
-/**
- * Tail of the DLL.
- */
-static struct ClientLookupHandle *clh_tail;
 
 /**
  * Head of monitor activities; kept in a DLL.
@@ -267,27 +279,10 @@ static struct GNUNET_STATISTICS_Handle *statistics;
 static void
 shutdown_task (void *cls)
 {
-  struct ClientLookupHandle *clh;
   struct MonitorActivity *ma;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Shutting down!\n");
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
-  }
-  while (NULL != (clh = clh_head))
-  {
-    GNUNET_SERVER_client_set_user_context (clh->client,
-                                           NULL);
-    GNS_resolver_lookup_cancel (clh->lookup);
-    GNUNET_CONTAINER_DLL_remove (clh_head,
-                                 clh_tail,
-                                 clh);
-    GNUNET_free (clh);
-  }
-
+              "Shutting down!\n");
   GNS_interceptor_done ();
   if (NULL != identity_op)
   {
@@ -352,6 +347,60 @@ shutdown_task (void *cls)
   }
 }
 
+/**
+ * Called whenever a client is disconnected.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param app_ctx @a client
+ */
+static void
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
+{
+  struct ClientLookupHandle *clh;
+  struct GnsClient *gc = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p disconnected\n",
+              client);
+  while (NULL != (clh = gc->clh_head))
+  {
+    GNS_resolver_lookup_cancel (clh->lookup);
+    GNUNET_CONTAINER_DLL_remove (gc->clh_head,
+                                 gc->clh_tail,
+                                 clh);
+    GNUNET_free (clh);
+  }
+
+  GNUNET_free (gc); 
+}
+
+
+/**
+ * Add a client to our list of active clients.
+ *
+ * @param cls NULL
+ * @param client client to add
+ * @param mq message queue for @a client
+ * @return internal namestore client structure for this client
+ */
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
+{
+  struct GnsClient *gc;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p connected\n",
+              client);
+  gc = GNUNET_new (struct GnsClient);
+  gc->client = client;
+  gc->mq = mq;
+  return gc;
+}
+
 
 /**
  * Method called periodically that triggers iteration over authoritative records
@@ -385,7 +434,7 @@ publish_zone_dht_start (void *cls);
  */
 static void
 dht_put_continuation (void *cls,
-		      int success)
+                      int success)
 {
   struct MonitorActivity *ma = cls;
   struct GNUNET_TIME_Relative next_put_interval;
@@ -500,20 +549,20 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   struct GNUNET_DHT_PutHandle *ret;
 
   expire = GNUNET_GNSRECORD_record_get_expiration_time (rd_public_count,
-							rd_public);
+                                                        rd_public);
   block = GNUNET_GNSRECORD_block_create (key,
-					 expire,
-					 label,
-					 rd_public,
-					 rd_public_count);
+                                         expire,
+                                         label,
+                                         rd_public,
+                                         rd_public_count);
   if (NULL == block)
     return NULL; /* whoops */
   block_size = ntohl (block->purpose.size)
     + sizeof (struct GNUNET_CRYPTO_EcdsaSignature)
     + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
   GNUNET_GNSRECORD_query_from_private_key (key,
-					   label,
-					   &query);
+                                           label,
+                                           &query);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Storing %u record(s) for label `%s' in DHT with expiration `%s' under key %s\n",
               rd_public_count,
@@ -686,7 +735,7 @@ publish_zone_dht_start (void *cls)
   zone_publish_task = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting DHT zone update!\n");
+              "Starting DHT zone update!\n");
   /* start counting again */
   num_public_records = 0;
   GNUNET_assert (NULL == namestore_iter);
@@ -764,42 +813,69 @@ handle_monitor_event (void *cls,
  */
 static void
 send_lookup_response (void* cls,
-		      uint32_t rd_count,
-		      const struct GNUNET_GNSRECORD_Data *rd)
+                      uint32_t rd_count,
+                      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ClientLookupHandle *clh = cls;
-  struct GNUNET_GNS_ClientLookupResultMessage *rmsg;
+  struct GNUNET_MQ_Envelope *env;
+  struct LookupResultMessage *rmsg;
   size_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending LOOKUP_RESULT message with %u results\n",
-	      (unsigned int) rd_count);
+              "Sending LOOKUP_RESULT message with %u results\n",
+              (unsigned int) rd_count);
 
   len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
-  rmsg = GNUNET_malloc (len + sizeof (struct GNUNET_GNS_ClientLookupResultMessage));
-  rmsg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
-  rmsg->header.size = htons (len + sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
+  env = GNUNET_MQ_msg_extra (rmsg,
+                             len,
+                             GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->id = clh->request_id;
   rmsg->rd_count = htonl (rd_count);
   GNUNET_GNSRECORD_records_serialize (rd_count, rd, len,
-				      (char*) &rmsg[1]);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      clh->client,
-					      &rmsg->header,
-					      GNUNET_NO);
-  GNUNET_free (rmsg);
-  GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
-  GNUNET_SERVER_client_set_user_context (clh->client, NULL);
+                                      (char*) &rmsg[1]);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(clh->gc->client),
+                  env);
+  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head, clh->gc->clh_tail, clh);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
                             "Completed lookups", 1,
-			    GNUNET_NO);
+                            GNUNET_NO);
   GNUNET_STATISTICS_update (statistics,
-			    "Records resolved",
-			    rd_count,
-			    GNUNET_NO);
+                            "Records resolved",
+                            rd_count,
+                            GNUNET_NO);
 }
 
+
+/**
+ * Checks a #GNUNET_MESSAGE_TYPE_GNS_LOOKUP message
+ *
+ * @param cls client sending the message
+ * @param l_msg message of type `struct LookupMessage`
+ * @return #GNUNET_OK if @a l_msg is well-formed
+ */
+static int
+check_lookup (void *cls,
+		    const struct LookupMessage *l_msg)
+{
+  size_t msg_size;
+  const char* name;
+
+  msg_size = ntohs (l_msg->header.size);
+  if (msg_size < sizeof (struct LookupMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  name = (const char *) &l_msg[1];
+  if ( ('\0' != name[l_msg->header.size - sizeof (struct LookupMessage) - 1]) ||
+       (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
 /**
  * Handle lookup requests from client
@@ -810,53 +886,34 @@ send_lookup_response (void* cls,
  */
 static void
 handle_lookup (void *cls,
-	       struct GNUNET_SERVER_Client *client,
-	       const struct GNUNET_MessageHeader *message)
+               const struct LookupMessage *sh_msg)
 {
+  struct GnsClient *gc = cls;
   char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 1];
   struct ClientLookupHandle *clh;
   char *nameptr = name;
   const char *utf_in;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *key;
-  uint16_t msg_size;
-  const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received LOOKUP message\n");
-  msg_size = ntohs (message->size);
-  if (msg_size < sizeof (struct GNUNET_GNS_ClientLookupMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  sh_msg = (const struct GNUNET_GNS_ClientLookupMessage *) message;
-  GNUNET_SERVER_notification_context_add (nc, client);
+              "Received LOOKUP message\n");
+  GNUNET_SERVICE_client_continue (gc->client);
   if (GNUNET_YES == ntohs (sh_msg->have_key))
     key = &sh_msg->shorten_key;
   else
     key = NULL;
   utf_in = (const char *) &sh_msg[1];
-  if ( ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientLookupMessage) - 1]) ||
-       (strlen (utf_in) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) )
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   GNUNET_STRINGS_utf8_tolower (utf_in, nameptr);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   clh = GNUNET_new (struct ClientLookupHandle);
-  GNUNET_SERVER_client_set_user_context (client, clh);
-  GNUNET_CONTAINER_DLL_insert (clh_head, clh_tail, clh);
-  clh->client = client;
+  GNUNET_CONTAINER_DLL_insert (gc->clh_head, gc->clh_tail, clh);
+  clh->gc = gc;
   clh->request_id = sh_msg->id;
   if ( (GNUNET_DNSPARSER_TYPE_A == ntohl (sh_msg->type)) &&
        (GNUNET_OK != v4_enabled) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"LOOKUP: Query for A record but AF_INET not supported!");
+                "LOOKUP: Query for A record but AF_INET not supported!");
     send_lookup_response (clh, 0, NULL);
     return;
   }
@@ -869,37 +926,14 @@ handle_lookup (void *cls,
     return;
   }
   clh->lookup = GNS_resolver_lookup (&sh_msg->zone,
-				     ntohl (sh_msg->type),
-				     name,
-				     key,
-				     (enum GNUNET_GNS_LocalOptions) ntohs (sh_msg->options),
-				     &send_lookup_response, clh);
+                                     ntohl (sh_msg->type),
+                                     name,
+                                     key,
+                                     (enum GNUNET_GNS_LocalOptions) ntohs (sh_msg->options),
+                                     &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",
-			    1, GNUNET_NO);
-}
-
-
-/**
- * One of our clients disconnected, clean up after it.
- *
- * @param cls NULL
- * @param client the client that disconnected
- */
-static void
-notify_client_disconnect (void *cls,
-			  struct GNUNET_SERVER_Client *client)
-{
-  struct ClientLookupHandle *clh;
-
-  if (NULL == client)
-    return;
-  clh = GNUNET_SERVER_client_get_user_context (client, struct ClientLookupHandle);
-  if (NULL == clh)
-    return;
-  GNS_resolver_lookup_cancel (clh->lookup);
-  GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
-  GNUNET_free (clh);
+                            1, GNUNET_NO);
 }
 
 
@@ -914,7 +948,7 @@ monitor_sync_event (void *cls)
 {
   GNUNET_assert (NULL == zone_publish_task);
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
-						NULL);
+                                                NULL);
 }
 
 
@@ -943,7 +977,7 @@ handle_monitor_error (void *cls)
     active_put = NULL;
   }
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
-						NULL);
+                                                NULL);
 }
 
 
@@ -977,12 +1011,12 @@ identity_intercept_cb (void *cls,
   if (NULL == ego)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("No ego configured for `%s`\n"),
-		"gns-intercept");
+                _("No ego configured for `%s`\n"),
+                "gns-intercept");
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego,
-				      &dns_root);
+                                      &dns_root);
   if (GNUNET_SYSERR ==
       GNS_interceptor_init (&dns_root, cfg))
   {
@@ -1002,13 +1036,9 @@ identity_intercept_cb (void *cls,
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
-    {NULL, NULL, 0, 0}
-  };
   unsigned long long max_parallel_bg_queries = 0;
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
@@ -1018,7 +1048,7 @@ run (void *cls,
   if (NULL == namestore_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to connect to the namestore!\n"));
+                _("Failed to connect to the namestore!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1026,7 +1056,7 @@ run (void *cls,
   if (NULL == namecache_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to connect to the namecache!\n"));
+                _("Failed to connect to the namecache!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1035,31 +1065,31 @@ run (void *cls,
   zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c, "gns",
-					   "ZONE_PUBLISH_TIME_WINDOW",
-					   &zone_publish_time_window_default))
+                                           "ZONE_PUBLISH_TIME_WINDOW",
+                                           &zone_publish_time_window_default))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Time window for zone iteration: %s\n",
-		GNUNET_STRINGS_relative_time_to_string (zone_publish_time_window,
+                "Time window for zone iteration: %s\n",
+                GNUNET_STRINGS_relative_time_to_string (zone_publish_time_window,
                                                         GNUNET_YES));
   }
   zone_publish_time_window = zone_publish_time_window_default;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (c, "gns",
-                                            "MAX_PARALLEL_BACKGROUND_QUERIES",
-                                            &max_parallel_bg_queries))
+                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
+                                             &max_parallel_bg_queries))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Number of allowed parallel background queries: %llu\n",
-		max_parallel_bg_queries);
+                "Number of allowed parallel background queries: %llu\n",
+                max_parallel_bg_queries);
   }
 
   dht_handle = GNUNET_DHT_connect (c,
-				   (unsigned int) max_parallel_bg_queries);
+                                   (unsigned int) max_parallel_bg_queries);
   if (NULL == dht_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Could not connect to DHT!\n"));
+                _("Could not connect to DHT!\n"));
     GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
@@ -1070,12 +1100,12 @@ run (void *cls,
   if (NULL == identity_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Could not connect to identity service!\n");
+                "Could not connect to identity service!\n");
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Looking for gns-intercept ego\n");
+                "Looking for gns-intercept ego\n");
     identity_op = GNUNET_IDENTITY_get (identity_handle,
                                        "gns-intercept",
                                        &identity_intercept_cb,
@@ -1083,19 +1113,14 @@ run (void *cls,
   }
   GNS_resolver_init (namecache_handle,
                      dht_handle,
-		     c,
-		     max_parallel_bg_queries);
+                     c,
+                     max_parallel_bg_queries);
   GNS_shorten_init (namestore_handle,
                     namecache_handle,
                     dht_handle);
-  GNUNET_SERVER_disconnect_notify (server,
-				   &notify_client_disconnect,
-				   NULL);
   /* Schedule periodic put for our records. */
   first_zone_iteration = GNUNET_YES;
-  GNUNET_SERVER_add_handlers (server, handlers);
   statistics = GNUNET_STATISTICS_create ("gns", c);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
   zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
                                               NULL,
                                               GNUNET_NO,
@@ -1110,23 +1135,40 @@ run (void *cls,
 }
 
 
-/**
+/** TODO delete
  * The main function for the GNS service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
  * @return 0 ok, 1 on error
  */
-int
-main (int argc, char *const *argv)
-{
+/*int
+  main (int argc, char *const *argv)
+  {
   int ret;
 
   ret =
-      (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "gns", GNUNET_SERVICE_OPTION_NONE, &run,
-                           NULL)) ? 0 : 1;
+  (GNUNET_OK ==
+  GNUNET_SERVICE_run (argc, argv, "gns", GNUNET_SERVICE_OPTION_NONE, &run,
+  NULL)) ? 0 : 1;
   return ret;
-}
+  }*/
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("gns",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (lookup,
+                        GNUNET_MESSAGE_TYPE_GNS_LOOKUP,
+                        struct LookupMessage,
+                        NULL),
+ GNUNET_MQ_handler_end());
+
 
 /* end of gnunet-service-gns.c */
