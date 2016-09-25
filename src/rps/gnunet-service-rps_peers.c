@@ -1073,26 +1073,26 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * @brief Remove unecessary data
+ * @brief Check if peer is removable.
  *
- * If the other peer is not intending to send messages, we have messages pending
- * to be sent to this peer and we are not waiting for a reply, remove the
- * information about it (its #PeerContext).
+ * Check if
+ *  - a recv channel exists
+ *  - there are pending messages
+ *  - there is no pending pull reply
  *
- * @param peer the peer to clean
- * @return #GNUNET_YES if peer was removed
- *         #GNUNET_NO  otherwise
+ * @param peer the peer in question
+ * @return #GNUNET_YES    if peer is removable
+ *         #GNUNET_NO     if peer is NOT removable
+ *         #GNUNET_SYSERR if peer is not known
  */
 int
-Peers_clean_peer (const struct GNUNET_PeerIdentity *peer)
+Peers_check_removable (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
-  // TODO actually remove unnecessary data
-
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
-    return GNUNET_NO;
+    return GNUNET_SYSERR;
   }
 
   peer_ctx = get_peer_ctx (peer);
@@ -1102,7 +1102,6 @@ Peers_clean_peer (const struct GNUNET_PeerIdentity *peer)
   {
     return GNUNET_NO;
   }
-  Peers_remove_peer (peer);
   return GNUNET_YES;
 }
 

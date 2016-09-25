@@ -813,12 +813,15 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (0 == RPS_sampler_count_id (prot_sampler,   peer)) &&
-       (0 == RPS_sampler_count_id (client_sampler, peer)) )
-  { /* We can safely remov this peer */
+       (0 == RPS_sampler_count_id (client_sampler, peer)) &&
+       (GNUNET_NO != Peers_check_removable (peer)) )
+  { /* We can safely remove this peer */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Going to remove peer %s\n",
+        GNUNET_i2s (peer));
     remove_peer (peer);
     return;
   }
-  Peers_clean_peer (peer);
 }
 
 /**
@@ -826,6 +829,8 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
  *
  * Removes peer completely from our knowledge if the send_channel was destroyed
  * Otherwise simply delete the recv_channel
+ * Also check if the knowledge about this peer is still needed.
+ * If not, remove this peer from our knowledge.
  *
  * @param cls The closure
  * @param channel The channel being closed
@@ -1980,7 +1985,7 @@ do_round (void *cls)
       to_file (file_name_view_log,
                "-%s",
                GNUNET_i2s_full (&peers_to_clean[i]));
-      Peers_clean_peer (&peers_to_clean[i]);
+      clean_peer (&peers_to_clean[i]);
       //peer_destroy_channel_send (sender);
     }
 
@@ -2008,7 +2013,7 @@ do_round (void *cls)
          "Updating with peer %s from push list\n",
          GNUNET_i2s (update_peer));
     insert_in_sampler (NULL, update_peer);
-    Peers_clean_peer (update_peer); /* This cleans only if it is not in the view */
+    clean_peer (update_peer); /* This cleans only if it is not in the view */
     //peer_destroy_channel_send (sender);
   }
 
@@ -2019,7 +2024,7 @@ do_round (void *cls)
          GNUNET_i2s (CustomPeerMap_get_peer_by_index (pull_map, i)));
     insert_in_sampler (NULL, CustomPeerMap_get_peer_by_index (pull_map, i));
     /* This cleans only if it is not in the view */
-    Peers_clean_peer (CustomPeerMap_get_peer_by_index (pull_map, i));
+    clean_peer (CustomPeerMap_get_peer_by_index (pull_map, i));
     //peer_destroy_channel_send (sender);
   }
 
