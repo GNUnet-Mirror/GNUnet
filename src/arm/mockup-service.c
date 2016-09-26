@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2007, 2008, 2009 GNUnet e.V.
+     Copyright (C) 2007, 2008, 2009, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,18 +29,18 @@ static int special_ret = 0;
 /**
  * Handler for STOP message.
  *
- * @param cls closure (refers to service)
- * @param client identification of the client
+ * @param cls client identification of the client
  * @param message the actual message
  */
 static void
 handle_stop (void *cls,
-             struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Initiating shutdown as requested by client.\n"));
-  GNUNET_SERVER_client_persist_ (client);
+  GNUNET_SERVICE_client_persist (client);
   GNUNET_SCHEDULER_shutdown ();
   /* ARM won't exponentially increase restart delay if we
    * terminate normally. This changes the return code.
@@ -49,31 +49,70 @@ handle_stop (void *cls,
 }
 
 
-static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+/**
+ * Callback called when a client connects to the service.
+ *
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP,
-     sizeof (struct GNUNET_MessageHeader)},
-    {NULL, NULL, 0, 0}
-  };
-  /* process client requests */
-  GNUNET_SERVER_add_handlers (server, handlers);
+  return c;
 }
 
 
-int
-main (int argc, char *const *argv)
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
 {
-  int ret;
+  GNUNET_assert (c == internal_cls);
+}
 
-  ret =
-      (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "do-nothing", GNUNET_SERVICE_OPTION_NONE,
-                           &run, NULL)) ? 0 : 1;
-  if (0 != special_ret)
-    return special_ret;
-  return ret;
+
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
+{
+  /* nothing to do */
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("do-nothing",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (stop,
+			  GNUNET_MESSAGE_TYPE_ARM_STOP,
+			  struct GNUNET_MessageHeader,
+			  NULL),
+ GNUNET_MQ_handler_end ());
+
+
+/**
+ * MINIMIZE heap size (way below 128k) since this process doesn't need much.
+ */
+void __attribute__ ((destructor))
+GNUNET_mockup_done ()
+{
+  _exit (special_ret);
 }
