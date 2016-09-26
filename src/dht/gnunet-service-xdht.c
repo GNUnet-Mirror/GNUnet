@@ -104,13 +104,13 @@ run (void *cls,
   {
     track_topology = (unsigned int) _track_topology;
   }
-  if (GNUNET_OK != GDS_NEIGHBOURS_init ())
-  {
-    shutdown_task (NULL);
-    return;
-  }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
+  if (GNUNET_OK != GDS_NEIGHBOURS_init ())
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 

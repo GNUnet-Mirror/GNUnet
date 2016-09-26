@@ -158,7 +158,7 @@ GDS_CLIENTS_process_put (uint32_t options,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,
-                         const struct GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode *key,
                          const void *data,
                          size_t size);
 
