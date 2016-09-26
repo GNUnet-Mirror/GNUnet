@@ -1275,7 +1275,13 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
       slc->sh = sh;
       slc->listen_socket = open_listen_socket (addrs[i],
 					       addrlens[i]);
-      GNUNET_break (NULL != slc->listen_socket);
+      if (NULL == slc->listen_socket)
+      {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                             "bind");
+        GNUNET_free (slc);
+        continue;
+      }
       GNUNET_CONTAINER_DLL_insert (sh->slc_head,
 				   sh->slc_tail,
 				   slc);
@@ -1283,12 +1289,12 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
   }
 
   sh->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
-  sh->match_uid =
-      GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
+  sh->match_uid
+    = GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
 					    sh->service_name,
                                             "UNIX_MATCH_UID");
-  sh->match_gid =
-      GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
+  sh->match_gid
+    = GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
 					    sh->service_name,
                                             "UNIX_MATCH_GID");
   process_acl4 (&sh->v4_denied,
