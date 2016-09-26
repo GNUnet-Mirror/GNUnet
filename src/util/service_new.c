@@ -255,6 +255,12 @@ struct GNUNET_SERVICE_Client
   struct GNUNET_SCHEDULER_Task *warn_task;
 
   /**
+   * Task run to finish dropping the client after the stack has
+   * properly unwound.
+   */
+  struct GNUNET_SCHEDULER_Task *drop_task;
+
+  /**
    * Task that receives data from the client to
    * pass it to the handlers.
    */
@@ -1951,7 +1957,7 @@ warn_no_client_continue (void *cls)
  *
  * @param cls closure with the `struct GNUNET_SERVICE_Client *`
  * @param message the actual message
- * @return #GNUNET_OK on success (always)
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the client was dropped
  */
 static int
 service_client_mst_cb (void *cls,
@@ -1970,6 +1976,8 @@ service_client_mst_cb (void *cls,
 				    client);
   GNUNET_MQ_inject_message (client->mq,
                             message);
+  if (NULL != client->drop_task)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -1994,8 +2002,11 @@ service_client_recv (void *cls)
   if (GNUNET_SYSERR == ret)
   {
     /* client closed connection (or IO error) */
-    GNUNET_assert (GNUNET_NO == client->needs_continue);
-    GNUNET_SERVICE_client_drop (client);
+    if (NULL == client->drop_task)
+    {
+      GNUNET_assert (GNUNET_NO == client->needs_continue);
+      GNUNET_SERVICE_client_drop (client);
+    }
     return;
   }
   if (GNUNET_NO == ret)
@@ -2313,6 +2324,35 @@ GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c)
 
 
 /**
+ * Asynchronously finish dropping the client.
+ *
+ * @param cls the `struct GNUNET_SERVICE_Client`.
+ */
+static void
+finish_client_drop (void *cls)
+{
+  struct GNUNET_SERVICE_Client *c = cls;
+  struct GNUNET_SERVICE_Handle *sh = c->sh;
+
+  GNUNET_MST_destroy (c->mst);
+  GNUNET_MQ_destroy (c->mq);
+  if (GNUNET_NO == c->persist)
+  {
+    GNUNET_break (GNUNET_OK ==
+		  GNUNET_NETWORK_socket_close (c->sock));
+  }
+  else
+  {
+    GNUNET_NETWORK_socket_free_memory_only_ (c->sock);
+  }
+  GNUNET_free (c);
+  if ( (GNUNET_YES == sh->got_shutdown) &&
+       (GNUNET_NO == have_non_monitor_clients (sh)) )
+    GNUNET_SERVICE_shutdown (sh);
+}
+
+
+/**
  * Ask the server to disconnect from the given client.  This is the
  * same as returning #GNUNET_SYSERR within the check procedure when
  * handling a message, wexcept that it allows dropping of a client even
@@ -2327,6 +2367,12 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
 {
   struct GNUNET_SERVICE_Handle *sh = c->sh;
 
+  if (NULL != c->drop_task)
+  {
+    /* asked to drop twice! */
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_CONTAINER_DLL_remove (sh->clients_head,
                                sh->clients_tail,
                                c);
@@ -2348,21 +2394,8 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
     GNUNET_SCHEDULER_cancel (c->send_task);
     c->send_task = NULL;
   }
-  GNUNET_MST_destroy (c->mst);
-  GNUNET_MQ_destroy (c->mq);
-  if (GNUNET_NO == c->persist)
-  {
-    GNUNET_break (GNUNET_OK ==
-		  GNUNET_NETWORK_socket_close (c->sock));
-  }
-  else
-  {
-    GNUNET_NETWORK_socket_free_memory_only_ (c->sock);
-  }
-  GNUNET_free (c);
-  if ( (GNUNET_YES == sh->got_shutdown) &&
-       (GNUNET_NO == have_non_monitor_clients (sh)) )
-    GNUNET_SERVICE_shutdown (sh);
+  c->drop_task = GNUNET_SCHEDULER_add_now (&finish_client_drop,
+                                           c);
 }
 
 
