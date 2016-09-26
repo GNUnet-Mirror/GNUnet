@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet_datacache_lib.h"
-#include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-dht_routing.h"
 #include "gnunet-service-dht.h"

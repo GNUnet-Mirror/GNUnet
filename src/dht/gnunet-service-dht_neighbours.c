@@ -39,7 +39,6 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-dht.h"
-#include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-dht_hello.h"
 #include "gnunet-service-dht_neighbours.h"
@@ -1587,7 +1586,7 @@ core_init (void *cls,
   GNUNET_CRYPTO_hash (identity,
 		      sizeof (struct GNUNET_PeerIdentity),
 		      &my_identity_hash);
-  GDS_CLIENTS_init ();
+  GNUNET_SERVICE_resume (GDS_service);
 }
 
 

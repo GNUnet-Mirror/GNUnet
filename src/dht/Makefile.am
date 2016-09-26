@@ -63,7 +63,6 @@ noinst_PROGRAMS = \
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c gnunet-service-dht.h \
- gnunet-service-dht_clients.c gnunet-service-dht_clients.h \
  gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
  gnunet-service-dht_hello.c gnunet-service-dht_hello.h \
  gnunet-service-dht_nse.c gnunet-service-dht_nse.h \

@@ -33,7 +33,6 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-dht.h"
-#include "gnunet-service-dht_clients.h"
 #include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-dht_hello.h"
 #include "gnunet-service-dht_neighbours.h"
@@ -47,6 +46,11 @@
 struct GNUNET_STATISTICS_Handle *GDS_stats;
 
 /**
+ * Handle for the service.
+ */
+struct GNUNET_SERVICE_Handle *GDS_service;
+
+/**
  * Our handle to the BLOCK library.
  */
 struct GNUNET_BLOCK_Context *GDS_block_context;
@@ -55,11 +59,6 @@ struct GNUNET_BLOCK_Context *GDS_block_context;
  * The configuration the DHT service is running with
  */
 const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
-
-/**
- * Handle to our server.
- */
-struct GNUNET_SERVER_Handle *GDS_server;
 
 /**
  * Our HELLO
@@ -77,6 +76,10 @@ static struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 struct GNUNET_TIME_Relative hello_expiration;
 
 
+/* Code shared between different DHT implementations */
+#include "gnunet-service-dht_clients.c"
+
+
 /**
  * Receive the HELLO from transport service, free current and replace
  * if necessary.
@@ -90,7 +93,9 @@ process_hello (void *cls,
 {
   GNUNET_free_non_null (GDS_my_hello);
   GDS_my_hello = GNUNET_malloc (ntohs (message->size));
-  GNUNET_memcpy (GDS_my_hello, message, ntohs (message->size));
+  GNUNET_memcpy (GDS_my_hello,
+                 message,
+                 ntohs (message->size));
 }
 
 
@@ -133,17 +138,16 @@ shutdown_task (void *cls)
  * Process dht requests.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
   GDS_cfg = c;
-  GDS_server = server;
-  GNUNET_SERVER_suspend (server);
+  GDS_service = service;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c,
 					   "transport",
@@ -153,7 +157,10 @@ run (void *cls,
     hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
   }
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
-  GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
+  GDS_stats = GNUNET_STATISTICS_create ("dht",
+                                        GDS_cfg);
+  GNUNET_SERVICE_suspend (GDS_service);
+  GDS_CLIENTS_init ();
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
@@ -172,28 +179,10 @@ run (void *cls,
 }
 
 
-/**
- * The main function for the dht service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
- */
-int
-main (int argc,
-      char *const *argv)
-{
-  int ret;
+/* Finally, define the main method */
+GDS_DHT_SERVICE_INIT(&run);
 
-  ret = (GNUNET_OK ==
-	 GNUNET_SERVICE_run (argc,
-			     argv,
-			     "dht",
-			     GNUNET_SERVICE_OPTION_NONE,
-			     &run,
-			     NULL)) ? 0 : 1;
-  GDS_CLIENTS_done ();
-  return ret;
-}
+
+
 
 /* end of gnunet-service-dht.c */
