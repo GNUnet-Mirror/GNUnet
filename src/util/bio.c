@@ -205,7 +205,7 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
                     void *result,
                     size_t len)
 {
-  char what[1024];
+  char what[MAX_PATH + 1024];
 
   GNUNET_snprintf (what, sizeof (what), "%s:%d", file, line);
   return GNUNET_BIO_read (h, what, result, len);
