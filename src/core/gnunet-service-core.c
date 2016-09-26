@@ -140,7 +140,7 @@ type_match (uint16_t type,
 	    struct GSC_Client *c)
 {
   if ( (0 == c->tcnt) &&
-       (0 != c->options) )
+       (0 != (c->options & ~GNUNET_CORE_OPTION_INIT)) )
     return GNUNET_YES;          /* peer without handlers and inbound/outbond
 				   callbacks matches ALL */
   if (NULL == c->types)
@@ -681,21 +681,22 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   int old_match;
   int new_match;
 
-  if (GNUNET_CORE_OPTION_NOTHING == client->options)
-    return; /* client did not yet send init */
   old_match = GSC_TYPEMAP_test_match (tmap_old,
 				      client->types,
 				      client->tcnt);
   new_match = GSC_TYPEMAP_test_match (tmap_new,
 				      client->types,
 				      client->tcnt);
-  if (old_match == new_match)
+  if ( (old_match == new_match) &&
+       (GNUNET_CORE_OPTION_INIT != (client->options & GNUNET_CORE_OPTION_INIT)) )
   {
     GNUNET_assert (old_match ==
                    GNUNET_CONTAINER_multipeermap_contains (client->connectmap,
                                                            neighbour));
     return;                     /* no change */
   }
+  if (old_match == new_match)
+    return; /* no change, but the client simply didn't INIT yet */
   if (GNUNET_NO == old_match)
   {
     struct ConnectNotifyMessage *cnm;
@@ -722,7 +723,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   {
     struct DisconnectNotifyMessage *dcm;
 
-  /* send disconnect */
+    /* send disconnect */
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multipeermap_contains (client->connectmap,
                                                            neighbour));
@@ -788,7 +789,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     GNUNET_break (0);
     return;
   }
-  if (! ( (0 != (all_client_options & options)) ||
+  if (! ( (0 != (all_client_options & options & ~GNUNET_CORE_OPTION_INIT)) ||
 	  (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) ))
     return; /* no client cares about this message notification */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -807,7 +808,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 
     tm = type_match (ntohs (msg->type),
 		     c);
-    if (! ( (0 != (c->options & options)) ||
+    if (! ( (0 != (c->options & options & ~GNUNET_CORE_OPTION_INIT)) ||
 	    ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
 	      (GNUNET_YES == tm) ) ) )
       continue;  /* neither options nor type match permit the message */
