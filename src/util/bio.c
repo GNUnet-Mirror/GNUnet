@@ -23,10 +23,17 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_bio_lib.h"
-#include "gnunet_disk_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+
+#ifndef PATH_MAX
+/**
+ * Assumed maximum path length (for source file names).
+ */
+#define PATH_MAX 4096
+#endif
+
 
 /**
  * Size for I/O buffers.
@@ -205,7 +212,7 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
                     void *result,
                     size_t len)
 {
-  char what[MAX_PATH + 1024];
+  char what[PATH_MAX + 1024];
 
   GNUNET_snprintf (what, sizeof (what), "%s:%d", file, line);
   return GNUNET_BIO_read (h, what, result, len);

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001--2013 GNUnet e.V.
+     Copyright (C) 2001--2013, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1226,13 +1226,16 @@ GNUNET_DISK_directory_scan (const char *dir_name,
 
   GNUNET_assert (NULL != dir_name);
   dname = GNUNET_STRINGS_filename_expand (dir_name);
-  if (dname == NULL)
+  if (NULL == dname)
     return GNUNET_SYSERR;
-  while ((strlen (dname) > 0) && (dname[strlen (dname) - 1] == DIR_SEPARATOR))
+  while ( (strlen (dname) > 0) &&
+          (dname[strlen (dname) - 1] == DIR_SEPARATOR) )
     dname[strlen (dname) - 1] = '\0';
   if (0 != STAT (dname, &istat))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", dname);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "stat",
+                       dname);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
@@ -1246,21 +1249,24 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   }
   errno = 0;
   dinfo = OPENDIR (dname);
-  if ((errno == EACCES) || (NULL == dinfo))
+  if ( (EACCES == errno) ||
+       (NULL == dinfo) )
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "opendir", dname);
-    if (dinfo != NULL)
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "opendir",
+                       dname);
+    if (NULL != dinfo)
       CLOSEDIR (dinfo);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
   name_len = 256;
-  n_size = strlen (dname) + name_len + 2;
+  n_size = strlen (dname) + name_len + strlen (DIR_SEPARATOR_STR) + 1;
   name = GNUNET_malloc (n_size);
   while (NULL != (finfo = READDIR (dinfo)))
   {
-    if ((0 == strcmp (finfo->d_name, ".")) ||
-        (0 == strcmp (finfo->d_name, "..")))
+    if ( (0 == strcmp (finfo->d_name, ".")) ||
+         (0 == strcmp (finfo->d_name, "..")) )
       continue;
     if (NULL != callback)
     {
@@ -1268,16 +1274,23 @@ GNUNET_DISK_directory_scan (const char *dir_name,
       {
         GNUNET_free (name);
         name_len = strlen (finfo->d_name);
-        n_size = strlen (dname) + name_len + 2;
+        n_size = strlen (dname) + name_len + strlen (DIR_SEPARATOR_STR) + 1;
         name = GNUNET_malloc (n_size);
       }
       /* dname can end in "/" only if dname == "/";
        * if dname does not end in "/", we need to add
        * a "/" (otherwise, we must not!) */
-      GNUNET_snprintf (name, n_size, "%s%s%s", dname,
-                       (strcmp (dname, DIR_SEPARATOR_STR) ==
-                        0) ? "" : DIR_SEPARATOR_STR, finfo->d_name);
-      ret = callback (callback_cls, name);
+      GNUNET_snprintf (name,
+                       n_size,
+                       "%s%s%s",
+                       dname,
+                       (0 == strcmp (dname,
+                                     DIR_SEPARATOR_STR))
+                       ? ""
+                       : DIR_SEPARATOR_STR,
+                       finfo->d_name);
+      ret = callback (callback_cls,
+                      name);
       if (GNUNET_OK != ret)
       {
         CLOSEDIR (dinfo);
@@ -1299,14 +1312,15 @@ GNUNET_DISK_directory_scan (const char *dir_name,
 
 /**
  * Function that removes the given directory by calling
- * "GNUNET_DISK_directory_remove".
+ * #GNUNET_DISK_directory_remove().
  *
  * @param unused not used
  * @param fn directory to remove
  * @return #GNUNET_OK
  */
 static int
-remove_helper (void *unused, const char *fn)
+remove_helper (void *unused,
+               const char *fn)
 {
   (void) GNUNET_DISK_directory_remove (fn);
   return GNUNET_OK;
@@ -1314,7 +1328,7 @@ remove_helper (void *unused, const char *fn)
 
 
 /**
- * Remove all files in a directory (rm -rf). Call with
+ * Remove all files in a directory (rm -r). Call with
  * caution.
  *
  * @param filename the file to remove
@@ -1332,24 +1346,33 @@ GNUNET_DISK_directory_remove (const char *filename)
   }
   if (0 != LSTAT (filename, &istat))
     return GNUNET_NO;           /* file may not exist... */
-  (void) CHMOD (filename, S_IWUSR | S_IRUSR | S_IXUSR);
-  if (UNLINK (filename) == 0)
+  (void) CHMOD (filename,
+                S_IWUSR | S_IRUSR | S_IXUSR);
+  if (0 == UNLINK (filename))
     return GNUNET_OK;
-  if ((errno != EISDIR) &&
-      /* EISDIR is not sufficient in all cases, e.g.
-       * sticky /tmp directory may result in EPERM on BSD.
-       * So we also explicitly check "isDirectory" */
-      (GNUNET_YES != GNUNET_DISK_directory_test (filename, GNUNET_YES)))
+  if ( (errno != EISDIR) &&
+       /* EISDIR is not sufficient in all cases, e.g.
+        * sticky /tmp directory may result in EPERM on BSD.
+        * So we also explicitly check "isDirectory" */
+       (GNUNET_YES !=
+        GNUNET_DISK_directory_test (filename,
+                                    GNUNET_YES)) )
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "rmdir",
+                       filename);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (filename, &remove_helper, NULL))
+      GNUNET_DISK_directory_scan (filename,
+                                  &remove_helper,
+                                  NULL))
     return GNUNET_SYSERR;
   if (0 != RMDIR (filename))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "rmdir",
+                       filename);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -1428,8 +1451,7 @@ GNUNET_DISK_filename_canonicalize (char *fn)
   char *idx;
   char c;
 
-  idx = fn;
-  while (*idx)
+  for (idx = fn; *idx; idx++)
   {
     c = *idx;
 
@@ -1438,8 +1460,6 @@ GNUNET_DISK_filename_canonicalize (char *fn)
     {
       *idx = '_';
     }
-
-    idx++;
   }
 }
 
@@ -1450,24 +1470,33 @@ GNUNET_DISK_filename_canonicalize (char *fn)
  *
  * @param filename name of file to change the owner of
  * @param user name of the new owner
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_DISK_file_change_owner (const char *filename, const char *user)
+GNUNET_DISK_file_change_owner (const char *filename,
+                               const char *user)
 {
 #ifndef MINGW
   struct passwd *pws;
 
   pws = getpwnam (user);
-  if (pws == NULL)
+  if (NULL == pws)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Cannot obtain information about user `%s': %s\n"), user,
+         _("Cannot obtain information about user `%s': %s\n"),
+         user,
          STRERROR (errno));
     return GNUNET_SYSERR;
   }
-  if (0 != chown (filename, pws->pw_uid, pws->pw_gid))
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "chown", filename);
+  if (0 != chown (filename,
+                  pws->pw_uid,
+                  pws->pw_gid))
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "chown",
+                       filename);
+    return GNUNET_SYSERR;
+  }
 #endif
   return GNUNET_OK;
 }
@@ -1475,15 +1504,18 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
 
 /**
  * Lock a part of a file
+ *
  * @param fh file handle
  * @param lock_start absolute position from where to lock
  * @param lock_end absolute position until where to lock
- * @param excl GNUNET_YES for an exclusive lock
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param excl #GNUNET_YES for an exclusive lock
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lock_start,
-                       off_t lock_end, int excl)
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
+                       off_t lock_start,
+                       off_t lock_end,
+                       int excl)
 {
   if (fh == NULL)
   {
@@ -1527,13 +1559,15 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lock_start,
 
 /**
  * Unlock a part of a file
+ *
  * @param fh file handle
  * @param unlock_start absolute position from where to unlock
  * @param unlock_end absolute position until where to unlock
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlock_start,
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
+                         off_t unlock_start,
                          off_t unlock_end)
 {
   if (fh == NULL)
@@ -1775,6 +1809,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   GNUNET_free (h);
   return ret;
 }
+
 
 #ifdef WINDOWS
 /**
