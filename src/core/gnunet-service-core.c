@@ -63,14 +63,14 @@ struct GSC_Client
    * Message queue to talk to @e client.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Array of the types of messages this peer cares
    * about (with @e tcnt entries).  Allocated as part
    * of this client struct, do not free!
    */
   uint16_t *types;
-  
+
   /**
    * Map of peer identities to active transmission requests of this
    * client to the peer (of type `struct GSC_ClientActiveRequest`).
@@ -156,7 +156,7 @@ type_match (uint16_t type,
  * Check #GNUNET_MESSAGE_TYPE_CORE_INIT request.
  *
  * @param cls client that sent #GNUNET_MESSAGE_TYPE_CORE_INIT
- * @param im the `struct InitMessage` 
+ * @param im the `struct InitMessage`
  * @return #GNUNET_OK if @a im is well-formed
  */
 static int
@@ -171,7 +171,7 @@ check_client_init (void *cls,
  * Handle #GNUNET_MESSAGE_TYPE_CORE_INIT request.
  *
  * @param cls client that sent #GNUNET_MESSAGE_TYPE_CORE_INIT
- * @param im the `struct InitMessage` 
+ * @param im the `struct InitMessage`
  */
 static void
 handle_client_init (void *cls,
@@ -190,8 +190,6 @@ handle_client_init (void *cls,
   c->options = ntohl (im->options);
   all_client_options |= c->options;
   c->types = GNUNET_malloc (msize);
-  c->connectmap = GNUNET_CONTAINER_multipeermap_create (16,
-							GNUNET_NO);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_put (c->connectmap,
                                                     &GSC_my_identity,
@@ -606,10 +604,12 @@ client_connect_cb (void *cls,
 		   struct GNUNET_MQ_Handle *mq)
 {
   struct GSC_Client *c;
-  
+
   c = GNUNET_new (struct GSC_Client);
   c->client = client;
   c->mq = mq;
+  c->connectmap = GNUNET_CONTAINER_multipeermap_create (16,
+							GNUNET_NO);
   GNUNET_CONTAINER_DLL_insert (client_head,
 			       client_tail,
 			       c);
@@ -644,11 +644,8 @@ client_disconnect_cb (void *cls,
                                            NULL);
     GNUNET_CONTAINER_multipeermap_destroy (c->requests);
   }
-  if (NULL != c->connectmap)
-  {
-    GNUNET_CONTAINER_multipeermap_destroy (c->connectmap);
-    c->connectmap = NULL;
-  }
+  GNUNET_CONTAINER_multipeermap_destroy (c->connectmap);
+  c->connectmap = NULL;
   if (NULL != c->types)
   {
     GSC_TYPEMAP_remove (c->types,
@@ -844,7 +841,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 							     sender)) );
     GNUNET_MQ_send (c->mq,
 		    env);
-  }  
+  }
 }
 
 
@@ -890,7 +887,7 @@ handle_client_monitor_peers (void *cls,
 			     const struct GNUNET_MessageHeader *message)
 {
   struct GSC_Client *c = cls;
-  
+
   GNUNET_SERVICE_client_continue (c->client);
   GSC_KX_handle_client_monitor_peers (c->mq);
 }
@@ -957,7 +954,7 @@ GNUNET_SERVICE_MAIN
  NULL,
  GNUNET_MQ_hd_var_size (client_init,
 			GNUNET_MESSAGE_TYPE_CORE_INIT,
-			struct InitMessage, 
+			struct InitMessage,
 			NULL),
  GNUNET_MQ_hd_fixed_size (client_monitor_peers,
 			  GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS,
