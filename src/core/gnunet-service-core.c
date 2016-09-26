@@ -681,6 +681,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   int old_match;
   int new_match;
 
+  if (GNUNET_CORE_OPTION_NOTHING == client->options)
+    return; /* client did not yet send init */
   old_match = GSC_TYPEMAP_test_match (tmap_old,
 				      client->types,
 				      client->tcnt);
