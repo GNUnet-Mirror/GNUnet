@@ -1849,8 +1849,9 @@ do_send (void *cls)
     }
     else
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			   "send");
+      if (EPIPE != errno)
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                             "send");
       GNUNET_MQ_inject_error (client->mq,
 			      GNUNET_MQ_ERROR_WRITE);
       return;
