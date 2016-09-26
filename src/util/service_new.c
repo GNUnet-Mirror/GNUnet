@@ -1279,12 +1279,24 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
       {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                              "bind");
+        GNUNET_free (addrs[i++]);
         GNUNET_free (slc);
         continue;
       }
+      GNUNET_free (addrs[i++]);
       GNUNET_CONTAINER_DLL_insert (sh->slc_head,
 				   sh->slc_tail,
 				   slc);
+    }
+    GNUNET_free_non_null (addrlens);
+    GNUNET_free_non_null (addrs);
+    if ( (0 != num) &&
+         (NULL == sh->slc_head) )
+    {
+      /* All attempts to bind failed, hard failure */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not bind to any of the ports I was supposed to, refusing to run!\n"));
+      return GNUNET_SYSERR;
     }
   }
 
