@@ -19,7 +19,7 @@
 */
 
 /**
- * @file dht/gnunet-service-xdht.c
+ * @file dht/gnunet-service-wdht.c
  * @brief GNUnet DHT service
  * @author Christian Grothoff
  * @author Nathan Evans
@@ -34,9 +34,9 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-wdht.h"
 #include "gnunet-service-wdht_clients.h"
-#include "gnunet-service-wdht_datacache.h"
+#include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
-#include "gnunet-service-wdht_nse.h"
+#include "gnunet-service-dht_nse.h"
 
 
 

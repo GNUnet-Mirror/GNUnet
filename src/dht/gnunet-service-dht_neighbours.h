@@ -58,7 +58,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            struct GNUNET_TIME_Absolute expiration_time,
                            uint32_t hop_count,
                            struct GNUNET_CONTAINER_BloomFilter *bf,
-                           const struct GNUNET_HashCode * key,
+                           const struct GNUNET_HashCode *key,
                            unsigned int put_path_length,
                            struct GNUNET_PeerIdentity *put_path,
                            const void *data, size_t data_size);
@@ -125,7 +125,7 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 /**
  * Initialize neighbours subsystem.
  *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GDS_NEIGHBOURS_init (void);
@@ -144,7 +144,7 @@ GDS_NEIGHBOURS_done (void);
  * @return identity of the local node
  */
 struct GNUNET_PeerIdentity *
-GDS_NEIGHBOURS_get_id ();
+GDS_NEIGHBOURS_get_id (void);
 
 
 #endif

@@ -38,6 +38,7 @@
  * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
  * request recently.
  *
+ * @param cls closure
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
@@ -49,13 +50,16 @@
  * @param data_size number of bytes in @a data
  */
 void
-GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
+GDS_ROUTING_process (void *cls,
+                     enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute expiration_time,
-                     const struct GNUNET_HashCode * key, unsigned int put_path_length,
+                     const struct GNUNET_HashCode *key,
+                     unsigned int put_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *get_path,
-                     const void *data, size_t data_size);
+                     const void *data,
+                     size_t data_size);
 
 
 /**

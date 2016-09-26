@@ -39,27 +39,6 @@
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
 
-
-/**
- * Handle for the statistics service.
- */
-struct GNUNET_STATISTICS_Handle *GDS_stats;
-
-/**
- * Handle for the service.
- */
-struct GNUNET_SERVICE_Handle *GDS_service;
-
-/**
- * Our handle to the BLOCK library.
- */
-struct GNUNET_BLOCK_Context *GDS_block_context;
-
-/**
- * The configuration the DHT service is running with
- */
-const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
-
 /**
  * Our HELLO
  */
@@ -180,7 +159,7 @@ run (void *cls,
 
 
 /* Finally, define the main method */
-GDS_DHT_SERVICE_INIT(&run);
+GDS_DHT_SERVICE_INIT("dht", &run);
 
 
 

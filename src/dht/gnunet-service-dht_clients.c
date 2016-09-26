@@ -213,6 +213,25 @@ struct ClientHandle
 
 };
 
+/**
+ * Our handle to the BLOCK library.
+ */
+struct GNUNET_BLOCK_Context *GDS_block_context;
+
+/**
+ * Handle for the statistics service.
+ */
+struct GNUNET_STATISTICS_Handle *GDS_stats;
+
+/**
+ * Handle for the service.
+ */
+struct GNUNET_SERVICE_Handle *GDS_service;
+
+/**
+ * The configuration the DHT service is running with
+ */
+const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
 
 /**
  * List of active monitoring requests.
@@ -496,7 +515,7 @@ handle_dht_local_put (void *cls,
                              ntohl (dht_msg->options),
                              ntohl (dht_msg->desired_replication_level),
                              GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
-                             0 /* hop count */ ,
+                             0 /* hop count */,
                              peer_bf,
                              &dht_msg->key,
                              0,
@@ -537,6 +556,43 @@ check_dht_local_get (void *cls,
 {
   /* always well-formed */
   return GNUNET_OK;
+}
+
+
+/**
+ * Handle a result from local datacache for a GET operation.
+ *
+ * @param cls the `struct ClientHandle` of the client doing the query
+ * @param type type of the block
+ * @param expiration_time when does the content expire
+ * @param key key for the content
+ * @param put_path_length number of entries in @a put_path
+ * @param put_path peers the original PUT traversed (if tracked)
+ * @param get_path_length number of entries in @a get_path
+ * @param get_path peers this reply has traversed so far (if tracked)
+ * @param data payload of the reply
+ * @param data_size number of bytes in @a data
+ */
+static void
+handle_local_result (void *cls,
+                     enum GNUNET_BLOCK_Type type,
+                     struct GNUNET_TIME_Absolute expiration_time,
+                     const struct GNUNET_HashCode *key,
+                     unsigned int put_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     const void *data,
+                     size_t data_size)
+{
+  // FIXME: this needs some clean up: inline the function,
+  // possibly avoid even looking up the client!
+  GDS_CLIENTS_handle_reply (expiration_time,
+                            key,
+                            0, NULL,
+                            put_path_length, put_path,
+                            type,
+                            data_size, data);
 }
 
 
@@ -611,7 +667,9 @@ handle_dht_local_get (void *cls,
 			    cqr->xquery,
 			    xquery_size,
                             NULL,
-			    0);
+			    0,
+                            &handle_local_result,
+                            ch);
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -1413,11 +1471,12 @@ GDS_CLIENTS_stop ()
 /**
  * Define "main" method using service macro.
  *
+ * @param name name of the service, i.e. "dht" or "xdht"
  * @param run name of the initializaton method for the service
  */
-#define GDS_DHT_SERVICE_INIT(run)   \
+#define GDS_DHT_SERVICE_INIT(name,run)          \
  GNUNET_SERVICE_MAIN \
-  ("dht", \
+  (name, \
   GNUNET_SERVICE_OPTION_NONE, \
   run, \
   &client_connect_cb, \

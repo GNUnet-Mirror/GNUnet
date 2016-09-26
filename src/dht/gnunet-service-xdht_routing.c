@@ -24,9 +24,10 @@
  * @author Supriti Singh
  */
 #include "platform.h"
+#include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-xdht_neighbours.h"
 #include "gnunet-service-xdht_routing.h"
-#include "gnunet-service-xdht.h"
+#include "gnunet-service-dht.h"
 
 
 /**
@@ -207,7 +208,7 @@ remove_matching_trails (void *cls,
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop,
                                             disconnected_peer))
   {
-    my_identity = GDS_NEIGHBOURS_get_my_id ();
+    my_identity = *GDS_NEIGHBOURS_get_id ();
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity,
                                               &remove_trail->prev_hop))
     {
@@ -222,7 +223,7 @@ remove_matching_trails (void *cls,
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop,
                                             disconnected_peer))
   {
-    my_identity = GDS_NEIGHBOURS_get_my_id ();
+    my_identity = *GDS_NEIGHBOURS_get_id ();
 
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity,
                                               &remove_trail->next_hop))
@@ -255,7 +256,7 @@ GDS_ROUTING_test_print (void)
   struct GNUNET_HashCode key_ret;
   int i;
 
-  struct GNUNET_PeerIdentity my_identity = GDS_NEIGHBOURS_get_my_id();
+  struct GNUNET_PeerIdentity my_identity = *GDS_NEIGHBOURS_get_id();
   print_peer = my_identity;
    FPRINTF (stderr,_("\nSUPU ***PRINTING ROUTING TABLE ***** of =%s"),GNUNET_i2s(&print_peer));
   iter =GNUNET_CONTAINER_multihashmap_iterator_create (routing_table);

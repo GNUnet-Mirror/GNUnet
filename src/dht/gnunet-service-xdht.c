@@ -30,34 +30,21 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-xdht.h"
-#include "gnunet-service-xdht_clients.h"
-#include "gnunet-service-xdht_datacache.h"
-#include "gnunet-service-xdht_neighbours.h"
-#include "gnunet-service-xdht_nse.h"
+#include "gnunet-service-dht.h"
+#include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_neighbours.h"
+#include "gnunet-service-dht_nse.h"
 #include "gnunet-service-xdht_routing.h"
 
-
-
-/**
- * Handle for the statistics service.
- */
-struct GNUNET_STATISTICS_Handle *GDS_stats;
-
-/**
- * Our handle to the BLOCK library.
- */
-struct GNUNET_BLOCK_Context *GDS_block_context;
-
-/**
- * The configuration the DHT service is running with
- */
-const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
 
 /**
  * Should we store our topology predecessor and successor IDs into statistics?
  */
 extern unsigned int track_topology;
+
+
+/* Code shared between different DHT implementations */
+#include "gnunet-service-dht_clients.c"
 
 
 /**
@@ -72,16 +59,17 @@ shutdown_task (void *cls)
   GDS_DATACACHE_done ();
   GDS_ROUTING_done ();
   GDS_NSE_done ();
-  if (GDS_block_context != NULL)
+  if (NULL != GDS_block_context)
   {
     GNUNET_BLOCK_context_destroy (GDS_block_context);
     GDS_block_context = NULL;
   }
-  if (GDS_stats != NULL)
+  if (NULL != GDS_stats)
   {
     GNUNET_STATISTICS_destroy (GDS_stats, GNUNET_YES);
     GDS_stats = NULL;
   }
+  GDS_CLIENTS_stop ();
 }
 
 
@@ -89,24 +77,29 @@ shutdown_task (void *cls)
  * Process dht requests.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
   unsigned long long _track_topology;
 
   GDS_cfg = c;
+  GDS_service = service;
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
-  GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
+  GDS_stats = GNUNET_STATISTICS_create ("dht",
+                                        GDS_cfg);
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
-  GDS_CLIENTS_init (server);
+  GDS_CLIENTS_init ();
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (c, "xdht", "track_toplogy",
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "xdht",
+                                             "track_toplogy",
                                              &_track_topology))
   {
     track_topology = (unsigned int) _track_topology;
@@ -121,26 +114,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 }
 
 
-/**
- * The main function for the dht service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
- */
-int
-main (int argc, char *const *argv)
-{
-  int ret;
+/* Finally, define the main method */
+GDS_DHT_SERVICE_INIT("xdht", &run);
 
-  ret =
-      (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv,
-                           "xdht",
-                           GNUNET_SERVICE_OPTION_NONE, &run,
-                           NULL)) ? 0 : 1;
-  GDS_CLIENTS_done ();
-  return ret;
-}
 
 /* end of gnunet-service-xdht.c */

@@ -82,10 +82,9 @@ gnunet_service_dht_LDADD = \
   -lm
 
 gnunet_service_dht_xvine_SOURCES = \
- gnunet-service-xdht.c gnunet-service-xdht.h \
- gnunet-service-xdht_clients.c gnunet-service-xdht_clients.h \
- gnunet-service-xdht_datacache.c gnunet-service-xdht_datacache.h \
- gnunet-service-xdht_nse.c gnunet-service-xdht_nse.h \
+ gnunet-service-xdht.c gnunet-service-dht.h \
+ gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
+ gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
  gnunet-service-xdht_neighbours.c gnunet-service-xdht_neighbours.h \
  gnunet-service-xdht_routing.c gnunet-service-xdht_routing.h
 
@@ -105,8 +104,8 @@ gnunet_service_dht_xvine_LDADD = \
 gnunet_service_dht_whanau_SOURCES = \
  gnunet-service-wdht.c gnunet-service-wdht.h \
  gnunet-service-wdht_clients.c gnunet-service-wdht_clients.h \
- gnunet-service-wdht_datacache.c gnunet-service-wdht_datacache.h \
- gnunet-service-wdht_nse.c gnunet-service-wdht_nse.h \
+ gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
+ gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
  gnunet-service-wdht_neighbours.c gnunet-service-wdht_neighbours.h
 gnunet_service_dht_whanau_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

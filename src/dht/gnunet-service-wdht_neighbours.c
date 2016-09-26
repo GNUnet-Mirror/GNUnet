@@ -41,9 +41,9 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-wdht.h"
 #include "gnunet-service-wdht_clients.h"
-#include "gnunet-service-wdht_datacache.h"
+#include "gnunet-service-dht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
-#include "gnunet-service-wdht_nse.h"
+#include "gnunet-service-dht_nse.h"
 #include "dht.h"
 
 #define DEBUG(...)                                           \
@@ -605,7 +605,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
   GDS_DATACACHE_handle_put (expiration_time,
                             key,
                             0, NULL,
-                            0, NULL,
                             block_type,
                             data_size,
                             data);
@@ -777,7 +776,7 @@ forward_message_on_trail (struct FriendInfo *next_target,
 /**
  * Send the get result to requesting client.
  *
- * @param trail_id trail identifying where to send the result to, NULL for us
+ * @param cls trail identifying where to send the result to, NULL for us
  * @param options routing options (from GET request)
  * @param key Key of the requested data.
  * @param type Block type
@@ -788,7 +787,7 @@ forward_message_on_trail (struct FriendInfo *next_target,
  * @param data_size Size of the @a data
  */
 void
-GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
+GDS_NEIGHBOURS_send_get_result (void *cls,
                                 enum GNUNET_DHT_RouteOption options,
                                 const struct GNUNET_HashCode *key,
                                 enum GNUNET_BLOCK_Type type,
@@ -798,6 +797,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
                                 const void *data,
                                 size_t data_size)
 {
+  const struct GNUNET_HashCode *trail_id = cls;
   struct GNUNET_MessageHeader *payload;
   struct Trail *trail;
 
@@ -1221,13 +1221,13 @@ handle_dht_p2p_random_walk (void *cls,
 /**
  * Handle a `struct RandomWalkResponseMessage`.
  *
- * @param cls closure 
+ * @param cls closure
  * @param rwrm the setup response message
  */
 static void
 handle_dht_p2p_random_walk_response (void *cls,
                                      const struct RandomWalkResponseMessage *rwrm)
-{  
+{
   struct Trail *trail;
   struct FriendInfo *pred;
   struct FingerTable *ft;
@@ -1298,7 +1298,7 @@ handle_dht_p2p_random_walk_response (void *cls,
 static void
 handle_dht_p2p_trail_destroy (void *cls,
 			      const struct TrailDestroyMessage *tdm)
-{  
+{
   struct FriendInfo *sender = cls;
   struct Trail *trail;
 
@@ -1340,8 +1340,9 @@ handle_dht_p2p_successor_find (void *cls,
      of successor finding... */
   GNUNET_break_op (0 == trail_path_length);
   fsm = (const struct FindSuccessorMessage *) message;
-  GDS_DATACACHE_get_successors (trail_id,
-                                &fsm->key);
+  GDS_DATACACHE_get_successors (&fsm->key,
+                                &GDS_NEIGHBOURS_send_get_result,
+                                (void *) trail_id);
   return GNUNET_OK;
 }
 
@@ -1522,7 +1523,7 @@ struct TrailHandler
 /**
  * Check that a `struct TrailRouteMessage` is well-formed.
  *
- * @param cls closure 
+ * @param cls closure
  * @param trm the finger destroy message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
@@ -1534,7 +1535,7 @@ check_dht_p2p_trail_route (void *cls,
   uint16_t path_length;
   const struct GNUNET_MessageHeader *payload;
   size_t msize;
-  
+
   msize = ntohs (trm->header.size);
   path_length = ntohs (trm->path_length);
   if (msize < sizeof (struct TrailRouteMessage) +
@@ -1561,7 +1562,7 @@ check_dht_p2p_trail_route (void *cls,
 /**
  * Handle a `struct TrailRouteMessage`.
  *
- * @param cls closure 
+ * @param cls closure
  * @param trm the finger destroy message
  */
 static void

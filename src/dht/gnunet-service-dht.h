@@ -82,7 +82,8 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
                           const struct GNUNET_PeerIdentity *get_path,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
-                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          enum GNUNET_BLOCK_Type type,
+                          size_t data_size,
                           const void *data);
 
 
