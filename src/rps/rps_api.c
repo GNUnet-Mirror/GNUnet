@@ -153,8 +153,6 @@ handle_reply (void *cls,
   struct GNUNET_RPS_Request_Handle *rh;
   uint32_t id;
 
-  check_reply (NULL, msg);
-
   /* Give the peers back */
   id = ntohl (msg->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
