@@ -101,6 +101,11 @@ struct in6_ifreq
 static const char *sbin_iptables;
 
 /**
+ * Name and full path of IPTABLES binary.
+ */
+static const char *sbin_ip6tables;
+
+/**
  * Name and full path of sysctl binary
  */
 static const char *sbin_sysctl;
@@ -757,7 +762,7 @@ main (int argc, char *const*argv)
     return 254;
   }
 #endif
-  if (0 == strncmp(argv[6], "1", 2))
+  if (0 == strncmp (argv[6], "1", 2))
     nortsetup = 1;
 
   if (0 == nortsetup)
@@ -771,6 +776,17 @@ main (int argc, char *const*argv)
     {
       fprintf (stderr,
 	       "Fatal: executable iptables not found in approved directories: %s\n",
+	       strerror (errno));
+      return 3;
+    }
+    if (0 == access ("/sbin/ip6tables", X_OK))
+      sbin_ip6tables = "/sbin/ip6tables";
+    else if (0 == access ("/usr/sbin/ip6tables", X_OK))
+      sbin_ip6tables = "/usr/sbin/ip6tables";
+    else
+    {
+      fprintf (stderr,
+	       "Fatal: executable ip6tables not found in approved directories: %s\n",
 	       strerror (errno));
       return 3;
     }
@@ -942,6 +958,16 @@ main (int argc, char *const*argv)
       if (0 != fork_and_exec (sbin_iptables, mangle_args))
         goto cleanup_rest;
     }
+    {
+      char *const mangle_args[] =
+        {
+	 "ip6tables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
+	 "udp", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
+	 "ACCEPT", NULL
+        };
+      if (0 != fork_and_exec (sbin_ip6tables, mangle_args))
+        goto cleanup_rest;
+    }
     /* Mark all of the other DNS traffic using our mark DNS_MARK */
     {
       char *const mark_args[] =
@@ -953,11 +979,29 @@ main (int argc, char *const*argv)
       if (0 != fork_and_exec (sbin_iptables, mark_args))
         goto cleanup_mangle_1;
     }
+    {
+      char *const mark_args[] =
+        {
+	 "ip6tables", "-t", "mangle", "-I", "OUTPUT", "2", "-p",
+	 "udp", "--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK,
+	 NULL
+        };
+      if (0 != fork_and_exec (sbin_ip6tables, mark_args))
+        goto cleanup_mangle_1;
+    }
     /* Forward all marked DNS traffic to our DNS_TABLE */
     {
       char *const forward_args[] =
         {
 	 "ip", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
+        };
+      if (0 != fork_and_exec (sbin_ip, forward_args))
+        goto cleanup_mark_2;
+    }
+    {
+      char *const forward_args[] =
+        {
+          "ip", "-6", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
         };
       if (0 != fork_and_exec (sbin_ip, forward_args))
         goto cleanup_mark_2;
@@ -968,6 +1012,15 @@ main (int argc, char *const*argv)
         {
 	 "ip", "route", "add", "default", "dev", dev,
 	 "table", DNS_TABLE, NULL
+        };
+      if (0 != fork_and_exec (sbin_ip, route_args))
+        goto cleanup_forward_3;
+    }
+    {
+      char *const route_args[] =
+        {
+          "ip", "-6", "route", "add", "default", "dev", dev,
+          "table", DNS_TABLE, NULL
         };
       if (0 != fork_and_exec (sbin_ip, route_args))
         goto cleanup_forward_3;
@@ -1028,12 +1081,31 @@ main (int argc, char *const*argv)
     if (0 != fork_and_exec (sbin_ip, route_clean_args))
       r += 1;
   }
+  if (0 == nortsetup)
+  {
+    char *const route_clean_args[] =
+      {
+	"ip", "-6", "route", "del", "default", "dev", dev,
+	"table", DNS_TABLE, NULL
+      };
+    if (0 != fork_and_exec (sbin_ip, route_clean_args))
+      r += 1;
+  }
  cleanup_forward_3:
   if (0 == nortsetup)
   {
     char *const forward_clean_args[] =
       {
 	"ip", "rule", "del", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
+      };
+    if (0 != fork_and_exec (sbin_ip, forward_clean_args))
+      r += 2;
+  }
+  if (0 == nortsetup)
+  {
+    char *const forward_clean_args[] =
+      {
+	"ip", "-6", "rule", "del", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
       };
     if (0 != fork_and_exec (sbin_ip, forward_clean_args))
       r += 2;
@@ -1049,6 +1121,16 @@ main (int argc, char *const*argv)
     if (0 != fork_and_exec (sbin_iptables, mark_clean_args))
       r += 4;
   }
+  if (0 == nortsetup)
+  {
+    char *const mark_clean_args[] =
+      {
+	"ip6tables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
+	"--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK, NULL
+      };
+    if (0 != fork_and_exec (sbin_ip6tables, mark_clean_args))
+      r += 4;
+  }
  cleanup_mangle_1:
   if (0 == nortsetup)
   {
@@ -1059,6 +1141,17 @@ main (int argc, char *const*argv)
 	NULL
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_clean_args))
+      r += 8;
+  }
+  if (0 == nortsetup)
+  {
+    char *const mangle_clean_args[] =
+      {
+	"ip6tables", "-m", "owner", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
+	 "--gid-owner", mygid, "--dport", DNS_PORT, "-j", "ACCEPT",
+	NULL
+      };
+    if (0 != fork_and_exec (sbin_ip6tables, mangle_clean_args))
       r += 8;
   }
 

@@ -918,6 +918,20 @@ GNUNET_TUN_service_name_to_hash (const char *service_name,
 
 
 /**
+ * Check if two sockaddrs are equal.
+ *
+ * @param sa one address
+ * @param sb another address
+ * @param include_port also check ports
+ * @return #GNUNET_YES if they are equal
+ */
+int
+GNUNET_TUN_sockaddr_cmp (const struct sockaddr *sa,
+                         const struct sockaddr *sb,
+                         int include_port);
+
+
+/**
  * Compute the CADET port given a service descriptor
  * (returned from #GNUNET_TUN_service_name_to_hash) and
  * a TCP/UDP port @a ip_port.

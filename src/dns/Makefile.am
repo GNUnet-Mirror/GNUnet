@@ -89,6 +89,7 @@ libgnunetdnsparser_la_LDFLAGS = \
 libgnunetdnsstub_la_SOURCES = \
  dnsstub.c
 libgnunetdnsstub_la_LIBADD = \
+  $(top_builddir)/src/tun/libgnunettun.la \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsstub_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \

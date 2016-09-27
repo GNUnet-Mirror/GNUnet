@@ -24,6 +24,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_tun_lib.h"
 #include "gnunet_dnsstub_lib.h"
 
 /**
@@ -381,9 +382,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 		_("Failed to send DNS request to %s\n"),
 		GNUNET_a2s (sa, salen));
   rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
-
   return rs;
-
 }
 
 
@@ -441,9 +440,10 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     }
     dns = (struct GNUNET_TUN_DnsHeader *) buf;
     if ( (addrlen != rs->addrlen) ||
-	 (0 != memcmp (&rs->addr,
-		       &addr,
-		       addrlen)) ||
+	 (GNUNET_YES !=
+          GNUNET_TUN_sockaddr_cmp ((struct sockaddr *) &rs->addr,
+                                   (struct sockaddr *) &addr,
+                                   GNUNET_YES)) ||
        (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value_us) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

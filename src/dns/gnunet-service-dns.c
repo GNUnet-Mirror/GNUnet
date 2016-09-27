@@ -410,7 +410,7 @@ request_done (struct RequestRecord *rr)
 	destination_port = src->sin6_port;
 	GNUNET_TUN_initialize_ipv6_header (&ip6,
 					   IPPROTO_UDP,
-					   reply_len - sizeof (struct GNUNET_TUN_IPv6Header),
+					   reply_len - off - sizeof (struct GNUNET_TUN_IPv6Header),
 					   &dst->sin6_addr,
 					   &src->sin6_addr);
 	GNUNET_memcpy (&buf[off], &ip6, sizeof (ip6));
@@ -916,7 +916,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     ip6 = (const struct GNUNET_TUN_IPv6Header *) &tun[1];
     if ( (msize < sizeof (struct GNUNET_TUN_IPv6Header)) ||
 	 (ip6->version != 6) ||
-	 (ntohs (ip6->payload_length) != msize) ||
+	 (ntohs (ip6->payload_length) != msize - sizeof (struct GNUNET_TUN_IPv6Header)) ||
 	 (ip6->next_header != IPPROTO_UDP) )
     {
       /* non-IP/UDP packet received on TUN (or with extensions) */
@@ -924,7 +924,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		  _("Received malformed IPv6-UDP packet on TUN interface.\n"));
       return GNUNET_OK;
     }
-    udp = (const struct GNUNET_TUN_UdpHeader*) &ip6[1];
+    udp = (const struct GNUNET_TUN_UdpHeader *) &ip6[1];
     msize -= sizeof (struct GNUNET_TUN_IPv6Header);
     break;
   default:
@@ -939,6 +939,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
        (DNS_PORT != ntohs (udp->destination_port)) )
   {
     /* non-DNS packet received on TUN, ignore */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("DNS interceptor got non-DNS packet (dropped)\n"));
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Non-DNS UDP packet received via TUN interface"),
 			      1, GNUNET_NO);
