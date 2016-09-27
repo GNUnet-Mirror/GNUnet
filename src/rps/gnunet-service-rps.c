@@ -1123,6 +1123,33 @@ handle_client_request_cancel (void *cls,
 
 
 /**
+ * @brief This function is called, when the client seeds peers.
+ * It verifies that @a msg is well-formed.
+ *
+ * @param cls the closure (#ClientContext)
+ * @param msg the message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_client_seed (void *cls, const struct GNUNET_RPS_CS_SeedMessage *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  uint16_t msize = ntohs (msg->header.size);
+  uint32_t num_peers = ntohl (msg->num_peers);
+
+  msize -= sizeof (struct GNUNET_RPS_CS_SeedMessage);
+  if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
+       (msize % sizeof (struct GNUNET_PeerIdentity) != 0) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (cli_ctx->client);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle seed from the client.
  *
  * @param cls closure
@@ -1131,34 +1158,17 @@ handle_client_request_cancel (void *cls,
  */
 static void
 handle_client_seed (void *cls,
-                    const struct GNUNET_MessageHeader *message)
+                    const struct GNUNET_RPS_CS_SeedMessage *msg)
 {
   struct ClientContext *cli_ctx = cls;
-  struct GNUNET_RPS_CS_SeedMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
   uint32_t num_peers;
   uint32_t i;
 
-  if (sizeof (struct GNUNET_RPS_CS_SeedMessage) > ntohs (message->size))
-  {
-    GNUNET_SERVICE_client_drop (cli_ctx->client);
-    GNUNET_break_op (0);
-    return;
-  }
-
-  in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
-  num_peers = ntohl (in_msg->num_peers);
-  peers = (struct GNUNET_PeerIdentity *) &in_msg[1];
+  num_peers = ntohl (msg->num_peers);
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
   //peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
   //GNUNET_memcpy (peers, &in_msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
-
-  if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
-      sizeof (struct GNUNET_PeerIdentity) != num_peers)
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVICE_client_drop (cli_ctx->client);
-    return;
-  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client seeded peers:\n");
@@ -1172,9 +1182,6 @@ handle_client_seed (void *cls,
          GNUNET_i2s (&peers[i]));
 
     got_peer (&peers[i]);
-
-    //RPS_sampler_update (prot_sampler,   &peers[i]);
-    //RPS_sampler_update (client_sampler, &peers[i]);
   }
 
   ////GNUNET_free (peers);
@@ -1557,8 +1564,40 @@ do_round (void *cls);
 static void
 do_mal_round (void *cls);
 
-
 #ifdef ENABLE_MALICIOUS
+
+
+/**
+ * @brief This function is called, when the client tells us to act malicious.
+ * It verifies that @a msg is well-formed.
+ *
+ * @param cls the closure (#ClientContext)
+ * @param msg the message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_client_act_malicious (void *cls,
+                            const struct GNUNET_RPS_CS_ActMaliciousMessage *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  uint16_t msize = ntohs (msg->header.size);
+  uint32_t num_peers = ntohl (msg->num_peers);
+
+  msize -= sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage);
+  if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
+       (msize % sizeof (struct GNUNET_PeerIdentity) != 0) )
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        "message says it sends %" PRIu32 " peers, have space for %lu peers\n",
+        ntohl (msg->num_peers),
+        (msize / sizeof (struct GNUNET_PeerIdentity)));
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (cli_ctx->client);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
 /**
  * Turn RPS service to act malicious.
  *
@@ -1568,51 +1607,29 @@ do_mal_round (void *cls);
  */
 static void
 handle_client_act_malicious (void *cls,
-                             const struct GNUNET_MessageHeader *msg)
+                             const struct GNUNET_RPS_CS_ActMaliciousMessage *msg)
 {
   struct ClientContext *cli_ctx = cls;
-  struct GNUNET_RPS_CS_ActMaliciousMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
   uint32_t num_mal_peers_sent;
   uint32_t num_mal_peers_old;
 
-  /* Check for protocol violation */
-  if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
-  {
-    GNUNET_SERVICE_client_continue (cli_ctx->client);
-    GNUNET_break_op (0);
-  }
-
-  in_msg = (struct GNUNET_RPS_CS_ActMaliciousMessage *) msg;
-  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
-      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        "message says it sends %" PRIu32 " peers, have space for %lu peers\n",
-        ntohl (in_msg->num_peers),
-        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
-            sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_SERVICE_client_continue (cli_ctx->client);
-    GNUNET_break_op (0);
-  }
-
-
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  mal_type = ntohl (in_msg->type);
+  mal_type = ntohl (msg->type);
   if (NULL == mal_peer_set)
     mal_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Now acting malicious type %" PRIu32 ", got %" PRIu32 " peers.\n",
        mal_type,
-       ntohl (in_msg->num_peers));
+       ntohl (msg->num_peers));
 
   if (1 == mal_type)
   { /* Try to maximise representation */
     /* Add other malicious peers to those we already know */
 
-    num_mal_peers_sent = ntohl (in_msg->num_peers);
+    num_mal_peers_sent = ntohl (msg->num_peers);
     num_mal_peers_old = num_mal_peers;
     GNUNET_array_grow (mal_peers,
                        num_mal_peers,
@@ -1636,7 +1653,7 @@ handle_client_act_malicious (void *cls,
   { /* Try to partition the network */
     /* Add other malicious peers to those we already know */
 
-    num_mal_peers_sent = ntohl (in_msg->num_peers) - 1;
+    num_mal_peers_sent = ntohl (msg->num_peers) - 1;
     num_mal_peers_old = num_mal_peers;
     GNUNET_array_grow (mal_peers,
                        num_mal_peers,
@@ -1656,7 +1673,7 @@ handle_client_act_malicious (void *cls,
 
     /* Store the one attacked peer */
     GNUNET_memcpy (&attacked_peer,
-            &in_msg->attacked_peer,
+            &msg->attacked_peer,
             sizeof (struct GNUNET_PeerIdentity));
     /* Set the flag of the attacked peer to valid to avoid problems */
     if (GNUNET_NO == Peers_check_peer_known (&attacked_peer))
@@ -2227,12 +2244,14 @@ client_disconnect_cb (void *cls,
 
   GNUNET_assert (client == cli_ctx->client);
   if (NULL == client)
-  {/* shutdown task */
+  {/* shutdown task - destroy all clients */
     while (NULL != cli_ctx_head)
       destroy_cli_ctx (cli_ctx_head);
   }
   else
-  {
+  { /* destroy this client */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Client disconnected. Destroy its context.\n");
     destroy_cli_ctx (cli_ctx);
   }
 }
@@ -2421,14 +2440,14 @@ GNUNET_SERVICE_MAIN
    GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL,
    struct GNUNET_RPS_CS_RequestCancelMessage,
    NULL),
- GNUNET_MQ_hd_fixed_size (client_seed,
+ GNUNET_MQ_hd_var_size (client_seed,
    GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
-   struct GNUNET_MessageHeader,
+   struct GNUNET_RPS_CS_SeedMessage,
    NULL),
 #ifdef ENABLE_MALICIOUS
- GNUNET_MQ_hd_fixed_size (client_act_malicious,
+ GNUNET_MQ_hd_var_size (client_act_malicious,
    GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS,
-   struct GNUNET_MessageHeader,
+   struct GNUNET_RPS_CS_ActMaliciousMessage,
    NULL),
 #endif /* ENABLE_MALICIOUS */
  GNUNET_MQ_handler_end());
