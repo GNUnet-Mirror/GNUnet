@@ -815,7 +815,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
   env = GNUNET_MQ_msg_extra (init,
                              sizeof (uint16_t) * h->hcnt,
                              GNUNET_MESSAGE_TYPE_CORE_INIT);
-  opt = GNUNET_CORE_OPTION_INIT;
+  opt = GNUNET_CORE_OPTION_NOTHING;
   if (NULL != h->inbound_notify)
   {
     if (h->inbound_hdr_only)

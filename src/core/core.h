@@ -45,11 +45,6 @@
 #define GNUNET_CORE_OPTION_NOTHING             0
 
 /**
- * The client did properly initialize the connection.
- */
-#define GNUNET_CORE_OPTION_INIT                1
-
-/**
  * Client cares about connectivity changes.
  */
 #define GNUNET_CORE_OPTION_SEND_STATUS_CHANGE  4
