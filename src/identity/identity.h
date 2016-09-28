@@ -39,7 +39,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * GET_DEFAULT maybe answered with this message on failure;
  * CREATE and RENAME will always be answered with this message.
  */
-struct GNUNET_IDENTITY_ResultCodeMessage
+struct ResultCodeMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
@@ -60,7 +60,7 @@ struct GNUNET_IDENTITY_ResultCodeMessage
 /**
  * Service informs client about status of a pseudonym.
  */
-struct GNUNET_IDENTITY_UpdateMessage
+struct UpdateMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
@@ -93,7 +93,7 @@ struct GNUNET_IDENTITY_UpdateMessage
  * Client requests knowledge about default identity for
  * a subsystem from identity service.
  */
-struct GNUNET_IDENTITY_GetDefaultMessage
+struct GetDefaultMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
@@ -120,7 +120,7 @@ struct GNUNET_IDENTITY_GetDefaultMessage
  * Used from service to client as a result to the GET_DEFAULT
  * message, used from client to service to SET_DEFAULT.
  */
-struct GNUNET_IDENTITY_SetDefaultMessage
+struct SetDefaultMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
@@ -151,7 +151,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
  * Client requests creation of an identity.  Service
  * will respond with a result code.
  */
-struct GNUNET_IDENTITY_CreateRequestMessage
+struct CreateRequestMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_CREATE
@@ -182,7 +182,7 @@ struct GNUNET_IDENTITY_CreateRequestMessage
  * Client requests renaming of an identity.  Service
  * will respond with a result code.
  */
-struct GNUNET_IDENTITY_RenameMessage
+struct RenameMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RENAME
@@ -208,7 +208,7 @@ struct GNUNET_IDENTITY_RenameMessage
  * Client requests deletion of an identity.  Service
  * will respond with a result code.
  */
-struct GNUNET_IDENTITY_DeleteMessage
+struct DeleteMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_DELETE
