@@ -58,7 +58,7 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket
 /**
  * Answer from service to client after issue operation
  */
-struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage
+struct IssueResultMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
@@ -78,7 +78,7 @@ struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage
 /**
  * Ticket exchange message.
  */
-struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage
+struct ExchangeResultMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
@@ -105,7 +105,7 @@ struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage
 /**
  * Client requests IdP to issue token.
  */
-struct GNUNET_IDENTITY_PROVIDER_IssueMessage
+struct IssueMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
@@ -147,7 +147,7 @@ struct GNUNET_IDENTITY_PROVIDER_IssueMessage
 /**
  * Use to exchange a ticket for a token
  */
-struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage
+struct ExchangeMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT

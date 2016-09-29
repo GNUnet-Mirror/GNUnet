@@ -149,11 +149,6 @@ static struct GNUNET_CRYPTO_EcdhePrivateKey ecdhe_privkey;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
- * Notification context, simplifies client broadcasts.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -165,7 +160,7 @@ struct ExchangeHandle
   /**
    * Client connection
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Ticket
@@ -204,7 +199,7 @@ struct IssueHandle
   /**
    * Client connection
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Issuer Key
@@ -867,11 +862,6 @@ cleanup()
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
-  }
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -929,45 +919,46 @@ do_shutdown (void *cls)
 }
 
 
-static struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage*
+static struct GNUNET_MQ_Envelope*
 create_exchange_result_message (const char* token,
                                 const char* label,
-                                uint64_t ticket_nonce)
+                                uint64_t ticket_nonce,
+                                uint64_t id)
 {
-  struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
+  struct GNUNET_MQ_Envelope *env;
+  struct ExchangeResultMessage *erm;
   uint16_t token_len = strlen (token) + 1;
-  erm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)
-                       + token_len);
-  erm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT);
-  erm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)
-                            + token_len);
+
+  env = GNUNET_MQ_msg_extra (erm,
+                             token_len,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT);
   erm->ticket_nonce = htonl (ticket_nonce);
+  erm->id = id;
   GNUNET_memcpy (&erm[1], token, token_len);
-  return erm;
+  return env;
 }
 
 
-static struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage*
+static struct GNUNET_MQ_Envelope*
 create_issue_result_message (const char* label,
                              const char* ticket,
-                             const char* token)
+                             const char* token,
+                             uint64_t id)
 {
-  struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
+  struct GNUNET_MQ_Envelope *env;
+  struct IssueResultMessage *irm;
   char *tmp_str;
-
-  irm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)
-                       + strlen (label) + 1
-                       + strlen (ticket) + 1
-                       + strlen (token) + 1);
-  irm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT);
-  irm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)
-                            + strlen (label) + 1
-                            + strlen (ticket) + 1
-                            + strlen (token) + 1);
+  size_t len;
+  
   GNUNET_asprintf (&tmp_str, "%s,%s,%s", label, ticket, token);
+  len = strlen (tmp_str) + 1;
+  env = GNUNET_MQ_msg_extra (irm,
+                             len,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT);
+  irm->id = id;
   GNUNET_memcpy (&irm[1], tmp_str, strlen (tmp_str) + 1);
   GNUNET_free (tmp_str);
-  return irm;
+  return env;
 }
 
 static void
@@ -992,7 +983,7 @@ store_token_issue_cont (void *cls,
                         const char *emsg)
 {
   struct IssueHandle *handle = cls;
-  struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
+  struct GNUNET_MQ_Envelope *env;
   char *ticket_str;
   char *token_str;
 
@@ -1026,17 +1017,13 @@ store_token_issue_cont (void *cls,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  irm = create_issue_result_message (handle->label,
+  env = create_issue_result_message (handle->label,
                                      ticket_str,
-                                     token_str);
-  irm->id = handle->r_id;
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              handle->client,
-                                              &irm->header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_client_set_user_context (handle->client, NULL);
+                                     token_str,
+                                     handle->r_id);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(handle->client),
+                  env);
   cleanup_issue_handle (handle);
-  GNUNET_free (irm);
   GNUNET_free (ticket_str);
   GNUNET_free (token_str);
 }
@@ -1231,7 +1218,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ExchangeHandle *handle = cls;
-  struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
+  struct GNUNET_MQ_Envelope *env;
   char* token_str;
   char* record_str;
 
@@ -1261,24 +1248,38 @@ process_lookup_result (void *cls, uint32_t rd_count,
                                                &handle->aud_privkey,
                                                &token_str));
 
-  erm = create_exchange_result_message (token_str,
+  env = create_exchange_result_message (token_str,
                                         handle->label,
-                                        handle->ticket->payload->nonce);
-  erm->id = handle->r_id;
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              handle->client,
-                                              &erm->header,
-                                              GNUNET_NO);
-  GNUNET_SERVER_client_set_user_context (handle->client, NULL);
-
+                                        handle->ticket->payload->nonce,
+                                        handle->r_id);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(handle->client),
+                  env);
   cleanup_exchange_handle (handle);
   GNUNET_free (record_str);
   GNUNET_free (token_str);
-  GNUNET_free (erm);
-
 }
 
+/**
+ * Checks a exchange message
+ *
+ * @param cls client sending the message
+ * @param xm message of type `struct ExchangeMessage`
+ * @return #GNUNET_OK if @a xm is well-formed
+ */
+static int
+check_exchange_message (void *cls,
+                        const struct ExchangeMessage *xm)
+{
+  uint16_t size;
 
+  size = ntohs (xm->header.size);
+  if (size <= sizeof (struct ExchangeMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+} 
 
 /**
  *
@@ -1290,37 +1291,26 @@ process_lookup_result (void *cls, uint32_t rd_count,
  */
 static void
 handle_exchange_message (void *cls,
-                         struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
+                         const struct ExchangeMessage *xm)
 {
-  const struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage *em;
   struct ExchangeHandle *xchange_handle;
-  uint16_t size;
+  struct GNUNET_SERVICE_Client *client = cls;
   const char *ticket;
   char *lookup_query;
 
-  size = ntohs (message->size);
-  if (size <= sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  em = (const struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage *) message;
-  ticket = (const char *) &em[1];
+  ticket = (const char *) &xm[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received EXCHANGE of `%s' from client\n",
               ticket);
   xchange_handle = GNUNET_malloc (sizeof (struct ExchangeHandle));
-  xchange_handle->aud_privkey = em->aud_privkey;
-  xchange_handle->r_id = em->id;
+  xchange_handle->aud_privkey = xm->aud_privkey;
+  xchange_handle->r_id = xm->id;
   if (GNUNET_SYSERR == ticket_parse (ticket,
                                      &xchange_handle->aud_privkey,
                                      &xchange_handle->ticket))
   {
     GNUNET_free (xchange_handle);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for token under %s\n",
@@ -1328,10 +1318,7 @@ handle_exchange_message (void *cls,
   GNUNET_asprintf (&lookup_query,
                    "%s.gnu",
                    xchange_handle->ticket->payload->label);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_set_user_context (client,
-                                         xchange_handle);
+  GNUNET_SERVICE_client_continue (client);
   xchange_handle->client = client;
   xchange_handle->lookup_request
     = GNUNET_GNS_lookup (gns_handle,
@@ -1500,6 +1487,35 @@ find_existing_token (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
 }
 
+/**
+ * Checks an issue message
+ *
+ * @param cls client sending the message
+ * @param im message of type `struct IssueMessage`
+ * @return #GNUNET_OK if @a im is well-formed
+ */
+static int
+check_issue_message(void *cls,
+                    const struct IssueMessage *im)
+{
+  uint16_t size;
+
+  size = ntohs (im->header.size);
+  if (size <= sizeof (struct IssueMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  scopes = (char *) &im[1];
+  if ('\0' != scopes[size - sizeof (struct IssueMessage) - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed scopes received!\n");
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
 /**
  *
@@ -1511,36 +1527,16 @@ find_existing_token (void *cls,
  */
 static void
 handle_issue_message (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+                      const struct IssueMessage *im)
 {
-  const struct GNUNET_IDENTITY_PROVIDER_IssueMessage *im;
   const char *scopes;
-
-  uint16_t size;
   char *scopes_tmp;
   char *scope;
   struct GNUNET_HashCode key;
   struct IssueHandle *issue_handle;
+  struct GNUNET_SERVICE_Client *client = cls;
 
-  size = ntohs (message->size);
-  if (size <= sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  im = (const struct GNUNET_IDENTITY_PROVIDER_IssueMessage *) message;
   scopes = (const char *) &im[1];
-  if ('\0' != scopes[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) - 1])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Malformed scopes received!\n");
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-    return;
-  }
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
@@ -1564,9 +1560,7 @@ handle_issue_message (void *cls,
                                       &issue_handle->iss_pkey);
   issue_handle->expiration = GNUNET_TIME_absolute_ntoh (im->expiration);
   issue_handle->nonce = ntohl (im->nonce);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_set_user_context (client, issue_handle);
+  GNUNET_SERVICE_client_continue (client);
   issue_handle->client = client;
   issue_handle->scopes = GNUNET_strdup (scopes);
   issue_handle->token = token_create (&issue_handle->iss_pkey,
@@ -1593,22 +1587,12 @@ handle_issue_message (void *cls,
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *server)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_issue_message, NULL,
-      GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE, 0},
-    {&handle_exchange_message, NULL,
-      GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE, 0},
-    {NULL, NULL, 0, 0}
-  };
-
   cfg = c;
 
   stats = GNUNET_STATISTICS_create ("identity-provider", cfg);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
 
   //Connect to identity and namestore services
   ns_handle = GNUNET_NAMESTORE_connect (cfg);
@@ -1644,21 +1628,62 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
-
 /**
- * The main function
+ * Called whenever a client is disconnected.
  *
- * @param argc number of arguments from the cli
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param cls closure
+ * @param client identification of the client
+ * @param app_ctx @a client
  */
-int
-main (int argc, char *const *argv)
+static void
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
-  return  (GNUNET_OK ==
-           GNUNET_SERVICE_run (argc, argv, "identity-provider",
-                               GNUNET_SERVICE_OPTION_NONE,
-                               &run, NULL)) ? 0 : 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p disconnected\n",
+              client);
 }
 
+
+/**
+ * Add a client to our list of active clients.
+ *
+ * @param cls NULL
+ * @param client client to add
+ * @param mq message queue for @a client
+ * @return internal namestore client structure for this client
+ */
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p connected\n",
+              client);
+  return client;
+}
+
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("identity-provider",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (issue_message,
+                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE,
+                        struct IssueMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (exchange_message,
+                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE,
+                        struct ExchangeMessage,
+                        NULL),
+ GNUNET_MQ_handler_end());
 /* end of gnunet-service-identity-provider.c */

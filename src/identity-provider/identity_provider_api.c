@@ -220,15 +220,15 @@ mq_error_handler (void *cls,
  */
 static int
 check_exchange_result (void *cls,
-              const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm)
+              const struct ExchangeResultMessage *erm)
 {
   char *str;
   size_t size = ntohs (erm->header.size) - sizeof (*erm);
   
 
   str = (char *) &erm[1];
-  if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)) &&
-       ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) - 1]) )
+  if ( (size > sizeof (struct ExchangeResultMessage)) &&
+       ('\0' != str[size - sizeof (struct ExchangeResultMessage) - 1]) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -245,13 +245,13 @@ check_exchange_result (void *cls,
  */
 static int
 check_result (void *cls,
-              const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm)
+              const struct IssueResultMessage *irm)
 {
   char *str;
   size_t size = ntohs (irm->header.size) - sizeof (*irm);
   str = (char*) &irm[1];
-  if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)) &&
-       ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) - 1]) )
+  if ( (size > sizeof (struct IssueResultMessage)) &&
+       ('\0' != str[size - sizeof (struct IssueResultMessage) - 1]) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -267,7 +267,7 @@ check_result (void *cls,
  */
 static void
 handle_exchange_result (void *cls,
-                        const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm)
+                        const struct ExchangeResultMessage *erm)
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *handle = cls;
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -303,7 +303,7 @@ handle_exchange_result (void *cls,
  */
 static void
 handle_result (void *cls,
-               const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm)
+               const struct IssueResultMessage *irm)
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *handle = cls;
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -366,11 +366,11 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (result,
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT,
-                           struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage,
+                           struct IssueResultMessage,
                            h),
     GNUNET_MQ_hd_var_size (exchange_result,
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT,
-                           struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage,
+                           struct ExchangeResultMessage,
                            h),
     GNUNET_MQ_handler_end ()
   };
@@ -436,11 +436,11 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
                                       void *cb_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
-  struct GNUNET_IDENTITY_PROVIDER_IssueMessage *im;
+  struct IssueMessage *im;
   size_t slen;
 
   slen = strlen (scopes) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage))
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -486,14 +486,14 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle
                                           void *cont_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
-  struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage *em;
+  struct ExchangeMessage *em;
   size_t slen;
   char *ticket_str;
 
   ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
 
   slen = strlen (ticket_str) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage))
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct ExchangeMessage))
   {
     GNUNET_free (ticket_str);
     GNUNET_break (0);
