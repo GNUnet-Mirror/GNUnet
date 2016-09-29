@@ -399,7 +399,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
     {
       if (i < *list_size -1)
       { /* Not at the last entry -- shift peers left */
-        GNUNET_memcpy (&tmp[i], &tmp[i +1],
+        memmove (&tmp[i], &tmp[i +1],
                 ((*list_size) - i -1) * sizeof (struct GNUNET_PeerIdentity));
       }
       /* Remove last entry (should be now useless PeerID) */
