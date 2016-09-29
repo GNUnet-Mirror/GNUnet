@@ -926,7 +926,10 @@ destroy_reply_cls (struct ReplyCls *rep_cls)
 
   cli_ctx = rep_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);
-  RPS_sampler_request_cancel (rep_cls->req_handle);
+  if (NULL != rep_cls->req_handle)
+  {
+    RPS_sampler_request_cancel (rep_cls->req_handle);
+  }
   GNUNET_CONTAINER_DLL_remove (cli_ctx->rep_cls_head,
                                cli_ctx->rep_cls_tail,
                                rep_cls);
@@ -1035,6 +1038,7 @@ client_respond (void *cls,
 
   cli_ctx = reply_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);
+  reply_cls->req_handle = NULL;
   destroy_reply_cls (reply_cls);
   GNUNET_MQ_send (cli_ctx->mq, ev);
 }
