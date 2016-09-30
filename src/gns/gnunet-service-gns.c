@@ -360,7 +360,7 @@ client_disconnect_cb (void *cls,
                       void *app_ctx)
 {
   struct ClientLookupHandle *clh;
-  struct GnsClient *gc = cls;
+  struct GnsClient *gc = app_ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected\n",
@@ -868,7 +868,7 @@ check_lookup (void *cls,
     return GNUNET_SYSERR;
   }
   name = (const char *) &l_msg[1];
-  if ( ('\0' != name[l_msg->header.size - sizeof (struct LookupMessage) - 1]) ||
+  if ( ('\0' != name[msg_size - sizeof (struct LookupMessage) - 1]) ||
        (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) )
   {
     GNUNET_break (0);
@@ -1134,25 +1134,6 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
-
-/** TODO delete
- * The main function for the GNS service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
- */
-/*int
-  main (int argc, char *const *argv)
-  {
-  int ret;
-
-  ret =
-  (GNUNET_OK ==
-  GNUNET_SERVICE_run (argc, argv, "gns", GNUNET_SERVICE_OPTION_NONE, &run,
-  NULL)) ? 0 : 1;
-  return ret;
-  }*/
 
 /**
  * Define "main" method using service macro.
