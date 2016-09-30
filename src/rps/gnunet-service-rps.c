@@ -1190,7 +1190,7 @@ handle_client_seed (void *cls,
 
   ////GNUNET_free (peers);
 
-  GNUNET_SERVICE_client_drop (cli_ctx->client);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 /**
