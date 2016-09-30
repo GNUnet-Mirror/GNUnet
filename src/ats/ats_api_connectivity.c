@@ -302,9 +302,6 @@ GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
 {
   struct GNUNET_ATS_ConnectivitySuggestHandle *s;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Requesting ATS to suggest address for `%s'\n",
-       GNUNET_i2s (peer));
   s = GNUNET_new (struct GNUNET_ATS_ConnectivitySuggestHandle);
   s->ch = ch;
   s->id = *peer;
@@ -315,9 +312,15 @@ GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
                                          s,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not requesting ATS to suggest address for `%s', request already pending\n",
+         GNUNET_i2s (peer));
+    GNUNET_free (s);
     return NULL;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requesting ATS to suggest address for `%s'\n",
+       GNUNET_i2s (peer));
   if (NULL == ch->mq)
     return s;
   (void) transmit_suggestion (ch,
