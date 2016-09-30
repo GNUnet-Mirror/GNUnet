@@ -49,11 +49,11 @@ let
   };
   usepkgs = if null == pkgs then
              import pinpkgs {}
-           else
-             if 0 == pkgs then
-               import <nixpkgs> { }
-             else
-               import pkgs {};
+            else
+              if 0 == pkgs then
+                import <nixpkgs> { }
+              else
+                import pkgs {};
 
 in with usepkgs; usepkgs.stdenv.mkDerivation rec {
   src = ./.;
