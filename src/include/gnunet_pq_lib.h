@@ -21,7 +21,7 @@
 #ifndef GNUNET_PQ_LIB_H_
 #define GNUNET_PQ_LIB_H_
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 #include "gnunet_util_lib.h"
 
 
