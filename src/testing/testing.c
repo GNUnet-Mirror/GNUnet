@@ -205,11 +205,6 @@ struct GNUNET_TESTING_Peer
   struct GNUNET_ARM_Handle *ah;
 
   /**
-   * Handle to ARM monitoring
-   */
-  struct GNUNET_ARM_MonitorHandle *mh;
-
-  /**
    * The config of the peer
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -1518,8 +1513,6 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
     GNUNET_TESTING_peer_stop (peer);
   if (NULL != peer->ah)
     GNUNET_ARM_disconnect (peer->ah);
-  if (NULL != peer->mh)
-    GNUNET_ARM_monitor_stop (peer->mh);
   GNUNET_free (peer->cfgfile);
   if (NULL != peer->cfg)
     GNUNET_CONFIGURATION_destroy (peer->cfg);

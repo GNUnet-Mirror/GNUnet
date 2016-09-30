@@ -16,13 +16,13 @@ dist_pkgcfg_DATA = \
   testing.conf
 
 lib_LTLIBRARIES = \
-  libgnunettesting.la 
+  libgnunettesting.la
 
 libgnunettesting_la_SOURCES = \
-  testing.c  
+  testing.c
 libgnunettesting_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
@@ -35,7 +35,7 @@ noinst_PROGRAMS = \
  list-keys
 
 gnunet_testing_SOURCES = \
- gnunet-testing.c         
+ gnunet-testing.c
 gnunet_testing_LDADD = \
  libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -55,7 +55,7 @@ check_PROGRAMS = \
  test_testing_peerstartup2 \
  test_testing_sharedservices
 
-if ENABLE_TEST_RUN 
+if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
  test_testing_portreservation \
@@ -96,4 +96,3 @@ test_testing_sharedservices_LDADD = \
 
 EXTRA_DIST = \
   test_testing_defaults.conf
-
