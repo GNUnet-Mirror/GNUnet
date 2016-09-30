@@ -342,6 +342,12 @@ try_open_exit ()
   for (pos = exit_head; NULL != pos; pos = pos->next)
     if (NULL == pos->cadet_channel)
       candidate_count++;
+  if (0 == candidate_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "No DNS exits available yet.\n");
+    return;
+  }
   candidate_selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 						 candidate_count);
   candidate_count = 0;
