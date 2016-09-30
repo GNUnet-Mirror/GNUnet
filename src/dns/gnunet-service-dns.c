@@ -119,15 +119,20 @@ struct ClientRecord
    */
   struct ClientRecord *next;
 
-  /**
+   /**
    * Kept in doubly-linked list.
-   */
+    */
   struct ClientRecord *prev;
 
   /**
    * Handle to the client.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
+
+  /**
+   * Message queue to talk to @a client.
+   */
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Flags for the client.
@@ -184,7 +189,7 @@ struct RequestRecord
   size_t payload_length;
 
   /**
-   * Length of the client wait list.
+   * Length of the @e client_wait_list.
    */
   unsigned int client_wait_list_length;
 
@@ -232,11 +237,6 @@ static struct ClientRecord *clients_head;
 static struct ClientRecord *clients_tail;
 
 /**
- * Our notification context.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
  * Array of all open requests.
  */
 static struct RequestRecord requests[UINT16_MAX + 1];
@@ -277,22 +277,19 @@ cleanup_rr (struct RequestRecord *rr)
 static void
 cleanup_task (void *cls GNUNET_UNUSED)
 {
-  unsigned int i;
-
   if (NULL != hijacker)
   {
     GNUNET_HELPER_stop (hijacker, GNUNET_NO);
     hijacker = NULL;
   }
-  for (i=0;i<8;i++)
+  for (unsigned int i=0;i<8;i++)
     GNUNET_free_non_null (helper_argv[i]);
-  for (i=0;i<=UINT16_MAX;i++)
+  for (unsigned int i=0;i<=UINT16_MAX;i++)
     cleanup_rr (&requests[i]);
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
-  if (stats != NULL)
+  if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (stats,
+                               GNUNET_NO);
     stats = NULL;
   }
   if (NULL != dnsstub)
@@ -378,7 +375,9 @@ request_done (struct RequestRecord *rr)
 	tun.proto = htons (ETH_P_IPV4);
       else
 	tun.proto = htons (ETH_P_IPV6);
-      GNUNET_memcpy (&buf[off], &tun, sizeof (struct GNUNET_TUN_Layer2PacketHeader));
+      GNUNET_memcpy (&buf[off],
+                     &tun,
+                     sizeof (struct GNUNET_TUN_Layer2PacketHeader));
       off += sizeof (struct GNUNET_TUN_Layer2PacketHeader);
     }
 
@@ -397,7 +396,9 @@ request_done (struct RequestRecord *rr)
 					   reply_len - off - sizeof (struct GNUNET_TUN_IPv4Header),
 					   &dst->sin_addr,
 					   &src->sin_addr);
-	GNUNET_memcpy (&buf[off], &ip4, sizeof (ip4));
+	GNUNET_memcpy (&buf[off],
+                       &ip4,
+                       sizeof (ip4));
 	off += sizeof (ip4);
       }
       break;
@@ -413,7 +414,9 @@ request_done (struct RequestRecord *rr)
 					   reply_len - off - sizeof (struct GNUNET_TUN_IPv6Header),
 					   &dst->sin6_addr,
 					   &src->sin6_addr);
-	GNUNET_memcpy (&buf[off], &ip6, sizeof (ip6));
+	GNUNET_memcpy (&buf[off],
+                       &ip6,
+                       sizeof (ip6));
 	off += sizeof (ip6);
       }
       break;
@@ -438,7 +441,9 @@ request_done (struct RequestRecord *rr)
 					    &udp,
 					    rr->payload,
 					    rr->payload_length);
-      GNUNET_memcpy (&buf[off], &udp, sizeof (udp));
+      GNUNET_memcpy (&buf[off],
+                     &udp,
+                     sizeof (udp));
       off += sizeof (udp);
     }
 
@@ -467,16 +472,16 @@ request_done (struct RequestRecord *rr)
  * (and wait for a response).
  *
  * @param rr request to send to client
- * @param client client to send the response to
+ * @param cr client to send the response to
  */
 static void
 send_request_to_client (struct RequestRecord *rr,
-			struct GNUNET_SERVER_Client *client)
+			struct ClientRecord *cr)
 {
-  char buf[sizeof (struct GNUNET_DNS_Request) + rr->payload_length] GNUNET_ALIGN;
+  struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Request *req;
 
-  if (sizeof (buf) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (sizeof (struct GNUNET_DNS_Request) + rr->payload_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     cleanup_rr (rr);
@@ -485,18 +490,17 @@ send_request_to_client (struct RequestRecord *rr,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending information about request %llu to local client\n",
        (unsigned long long) rr->request_id);
-  req = (struct GNUNET_DNS_Request*) buf;
-  req->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST);
-  req->header.size = htons (sizeof (buf));
+  env = GNUNET_MQ_msg_extra (req,
+                             rr->payload_length,
+                             GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST);
   req->reserved = htonl (0);
   req->request_id = rr->request_id;
-  GNUNET_memcpy (&req[1], rr->payload, rr->payload_length);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &req->header,
-					      GNUNET_NO);
+  GNUNET_memcpy (&req[1],
+                 rr->payload,
+                 rr->payload_length);
+  GNUNET_MQ_send (cr->mq,
+                  env);
 }
-
 
 
 /**
@@ -526,7 +530,6 @@ next_phase (struct RequestRecord *rr)
 {
   struct ClientRecord *cr;
   int nz;
-  unsigned int j;
   socklen_t salen;
 
   if (rr->phase == RP_DROP)
@@ -535,7 +538,7 @@ next_phase (struct RequestRecord *rr)
     return;
   }
   nz = -1;
-  for (j=0;j<rr->client_wait_list_length;j++)
+  for (unsigned int j=0;j<rr->client_wait_list_length;j++)
   {
     if (NULL != rr->client_wait_list[j])
     {
@@ -545,7 +548,8 @@ next_phase (struct RequestRecord *rr)
   }
   if (-1 != nz)
   {
-    send_request_to_client (rr, rr->client_wait_list[nz]->client);
+    send_request_to_client (rr,
+                            rr->client_wait_list[nz]);
     return;
   }
   /* done with current phase, advance! */
@@ -602,7 +606,8 @@ next_phase (struct RequestRecord *rr)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# DNS exit failed (failed to open socket)"),
-				1, GNUNET_NO);
+				1,
+                                GNUNET_NO);
       cleanup_rr (rr);
       return;
     }
@@ -644,45 +649,63 @@ next_phase (struct RequestRecord *rr)
 
 
 /**
+ * A client connected, setup our data structures.
+ *
+ * @param cls unused
+ * @param client handle of client that connected
+ * @param mq message queue to talk to @a client
+ * @return our `struct ClientRecord`
+ */
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
+{
+  struct ClientRecord *cr = cls;
+
+  cr = GNUNET_new (struct ClientRecord);
+  cr->client = client;
+  cr->mq = mq;
+  GNUNET_CONTAINER_DLL_insert (clients_head,
+			       clients_tail,
+			       cr);
+  return cr;
+}
+
+
+/**
  * A client disconnected, clean up after it.
  *
  * @param cls unused
  * @param client handle of client that disconnected
+ * @param app_ctx our `struct ClientRecord`
  */
 static void
-client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
-  struct ClientRecord *cr;
+  struct ClientRecord *cr = app_ctx;
   struct RequestRecord *rr;
-  unsigned int i;
-  unsigned int j;
 
-  for (cr = clients_head; NULL != cr; cr = cr->next)
+  GNUNET_CONTAINER_DLL_remove (clients_head,
+                               clients_tail,
+                               cr);
+  for (unsigned int i=0;i<UINT16_MAX;i++)
   {
-    if (cr->client == client)
+    rr = &requests[i];
+    if (0 == rr->client_wait_list_length)
+      continue; /* not in use */
+    for (unsigned int j=0;j<rr->client_wait_list_length;j++)
     {
-      GNUNET_SERVER_client_drop (client);
-      GNUNET_CONTAINER_DLL_remove (clients_head,
-				   clients_tail,
-				   cr);
-      for (i=0;i<UINT16_MAX;i++)
+      if (rr->client_wait_list[j] == cr)
       {
-	rr = &requests[i];
-	if (0 == rr->client_wait_list_length)
-	  continue; /* not in use */
-	for (j=0;j<rr->client_wait_list_length;j++)
-	{
-	  if (rr->client_wait_list[j] == cr)
-	  {
-	    rr->client_wait_list[j] = NULL;
-	    next_phase (rr);
-	  }
-	}
+        rr->client_wait_list[j] = NULL;
+        next_phase (rr);
       }
-      GNUNET_free (cr);
-      return;
     }
   }
+  GNUNET_free (cr);
 }
 
 
@@ -723,7 +746,9 @@ process_dns_result (void *cls,
        (unsigned long long) rr->request_id);
   GNUNET_free_non_null (rr->payload);
   rr->payload = GNUNET_malloc (r);
-  GNUNET_memcpy (rr->payload, dns, r);
+  GNUNET_memcpy (rr->payload,
+                 dns,
+                 r);
   rr->payload_length = r;
   next_phase (rr);
 }
@@ -732,56 +757,51 @@ process_dns_result (void *cls,
 /**
  * We got a new client.  Make sure all new DNS requests pass by its desk.
  *
- * @param cls unused
- * @param client the new client
- * @param message the init message (unused)
+ * @param cls the client
+ * @param reg the init message
  */
 static void
-handle_client_init (void *cls GNUNET_UNUSED,
-		    struct GNUNET_SERVER_Client *client,
-		    const struct GNUNET_MessageHeader *message)
+handle_client_init (void *cls,
+		    const struct GNUNET_DNS_Register *reg)
 {
-  struct ClientRecord *cr;
-  const struct GNUNET_DNS_Register *reg = (const struct GNUNET_DNS_Register*) message;
+  struct ClientRecord *cr = cls;
 
-  cr = GNUNET_new (struct ClientRecord);
-  cr->client = client;
   cr->flags = (enum GNUNET_DNS_Flags) ntohl (reg->flags);
-  GNUNET_SERVER_client_keep (client);
-  GNUNET_CONTAINER_DLL_insert (clients_head,
-			       clients_tail,
-			       cr);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (cr->client);
 }
 
 
 /**
- * We got a response from a client.
+ * Check a response from a client.
  *
- * @param cls unused
- * @param client the client
- * @param message the response
+ * @param cls the client
+ * @param resp the response
+ * @return #GNUNET_OK (always fine)
+ */
+static int
+check_client_response (void *cls,
+                       const struct GNUNET_DNS_Response *resp)
+{
+  return GNUNET_OK; /* any payload is acceptable */
+}
+
+
+/**
+ * Handle a response from a client.
+ *
+ * @param cls the client
+ * @param resp the response
  */
 static void
-handle_client_response (void *cls GNUNET_UNUSED,
-			struct GNUNET_SERVER_Client *client,
-			const struct GNUNET_MessageHeader *message)
+handle_client_response (void *cls,
+			const struct GNUNET_DNS_Response *resp)
 {
-  const struct GNUNET_DNS_Response *resp;
+  struct ClientRecord *cr = cls;
   struct RequestRecord *rr;
-  unsigned int i;
   uint16_t msize;
   uint16_t off;
 
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct GNUNET_DNS_Response))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  resp = (const struct GNUNET_DNS_Response*) message;
+  msize = ntohs (resp->header.size);
   off = (uint16_t) resp->request_id;
   rr = &requests[off];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -791,15 +811,16 @@ handle_client_response (void *cls GNUNET_UNUSED,
   {
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Client response discarded (no matching request)"),
-			      1, GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+			      1,
+                              GNUNET_NO);
+    GNUNET_SERVICE_client_continue (cr->client);
     return;
   }
-  for (i=0;i<rr->client_wait_list_length;i++)
+  for (unsigned int i=0;i<rr->client_wait_list_length;i++)
   {
     if (NULL == rr->client_wait_list[i])
       continue;
-    if (rr->client_wait_list[i]->client != client)
+    if (rr->client_wait_list[i] != cr)
       continue;
     rr->client_wait_list[i] = NULL;
     switch (ntohl (resp->drop_flag))
@@ -816,7 +837,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
 	   (RP_RESPONSE_MONITOR == rr->phase) )
       {
 	GNUNET_break (0);
-	GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	GNUNET_SERVICE_client_drop (cr->client);
 	next_phase (rr);
 	return;
       }
@@ -846,13 +867,13 @@ handle_client_response (void *cls GNUNET_UNUSED,
       break;
     }
     next_phase (rr);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (cr->client);
     return;
   }
   /* odd, client was not on our list for the request, that ought
      to be an error */
   GNUNET_break (0);
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  GNUNET_SERVICE_client_drop (cr->client);
 }
 
 
@@ -1019,20 +1040,14 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 
 /**
  * @param cls closure
- * @param server the initialized server
  * @param cfg_ configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg_,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* callback, cls, type, size */
-    {&handle_client_init, NULL, GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT,
-     sizeof (struct GNUNET_DNS_Register)},
-    {&handle_client_response, NULL, GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE, 0},
-    {NULL, NULL, 0, 0}
-  };
   char *ifc_name;
   char *ipv4addr;
   char *ipv4mask;
@@ -1046,7 +1061,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("dns", cfg);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
 				 cls);
   dns_exit = NULL;
@@ -1067,11 +1081,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   dnsstub = GNUNET_DNSSTUB_start (dns_exit);
   GNUNET_free_non_null (dns_exit);
-  GNUNET_SERVER_add_handlers (server,
-                              handlers);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect,
-                                   NULL);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary (binary,
@@ -1156,23 +1165,41 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
 
 /**
- * The main function for the dns service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  /* make use of SGID capabilities on POSIX */
-  /* FIXME: this might need a port on systems without 'getresgid' */
+GNUNET_SERVICE_MAIN
+("dns",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (client_init,
+			  GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT,
+			  struct GNUNET_DNS_Register,
+			  NULL),
+ GNUNET_MQ_hd_var_size (client_response,
+                        GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE,
+                        struct GNUNET_DNS_Response,
+                        NULL),
+ GNUNET_MQ_handler_end ());
+
+
+/* FIXME: this might need a port on systems without 'getresgid' */
 #if HAVE_GETRESGID
+/**
+ * Enable use of SGID capabilities on POSIX
+ */
+void __attribute__ ((constructor))
+GNUNET_DNS_init ()
+{
   gid_t rgid;
   gid_t egid;
   gid_t sgid;
 
-  if (-1 == getresgid (&rgid, &egid, &sgid))
+  if (-1 == getresgid (&rgid,
+                       &egid,
+                       &sgid))
   {
     fprintf (stderr,
 	     "getresgid failed: %s\n",
@@ -1180,14 +1207,14 @@ main (int argc, char *const *argv)
   }
   else if (sgid != rgid)
   {
-    if (-1 == setregid (sgid, sgid))
-      fprintf (stderr, "setregid failed: %s\n", strerror (errno));
+    if (-1 == setregid (sgid,
+                        sgid))
+      fprintf (stderr,
+               "setregid failed: %s\n",
+               strerror (errno));
   }
-#endif
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "dns", GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? global_ret : 1;
 }
+#endif
 
 
 /* end of gnunet-service-dns.c */
