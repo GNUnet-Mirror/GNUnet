@@ -667,12 +667,12 @@ postgres_membership_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_slave_key", params);
+  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_membership", params);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh,
                                     ret,
                                     PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_slave_key"))
+                                    "PQexecPrepared", "insert_membership"))
   {
     return GNUNET_SYSERR;
   }
