@@ -23,3 +23,6 @@ CONFIG = ~/.my.cnf
 # PASSWORD =
 # HOST = localhost
 # PORT = 3306
+
+[psycstore-postgres]
+CONFIG = connect_timeout=10; dbname=gnunet

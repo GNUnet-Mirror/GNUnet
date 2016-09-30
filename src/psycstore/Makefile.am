@@ -27,6 +27,13 @@ MYSQL_TESTS = test_plugin_psycstore_mysql
 endif
 endif
 
+if HAVE_POSTGRESQL
+POSTGRES_PLUGIN = libgnunet_plugin_psycstore_postgres.la
+if HAVE_TESTING
+POSTGRES_TESTS = test_plugin_psycstore_postgres
+endif
+endif
+
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_psycstore_sqlite.la
 if HAVE_TESTING
@@ -61,7 +68,9 @@ gnunet_service_psycstore_LDADD = \
 
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
-  $(MYSQL_PLUGIN)
+  $(MYSQL_PLUGIN) \
+  $(POSTGRES_PLUGIN)
+
 
 libgnunet_plugin_psycstore_mysql_la_SOURCES = \
   plugin_psycstore_mysql.c
@@ -75,6 +84,17 @@ libgnunet_plugin_psycstore_mysql_la_LIBADD = \
 libgnunet_plugin_psycstore_mysql_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+libgnunet_plugin_psycstore_postgres_la_SOURCES = \
+  plugin_psycstore_postgres.c
+libgnunet_plugin_psycstore_postgres_la_LIBADD = \
+  libgnunetpsycstore.la  \
+  $(top_builddir)/src/postgres/libgnunetpostgres.la  \
+  $(top_builddir)/src/pq/libgnunetpq.la  \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
+  $(LTLIBINTL)
+libgnunet_plugin_psycstore_postgres_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
 
 libgnunet_plugin_psycstore_sqlite_la_SOURCES = \
   plugin_psycstore_sqlite.c
@@ -92,6 +112,7 @@ if HAVE_TESTING
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(MYSQL_TESTS) \
+ $(POSTGRES_TESTS) \
  test_psycstore
 endif
 endif
@@ -123,4 +144,10 @@ test_plugin_psycstore_mysql_SOURCES = \
 test_plugin_psycstore_mysql_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+test_plugin_psycstore_postgres_SOURCES = \
+ test_plugin_psycstore.c
+test_plugin_psycstore_postgres_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
