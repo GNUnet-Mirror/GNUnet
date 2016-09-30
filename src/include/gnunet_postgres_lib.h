@@ -31,7 +31,7 @@
 #define GNUNET_POSTGRES_LIB_H
 
 #include "gnunet_util_lib.h"
-#include <libpq-fe.h>
+#include <postgresql/libpq-fe.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -57,12 +57,12 @@ extern "C"
  * @return #GNUNET_OK if the result is acceptable
  */
 int
-GNUNET_POSTGRES_check_result_ (PGconn *dbh, 
+GNUNET_POSTGRES_check_result_ (PGconn *dbh,
 			       PGresult *ret,
 			       int expected_status,
-                               const char *command, 
+                               const char *command,
 			       const char *args,
-                               const char *filename, 
+                               const char *filename,
 			       int line);
 
 
@@ -91,9 +91,9 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_exec_ (PGconn *dbh, 
-		       const char *sql, 
-		       const char *filename, 
+GNUNET_POSTGRES_exec_ (PGconn *dbh,
+		       const char *sql,
+		       const char *filename,
 		       int line);
 
 
@@ -119,11 +119,11 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_prepare_ (PGconn *dbh, 
-			  const char *name, 
+GNUNET_POSTGRES_prepare_ (PGconn *dbh,
+			  const char *name,
 			  const char *sql,
                           int nparams,
-                          const char *filename, 
+                          const char *filename,
 			  int line);
 
 
