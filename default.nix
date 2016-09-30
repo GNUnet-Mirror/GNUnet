@@ -32,7 +32,7 @@
 #    --arg pkgs 0
 #
 # c) use nixpkgs at a given path
-#    --args pkgs /path/to/nixpkgs
+#    --arg pkgs /path/to/nixpkgs
 #
 
 { pkgs ? null }:
