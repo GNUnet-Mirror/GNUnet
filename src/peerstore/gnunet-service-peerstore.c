@@ -412,6 +412,7 @@ check_iterate (void *cls,
     PEERSTORE_destroy_record (record);
     return GNUNET_SYSERR;
   }
+  PEERSTORE_destroy_record (record);
   return GNUNET_OK;
 }
 
