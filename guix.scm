@@ -17,7 +17,7 @@
 ;;; Boston, MA 02110-1301, USA.
 ;;;
 ;;;
-;;; Author: N. Gillmann <ng0@runbox.com>
+;;; Author: N. Gillmann <ngillmann@runbox.com>
 ;;;
 ;;; Parts borrowed here from pubstrate
 ;;;
