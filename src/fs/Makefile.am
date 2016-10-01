@@ -190,7 +190,6 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs.c gnunet-service-fs.h \
  gnunet-service-fs_cp.c gnunet-service-fs_cp.h \
  gnunet-service-fs_indexing.c gnunet-service-fs_indexing.h \
- gnunet-service-fs_lc.c gnunet-service-fs_lc.h \
  gnunet-service-fs_pe.c gnunet-service-fs_pe.h \
  gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
  gnunet-service-fs_push.c gnunet-service-fs_push.h \

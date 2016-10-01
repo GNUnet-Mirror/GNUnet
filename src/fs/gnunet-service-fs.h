@@ -307,6 +307,5 @@ void
 GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start);
 
 
-
 #endif
 /* end of gnunet-service-fs.h */

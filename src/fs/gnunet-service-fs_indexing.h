@@ -51,8 +51,8 @@
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  * @param cont function to call with the actual block (at most once, on success)
- * @param cont_cls closure for cont
- * @return GNUNET_OK on success
+ * @param cont_cls closure for @a cont
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t size,
@@ -63,40 +63,35 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
                                   GNUNET_DATASTORE_DatumProcessor cont,
                                   void *cont_cls);
 
+
 /**
- * Handle INDEX_START-message.
+ * Transmit information about indexed files to @a mq.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param mq message queue to send information to
  */
 void
-GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message);
+GNUNET_FS_indexing_send_list (struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Handle INDEX_LIST_GET-message.
+ * Remove a file from the index.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param fid identifier of the file to remove
+ * @return #GNUNET_YES if the @a fid was found
  */
-void
-GNUNET_FS_handle_index_list_get (void *cls, struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message);
+int
+GNUNET_FS_indexing_do_unindex (const struct GNUNET_HashCode *fid);
 
 
 /**
- * Handle UNINDEX-message.
+ * Add the given file to the list of indexed files.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param filename name of the file
+ * @param file_id hash identifier for @a filename
  */
 void
-GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message);
+GNUNET_FS_add_to_index (const char *filename,
+                        const struct GNUNET_HashCode *file_id);
 
 
 /**
