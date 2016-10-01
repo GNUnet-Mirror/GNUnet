@@ -545,7 +545,6 @@ GNUNET_STRINGS_filename_expand (const char *fil)
   char *buffer;
 #ifndef MINGW
   size_t len;
-  size_t n;
   char *fm;
   const char *fil_ptr;
 #else
@@ -602,7 +601,8 @@ GNUNET_STRINGS_filename_expand (const char *fil)
     }
     if (fm == NULL)
     {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "getcwd");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                    "getcwd");
       buffer = getenv ("PWD");  /* alternative */
       if (buffer != NULL)
         fm = GNUNET_strdup (buffer);
@@ -610,9 +610,9 @@ GNUNET_STRINGS_filename_expand (const char *fil)
     if (fm == NULL)
       fm = GNUNET_strdup ("./");        /* give up */
   }
-  n = strlen (fm) + 1 + strlen (fil_ptr) + 1;
-  buffer = GNUNET_malloc (n);
-  GNUNET_snprintf (buffer, n, "%s%s%s", fm,
+  GNUNET_asprintf (&buffer,
+                   "%s%s%s",
+                   fm,
                    (fm[strlen (fm) - 1] ==
                     DIR_SEPARATOR) ? "" : DIR_SEPARATOR_STR, fil_ptr);
   GNUNET_free (fm);
@@ -623,23 +623,29 @@ GNUNET_STRINGS_filename_expand (const char *fil)
   if ((lRet = plibc_conv_to_win_path (fil, fn)) != ERROR_SUCCESS)
   {
     SetErrnoFromWinError (lRet);
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "plibc_conv_to_win_path");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                  "plibc_conv_to_win_path");
     return NULL;
   }
   /* is the path relative? */
-  if ((strncmp (fn + 1, ":\\", 2) != 0) && (strncmp (fn, "\\\\", 2) != 0))
+  if ( (0 != strncmp (fn + 1, ":\\", 2)) &&
+       (0 != strncmp (fn, "\\\\", 2)) )
   {
     char szCurDir[MAX_PATH + 1];
 
-    lRet = GetCurrentDirectory (MAX_PATH + 1, szCurDir);
+    lRet = GetCurrentDirectory (MAX_PATH + 1,
+                                szCurDir);
     if (lRet + strlen (fn) + 1 > (MAX_PATH + 1))
     {
       SetErrnoFromWinError (ERROR_BUFFER_OVERFLOW);
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "GetCurrentDirectory");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                    "GetCurrentDirectory");
       return NULL;
     }
-    buffer = GNUNET_malloc (MAX_PATH + 1);
-    GNUNET_snprintf (buffer, MAX_PATH + 1, "%s\\%s", szCurDir, fn);
+    GNUNET_asprintf (&buffer,
+                     "%s\\%s",
+                     szCurDir,
+                     fn);
     GNUNET_free (fn);
     fn = buffer;
   }
