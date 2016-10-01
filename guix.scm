@@ -120,8 +120,8 @@
 
 (define gnunet-svn
   (package
-    (name "gnunet")
-    (version "8000")
+    (name "gnunet-svn")
+    (version (string-append "0.10.1-" "dev"))
     (source
      (local-file %source-dir
                  #:recursive? #t))
@@ -143,6 +143,8 @@
        ("opus" ,opus)
        ("pulseaudio" ,pulseaudio)
        ("sqlite" ,sqlite)
+       ("postgresql" ,postgresql)
+       ("mysql" ,mysql)
        ("zlib" ,zlib)
        ("perl" ,perl)
        ("python" ,python) ; tests and gnunet-qr
@@ -151,6 +153,8 @@
        ("gmp" ,gmp)
        ("bluez" ,bluez) ; for optional bluetooth feature
        ("glib" ,glib)
+       ;; There are currently no binary substitutes for texlive due to
+       ;; its size. Uncomment if you need it.
        ;;("texlive-minimal" ,texlive-minimal) ; optional.
        ("libogg" ,libogg)))
     (native-inputs
@@ -163,6 +167,7 @@
      `(#:configure-flags
        (list (string-append "--with-nssdir=" %output "/lib")
              "--enable-experimental")
+             ;; These appear to be "broken" on Guix, needs debugging.
              ;;"--enable-gcc-hardening"
              ;;"--enable-linker-hardening"
              ;;"--enable-logging=verbose")
