@@ -75,6 +75,11 @@ struct GNUNET_RPS_Request_Handle
   uint32_t id;
 
   /**
+   * The number of requested peers.
+   */
+  uint32_t num_peers;
+
+  /**
    * The callback to be called when we receive an answer.
    */
   GNUNET_RPS_NotifyReadyCB ready_cb;
@@ -108,6 +113,64 @@ struct cb_cls_pack
  struct GNUNET_CLIENT_Connection *service_conn;
 };
 
+/**
+ * @brief Send a request to the service.
+ *
+ * @param h rps handle
+ * @param id id of the request
+ * @param num_req_peers number of peers
+ */
+void
+send_request (const struct GNUNET_RPS_Handle *h,
+              uint32_t id,
+              uint32_t num_req_peers)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_RequestMessage *msg;
+
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
+  msg->num_peers = htonl (num_req_peers);
+  msg->id = htonl (id);
+  GNUNET_MQ_send (h->mq, ev);
+}
+
+/**
+ * @brief Iterator function over pending requests
+ *
+ * Implements #GNUNET_CONTAINER_HashMapIterator32
+ *
+ * @param cls rps handle
+ * @param key id of the request
+ * @param value request handle
+ *
+ * @return GNUNET_YES to continue iteration
+ */
+int
+resend_requests_iterator (void *cls, uint32_t key, void *value)
+{
+  const struct GNUNET_RPS_Handle *h = cls;
+  const struct GNUNET_RPS_Request_Handle *req_handle = value;
+
+  send_request (h, req_handle->id, req_handle->num_peers);
+  return GNUNET_YES; /* continue iterating */
+}
+
+/**
+ * @brief Resend all pending requests
+ *
+ * This is used to resend all pending requests after the client
+ * reconnected to the service, because the service cancels all
+ * pending requests after reconnection.
+ *
+ * @param h rps handle
+ */
+void
+resend_requests (struct GNUNET_RPS_Handle *h)
+{
+  GNUNET_CONTAINER_multihashmap32_iterate (h->req_handlers,
+                                           resend_requests_iterator,
+                                           h);
+}
 
 
 /**
@@ -165,6 +228,7 @@ handle_reply (void *cls,
       GNUNET_CONTAINER_multihashmap32_contains (h->req_handlers, id));
   rh = GNUNET_CONTAINER_multihashmap32_get (h->req_handlers, id);
   GNUNET_assert (NULL != rh);
+  GNUNET_assert (rh->num_peers == ntohl (msg->num_peers));
   GNUNET_CONTAINER_multihashmap32_remove_all (h->req_handlers, id);
   rh->ready_cb (rh->ready_cb_cls,
                 ntohl (msg->num_peers),
@@ -200,6 +264,9 @@ mq_error_handler (void *cls,
        4: TIMEOUT\n",
        error);
   reconnect (h);
+  /* Resend all pending request as the service destroyed its knowledge
+   * about them */
+  resend_requests (h);
 }
 
 
@@ -267,13 +334,11 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
                           void *cls)
 {
   struct GNUNET_RPS_Request_Handle *rh;
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_CS_RequestMessage *msg;
 
-  // assert func != NULL
   rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
   rh->rps_handle = rps_handle;
   rh->id = rps_handle->current_request_id++;
+  rh->num_peers = num_req_peers;
   rh->ready_cb = ready_cb;
   rh->ready_cb_cls = cls;
 
@@ -285,10 +350,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
   GNUNET_CONTAINER_multihashmap32_put (rps_handle->req_handlers, rh->id, rh,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
-  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
-  msg->num_peers = htonl (num_req_peers);
-  msg->id = htonl (rh->id);
-  GNUNET_MQ_send (rps_handle->mq, ev);
+  send_request (rps_handle, rh->id, num_req_peers);
   return rh;
 }
 
