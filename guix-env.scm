@@ -168,6 +168,9 @@
        ("automake" ,automake)
        ("gnu-gettext" ,gnu-gettext)
        ("libtool" ,libtool)))
+    ;; TODO:  To make use of out:debug, which carries the symbols,
+    ;; this file needs to fixed.
+    (outputs '("out" "debug"))
     (arguments
      `(#:configure-flags
        (list (string-append "--with-nssdir=" %output "/lib")
@@ -176,7 +179,8 @@
              ;;"--enable-gcc-hardening"
              "--enable-linker-hardening"
              "--enable-logging=verbose"
-             "--enable-poisoning")
+             "--enable-poisoning"
+             "CFLAGS=-ggdb -O0")
        ;;#:parallel-tests? #f ; parallel building seems to fail
        ;;#:tests? #f ; fail: test_gnunet_statistics.py
        #:phases
@@ -192,16 +196,16 @@
          (add-after 'patch-bin-sh 'bootstrap
            (lambda _
              (zero? (system* "sh" "bootstrap"))))
-         (delete 'check)
+         (delete 'check))))
     ;; XXX: https://gnunet.org/bugs/view.php?id=4619
-    (add-after 'install 'set-path-for-check
-      (lambda* (#:key outputs #:allow-other-keys)
-        (let* ((out (assoc-ref outputs "out"))
-               (bin (string-append out "/bin"))
-               (lib (string-append out "/lib")))
-          (setenv "GNUNET_PREFIX" lib)
-          (setenv "PATH" (string-append (getenv "PATH") ":" bin))
-          (zero? (system* "make" "check"))))))))
+    ;; (add-after 'install 'set-path-for-check
+    ;;   (lambda* (#:key outputs #:allow-other-keys)
+    ;;     (let* ((out (assoc-ref outputs "out"))
+    ;;            (bin (string-append out "/bin"))
+    ;;            (lib (string-append out "/lib")))
+    ;;       (setenv "GNUNET_PREFIX" lib)
+    ;;       (setenv "PATH" (string-append (getenv "PATH") ":" bin))
+    ;;       (zero? (system* "make" "check"))))))))
     (synopsis "Secure, decentralized, peer-to-peer networking framework")
     (description
      "GNUnet is a framework for secure peer-to-peer networking.  The
