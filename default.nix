@@ -34,8 +34,23 @@
 # c) use nixpkgs at a given path
 #    --arg pkgs /path/to/nixpkgs
 #
+## CCACHE
+#
+# To enable ccache, use the following:
+#
+#    --argstr ccache_dir /var/cache/ccache
 
-{ pkgs ? null }:
+# or when using nix-shell:
+#    --argstr ccache_dir ~/.ccache
+#
+# and make sure the given directory is writable by the nixpkgs group when using nix-build or nix-env -i,
+# or the current user when using nix-shell
+#
+
+{
+ pkgs ? null,
+ ccache_dir ? "",
+}:
 
 let
   syspkgs = import <nixpkgs> { };
@@ -54,13 +69,14 @@ let
                 import <nixpkgs> { }
               else
                 import pkgs {};
+  stdenv = usepkgs.stdenvAdapters.keepDebugInfo usepkgs.stdenv;
 
-in with usepkgs; usepkgs.stdenv.mkDerivation rec {
+in with usepkgs; stdenv.mkDerivation rec {
   src = ./.;
   name = "gnunet-dev";
 
   buildInputs = [
-    makeWrapper pkgconfig
+    makeWrapper pkgconfig autoconf automake ccache
     adns curl gettext gmp gnutls gss ncurses openldap zlib sqlite mariadb postgresql
     libextractor libgcrypt libgnurl libidn libmicrohttpd
     libpsl libtool libunistring libxml2
@@ -69,6 +85,8 @@ in with usepkgs; usepkgs.stdenv.mkDerivation rec {
   patchPhase = ''
     test -e Makefile && make distclean
   '';
+
+  NIX_CFLAGS_COMPILE = "-ggdb -O0";
 
   configureFlags = [
     "--enable-gcc-hardening"
@@ -82,6 +100,13 @@ in with usepkgs; usepkgs.stdenv.mkDerivation rec {
   preConfigure = ''
     ./bootstrap
     configureFlags="$configureFlags --with-nssdir=$out/lib"
+
+    if [ -n "${ccache_dir}" ]; then
+      export CC='ccache gcc'
+      export CCACHE_COMPRESS=1
+      export CCACHE_DIR="${ccache_dir}"
+      export CCACHE_UMASK=007
+    fi
   '';
 
   doCheck = false;
