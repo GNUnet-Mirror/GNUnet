@@ -29,6 +29,54 @@
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_reverser.h"
 
+struct ReverseRecordEntry
+{
+  /**
+   * DLL
+   */
+  struct ReverseRecordEntry *next;
+
+  /**
+   * DLL
+   */
+  struct ReverseRecordEntry *prev;
+
+  /**
+   * ReverseRecord
+   */
+  struct GNUNET_GNSRECORD_ReverseRecord *record;
+
+};
+
+struct IteratorHandle
+{
+  /**
+   * Records found
+   */
+  struct ReverseRecordEntry *records_head;
+
+  /**
+   * Records found
+   */
+  struct ReverseRecordEntry *records_tail;
+
+  /**
+   * Current delegation to expect
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey target;
+
+  /**
+   * The zone target for reverse record resolution
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey myzone;
+
+  /**
+   * The nick of our zone
+   */
+  char *mynick;
+
+};
+
 struct ReverseTreeNode
 {
   /**
@@ -70,7 +118,7 @@ struct GNS_ReverserHandle
    * The authority to look for
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey authority;
-  
+
   /**
    * Resolution candidate queue
    */
@@ -96,6 +144,26 @@ struct GNS_ReverserHandle
    */
   void *proc_cls;
 };
+
+/**
+ * Reverse record collection task
+ */
+static struct GNUNET_SCHEDULER_Task *reverse_record_check_task;
+
+/**
+ * GNS lookup handle
+ */
+static struct GNS_ResolverHandle *gns_lookup_reverse;
+
+/**
+ * NS handle
+ */
+static struct GNUNET_NAMESTORE_Handle *ns;
+
+/**
+ * NS Iterator
+ */
+static struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
 
 void
 cleanup_handle (struct GNS_ReverserHandle *rh)
@@ -241,4 +309,138 @@ GNS_reverse_lookup_cancel (struct GNS_ReverserHandle *rh)
   return;
 }
 
+void
+next_it (void *cls);
+
+void
+handle_gns_result_iter (void *cls,
+                        uint32_t rd_count,
+                        const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct IteratorHandle *ith = cls;
+  struct ReverseRecordEntry *rr;
+  if ((rd_count != 1) ||
+      (GNUNET_GNSRECORD_TYPE_PKEY != rd->record_type))
+  {
+    gns_lookup_reverse = NULL;
+    GNUNET_SCHEDULER_add_now (&next_it, NULL);
+    return;
+  }
+
+
+  rr = GNUNET_new (struct ReverseRecordEntry);
+  rr->record = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_ReverseRecord)
+                              + strlen (ith->mynick) + 1);
+  rr->record->pkey = ith->target;
+  rr->record->expiration.abs_value_us = rd->expiration_time;
+  GNUNET_memcpy ((char*)&rr->record[1],
+                 ith->mynick,
+                 strlen (ith->mynick));
+  GNUNET_CONTAINER_DLL_insert (ith->records_head,
+                               ith->records_tail,
+                               rr);
+  GNUNET_SCHEDULER_add_now (&next_it, NULL);
+}
+
+void
+next_it (void *cls)
+{
+  GNUNET_assert (NULL != namestore_iter);
+  GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
+}
+
+void
+iterator_cb (void *cls,
+             const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+             const char *label,
+             unsigned int rd_count,
+             const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct IteratorHandle *ith = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey *target;
+  struct GNUNET_CRYPTO_EcdsaPublicKey zone;
+
+  if ((rd_count != 1) ||
+      (GNUNET_GNSRECORD_TYPE_PKEY != rd->record_type))
+  {
+    GNUNET_SCHEDULER_add_now (&next_it, NULL);
+    return;
+  }
+  GNUNET_CRYPTO_ecdsa_key_get_public (key,
+                                      &zone);
+  if (0 != memcmp (&zone, &ith->myzone,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+  {
+    GNUNET_SCHEDULER_add_now (&next_it, NULL);
+    return;
+  }
+  target = (struct GNUNET_CRYPTO_EcdsaPublicKey *) rd->data;
+  gns_lookup_reverse = GNS_resolver_lookup (target,
+                                            GNUNET_GNSRECORD_TYPE_PKEY,
+                                            ith->mynick,
+                                            NULL,
+                                            GNUNET_GNS_LO_DEFAULT,
+                                            &handle_gns_result_iter,
+                                            ith);
+}
+
+void check_reverse_records (void *cls);
+
+void
+finished_cb (void *cls)
+{
+  struct IteratorHandle *ith = cls;
+  struct ReverseRecordEntry *rr;
+
+  //TODO add results to namestore!
+  for (rr = ith->records_head; NULL != rr; rr = ith->records_head)
+  {
+    GNUNET_CONTAINER_DLL_remove (ith->records_head,
+                                 ith->records_tail,
+                                 rr);
+    GNUNET_free (rr->record);
+    GNUNET_free (rr);
+  }
+  reverse_record_check_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_DAYS,
+                                                            &check_reverse_records,
+                                                            NULL);
+
+}
+
+void
+it_error (void *cls)
+{
+  finished_cb (cls);
+}
+
+void
+check_reverse_records (void *cls)
+{
+  struct IteratorHandle *ith = cls;
+  namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                          NULL,
+                                                          &it_error,
+                                                          ith,
+                                                          &iterator_cb,
+                                                          ith,
+                                                          &finished_cb,
+                                                          ith);
+}
+
+void
+GNS_reverse_init (const struct GNUNET_CONFIGURATION_Handle *c,
+                  const struct GNUNET_NAMESTORE_Handle *nh,
+                  const struct GNUNET_CRYPTO_EcdsaPublicKey *myzone,
+                  const char *mynick)
+{
+  struct IteratorHandle *ith;
+
+  ns = ns;
+  ith = GNUNET_new (struct IteratorHandle);
+  ith->mynick = GNUNET_strdup (mynick);
+  ith->myzone = *myzone;
+  reverse_record_check_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_DAYS,
+                                                            &check_reverse_records,
+                                                            NULL);
+}
 
