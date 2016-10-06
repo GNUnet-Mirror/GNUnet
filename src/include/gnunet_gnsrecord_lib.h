@@ -108,6 +108,10 @@ extern "C"
  */
 #define GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA 65546
 
+/**
+ * Record type for reverse lookups
+ */
+#define GNUNET_GNSRECORD_TYPE_REVERSE 65548
 
 /**
  * Flags that can be set for a record.
@@ -286,6 +290,27 @@ struct GNUNET_GNSRECORD_BoxRecord
 
 };
 
+/**
+ * Record type used internally to keep track of reverse mappings into a
+ * namespace.
+ * The record contains data related to PKEY delegations from other namespaces to
+ * the namespace the record belongs to.
+ * It is exclusively found under the label ``+''.
+ */
+struct GNUNET_GNSRECORD_ReverseRecord
+{
+  /**
+   * The public key of the namespace the is delegating to our namespace
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+
+  /**
+   * The expiration time of the delegation
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /* followed by the name the delegator uses to refer to our namespace */
+};
 
 GNUNET_NETWORK_STRUCT_END
 

@@ -66,6 +66,16 @@ static char *zone_ego_name;
 static char *public_key;
 
 /**
+ * Reverse key
+ */
+static char *reverse_key;
+
+/**
+ * Reverse key
+ */
+static struct GNUNET_CRYPTO_EcdsaPublicKey rkey;
+
+/**
  * Set to GNUNET_GNS_LO_LOCAL_MASTER if we are looking up in the master zone.
  */
 static enum GNUNET_GNS_LocalOptions local_options;
@@ -84,6 +94,11 @@ static int rtype;
  * Handle to lookup request
  */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
+
+/**
+ * Handle to reverse lookup request
+ */
+static struct GNUNET_GNS_ReverseLookupRequest *rev_lookup_request;
 
 /**
  * Lookup an ego with the identity service.
@@ -159,6 +174,24 @@ do_timeout (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
+static void
+process_reverse_result (void *cls,
+                        const char *name)
+{
+  rev_lookup_request = NULL;
+  if (NULL == name)
+  {
+    printf ("No name found.\n");
+    return;
+  }
+  if (raw)
+    printf ("%s\n", name);
+  else
+    printf ("%s is known as %s\n",
+            reverse_key,
+            name);
+  GNUNET_SCHEDULER_shutdown ();
+}
 
 /**
  * Function called with the result of a GNS lookup.
@@ -247,6 +280,14 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 					shorten_key,
 					&process_lookup_result,
 					lookup_name);
+  }
+  else if (NULL != reverse_key)
+  {
+    rev_lookup_request = GNUNET_GNS_reverse_lookup (gns,
+                                                &rkey,
+                                                pkey,
+                                                &process_reverse_result,
+                                                NULL);
   }
   else
   {
@@ -416,49 +457,77 @@ run (void *cls,
     return;
   }
   tt = GNUNET_SCHEDULER_add_delayed (timeout,
-				     &do_timeout, NULL);
+                                     &do_timeout, NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  if (NULL != reverse_key)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_key,
+                                                    strlen (reverse_key),
+                                                    &rkey))
+    {
+      fprintf (stderr,
+               _("Reverse key `%s' is not well-formed\n"),
+               reverse_key);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  }
   if (NULL != public_key)
   {
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecdsa_public_key_from_string (public_key,
-						  strlen (public_key),
-						  &pkey))
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (public_key,
+                                                    strlen (public_key),
+                                                    &pkey))
     {
       fprintf (stderr,
-	       _("Public key `%s' is not well-formed\n"),
-	       public_key);
+               _("Public key `%s' is not well-formed\n"),
+               public_key);
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
     lookup_with_public_key (&pkey);
     return;
   }
+  if (NULL != reverse_key)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_key,
+                                                    strlen (reverse_key),
+                                                    &rkey))
+    {
+      fprintf (stderr,
+               _("Reverse key `%s' is not well-formed\n"),
+               reverse_key);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  }
   if (NULL != zone_ego_name)
   {
     el = GNUNET_IDENTITY_ego_lookup (cfg,
-				     zone_ego_name,
-				     &identity_zone_cb,
-				     NULL);
+                                     zone_ego_name,
+                                     &identity_zone_cb,
+                                     NULL);
     return;
   }
   if ( (NULL != lookup_name) &&
        (strlen (lookup_name) > 4) &&
        (0 == strcmp (".zkey",
-		     &lookup_name[strlen (lookup_name) - 4])) )
+                     &lookup_name[strlen (lookup_name) - 4])) )
   {
     /* no zone required, use 'anonymous' zone */
     GNUNET_CRYPTO_ecdsa_key_get_public (GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
-				      &pkey);
+                                        &pkey);
     lookup_with_public_key (&pkey);
   }
   else
   {
     GNUNET_break (NULL == id_op);
     id_op = GNUNET_IDENTITY_get (identity,
-				 "gns-master",
-				 &identity_master_cb,
-				 NULL);
+                                 "gns-master",
+                                 &identity_master_cb,
+                                 NULL);
     GNUNET_assert (NULL != id_op);
   }
 }
@@ -493,6 +562,9 @@ main (int argc, char *const *argv)
     {'z', "zone", "NAME",
       gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
       &GNUNET_GETOPT_set_string, &zone_ego_name},
+    {'R', "reverse", "PKEY",
+      gettext_noop ("Specify the public key of the zone to reverse lookup a name for"), 1,
+      &GNUNET_GETOPT_set_string, &reverse_key},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
@@ -503,11 +575,11 @@ main (int argc, char *const *argv)
 
   GNUNET_log_setup ("gnunet-gns", "WARNING", NULL);
   ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
-                           _("GNUnet GNS resolver tool"),
-			   options,
-                           &run, NULL)) ? 0 : 1;
+    (GNUNET_OK ==
+     GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
+                         _("GNUnet GNS resolver tool"),
+                         options,
+                         &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }

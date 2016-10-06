@@ -184,6 +184,7 @@ w32nsp_resolve_LDADD = -lws2_32
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
+ gnunet-service-gns_reverser.c gnunet-service-gns_reverser.h \
  gnunet-service-gns_shorten.c gnunet-service-gns_shorten.h \
  gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h
 gnunet_service_gns_LDADD = \
@@ -258,7 +259,8 @@ check_SCRIPTS = \
   test_gns_rel_expiration.sh\
   test_gns_soa_lookup.sh\
   test_gns_revocation.sh\
-  test_gns_cname_lookup.sh
+  test_gns_cname_lookup.sh \
+	test_gns_reverse_lookup.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE

@@ -94,6 +94,16 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
 						  uint32_t rd_count,
 						  const struct GNUNET_GNSRECORD_Data *rd);
 
+/**
+ * Iterator called on obtained result for a GNS lookup.
+ *
+ * @param cls closure
+ * @param rd_count number of records in @a rd
+ * @param rd the records in reply
+ */
+typedef void (*GNUNET_GNS_ReverseLookupResultProcessor) (void *cls,
+						  const char* name);
+
 
 /**
  * Options for the GNS lookup.
@@ -145,6 +155,23 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls);
+
+/**
+ * Perform an asynchronous reverse lookup operation on the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param zone_key zone to find a name for
+ * @param root_key our zone
+ * @param proc processor to call on result
+ * @param proc_cls closure for @a proc
+ * @return handle to the request
+ */
+struct GNUNET_GNS_ReverseLookupRequest*
+GNUNET_GNS_reverse_lookup (struct GNUNET_GNS_Handle *handle,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *root_key,
+                           GNUNET_GNS_ReverseLookupResultProcessor proc,
+                           void *proc_cls);
 
 
 /**

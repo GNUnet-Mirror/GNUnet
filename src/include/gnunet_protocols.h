@@ -1529,6 +1529,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 501
 
+/**
+ * Reverse lookup
+ */
+#define GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP 503
+
+/**
+ * Response to reverse lookup
+ */
+#define GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP_RESULT 504
+
 
 /*******************************************************************************
  * CONSENSUS message types

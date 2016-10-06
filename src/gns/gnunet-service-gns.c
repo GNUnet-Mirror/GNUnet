@@ -35,6 +35,7 @@
 #include "gnunet_statistics_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
+#include "gnunet-service-gns_reverser.h"
 #include "gnunet-service-gns_shorten.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gnunet_protocols.h"
@@ -107,6 +108,11 @@ struct ClientLookupHandle
    * Active handle for the lookup.
    */
   struct GNS_ResolverHandle *lookup;
+
+  /**
+   * Active handle for a reverse lookup
+   */
+  struct GNS_ReverserHandle *rev_lookup;
 
   /**
    * request id
@@ -367,7 +373,10 @@ client_disconnect_cb (void *cls,
               client);
   while (NULL != (clh = gc->clh_head))
   {
-    GNS_resolver_lookup_cancel (clh->lookup);
+    if (NULL != clh->lookup)
+      GNS_resolver_lookup_cancel (clh->lookup);
+    if (NULL != clh->rev_lookup)
+      GNS_reverse_lookup_cancel (clh->rev_lookup);
     GNUNET_CONTAINER_DLL_remove (gc->clh_head,
                                  gc->clh_tail,
                                  clh);
@@ -846,6 +855,47 @@ send_lookup_response (void* cls,
                             GNUNET_NO);
 }
 
+/**
+ * Reply to client with the result from our reverse lookup.
+ *
+ * @param cls the closure (our client lookup handle)
+ * @param rd_count the number of records in @a rd
+ * @param rd the record data
+ */
+static void
+send_reverse_lookup_response (void* cls,
+                              const char *name)
+{
+  struct ClientLookupHandle *clh = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct ReverseLookupResultMessage *rmsg;
+  size_t len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending LOOKUP_RESULT message with %s\n",
+              name);
+
+  if (NULL == name)
+    len = 1;
+  else
+    len = strlen (name) + 1;
+  env = GNUNET_MQ_msg_extra (rmsg,
+                             len,
+                             GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP_RESULT);
+  rmsg->id = clh->request_id;
+  if (1 < len)
+    GNUNET_memcpy ((char*) &rmsg[1],
+                   name,
+                   strlen (name));
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(clh->gc->client),
+                  env);
+  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head, clh->gc->clh_tail, clh);
+  GNUNET_free (clh);
+  GNUNET_STATISTICS_update (statistics,
+                            "Completed reverse lookups", 1,
+                            GNUNET_NO);
+}
+
 
 /**
  * Checks a #GNUNET_MESSAGE_TYPE_GNS_LOOKUP message
@@ -856,7 +906,7 @@ send_lookup_response (void* cls,
  */
 static int
 check_lookup (void *cls,
-		    const struct LookupMessage *l_msg)
+              const struct LookupMessage *l_msg)
 {
   size_t msg_size;
   const char* name;
@@ -933,6 +983,37 @@ handle_lookup (void *cls,
                                      &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",
+                            1, GNUNET_NO);
+}
+
+/**
+ * Handle reverse lookup requests from client
+ *
+ * @param cls the closure
+ * @param client the client
+ * @param message the message
+ */
+static void
+handle_rev_lookup (void *cls,
+                   const struct ReverseLookupMessage *sh_msg)
+{
+  struct GnsClient *gc = cls;
+  struct ClientLookupHandle *clh;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received REVERSE_LOOKUP message\n");
+  GNUNET_SERVICE_client_continue (gc->client);
+
+  clh = GNUNET_new (struct ClientLookupHandle);
+  GNUNET_CONTAINER_DLL_insert (gc->clh_head, gc->clh_tail, clh);
+  clh->gc = gc;
+  clh->request_id = sh_msg->id;
+  clh->rev_lookup = GNS_reverse_lookup (&sh_msg->zone_pkey,
+                                        &sh_msg->root_pkey,
+                                        &send_reverse_lookup_response,
+                                        clh);
+  GNUNET_STATISTICS_update (statistics,
+                            "Reverse lookup attempts",
                             1, GNUNET_NO);
 }
 
@@ -1149,6 +1230,10 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_GNS_LOOKUP,
                         struct LookupMessage,
                         NULL),
+ GNUNET_MQ_hd_fixed_size (rev_lookup,
+                          GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP,
+                          struct ReverseLookupMessage,
+                          NULL),
  GNUNET_MQ_handler_end());
 
 
