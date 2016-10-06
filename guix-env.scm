@@ -51,73 +51,56 @@
 ;; Precondition for using this file is that you run Guix and have a
 ;; development setup for this setup, which involves a version of Guile in
 ;; your PATH.
-;; Let us assume you checked out https://gnunet.org/svn/, and you exported
-;; a variable named GNUNET_SVN_PATH="/home/alice/src/gnunet/svn/".
 ;;
-;; export GNUNET_SVN_PATH="/home/alice/src/gnunet/svn/"
+;; Simply run "guix build -f guix-env.scm"
 ;;
-;; A directory in GUILE_LOAD_PATH is a root, this means that the value of
-;; GNUNET_SVN_PATH dictates how we call this Guix module.
-;; We now have to append $GNUNET_SVN_PATH to GUILE_LOAD_PATH and are almost
-;; ready to go.
-;;
-;; export GUILE_LOAD_PATH="${GNUNET_SVN_PATH}:/home/alice/.guix-profile/share/guile/site/2.0${GUILE_LOAD_PATH:+:}$GUILE_LOAD_PATH"
-;;
-;; Now we make use of the function of Guix to build from expressions:
-;;
-;; guix build --expression="(@ (gnunet guix-env) gnunet-svn)"
-;;
-;; This will build the public exported value gnunet-svn from this file.
-;; See `info guix-build' for more about this magic.
-;;
-;; While this might look complicated, it adds options which will
-;; be added later to this file, for example invoking a development
-;; environment (guix env) etc...
+;; We'd like to provide advanced functions such as guix environment specific
+;; gnunet-svn package, but this is subject to tests right now.
 
-(define-module (gnunet guix-env)
-  #:use-module (ice-9 popen)
-  #:use-module (ice-9 match)
-  #:use-module (ice-9 rdelim)
-  #:use-module (guix packages)
-  #:use-module (guix build-system gnu)
-  #:use-module (guix gexp)
-  #:use-module ((guix build utils) #:select (with-directory-excursion))
-  #:use-module (gnu packages)
-  #:use-module (gnu packages base)
-  #:use-module (gnu packages gnunet)
-  #:use-module (gnu packages file)
-  #:use-module (gnu packages aidc)
-  #:use-module (gnu packages autotools)
-  #:use-module (gnu packages compression)
-  #:use-module (gnu packages curl)
-  #:use-module (gnu packages geeqie)
-  #:use-module (gnu packages gettext)
-  #:use-module (gnu packages glib)
-  #:use-module (gnu packages gnome)
-  #:use-module (gnu packages gnupg)
-  #:use-module (gnu packages groff)
-  #:use-module (gnu packages gtk)
-  #:use-module (gnu packages guile)
-  #:use-module (gnu packages gstreamer)
-  #:use-module (gnu packages gnuzilla)
-  #:use-module (gnu packages libidn)
-  #:use-module (gnu packages linux)
-  #:use-module (gnu packages image)
-  #:use-module (gnu packages libunistring)
-  #:use-module (gnu packages maths)
-  #:use-module (gnu packages multiprecision)
-  #:use-module (gnu packages pkg-config)
-  #:use-module (gnu packages perl)
-  #:use-module (gnu packages pulseaudio)
-  #:use-module (gnu packages python)
-  #:use-module (gnu packages databases)
-  #:use-module (gnu packages tls)
-  #:use-module (gnu packages tex)
-  #:use-module (gnu packages video)
-  #:use-module (gnu packages web)
-  #:use-module (gnu packages xiph)
-  #:use-module (gnu packages backup)
-  #:use-module ((guix licenses) #:prefix license:))
+(use-modules
+ (ice-9 popen)
+ (ice-9 match)
+ (ice-9 rdelim)
+ (guix packages)
+ (guix build-system gnu)
+ (guix gexp)
+ ((guix build utils) #:select (with-directory-excursion))
+ (gnu packages)
+ (gnu packages base)
+ (gnu packages gnunet)
+ (gnu packages file)
+ (gnu packages aidc)
+ (gnu packages autotools)
+ (gnu packages compression)
+ (gnu packages curl)
+ (gnu packages geeqie)
+ (gnu packages gettext)
+ (gnu packages glib)
+ (gnu packages gnome)
+ (gnu packages gnupg)
+ (gnu packages groff)
+ (gnu packages gtk)
+ (gnu packages guile)
+ (gnu packages gstreamer)
+ (gnu packages gnuzilla)
+ (gnu packages libidn)
+ (gnu packages linux)
+ (gnu packages image)
+ (gnu packages libunistring)
+ (gnu packages maths)
+ (gnu packages multiprecision)
+ (gnu packages pkg-config)
+ (gnu packages perl)
+ (gnu packages pulseaudio)
+ (gnu packages python)
+ (gnu packages databases)
+ (gnu packages tls)
+ (gnu packages tex)
+ (gnu packages video)
+ (gnu packages web)
+ (gnu packages xiph)
+ (gnu packages backup)
+ ((guix licenses) #:prefix license:))
 
 (define %source-dir (dirname (current-filename)))
 
@@ -140,7 +123,7 @@
          (any (cut string-suffix? <> file) files))
         (_ #f)))))
 
-(define-public gnunet-svn
+(define gnunet-svn
   (package
     (name "gnunet-svn")
     (version (string-append "0.10.1-" "dev"))
@@ -229,3 +212,5 @@ an application for secure publication of files, it has grown to include all
 kinds of basic applications for the foundation of a GNU internet.")
     (license license:gpl3+)
     (home-page "https://gnunet.org/")))
+
+gnunet-svn
