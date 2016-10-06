@@ -104,7 +104,7 @@ GNUNET_MY_exec_prepared (struct GNUNET_MYSQL_Context *mc,
 
 /**
  * Free all memory that was allocated in @a qp during
- * #GNUNET_MY_exect_prepared().
+ * #GNUNET_MY_exec_prepared().
  *
  * @param qp query specification to clean up
  * @param qbind array of parameter to clean up

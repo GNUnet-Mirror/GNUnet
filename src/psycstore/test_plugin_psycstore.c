@@ -25,6 +25,9 @@
  * @file
  * Test for the PSYCstore plugins.
  */
+
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
@@ -175,6 +178,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* Store & test membership */
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "MEMBERSHIP\n");
+
   channel_key = GNUNET_CRYPTO_eddsa_key_create ();
   slave_key = GNUNET_CRYPTO_ecdsa_key_create ();
 
@@ -182,9 +187,13 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                   &channel_pub_key);
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "membership_store()\n");
+
   GNUNET_assert (GNUNET_OK == db->membership_store (db->cls, &channel_pub_key,
                                                     &slave_pub_key, GNUNET_YES,
                                                     4, 2, 1));
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "membership_test()\n");
 
   GNUNET_assert (GNUNET_YES == db->membership_test (db->cls, &channel_pub_key,
                                                     &slave_pub_key, 4));
@@ -195,8 +204,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_NO == db->membership_test (db->cls, &channel_pub_key,
                                                    &slave_pub_key, 1));
 
-
   /* Store & get messages */
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "MESSAGES\n");
 
   struct GNUNET_MULTICAST_MessageHeader *msg
     = GNUNET_malloc (sizeof (*msg) + sizeof (channel_pub_key));
@@ -228,6 +238,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_eddsa_sign (channel_key, &msg->purpose, &msg->signature));
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_store()\n");
+
   struct FragmentClosure fcls = { 0 };
   fcls.n = 0;
   fcls.msg[0] = msg;
@@ -237,6 +249,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_OK == db->fragment_store (db->cls, &channel_pub_key, msg,
                                      fcls.flags[0]));
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id);
+
   uint64_t ret_frags = 0;
   GNUNET_assert (
     GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
@@ -244,7 +258,18 @@ run (void *cls, char *const *args, const char *cfgfile,
                                    &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id+1);
+
+  ret_frags = 0;
+  GNUNET_assert (
+    GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
+                                   fragment_id+1, fragment_id+1,
+                                   &ret_frags, fragment_cb, &fcls));
+  GNUNET_assert (fcls.n == 1);
+
   // FIXME: test fragment_get_latest and message_get_latest
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "message_get_fragment()\n");
 
   fcls.n = 0;
 
@@ -255,10 +280,14 @@ run (void *cls, char *const *args, const char *cfgfile,
                                            fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "message_add_flags()\n");
+
   GNUNET_assert (
     GNUNET_OK == db->message_add_flags (db->cls, &channel_pub_key,
                                         GNUNET_ntohll (msg->message_id),
                                         GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED));
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id);
 
   fcls.n = 0;
   fcls.flags[0] |= GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED;
@@ -269,6 +298,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                    &ret_frags, fragment_cb, &fcls));
 
   GNUNET_assert (fcls.n == 1);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_store()\n");
 
   struct GNUNET_MULTICAST_MessageHeader *msg1
     = GNUNET_malloc (sizeof (*msg1) + sizeof (channel_pub_key));
@@ -285,6 +316,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == db->fragment_store (db->cls, &channel_pub_key, msg1,
                                                   fcls.flags[1]));
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "message_get()\n");
+
   GNUNET_assert (
     GNUNET_OK == db->message_get (db->cls, &channel_pub_key,
                                   message_id, message_id, 0,
@@ -292,6 +325,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (fcls.n == 2 && ret_frags == 2);
 
   /* Message counters */
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "counters_message_get()\n");
 
   fragment_id = 0;
   message_id = 0;
@@ -305,6 +340,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     && group_generation == GNUNET_ntohll (msg1->group_generation));
 
   /* Modify state */
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "STATE\n");
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_modify_*()\n");
 
   message_id = GNUNET_ntohll (fcls.msg[0]->message_id) + 1;
   GNUNET_assert (GNUNET_OK == db->state_modify_begin (db->cls, &channel_pub_key,
@@ -323,6 +362,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == db->state_modify_end (db->cls, &channel_pub_key,
                                                     message_id));
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_get()\n");
+
   struct StateClosure scls = { 0 };
   scls.n = 0;
   scls.value[0] = "one two three";
@@ -332,6 +373,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              state_cb, &scls));
   GNUNET_assert (scls.n == 1);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_get_prefix()\n");
+
   scls.n = 0;
   scls.value[1] = slave_key;
   scls.value_size[1] = sizeof (*slave_key);
@@ -340,13 +383,19 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                     "_foo", state_cb, &scls));
   GNUNET_assert (scls.n == 2);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_get_signed()\n");
+
   scls.n = 0;
   GNUNET_assert (GNUNET_NO == db->state_get_signed (db->cls, &channel_pub_key,
                                                     state_cb, &scls));
   GNUNET_assert (scls.n == 0);
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_update_signed()\n");
+
   GNUNET_assert (GNUNET_OK == db->state_update_signed (db->cls,
                                                        &channel_pub_key));
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_get_signed()\n");
 
   scls.n = 0;
   GNUNET_assert (GNUNET_YES == db->state_get_signed (db->cls, &channel_pub_key,
@@ -355,12 +404,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* State counters */
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "counters_state_get()\n");
+
   uint64_t max_state_msg_id = 0;
   GNUNET_assert (GNUNET_OK == db->counters_state_get (db->cls, &channel_pub_key,
                                                       &max_state_msg_id)
                  && max_state_msg_id == message_id);
 
   /* State sync */
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_sync_*()\n");
 
   scls.n = 0;
   scls.value[0] = channel_key;
@@ -397,6 +450,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* Modify state after sync */
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_modify_*()\n");
+
   message_id = GNUNET_ntohll (fcls.msg[0]->message_id) + 6;
   GNUNET_assert (GNUNET_OK == db->state_modify_begin (db->cls, &channel_pub_key,
                                                       message_id,
@@ -411,6 +466,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                     message_id));
 
   /* Reset state */
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "state_reset()\n");
 
   scls.n = 0;
   GNUNET_assert (GNUNET_OK == db->state_reset (db->cls, &channel_pub_key));

@@ -423,7 +423,7 @@ database_setup (struct Plugin *plugin)
                 "       multicast_flags, psycstore_flags, data\n"
                 "FROM messages\n"
                 "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND ? <= message_id AND message_id <= ?"
+                "      AND ? <= message_id AND message_id <= ?\n"
                 "LIMIT ?;",
                 &plugin->select_messages);
 
@@ -1101,20 +1101,15 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
 
 
 static int
-fragment_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt,
+fragment_select (struct Plugin *plugin,
+                 struct GNUNET_MYSQL_StatementHandle *stmt,
                  struct GNUNET_MY_QueryParam *params,
                  uint64_t *returned_fragments,
-                 GNUNET_PSYCSTORE_FragmentCallback cb, void *cb_cls)
+                 GNUNET_PSYCSTORE_FragmentCallback cb,
+                 void *cb_cls)
 {
   int ret = GNUNET_SYSERR;
   int sql_ret;
-
-  // FIXME
-  if (NULL == plugin->mc || NULL == stmt || NULL == params)
-  {
-    fprintf(stderr, "%p %p %p\n", plugin->mc, stmt, params);
-    return GNUNET_SYSERR;
-  }
 
   sql_ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params);
   switch (sql_ret)
