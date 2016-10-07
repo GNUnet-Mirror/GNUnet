@@ -249,6 +249,60 @@ typedef void
 
 
 /**
+ * Low-level function to start a service if the scheduler
+ * is already running.  Should only be used directly in
+ * special cases.
+ *
+ * The function will launch the service with the name @a service_name
+ * using the @a service_options to configure its shutdown
+ * behavior. When clients connect or disconnect, the respective
+ * @a connect_cb or @a disconnect_cb functions will be called. For
+ * messages received from the clients, the respective @a handlers will
+ * be invoked; for the closure of the handlers we use the return value
+ * from the @a connect_cb invocation of the respective client.
+ *
+ * Each handler MUST call #GNUNET_SERVICE_client_continue() after each
+ * message to receive further messages from this client.  If
+ * #GNUNET_SERVICE_client_continue() is not called within a short
+ * time, a warning will be logged. If delays are expected, services
+ * should call #GNUNET_SERVICE_client_disable_continue_warning() to
+ * disable the warning.
+ *
+ * Clients sending invalid messages (based on @a handlers) will be
+ * dropped. Additionally, clients can be dropped at any time using
+ * #GNUNET_SERVICE_client_drop().
+ *
+ * The service must be stopped using #GNUNET_SERVICE_stoP().
+ *
+ * @param service_name name of the service to run
+ * @param cfg configuration to use
+ * @param connect_cb function to call whenever a client connects
+ * @param disconnect_cb function to call whenever a client disconnects
+ * @param cls closure argument for @a connect_cb and @a disconnect_cb
+ * @param handlers NULL-terminated array of message handlers for the service,
+ *                 the closure will be set to the value returned by
+ *                 the @a connect_cb for the respective connection
+ * @return NULL on error
+ */
+struct GNUNET_SERVICE_Handle *
+GNUNET_SERVICE_starT (const char *service_name,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      GNUNET_SERVICE_ConnectHandler connect_cb,
+                      GNUNET_SERVICE_DisconnectHandler disconnect_cb,
+                      void *cls,
+                      const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
+ * Stops a service that was started with #GNUNET_SERVICE_starT().
+ *
+ * @param srv service to stop
+ */
+void
+GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv);
+
+
+/**
  * Creates the "main" function for a GNUnet service.  You
  * should almost always use the #GNUNET_SERVICE_MAIN macro
  * instead of calling this function directly (except
