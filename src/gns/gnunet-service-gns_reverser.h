@@ -69,4 +69,23 @@ GNS_reverse_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *target,
 void
 GNS_reverse_lookup_cancel (struct GNS_ReverserHandle *rh);
 
+/**
+ * Initialize reverser
+ *
+ * @param nh handle to a namestore
+ * @param key the private key of the gns-reverse zone
+ * @param name the name of the gns-reverse zone
+ * @return GNUNET_OK
+ */
+int
+GNS_reverse_init (struct GNUNET_NAMESTORE_Handle *nh,
+                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                  const char *name);
+
+/**
+ * Cleanup reverser
+ */
+void
+GNS_reverse_done ();
+
 #endif

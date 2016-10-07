@@ -301,6 +301,7 @@ shutdown_task (void *cls)
     identity_handle = NULL;
   }
   GNS_resolver_done ();
+  GNS_reverse_done ();
   GNS_shorten_done ();
   while (NULL != (ma = ma_head))
   {
@@ -1061,6 +1062,51 @@ handle_monitor_error (void *cls)
                                                 NULL);
 }
 
+/**
+ * Method called to inform about the ego to be used for the master zone
+ * for DNS interceptions.
+ *
+ * This function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate that interception is not configured.
+ * If @a ego is non-NULL, we should start to intercept DNS queries
+ * and resolve ".gnu" queries using the given ego as the master zone.
+ *
+ * @param cls closure, our `const struct GNUNET_CONFIGURATION_Handle *c`
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_reverse_cb (void *cls,
+                       struct GNUNET_IDENTITY_Ego *ego,
+                       void **ctx,
+                       const char *name)
+{
+  identity_op = NULL;
+
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("No ego configured for `%s`\n"),
+                "gns-master");
+
+    return;
+  }
+  if (GNUNET_SYSERR ==
+      GNS_reverse_init (namestore_handle,
+                        GNUNET_IDENTITY_ego_get_private_key (ego),
+                        name))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    return;
+  }
+}
+
+
 
 /**
  * Method called to inform about the ego to be used for the master zone
@@ -1087,13 +1133,22 @@ identity_intercept_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
-
   identity_op = NULL;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Looking for gns-intercept ego\n");
+  identity_op = GNUNET_IDENTITY_get (identity_handle,
+                                     "gns-reverse",
+                                     &identity_reverse_cb,
+                                     (void*)cfg);
+
+
   if (NULL == ego)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("No ego configured for `%s`\n"),
                 "gns-intercept");
+
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego,
