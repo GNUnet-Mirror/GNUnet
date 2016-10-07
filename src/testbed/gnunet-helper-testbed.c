@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2008--2013 GNUnet e.V.
+      Copyright (C) 2008--2013, 2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -99,7 +99,7 @@ static struct GNUNET_TESTING_System *test_system;
 /**
  * Our message stream tokenizer
  */
-struct GNUNET_SERVER_MessageStreamTokenizer *tokenizer;
+struct GNUNET_MessageStreamTokenizer *tokenizer;
 
 /**
  * Disk handle from stdin
@@ -134,7 +134,7 @@ static struct GNUNET_SCHEDULER_Task *write_task_id;
 /**
  * Task to kill the child
  */
-static struct GNUNET_SCHEDULER_Task * child_death_task_id;
+static struct GNUNET_SCHEDULER_Task *child_death_task_id;
 
 /**
  * Are we done reading messages from stdin?
@@ -184,7 +184,7 @@ shutdown_task (void *cls)
     (void) GNUNET_DISK_file_close (stdin_fd);
   if (NULL != stdout_fd)
     (void) GNUNET_DISK_file_close (stdout_fd);
-  GNUNET_SERVER_mst_destroy (tokenizer);
+  GNUNET_MST_destroy (tokenizer);
   tokenizer = NULL;
   if (NULL != testbed)
   {
@@ -288,16 +288,15 @@ child_death_task (void *cls)
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
  *
- * Do not call #GNUNET_SERVER_mst_destroy() in this callback
+ * Do not call #GNUNET_mst_destroy() in this callback
  *
- * @param cls closure
- * @param client identification of the client
+ * @param cls identification of the client
  * @param message the actual message
  *
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
-tokenizer_cb (void *cls, void *client,
+tokenizer_cb (void *cls,
               const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_HelperInit *msg;
@@ -322,7 +321,8 @@ tokenizer_cb (void *cls, void *client,
   if ((sizeof (struct GNUNET_TESTBED_HelperInit) >= msize) ||
       (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT != ntohs (message->type)))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Received unexpected message -- exiting\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Received unexpected message -- exiting\n");
     goto error;
   }
   msg = (const struct GNUNET_TESTBED_HelperInit *) message;
@@ -499,8 +499,11 @@ read_task (void *cls)
   ssize_t sread;
 
   read_task_id = NULL;
-  sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
-  if ((GNUNET_SYSERR == sread) || (0 == sread))
+  sread = GNUNET_DISK_file_read (stdin_fd,
+                                 buf,
+                                 sizeof (buf));
+  if ( (GNUNET_SYSERR == sread) ||
+       (0 == sread) )
   {
     LOG_DEBUG ("STDIN closed\n");
     GNUNET_SCHEDULER_shutdown ();
@@ -515,18 +518,24 @@ read_task (void *cls)
   }
   LOG_DEBUG ("Read %u bytes\n",
              (unsigned int) sread);
+  /* FIXME: could introduce a GNUNET_MST_read2 to read
+     directly from 'stdin_fd' and save a memcpy() here */
   if (GNUNET_OK !=
-      GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread, GNUNET_NO,
-                                 GNUNET_NO))
+      GNUNET_MST_from_buffer (tokenizer,
+                              buf,
+                              sread,
+                              GNUNET_NO,
+                              GNUNET_NO))
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  read_task_id =                /* No timeout while reading */
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+  read_task_id                 /* No timeout while reading */
+    = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				      stdin_fd,
-                                      &read_task, NULL);
+                                      &read_task,
+                                      NULL);
 }
 
 
@@ -545,7 +554,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   LOG_DEBUG ("Starting testbed helper...\n");
-  tokenizer = GNUNET_SERVER_mst_create (&tokenizer_cb, NULL);
+  tokenizer = GNUNET_MST_create (&tokenizer_cb, NULL);
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
   stdout_fd = GNUNET_DISK_get_handle_from_native (stdout);
   read_task_id =
@@ -583,10 +592,10 @@ sighandler_child_death ()
  * @return return code
  */
 int
-main (int argc, char **argv)
+main (int argc,
+      char **argv)
 {
   struct GNUNET_SIGNAL_Context *shc_chld;
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
@@ -599,12 +608,14 @@ main (int argc, char **argv)
     GNUNET_break (0);
     return 1;
   }
-  shc_chld =
-      GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
-  ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-helper-testbed",
-                          "Helper for starting gnunet-service-testbed", options,
-                          &run, NULL);
+  shc_chld = GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD,
+                                            &sighandler_child_death);
+  ret = GNUNET_PROGRAM_run (argc, argv,
+                            "gnunet-helper-testbed",
+                            "Helper for starting gnunet-service-testbed",
+                            options,
+                            &run,
+                            NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
