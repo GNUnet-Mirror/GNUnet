@@ -36,10 +36,7 @@ gnunet-namestore -p -z bob -a -n alice -t PKEY -V $ALICE_PKEY -e never -c test_g
 gnunet-namestore -p -z daveego -a -n + -t REVERSE -V "dave $BOB_PKEY 0" -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z daveego -a -n bob -t PKEY -V $BOB_PKEY -e never -c test_gns_lookup.conf
 gnunet-arm -i gns -c test_gns_lookup.conf
-$DO_TIMEOUT gnunet-gns --raw -z aliceego -u bob.gnu -t PKEY -c test_gns_lookup.conf
 sleep 10
-gnunet-namestore -z bob -D -c test_gns_lookup.conf
-gnunet-namestore -z daveego -D -c test_gns_lookup.conf
 RES_NAME=`$DO_TIMEOUT gnunet-gns --raw -z testego -R $DAVE_PKEY -c test_gns_lookup.conf`
 gnunet-arm -e -c test_gns_lookup.conf
 rm -rf /tmp/test-gnunet-gns-peer-1/
