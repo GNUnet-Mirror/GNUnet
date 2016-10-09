@@ -854,7 +854,8 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
- * Wrapper around realloc. Rellocates size bytes of memory.
+ * Wrapper around realloc. Reallocates size bytes of memory.
+ * The content of the intersection of the new and old size will be unchanged.
  *
  * @param ptr the pointer to reallocate
  * @param size the number of bytes to reallocate

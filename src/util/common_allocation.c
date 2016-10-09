@@ -234,6 +234,7 @@ GNUNET_xmalloc_unchecked_ (size_t size,
 /**
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
+ * The content of the intersection of the new and old size will be unchanged.
  *
  * @param ptr the pointer to reallocate
  * @param n how many bytes of memory to allocate
@@ -243,9 +244,9 @@ GNUNET_xmalloc_unchecked_ (size_t size,
  */
 void *
 GNUNET_xrealloc_ (void *ptr,
-		  size_t n,
-		  const char *filename,
-		  int linenumber)
+                  size_t n,
+                  const char *filename,
+                  int linenumber)
 {
 #ifdef W32_MEM_LIMIT
   n += sizeof (size_t);
