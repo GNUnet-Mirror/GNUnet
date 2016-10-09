@@ -95,14 +95,18 @@ GNUNET_xmalloc_ (size_t size,
  * @param n size of the first dimension
  * @param m size of the second dimension
  * @param elementSize size of a single element in bytes
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
 void **
-GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize)
+GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize,
+                       const char *filename, int linenumber)
 {
 	/* use char pointer internally to avoid void pointer arithmetic warnings */
-	char **ret = GNUNET_malloc (n * sizeof (void *) +  /* 1. dim header */
-	                            n * m * elementSize);  /* element data */
+	char **ret = GNUNET_xmalloc_ (n * sizeof (void *) +  /* 1. dim header */
+	                              n * m * elementSize,   /* element data */
+	                              filename, linenumber);
 
 	for (size_t i = 0; i < n; i++)
 		ret[i] = (char *)ret +          /* base address */
@@ -123,15 +127,19 @@ GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize)
  * @param m size of the second dimension
  * @param o size of the third dimension
  * @param elementSize size of a single element in bytes
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
  * @return allocated memory, never NULL
  */
 void ***
-GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize)
+GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize,
+                       const char *filename, int linenumber)
 {
 	/* use char pointer internally to avoid void pointer arithmetic warnings */
-	char ***ret = GNUNET_malloc (n * sizeof (void **) +     /* 1. dim header */
-	                             n * m * sizeof (void *) +  /* 2. dim header */
-	                             n * m * o * elementSize);  /* element data */
+	char ***ret = GNUNET_xmalloc_ (n * sizeof (void **) +    /* 1. dim header */
+	                               n * m * sizeof (void *) + /* 2. dim header */
+	                               n * m * o * elementSize,  /* element data */
+	                               filename, linenumber);
 
 	for (size_t i = 0; i < n; i++)
 	{
