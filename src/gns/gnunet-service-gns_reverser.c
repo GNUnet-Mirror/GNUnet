@@ -581,7 +581,8 @@ GNS_reverse_init (struct GNUNET_NAMESTORE_Handle *nh,
 void
 GNS_reverse_done ()
 {
-  GNUNET_free (mynick);
+  if (NULL != mynick)
+    GNUNET_free (mynick);
   if (NULL != it_task)
     GNUNET_SCHEDULER_cancel (it_task);
   if (NULL != reverse_record_check_task)
