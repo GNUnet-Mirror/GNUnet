@@ -460,6 +460,7 @@ database_setup (struct Plugin *plugin)
 
     }
   }
+  GNUNET_free (buffer);
   return GNUNET_OK;
 }
 
@@ -500,6 +501,7 @@ store_and_free_entries (void *cls,
   GNUNET_free (entry->value);
   GNUNET_free (entry->expiry);
   GNUNET_free (entry);
+  GNUNET_free (line);
   return GNUNET_YES;
 
 }
