@@ -1896,8 +1896,6 @@ mhd_connection_cb (void *cls,
           break;
         }
       }
-      if (NULL == s5r)
-        GNUNET_break (0);
       s5r->ssl_checked = GNUNET_NO;
       break;
     case MHD_CONNECTION_NOTIFY_CLOSED:
