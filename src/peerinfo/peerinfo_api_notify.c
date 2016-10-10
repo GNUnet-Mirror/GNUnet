@@ -172,6 +172,23 @@ handle_notification (void *cls,
 
 
 /**
+ * Type of a function to call when we receive a message from the
+ * service.  Call the iterator with the result and (if applicable)
+ * continue to receive more messages or trigger processing the next
+ * event (if applicable).
+ *
+ * @param cls closure
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void
+handle_end_iteration (void *cls,
+                      const struct GNUNET_MessageHeader *msg)
+{
+  /* these are ignored by the notify API */
+}
+
+
+/**
  * Task to re-try connecting to peerinfo.
  *
  * @param cls the `struct GNUNET_PEERINFO_NotifyContext *`
@@ -185,6 +202,10 @@ reconnect (void *cls)
                            GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
                            struct InfoMessage,
                            nc),
+    GNUNET_MQ_hd_fixed_size (end_iteration,
+                             GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END,
+                             struct GNUNET_MessageHeader,
+                             nc),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
