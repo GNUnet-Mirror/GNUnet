@@ -524,7 +524,8 @@ struct GNUNET_OS_CommandHandle;
  * @param cls closure
  * @param line line of output from a command, NULL for the end
  */
-typedef void (*GNUNET_OS_LineProcessor) (void *cls, const char *line);
+typedef void
+(*GNUNET_OS_LineProcessor) (void *cls, const char *line);
 
 
 /**
@@ -548,8 +549,10 @@ GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd);
  * @return NULL on error
  */
 struct GNUNET_OS_CommandHandle *
-GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
-                       struct GNUNET_TIME_Relative timeout, const char *binary,
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
+                       void *proc_cls,
+                       struct GNUNET_TIME_Relative timeout,
+                       const char *binary,
                        ...);
 
 
@@ -580,6 +583,22 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
  */
 int
 GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
+
+
+
+/**
+ * Retrieve the status of a process, waiting on him if dead.
+ * Blocking version.
+ *
+ * @param proc pointer to process structure
+ * @param type status type
+ * @param code return code/signal number
+ * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_OS_process_wait_status (struct GNUNET_OS_Process *proc,
+                               enum GNUNET_OS_ProcessStatusType *type,
+                               unsigned long *code);
 
 
 /**

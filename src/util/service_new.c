@@ -1536,6 +1536,35 @@ detach_terminal (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * Tear down the service, closing the listen sockets and
+ * freeing the ACLs.
+ *
+ * @param sh handle to the service to tear down.
+ */
+static void
+teardown_service (struct GNUNET_SERVICE_Handle *sh)
+{
+  struct ServiceListenContext *slc;
+
+  GNUNET_free_non_null (sh->v4_denied);
+  GNUNET_free_non_null (sh->v6_denied);
+  GNUNET_free_non_null (sh->v4_allowed);
+  GNUNET_free_non_null (sh->v6_allowed);
+  while (NULL != (slc = sh->slc_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (sh->slc_head,
+                                 sh->slc_tail,
+                                 slc);
+    if (NULL != slc->listen_task)
+      GNUNET_SCHEDULER_cancel (slc->listen_task);
+    GNUNET_break (GNUNET_OK ==
+		  GNUNET_NETWORK_socket_close (slc->listen_socket));
+    GNUNET_free (slc);
+  }
+}
+
+
+/**
  * Low-level function to start a service if the scheduler
  * is already running.  Should only be used directly in
  * special cases.
@@ -1579,8 +1608,21 @@ GNUNET_SERVICE_starT (const char *service_name,
                       void *cls,
                       const struct GNUNET_MQ_MessageHandler *handlers)
 {
-  GNUNET_break (0); // FIXME: not implemented
-  return NULL;
+  struct GNUNET_SERVICE_Handle *sh;
+
+  sh = GNUNET_new (struct GNUNET_SERVICE_Handle);
+  sh->service_name = service_name;
+  sh->cfg = cfg;
+  sh->connect_cb = connect_cb;
+  sh->disconnect_cb = disconnect_cb;
+  sh->cb_cls = cls;
+  sh->handlers = handlers;
+  if (GNUNET_OK != setup_service (sh))
+  {
+    GNUNET_free (sh);
+    return NULL;
+  }
+  return sh;
 }
 
 
@@ -1592,7 +1634,8 @@ GNUNET_SERVICE_starT (const char *service_name,
 void
 GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv)
 {
-  GNUNET_assert (0); // FIXME: not implemented
+  teardown_service (srv);
+  GNUNET_free (srv);
 }
 
 
@@ -1823,29 +1866,14 @@ shutdown:
     }
   }
 #endif
+  teardown_service (&sh);
+
   GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
-
-  while (NULL != sh.slc_head)
-  {
-    struct ServiceListenContext *slc = sh.slc_head;
-
-    sh.slc_head = slc->next;
-    if (NULL != slc->listen_task)
-      GNUNET_SCHEDULER_cancel (slc->listen_task);
-    GNUNET_break (GNUNET_OK ==
-		  GNUNET_NETWORK_socket_close (slc->listen_socket));
-    GNUNET_free (slc);
-  }
-
   GNUNET_free_non_null (logfile);
   GNUNET_free_non_null (loglev);
   GNUNET_free (cfg_filename);
   GNUNET_free_non_null (opt_cfg_filename);
-  GNUNET_free_non_null (sh.v4_denied);
-  GNUNET_free_non_null (sh.v6_denied);
-  GNUNET_free_non_null (sh.v4_allowed);
-  GNUNET_free_non_null (sh.v6_allowed);
 
   return err ? GNUNET_SYSERR : sh.ret;
 }

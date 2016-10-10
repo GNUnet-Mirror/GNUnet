@@ -1592,19 +1592,21 @@ GNUNET_OS_start_process_s (int pipe_control,
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
+ * @param options WNOHANG if non-blocking is desired
  * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
-int
-GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
-                          enum GNUNET_OS_ProcessStatusType *type,
-                          unsigned long *code)
+static int
+process_status (struct GNUNET_OS_Process *proc,
+                enum GNUNET_OS_ProcessStatusType *type,
+                unsigned long *code,
+                int options)
 {
 #ifndef MINGW
   int status;
   int ret;
 
   GNUNET_assert (0 != proc);
-  ret = waitpid (proc->pid, &status, WNOHANG);
+  ret = waitpid (proc->pid, &status, options);
   if (ret < 0)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
@@ -1650,6 +1652,10 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
     *code = 0;
   }
 #else
+#ifndef WNOHANG
+#define WNOHANG  42 /* just a flag for W32, purely internal at this point */
+#endif
+
   HANDLE h;
   DWORD c, error_code, ret;
 
@@ -1665,6 +1671,14 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
   if (h == NULL)
     h = GetCurrentProcess ();
 
+  if (WNOHANG != options)
+  {
+    if (WAIT_OBJECT_0 != WaitForSingleObject (h, INFINITE))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return GNUNET_SYSERR;
+    }
+  }
   SetLastError (0);
   ret = GetExitCodeProcess (h, &c);
   error_code = GetLastError ();
@@ -1685,6 +1699,48 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 #endif
 
   return GNUNET_OK;
+}
+
+
+/**
+ * Retrieve the status of a process, waiting on him if dead.
+ * Nonblocking version.
+ *
+ * @param proc process ID
+ * @param type status type
+ * @param code return code/signal number
+ * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
+                          enum GNUNET_OS_ProcessStatusType *type,
+                          unsigned long *code)
+{
+  return process_status (proc,
+                         type,
+                         code,
+                         WNOHANG);
+}
+
+
+/**
+ * Retrieve the status of a process, waiting on him if dead.
+ * Blocking version.
+ *
+ * @param proc pointer to process structure
+ * @param type status type
+ * @param code return code/signal number
+ * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_OS_process_wait_status (struct GNUNET_OS_Process *proc,
+                               enum GNUNET_OS_ProcessStatusType *type,
+                               unsigned long *code)
+{
+  return process_status (proc,
+                         type,
+                         code,
+                         0);
 }
 
 

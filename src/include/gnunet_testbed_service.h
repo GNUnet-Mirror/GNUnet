@@ -1493,6 +1493,7 @@ GNUNET_TESTBED_test_run (const char *testname,
 struct GNUNET_TESTBED_Controller *
 GNUNET_TESTBED_run_get_controller_handle (struct GNUNET_TESTBED_RunHandle *h);
 
+
 /**
  * Opaque handle for barrier
  */
