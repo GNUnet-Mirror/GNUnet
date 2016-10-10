@@ -76,7 +76,9 @@ do_shutdown (void *cls)
  *   #GNUNET_OK if the barrier is crossed
  */
 static void
-barrier_wait_cb (void *cls, const char *name, int status)
+barrier_wait_cb (void *cls,
+                 const char *name,
+                 int status)
 {
   GNUNET_break (NULL == cls);
   wh = NULL;
@@ -117,10 +119,12 @@ run (void *cls,
 {
   unsigned int rsec;
 
-  rsec = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 10);
-  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				     (GNUNET_TIME_UNIT_SECONDS, rsec),
-				     &do_wait, NULL);
+  rsec = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                   10);
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                    rsec),
+				     &do_wait,
+                                     NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
@@ -139,6 +143,10 @@ main (int argc, char **argv)
 
   ret =
       GNUNET_PROGRAM_run (argc, argv,
-                          "test-barriers", "nohelp", options, &run, NULL);
+                          "test-barriers",
+                          "nohelp",
+                          options,
+                          &run,
+                          NULL);
   return ret;
 }

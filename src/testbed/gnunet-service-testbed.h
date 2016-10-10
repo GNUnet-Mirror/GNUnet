@@ -96,7 +96,7 @@ struct ForwardedOperationContext
   /**
    * The client to which we have to reply
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Closure pointer
@@ -161,7 +161,7 @@ struct LinkControllersContext
   /**
    * The client which initiated the link controller operation
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * The ID of the operation
@@ -174,7 +174,6 @@ struct LinkControllersContext
 /**
  * A peer
  */
-
 struct Peer
 {
 
@@ -255,7 +254,7 @@ struct Context
   /**
    * The client handle associated with this context
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * The network address of the master controller
@@ -296,6 +295,9 @@ struct SharedService
 };
 
 
+struct RegisteredHostContext;
+
+
 /**
  * Context information to used during operations which forward the overlay
  * connect message
@@ -313,6 +315,11 @@ struct ForwardedOverlayConnectContext
   struct ForwardedOverlayConnectContext *prev;
 
   /**
+   * Which host does this FOCC belong to?
+   */
+  struct RegisteredHostContext *rhc;
+
+  /**
    * A copy of the original overlay connect message
    */
   struct GNUNET_MessageHeader *orig_msg;
@@ -320,7 +327,7 @@ struct ForwardedOverlayConnectContext
   /**
    * The client handle
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * The id of the operation which created this context information
@@ -391,13 +398,13 @@ struct RegisteredHostContext
 
 
 /**
- * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
+ * Context data for #GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
  */
 struct HandlerContext_ShutdownPeers
 {
   /**
    * The number of slave we expect to hear from since we forwarded the
-   * GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
+   * #GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
    */
   unsigned int nslaves;
 
@@ -507,17 +514,6 @@ extern char *GST_stats_dir;
 
 
 /**
- * Queues a message in send queue for sending to the service
- *
- * @param client the client to whom the queued message has to be sent
- * @param msg the message to queue
- */
-void
-GST_queue_message (struct GNUNET_SERVER_Client *client,
-                   struct GNUNET_MessageHeader *msg);
-
-
-/**
  * Function to destroy a peer
  *
  * @param peer the peer structure to destroy
@@ -530,7 +526,7 @@ GST_destroy_peer (struct Peer *peer);
  * Stops and destroys all peers
  */
 void
-GST_destroy_peers ();
+GST_destroy_peers (void);
 
 
 /**
@@ -546,15 +542,14 @@ GST_find_dest_route (uint32_t host_id);
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message);
+handle_overlay_connect (void *cls,
+                        const struct GNUNET_TESTBED_OverlayConnectMessage *msg);
 
 
 /**
@@ -597,7 +592,7 @@ GST_forwarded_operation_timeout (void *cls);
  * Clears the forwarded operations queue
  */
 void
-GST_clear_fopcq ();
+GST_clear_fopcq (void);
 
 
 /**
@@ -608,8 +603,27 @@ GST_clear_fopcq ();
  * @param emsg the error message; can be NULL
  */
 void
-GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
-                             uint64_t operation_id, const char *emsg);
+GST_send_operation_fail_msg (struct GNUNET_SERVICE_Client *client,
+                             uint64_t operation_id,
+                             const char *emsg);
+
+
+/**
+ * Notify OC subsystem that @a client disconnected.
+ *
+ * @param client the client that disconnected
+ */
+void
+GST_notify_client_disconnect_oc (struct GNUNET_SERVICE_Client *client);
+
+
+/**
+ * Notify peers subsystem that @a client disconnected.
+ *
+ * @param client the client that disconnected
+ */
+void
+GST_notify_client_disconnect_peers (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -619,140 +633,180 @@ GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
  * @param operation_id the id of the operation which was successful
  */
 void
-GST_send_operation_success_msg (struct GNUNET_SERVER_Client *client,
+GST_send_operation_success_msg (struct GNUNET_SERVICE_Client *client,
                                 uint64_t operation_id);
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT messages
+ * Check #GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-void
-GST_handle_remote_overlay_connect (void *cls,
-                                   struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader *message);
+int
+check_remote_overlay_connect (void *cls,
+                              const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message);
+handle_remote_overlay_connect (void *cls,
+                               const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ * Check #GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
  */
-void
-GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message);
+int
+check_peer_create (void *cls,
+                   const struct GNUNET_TESTBED_PeerCreateMessage *msg);
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
  *
- * @param cls NULL
- * @param client identification of the client
+ * @param cls identification of the client
  * @param message the actual message
  */
 void
-GST_handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *message);
+handle_peer_create (void *cls,
+                    const struct GNUNET_TESTBED_PeerCreateMessage *msg);
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
  *
- * @param cls NULL
- * @param client identification of the client
+ * @param cls identification of the client
+ * @param msg the actual message
+ */
+void
+handle_peer_destroy (void *cls,
+                     const struct GNUNET_TESTBED_PeerDestroyMessage *msg);
+
+
+/**
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ */
+void
+handle_peer_start (void *cls,
+                   const struct GNUNET_TESTBED_PeerStartMessage *msg);
+
+
+/**
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls identification of the client
  * @param message the actual message
  */
 void
-GST_handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message);
+handle_peer_stop (void *cls,
+                  const struct GNUNET_TESTBED_PeerStopMessage *msg);
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message);
+handle_peer_get_config (void *cls,
+                        const struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg);
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS messages
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS messages
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *message);
+handle_shutdown_peers (void *cls,
+                       const struct GNUNET_TESTBED_ShutdownPeersMessage *msg);
 
 
 /**
- * Handler for GNUNET_TESTBED_ManagePeerServiceMessage message
+ * Check #GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE message
  *
- * @param cls NULL
- * @param client identification of client
- * @param message the actual message
+ * @param cls identification of client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+int
+check_manage_peer_service (void *cls,
+                           const struct GNUNET_TESTBED_ManagePeerServiceMessage *msg);
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE message
+ *
+ * @param cls identification of client
+ * @param msg the actual message
  */
 void
-GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
+handle_manage_peer_service (void *cls,
+                            const struct GNUNET_TESTBED_ManagePeerServiceMessage *msg);
+
+
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER type messages.
+ * Check #GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER type messages.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+int
+check_peer_reconfigure (void *cls,
+                        const struct GNUNET_TESTBED_PeerReconfigureMessage *msg);
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER type messages.
  * Should stop the peer asyncronously, destroy it and create it again with the
  * new configuration.
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message);
+handle_peer_reconfigure (void *cls,
+                         const struct GNUNET_TESTBED_PeerReconfigureMessage *msg);
 
 
 /**
  * Frees the ManageServiceContext queue
  */
 void
-GST_free_mctxq ();
+GST_free_mctxq (void);
 
 
 /**
  * Cleans up the queue used for forwarding link controllers requests
  */
 void
-GST_free_lcfq ();
+GST_free_lcf (void);
 
 
 /**
  * Cleans up the route list
  */
 void
-GST_route_list_clear ();
+GST_route_list_clear (void);
 
 
 /**
@@ -777,21 +831,21 @@ GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc);
  * Clears all pending overlay connect contexts in queue
  */
 void
-GST_free_occq ();
+GST_free_occq (void);
 
 
 /**
  * Clears all pending remote overlay connect contexts in queue
  */
 void
-GST_free_roccq ();
+GST_free_roccq (void);
 
 
 /**
  * Cleans up the Peer reconfigure context list
  */
 void
-GST_free_prcq ();
+GST_free_prcq (void);
 
 
 /**
@@ -807,7 +861,7 @@ GST_cache_init (unsigned int size);
  * Clear cache
  */
 void
-GST_cache_clear ();
+GST_cache_clear (void);
 
 
 /**
@@ -845,6 +899,6 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * Shutdown the status calls module.
  */
 void
-GST_stats_destroy ();
+GST_stats_destroy (void);
 
 /* End of gnunet-service-testbed.h */

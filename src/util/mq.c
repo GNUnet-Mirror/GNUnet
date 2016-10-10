@@ -295,9 +295,10 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
   }
  done:
   if (GNUNET_NO == handled)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "No handler for message of type %d\n",
-         ntohs (mh->type));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "No handler for message of type %d and size %d\n",
+         ntohs (mh->type),
+         ntohs (mh->size));
 }
 
 

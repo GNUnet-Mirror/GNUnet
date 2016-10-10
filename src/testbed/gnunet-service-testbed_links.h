@@ -94,7 +94,7 @@ extern unsigned int GST_slave_list_size;
  * Cleans up the neighbour list
  */
 void
-GST_neighbour_list_clean();
+GST_neighbour_list_clean (void);
 
 
 /**
@@ -112,7 +112,7 @@ GST_get_neighbour (uint32_t id);
  * Function to cleanup the neighbour connect contexts
  */
 void
-GST_free_nccq ();
+GST_free_nccq (void);
 
 
 /**
@@ -128,10 +128,9 @@ struct NeighbourConnectNotification;
  * @param cls the closure given to GST_neighbour_get_connection()
  * @param controller the controller handle to the neighbour
  */
-typedef void (*GST_NeigbourConnectNotifyCallback) (void *cls,
-                                                   struct
-                                                   GNUNET_TESTBED_Controller
-                                                   *controller);
+typedef void
+(*GST_NeigbourConnectNotifyCallback) (void *cls,
+                                      struct GNUNET_TESTBED_Controller *controller);
 
 
 /**
@@ -181,19 +180,28 @@ GST_create_neighbour (struct GNUNET_TESTBED_Host *host);
 
 
 /**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
  *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 void
-GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message);
+handle_link_controllers (void *cls,
+                         const struct GNUNET_TESTBED_ControllerLinkRequest *msg);
+
+
+/**
+ * Clean up @a client handle if we stored any via #handle_link_controllers(),
+ * the given client disconnected.
+ *
+ * @param client the client that is history
+ */
+void
+GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client);
 
 
 /**
  * Cleans up the slave list
  */
 void
-GST_slave_list_clear ();
+GST_slave_list_clear (void);

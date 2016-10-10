@@ -105,6 +105,9 @@ handle_status (void *cls,
 {
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got barrier status %d\n",
+              (int) ntohs (msg->status));
   switch (ntohs (msg->status))
   {
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
@@ -206,6 +209,9 @@ GNUNET_TESTBED_barrier_wait (const char *name,
     GNUNET_free (h);
     return NULL;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Waiting on barrier `%s'\n",
+              name);
   h->name = GNUNET_strdup (name);
   h->cb = cb;
   h->cb_cls = cb_cls;
@@ -226,8 +232,8 @@ GNUNET_TESTBED_barrier_wait (const char *name,
                              name_len,
                              GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT);
   GNUNET_memcpy (msg->name,
-          name,
-          name_len);
+                 name,
+                 name_len);
   GNUNET_MQ_send (h->mq,
                   env);
   return h;

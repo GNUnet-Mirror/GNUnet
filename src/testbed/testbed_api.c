@@ -1298,8 +1298,13 @@ handle_barrier_status (void *cls,
   GNUNET_assert (NULL != barrier->cb);
   if ((GNUNET_YES == barrier->echo) &&
       (GNUNET_TESTBED_BARRIERSTATUS_CROSSED == status))
-    GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
-  barrier->cb (barrier->cls, name, barrier, status, emsg);
+    GNUNET_TESTBED_queue_message_ (c,
+                                   GNUNET_copy_message (&msg->header));
+  barrier->cb (barrier->cls,
+               name,
+               barrier,
+               status,
+               emsg);
   if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED == status)
     return;           /* just initialised; skip cleanup */
 

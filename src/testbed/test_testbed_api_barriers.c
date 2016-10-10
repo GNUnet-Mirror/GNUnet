@@ -50,7 +50,7 @@ struct GNUNET_TESTBED_Barrier *barrier;
 /**
  * Identifier for the shutdown task
  */
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
 /**
  * Result of this test case
@@ -85,9 +85,9 @@ do_shutdown (void *cls)
  * @param cls the closure given to GNUNET_TESTBED_barrier_init()
  * @param name the name of the barrier
  * @param barrier the barrier handle
- * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
- *   GNUNET_SYSERR upon error
- * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
+ * @param status status of the barrier; #GNUNET_OK if the barrier is crossed;
+ *   #GNUNET_SYSERR upon error
+ * @param emsg if the status were to be #GNUNET_SYSERR, this parameter has the
  *   error messsage
  */
 static void
@@ -104,17 +104,20 @@ barrier_cb (void *cls,
   switch (status)
   {
   case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
-    LOG (GNUNET_ERROR_TYPE_INFO, "Barrier initialised\n");
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Barrier initialised\n");
     old_status = status;
     return;
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Barrier initialisation failed: %s",
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Barrier initialisation failed: %s",
          (NULL == emsg) ? "unknown reason" : emsg);
     barrier = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;
   case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
-    LOG (GNUNET_ERROR_TYPE_INFO, "Barrier crossed\n");
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Barrier crossed\n");
     if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED)
       result = GNUNET_OK;
     barrier = NULL;
@@ -151,13 +154,17 @@ test_master (void *cls,
   GNUNET_assert (NULL == cls);
   if (NULL == peers_)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failing test due to timeout\n");
     return;
   }
   GNUNET_assert (NUM_PEERS == num_peers);
   c = GNUNET_TESTBED_run_get_controller_handle (h);
-  barrier = GNUNET_TESTBED_barrier_init (c, TEST_BARRIER_NAME, 100,
-                                         &barrier_cb, NULL);
+  barrier = GNUNET_TESTBED_barrier_init (c,
+                                         TEST_BARRIER_NAME,
+                                         100,
+                                         &barrier_cb,
+                                         NULL);
   shutdown_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS,
