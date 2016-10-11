@@ -1075,11 +1075,16 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
           break;
 
         default:
-          LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                    "mysql extract_result", stmt);
+          LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                     "mysql extract_result", stmt);
         }
     }
   while (GNUNET_YES == sql_ret);
+
+  // for debugging
+  if (GNUNET_NO == ret)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+               "Empty result set\n");
 
   return ret;
 }
