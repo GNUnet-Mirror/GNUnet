@@ -1001,7 +1001,8 @@ message_add_flags (void *cls,
 static int
 fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
               GNUNET_PSYCSTORE_FragmentCallback cb,
-              void *cb_cls)
+              void *cb_cls,
+              uint64_t *returned_fragments)
 {
 
   uint32_t hop_counter;
@@ -1009,7 +1010,6 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
   void *purpose = NULL;
   size_t signature_size;
   size_t purpose_size;
-
   uint64_t fragment_id;
   uint64_t fragment_offset;
   uint64_t message_id;
@@ -1020,10 +1020,7 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
   int ret = GNUNET_SYSERR;
   int sql_ret;
   struct GNUNET_MULTICAST_MessageHeader *mp;
-
   uint64_t msg_flags;
-
-
   struct GNUNET_MY_ResultSpec results[] = {
     GNUNET_MY_result_spec_uint32 (&hop_counter),
     GNUNET_MY_result_spec_variable_size (&signature, &signature_size),
@@ -1039,45 +1036,50 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
     GNUNET_MY_result_spec_end
   };
 
-  sql_ret = GNUNET_MY_extract_result (stmt,
-                                      results);
-  switch (sql_ret)
-  {
-    case GNUNET_NO:
-      if (ret != GNUNET_OK)
-        ret = GNUNET_NO;
-      break;
+  do
+    {
+      sql_ret = GNUNET_MY_extract_result (stmt,
+                                          results);
+      switch (sql_ret)
+        {
+        case GNUNET_NO:
+          if (ret != GNUNET_OK)
+            ret = GNUNET_NO;
+          break;
 
-    case GNUNET_YES:
-      mp = GNUNET_malloc (sizeof (*mp) + buf_size);
+        case GNUNET_YES:
+          mp = GNUNET_malloc (sizeof (*mp) + buf_size);
 
-      mp->header.size = htons (sizeof (*mp) + buf_size);
-      mp->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
-      mp->hop_counter = htonl (hop_counter);
-      GNUNET_memcpy (&mp->signature,
-                    signature,
-                    signature_size);
-      GNUNET_memcpy (&mp->purpose,
-                    purpose,
-                    purpose_size);
-      mp->fragment_id = GNUNET_htonll (fragment_id);
-      mp->fragment_offset = GNUNET_htonll (fragment_offset);
-      mp->message_id = GNUNET_htonll (message_id);
-      mp->group_generation = GNUNET_htonll (group_generation);
-      mp->flags = htonl(msg_flags);
+          mp->header.size = htons (sizeof (*mp) + buf_size);
+          mp->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
+          mp->hop_counter = htonl (hop_counter);
+          GNUNET_memcpy (&mp->signature,
+                         signature,
+                         signature_size);
+          GNUNET_memcpy (&mp->purpose,
+                         purpose,
+                         purpose_size);
+          mp->fragment_id = GNUNET_htonll (fragment_id);
+          mp->fragment_offset = GNUNET_htonll (fragment_offset);
+          mp->message_id = GNUNET_htonll (message_id);
+          mp->group_generation = GNUNET_htonll (group_generation);
+          mp->flags = htonl(msg_flags);
 
-      GNUNET_memcpy (&mp[1],
-                     buf,
-                     buf_size);
-      ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
+          GNUNET_memcpy (&mp[1],
+                         buf,
+                         buf_size);
+          ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
+          if (NULL != returned_fragments)
+            (*returned_fragments)++;
+          GNUNET_MY_cleanup_result (results);
+          break;
 
-      GNUNET_MY_cleanup_result (results);
-      break;
-
-    default:
-      LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+        default:
+          LOG_MYSQL(plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "mysql extract_result", stmt);
-  }
+        }
+    }
+  while (GNUNET_YES == sql_ret);
 
   return ret;
 }
@@ -1094,28 +1096,22 @@ fragment_select (struct Plugin *plugin,
   int ret = GNUNET_SYSERR;
   int sql_ret;
 
-  do
+  sql_ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params);
+  switch (sql_ret)
     {
-      sql_ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params);
-      switch (sql_ret)
-      {
-      case GNUNET_NO:
-        if (ret != GNUNET_OK)
-          ret = GNUNET_NO;
-        break;
+    case GNUNET_NO:
+      if (ret != GNUNET_OK)
+        ret = GNUNET_NO;
+      break;
 
-      case GNUNET_YES:
-        ret = fragment_row (stmt, cb, cb_cls);
-        (*returned_fragments)++;
-        break;
+    case GNUNET_YES:
+      ret = fragment_row (stmt, cb, cb_cls, returned_fragments);
+      break;
 
-      default:
-        LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                   "mysql exec_prepared", stmt);
-      }
+    default:
+      LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                 "mysql exec_prepared", stmt);
     }
-  while (GNUNET_YES == sql_ret);
-
   return ret;
 }
 
@@ -1321,7 +1317,7 @@ message_get_fragment (void *cls,
       break;
 
     case GNUNET_OK:
-      ret = fragment_row (stmt, cb, cb_cls);
+      ret = fragment_row (stmt, cb, cb_cls, NULL);
       break;
 
     default:
