@@ -413,7 +413,7 @@ database_setup (struct Plugin *plugin)
         "       multicast_flags, psycstore_flags, data\n"
         "FROM messages\n"
         "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-        "      AND ? <= fragment_id AND fragment_id <= ?;",
+        "      AND ? <= fragment_id AND fragment_id <= ? LIMIT 1;",
         &plugin->select_fragments);
 
   /** @todo select_messages: add method_prefix filter */
@@ -1040,7 +1040,7 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
   };
 
   sql_ret = GNUNET_MY_extract_result (stmt,
-                                results);
+                                      results);
   switch (sql_ret)
   {
     case GNUNET_NO:
@@ -1048,7 +1048,7 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
         ret = GNUNET_NO;
       break;
 
-    case GNUNET_OK:
+    case GNUNET_YES:
       mp = GNUNET_malloc (sizeof (*mp) + buf_size);
 
       mp->header.size = htons (sizeof (*mp) + buf_size);
@@ -1067,8 +1067,8 @@ fragment_row (struct GNUNET_MYSQL_StatementHandle *stmt,
       mp->flags = htonl(msg_flags);
 
       GNUNET_memcpy (&mp[1],
-                    buf,
-                    buf_size);
+                     buf,
+                     buf_size);
       ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
 
       GNUNET_MY_cleanup_result (results);
@@ -1094,26 +1094,31 @@ fragment_select (struct Plugin *plugin,
   int ret = GNUNET_SYSERR;
   int sql_ret;
 
-  sql_ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params);
-  switch (sql_ret)
-  {
-    case GNUNET_NO:
-      if (ret != GNUNET_OK)
-        ret = GNUNET_NO;
-      break;
+  do
+    {
+      sql_ret = GNUNET_MY_exec_prepared (plugin->mc, stmt, params);
+      switch (sql_ret)
+      {
+      case GNUNET_NO:
+        if (ret != GNUNET_OK)
+          ret = GNUNET_NO;
+        break;
 
-    case GNUNET_YES:
-       ret = fragment_row (stmt, cb, cb_cls);
-       (*returned_fragments)++;
-      break;
+      case GNUNET_YES:
+        ret = fragment_row (stmt, cb, cb_cls);
+        (*returned_fragments)++;
+        break;
 
-    default:
-      LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                 "mysql exec_prepared", stmt);
-  }
+      default:
+        LOG_MYSQL (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                   "mysql exec_prepared", stmt);
+      }
+    }
+  while (GNUNET_YES == sql_ret);
 
   return ret;
 }
+
 
 /**
  * Retrieve a message fragment range by fragment ID.
@@ -1134,8 +1139,6 @@ fragment_get (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_fragments;
   int ret = GNUNET_SYSERR;
-  *returned_fragments = 0;
-
   struct GNUNET_MY_QueryParam params_select[] = {
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_uint64 (&first_fragment_id),
@@ -1143,6 +1146,7 @@ fragment_get (void *cls,
     GNUNET_MY_query_param_end
   };
 
+  *returned_fragments = 0;
   ret = fragment_select (plugin, stmt, params_select, returned_fragments, cb, cb_cls);
 
   if (0 != mysql_stmt_reset (GNUNET_MYSQL_statement_get_stmt (stmt)))
@@ -1215,12 +1219,8 @@ message_get (void *cls,
              void *cb_cls)
 {
   struct Plugin *plugin = cls;
-
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_messages;
-
-  int ret = GNUNET_SYSERR;
-  *returned_fragments = 0;
-
+  int ret;
   struct GNUNET_MY_QueryParam params_select[] = {
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_uint64 (&first_message_id),
@@ -1229,6 +1229,7 @@ message_get (void *cls,
     GNUNET_MY_query_param_end
   };
 
+  *returned_fragments = 0;
   ret = fragment_select (plugin, stmt, params_select, returned_fragments, cb, cb_cls);
 
   if (0 != mysql_stmt_reset (GNUNET_MYSQL_statement_get_stmt (stmt)))

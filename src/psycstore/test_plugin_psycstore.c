@@ -102,11 +102,13 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
+#define MAX_MSG 16
+
 struct FragmentClosure
 {
   uint8_t n;
-  uint64_t flags[16];
-  struct GNUNET_MULTICAST_MessageHeader *msg[16];
+  uint64_t flags[MAX_MSG];
+  struct GNUNET_MULTICAST_MessageHeader *msg[MAX_MSG];
 };
 
 static int
@@ -114,9 +116,22 @@ fragment_cb (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg2,
              enum GNUNET_PSYCSTORE_MessageFlags flags)
 {
   struct FragmentClosure *fcls = cls;
-  struct GNUNET_MULTICAST_MessageHeader *msg1 = fcls->msg[fcls->n];
-  uint64_t flags1 = fcls->flags[fcls->n++];
+  struct GNUNET_MULTICAST_MessageHeader *msg1;
+  uint64_t flags1;
   int ret;
+
+  if (fcls->n >= MAX_MSG)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  msg1 = fcls->msg[fcls->n];
+  flags1 = fcls->flags[fcls->n++];
+  if (NULL == msg1)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
 
   if (flags1 == flags && msg1->header.size == msg2->header.size
       && 0 == memcmp (msg1, msg2, ntohs (msg1->header.size)))
@@ -148,7 +163,7 @@ static int
 state_cb (void *cls, const char *name, const void *value, uint32_t value_size)
 {
   struct StateClosure *scls = cls;
-  const void *val = scls->value[scls->n];
+  const void *val = scls->value[scls->n]; // FIXME: check for n out-of-bounds FIRST!
   size_t val_size = scls->value_size[scls->n++];
 
   /* FIXME: check name */
@@ -259,8 +274,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                    &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
 
+#if GABOR
   LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id+1);
-
   ret_frags = 0;
   GNUNET_assert (
     GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
@@ -269,11 +284,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (fcls.n == 1);
 
   // FIXME: test fragment_get_latest and message_get_latest
-
+#endif
   LOG (GNUNET_ERROR_TYPE_INFO, "message_get_fragment()\n");
 
   fcls.n = 0;
-
   GNUNET_assert (
     GNUNET_OK == db->message_get_fragment (db->cls, &channel_pub_key,
                                            GNUNET_ntohll (msg->message_id),
@@ -282,12 +296,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (fcls.n == 1);
 
   LOG (GNUNET_ERROR_TYPE_INFO, "message_add_flags()\n");
-
   GNUNET_assert (
     GNUNET_OK == db->message_add_flags (db->cls, &channel_pub_key,
                                         GNUNET_ntohll (msg->message_id),
                                         GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED));
-
   LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id);
 
   fcls.n = 0;
