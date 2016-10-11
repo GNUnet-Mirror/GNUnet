@@ -323,7 +323,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Hopefully this client will never change, although if the plugin
  * dies and returns for some reason it may happen.
  */
-static struct GNUNET_SERVER_NotificationContext *nc;
+static struct GNUNET_NotificationContext *nc;
 
 /**
  * Handle for the statistics service.
@@ -410,9 +410,9 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   received_msg->distance = htonl (distance);
   received_msg->sender = *origin;
   GNUNET_memcpy (&received_msg[1], message, ntohs (message->size));
-  GNUNET_SERVER_notification_context_broadcast (nc,
-						&received_msg->header,
-						GNUNET_YES);
+  GNUNET_notification_context_broadcast (nc,
+                                         &received_msg->header,
+                                         GNUNET_YES);
   GNUNET_free (received_msg);
 }
 
@@ -425,9 +425,9 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 static void
 send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_notification_context_broadcast (nc,
-						message,
-						GNUNET_NO);
+  GNUNET_notification_context_broadcast (nc,
+                                         message,
+                                         GNUNET_NO);
 }
 
 
@@ -1752,36 +1752,50 @@ handle_dv_route_message (void *cls,
 
 
 /**
+ * Check that @a msg is well-formed
+ *
+ * @param cls identification of the client
+ * @param message the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_dv_send_message (void *cls,
+                       const struct GNUNET_DV_SendMessage *msg)
+{
+  const struct GNUNET_MessageHeader *payload;
+
+  if (ntohs (msg->header.size) < sizeof (struct GNUNET_DV_SendMessage) +
+      sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  payload = (const struct GNUNET_MessageHeader *) &msg[1];
+  if (ntohs (msg->header.size) != sizeof (struct GNUNET_DV_SendMessage) + ntohs (payload->size))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Service server's handler for message send requests (which come
  * bubbling up to us through the DV plugin).
  *
- * @param cls closure
- * @param client identification of the client
+ * @param cls identification of the client
  * @param message the actual message
  */
 static void
 handle_dv_send_message (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message)
+                        const struct GNUNET_DV_SendMessage *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Route *route;
-  const struct GNUNET_DV_SendMessage *msg;
   const struct GNUNET_MessageHeader *payload;
 
-  if (ntohs (message->size) < sizeof (struct GNUNET_DV_SendMessage) + sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct GNUNET_DV_SendMessage *) message;
   payload = (const struct GNUNET_MessageHeader *) &msg[1];
-  if (ntohs (message->size) != sizeof (struct GNUNET_DV_SendMessage) + ntohs (payload->size))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     &msg->target);
   if (NULL == route)
@@ -1794,7 +1808,7 @@ handle_dv_send_message (void *cls,
     GNUNET_STATISTICS_update (stats,
 			      "# local messages discarded (no route)",
 			      1, GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1808,7 +1822,7 @@ handle_dv_send_message (void *cls,
 		   &my_identity,
 		   &msg->target,
 		   payload);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1936,7 +1950,7 @@ shutdown_task (void *cls)
   GNUNET_CONTAINER_multipeermap_destroy (all_routes);
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
-  GNUNET_SERVER_notification_context_destroy (nc);
+  GNUNET_notification_context_destroy (nc);
   nc = NULL;
   for (i=0;i<DEFAULT_FISHEYE_DEPTH;i++)
   {
@@ -1955,7 +1969,7 @@ shutdown_task (void *cls)
 /**
  * Notify newly connected client about an existing route.
  *
- * @param cls the `struct GNUNET_SERVER_Client *`
+ * @param cls the `struct GNUNET_SERVICE_Client *`
  * @param key peer identity
  * @param value the `struct Route *`
  * @return #GNUNET_OK (continue to iterate)
@@ -1965,20 +1979,17 @@ notify_client_about_route (void *cls,
                            const struct GNUNET_PeerIdentity *key,
                            void *value)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Route *route = value;
-  struct GNUNET_DV_ConnectMessage cm;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_DV_ConnectMessage *cm;
 
-  memset (&cm, 0, sizeof (cm));
-  cm.header.size = htons (sizeof (cm));
-  cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
-  cm.distance = htonl (route->target.distance);
-  cm.peer = route->target.peer;
-
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &cm.header,
-					      GNUNET_NO);
+  env = GNUNET_MQ_msg (cm,
+                       GNUNET_MESSAGE_TYPE_DV_CONNECT);
+  cm->distance = htonl (route->target.distance);
+  cm->peer = route->target.peer;
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
   return GNUNET_OK;
 }
 
@@ -1993,11 +2004,13 @@ notify_client_about_route (void *cls,
  */
 static void
 handle_start (void *cls,
-	      struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  struct GNUNET_SERVICE_Client *client = cls;
+
+  GNUNET_notification_context_add (nc,
+                                   GNUNET_SERVICE_client_get_mq (client));
+  GNUNET_SERVICE_client_continue (client);
   GNUNET_CONTAINER_multipeermap_iterate (all_routes,
 					 &notify_client_about_route,
 					 client);
@@ -2025,13 +2038,13 @@ core_init (void *cls,
  * Process dv requests.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
     GNUNET_MQ_hd_var_size (dv_route_message,
@@ -2039,15 +2052,6 @@ run (void *cls,
                            struct RouteMessage,
                            NULL),
     GNUNET_MQ_handler_end ()
-  };
-  static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-    {&handle_start, NULL,
-     GNUNET_MESSAGE_TYPE_DV_START,
-     sizeof (struct GNUNET_MessageHeader) },
-    { &handle_dv_send_message, NULL,
-      GNUNET_MESSAGE_TYPE_DV_SEND,
-      0},
-    {NULL, NULL, 0, 0}
   };
   in_shutdown = GNUNET_NO;
   cfg = c;
@@ -2073,35 +2077,66 @@ run (void *cls,
     core_api = NULL;
     return;
   }
-  nc = GNUNET_SERVER_notification_context_create (server,
-						  MAX_QUEUE_SIZE_PLUGIN);
+  nc = GNUNET_notification_context_create (MAX_QUEUE_SIZE_PLUGIN);
   stats = GNUNET_STATISTICS_create ("dv",
 				    cfg);
-  GNUNET_SERVER_add_handlers (server,
-			      plugin_handlers);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
 
 
 /**
- * The main function for the dv service.
+ * Callback called when a client connects to the service.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
  */
-int
-main (int argc,
-      char *const *argv)
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-			      argv,
-			      "dv",
-			      GNUNET_SERVICE_OPTION_NONE,
-                              &run,
-			      NULL)) ? 0 : 1;
+  return c;
 }
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  GNUNET_assert (c == internal_cls);
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("dv",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (start,
+			  GNUNET_MESSAGE_TYPE_DV_START,
+			  struct GNUNET_MessageHeader,
+			  NULL),
+ GNUNET_MQ_hd_var_size (dv_send_message,
+                        GNUNET_MESSAGE_TYPE_DV_SEND,
+                        struct GNUNET_DV_SendMessage,
+                        NULL),
+ GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-dv.c */
