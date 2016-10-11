@@ -173,6 +173,7 @@ run (void *cls, char *const *args, const char *cfgfile,
              "%s",
 	     "Failed to initialize PSYCstore.  "
              "Database likely not setup, skipping test.\n");
+    ok = 77;
     return;
   }
 
@@ -511,7 +512,8 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-plugin-psycstore", "nohelp", options, &run, NULL);
 
-  if (ok != 0)
+  if ( (0 != ok) &&
+       (77 != ok) )
     FPRINTF (stderr, "Missed some testcases: %d\n", ok);
 
 #if ! DEBUG_PSYCSTORE

@@ -101,7 +101,6 @@ struct Plugin
    */
   struct GNUNET_MYSQL_StatementHandle *insert_channel_key;
 
-
   /**
    * Precompiled SQL for slave_key_store()
    */
@@ -268,50 +267,58 @@ mysql_prepare (struct GNUNET_MYSQL_Context *mc,
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
 {
   /* Open database and precompile statements */
-  plugin->mc = GNUNET_MYSQL_context_create (plugin->cfg, "psycstore-mysql");
+  plugin->mc = GNUNET_MYSQL_context_create (plugin->cfg,
+                                            "psycstore-mysql");
 
   if (NULL == plugin->mc)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-   _("Unable to initialize Mysql.\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unable to initialize Mysql.\n"));
     return GNUNET_SYSERR;
   }
 
+#define STMT_RUN(sql) \
+  if (GNUNET_OK != \
+      GNUNET_MYSQL_statement_run (plugin->mc, \
+                                  sql)) \
+  { \
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, \
+                _("Failed to run SQL statement `%s'\n"), \
+                sql); \
+    return GNUNET_SYSERR; \
+  }
+
   /* Create tables */
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS channels (\n"
+            " id INT AUTO_INCREMENT,\n"
+            " pub_key BLOB,\n"
+            " max_state_message_id INT,\n"
+            " state_hash_message_id INT,\n"
+            " PRIMARY KEY(id),\n"
+            " UNIQUE KEY(pub_key(5))\n"
+            ");");
 
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS channels (\n"
-                              " id INT AUTO_INCREMENT,\n"
-                              " pub_key BLOB,\n"
-                              " max_state_message_id INT,\n"
-                              " state_hash_message_id INT,\n"
-                              " PRIMARY KEY(id),\n"
-                              " UNIQUE KEY(pub_key(5))\n"
-                              ");");
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS slaves (\n"
+            " id INT AUTO_INCREMENT,\n"
+            " pub_key BLOB,\n"
+            " PRIMARY KEY(id),\n"
+            " UNIQUE KEY(pub_key(5))\n"
+            ");");
 
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS slaves (\n"
-                              " id INT AUTO_INCREMENT,\n"
-                              " pub_key BLOB,\n"
-                              " PRIMARY KEY(id),\n"
-                              " UNIQUE KEY(pub_key(5))\n"
-                              ");");
-
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS membership (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  slave_id INT NOT NULL REFERENCES slaves(id),\n"
-                              "  did_join INT NOT NULL,\n"
-                              "  announced_at BIGINT UNSIGNED NOT NULL,\n"
-                              "  effective_since BIGINT UNSIGNED NOT NULL,\n"
-                              "  group_generation BIGINT UNSIGNED NOT NULL\n"
-                              ");");
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS membership (\n"
+            "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+            "  slave_id INT NOT NULL REFERENCES slaves(id),\n"
+            "  did_join INT NOT NULL,\n"
+            "  announced_at BIGINT UNSIGNED NOT NULL,\n"
+            "  effective_since BIGINT UNSIGNED NOT NULL,\n"
+            "  group_generation BIGINT UNSIGNED NOT NULL\n"
+            ");");
 
 /*** FIX because IF NOT EXISTS doesn't work ***/
   GNUNET_MYSQL_statement_run (plugin->mc,
@@ -319,39 +326,37 @@ database_setup (struct Plugin *plugin)
                               "ON membership (channel_id, slave_id);");
 
   /** @todo messages table: add method_name column */
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS messages (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  hop_counter BIGINT UNSIGNED NOT NULL,\n"
-                              "  signature BLOB,\n"
-                              "  purpose BLOB,\n"
-                              "  fragment_id BIGINT UNSIGNED NOT NULL,\n"
-                              "  fragment_offset BIGINT UNSIGNED NOT NULL,\n"
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS messages (\n"
+            "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+            "  hop_counter BIGINT UNSIGNED NOT NULL,\n"
+            "  signature BLOB,\n"
+            "  purpose BLOB,\n"
+            "  fragment_id BIGINT UNSIGNED NOT NULL,\n"
+            "  fragment_offset BIGINT UNSIGNED NOT NULL,\n"
                               "  message_id BIGINT UNSIGNED NOT NULL,\n"
-                              "  group_generation BIGINT UNSIGNED NOT NULL,\n"
-                              "  multicast_flags BIGINT UNSIGNED NOT NULL,\n"
-                              "  psycstore_flags BIGINT UNSIGNED NOT NULL,\n"
-                              "  data BLOB,\n"
-                              "  PRIMARY KEY (channel_id, fragment_id),\n"
-                              "  UNIQUE KEY(channel_id, message_id, fragment_offset)\n"
-                              ");");
+            "  group_generation BIGINT UNSIGNED NOT NULL,\n"
+            "  multicast_flags BIGINT UNSIGNED NOT NULL,\n"
+            "  psycstore_flags BIGINT UNSIGNED NOT NULL,\n"
+            "  data BLOB,\n"
+            "  PRIMARY KEY (channel_id, fragment_id),\n"
+            "  UNIQUE KEY(channel_id, message_id, fragment_offset)\n"
+            ");");
 
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS state (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value_current BLOB,\n"
-                              "  value_signed BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name(5))\n"
-                              ");");
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS state (\n"
+            "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+            "  name TEXT NOT NULL,\n"
+            "  value_current BLOB,\n"
+            "  value_signed BLOB,\n"
+            "  PRIMARY KEY (channel_id, name(5))\n"
+            ");");
 
-  GNUNET_MYSQL_statement_run (plugin->mc,
-                              "CREATE TABLE IF NOT EXISTS state_sync (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value BLOB,\n"
-                              "  PRIMARY KEY (channel_id, name(5))\n"
-                              ");");
+  STMT_RUN ("CREATE TABLE IF NOT EXISTS state_sync (\n"
+            "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+            "  name TEXT NOT NULL,\n"
+            "  value BLOB,\n"
+            "  PRIMARY KEY (channel_id, name(5))\n"
+            ");");
+#undef STMT_RUN
 
   /* Prepare statements */
   mysql_prepare (plugin->mc,
