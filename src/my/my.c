@@ -181,6 +181,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                         stmt,
                         field_off,
                         &result[field_off]))
+
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Pre-conversion for MySQL result failed at offset %u\n",

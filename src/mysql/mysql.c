@@ -197,7 +197,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * our default options).
  *
  * @param mc database context to initialze
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 iopen (struct GNUNET_MYSQL_Context *mc)
@@ -300,7 +300,8 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mc = GNUNET_new (struct GNUNET_MYSQL_Context);
   mc->cfg = cfg;
   mc->section = section;
-  mc->cnffile = get_my_cnf_path (cfg, section);
+  mc->cnffile = get_my_cnf_path (cfg,
+                                 section);
 
   return mc;
 }
@@ -383,18 +384,22 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
  *
  * @param mc mysql context
  * @param sql SQL statement to run
- * @return GNUNET_OK on success
- *         GNUNET_SYSERR if there was a problem
+ * @return #GNUNET_OK on success
+ *         #GNUNET_SYSERR if there was a problem
  */
 int
-GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc, const char *sql)
+GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,
+                            const char *sql)
 {
-  if ((NULL == mc->dbf) && (GNUNET_OK != iopen (mc)))
+  if ( (NULL == mc->dbf) &&
+       (GNUNET_OK != iopen (mc)) )
     return GNUNET_SYSERR;
   mysql_query (mc->dbf, sql);
   if (mysql_error (mc->dbf)[0])
   {
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_query", mc);
+    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR,
+               "mysql_query",
+               mc);
     GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
@@ -407,7 +412,7 @@ GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc, const char *sql)
  *
  * @param mc mysql context
  * @param sh statement handle to prepare
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 prepare_statement (struct GNUNET_MYSQL_StatementHandle *sh)
