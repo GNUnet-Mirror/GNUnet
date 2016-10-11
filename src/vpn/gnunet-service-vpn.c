@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010, 2011, 2012 Christian Grothoff
+     Copyright (C) 2010, 2011, 2012, 2016 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -377,11 +377,6 @@ static char *vpn_argv[7];
 static unsigned long long ipv6prefix;
 
 /**
- * Notification context for sending replies to clients.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
-/**
  * If there are more than this number of address-mappings, old ones
  * will be removed
  */
@@ -489,12 +484,12 @@ get_channel_key_from_ips (int af,
  * @param addr resulting IP address
  */
 static void
-send_client_reply (struct GNUNET_SERVER_Client *client,
+send_client_reply (struct GNUNET_SERVICE_Client *client,
 		   uint64_t request_id,
 		   int result_af,
 		   const void *addr)
 {
-  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)] GNUNET_ALIGN;
+  struct GNUNET_MQ_Envelope *env;
   struct RedirectToIpResponseMessage *res;
   size_t rlen;
 
@@ -513,19 +508,16 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
     GNUNET_assert (0);
     return;
   }
-  res = (struct RedirectToIpResponseMessage *) buf;
-  res->header.size = htons (sizeof (struct RedirectToIpResponseMessage) + rlen);
-  res->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
+  env = GNUNET_MQ_msg_extra (res,
+                             rlen,
+                             GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP);
   res->result_af = htonl (result_af);
   res->request_id = request_id;
   GNUNET_memcpy (&res[1],
                  addr,
                  rlen);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc,
-					      client,
-					      &res->header,
-					      GNUNET_NO);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
 }
 
 
@@ -2606,21 +2598,60 @@ allocate_response_ip (int *result_af,
 
 /**
  * A client asks us to setup a redirection via some exit node to a
+ * particular IP.  Check if @a msg is well-formed.
+ * allocated IP.
+ *
+ * @param cls client requesting client
+ * @param msg redirection request
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_client_redirect_to_ip (void *cls,
+                             const struct RedirectToIpRequestMessage *msg)
+{
+  size_t alen;
+  int addr_af;
+
+  alen = ntohs (msg->header.size) - sizeof (struct RedirectToIpRequestMessage);
+  addr_af = (int) htonl (msg->addr_af);
+  switch (addr_af)
+  {
+  case AF_INET:
+    if (alen != sizeof (struct in_addr))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    break;
+  case AF_INET6:
+    if (alen != sizeof (struct in6_addr))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * A client asks us to setup a redirection via some exit node to a
  * particular IP.  Setup the redirection and give the client the
  * allocated IP.
  *
- * @param cls unused
- * @param client requesting client
- * @param message redirection request (a `struct RedirectToIpRequestMessage`)
+ * @param cls client requesting client
+ * @param msg redirection request
  */
 static void
-service_redirect_to_ip (void *cls,
-			struct GNUNET_SERVER_Client *client,
-			const struct GNUNET_MessageHeader *message)
+handle_client_redirect_to_ip (void *cls,
+                              const struct RedirectToIpRequestMessage *msg)
 {
-  size_t mlen;
+  struct GNUNET_SERVICE_Client *client = cls;
   size_t alen;
-  const struct RedirectToIpRequestMessage *msg;
   int addr_af;
   int result_af;
   struct in_addr v4;
@@ -2629,48 +2660,15 @@ service_redirect_to_ip (void *cls,
   struct DestinationEntry *de;
   struct GNUNET_HashCode key;
 
-  /* validate and parse request */
-  mlen = ntohs (message->size);
-  if (mlen < sizeof (struct RedirectToIpRequestMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  alen = mlen - sizeof (struct RedirectToIpRequestMessage);
-  msg = (const struct RedirectToIpRequestMessage *) message;
+  alen = ntohs (msg->header.size) - sizeof (struct RedirectToIpRequestMessage);
   addr_af = (int) htonl (msg->addr_af);
-  switch (addr_af)
-  {
-  case AF_INET:
-    if (alen != sizeof (struct in_addr))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    break;
-  case AF_INET6:
-    if (alen != sizeof (struct in6_addr))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
   /* allocate response IP */
   result_af = (int) htonl (msg->result_af);
   if (GNUNET_OK != allocate_response_ip (&result_af,
 					 &addr,
 					 &v4, &v6))
   {
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   /* send reply with our IP address */
@@ -2681,7 +2679,7 @@ service_redirect_to_ip (void *cls,
   if (result_af == AF_UNSPEC)
   {
     /* failure, we're done */
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (client);
     return;
   }
 
@@ -2691,9 +2689,14 @@ service_redirect_to_ip (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Allocated address %s for redirection via exit to %s\n",
-		inet_ntop (result_af, addr, sbuf, sizeof (sbuf)),
+		inet_ntop (result_af,
+                           addr,
+                           sbuf,
+                           sizeof (sbuf)),
 		inet_ntop (addr_af,
-			   &msg[1], dbuf, sizeof (dbuf)));
+			   &msg[1],
+                           dbuf,
+                           sizeof (dbuf)));
   }
 
   /* setup destination record */
@@ -2701,8 +2704,8 @@ service_redirect_to_ip (void *cls,
   de->is_service = GNUNET_NO;
   de->details.exit_destination.af = addr_af;
   GNUNET_memcpy (&de->details.exit_destination.ip,
-	  &msg[1],
-	  alen);
+                 &msg[1],
+                 alen);
   get_destination_key_from_ip (result_af,
 			       addr,
 			       &key);
@@ -2720,7 +2723,7 @@ service_redirect_to_ip (void *cls,
 			    1, GNUNET_NO);
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -2729,16 +2732,14 @@ service_redirect_to_ip (void *cls,
  * offering a service.  Setup the redirection and give the client the
  * allocated IP.
  *
- * @param cls unused
- * @param client requesting client
- * @param message redirection request (a `struct RedirectToPeerRequestMessage`)
+ * @param cls requesting client
+ * @param msg redirection request
  */
 static void
-service_redirect_to_service (void *cls,
-			     struct GNUNET_SERVER_Client *client,
-			     const struct GNUNET_MessageHeader *message)
+handle_client_redirect_to_service (void *cls,
+                                   const struct RedirectToServiceRequestMessage *msg)
 {
-  const struct RedirectToServiceRequestMessage *msg;
+  struct GNUNET_SERVICE_Client *client = cls;
   int result_af;
   struct in_addr v4;
   struct in6_addr v6;
@@ -2746,9 +2747,6 @@ service_redirect_to_service (void *cls,
   struct DestinationEntry *de;
   struct GNUNET_HashCode key;
   struct DestinationChannel *dt;
-
-  /*  parse request */
-  msg = (const struct RedirectToServiceRequestMessage *) message;
 
   /* allocate response IP */
   result_af = (int) htonl (msg->result_af);
@@ -2759,8 +2757,7 @@ service_redirect_to_service (void *cls,
                             &v6))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   send_client_reply (client,
@@ -2772,8 +2769,7 @@ service_redirect_to_service (void *cls,
     /* failure, we're done */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to allocate IP address for new destination\n"));
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_OK);
+    GNUNET_SERVICE_client_continue (client);
     return;
   }
 
@@ -2817,8 +2813,7 @@ service_redirect_to_service (void *cls,
 			       de->dt_tail,
 			       dt);
   /* we're done */
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -2938,11 +2933,6 @@ cleanup (void *cls)
     GNUNET_HELPER_wait (helper_handle);
     helper_handle = NULL;
   }
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
-  }
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -2954,25 +2944,50 @@ cleanup (void *cls)
 
 
 /**
+ * Callback called when a client connects to the service.
+ *
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  return c;
+}
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  GNUNET_assert (c == internal_cls);
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param server the initialized server
  * @param cfg_ configuration
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+     const struct GNUNET_CONFIGURATION_Handle *cfg_,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler service_handlers[] = {
-    /* callback, cls, type, size */
-    { &service_redirect_to_ip, NULL, GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP, 0},
-    { &service_redirect_to_service, NULL,
-     GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE,
-     sizeof (struct RedirectToServiceRequestMessage) },
-    {NULL, NULL, 0, 0}
-  };
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     { &receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY, 0},
     { &receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_VPN, 0},
@@ -3128,27 +3143,30 @@ run (void *cls,
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL, NULL);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
-  GNUNET_SERVER_add_handlers (server, service_handlers);
   GNUNET_SCHEDULER_add_shutdown (&cleanup,
 				 NULL);
 }
 
 
 /**
- * The main function of the VPN service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "vpn",
-			      GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? global_ret : 1;
-}
+GNUNET_SERVICE_MAIN
+("vpn",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (client_redirect_to_ip,
+                        GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP,
+                        struct RedirectToIpRequestMessage,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (client_redirect_to_service,
+                          GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE,
+                          struct RedirectToServiceRequestMessage,
+                          NULL),
+ GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-vpn.c */
