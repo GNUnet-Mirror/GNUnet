@@ -240,7 +240,7 @@ mysql_trace (void *cls, const char *sql)
  * @param dbh handle to the database
  * @param sql SQL statement, UTF-8 encoded
  * @param stmt set to the prepared statement
- * @return 0 on success
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 mysql_prepare (struct GNUNET_MYSQL_Context *mc,
@@ -250,14 +250,19 @@ mysql_prepare (struct GNUNET_MYSQL_Context *mc,
   *stmt = GNUNET_MYSQL_statement_prepare (mc,
                                           sql);
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-       "Prepared `%s' / %p\n", sql, stmt);
-  if(NULL == *stmt)
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-   _("Error preparing SQL query: %s\n  %s\n"),
-   mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (*stmt)), sql);
-
-  return 0;
+  if (NULL == *stmt)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Error preparing SQL query: %s\n  %s\n"),
+         mysql_stmt_error (GNUNET_MYSQL_statement_get_stmt (*stmt)),
+         sql);
+    return GNUNET_SYSERR;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Prepared `%s' / %p\n",
+       sql,
+       stmt);
+  return GNUNET_OK;
 }
 
 
@@ -359,211 +364,184 @@ database_setup (struct Plugin *plugin)
 #undef STMT_RUN
 
   /* Prepare statements */
-  mysql_prepare (plugin->mc,
-                "BEGIN",
-                &plugin->transaction_begin);
+#define PREP(stmt,handle)                                    \
+  if (GNUNET_OK != mysql_prepare (plugin->mc, stmt, handle)) \
+  { \
+    GNUNET_break (0); \
+    return GNUNET_SYSERR; \
+  }
+  PREP ("BEGIN",
+        &plugin->transaction_begin);
+  PREP ("COMMIT",
+        &plugin->transaction_commit);
+  PREP ("ROLLBACK;",
+        &plugin->transaction_rollback);
+  PREP ("INSERT IGNORE INTO channels (pub_key) VALUES (?);",
+        &plugin->insert_channel_key);
+  PREP ("INSERT IGNORE INTO slaves (pub_key) VALUES (?);",
+        &plugin->insert_slave_key);
+  PREP ("INSERT INTO membership\n"
+        " (channel_id, slave_id, did_join, announced_at,\n"
+        "  effective_since, group_generation)\n"
+        "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
+        "        (SELECT id FROM slaves WHERE pub_key = ?),\n"
+        "        ?, ?, ?, ?);",
+        &plugin->insert_membership);
+  PREP ("SELECT did_join FROM membership\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND slave_id = (SELECT id FROM slaves WHERE pub_key = ?)\n"
+        "      AND effective_since <= ? AND did_join = 1\n"
+        "ORDER BY announced_at DESC LIMIT 1;",
+        &plugin->select_membership);
 
-  mysql_prepare (plugin->mc,
-                "COMMIT",
-                &plugin->transaction_commit);
+  PREP ("INSERT IGNORE INTO messages\n"
+        " (channel_id, hop_counter, signature, purpose,\n"
+        "  fragment_id, fragment_offset, message_id,\n"
+        "  group_generation, multicast_flags, psycstore_flags, data)\n"
+        "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
+        "        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        &plugin->insert_fragment);
 
-  mysql_prepare (plugin->mc,
-                "ROLLBACK;",
-                &plugin->transaction_rollback);
+  PREP ("UPDATE messages\n"
+        "SET psycstore_flags = psycstore_flags | ?\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND message_id = ? AND fragment_offset = 0;",
+        &plugin->update_message_flags);
 
-  mysql_prepare (plugin->mc,
-                "INSERT IGNORE INTO channels (pub_key) VALUES (?);",
-                &plugin->insert_channel_key);
-
-  mysql_prepare (plugin->mc,
-                "INSERT IGNORE INTO slaves (pub_key) VALUES (?);",
-                &plugin->insert_slave_key);
-
-  mysql_prepare (plugin->mc,
-                "INSERT INTO membership\n"
-                " (channel_id, slave_id, did_join, announced_at,\n"
-                "  effective_since, group_generation)\n"
-                "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
-                "        (SELECT id FROM slaves WHERE pub_key = ?),\n"
-                "        ?, ?, ?, ?);",
-                &plugin->insert_membership);
-
-  mysql_prepare (plugin->mc,
-                "SELECT did_join FROM membership\n"
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND slave_id = (SELECT id FROM slaves WHERE pub_key = ?)\n"
-               "      AND effective_since <= ? AND did_join = 1\n"
-               "ORDER BY announced_at DESC LIMIT 1;",
-               &plugin->select_membership);
-
-  mysql_prepare (plugin->mc,
-                "INSERT IGNORE INTO messages\n"
-               " (channel_id, hop_counter, signature, purpose,\n"
-               "  fragment_id, fragment_offset, message_id,\n"
-               "  group_generation, multicast_flags, psycstore_flags, data)\n"
-               "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
-               "        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
-                &plugin->insert_fragment);
-
-  mysql_prepare (plugin->mc,
-                "UPDATE messages\n"
-                "SET psycstore_flags = psycstore_flags | ?\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND message_id = ? AND fragment_offset = 0;",
-                &plugin->update_message_flags);
-
-  mysql_prepare (plugin->mc,
-                  "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                  "       fragment_offset, message_id, group_generation,\n"
-                  "       multicast_flags, psycstore_flags, data\n"
-                  "FROM messages\n"
-                  "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                  "      AND ? <= fragment_id AND fragment_id <= ?;",
-                &plugin->select_fragments);
+  PREP ("SELECT hop_counter, signature, purpose, fragment_id,\n"
+        "       fragment_offset, message_id, group_generation,\n"
+        "       multicast_flags, psycstore_flags, data\n"
+        "FROM messages\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND ? <= fragment_id AND fragment_id <= ?;",
+        &plugin->select_fragments);
 
   /** @todo select_messages: add method_prefix filter */
-  mysql_prepare (plugin->mc,
-                "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                "       fragment_offset, message_id, group_generation,\n"
-                "       multicast_flags, psycstore_flags, data\n"
-                "FROM messages\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND ? <= message_id AND message_id <= ?\n"
-                "LIMIT ?;",
-                &plugin->select_messages);
+  PREP ("SELECT hop_counter, signature, purpose, fragment_id,\n"
+        "       fragment_offset, message_id, group_generation,\n"
+        "       multicast_flags, psycstore_flags, data\n"
+        "FROM messages\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND ? <= message_id AND message_id <= ?\n"
+        "LIMIT ?;",
+        &plugin->select_messages);
 
-  mysql_prepare (plugin->mc,
-                "SELECT * FROM\n"
-                "(SELECT hop_counter, signature, purpose, fragment_id,\n"
-                "        fragment_offset, message_id, group_generation,\n"
-                "        multicast_flags, psycstore_flags, data\n"
-                " FROM messages\n"
-                " WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                " ORDER BY fragment_id DESC\n"
-                " LIMIT ?)\n"
-                "ORDER BY fragment_id;",
-                &plugin->select_latest_fragments);
+  PREP ("SELECT * FROM\n"
+        "(SELECT hop_counter, signature, purpose, fragment_id,\n"
+        "        fragment_offset, message_id, group_generation,\n"
+        "        multicast_flags, psycstore_flags, data\n"
+        " FROM messages\n"
+        " WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        " ORDER BY fragment_id DESC\n"
+        " LIMIT ?)\n"
+        "ORDER BY fragment_id;",
+        &plugin->select_latest_fragments);
 
   /** @todo select_latest_messages: add method_prefix filter */
-  mysql_prepare (plugin->mc,
-                "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                "       fragment_offset, message_id, group_generation,\n"
-                "        multicast_flags, psycstore_flags, data\n"
-                "FROM messages\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND message_id IN\n"
-                "      (SELECT message_id\n"
-                "       FROM messages\n"
-                "       WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "       GROUP BY message_id\n"
-                "       ORDER BY message_id\n"
-                "       DESC LIMIT ?)\n"
-                "ORDER BY fragment_id;",
-                &plugin->select_latest_messages);
+  PREP ("SELECT hop_counter, signature, purpose, fragment_id,\n"
+        "       fragment_offset, message_id, group_generation,\n"
+        "        multicast_flags, psycstore_flags, data\n"
+        "FROM messages\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND message_id IN\n"
+        "      (SELECT message_id\n"
+        "       FROM messages\n"
+        "       WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "       GROUP BY message_id\n"
+        "       ORDER BY message_id\n"
+        "       DESC LIMIT ?)\n"
+        "ORDER BY fragment_id;",
+        &plugin->select_latest_messages);
 
-  mysql_prepare (plugin->mc,
-                "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                "       fragment_offset, message_id, group_generation,\n"
-                "       multicast_flags, psycstore_flags, data\n"
-                "FROM messages\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND message_id = ? AND fragment_offset = ?;",
-                &plugin->select_message_fragment);
+  PREP ("SELECT hop_counter, signature, purpose, fragment_id,\n"
+        "       fragment_offset, message_id, group_generation,\n"
+        "       multicast_flags, psycstore_flags, data\n"
+        "FROM messages\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND message_id = ? AND fragment_offset = ?;",
+        &plugin->select_message_fragment);
 
-  mysql_prepare (plugin->mc,
-                "SELECT fragment_id, message_id, group_generation\n"
-                "FROM messages\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "ORDER BY fragment_id DESC LIMIT 1;",
-                &plugin->select_counters_message);
+  PREP ("SELECT fragment_id, message_id, group_generation\n"
+        "FROM messages\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "ORDER BY fragment_id DESC LIMIT 1;",
+        &plugin->select_counters_message);
 
-  mysql_prepare (plugin->mc,
-                "SELECT max_state_message_id\n"
-                "FROM channels\n"
-                "WHERE pub_key = ? AND max_state_message_id IS NOT NULL;",
-                &plugin->select_counters_state);
+  PREP ("SELECT max_state_message_id\n"
+        "FROM channels\n"
+        "WHERE pub_key = ? AND max_state_message_id IS NOT NULL;",
+        &plugin->select_counters_state);
 
-  mysql_prepare (plugin->mc,
-                "UPDATE channels\n"
-                "SET max_state_message_id = ?\n"
-                "WHERE pub_key = ?;",
-                &plugin->update_max_state_message_id);
+  PREP ("UPDATE channels\n"
+        "SET max_state_message_id = ?\n"
+        "WHERE pub_key = ?;",
+        &plugin->update_max_state_message_id);
 
-  mysql_prepare (plugin->mc,
-                "UPDATE channels\n"
-                "SET state_hash_message_id = ?\n"
-                "WHERE pub_key = ?;",
-                &plugin->update_state_hash_message_id);
+  PREP ("UPDATE channels\n"
+        "SET state_hash_message_id = ?\n"
+        "WHERE pub_key = ?;",
+        &plugin->update_state_hash_message_id);
 
-  mysql_prepare (plugin->mc,
-                "REPLACE INTO state\n"
-                "  (channel_id, name, value_current, value_signed)\n"
-                "SELECT new.channel_id, new.name,\n"
-                "       new.value_current, old.value_signed\n"
-                "FROM (SELECT (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "             AS channel_id,\n"
-                "             ? AS name, ? AS value_current) AS new\n"
-                "LEFT JOIN (SELECT channel_id, name, value_signed\n"
-                "           FROM state) AS old\n"
-                "ON new.channel_id = old.channel_id AND new.name = old.name;",
-                &plugin->insert_state_current);
+  PREP ("REPLACE INTO state\n"
+        "  (channel_id, name, value_current, value_signed)\n"
+        "SELECT new.channel_id, new.name,\n"
+        "       new.value_current, old.value_signed\n"
+        "FROM (SELECT (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "             AS channel_id,\n"
+        "             ? AS name, ? AS value_current) AS new\n"
+        "LEFT JOIN (SELECT channel_id, name, value_signed\n"
+        "           FROM state) AS old\n"
+        "ON new.channel_id = old.channel_id AND new.name = old.name;",
+        &plugin->insert_state_current);
 
-  mysql_prepare (plugin->mc,
-                "DELETE FROM state\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND (value_current IS NULL OR length(value_current) = 0)\n"
-                "      AND (value_signed IS NULL OR length(value_signed) = 0);",
-                &plugin->delete_state_empty);
+  PREP ("DELETE FROM state\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND (value_current IS NULL OR length(value_current) = 0)\n"
+        "      AND (value_signed IS NULL OR length(value_signed) = 0);",
+        &plugin->delete_state_empty);
 
-  mysql_prepare (plugin->mc,
-                "UPDATE state\n"
-                "SET value_signed = value_current\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                &plugin->update_state_signed);
+  PREP ("UPDATE state\n"
+        "SET value_signed = value_current\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
+        &plugin->update_state_signed);
 
-  mysql_prepare (plugin->mc,
-                "DELETE FROM state\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                &plugin->delete_state);
+  PREP ("DELETE FROM state\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
+        &plugin->delete_state);
 
-  mysql_prepare (plugin->mc,
-                "INSERT INTO state_sync (channel_id, name, value)\n"
-                "VALUES ((SELECT id FROM channels WHERE pub_key = ?), ?, ?);",
-                &plugin->insert_state_sync);
+  PREP ("INSERT INTO state_sync (channel_id, name, value)\n"
+        "VALUES ((SELECT id FROM channels WHERE pub_key = ?), ?, ?);",
+        &plugin->insert_state_sync);
 
-  mysql_prepare (plugin->mc,
-                "INSERT INTO state\n"
-                " (channel_id, name, value_current, value_signed)\n"
-                "SELECT channel_id, name, value, value\n"
-                "FROM state_sync\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                &plugin->insert_state_from_sync);
+  PREP ("INSERT INTO state\n"
+        " (channel_id, name, value_current, value_signed)\n"
+        "SELECT channel_id, name, value, value\n"
+        "FROM state_sync\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
+        &plugin->insert_state_from_sync);
 
-  mysql_prepare (plugin->mc,
-                "DELETE FROM state_sync\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-                &plugin->delete_state_sync);
+  PREP ("DELETE FROM state_sync\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
+        &plugin->delete_state_sync);
 
-  mysql_prepare (plugin->mc,
-                "SELECT value_current\n"
-                "FROM state\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND name = ?;",
-                &plugin->select_state_one);
+  PREP ("SELECT value_current\n"
+        "FROM state\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND name = ?;",
+        &plugin->select_state_one);
 
-  mysql_prepare (plugin->mc,
-                "SELECT name, value_current\n"
-                "FROM state\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-                "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
-                &plugin->select_state_prefix);
+  PREP ("SELECT name, value_current\n"
+        "FROM state\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+        "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
+        &plugin->select_state_prefix);
 
-  mysql_prepare (plugin->mc,
-                "SELECT name, value_signed\n"
-                "FROM state\n"
-                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)"
-                "      AND value_signed IS NOT NULL;",
-                &plugin->select_state_signed);
+  PREP ("SELECT name, value_signed\n"
+        "FROM state\n"
+        "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)"
+        "      AND value_signed IS NOT NULL;",
+        &plugin->select_state_signed);
+#undef PREP
 
   return GNUNET_OK;
 }
