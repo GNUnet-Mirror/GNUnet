@@ -599,7 +599,7 @@ database_setup (struct Plugin *plugin)
                "SELECT name, value_current\n"
                "FROM state\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
+               "      AND (name = ? OR substr(name, 1, ?) = ?);",
                &plugin->select_state_prefix);
 
   sql_prepare (plugin->dbh,
@@ -998,7 +998,7 @@ static int
 message_add_flags (void *cls,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t message_id,
-                   uint64_t psycstore_flags)
+                   uint32_t psycstore_flags)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->update_message_flags;
@@ -1773,7 +1773,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
                                       sizeof (*channel_key), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_text (stmt, 2, name, name_len, SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_int (stmt, 3, name_len + 1)
+      || SQLITE_OK != sqlite3_bind_int (stmt, 3, name_len)
       || SQLITE_OK != sqlite3_bind_text (stmt, 4, name, name_len, SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

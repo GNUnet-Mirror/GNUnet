@@ -296,18 +296,18 @@ database_setup (struct Plugin *plugin)
   /* Create tables */
   STMT_RUN ("CREATE TABLE IF NOT EXISTS channels (\n"
             " id BIGINT UNSIGNED AUTO_INCREMENT,\n"
-            " pub_key BLOB,\n"
+            " pub_key BLOB(23),\n"
             " max_state_message_id BIGINT UNSIGNED,\n"
             " state_hash_message_id BIGINT UNSIGNED,\n"
             " PRIMARY KEY(id),\n"
-            " UNIQUE KEY(pub_key(5))\n"
+            " UNIQUE KEY(pub_key(32))\n"
             ");");
 
   STMT_RUN ("CREATE TABLE IF NOT EXISTS slaves (\n"
             " id BIGINT UNSIGNED AUTO_INCREMENT,\n"
-            " pub_key BLOB,\n"
+            " pub_key BLOB(32),\n"
             " PRIMARY KEY(id),\n"
-            " UNIQUE KEY(pub_key(5))\n"
+            " UNIQUE KEY(pub_key(32))\n"
             ");");
 
   STMT_RUN ("CREATE TABLE IF NOT EXISTS membership (\n"
@@ -521,7 +521,7 @@ database_setup (struct Plugin *plugin)
   PREP ("SELECT name, value_current\n"
         "FROM state\n"
         "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-        "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
+        "      AND (name = ? OR substr(name, 1, ?) = ?);",
         &plugin->select_state_prefix);
 
   PREP ("SELECT name, value_signed\n"
@@ -905,7 +905,7 @@ static int
 message_add_flags (void *cls,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t message_id,
-                   uint64_t psycstore_flags)
+                   uint32_t psycstore_flags)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->update_message_flags;
@@ -914,7 +914,7 @@ message_add_flags (void *cls,
   int ret = GNUNET_SYSERR;
 
   struct GNUNET_MY_QueryParam params_update[] = {
-    GNUNET_MY_query_param_uint64 (&psycstore_flags),
+    GNUNET_MY_query_param_uint32 (&psycstore_flags),
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_uint64 (&message_id),
     GNUNET_MY_query_param_end

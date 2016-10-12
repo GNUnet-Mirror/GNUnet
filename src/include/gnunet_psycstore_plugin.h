@@ -114,7 +114,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   (*message_add_flags) (void *cls,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                         uint64_t message_id,
-                        uint64_t psycstore_flags);
+                        uint32_t psycstore_flags);
 
   /**
    * Retrieve a message fragment range by fragment ID.
