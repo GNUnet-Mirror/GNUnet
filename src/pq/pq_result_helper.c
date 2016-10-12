@@ -70,6 +70,9 @@ extract_varsize_blob (void *cls,
   void *idst;
   int fnum;
 
+  *dst_size = 0;
+  *((void **) dst) = NULL;
+
   fnum = PQfnumber (result,
 		    fname);
   if (fnum < 0)
