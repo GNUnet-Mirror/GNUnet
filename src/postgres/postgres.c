@@ -43,10 +43,10 @@
 int
 GNUNET_POSTGRES_check_result_ (PGconn *dbh,
 			       PGresult *ret,
-                               int expected_status, 
+                               int expected_status,
 			       const char *command,
-                               const char *args, 
-			       const char *filename, 
+                               const char *args,
+			       const char *filename,
 			       int line)
 {
   if (ret == NULL)
@@ -60,7 +60,7 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh,
   if (PQresultStatus (ret) != expected_status)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                     "postgres", _("`%s:%s' failed at %s:%d with error: %s"),
+                     "postgres", _("`%s:%s' failed at %s:%d with error: %s\n"),
                      command, args, filename, line, PQerrorMessage (dbh));
     PQclear (ret);
     return GNUNET_SYSERR;
@@ -79,8 +79,8 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_exec_ (PGconn * dbh, 
-		       const char *sql, 
+GNUNET_POSTGRES_exec_ (PGconn * dbh,
+		       const char *sql,
 		       const char *filename,
                        int line)
 {
@@ -109,25 +109,25 @@ GNUNET_POSTGRES_exec_ (PGconn * dbh,
  */
 int
 GNUNET_POSTGRES_prepare_ (PGconn *dbh,
-			  const char *name, 
+			  const char *name,
 			  const char *sql,
-                          int nparams, 
-			  const char *filename, 
+                          int nparams,
+			  const char *filename,
 			  int line)
 {
   PGresult *ret;
 
   ret = PQprepare (dbh,
-		   name, 
-		   sql, 
+		   name,
+		   sql,
 		   nparams, NULL);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, 
-				     ret, 
+      GNUNET_POSTGRES_check_result_ (dbh,
+				     ret,
 				     PGRES_COMMAND_OK,
 				     "PQprepare",
-                                     sql, 
-				     filename, 
+                                     sql,
+				     filename,
 				     line))
     return GNUNET_SYSERR;
   PQclear (ret);
@@ -163,7 +163,7 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
   if (PQstatus (dbh) != CONNECTION_OK)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "postgres",
-                     _("Unable to initialize Postgres: %s"),
+                     _("Unable to initialize Postgres: %s\n"),
                      PQerrorMessage (dbh));
     PQfinish (dbh);
     return NULL;
@@ -182,7 +182,7 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh, 
+GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh,
 				 const char *stmt,
 				 uint32_t rowid)
 {
@@ -193,15 +193,15 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh,
   PGresult *ret;
 
   ret =
-      PQexecPrepared (dbh, stmt, 1, 
-		      paramValues, 
-		      paramLengths, 
-		      paramFormats, 
+      PQexecPrepared (dbh, stmt, 1,
+		      paramValues,
+		      paramLengths,
+		      paramFormats,
 		      1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, 
+      GNUNET_POSTGRES_check_result_ (dbh, ret,
 				     PGRES_COMMAND_OK,
-                                     "PQexecPrepared", 
+                                     "PQexecPrepared",
 				     "delrow",
 				     __FILE__,
                                      __LINE__))
