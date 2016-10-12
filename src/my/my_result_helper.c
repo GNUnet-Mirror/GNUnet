@@ -554,7 +554,7 @@ post_extract_string (void * cls,
     return GNUNET_SYSERR;
   if (*results->is_null)
   {
-    rs->dst = NULL;
+    *(void **) rs->dst = NULL;
     return GNUNET_OK;
   }
 
@@ -572,7 +572,8 @@ post_extract_string (void * cls,
     GNUNET_free (buf);
     return GNUNET_SYSERR;
   }
-  rs->dst = buf;
+  buf[size] = '\0';
+  *(void **) rs->dst = buf;
   return GNUNET_OK;
 }
 
