@@ -68,6 +68,11 @@ extern "C"
  */
 #define GNUNET_UTIL_VERSION 0x000A0101
 
+/* support old MHD versions */
+#ifndef MHD_USE_TLS
+#define MHD_USE_TLS MHD_USE_SSL
+#endif
+
 
 /**
  * Named constants for return values.  The following invariants hold:
