@@ -83,16 +83,20 @@ const char * SOCKS5_REP_names(int rep)
  * @param s string to encode
  * @return pointer to the end of the encoded string in the buffer
  */
-unsigned char * SOCK5_proto_string(unsigned char * b, const char * s)
+unsigned char *
+SOCK5_proto_string(unsigned char * b,
+                   const char * s)
 {
   size_t l = strlen(s);
-  if (l>255) {
+
+  if (l > 255)
+  {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "SOCKS5 cannot handle hostnames, usernames, or passwords over 255 bytes, truncating.\n");
     l=255;
   }
-  *(b++) = (unsigned char)l;
-  strncpy((char *)b,s,l);
+  *(b++) = (unsigned char) l;
+  strncpy ((char *)b, s, l);
   return b+l;
 }
 
@@ -575,13 +579,13 @@ GNUNET_SOCKS_do_connect (const char *service_name,
       GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "SOCKSPORT", &port0))
     port0 = 9050;
   /* A typical Tor client should usually try port 9150 for the TBB too, but
-   * GUNNet can probably assume a system Tor installation. */
+   * GNUnet can probably assume a system Tor installation. */
   if (port0 > 65535 || port0 <= 0)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _
-	 ("Attempting to use invalid port %d as SOCKS proxy for service `%s'.\n"),
-	 port0,service_name);
+	 _("Attempting to use invalid port %d as SOCKS proxy for service `%s'.\n"),
+	 port0,
+         service_name);
     return NULL;
   }
   if ((GNUNET_OK !=
@@ -596,17 +600,17 @@ GNUNET_SOCKS_do_connect (const char *service_name,
 	 service_name,port1,host1);
     return NULL;
   }
-  /* Appeared to still work after host0 corrupted, so either test case is broken, or 
+  /* Appeared to still work after host0 corrupted, so either test case is broken, or
      this whole routine is not being called. */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
-    host0 = NULL; 
+    host0 = NULL;
   socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (host0 != NULL)? host0:"127.0.0.1", port0);
   GNUNET_free_non_null (host0);
 
   /* Sets to NULL if they do not exist */
-  (void)GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
-  (void)GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
+  (void) GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
+  (void) GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
   ih = GNUNET_SOCKS_init_handshake(user,pass);
   if (NULL != user) GNUNET_free (user);
   if (NULL != pass) GNUNET_free (pass);
