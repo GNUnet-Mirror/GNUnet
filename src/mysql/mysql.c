@@ -1,3 +1,4 @@
+
 /*
      This file is part of GNUnet
      Copyright (C) 2012 GNUnet e.V.
@@ -38,7 +39,7 @@
  * a failure of the command 'cmd' with the message given
  * by strerror(errno).
  */
-#define DIE_MYSQL(cmd, dbh) do { GNUNET_log_from (GNUNET_ERROR_TYPE__ERROR, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_assert (0); } while(0);
+#define DIE_MYSQL(cmd, dbh) do { GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_assert (0); } while(0);
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -431,6 +432,8 @@ prepare_statement (struct GNUNET_MYSQL_StatementHandle *sh)
   }
   if (0 != mysql_stmt_prepare (sh->statement, sh->query, strlen (sh->query)))
   {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
+                     "prepare_statement: %s\n", sh->query);
     LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", mc);
     mysql_stmt_close (sh->statement);
     sh->statement = NULL;
