@@ -276,19 +276,39 @@ handle_client_membership_test (void *cls,
 }
 
 
+static int
+check_client_fragment_store (void *cls,
+                             const struct FragmentStoreRequest *req)
+{
+  return GNUNET_OK;
+}
+
+
 static void
 handle_client_fragment_store (void *cls,
                               const struct FragmentStoreRequest *req)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
+  const struct GNUNET_MessageHeader *
+    msg = GNUNET_MQ_extract_nested_mh (req);
+  if (NULL == msg
+      || ntohs (msg->size) < sizeof (struct GNUNET_MULTICAST_MessageHeader))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Dropping invalid fragment\n"));
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
+
   int ret = db->fragment_store (db->cls, &req->channel_key,
                                 (const struct GNUNET_MULTICAST_MessageHeader *)
-                                &req[1], ntohl (req->psycstore_flags));
+                                msg, ntohl (req->psycstore_flags));
 
   if (ret != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to store fragment!\n"));
+                _("Failed to store fragment\n"));
 
   send_result_code (client, req->op_id, ret, NULL);
   GNUNET_SERVICE_client_continue (client);
@@ -349,6 +369,14 @@ handle_client_fragment_get (void *cls,
   }
   send_result_code (client, req->op_id, (ret < 0) ? ret : ret_frags, NULL);
   GNUNET_SERVICE_client_continue (client);
+}
+
+
+static int
+check_client_message_get (void *cls,
+                          const struct MessageGetRequest *req)
+{
+  return GNUNET_OK;
 }
 
 
@@ -973,7 +1001,7 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_TEST,
                           struct MembershipTestRequest,
                           NULL),
- GNUNET_MQ_hd_fixed_size (client_fragment_store,
+ GNUNET_MQ_hd_var_size (client_fragment_store,
                         GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_STORE,
                         struct FragmentStoreRequest,
                         NULL),
@@ -981,10 +1009,10 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_GET,
                           struct FragmentGetRequest,
                           NULL),
- GNUNET_MQ_hd_fixed_size (client_message_get,
-                          GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET,
-                          struct MessageGetRequest,
-                          NULL),
+ GNUNET_MQ_hd_var_size (client_message_get,
+                        GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET,
+                        struct MessageGetRequest,
+                        NULL),
  GNUNET_MQ_hd_fixed_size (client_message_get_fragment,
                           GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET_FRAGMENT,
                           struct MessageGetFragmentRequest,
@@ -994,9 +1022,9 @@ GNUNET_SERVICE_MAIN
                           struct OperationRequest,
                           NULL),
  GNUNET_MQ_hd_fixed_size (client_state_modify,
-                        GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY,
-                        struct StateModifyRequest,
-                        NULL),
+                          GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY,
+                          struct StateModifyRequest,
+                          NULL),
  GNUNET_MQ_hd_var_size (client_state_sync,
                         GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_SYNC,
                         struct StateSyncRequest,

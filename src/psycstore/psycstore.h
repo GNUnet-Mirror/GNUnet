@@ -49,7 +49,7 @@ struct OperationResult
    */
   uint64_t op_id GNUNET_PACKED;
 
-  /**
+  /**lowed by
    * Status code for the operation.
    */
   uint64_t result_code GNUNET_PACKED;
@@ -354,6 +354,8 @@ struct MessageGetRequest
    * #GNUNET_YES or #GNUNET_NO
    */
   uint8_t do_membership_test;
+
+  /* Followed by method_prefix */
 };
 
 
