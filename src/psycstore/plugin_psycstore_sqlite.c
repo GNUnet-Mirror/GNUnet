@@ -348,7 +348,7 @@ database_setup (struct Plugin *plugin)
   sql_exec (plugin->dbh,
             "CREATE TABLE IF NOT EXISTS channels (\n"
             "  id INTEGER PRIMARY KEY,\n"
-            "  pub_key BLOB UNIQUE,\n"
+            "  pub_key BLOB(32) UNIQUE,\n"
             "  max_state_message_id INTEGER,\n" // last applied state message ID
             "  state_hash_message_id INTEGER\n" // last message ID with a state hash
             ");");
@@ -356,7 +356,7 @@ database_setup (struct Plugin *plugin)
   sql_exec (plugin->dbh,
             "CREATE TABLE IF NOT EXISTS slaves (\n"
             "  id INTEGER PRIMARY KEY,\n"
-            "  pub_key BLOB UNIQUE\n"
+            "  pub_key BLOB(32) UNIQUE\n"
             ");");
 
   sql_exec (plugin->dbh,

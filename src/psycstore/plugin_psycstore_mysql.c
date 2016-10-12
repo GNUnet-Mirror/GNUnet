@@ -296,7 +296,7 @@ database_setup (struct Plugin *plugin)
   /* Create tables */
   STMT_RUN ("CREATE TABLE IF NOT EXISTS channels (\n"
             " id BIGINT UNSIGNED AUTO_INCREMENT,\n"
-            " pub_key BLOB(23),\n"
+            " pub_key BLOB(32),\n"
             " max_state_message_id BIGINT UNSIGNED,\n"
             " state_hash_message_id BIGINT UNSIGNED,\n"
             " PRIMARY KEY(id),\n"
