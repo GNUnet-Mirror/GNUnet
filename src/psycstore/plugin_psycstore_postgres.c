@@ -713,7 +713,7 @@ membership_test (void *cls,
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh,
                                     res,
-                                    PGRES_COMMAND_OK,
+                                    PGRES_TUPLES_OK,
                                     "PQexecPrepared", "select_membership"))
   {
     return GNUNET_SYSERR;
@@ -835,9 +835,9 @@ message_add_flags (void *cls,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, "update_message_flags", params_update);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", "update_message_flags"))
+                                                 res,
+                                                 PGRES_COMMAND_OK,
+                                                 "PQexecPrepared","update_message_flags"))
     return ret;
 
   PQclear (res);
@@ -952,7 +952,7 @@ fragment_select (struct Plugin *plugin,
   if (GNUNET_YES ==
       GNUNET_POSTGRES_check_result (plugin->dbh,
                                     res,
-                                    PGRES_COMMAND_OK,
+                                    PGRES_TUPLES_OK,
                                     "PQexecPrepared", stmt))
   {
     if (PQntuples (res) == 0)
@@ -1118,9 +1118,9 @@ message_get_fragment (void *cls,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
   if (GNUNET_OK == GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
   {
     if (PQntuples (res) == 0)
       ret = GNUNET_NO;
@@ -1159,9 +1159,9 @@ counters_message_get (void *cls,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
   {
     return GNUNET_SYSERR;
   }
@@ -1212,9 +1212,9 @@ counters_state_get (void *cls,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
   {
     return GNUNET_SYSERR;
   }
@@ -1261,9 +1261,9 @@ state_assign (struct Plugin *plugin, const char *stmt,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_COMMAND_OK,
+                                                 "PQexecPrepared", stmt))
   {
     return GNUNET_SYSERR;
   }
@@ -1289,9 +1289,9 @@ update_message_id (struct Plugin *plugin, const char *stmt,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_COMMAND_OK,
+                                                 "PQexecPrepared", stmt))
   {
     return GNUNET_SYSERR;
   }
@@ -1529,9 +1529,9 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
 
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared", stmt))
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
   {
     return GNUNET_SYSERR;
   }
@@ -1604,7 +1604,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
     if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
                                       res,
-                                      PGRES_COMMAND_OK,
+                                      PGRES_TUPLES_OK,
                                       "PQexecPrepared", stmt))
     {
       break;
@@ -1674,7 +1674,7 @@ state_get_signed (void *cls,
     res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
     if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
                                       res,
-                                      PGRES_COMMAND_OK,
+                                      PGRES_TUPLES_OK,
                                       "PQexecPrepared", stmt))
     {
       break;
