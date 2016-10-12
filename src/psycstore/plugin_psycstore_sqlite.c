@@ -1214,7 +1214,7 @@ message_get (void *cls,
       || SQLITE_OK != sqlite3_bind_int64 (stmt, 4,
                                           (0 != fragment_limit)
                                           ? fragment_limit
-                                          : -1))
+                                          : INT64_MAX))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");

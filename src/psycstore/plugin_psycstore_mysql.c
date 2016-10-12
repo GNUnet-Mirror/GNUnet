@@ -1222,6 +1222,10 @@ message_get (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_MYSQL_StatementHandle *stmt = plugin->select_messages;
   int ret;
+
+  if (0 == fragment_limit)
+    fragment_limit = UINT64_MAX;
+
   struct GNUNET_MY_QueryParam params_select[] = {
     GNUNET_MY_query_param_auto_from_type (channel_key),
     GNUNET_MY_query_param_uint64 (&first_message_id),
