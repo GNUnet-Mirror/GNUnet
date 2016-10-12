@@ -101,8 +101,8 @@ database_setup (struct Plugin *plugin)
                               "CREATE TABLE IF NOT EXISTS channels (\n"
                               " id SERIAL,\n"
                               " pub_key BYTEA,\n"
-                              " max_state_message_id INT,\n"
-                              " state_hash_message_id INT,\n"
+                              " max_state_message_id BIGINT,\n"
+                              " state_hash_message_id BIGINT,\n"
                               " PRIMARY KEY(id)\n"
                               ")" "WITH OIDS")) ||
 
@@ -141,9 +141,9 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS membership (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
-                              "  slave_id INT NOT NULL REFERENCES slaves(id),\n"
-                              "  did_join INT NOT NULL,\n"
+                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                              "  slave_id BIGINT NOT NULL REFERENCES slaves(id),\n"
+                              "  did_join BIGINT NOT NULL,\n"
                               "  announced_at BIGINT NOT NULL,\n"
                               "  effective_since BIGINT NOT NULL,\n"
                               "  group_generation BIGINT NOT NULL\n"
@@ -158,7 +158,7 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS messages (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
                               "  hop_counter BIGINT NOT NULL,\n"
                               "  signature BYTEA,\n"
                               "  purpose BYTEA,\n"
@@ -176,7 +176,7 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS state (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
                               "  name TEXT NOT NULL,\n"
                               "  value_current BYTEA,\n"
                               "  value_signed BYTEA\n"
@@ -191,7 +191,7 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS state_sync (\n"
-                              "  channel_id INT NOT NULL REFERENCES channels(id),\n"
+                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
                               "  name TEXT NOT NULL,\n"
                               "  value BYTEA,\n"
                               "  PRIMARY KEY (channel_id)\n"
@@ -724,11 +724,12 @@ membership_test (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  switch(GNUNET_PQ_extract_result (res, results_select, 0))
+  switch (GNUNET_PQ_extract_result (res, results_select, 0))
   {
     case GNUNET_OK:
       ret = GNUNET_YES;
       break;
+
     default:
       ret = GNUNET_NO;
       break;
@@ -1255,7 +1256,7 @@ state_assign (struct Plugin *plugin, const char *stmt,
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_string (name),
-    GNUNET_PQ_query_param_auto_from_type (value),
+    GNUNET_PQ_query_param_fixed_size (value, value_size),
     GNUNET_PQ_query_param_end
   };
 
@@ -1328,6 +1329,7 @@ state_modify_begin (void *cls,
     case GNUNET_NO: // no state yet
       ret = GNUNET_OK;
       break;
+
     default:
       return ret;
     }
@@ -1366,8 +1368,8 @@ state_modify_op (void *cls,
   switch (op)
   {
   case GNUNET_PSYC_OP_ASSIGN:
-    return state_assign (plugin, "insert_state_current", channel_key,
-                         name, value, value_size);
+    return state_assign (plugin, "insert_state_current",
+                         channel_key, name, value, value_size);
 
   default: /** @todo implement more state operations */
     GNUNET_break (0);
@@ -1422,8 +1424,8 @@ state_sync_assign (void *cls,
                 const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
-  return state_assign (plugin, "insert_state_sync", channel_key,
-                       name, value, value_size);
+  return state_assign (plugin, "insert_state_sync",
+                       channel_key, name, value, value_size);
 }
 
 
@@ -1599,17 +1601,17 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     GNUNET_PQ_result_spec_end
   };
 
+  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
+  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
+  {
+    return GNUNET_SYSERR;
+  }
+
   do
   {
-    res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-    if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_TUPLES_OK,
-                                      "PQexecPrepared", stmt))
-    {
-      break;
-    }
-
     if (PQntuples (res) == 0)
     {
       PQclear (res);
@@ -1669,17 +1671,17 @@ state_get_signed (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
+  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
+  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
+                                                 res,
+                                                 PGRES_TUPLES_OK,
+                                                 "PQexecPrepared", stmt))
+  {
+    return GNUNET_SYSERR;
+  }
+
   do
   {
-    res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-    if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      res,
-                                      PGRES_TUPLES_OK,
-                                      "PQexecPrepared", stmt))
-    {
-      break;
-    }
-
     if (PQntuples (res) == 0)
     {
       PQclear (res);

@@ -1590,8 +1590,8 @@ state_sync_assign (void *cls,
                 const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
-  return state_assign (cls, plugin->insert_state_sync, channel_key,
-                       name, value, value_size);
+  return state_assign (cls, plugin->insert_state_sync,
+                       channel_key, name, value, value_size);
 }
 
 
