@@ -166,8 +166,8 @@ database_setup (struct Plugin *plugin)
                               "  fragment_offset BIGINT NOT NULL,\n"
                               "  message_id BIGINT NOT NULL,\n"
                               "  group_generation BIGINT NOT NULL,\n"
-                              "  multicast_flags BIGINT NOT NULL,\n"
-                              "  psycstore_flags BIGINT NOT NULL,\n"
+                              "  multicast_flags INT NOT NULL,\n"
+                              "  psycstore_flags INT NOT NULL,\n"
                               "  data BYTEA,\n"
                               "  PRIMARY KEY (channel_id, fragment_id),\n"
                               "  UNIQUE (channel_id, message_id, fragment_offset)\n"
@@ -765,7 +765,7 @@ fragment_store (void *cls,
   uint64_t group_generation = GNUNET_ntohll (msg->group_generation);
 
   uint64_t hop_counter = ntohl(msg->hop_counter);
-  uint64_t flags = ntohl(msg->flags);
+  uint32_t flags = ntohl(msg->flags);
 
   if (fragment_id > INT64_MAX || fragment_offset > INT64_MAX ||
       message_id > INT64_MAX || group_generation > INT64_MAX)
@@ -790,10 +790,9 @@ fragment_store (void *cls,
     GNUNET_PQ_query_param_uint64 (&fragment_offset),
     GNUNET_PQ_query_param_uint64 (&message_id),
     GNUNET_PQ_query_param_uint64 (&group_generation),
-    GNUNET_PQ_query_param_uint64 (&flags),
+    GNUNET_PQ_query_param_uint32 (&flags),
     GNUNET_PQ_query_param_uint32 (&psycstore_flags),
-    GNUNET_PQ_query_param_fixed_size (&msg[1], ntohs (msg->header.size)
-                                                  - sizeof (*msg)),
+    GNUNET_PQ_query_param_fixed_size (&msg[1], ntohs (msg->header.size) - sizeof (*msg)),
     GNUNET_PQ_query_param_end
   };
 
@@ -880,10 +879,9 @@ fragment_row (struct Plugin *plugin,
     GNUNET_PQ_result_spec_uint64 ("fragment_offset", &fragment_offset),
     GNUNET_PQ_result_spec_uint64 ("message_id", &message_id),
     GNUNET_PQ_result_spec_uint64 ("group_generation", &group_generation),
-    GNUNET_PQ_result_spec_uint64 ("msg_flags", &msg_flags),
-    GNUNET_PQ_result_spec_uint64 ("flags", &flags),
-    GNUNET_PQ_result_spec_variable_size ("data", &buf,
-                                         &buf_size),
+    GNUNET_PQ_result_spec_uint64 ("multicast_flags", &msg_flags),
+    GNUNET_PQ_result_spec_uint64 ("psycstore_flags", &flags),
+    GNUNET_PQ_result_spec_variable_size ("data", &buf, &buf_size),
     GNUNET_PQ_result_spec_end
   };
 
@@ -905,7 +903,6 @@ fragment_row (struct Plugin *plugin,
   else
   {
     if (GNUNET_OK != GNUNET_PQ_extract_result(res, results, 0)) {
-      PQclear (res);
       return GNUNET_SYSERR;
     }
 
@@ -933,7 +930,6 @@ fragment_row (struct Plugin *plugin,
     ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
   }
 
-  PQclear (res);
   return ret;
 }
 

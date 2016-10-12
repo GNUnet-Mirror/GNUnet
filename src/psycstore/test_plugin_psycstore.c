@@ -279,17 +279,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                    &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
 
-#if GABOR
-  LOG (GNUNET_ERROR_TYPE_INFO, "fragment_get(%" PRIu64 ")\n", fragment_id+1);
-  ret_frags = 0;
-  GNUNET_assert (
-    GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
-                                   fragment_id+1, fragment_id+1,
-                                   &ret_frags, fragment_cb, &fcls));
-  GNUNET_assert (fcls.n == 1);
-
-  // FIXME: test fragment_get_latest and message_get_latest
-#endif
   LOG (GNUNET_ERROR_TYPE_INFO, "message_get_fragment()\n");
 
   fcls.n = 0;
