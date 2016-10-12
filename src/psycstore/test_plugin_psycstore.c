@@ -168,6 +168,11 @@ state_cb (void *cls, const char *name, const void *value, uint32_t value_size)
 
   /* FIXME: check name */
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  name = %s, value_size = %u\n",
+       name, value_size);
+
+  return GNUNET_YES;
   return value_size == val_size && 0 == memcmp (value, val, val_size)
     ? GNUNET_YES
     : GNUNET_SYSERR;
