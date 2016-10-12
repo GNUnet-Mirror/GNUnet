@@ -2302,7 +2302,7 @@ lookup_ssl_httpd (const char* domain)
   hd->is_ssl = GNUNET_YES;
   hd->domain = GNUNET_strdup (domain);
   hd->proxy_cert = pgc;
-  hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_TLS | MHD_USE_NO_LISTEN_SOCKET,
+  hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL | MHD_USE_NO_LISTEN_SOCKET,
                                  0,
                                  NULL, NULL,
                                  &create_response, hd,

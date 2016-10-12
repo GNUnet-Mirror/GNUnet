@@ -102,15 +102,10 @@ src/dht/gnunet-service-dht_nse.c
 src/dht/gnunet-service-dht_routing.c
 src/dht/gnunet-service-wdht.c
 src/dht/gnunet-service-wdht_clients.c
-src/dht/gnunet-service-wdht_datacache.c
 src/dht/gnunet-service-wdht_neighbours.c
-src/dht/gnunet-service-wdht_nse.c
 src/dht/gnunet-service-xdht.c
-src/dht/gnunet-service-xdht_clients.c
-src/dht/gnunet-service-xdht_datacache.c
 src/dht/gnunet-service-xdht_hello.c
 src/dht/gnunet-service-xdht_neighbours.c
-src/dht/gnunet-service-xdht_nse.c
 src/dht/gnunet-service-xdht_routing.c
 src/dht/plugin_block_dht.c
 src/dns/dns_api.c

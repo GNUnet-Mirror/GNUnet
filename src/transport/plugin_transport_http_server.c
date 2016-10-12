@@ -2200,7 +2200,7 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
                              MHD_USE_DEBUG |
 #endif
 #if BUILD_HTTPS
-                             MHD_USE_TLS |
+                             MHD_USE_SSL |
 #endif
                              MHD_USE_SUSPEND_RESUME |
                              v6,
