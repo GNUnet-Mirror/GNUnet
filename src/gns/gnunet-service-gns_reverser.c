@@ -468,6 +468,7 @@ store_reverse (void *cls,
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s\n",
                 emsg);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stored records (%s)\n", mynick);
