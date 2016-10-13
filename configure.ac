@@ -724,8 +724,11 @@ gl_LIBUNISTRING
 if test $HAVE_LIBUNISTRING != yes; then
  AC_MSG_ERROR([GNUnet requires libunistring])
 fi
-if test "$gl_libunistring_hexversion" -le 2305; then
+# under emscripten, $gl_libunistring_hexversion is undefined
+if test "$taler_only" != yes; then
+if test "x$gl_libunistring_hexversion" = "x" || test "$gl_libunistring_hexversion" -le 2305; then
  AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])
+fi
 fi
 AC_CHECK_HEADERS([unistr.h],,AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
 
