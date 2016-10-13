@@ -85,14 +85,14 @@ create_indices (PGconn * dbh)
   /* create indices */
   if ( (GNUNET_OK !=
 	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX ir_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
+                              "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
        (GNUNET_OK !=
 	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX ir_pkey_iter ON ns097records (zone_private_key,rvalue)")) ||
+                              "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX it_iter ON ns097records (rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)")) ||
        (GNUNET_OK !=
-        GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_label ON ns097records (label)")) )
+        GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_label ON ns097records (label)")) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create indices\n"));
 }
@@ -122,7 +122,7 @@ database_setup (struct Plugin *plugin)
   {
     res =
       PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE ns097records ("
+              "CREATE TEMPORARY TABLE IF NOT EXISTS ns097records ("
 	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
 	      " pkey BYTEA DEFAULT '',"
 	      " rvalue BYTEA NOT NULL DEFAULT '',"
@@ -135,7 +135,7 @@ database_setup (struct Plugin *plugin)
   {
     res =
       PQexec (plugin->dbh,
-              "CREATE TABLE ns097records ("
+              "CREATE TABLE IF NOT EXISTS ns097records ("
 	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
 	      " pkey BYTEA DEFAULT '',"
 	      " rvalue BYTEA NOT NULL DEFAULT '',"
