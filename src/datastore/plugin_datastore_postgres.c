@@ -78,8 +78,8 @@ init_connection (struct Plugin *plugin)
 
   ret =
       PQexec (plugin->dbh,
-              "CREATE TABLE gn090 ("
-	      "  repl INTEGER NOT NULL DEFAULT 0,"
+              "CREATE TABLE IF NOT EXISTS gn090 ("
+              "  repl INTEGER NOT NULL DEFAULT 0,"
               "  type INTEGER NOT NULL DEFAULT 0,"
               "  prio INTEGER NOT NULL DEFAULT 0,"
               "  anonLevel INTEGER NOT NULL DEFAULT 0,"
@@ -88,7 +88,7 @@ init_connection (struct Plugin *plugin)
               "  hash BYTEA NOT NULL DEFAULT '',"
               "  vhash BYTEA NOT NULL DEFAULT '',"
               "  value BYTEA NOT NULL DEFAULT '')"
-	      "WITH OIDS");
+              "WITH OIDS");
   if ( (NULL == ret) ||
        ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
         (0 != strcmp ("42P07",    /* duplicate table */
@@ -109,23 +109,23 @@ init_connection (struct Plugin *plugin)
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
   {
     if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_hash ON gn090 (hash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_prio ON gn090 (prio)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_expire ON gn090 (expire)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-			       "CREATE INDEX idx_prio_anon ON gn090 (prio,anonLevel)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
-			       "CREATE INDEX idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
+                               "CREATE INDEX IF NOT EXISTS idx_prio_anon ON gn090 (prio,anonLevel)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_expire_hash ON gn090 (expire,hash)")))
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
+        (GNUNET_OK !=
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
     {
       PQclear (ret);
       PQfinish (plugin->dbh);
