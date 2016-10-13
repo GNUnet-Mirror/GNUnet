@@ -294,6 +294,7 @@ GNUNET_abort_ ()
 }
 
 
+#if ! TALER_WALLET_ONLY
 /**
  * Rotate logs, deleting the oldest log.
  *
@@ -407,6 +408,7 @@ setup_log_file (const struct tm *tm)
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
+#endif
 
 
 /**
@@ -691,8 +693,6 @@ GNUNET_log_setup (const char *comp,
 		  const char *logfile)
 {
   const char *env_logfile;
-  const struct tm *tm;
-  time_t t;
 
   min_level = get_type (loglevel);
 #if !defined(GNUNET_CULL_LOGGING)
@@ -715,9 +715,20 @@ GNUNET_log_setup (const char *comp,
   log_file_name = GNUNET_STRINGS_filename_expand (logfile);
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
-  t = time (NULL);
-  tm = gmtime (&t);
-  return setup_log_file (tm);
+#if TALER_WALLET_ONLY
+  /* log file option not allowed for wallet logic */
+  GNUNET_assert (NULL == logfile);
+  return GNUNET_OK;
+#else
+  {
+    time_t t;
+    const struct tm *tm;
+
+    t = time (NULL);
+    tm = gmtime (&t);
+    return setup_log_file (tm);
+  }
+#endif
 }
 
 
@@ -806,7 +817,7 @@ output_message (enum GNUNET_ErrorType kind,
 	 * for end users while still having the power of the
 	 * logging engine for developer needs. So ideally this
 	 * is what it should look like when CLI tools are used
-	 * interactively, yet the same message shouldn't look 
+	 * interactively, yet the same message shouldn't look
 	 * this way if the output is going to logfiles or robots
 	 * instead. Is this the right place to do this?	--lynX
 	 */
@@ -848,7 +859,8 @@ flush_bulk (const char *datestr)
   char *last;
   const char *ft;
 
-  if ((0 == last_bulk_time.abs_value_us) || (0 == last_bulk_repeat))
+  if ( (0 == last_bulk_time.abs_value_us) ||
+       (0 == last_bulk_repeat) )
     return;
   rev = 0;
   last = memchr (last_bulk, '\0', BULK_TRACK_SIZE);
@@ -933,10 +945,15 @@ mylog (enum GNUNET_ErrorType kind,
   va_list vacp;
 
   va_copy (vacp, va);
-  size = VSNPRINTF (NULL, 0, message, vacp) + 1;
+  size = VSNPRINTF (NULL,
+                    0,
+                    message,
+                    vacp) + 1;
   GNUNET_assert (0 != size);
   va_end (vacp);
-  memset (date, 0, DATE_STR_SIZE);
+  memset (date,
+          0,
+          DATE_STR_SIZE);
   {
     char buf[size];
     long long offset;
@@ -956,8 +973,13 @@ mylog (enum GNUNET_ErrorType kind,
     }
     else
     {
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
-      snprintf (date, sizeof (date), date2,
+      strftime (date2,
+                DATE_STR_SIZE,
+                "%b %d %H:%M:%S-%%020llu",
+                tmptr);
+      snprintf (date,
+                sizeof (date),
+                date2,
 		(long long) (pc.QuadPart /
 			     (performance_frequency.QuadPart / 1000)));
     }
@@ -992,17 +1014,26 @@ mylog (enum GNUNET_ErrorType kind,
     tmptr = localtime (&timeofday.tv_sec);
     if (NULL == tmptr)
     {
-      strcpy (date, "localtime error");
+      strcpy (date,
+              "localtime error");
     }
     else
     {
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
-      snprintf (date, sizeof (date), date2, timeofday.tv_usec);
+      strftime (date2,
+                DATE_STR_SIZE,
+                "%b %d %H:%M:%S-%%06u",
+                tmptr);
+      snprintf (date,
+                sizeof (date),
+                date2,
+                timeofday.tv_usec);
     }
 #endif
     VSNPRINTF (buf, size, message, va);
+#if ! TALER_WALLET_ONLY
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
+#endif
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
         (0 != last_bulk_time.abs_value_us) &&
         (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
@@ -1015,12 +1046,19 @@ mylog (enum GNUNET_ErrorType kind,
       return;
     }
     flush_bulk (date);
-    strncpy (last_bulk, buf, sizeof (last_bulk));
+    strncpy (last_bulk,
+             buf,
+             sizeof (last_bulk));
     last_bulk_repeat = 0;
     last_bulk_kind = kind;
     last_bulk_time = GNUNET_TIME_absolute_get ();
-    strncpy (last_bulk_comp, comp, COMP_TRACK_SIZE);
-    output_message (kind, comp, date, buf);
+    strncpy (last_bulk_comp,
+             comp,
+             COMP_TRACK_SIZE);
+    output_message (kind,
+                    comp,
+                    date,
+                    buf);
   }
 }
 

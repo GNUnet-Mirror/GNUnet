@@ -11,7 +11,7 @@
   A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
-  TALER; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
+  GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
 */
 
 /**
@@ -112,7 +112,7 @@ main (int argc,
 				   pub);
   GNUNET_CRYPTO_rsa_signature_free (bsig);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));  
+                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_signature_free (sig_copy);
   GNUNET_CRYPTO_rsa_private_key_free (priv);

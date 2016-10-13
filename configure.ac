@@ -567,7 +567,14 @@ AC_ARG_ENABLE([taler-wallet],
    [taler_only=${enableval}],
    [taler_only=no])
 AC_MSG_RESULT($taler_only)
-AM_CONDITIONAL([TALER_ONLY], [test "x$taler_only" = "xyes"])
+if test "x$taler_only" = "xyes"
+then
+  AM_CONDITIONAL([TALER_ONLY],true)
+  AC_DEFINE([TALER_WALLET_ONLY],[1],[Compiling for Taler wallet])
+else
+  AM_CONDITIONAL([TALER_ONLY],false)
+  AC_DEFINE([TALER_WALLET_ONLY],[0],[Canonical compilation])
+fi
 
 # test for libextractor
 extractor=0
