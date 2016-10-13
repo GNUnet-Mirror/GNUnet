@@ -796,14 +796,16 @@ AC_SUBST(SQLITE_LDFLAGS)
 
 # test for postgres
 postgres=false
-AX_LIB_POSTGRESQL([])
-if test "$found_postgresql" = "yes"; then
-  CFLAGS="$CFLAGS $POSTGRESQL_CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
-  AC_CHECK_HEADERS([libpq-fe.h],
-    postgres=true)
+# even running the check for postgres breaks emscripten ...
+if test "$taler_only" != yes; then
+  AX_LIB_POSTGRESQL([])
+  if test "$found_postgresql" = "yes"; then
+    CFLAGS="$CFLAGS $POSTGRESQL_CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
+    AC_CHECK_HEADERS([libpq-fe.h],
+      postgres=true)
+  fi
 fi
-
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
 
