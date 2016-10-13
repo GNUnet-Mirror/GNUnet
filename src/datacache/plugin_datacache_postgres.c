@@ -74,7 +74,7 @@ init_connection (struct Plugin *plugin)
     return GNUNET_SYSERR;
   ret =
       PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE gn090dc ("
+              "CREATE TEMPORARY TABLE IF NOT EXISTS gn090dc ("
               "  type INTEGER NOT NULL DEFAULT 0,"
               "  discard_time BIGINT NOT NULL DEFAULT 0,"
               "  key BYTEA NOT NULL DEFAULT '',"
@@ -100,10 +100,10 @@ init_connection (struct Plugin *plugin)
   {
     if ((GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX idx_key ON gn090dc (key)")) ||
+                               "CREATE INDEX IF NOT EXISTS idx_key ON gn090dc (key)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX idx_dt ON gn090dc (discard_time)")))
+                               "CREATE INDEX IF NOT EXISTS idx_dt ON gn090dc (discard_time)")))
     {
       PQclear (ret);
       PQfinish (plugin->dbh);
