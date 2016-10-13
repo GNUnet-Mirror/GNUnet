@@ -1,6 +1,10 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
-SUBDIRS  = contrib doc m4 src po pkgconfig
+SUBDIRS  = doc m4 src po pkgconfig
+
+if !TALER_ONLY
+  SUBDIRS += contrib
+endif
 
 EXTRA_DIST = \
  ABOUT-NLS \
