@@ -82,7 +82,6 @@ struct GNUNET_MQ_Envelope
    * Did the application call #GNUNET_MQ_env_set_options()?
    */
   int have_custom_options;
-
 };
 
 
@@ -187,6 +186,11 @@ struct GNUNET_MQ_Handle
    * Number of entries we have in the envelope-DLL.
    */
   unsigned int queue_length;
+
+  /**
+   * GNUNET_YES if GNUNET_MQ_impl_evict was called.
+   */
+  int evict_called;
 };
 
 
@@ -1105,6 +1109,8 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
 
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL != mq->cancel_impl);
+  
+  mq->evict_called = GNUNET_NO;
 
   if (mq->current_envelope == ev)
   {
@@ -1140,9 +1146,12 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
     mq->queue_length--;
   }
 
-  ev->parent_queue = NULL;
-  ev->mh = NULL;
-  GNUNET_free (ev);
+  if (GNUNET_YES != mq->evict_called)
+  {
+    ev->parent_queue = NULL;
+    ev->mh = NULL;
+    GNUNET_free (ev);
+  }
 }
 
 
@@ -1282,6 +1291,33 @@ GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh
 			       mq->dnh_tail,
 			       dnh);
   GNUNET_free (dnh);
+}
+
+
+/**
+ * Get the message that is currently being sent when cancellation of that
+ * message is requested.  Returns an opaque pointer which contains the memory
+ * for the message, as well as some control data used by mq.
+ *
+ * This function may be called at most once in the cancel_impl
+ * function of a message queue.
+ *
+ * Use this function to avoid copying a half-sent message.
+ *
+ * @param mq message queue
+ * @parem msg pointer to store the message being canceled
+ * @return memory block that contains the message, must be freed by the caller
+ */
+void *
+GNUNET_MQ_impl_cancel_evict (struct GNUNET_MQ_Handle *mq, struct GNUNET_MessageHeader **msg)
+{
+  GNUNET_assert (GNUNET_NO == mq->evict_called);
+  GNUNET_assert (NULL != mq->current_envelope);
+  mq->evict_called = GNUNET_YES;
+  mq->current_envelope->parent_queue = NULL;
+  mq->current_envelope->mh = NULL;
+  *msg = mq->current_envelope->mh;
+  return mq->current_envelope;
 }
 
 
