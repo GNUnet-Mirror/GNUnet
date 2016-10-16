@@ -612,10 +612,8 @@ GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
 const struct GNUNET_MessageHeader *
 GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq)
 {
-  if (NULL == mq->current_envelope)
-    GNUNET_assert (0);
-  if (NULL == mq->current_envelope->mh)
-    GNUNET_assert (0);
+  GNUNET_assert (NULL != mq->current_envelope);
+  GNUNET_assert (NULL == mq->current_envelope->mh);
   return mq->current_envelope->mh;
 }
 
