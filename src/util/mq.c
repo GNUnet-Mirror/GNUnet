@@ -188,9 +188,9 @@ struct GNUNET_MQ_Handle
   unsigned int queue_length;
 
   /**
-   * GNUNET_YES if GNUNET_MQ_impl_evict was called.
+   * GNUNET_YES if GNUNET_MQ_impl_evacuate was called.
    */
-  int evict_called;
+  int evacuate_called;
 };
 
 
@@ -340,10 +340,11 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
  * @param mqm the message to discard
  */
 void
-GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm)
+GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *ev)
 {
-  GNUNET_assert (NULL == mqm->parent_queue);
-  GNUNET_free (mqm);
+  GNUNET_assert (NULL == ev->parent_queue);
+  /* also frees ev */
+  GNUNET_free (ev->mh);
 }
 
 
@@ -457,7 +458,8 @@ impl_send_continue (void *cls)
   }
   if (NULL != current_envelope->sent_cb)
     current_envelope->sent_cb (current_envelope->sent_cls);
-  GNUNET_free (current_envelope);
+  /* also frees current_envelope */
+  GNUNET_free (current_envelope->mh);
 }
 
 
@@ -588,15 +590,17 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
                 uint16_t size,
                 uint16_t type)
 {
-  struct GNUNET_MQ_Envelope *mqm;
+  struct GNUNET_MQ_Envelope *ev;
+  void *mem;
 
-  mqm = GNUNET_malloc (sizeof *mqm + size);
-  mqm->mh = (struct GNUNET_MessageHeader *) &mqm[1];
-  mqm->mh->size = htons (size);
-  mqm->mh->type = htons (type);
+  mem = GNUNET_malloc (size + sizeof (struct GNUNET_MQ_Envelope));
+  ev = mem + size;
+  ev->mh = mem;
+  ev->mh->size = htons (size);
+  ev->mh->type = htons (type);
   if (NULL != mhp)
-    *mhp = mqm->mh;
-  return mqm;
+    *mhp = ev->mh;
+  return ev;
 }
 
 
@@ -1110,7 +1114,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL != mq->cancel_impl);
   
-  mq->evict_called = GNUNET_NO;
+  mq->evacuate_called = GNUNET_NO;
 
   if (mq->current_envelope == ev)
   {
@@ -1146,11 +1150,11 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
     mq->queue_length--;
   }
 
-  if (GNUNET_YES != mq->evict_called)
+  if (GNUNET_YES != mq->evacuate_called)
   {
     ev->parent_queue = NULL;
-    ev->mh = NULL;
-    GNUNET_free (ev);
+    /* also frees ev */
+    GNUNET_free (ev->mh);
   }
 }
 
@@ -1296,8 +1300,7 @@ GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh
 
 /**
  * Get the message that is currently being sent when cancellation of that
- * message is requested.  Returns an opaque pointer which contains the memory
- * for the message, as well as some control data used by mq.
+ * message is requested.  The returned buffer must be freed by the caller.
  *
  * This function may be called at most once in the cancel_impl
  * function of a message queue.
@@ -1305,19 +1308,23 @@ GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh
  * Use this function to avoid copying a half-sent message.
  *
  * @param mq message queue
- * @parem msg pointer to store the message being canceled
- * @return memory block that contains the message, must be freed by the caller
+ * @return pointer to store the message being canceled,
+ *         must be freed by the caller
  */
-void *
-GNUNET_MQ_impl_cancel_evict (struct GNUNET_MQ_Handle *mq, struct GNUNET_MessageHeader **msg)
+struct GNUNET_MessageHeader *
+GNUNET_MQ_impl_cancel_evacuate (struct GNUNET_MQ_Handle *mq)
 {
-  GNUNET_assert (GNUNET_NO == mq->evict_called);
+  struct GNUNET_MessageHeader *mh;
+
+  GNUNET_assert (GNUNET_NO == mq->evacuate_called);
   GNUNET_assert (NULL != mq->current_envelope);
-  mq->evict_called = GNUNET_YES;
+
+  mq->evacuate_called = GNUNET_YES;
+  mh = mq->current_envelope->mh;
   mq->current_envelope->parent_queue = NULL;
-  mq->current_envelope->mh = NULL;
-  *msg = mq->current_envelope->mh;
-  return mq->current_envelope;
+  mq->current_envelope = NULL;
+
+  return mh;
 }
 
 

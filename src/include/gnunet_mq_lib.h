@@ -415,6 +415,7 @@ struct GNUNET_MQ_MessageHandler
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
+
                 uint16_t size,
                 uint16_t type);
 
@@ -727,8 +728,7 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
 
 /**
  * Get the message that is currently being sent when cancellation of that
- * message is requested.  Returns an opaque pointer which contains the memory
- * for the message, as well as some control data used by mq.
+ * message is requested.  The returned buffer must be freed by the caller.
  *
  * This function may be called at most once in the cancel_impl
  * function of a message queue.
@@ -736,11 +736,11 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
  * Use this function to avoid copying a half-sent message.
  *
  * @param mq message queue
- * @parem msg pointer to store the message being canceled
- * @return memory block that contains the message, must be freed by the caller
+ * @return pointer to store the message being canceled,
+ *         must be freed by the caller
  */
-void *
-GNUNET_MQ_impl_cancel_evict (struct GNUNET_MQ_Handle *mq, struct GNUNET_MessageHeader **msg);
+struct GNUNET_MessageHeader *
+GNUNET_MQ_impl_cancel_evacuate (struct GNUNET_MQ_Handle *mq);
 
 
 /**
