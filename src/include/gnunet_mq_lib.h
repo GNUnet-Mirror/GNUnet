@@ -702,6 +702,9 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
 
 /**
  * Call the send implementation for the next queued message, if any.
+ * Calls the send notification for the current message unless
+ * #GNUNET_MQ_impl_send_in_flight was called for this envelope.
+ *
  * Only useful for implementing message queues, results in undefined
  * behavior if not used carefully.
  *
@@ -712,35 +715,17 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Get the message that should currently be sent.  The returned
- * message is only valid until #GNUNET_MQ_impl_send_continue is
- * called.  Fails if there is no current message.  Only useful for
- * implementing message queues, results in undefined behavior if not
- * used carefully.
+ * Call the send notification for the current message, but do not
+ * try to send the message until #gnunet_mq_impl_send_continue
+ * is called.
  *
- * @param mq message queue with the current message, only valid
- *        until #GNUNET_MQ_impl_send_continue() is called
- * @return message to send, never NULL
+ * only useful for implementing message queues, results in undefined
+ * behavior if not used carefully.
+ *
+ * @param mq message queue to send the next message with
  */
-const struct GNUNET_MessageHeader *
-GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
-
-
-/**
- * Get the message that is currently being sent when cancellation of that
- * message is requested.  The returned buffer must be freed by the caller.
- *
- * This function may be called at most once in the cancel_impl
- * function of a message queue.
- *
- * Use this function to avoid copying a half-sent message.
- *
- * @param mq message queue
- * @return pointer to store the message being canceled,
- *         must be freed by the caller
- */
-struct GNUNET_MessageHeader *
-GNUNET_MQ_impl_cancel_evacuate (struct GNUNET_MQ_Handle *mq);
+void
+GNUNET_MQ_impl_send_in_flight (struct GNUNET_MQ_Handle *mq);
 
 
 /**
