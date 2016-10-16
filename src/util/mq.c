@@ -44,8 +44,9 @@ struct GNUNET_MQ_Envelope
   struct GNUNET_MQ_Envelope *prev;
 
   /**
-   * Actual allocated message header,
-   * usually points to the end of the containing GNUNET_MQ_Envelope
+   * Actual allocated message header.
+   * The GNUNET_MQ_Envelope header is allocated at
+   * the end of the message.
    */
   struct GNUNET_MessageHeader *mh;
 
