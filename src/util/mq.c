@@ -613,7 +613,7 @@ const struct GNUNET_MessageHeader *
 GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq)
 {
   GNUNET_assert (NULL != mq->current_envelope);
-  GNUNET_assert (NULL == mq->current_envelope->mh);
+  GNUNET_assert (NULL != mq->current_envelope->mh);
   return mq->current_envelope->mh;
 }
 
