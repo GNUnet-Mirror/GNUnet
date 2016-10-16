@@ -716,7 +716,7 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
 
 /**
  * Call the send notification for the current message, but do not
- * try to send the message until #gnunet_mq_impl_send_continue
+ * try to send the next message until #gnunet_mq_impl_send_continue
  * is called.
  *
  * only useful for implementing message queues, results in undefined
