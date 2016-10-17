@@ -1,5 +1,6 @@
 { stdenv, makeWrapper, pkgconfig, autoconf, automake, ccache, ccache_dir ? ""
-, adns, curl, gettext, gmp, gnutls, gss, ncurses, openldap, zlib, sqlite, mariadb, postgresql
+, adns, curl, gettext, gmp, gnutls, gss, ncurses, openldap
+, jansson, zlib, sqlite, mariadb, postgresql
 , libextractor, libgcrypt, libgnurl, libidn, libmicrohttpd
 , libpsl, libtool, libunistring, libxml2
 }:
@@ -10,7 +11,8 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     makeWrapper pkgconfig autoconf automake ccache
-    adns curl gettext gmp gnutls gss ncurses openldap zlib sqlite mariadb postgresql
+    adns curl gettext gmp gnutls gss ncurses openldap
+    jansson zlib sqlite mariadb postgresql
     libextractor libgcrypt libgnurl libidn libmicrohttpd
     libpsl libtool libunistring libxml2
   ];
