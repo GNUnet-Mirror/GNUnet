@@ -16,7 +16,9 @@ stdenv.mkDerivation rec {
   ];
 
   patchPhase = ''
-    test -e Makefile && make distclean
+    if [ -e Makefile ]; then
+      make distclean
+    fi
   '';
 
   NIX_CFLAGS_COMPILE = "-ggdb -O0";
