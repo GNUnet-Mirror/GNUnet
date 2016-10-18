@@ -100,7 +100,7 @@ database_setup (struct Plugin *plugin)
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS channels (\n"
                               " id SERIAL,\n"
-                              " pub_key BYTEA,\n"
+                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
                               " max_state_message_id BIGINT,\n"
                               " state_hash_message_id BIGINT,\n"
                               " PRIMARY KEY(id)\n"
@@ -121,7 +121,7 @@ database_setup (struct Plugin *plugin)
          GNUNET_POSTGRES_exec(plugin->dbh,
                               "CREATE TABLE IF NOT EXISTS slaves (\n"
                               " id SERIAL,\n"
-                              " pub_key BYTEA,\n"
+                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
                               " PRIMARY KEY(id)\n"
                               ")" "WITH OIDS")) ||
 
