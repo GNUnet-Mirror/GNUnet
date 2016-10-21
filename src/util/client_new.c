@@ -578,7 +578,7 @@ try_connect_using_address (void *cls,
 {
   struct ClientState *cstate = cls;
   struct AddressProbe *ap;
-
+  
   if (NULL == addr)
   {
     cstate->dns_active = NULL;
@@ -762,6 +762,8 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == cstate->send_task);
   cstate->msg = msg;
   cstate->msg_off = 0;
+  if (NULL == cstate->sock)
+    return; /* still waiting for connection */
   cstate->send_task
     = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                       cstate->sock,
@@ -785,8 +787,11 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL != cstate->msg);
   GNUNET_assert (0 == cstate->msg_off);
   cstate->msg = NULL;
-  GNUNET_SCHEDULER_cancel (cstate->send_task);
-  cstate->send_task = NULL;
+  if (NULL != cstate->send_task)
+  {
+    GNUNET_SCHEDULER_cancel (cstate->send_task);
+    cstate->send_task = NULL;
+  }
 }
 
 
@@ -826,36 +831,34 @@ GNUNET_CLIENT_connecT2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        service_name,
                                        "PORT"))
   {
-    if (! (GNUNET_OK !=
-           GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                  service_name,
-                                                  "PORT",
-                                                  &cstate->port)) ||
-        (cstate->port > 65535) ||
-        (GNUNET_OK !=
-         GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                service_name,
-                                                "HOSTNAME",
-                                                &cstate->hostname)) )
+    if (! ( (GNUNET_OK !=
+	     GNUNET_CONFIGURATION_get_value_number (cfg,
+						    service_name,
+						    "PORT",
+						    &cstate->port)) ||
+	    (cstate->port > 65535) ||
+	    (GNUNET_OK !=
+	     GNUNET_CONFIGURATION_get_value_string (cfg,
+						    service_name,
+						    "HOSTNAME",
+						    &cstate->hostname)) ) &&
+	(0 == strlen (cstate->hostname)) )
     {
-      if (0 == strlen (cstate->hostname))
-      {
-        GNUNET_free (cstate->hostname);
-        cstate->hostname = NULL;
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("Need a non-empty hostname for service `%s'.\n"),
-             service_name);
-      }
+      GNUNET_free (cstate->hostname);
+      cstate->hostname = NULL;
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   _("Need a non-empty hostname for service `%s'.\n"),
+	   service_name);
     }
   }
-
-  return GNUNET_MQ_queue_for_callbacks (&connection_client_send_impl,
-                                        &connection_client_destroy_impl,
-                                        &connection_client_cancel_impl,
-                                        cstate,
-                                        handlers,
-                                        error_handler,
-                                        error_handler_cls);
+  cstate->mq = GNUNET_MQ_queue_for_callbacks (&connection_client_send_impl,
+					      &connection_client_destroy_impl,
+					      &connection_client_cancel_impl,
+					      cstate,
+					      handlers,
+					      error_handler,
+					      error_handler_cls);
+  return cstate->mq;
 }
 
 /* end of client_new.c */
