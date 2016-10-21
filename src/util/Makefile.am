@@ -60,6 +60,7 @@ libgnunetutil_la_SOURCES = \
   bandwidth.c \
   bio.c \
   client.c \
+  client_new.c \
   common_allocation.c \
   common_endian.c \
   common_logging.c \
@@ -325,13 +326,13 @@ check_PROGRAMS = \
 # Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
 # sequential execution order for them
 TEST_EXTENSIONS = .nc
-test_connection.log: test_client.log 
+test_connection.log: test_client.log
 test_connection_addressing.log: test_connection.log
 test_connection_timeout_no_connect.log: test_connection_addressing.log
 test_connection_transmit_cancel.log: test_connection_timeout_no_connect.log
 test_connection_receive_cancel.log: test_connection_transmit_cancel.log
 test_connection_timeout.log: test_connection_receive_cancel.log
-test_resolver_api.log: test_connection_timeout.log 
+test_resolver_api.log: test_connection_timeout.log
 test_server.log: test_resolver_api.log
 test_server_disconnect.log: test_server.log
 test_server_with_client.log: test_server_disconnect.log
