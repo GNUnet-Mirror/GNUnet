@@ -213,10 +213,9 @@ start_connect (void *cls);
 static void
 connect_fail_continuation (struct ClientState *cstate)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Failed to establish TCP connection to `%s:%u', no further addresses to try.\n",
-       cstate->hostname,
-       cstate->port);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Failed to establish connection to `%s', no further addresses to try.\n",
+       cstate->service_name);
   GNUNET_break (NULL == cstate->ap_head);
   GNUNET_break (NULL == cstate->ap_tail);
   GNUNET_break (NULL == cstate->dns_active);
@@ -245,6 +244,7 @@ transmit_ready (void *cls)
   ssize_t ret;
   size_t len;
   const char *pos;
+  int notify_in_flight;
 
   cstate->send_task = NULL;
   pos = (const char *) cstate->msg;
@@ -262,10 +262,7 @@ transmit_ready (void *cls)
                             GNUNET_MQ_ERROR_WRITE);
     return;
   }
-  if (0 == cstate->msg_off)
-  {
-    GNUNET_MQ_impl_send_in_flight (cstate->mq);
-  }
+  notify_in_flight = (0 == cstate->msg_off);
   cstate->msg_off += ret;
   if (cstate->msg_off < len)
   {
@@ -274,6 +271,8 @@ transmit_ready (void *cls)
                                         cstate->sock,
                                         &transmit_ready,
                                         cstate);
+    if (notify_in_flight) 
+      GNUNET_MQ_impl_send_in_flight (cstate->mq);
     return;
   }
   cstate->msg = NULL;
@@ -345,6 +344,7 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
   {
     /* defer destruction */
     cstate->in_destroy = GNUNET_YES;
+    cstate->mq = NULL;
     return;
   }
   if (NULL != cstate->dns_active)
@@ -384,8 +384,12 @@ receive_ready (void *cls)
                          GNUNET_NO);
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_MQ_inject_error (cstate->mq,
-                            GNUNET_MQ_ERROR_READ);
+    if (NULL != cstate->mq)
+      GNUNET_MQ_inject_error (cstate->mq,
+			      GNUNET_MQ_ERROR_READ);
+    if (GNUNET_YES == cstate->in_destroy)
+      connection_client_destroy_impl (cstate->mq,
+				      cstate);
     return;
   }
   if (GNUNET_YES == cstate->in_destroy)
@@ -723,16 +727,25 @@ start_connect (void *cls)
 #endif
 
   if ( (0 == (cstate->attempts++ % 2)) ||
-       (0 == cstate->port) )
+       (0 == cstate->port) ||
+       (NULL == cstate->hostname) )
   {
-    /* on even rounds, try UNIX first */
+    /* on even rounds, try UNIX first, or always
+       if we do not have a DNS name and TCP port. */
     cstate->sock = try_unixpath (cstate->service_name,
                                  cstate->cfg);
     if (NULL != cstate->sock)
     {
       connect_success_continuation (cstate);
       return;
-    }
+    }    
+  }
+  if ( (NULL == cstate->hostname) ||
+       (0 == cstate->port) )
+  {
+    /* All options failed. Boo! */
+    connect_fail_continuation (cstate);
+    return;
   }
   cstate->dns_active
     = GNUNET_RESOLVER_ip_get (cstate->hostname,
@@ -807,11 +820,11 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connecT2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const char *service_name,
-                        const struct GNUNET_MQ_MessageHandler *handlers,
-                        GNUNET_MQ_ErrorHandler error_handler,
-                        void *error_handler_cls)
+GNUNET_CLIENT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		       const char *service_name,
+		       const struct GNUNET_MQ_MessageHandler *handlers,
+		       GNUNET_MQ_ErrorHandler error_handler,
+		       void *error_handler_cls)
 {
   struct ClientState *cstate;
 

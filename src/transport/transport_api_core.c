@@ -354,6 +354,25 @@ handle_hello (void *cls,
  * @param cls the `struct Neighbour` where the message was sent
  */
 static void
+notify_send_done_fin (void *cls)
+{
+  struct Neighbour *n = cls;
+
+  n->timeout_task = NULL;
+  n->is_ready = GNUNET_YES;
+  GNUNET_MQ_impl_send_continue (n->mq);
+}
+
+
+/**
+ * A message from the handler's message queue to a neighbour was
+ * transmitted.  Now trigger (possibly delayed) notification of the
+ * neighbour's message queue that we are done and thus ready for
+ * the next message.
+ *
+ * @param cls the `struct Neighbour` where the message was sent
+ */
+static void
 notify_send_done (void *cls)
 {
   struct Neighbour *n = cls;
@@ -364,8 +383,8 @@ notify_send_done (void *cls)
   {
     GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker,
                                       n->env_size + n->traffic_overhead);
-    n->traffic_overhead = 0;
     n->env = NULL;
+    n->traffic_overhead = 0;
   }
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
                                               128);
@@ -375,10 +394,11 @@ notify_send_done (void *cls)
     GNUNET_MQ_impl_send_continue (n->mq);
     return;
   }
+  GNUNET_MQ_impl_send_in_flight (n->mq);
   /* cannot send even a small message without violating
-     quota, wait a before notifying MQ */
+     quota, wait a before allowing MQ to send next message */
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                  &notify_send_done,
+                                                  &notify_send_done_fin,
                                                   n);
 }
 
@@ -411,6 +431,7 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
     GNUNET_MQ_impl_send_continue (mq);
     return;
   }
+  GNUNET_assert (NULL == n->env);
   n->env = GNUNET_MQ_msg_nested_mh (obm,
                                     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
                                     msg);

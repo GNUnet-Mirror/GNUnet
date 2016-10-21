@@ -128,6 +128,11 @@ struct GNUNET_MQ_Handle
   void *error_handler_cls;
 
   /**
+   * Task to asynchronously run #impl_send_continue(). 
+   */
+  struct GNUNET_SCHEDULER_Task *send_task;
+  
+  /**
    * Linked list of messages pending to be sent
    */
   struct GNUNET_MQ_Envelope *envelope_head;
@@ -145,21 +150,9 @@ struct GNUNET_MQ_Handle
   struct GNUNET_MQ_Envelope *current_envelope;
 
   /**
-   * GNUNET_YES if the sent notification was called 
-   * for the current envelope.
-   */
-  int send_notification_called;
-
-  /**
    * Map of associations, lazily allocated
    */
   struct GNUNET_CONTAINER_MultiHashMap32 *assoc_map;
-
-  /**
-   * Task scheduled during #GNUNET_MQ_impl_send_continue
-   * or #GNUNET_MQ_impl_send_in_flight
-   */
-  struct GNUNET_SCHEDULER_Task *send_task;
 
   /**
    * Functions to call on queue destruction; kept in a DLL.
@@ -196,9 +189,15 @@ struct GNUNET_MQ_Handle
   unsigned int queue_length;
 
   /**
-   * GNUNET_YES if GNUNET_MQ_impl_evacuate was called.
+   * #GNUNET_YES if GNUNET_MQ_impl_evacuate was called.
+   * FIXME: is this dead?
    */
   int evacuate_called;
+
+  /**
+   * #GNUNET_YES if GNUNET_MQ_impl_send_in_flight() was called.
+   */
+  int in_flight;
 };
 
 
@@ -364,7 +363,7 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *ev)
 unsigned int
 GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq)
 {
-  return mq->queue_length;
+  return mq->queue_length - (GNUNET_YES == mq->in_flight) ? 1 : 0;
 }
 
 
@@ -385,7 +384,8 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   mq->queue_length++;
   ev->parent_queue = mq;
   /* is the implementation busy? queue it! */
-  if (NULL != mq->current_envelope)
+  if ( (NULL != mq->current_envelope) ||
+       (NULL != mq->send_task) )
   {
     GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head,
                                       mq->envelope_tail,
@@ -428,35 +428,6 @@ GNUNET_MQ_send_copy (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Task run to call the send notification for the next queued
- * message, if any.  Only useful for implementing message queues,
- * results in undefined behavior if not used carefully.
- *
- * @param cls message queue to send the next message with
- */
-static void
-impl_send_in_flight (void *cls)
-{
-  struct GNUNET_MQ_Handle *mq = cls;
-  struct GNUNET_MQ_Envelope *current_envelope;
-
-  mq->send_task = NULL;
-  /* call is only valid if we're actually currently sending
-   * a message */
-  current_envelope = mq->current_envelope;
-  GNUNET_assert (NULL != current_envelope);
-  /* can't call cancel from now on anymore */
-  current_envelope->parent_queue = NULL;
-  if ( (GNUNET_NO == mq->send_notification_called) &&
-       (NULL != current_envelope->sent_cb) )
-  {
-    current_envelope->sent_cb (current_envelope->sent_cls);
-  }
-  mq->send_notification_called = GNUNET_YES;
-}
-
-
-/**
  * Task run to call the send implementation for the next queued
  * message, if any.  Only useful for implementing message queues,
  * results in undefined behavior if not used carefully.
@@ -467,32 +438,19 @@ static void
 impl_send_continue (void *cls)
 {
   struct GNUNET_MQ_Handle *mq = cls;
-  struct GNUNET_MQ_Envelope *current_envelope;
-
+  
   mq->send_task = NULL;
   /* call is only valid if we're actually currently sending
    * a message */
-  current_envelope = mq->current_envelope;
-  GNUNET_assert (NULL != current_envelope);
-  impl_send_in_flight (mq);
-  GNUNET_assert (0 < mq->queue_length);
-  mq->queue_length--;
   if (NULL == mq->envelope_head)
-  {
-    mq->current_envelope = NULL;
-  }
-  else
-  {
-    mq->current_envelope = mq->envelope_head;
-    GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
-                                 mq->envelope_tail,
-                                 mq->current_envelope);
-    mq->send_notification_called = GNUNET_NO;
-    mq->send_impl (mq,
-		   mq->current_envelope->mh,
-		   mq->impl_state);
-  }
-  GNUNET_free (current_envelope);
+    return;
+  mq->current_envelope = mq->envelope_head;
+  GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
+			       mq->envelope_tail,
+			       mq->current_envelope);
+  mq->send_impl (mq,
+		 mq->current_envelope->mh,
+		 mq->impl_state);
 }
 
 
@@ -506,22 +464,32 @@ impl_send_continue (void *cls)
 void
 GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
 {
-  /* maybe #GNUNET_MQ_impl_send_in_flight was called? */
-  if (NULL != mq->send_task)
-  {
-    GNUNET_SCHEDULER_cancel (mq->send_task);
-  }
+  struct GNUNET_MQ_Envelope *current_envelope;
+  GNUNET_MQ_NotifyCallback cb;
+  
+  GNUNET_assert (0 < mq->queue_length);
+  mq->queue_length--;
+  current_envelope = mq->current_envelope;
+  current_envelope->parent_queue = NULL;
+  mq->current_envelope = NULL;
+  GNUNET_assert (NULL == mq->send_task);
   mq->send_task = GNUNET_SCHEDULER_add_now (&impl_send_continue,
-                                            mq);
+					    mq);
+  if (NULL != (cb = current_envelope->sent_cb))
+  {
+    current_envelope->sent_cb = NULL;
+    cb (current_envelope->sent_cls);
+  }  
+  GNUNET_free (current_envelope);
 }
 
 
 /**
  * Call the send notification for the current message, but do not
- * try to send the next message until #gnunet_mq_impl_send_continue
+ * try to send the next message until #GNUNET_MQ_impl_send_continue
  * is called.
  *
- * only useful for implementing message queues, results in undefined
+ * Only useful for implementing message queues, results in undefined
  * behavior if not used carefully.
  *
  * @param mq message queue to send the next message with
@@ -529,9 +497,21 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
 void
 GNUNET_MQ_impl_send_in_flight (struct GNUNET_MQ_Handle *mq)
 {
-  GNUNET_assert (NULL == mq->send_task);
-  mq->send_task = GNUNET_SCHEDULER_add_now (&impl_send_in_flight,
-                                            mq);
+  struct GNUNET_MQ_Envelope *current_envelope;
+  GNUNET_MQ_NotifyCallback cb;
+  
+  mq->in_flight = GNUNET_YES;
+  /* call is only valid if we're actually currently sending
+   * a message */
+  current_envelope = mq->current_envelope;
+  GNUNET_assert (NULL != current_envelope);
+  /* can't call cancel from now on anymore */
+  current_envelope->parent_queue = NULL;
+  if (NULL != (cb = current_envelope->sent_cb))
+  {
+    current_envelope->sent_cb = NULL;
+    cb (current_envelope->sent_cls);
+  }
 }
 
 
@@ -1187,7 +1167,6 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
-      mq->send_notification_called = GNUNET_NO;
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);
