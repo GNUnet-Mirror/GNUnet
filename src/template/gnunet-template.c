@@ -32,6 +32,7 @@
  */
 static int ret;
 
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -41,7 +42,9 @@ static int ret;
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
@@ -62,12 +65,17 @@ main (int argc, char *const *argv)
     /* FIMXE: add options here */
     GNUNET_GETOPT_OPTION_END
   };
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-template",
-			     gettext_noop ("help text"), options, &run,
+	 GNUNET_PROGRAM_run (argc, argv,
+			     "gnunet-template",
+			     gettext_noop ("help text"),
+			     options,
+			     &run,
 			     NULL)) ? ret : 1;
   GNUNET_free ((void*) argv);
   return ret;
