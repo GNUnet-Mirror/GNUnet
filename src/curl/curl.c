@@ -407,7 +407,6 @@ download_get_result (struct DownloadBuffer *db,
     }
     return NULL;
   }
-
   json = NULL;
   if (0 == db->eno)
   {

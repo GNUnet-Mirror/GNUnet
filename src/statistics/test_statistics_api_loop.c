@@ -31,7 +31,10 @@ static struct GNUNET_STATISTICS_Handle *h;
 
 
 static int
-check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
+check_1 (void *cls,
+	 const char *subsystem,
+	 const char *name,
+	 uint64_t value,
          int is_persistent)
 {
   GNUNET_assert (0 == strcmp (name, "test-0"));
@@ -42,7 +45,8 @@ check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
 
 
 static void
-next (void *cls, int success)
+next (void *cls,
+      int success)
 {
   int *ok = cls;
 
@@ -53,7 +57,9 @@ next (void *cls, int success)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned int i;
@@ -62,9 +68,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   h = GNUNET_STATISTICS_create ("test-statistics-api-loop", cfg);
   for (i = 0; i < ROUNDS; i++)
   {
-    GNUNET_snprintf (name, sizeof (name), "test-%d", i % 256);
+    GNUNET_snprintf (name, sizeof (name), "test-%d", i % 32);
     GNUNET_STATISTICS_set (h, name, i, GNUNET_NO);
-    GNUNET_snprintf (name, sizeof (name), "test-%d", i % 128);
+    GNUNET_snprintf (name, sizeof (name), "test-%d", i % 16);
     GNUNET_STATISTICS_update (h, name, 1, GNUNET_NO);
   }
   i = 0;

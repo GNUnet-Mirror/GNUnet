@@ -1015,7 +1015,7 @@ schedule_action (void *cls)
     return;
   }
   if (0 < GNUNET_MQ_get_length (h->mq))
-    return; /* Wait for queue to be reduced more */
+    return; /* Wait for queue to be reduced more */    
   /* schedule next action */
   while (NULL == h->current)
   {
@@ -1253,8 +1253,10 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
   }
   for (ai = h->action_head; NULL != ai; ai = ai->next)
   {
-    if (! ( (0 == strcmp (ai->subsystem, h->subsystem)) &&
-	    (0 == strcmp (ai->name, name)) &&
+    if (! ( (0 == strcmp (ai->subsystem,
+			  h->subsystem)) &&
+	    (0 == strcmp (ai->name,
+			  name)) &&
 	    ( (ACTION_UPDATE == ai->type) ||
 	      (ACTION_SET == ai->type) ) ) )
       continue;

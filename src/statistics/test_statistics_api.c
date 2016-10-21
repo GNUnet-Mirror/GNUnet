@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2012 GNUnet e.V.
+     Copyright (C) 2009, 2012, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,6 +28,21 @@
 
 
 static struct GNUNET_STATISTICS_Handle *h;
+
+static struct GNUNET_STATISTICS_GetHandle *g;
+
+
+static void
+do_shutdown ()
+{
+  if (NULL != g)
+  {
+    GNUNET_STATISTICS_get_cancel (g);
+    g = NULL;
+  }
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+  h = NULL;
+}
 
 
 static int
@@ -96,7 +111,8 @@ next_fin (void *cls,
 {
   int *ok = cls;
 
-  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+  g = NULL;
+  GNUNET_SCHEDULER_shutdown ();
   GNUNET_assert (success == GNUNET_OK);
   *ok = 0;
 }
@@ -105,6 +121,7 @@ next_fin (void *cls,
 static void
 next (void *cls, int success)
 {
+  g = NULL;
   GNUNET_assert (success == GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Issuing GET request\n");
@@ -122,15 +139,23 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
+  if (NULL == h)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
   GNUNET_STATISTICS_set (h, "test-1", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-2", 2, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-3", 2, GNUNET_NO);
   GNUNET_STATISTICS_update (h, "test-3", 1, GNUNET_YES);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Issuing GET request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Issuing GET request\n");
   GNUNET_break (NULL !=
-                GNUNET_STATISTICS_get (h, NULL, "test-1",
-                                       &next,
-                                       &check_1, cls));
+                (g = GNUNET_STATISTICS_get (h, NULL, "test-1",
+					    &next,
+					    &check_1, cls)));
 }
 
 
@@ -142,11 +167,13 @@ run_more (void *cls,
 {
   h = GNUNET_STATISTICS_create ("test-statistics-api",
                                 cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
   GNUNET_break (NULL !=
-                GNUNET_STATISTICS_get (h, NULL,
-                                       "test-3",
-                                       &next_fin,
-                                       &check_3, cls));
+                (g = GNUNET_STATISTICS_get (h, NULL,
+					    "test-3",
+					    &next_fin,
+					    &check_3, cls)));
 }
 
 
