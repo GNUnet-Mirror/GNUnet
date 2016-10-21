@@ -1974,6 +1974,10 @@ do_send (void *cls)
       return;
     }
   }
+  if (0 == client->msg_pos)
+  {
+    GNUNET_MQ_impl_send_in_flight (client->mq);
+  }
   client->msg_pos += ret;
   if (left > ret)
   {
@@ -2026,9 +2030,10 @@ service_mq_cancel (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = impl_state;
 
-  GNUNET_assert (0); // not implemented
-  // FIXME: stop transmission! (must be possible, otherwise
-  // we must have told MQ that the message was sent!)
+  GNUNET_assert (0 == client->msg_pos);
+  client->msg = NULL;
+  GNUNET_SCHEDULER_cancel (client->send_task);
+  client->send_task = NULL;
 }
 
 

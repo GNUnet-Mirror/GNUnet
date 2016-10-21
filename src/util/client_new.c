@@ -261,7 +261,7 @@ transmit_ready (void *cls)
   }
   if (0 == cstate->msg_off)
   {
-    // FIXME: tell MQ that cancel is no longer possible!
+    GNUNET_MQ_impl_send_in_flight (cstate->mq);
   }
   cstate->msg_off += pos;
   if (cstate->msg_off < len)
