@@ -746,6 +746,19 @@ void *
 GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
 
 
+/**
+ * Get the message that should currently be sent.
+ * Fails if there is no current message.
+ * Only useful for implementing message queues,
+ * results in undefined behavior if not used carefully.
+ *
+ * @param mq message queue with the current message
+ * @return message to send, never NULL
+ */
+const struct GNUNET_MessageHeader *
+GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
+
+
 #endif
 
 /** @} */ /* end of group mq */
