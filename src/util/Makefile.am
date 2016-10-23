@@ -59,7 +59,6 @@ test_common_logging_dummy_LDADD = \
 libgnunetutil_la_SOURCES = \
   bandwidth.c \
   bio.c \
-  client.c \
   client_new.c \
   common_allocation.c \
   common_endian.c \
