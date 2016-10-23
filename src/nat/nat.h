@@ -20,7 +20,7 @@
 
 /**
  * @file src/nat/nat.h
- * @brief Messages for interaction with gnunet-nat-server
+ * @brief Messages for interaction with gnunet-nat-server and gnunet-nat-service
  * @author Christian Grothoff
  *
  */
@@ -32,7 +32,8 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Request to test NAT traversal.
+ * Request to test NAT traversal, sent to the gnunet-nat-server
+ * (not the service!).
  */
 struct GNUNET_NAT_TestMessage
 {
@@ -62,6 +63,128 @@ struct GNUNET_NAT_TestMessage
   int32_t is_tcp;
 
 };
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_RegisterMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REGISTER
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_HandleStunMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_RequestConnectionReversalMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_ConnectionReversalRequestedMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_AddressChangeNotificationMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_Ipv4ChangeNotificationMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_IPV4_CHANGE
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_RequestTestMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_TestResultMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_AutoconfigRequestMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
+/**
+ *
+ */
+struct GNUNET_NAT_AutoconfigResultMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
