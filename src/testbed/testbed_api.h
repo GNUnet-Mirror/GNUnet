@@ -415,7 +415,7 @@ struct OperationContext *
 GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller *controller,
                                        uint64_t operation_id,
                                        const struct GNUNET_MessageHeader *msg,
-                                       GNUNET_CLIENT_MessageHandler cc,
+                                       GNUNET_MQ_MessageCallback cc,
                                        void *cc_cls);
 
 /**
