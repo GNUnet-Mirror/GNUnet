@@ -22,125 +22,51 @@
  * @author Christian Grothoff
  * @author Milan Bouchet-Valat
  *
- * @file
+ * @file nat/nat_api.c
  * Service for handling UPnP and NAT-PMP port forwarding
  * and external IP address retrieval
- *
- * @defgroup nat  NAT library
- * Service for handling UPnP and NAT-PMP port forwarding
- * and external IP address retrieval
- *
- * @{
  */
-
-#ifndef GNUNET_NAT_SERVICE_H
-#define GNUNET_NAT_SERVICE_H
-
-#include "gnunet_util_lib.h"
-
-
-/**
- * Some addresses contain sensitive information or are
- * not suitable for global distribution.  We use address
- * classes to filter addresses by which domain they make
- * sense to be used in.  These are used in a bitmask.
- *
- * FIXME: might want to define this elsewhere; we have
- * an equivalent enum in gnunet_transport_hello_service.h;
- * might ultimately belong with the new HELLO definition.
- */
-enum GNUNET_NAT_AddressClass
-{
-
-  /**
-   * No address.
-   */
-  GNUNET_NAT_AC_NONE = 0,
-
-  /**
-   * Addresses that fall into no other category
-   * (i.e. incoming which we cannot use elsewhere).
-   */
-  GNUNET_NAT_AC_OTHER = 1,
-
-  /**
-   * Addresses that are global and are insensitive
-   * (i.e. IPv4).
-   */
-  GNUNET_NAT_AC_GLOBAL = 2,
-
-  /**
-   * Addresses that are global and are sensitive
-   * (i.e. IPv6 with our MAC).
-   */
-  GNUNET_NAT_AC_GLOBAL_PRIVATE = 4,
-
-  /**
-   * Addresses useful in the local wired network,
-   * i.e. a MAC.  Sensitive, but obvious to people nearby.
-   * Useful for broadcasts.
-   */
-  GNUNET_NAT_AC_LAN = 8,
-
-  /**
-   * Addresses useful in the local wireless network,
-   * i.e. a MAC.  Sensitive, but obvious to people nearby.
-   * Useful for broadcasts.
-   */
-  GNUNET_NAT_AC_WLAN = 16,
-
-  /**
-   * Addresses useful in the local bluetooth network.  Sensitive, but
-   * obvious to people nearby.  Useful for broadcasts.
-   */
-  GNUNET_NAT_AC_BT = 32,
-
-  /**
-   * Bitmask for "any" address.
-   */
-  GNUNET_NAT_AC_ANY = 65535
-  
-};
-
-
-/**
- * Signature of the callback passed to #GNUNET_NAT_register() for
- * a function to call whenever our set of 'valid' addresses changes.
- *
- * @param cls closure
- * @param add_remove #GNUNET_YES to add a new public IP address, 
- *                   #GNUNET_NO to remove a previous (now invalid) one
- * @param ac address class the address belongs to
- * @param addr either the previous or the new public IP address
- * @param addrlen actual length of the @a addr
- */
-typedef void
-(*GNUNET_NAT_AddressCallback) (void *cls,
-                               int add_remove,
-			       enum GNUNET_NAT_AddressClass ac,
-                               const struct sockaddr *addr,
-                               socklen_t addrlen);
-
-
-/**
- * Signature of the callback passed to #GNUNET_NAT_register().
- * for a function to call whenever someone asks us to do connection
- * reversal.
- *
- * @param cls closure
- * @param addr public IP address of the other peer
- * @param addrlen actual lenght of the @a addr
- */
-typedef void
-(*GNUNET_NAT_ReversalCallback) (void *cls,
-                                const struct sockaddr *addr,
-                                socklen_t addrlen);
+#include "platform.h"
+#include "gnunet_nat_service.h"
 
 
 /**
  * Handle for active NAT registrations.
  */
-struct GNUNET_NAT_Handle;
+struct GNUNET_NAT_Handle
+{
+
+  /**
+   * Configuration we use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  
+  /**
+   * Message queue for communicating with the NAT service.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Our registration message.
+   */
+  struct GNUNET_MessageHeader *reg;
+  
+  /**
+   * Function to call when our addresses change.
+   */
+  GNUNET_NAT_AddressCallback address_callback;
+  
+  /**
+   * Function to call when another peer requests connection reversal.
+   */
+  GNUNET_NAT_ReversalCallback reversal_callback;
+  
+  /**
+   * Closure for the various callbacks.
+   */
+  void *callback_cls;
+
+};
 
 
 /**
@@ -173,7 +99,17 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
-                     void *callback_cls);
+                     void *callback_cls)
+{
+  struct GNUNET_NAT_Handle *nh = GNUNET_new (struct GNUNET_NAT_Handle);
+
+  nh->cfg = cfg;
+  nh->address_callback = address_callback;
+  nh->reversal_callback = reversal_callback;
+  nh->callback_cls = callback_cls;
+  GNUNET_break (0);
+  return nh;
+}
 
 
 /**
@@ -202,7 +138,11 @@ int
 GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
 			       const struct sockaddr *sender_addr,
 			       const void *data,
-                               size_t data_size);
+                               size_t data_size)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -221,7 +161,11 @@ GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
 int
 GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
                          const void *addr,
-                         socklen_t addrlen);
+                         socklen_t addrlen)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -239,7 +183,11 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
 int
 GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
 			     const struct sockaddr_in *local_sa,
-			     const struct sockaddr_in *remote_sa);
+			     const struct sockaddr_in *remote_sa)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -247,131 +195,45 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
  * handle.  This frees the handle, after having sent the needed
  * commands to close open ports.
  *
- * @param nh the handle to unregister
+ * @param nh the handle to stop
  */
 void
-GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh);
+GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh)
+{
+  GNUNET_MQ_destroy (nh->mq);
+  GNUNET_free (nh->reg);
+  GNUNET_free (nh);
+}
 
 
 /**
  * Handle to a NAT test.
  */
-struct GNUNET_NAT_Test;
-
-
-/**
- * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
- */
-enum GNUNET_NAT_StatusCode
+struct GNUNET_NAT_Test
 {
-  /**
-   * Just the default
-   */
-  GNUNET_NAT_ERROR_SUCCESS = GNUNET_OK,
 
   /**
-   * IPC Failure
+   * Configuration we use.
    */
-  GNUNET_NAT_ERROR_IPC_FAILURE,
-
-  /**
-   * Failure in network subsystem, check permissions
-   */
-  GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR,
-
-  /**
-   * test timed out
-   */
-  GNUNET_NAT_ERROR_TIMEOUT,
-
-  /**
-   * detected that we are offline
-   */
-  GNUNET_NAT_ERROR_NOT_ONLINE,
-
-  /**
-   * `upnpc` command not found
-   */
-  GNUNET_NAT_ERROR_UPNPC_NOT_FOUND,
-
-  /**
-   * Failed to run `upnpc` command
-   */
-  GNUNET_NAT_ERROR_UPNPC_FAILED,
-
-  /**
-   * `upnpc' command took too long, process killed
-   */
-  GNUNET_NAT_ERROR_UPNPC_TIMEOUT,
-
-  /**
-   * `upnpc' command failed to establish port mapping
-   */
-  GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED,
-
-  /**
-   * `external-ip' command not found
-   */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND,
-
-  /**
-   * Failed to run `external-ip` command
-   */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED,
-
-  /**
-   * `external-ip' command output invalid
-   */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID,
-
-  /**
-   * "no valid address was returned by `external-ip'"
-   */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID,
-
-  /**
-   * Could not determine interface with internal/local network address
-   */
-  GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO,
-
-  /**
-   * No working gnunet-helper-nat-server found
-   */
-  GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND,
-
-  /**
-   * NAT test could not be initialized
-   */
-  GNUNET_NAT_ERROR_NAT_TEST_START_FAILED,
-
-  /**
-   * NAT test timeout
-   */
-  GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT,
-
-  /**
-   * NAT test failed to initiate
-   */
-  GNUNET_NAT_ERROR_NAT_REGISTER_FAILED,
-
-  /**
-   *
-   */
-  GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   
+  /**
+   * Message queue for communicating with the NAT service.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Function called to report success or failure for
+   * NAT configuration test.
+   */
+  GNUNET_NAT_TestCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
+
 };
-
-
-/**
- * Function called to report success or failure for
- * NAT configuration test.
- *
- * @param cls closure
- * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
- */
-typedef void
-(*GNUNET_NAT_TestCallback) (void *cls,
-			    enum GNUNET_NAT_StatusCode result);
 
 
 /**
@@ -397,7 +259,15 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       struct in_addr extern_ip,
                        uint16_t extern_port,
                        GNUNET_NAT_TestCallback report,
-                       void *report_cls);
+                       void *report_cls)
+{
+  struct GNUNET_NAT_Test *tst = GNUNET_new (struct GNUNET_NAT_Test);
+
+  tst->cb = report;
+  tst->cb_cls = report_cls;
+  GNUNET_break (0);
+  return tst;
+}
 
 
 /**
@@ -406,39 +276,39 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param tst test to stop.
  */
 void
-GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
+GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
+{
+  GNUNET_break (0);
+  GNUNET_MQ_destroy (tst->mq);
+  GNUNET_free (tst);
+}
 
 
 /**
  * Handle to auto-configuration in progress.
  */
-struct GNUNET_NAT_AutoHandle;
-
-
-/**
- * What the situation of the NAT connectivity
- */
-enum GNUNET_NAT_Type
+struct GNUNET_NAT_AutoHandle
 {
-  /**
-   * We have a direct connection
-   */
-  GNUNET_NAT_TYPE_NO_NAT = GNUNET_OK,
 
   /**
-   * We are under a NAT but cannot traverse it
+   * Configuration we use.
    */
-  GNUNET_NAT_TYPE_UNREACHABLE_NAT,
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  
+  /**
+   * Message queue for communicating with the NAT service.
+   */
+  struct GNUNET_MQ_Handle *mq;
 
   /**
-   * We can traverse using STUN
+   * Function called with the result from the autoconfiguration.
    */
-  GNUNET_NAT_TYPE_STUN_PUNCHED_NAT,
+  GNUNET_NAT_AutoResultCallback arc;
 
   /**
-   * WE can traverse using UPNP
+   * Closure for @e arc.
    */
-  GNUNET_NAT_TYPE_UPNP_NAT
+  void *arc_cls;
 
 };
 
@@ -450,23 +320,11 @@ enum GNUNET_NAT_Type
  * @return point to a static string containing the error code
  */
 const char *
-GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err);
-
-
-/**
- * Function called with the result from the autoconfiguration.
- *
- * @param cls closure
- * @param diff minimal suggested changes to the original configuration
- *             to make it work (as best as we can)
- * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
- * @param type what the situation of the NAT
- */
-typedef void
-(*GNUNET_NAT_AutoResultCallback)(void *cls,
-                                 const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 enum GNUNET_NAT_StatusCode result,
-                                 enum GNUNET_NAT_Type type);
+GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
+{
+  GNUNET_break (0);
+  return NULL;
+}
 
 
 /**
@@ -481,7 +339,16 @@ typedef void
 struct GNUNET_NAT_AutoHandle *
 GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     GNUNET_NAT_AutoResultCallback cb,
-			     void *cb_cls);
+			     void *cb_cls)
+{
+  struct GNUNET_NAT_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
+
+  ah->cfg = cfg;
+  ah->arc = cb;
+  ah->arc_cls = cb_cls;
+  GNUNET_break (0);
+  return ah;
+}
 
 
 /**
@@ -490,11 +357,11 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ah handle for operation to abort
  */
 void
-GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
+GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
+{
+  GNUNET_break (0);
+  GNUNET_MQ_destroy (ah->mq);
+  GNUNET_free (ah);
+}
 
-
-#endif
-
-/** @} */  /* end of group */
-
-/* end of gnunet_nat_service.h */
+/* end of nat_api.c */

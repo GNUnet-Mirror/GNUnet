@@ -77,21 +77,15 @@ enum GNUNET_NAT_RegisterFlags
   GNUNET_NAT_RF_NONE = 0,
 
   /**
-   * This client wants to be informed about our IPv4 address
-   * changing.
-   */
-  GNUNET_NAT_RF_IPV4 = 1,
-
-  /**
    * This client wants to be informed about changes to our
    * external addresses.
    */
-  GNUNET_NAT_RF_ADDRESSES = 2,
+  GNUNET_NAT_RF_ADDRESSES = 1,
 
   /**
    * This client supports address reversal.
    */
-  GNUNET_NAT_RF_REVERSAL = 4
+  GNUNET_NAT_RF_REVERSAL = 2
 };
 
 
@@ -108,12 +102,12 @@ struct GNUNET_NAT_RegisterMessage
   /**
    * An `enum GNUNET_NAT_RegisterFlags`.
    */
-  uint8_t flags GNUNET_PACKED;
+  uint8_t flags;
 
   /**
    * Client's IPPROTO, e.g. IPPROTO_UDP or IPPROTO_TCP.
    */
-  uint8_t proto GNUNET_PACKED;
+  uint8_t proto;
 
   /**
    * Port we would like as we are configured to use this one for
@@ -231,30 +225,6 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
   int32_t add_remove GNUNET_PACKED;
 
   /* followed by a `struct sockaddr` */
-  
-};
-
-
-/**
- * Service notifying the client about a change of our
- * known external IPv4 address.
- */
-struct GNUNET_NAT_Ipv4ChangeNotificationMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_IPV4_CHANGE
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * #GNUNET_YES to add, #GNUNET_NO to remove the address from the list.
-   */ 
-  int32_t add_remove GNUNET_PACKED;
-
-  /**
-   * IPv4 address affected.
-   */
-  struct in_addr addr GNUNET_PACKED;
   
 };
 

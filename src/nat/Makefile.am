@@ -52,7 +52,7 @@ gnunet_helper_nat_server_SOURCES = \
 gnunet_helper_nat_client_SOURCES = \
  $(NATCLIENT)         
 
- 
+
 gnunet_nat_SOURCES = \
 gnunet-nat.c nat.h
 gnunet_nat_LDADD = \
@@ -64,7 +64,9 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-lib_LTLIBRARIES = libgnunetnat.la
+lib_LTLIBRARIES = \
+  libgnunetnat.la \
+  libgnunetnatnew.la 
 
 libgnunetnat_la_SOURCES = \
   nat.c nat.h \
@@ -72,14 +74,21 @@ libgnunetnat_la_SOURCES = \
   nat_test.c \
   nat_mini.c \
   nat_stun.c
-
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) @EXT_LIBS@ 
-
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 1:1:1
+
+libgnunetnatnew_la_SOURCES = \
+  nat_api.c nat.h
+libgnunetnatnew_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) @EXT_LIBS@ 
+libgnunetnatnew_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 2:0:0
 
 check_PROGRAMS = \
   test_nat \
