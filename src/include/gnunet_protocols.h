@@ -2783,9 +2783,62 @@ extern "C"
 
 
 /**
- * Next available: 1060
+ * Message to ask NAT service to register a client.
  */
+#define GNUNET_MESSAGE_TYPE_NAT_REGISTER 1060
 
+/**
+ * Message to ask NAT service to handle a STUN packet.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN 1061
+
+/**
+ * Message to ask NAT service to request connection reversal.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL 1062
+
+/**
+ * Message to from NAT service notifying us that connection reversal
+ * was requested by another peer.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED 1063
+
+/**
+ * Message to from NAT service notifying us that one of our
+ * addresses changed.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE 1064
+
+/**
+ * Message to from NAT service notifying us that one of our
+ * "global" IPv4 addresses changed.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_IPV4_CHANGE 1065
+
+/**
+ * Message to ask NAT service to test an address.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST 1066
+
+/**
+ * Message from NAT service with the address test result.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_TEST_RESULT 1067
+
+/**
+ * Message to ask NAT service to request autoconfiguration.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG 1068
+
+/**
+ * Message from NAT service with the autoconfiguration result.
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT 1069
+
+
+/**
+ * Next available: 1080
+ */
 
 
 /**
