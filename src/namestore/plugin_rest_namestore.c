@@ -967,59 +967,8 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
                            allow_methods);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   cleanup_handle (handle);
-  return;
 }
 
-/**
- * Function called with the result from the check if the namestore
- * service is actually running.  If it is, we start the actual
- * operation.
- *
- * @param cls closure with our configuration
- * @param result #GNUNET_YES if the namestore service is running
- */
-static void
-testservice_task (void *cls,
-                  int result)
-{
-  struct RequestHandle *handle = cls;
-  struct GNUNET_REST_RequestHandlerError err;
-  static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE_ZKEY, &namestore_zkey_cont}, //reverse
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_info_cont}, //list
-    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
-    //    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_edit_cont}, //update. TODO this shoul be PATCH
-    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete_cont}, //delete
-    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_NAMESTORE, &options_cont},
-    GNUNET_REST_HANDLER_END
-  };
-
-  if (GNUNET_YES != result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Service `%s' is not running\n"),
-                "namestore");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == handle->ns_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to namestore\n"));
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
-  if (GNUNET_OK != GNUNET_JSONAPI_handle_request (handle->rest_handle,
-                                                  handlers,
-                                                  &err,
-                                                  handle))
-  {
-    handle->response_code = err.error_code;
-    GNUNET_SCHEDULER_add_now (&do_error, (void*) handle);
-  }
-
-}
 
 /**
  * Callback invoked from identity service with ego information.
@@ -1034,6 +983,16 @@ identity_cb (void *cls,
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
+  struct GNUNET_REST_RequestHandlerError err;
+  static const struct GNUNET_REST_RequestHandler handlers[] = {
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE_ZKEY, &namestore_zkey_cont}, //reverse
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_info_cont}, //list
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
+    //    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_edit_cont}, //update. TODO this shoul be PATCH
+    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete_cont}, //delete
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_NAMESTORE, &options_cont},
+    GNUNET_REST_HANDLER_END
+  };
 
   handle->ego_lookup = NULL;
   if (NULL == ego)
@@ -1050,11 +1009,27 @@ identity_cb (void *cls,
     return;
   }
   handle->zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_CLIENT_service_test ("namestore", handle->cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_task,
-                              (void *) handle);
+  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
+  if (NULL == handle->ns_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to connect to namestore\n"));
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_JSONAPI_handle_request (handle->rest_handle,
+				     handlers,
+				     &err,
+				     handle))
+  {
+    handle->response_code = err.error_code;
+    GNUNET_SCHEDULER_add_now (&do_error,
+			      (void *) handle);
+  }
 }
+
 
 static void
 default_ego_cb (void *cls,
@@ -1095,25 +1070,40 @@ id_connect_cb (void *cls,
   }
 }
 
+
+/**
+ * Function processing the REST call
+ *
+ * @param method HTTP method
+ * @param url URL of the HTTP request
+ * @param data body of the HTTP request (optional)
+ * @param data_size length of the body
+ * @param proc callback function for the result
+ * @param proc_cls closure for callback function
+ * @return #GNUNET_OK if request accepted
+ */
 static void
-testservice_id_task (void *cls, int result)
+rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
+                              GNUNET_REST_ResultProcessor proc,
+                              void *proc_cls)
 {
-  struct RequestHandle *handle = cls;
+  struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
   struct MHD_Response *resp;
   struct GNUNET_HashCode key;
   char *ego;
   char *name;
   char *type;
 
-  if (result != GNUNET_YES)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Identity service is not running\n"));
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    cleanup_handle (handle);
-    return;
-  }
+  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  handle->proc_cls = proc_cls;
+  handle->proc = proc;
+  handle->rest_handle = rest_handle;
+  handle->url = GNUNET_strdup (rest_handle->url);
+  if (handle->url[strlen (handle->url)-1] == '/')
+    handle->url[strlen (handle->url)-1] = '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting...\n");
+  handle->cfg = cfg;
   ego = NULL;
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_EGO,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_EGO),
@@ -1160,41 +1150,6 @@ testservice_id_task (void *cls, int result)
                                                    handle->ego_name,
                                                    &identity_cb,
                                                    handle);
-}
-
-/**
- * Function processing the REST call
- *
- * @param method HTTP method
- * @param url URL of the HTTP request
- * @param data body of the HTTP request (optional)
- * @param data_size length of the body
- * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
- */
-static void
-rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
-                              GNUNET_REST_ResultProcessor proc,
-                              void *proc_cls)
-{
-  struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
-
-  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  handle->proc_cls = proc_cls;
-  handle->proc = proc;
-  handle->rest_handle = rest_handle;
-  handle->url = GNUNET_strdup (rest_handle->url);
-  if (handle->url[strlen (handle->url)-1] == '/')
-    handle->url[strlen (handle->url)-1] = '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting...\n");
-  handle->cfg = cfg;
-  GNUNET_CLIENT_service_test ("identity",
-                              cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_id_task,
-                              handle);
   handle->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                                        &do_timeout,
                                                        handle);

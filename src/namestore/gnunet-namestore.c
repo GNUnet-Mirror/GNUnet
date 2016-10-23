@@ -753,27 +753,37 @@ del_monitor (void *cls,
 
 
 /**
- * Function called with the result from the check if the namestore
- * service is actually running.  If it is, we start the actual
- * operation.
+ * Callback invoked from identity service with ego information.
+ * An @a ego of NULL means the ego was not found.
  *
- * @param cls closure with our configuration
- * @param result #GNUNET_YES if the namestore service is running
+ * @param cls closure with the configuration
+ * @param ego an ego known to identity service, or NULL
  */
 static void
-testservice_task (void *cls,
-                  int result)
+identity_cb (void *cls,
+	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_GNSRECORD_Data rd;
 
-  if (GNUNET_YES != result)
+  el = NULL;
+  if (NULL == ego)
   {
-    FPRINTF (stderr, _("Service `%s' is not running\n"),
-	     "namestore");
+    if (NULL != ego_name)
+    {
+      fprintf (stderr,
+               _("Ego `%s' not known to identity service\n"),
+               ego_name);
+    }
+    GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
     return;
   }
+  zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  GNUNET_free_non_null (ego_name);
+  ego_name = NULL;
+
   if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey)) )
   {
     /* nothing more to be done */
@@ -1028,42 +1038,6 @@ testservice_task (void *cls,
 }
 
 
-/**
- * Callback invoked from identity service with ego information.
- * An @a ego of NULL means the ego was not found.
- *
- * @param cls closure with the configuration
- * @param ego an ego known to identity service, or NULL
- */
-static void
-identity_cb (void *cls,
-	     const struct GNUNET_IDENTITY_Ego *ego)
-{
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  el = NULL;
-  if (NULL == ego)
-  {
-    if (NULL != ego_name)
-    {
-      fprintf (stderr,
-               _("Ego `%s' not known to identity service\n"),
-               ego_name);
-    }
-    GNUNET_SCHEDULER_shutdown ();
-    ret = -1;
-    return;
-  }
-  zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_free_non_null (ego_name);
-  ego_name = NULL;
-  GNUNET_CLIENT_service_test ("namestore", cfg,
-			      GNUNET_TIME_UNIT_SECONDS,
-			      &testservice_task,
-			      (void *) cfg);
-}
-
-
 static void
 default_ego_cb (void *cls,
                 struct GNUNET_IDENTITY_Ego *ego,
@@ -1104,39 +1078,6 @@ id_connect_cb (void *cls,
 }
 
 
-static void
-testservice_id_task (void *cls, int result)
-{
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  if (result != GNUNET_YES)
-  {
-    fprintf (stderr,
-             _("Identity service is not running\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    ret = -1;
-    return;
-  }
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 (void *) cfg);
-
-  if (NULL == ego_name)
-  {
-    idh = GNUNET_IDENTITY_connect (cfg,
-                                   &id_connect_cb,
-                                   (void *) cfg);
-    if (NULL == idh)
-      fprintf (stderr, _("Cannot connect to identity service\n"));
-    ret = -1;
-    return;
-  }
-  el = GNUNET_IDENTITY_ego_lookup (cfg,
-                                   ego_name,
-                                   &identity_cb,
-                                   (void *) cfg);
-}
-
-
 /**
  * Main function that will be run.
  *
@@ -1154,10 +1095,24 @@ run (void *cls,
   if ( (NULL != args[0]) && (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
 
-  GNUNET_CLIENT_service_test ("identity", cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_id_task,
-                              (void *) cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 (void *) cfg);
+
+  if (NULL == ego_name)
+  {
+    idh = GNUNET_IDENTITY_connect (cfg,
+                                   &id_connect_cb,
+                                   (void *) cfg);
+    if (NULL == idh)
+      fprintf (stderr,
+	       _("Cannot connect to identity service\n"));
+    ret = -1;
+    return;
+  }
+  el = GNUNET_IDENTITY_ego_lookup (cfg,
+                                   ego_name,
+                                   &identity_cb,
+                                   (void *) cfg);
 }
 
 
