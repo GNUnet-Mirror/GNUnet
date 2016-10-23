@@ -700,51 +700,6 @@ hello_callback (void *cls,
 
 
 /**
- * Function called with the result of the check if the PEERINFO
- * service is running.
- *
- * @param cls closure with our configuration
- * @param result #GNUNET_YES if PEERINFO is running
- */
-static void
-testservice_task (void *cls,
-                  int result)
-{
-  if (GNUNET_YES != result)
-  {
-    FPRINTF (stderr,
-             "Service `%s' is not running, please start GNUnet\n",
-             "peerinfo");
-    return;
-  }
-
-  if (NULL == (peerinfo = GNUNET_PEERINFO_connect (cfg)))
-  {
-    FPRINTF (stderr,
-             "%s",
-             "Could not access PEERINFO service.  Exiting.\n");
-    return;
-  }
-  if ( (GNUNET_YES == get_self) ||
-       (GNUNET_YES == get_uri) ||
-       (NULL != dump_hello) )
-  {
-    gh = GNUNET_TRANSPORT_hello_get (cfg,
-				     GNUNET_TRANSPORT_AC_ANY,
-                                     &hello_callback,
-                                     NULL);
-  }
-  else
-  {
-    tt = GNUNET_SCHEDULER_add_now (&state_machine,
-				   NULL);
-  }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
-}
-
-
-/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -774,12 +729,29 @@ run (void *cls,
 	     args[0]);
     return;
   }
-
-  GNUNET_CLIENT_service_test ("peerinfo",
-                              cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_task,
-			      (void *) cfg);
+  if (NULL == (peerinfo = GNUNET_PEERINFO_connect (cfg)))
+  {
+    FPRINTF (stderr,
+             "%s",
+             "Could not access PEERINFO service.  Exiting.\n");
+    return;
+  }
+  if ( (GNUNET_YES == get_self) ||
+       (GNUNET_YES == get_uri) ||
+       (NULL != dump_hello) )
+  {
+    gh = GNUNET_TRANSPORT_hello_get (cfg,
+				     GNUNET_TRANSPORT_AC_ANY,
+                                     &hello_callback,
+                                     NULL);
+  }
+  else
+  {
+    tt = GNUNET_SCHEDULER_add_now (&state_machine,
+				   NULL);
+  }
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 

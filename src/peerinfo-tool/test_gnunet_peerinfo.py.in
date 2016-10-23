@@ -42,9 +42,6 @@ elif os.name == 'nt':
   gnunettesting = 'gnunet-testing.exe'
 
 pinfo = pexpect ()
-pinfo.spawn (None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf', '-L', 'ERROR'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-pinfo.expect ("stdout", re.compile (r'Service `peerinfo\' is not running, please start GNUnet\r?\n'))
-pinfo.expect ("stdout", "EOF")
 
 
 if os.name == "nt":
