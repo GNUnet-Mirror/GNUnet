@@ -917,8 +917,35 @@ handle_auto_result (void *cls,
 		    const struct GNUNET_NAT_AutoconfigResultMessage *res)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
+  size_t left;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  enum GNUNET_NAT_Type type
+    = (enum GNUNET_NAT_Type) ntohl (res->type);
+  enum GNUNET_NAT_StatusCode status
+    = (enum GNUNET_NAT_StatusCode) ntohl (res->status_code);
 
-  GNUNET_break (0);
+  left = ntohs (res->header.size) - sizeof (*res);
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_deserialize (cfg,
+					(const char *) &res[1],
+					left,
+					GNUNET_NO))
+  {
+    GNUNET_break (0);
+    ah->arc (ah->arc_cls,
+	     NULL,
+	     GNUNET_NAT_ERROR_IPC_FAILURE,
+	     type);
+  }
+  else
+  {
+    ah->arc (ah->arc_cls,
+	     cfg,
+	     status,
+	     type);
+  }
+  GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_NAT_autoconfig_cancel (ah);
 }
 
@@ -967,8 +994,18 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_NAT_AutoconfigRequestMessage *req;
+  char *buf;
+  size_t size;
 
-  ah->cfg = cfg;
+  buf = GNUNET_CONFIGURATION_serialize (cfg,
+					&size);
+  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*req))
+  {
+    GNUNET_break (0);
+    GNUNET_free (buf);
+    GNUNET_free (ah);
+    return NULL;
+  }
   ah->arc = cb;
   ah->arc_cls = cb_cls;
   ah->mq = GNUNET_CLIENT_connecT (cfg,
@@ -979,12 +1016,17 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL == ah->mq)
   {
     GNUNET_break (0);
+    GNUNET_free (buf);
     GNUNET_free (ah);
     return NULL;
   }
   env = GNUNET_MQ_msg_extra (req,
-			     0,
+			     size,
 			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG);
+  GNUNET_memcpy (&req[1],
+		 buf,
+		 size);
+  GNUNET_free (buf);
   GNUNET_MQ_send (ah->mq,
 		  env);
   return ah;
