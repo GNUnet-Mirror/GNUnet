@@ -85,6 +85,9 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
       off += x->num_params;
     }
     GNUNET_assert (off == len);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Executing prepared SQL statement `%s'\n",
+		name);
     res = PQexecPrepared (db_conn,
                           name,
                           len,

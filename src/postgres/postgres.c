@@ -54,14 +54,22 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh,
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                      "postgres",
                      "Postgres failed to allocate result for `%s:%s' at %s:%d\n",
-                     command, args, filename, line);
+                     command,
+		     args,
+		     filename,
+		     line);
     return GNUNET_SYSERR;
   }
   if (PQresultStatus (ret) != expected_status)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                     "postgres", _("`%s:%s' failed at %s:%d with error: %s\n"),
-                     command, args, filename, line, PQerrorMessage (dbh));
+                     "postgres",
+		     _("`%s:%s' failed at %s:%d with error: %s\n"),
+                     command,
+		     args,
+		     filename,
+		     line,
+		     PQerrorMessage (dbh));
     PQclear (ret);
     return GNUNET_SYSERR;
   }
@@ -86,10 +94,21 @@ GNUNET_POSTGRES_exec_ (PGconn * dbh,
 {
   PGresult *ret;
 
-  ret = PQexec (dbh, sql);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Executing SQL statement `%s' at %s:%d\n",
+	      sql,
+	      filename,
+	      line);
+  ret = PQexec (dbh,
+		sql);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQexec", sql,
-                                     filename, line))
+      GNUNET_POSTGRES_check_result_ (dbh,
+				     ret,
+				     PGRES_COMMAND_OK,
+				     "PQexec",
+				     sql,
+                                     filename,
+				     line))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -117,6 +136,12 @@ GNUNET_POSTGRES_prepare_ (PGconn *dbh,
 {
   PGresult *ret;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Preparing SQL statement `%s' as `%s' at %s:%d\n",
+	      sql,
+	      name,
+	      filename,
+	      line);
   ret = PQprepare (dbh,
 		   name,
 		   sql,
@@ -151,7 +176,10 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
 
   /* Open database and precompile statements */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "CONFIG", &conninfo))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     section,
+					     "CONFIG",
+					     &conninfo))
     conninfo = NULL;
   dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
   GNUNET_free_non_null (conninfo);
@@ -162,7 +190,8 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
   }
   if (PQstatus (dbh) != CONNECTION_OK)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "postgres",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		     "postgres",
                      _("Unable to initialize Postgres: %s\n"),
                      PQerrorMessage (dbh));
     PQfinish (dbh);
@@ -192,12 +221,13 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh,
   const int paramFormats[] = { 1 };
   PGresult *ret;
 
-  ret =
-      PQexecPrepared (dbh, stmt, 1,
-		      paramValues,
-		      paramLengths,
-		      paramFormats,
-		      1);
+  ret = PQexecPrepared (dbh,
+			stmt,
+			1,
+			paramValues,
+			paramLengths,
+			paramFormats,
+			1);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result_ (dbh, ret,
 				     PGRES_COMMAND_OK,
