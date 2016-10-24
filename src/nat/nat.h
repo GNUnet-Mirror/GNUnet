@@ -224,6 +224,10 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
    */ 
   int32_t add_remove GNUNET_PACKED;
 
+  /**
+   * Type of the address, an `enum GNUNET_NAT_AddressClass` in NBO.
+   */
+  uint32_t addr_class GNUNET_PACKED;
   /* followed by a `struct sockaddr` */
   
 };

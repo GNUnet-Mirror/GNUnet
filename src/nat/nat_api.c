@@ -155,8 +155,21 @@ static int
 check_connection_reversal_request (void *cls,
 				   const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  if (ntohs (crm->header.size) !=
+      sizeof (*crm) +
+      ntohs (crm->local_addr_size) +
+      ntohs (crm->remote_addr_size) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if ( (sizeof (struct sockaddr_in) != ntohs (crm->local_addr_size)) ||
+       (sizeof (struct sockaddr_in) != ntohs (crm->remote_addr_size)) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
   
@@ -170,9 +183,15 @@ static void
 handle_connection_reversal_request (void *cls,
 				    const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
 {
-  // FIXME: parse
-  // FIXME: call callback!
-  GNUNET_break (0);
+  struct GNUNET_NAT_Handle *nh = cls;
+  const struct sockaddr_in *local_sa = (const struct sockaddr_in *) &crm[1];
+  const struct sockaddr_in *remote_sa = &local_sa[1];
+
+  nh->reversal_callback (nh->callback_cls,
+			 (const struct sockaddr *) local_sa,
+			 sizeof (struct sockaddr_in),
+			 (const struct sockaddr *) remote_sa,
+			 sizeof (struct sockaddr_in));
 }
 
 
@@ -187,8 +206,37 @@ static int
 check_address_change_notification (void *cls,
 				   const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  size_t alen = ntohs (acn->header.size) - sizeof (*acn);
+
+  switch (alen)
+  {
+  case sizeof (struct sockaddr_in):
+    {
+      const struct sockaddr_in *s4
+	= (const struct sockaddr_in *) &acn[1];
+      if (AF_INET != s4->sin_family)
+      {
+	GNUNET_break (0);
+	return GNUNET_SYSERR;
+      }
+    }
+    break;
+  case sizeof (struct sockaddr_in6):
+    {
+      const struct sockaddr_in6 *s6
+	= (const struct sockaddr_in6 *) &acn[1];
+      if (AF_INET6 != s6->sin6_family)
+      {
+	GNUNET_break (0);
+	return GNUNET_SYSERR;
+      }
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
   
@@ -202,10 +250,48 @@ static void
 handle_address_change_notification (void *cls,
 				    const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
 {
-  // FIXME: parse
-  // FIXME: update ae-DLL
-  // FIXME: call callback!
-  GNUNET_break (0);
+  struct GNUNET_NAT_Handle *nh = cls;
+  size_t alen = ntohs (acn->header.size) - sizeof (*acn);
+  const struct sockaddr *sa = (const struct sockaddr *) &acn[1];
+  enum GNUNET_NAT_AddressClass ac;
+  struct AddrEntry *ae;
+
+  ac = (enum GNUNET_NAT_AddressClass) ntohl (acn->addr_class);
+  if (GNUNET_YES == ntohl (acn->add_remove))
+  {
+    ae = GNUNET_malloc (sizeof (*ae) + alen);
+    ae->addrlen = alen;
+    GNUNET_memcpy (&ae[1],
+		   sa,
+		   alen);
+    GNUNET_CONTAINER_DLL_insert (nh->ae_head,
+				 nh->ae_tail,
+				 ae);
+  }
+  else
+  {
+    for (ae = nh->ae_head; NULL != ae; ae = ae->next)
+      if ( (ae->addrlen == alen) &&
+	   (0 == memcmp (&ae[1],
+			 sa,
+			 alen)) )
+	break;
+    if (NULL == ae)
+    {
+      GNUNET_break (0);
+      reconnect (nh);
+      return;
+    }
+    GNUNET_CONTAINER_DLL_remove (nh->ae_head,
+				 nh->ae_tail,
+				 ae);
+    GNUNET_free (ae);
+  }
+  nh->address_callback (nh->callback_cls,
+			ntohl (acn->add_remove),
+			ac,
+			sa,
+			alen);
 }
 
 
