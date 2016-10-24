@@ -715,7 +715,7 @@ handle_test_result (void *cls,
 		    
 
 /**
- * Handle queue errors by reconnecting to NAT.
+ * Handle queue errors by reporting test failure.
  *
  * @param cls the `struct GNUNET_NAT_Test *`
  * @param error details about the error
@@ -845,8 +845,101 @@ struct GNUNET_NAT_AutoHandle
 const char *
 GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
 {
+  switch (err)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    return _ ("Operation Successful");
+  case GNUNET_NAT_ERROR_IPC_FAILURE:
+    return _ ("Internal Failure (IPC, ...)");
+  case GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR:
+    return _ ("Failure in network subsystem, check permissions.");
+  case GNUNET_NAT_ERROR_TIMEOUT:
+    return _ ("Encountered timeout while performing operation");
+  case GNUNET_NAT_ERROR_NOT_ONLINE:
+    return _ ("detected that we are offline");
+  case GNUNET_NAT_ERROR_UPNPC_NOT_FOUND:
+    return _ ("`upnpc` command not found");
+  case GNUNET_NAT_ERROR_UPNPC_FAILED:
+    return _ ("Failed to run `upnpc` command");
+  case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
+    return _ ("`upnpc' command took too long, process killed");
+  case GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED:
+    return _ ("`upnpc' command failed to establish port mapping");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND:
+    return _ ("`external-ip' command not found");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
+    return _ ("Failed to run `external-ip` command");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
+    return _ ("`external-ip' command output invalid");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
+    return _ ("no valid address was returned by `external-ip'");
+  case GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO:
+    return _ ("Could not determine interface with internal/local network address");
+  case GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND:
+    return _ ("No functioning gnunet-helper-nat-server installation found");
+  case GNUNET_NAT_ERROR_NAT_TEST_START_FAILED:
+    return _ ("NAT test could not be initialized");
+  case GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT:
+    return _ ("NAT test timeout reached");
+  case GNUNET_NAT_ERROR_NAT_REGISTER_FAILED:
+    return _ ("could not register NAT");
+  case GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND:
+    return _ ("No working gnunet-helper-nat-client installation found");
+  default:
+    return "unknown status code";
+  }
+}
+
+
+/**
+ * Check result from autoconfiguration attempt.
+ *
+ * @param cls the `struct GNUNET_NAT_AutoHandle`
+ * @param res the result
+ * @return #GNUNET_OK if @a res is well-formed (always for now)
+ */
+static int
+check_auto_result (void *cls,
+		   const struct GNUNET_NAT_AutoconfigResultMessage *res)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle result from autoconfiguration attempt.
+ *
+ * @param cls the `struct GNUNET_NAT_AutoHandle`
+ * @param res the result
+ */
+static void
+handle_auto_result (void *cls,
+		    const struct GNUNET_NAT_AutoconfigResultMessage *res)
+{
+  struct GNUNET_NAT_AutoHandle *ah = cls;
+
   GNUNET_break (0);
-  return NULL;
+  GNUNET_NAT_autoconfig_cancel (ah);
+}
+
+
+/**
+ * Handle queue errors by reporting autoconfiguration failure.
+ *
+ * @param cls the `struct GNUNET_NAT_AutoHandle *`
+ * @param error details about the error
+ */
+static void
+ah_error_handler (void *cls,
+		  enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_NAT_AutoHandle *ah = cls;
+
+  ah->arc (ah->arc_cls,
+	   NULL,
+	   GNUNET_NAT_ERROR_IPC_FAILURE,
+	   GNUNET_NAT_TYPE_UNKNOWN);
+  GNUNET_NAT_autoconfig_cancel (ah);
 }
 
 
@@ -865,11 +958,35 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     void *cb_cls)
 {
   struct GNUNET_NAT_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (auto_result,
+			   GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT,
+			   struct GNUNET_NAT_AutoconfigResultMessage,
+			   ah),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_NAT_AutoconfigRequestMessage *req;
 
   ah->cfg = cfg;
   ah->arc = cb;
   ah->arc_cls = cb_cls;
-  GNUNET_break (0);
+  ah->mq = GNUNET_CLIENT_connecT (cfg,
+				  "nat",
+				  handlers,
+				  &ah_error_handler,
+				  ah);
+  if (NULL == ah->mq)
+  {
+    GNUNET_break (0);
+    GNUNET_free (ah);
+    return NULL;
+  }
+  env = GNUNET_MQ_msg_extra (req,
+			     0,
+			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG);
+  GNUNET_MQ_send (ah->mq,
+		  env);
   return ah;
 }
 
@@ -882,7 +999,6 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
 {
-  GNUNET_break (0);
   GNUNET_MQ_destroy (ah->mq);
   GNUNET_free (ah);
 }
