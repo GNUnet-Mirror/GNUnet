@@ -128,13 +128,17 @@ typedef void
  * reversal.
  *
  * @param cls closure
- * @param addr public IP address of the other peer
- * @param addrlen actual lenght of the @a addr
+ * @param local_addr address where we received the request
+ * @param local_addrlen actual length of the @a local_addr
+ * @param remote_addr public IP address of the other peer
+ * @param remote_addrlen actual length of the @a remote_addr
  */
 typedef void
 (*GNUNET_NAT_ReversalCallback) (void *cls,
-                                const struct sockaddr *addr,
-                                socklen_t addrlen);
+                                const struct sockaddr *local_addr,
+                                socklen_t local_addrlen,
+				const struct sockaddr *remote_addr,
+                                socklen_t remote_addrlen);
 
 
 /**
@@ -192,6 +196,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param nh handle to the NAT service
  * @param sender_addr address from which we got @a data
+ * @param sender_addr_len number of bytes in @a sender_addr
  * @param data the packet
  * @param data_size number of bytes in @a data
  * @return #GNUNET_OK on success
@@ -201,6 +206,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
 			       const struct sockaddr *sender_addr,
+			       size_t sender_addr_len,
 			       const void *data,
                                size_t data_size);
 
