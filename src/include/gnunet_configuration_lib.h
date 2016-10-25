@@ -140,7 +140,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 				  const char *mem,
-				  const size_t size,
+				  size_t size,
 				  int allow_inline);
 
 

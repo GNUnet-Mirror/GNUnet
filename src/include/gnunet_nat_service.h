@@ -442,9 +442,14 @@ enum GNUNET_NAT_Type
   GNUNET_NAT_TYPE_STUN_PUNCHED_NAT,
 
   /**
-   * WE can traverse using UPNP
+   * We can traverse using UPNP
    */
-  GNUNET_NAT_TYPE_UPNP_NAT
+  GNUNET_NAT_TYPE_UPNP_NAT,
+
+  /**
+   * We know nothing about the NAT.
+   */
+  GNUNET_NAT_TYPE_UNKNOWN
 
 };
 
