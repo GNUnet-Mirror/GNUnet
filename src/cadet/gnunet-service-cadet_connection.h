@@ -491,8 +491,7 @@ GCC_cancel (struct CadetConnectionQueue *q);
  * Sends an already built message on a connection, properly registering
  * all used resources.
  *
- * @param message Message to send. Function makes a copy of it.
- *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param message Message to send.
  * @param payload_type Type of payload, in case the message is encrypted.
  * @param payload_id ID of the payload (PID, ACK, ...).
  * @param c Connection on which this message is transmitted.

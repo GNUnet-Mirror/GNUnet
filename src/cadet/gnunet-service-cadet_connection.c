@@ -3233,11 +3233,162 @@ GCC_is_direct (struct CadetConnection *c)
 
 
 /**
+ * Internal implementation of the send function.
+ *
  * Sends an already built message on a connection, properly registering
  * all used resources.
  *
- * @param message Message to send. Function makes a copy of it.
- *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param message Modificable copy of the message to send.
+ * @param payload_type Type of payload, in case the message is encrypted.
+ * @param payload_id ID of the payload (PID, ACK, ...).
+ * @param c Connection on which this message is transmitted.
+ * @param fwd Is this a fwd message?
+ * @param force Force the connection to accept the message (buffer overfill).
+ * @param cont Continuation called once message is sent. Can be NULL.
+ * @param cont_cls Closure for @c cont.
+ *
+ * @return Handle to cancel the message before it's sent.
+ *         NULL on error or if @c cont is NULL.
+ *         Invalid on @c cont call.
+ */
+static struct CadetConnectionQueue *
+send_prebuilt_message (struct GNUNET_MessageHeader *message,
+                       uint16_t payload_type, uint32_t payload_id,
+                       struct CadetConnection *c, int fwd, int force,
+                       GCC_sent cont, void *cont_cls)
+{
+  struct GNUNET_CADET_AX        *axmsg;
+  struct GNUNET_CADET_KX        *kmsg;
+  struct GNUNET_CADET_ACK       *amsg;
+  struct GNUNET_CADET_Poll      *pmsg;
+  struct GNUNET_CADET_ConnectionDestroy *dmsg;
+  struct GNUNET_CADET_ConnectionBroken  *bmsg;
+  struct CadetFlowControl *fc;
+  struct CadetConnectionQueue *q;
+  size_t size;
+  uint16_t type;
+  int droppable;
+
+  GCC_check_connections ();
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (0 == fc->queue_max)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  size = ntohs (message->size);
+  type = ntohs (message->type);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
+       GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
+       GC_f2s(fwd), size);
+  droppable = (GNUNET_NO == force);
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_CADET_AX:
+      axmsg = (struct GNUNET_CADET_AX *) message;
+      axmsg->cid = c->id;
+      axmsg->pid = htonl (GCC_get_pid (c, fwd));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
+      if (GNUNET_YES == droppable)
+      {
+        fc->queue_n++;
+      }
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  not droppable, Q_N stays the same\n");
+      }
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_KX:
+      kmsg = (struct GNUNET_CADET_KX *) message;
+      kmsg->reserved = htonl (0);
+      kmsg->cid = c->id;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+      amsg = (struct GNUNET_CADET_ACK *) message;
+      amsg->cid = c->id;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
+      droppable = GNUNET_NO;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_POLL:
+      pmsg = (struct GNUNET_CADET_Poll *) message;
+      pmsg->cid = c->id;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL %u\n", ntohl (pmsg->pid));
+      droppable = GNUNET_NO;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+      dmsg = (struct GNUNET_CADET_ConnectionDestroy *) message;
+      dmsg->reserved = htonl (0);
+      dmsg->cid = c->id;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      bmsg = (struct GNUNET_CADET_ConnectionBroken *) message;
+      bmsg->reserved = htonl (0);
+      bmsg->cid = c->id;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+      GNUNET_break (0); /* Should've used specific functions. */
+      break;
+
+    default:
+      GNUNET_break (0);
+      return NULL;
+  }
+
+  if (fc->queue_n > fc->queue_max && droppable)
+  {
+    GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
+                              1, GNUNET_NO);
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
+         fc->queue_n, fc->queue_max);
+    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
+    {
+      fc->queue_n--;
+    }
+    return NULL; /* Drop this message */
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %s %u\n",
+       GCC_2s (c), c->pending_messages);
+  c->pending_messages++;
+
+  q = GNUNET_new (struct CadetConnectionQueue);
+  q->forced = !droppable;
+  q->peer_q = GCP_send (get_hop (c, fwd), message,
+                        payload_type, payload_id,
+                        c, fwd,
+                        &conn_message_sent, q);
+  if (NULL == q->peer_q)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "dropping msg on %s, NULL q\n", GCC_2s (c));
+    GNUNET_free (q);
+    GCC_check_connections ();
+    return NULL;
+  }
+  q->cont = cont;
+  q->cont_cls = cont_cls;
+  GNUNET_CONTAINER_DLL_insert (fc->q_head, fc->q_tail, q);
+  GCC_check_connections ();
+  return (NULL == cont) ? NULL : q;
+}
+
+
+/**
+ * Sends an already built message on a connection, properly registering
+ * all used resources.
+ *
+ * @param message Message to send.
  * @param payload_type Type of payload, in case the message is encrypted.
  * @param payload_id ID of the payload (PID, ACK, ...).
  * @param c Connection on which this message is transmitted.
@@ -3256,136 +3407,22 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct CadetConnection *c, int fwd, int force,
                            GCC_sent cont, void *cont_cls)
 {
-  struct GNUNET_CADET_AX        *axmsg;
-  struct GNUNET_CADET_KX        *kmsg;
-  struct GNUNET_CADET_ACK       *amsg;
-  struct GNUNET_CADET_Poll      *pmsg;
-  struct GNUNET_CADET_ConnectionDestroy *dmsg;
-  struct GNUNET_CADET_ConnectionBroken  *bmsg;
-  struct CadetFlowControl *fc;
-  struct CadetConnectionQueue *q;
-  struct GNUNET_MessageHeader *copy;
-  size_t size;
-  uint16_t type;
-  int droppable;
+  uint16_t size;
 
-  GCC_check_connections ();
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (0 == fc->queue_max)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-
+  /* Allocate a copy of the message on the stack, so we can modify it as needed,
+   * adding the Connection ID.
+   */
   size = ntohs (message->size);
-  copy = GNUNET_malloc (size);
-  GNUNET_memcpy (copy, message, size);
-  type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
-       GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
-       GC_f2s(fwd), size);
-  droppable = (GNUNET_NO == force);
-  switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
-      axmsg = (struct GNUNET_CADET_AX *) copy;
-      axmsg->cid = c->id;
-      axmsg->pid = htonl (GCC_get_pid (c, fwd));
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
-      if (GNUNET_YES == droppable)
-      {
-        fc->queue_n++;
-      }
-      else
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  not droppable, Q_N stays the same\n");
-      }
-      break;
+    struct GNUNET_MessageHeader *copy;
+    unsigned char cbuf[size];
 
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
-      kmsg = (struct GNUNET_CADET_KX *) copy;
-      kmsg->reserved = htonl (0);
-      kmsg->cid = c->id;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      amsg = (struct GNUNET_CADET_ACK *) copy;
-      amsg->cid = c->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
-      droppable = GNUNET_NO;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      pmsg = (struct GNUNET_CADET_Poll *) copy;
-      pmsg->cid = c->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL %u\n", ntohl (pmsg->pid));
-      droppable = GNUNET_NO;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      dmsg = (struct GNUNET_CADET_ConnectionDestroy *) copy;
-      dmsg->reserved = htonl (0);
-      dmsg->cid = c->id;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      bmsg = (struct GNUNET_CADET_ConnectionBroken *) copy;
-      bmsg->reserved = htonl (0);
-      bmsg->cid = c->id;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      GNUNET_break (0); /* Should've used specific functions. */
-      break;
-
-    default:
-      GNUNET_break (0);
-      GNUNET_free (copy);
-      return NULL;
+    copy = (struct GNUNET_MessageHeader *)cbuf;
+    GNUNET_memcpy (copy, message, size);
+    return send_prebuilt_message (copy, payload_type, payload_id,
+                                  c, fwd, force,
+                                  cont, cont_cls);
   }
-
-  if (fc->queue_n > fc->queue_max && droppable)
-  {
-    GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
-                              1, GNUNET_NO);
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
-         fc->queue_n, fc->queue_max);
-    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
-    {
-      fc->queue_n--;
-    }
-    GNUNET_free (copy);
-    return NULL; /* Drop this message */
-  }
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %s %u\n",
-       GCC_2s (c), c->pending_messages);
-  c->pending_messages++;
-
-  q = GNUNET_new (struct CadetConnectionQueue);
-  q->forced = !droppable;
-  q->peer_q = GCP_send (get_hop (c, fwd), copy,
-                        payload_type, payload_id,
-                        c, fwd,
-                        &conn_message_sent, q);
-  if (NULL == q->peer_q)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "dropping msg on %s, NULL q\n", GCC_2s (c));
-    GNUNET_free (copy);
-    GNUNET_free (q);
-    GCC_check_connections ();
-    return NULL;
-  }
-  q->cont = cont;
-  q->cont_cls = cont_cls;
-  GNUNET_CONTAINER_DLL_insert (fc->q_head, fc->q_tail, q);
-  GCC_check_connections ();
-  return (NULL == cont) ? NULL : q;
 }
 
 
