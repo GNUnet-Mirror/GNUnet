@@ -1321,7 +1321,7 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
       c->create_retry = 1;
     delay = GNUNET_TIME_relative_multiply (create_connection_time,
                                            c->create_retry);
-    if (c->create_retry < 64)
+    if (c->create_retry < 64) // TODO make configurable
       c->create_retry *= 2;
   }
 
@@ -1682,7 +1682,7 @@ does_connection_exist (struct CadetConnection *conn)
       GNUNET_STATISTICS_update (stats, "# duplicate connections", 1, GNUNET_NO);
       return GNUNET_YES;
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate not valid, connection unique\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate not ready, connection unique\n");
     return GNUNET_NO;
   }
   else
