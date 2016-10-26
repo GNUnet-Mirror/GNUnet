@@ -518,11 +518,10 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     /* set permissions of newly created non-abstract UNIX domain socket to
        "user-only"; applications can choose to relax this later */
     mode_t old_mask = 0; /* assigned to make compiler happy */
-    const struct sockaddr_un *un;
+    const struct sockaddr_un *un = (const struct sockaddr_un *) address;
     int not_abstract = 0;
 
     if ((AF_UNIX == address->sa_family)
-        && (NULL != (un = (const struct sockaddr_un *) address)->sun_path)
         && ('\0' != un->sun_path[0]) ) /* Not an abstract socket */
       not_abstract = 1;
     if (not_abstract)
@@ -580,13 +579,12 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   ret = close (desc->fd);
 #endif
 #ifndef WINDOWS
-  const struct sockaddr_un *un;
+  const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
 
   /* Cleanup the UNIX domain socket and its parent directories in case of non
      abstract sockets */
   if ( (AF_UNIX == desc->af) &&
        (NULL != desc->addr) &&
-       (NULL != (un = (const struct sockaddr_un *) desc->addr)->sun_path) &&
        ('\0' != un->sun_path[0]) )
   {
     char *dirname = GNUNET_strndup (un->sun_path,
