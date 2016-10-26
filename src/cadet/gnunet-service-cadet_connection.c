@@ -2144,7 +2144,10 @@ GCC_handle_confirm (struct CadetPeer *peer,
 
     /* If just created, cancel the short timeout and start a long one */
     if (CADET_CONNECTION_SENT == oldstate)
+    {
+      c->create_retry = 1;
       connection_reset_timeout (c, GNUNET_YES);
+    }
 
     /* Change connection state, send ACK */
     connection_change_state (c, CADET_CONNECTION_READY);
