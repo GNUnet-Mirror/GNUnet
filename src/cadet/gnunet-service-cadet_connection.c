@@ -3389,13 +3389,13 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MessageHeader *copy;
     unsigned char cbuf[size];
 
-    copy = (struct GNUNET_MessageHeader *)cbuf;
+    copy = (struct GNUNET_MessageHeader *) cbuf;
     GNUNET_memcpy (copy, message, size);
     if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
     {
       struct GNUNET_CADET_AX        *axmsg;
 
-      axmsg = (struct GNUNET_CADET_AX *) message;
+      axmsg = (struct GNUNET_CADET_AX *) copy;
       axmsg->cid = c->id;
       axmsg->pid = htonl (GCC_get_pid (c, fwd));
     }
@@ -3403,13 +3403,14 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     {
       struct GNUNET_CADET_KX        *kmsg;
 
-      kmsg = (struct GNUNET_CADET_KX *) message;
+      GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_KX == type);
+      kmsg = (struct GNUNET_CADET_KX *) copy;
       kmsg->reserved = htonl (0);
       kmsg->cid = c->id;
     }
     return send_prebuilt_message (copy, payload_type, payload_id,
-                                c, fwd, force,
-                                cont, cont_cls);
+                                  c, fwd, force,
+                                  cont, cont_cls);
   }
   return send_prebuilt_message (message, payload_type, payload_id,
                                 c, fwd, force,
