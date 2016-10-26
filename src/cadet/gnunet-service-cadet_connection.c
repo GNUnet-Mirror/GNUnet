@@ -1583,6 +1583,11 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
   if (GCC_is_origin (c, fwd)) /* Startpoint */
   {
     schedule_next_keepalive (c, fwd);
+    if (NULL != c->maintenance_q)
+    {
+      GCP_send_cancel (c->maintenance_q);
+      c->maintenance_q = NULL; /* Is set to NULL by conn_message_sent anyway */
+    }
   }
   else /* Relay, endpoint. */
   {
