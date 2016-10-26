@@ -1575,7 +1575,6 @@ send_kx (struct CadetTunnel *t,
   char cbuf[sizeof (struct GNUNET_CADET_KX) + size];
   uint16_t type;
   int fwd;
-  GCC_sent cont;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GCT_2s (t));
 
@@ -1621,7 +1620,6 @@ send_kx (struct CadetTunnel *t,
   {
     case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
       GNUNET_assert (NULL == t->ephm_h);
-      cont = &ephm_sent;
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
@@ -1633,7 +1631,7 @@ send_kx (struct CadetTunnel *t,
 
   return GCC_send_prebuilt_message (&msg->header, type, 0, c,
                                     fwd, GNUNET_YES,
-                                    cont, t);
+                                    &ephm_sent, t);
 }
 
 
