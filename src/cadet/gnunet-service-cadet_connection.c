@@ -1027,6 +1027,7 @@ send_connection_ack (struct CadetConnection *c, int fwd)
 
   msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
+  msg.reserved = htonl (0);
   msg.cid = c->id;
 
   GNUNET_assert (NULL == c->maintenance_q);
@@ -3277,6 +3278,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     case GNUNET_MESSAGE_TYPE_CADET_KX:
       kmsg = (struct GNUNET_CADET_KX *) copy;
+      kmsg->reserved = htonl (0);
       kmsg->cid = c->id;
       break;
 
@@ -3296,11 +3298,13 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
       dmsg = (struct GNUNET_CADET_ConnectionDestroy *) copy;
+      dmsg->reserved = htonl (0);
       dmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       bmsg = (struct GNUNET_CADET_ConnectionBroken *) copy;
+      bmsg->reserved = htonl (0);
       bmsg->cid = c->id;
       break;
 
@@ -3399,6 +3403,7 @@ GCC_send_create (struct CadetConnection *c)
     msg = (struct GNUNET_CADET_ConnectionCreate *) cbuf;
     msg->header.size = htons (size);
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
+    msg->reserved = htonl (0);
     msg->cid = *GCC_get_id (c);
     peers = (struct GNUNET_PeerIdentity *) &msg[1];
     for (int i = 0; i < c->path->length; i++)
