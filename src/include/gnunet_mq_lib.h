@@ -93,7 +93,14 @@
  * @param mh message to nest
  * @return a newly allocated 'struct GNUNET_MQ_Envelope *'
  */
-#define GNUNET_MQ_msg_nested_mh(mvar, type, mh) GNUNET_MQ_msg_nested_mh_((((void)(mvar)->header), (struct GNUNET_MessageHeader**) &(mvar)), sizeof (*(mvar)), (type), mh)
+#define GNUNET_MQ_msg_nested_mh(mvar, type, mh) \
+  ({struct GNUNET_MQ_Envelope *_ev;\
+    _ev = GNUNET_MQ_msg_nested_mh_((struct GNUNET_MessageHeader**) &(mvar),\
+                                   sizeof (*(mvar)),\
+                                   (type),\
+                                   (mh));\
+   (void)(mvar)->header; /* type check */\
+   _ev;})
 
 
 /**
