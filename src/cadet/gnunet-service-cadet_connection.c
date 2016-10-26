@@ -1029,16 +1029,17 @@ send_connection_ack (struct CadetConnection *c, int fwd)
 {
   struct GNUNET_CADET_ConnectionACK msg;
   struct CadetTunnel *t;
-  size_t size = sizeof (struct GNUNET_CADET_ConnectionACK);
+  const uint16_t size = sizeof (struct GNUNET_CADET_ConnectionACK);
+  const uint16_t type = GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK;
 
   GCC_check_connections ();
   t = c->t;
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "==> { C %s ACK} %19s on conn %s (%p) %s [%5u]\n",
-       GC_f2s (!fwd), "", GCC_2s (c), c, GC_f2s (fwd), size);
+       "==> %s ({ C %s ACK}    0) on conn %s (%p) %s [%5u]\n",
+       GC_m2s (type), GC_f2s (!fwd), GCC_2s (c), c, GC_f2s (fwd), size);
 
-  msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
+  msg.header.size = htons (size);
+  msg.header.type = htons (type);
   msg.reserved = htonl (0);
   msg.cid = c->id;
 
