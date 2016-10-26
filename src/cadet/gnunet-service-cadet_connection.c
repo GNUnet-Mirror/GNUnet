@@ -3238,9 +3238,7 @@ GCC_is_direct (struct CadetConnection *c)
 
 
 /**
- * Internal implementation of the send function.
- *
- * Sends an completely built message on a connection, properly registering
+ * Sends a completely built message on a connection, properly registering
  * all used resources.
  *
  * @param message Message to send.
@@ -3256,16 +3254,50 @@ GCC_is_direct (struct CadetConnection *c)
  *         NULL on error or if @c cont is NULL.
  *         Invalid on @c cont call.
  */
-static struct CadetConnectionQueue *
-send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       uint16_t payload_type, uint32_t payload_id,
-                       struct CadetConnection *c, int fwd, int force,
-                       GCC_sent cont, void *cont_cls)
+struct CadetConnectionQueue *
+GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           uint16_t payload_type, uint32_t payload_id,
+                           struct CadetConnection *c, int fwd, int force,
+                           GCC_sent cont, void *cont_cls)
 {
   struct CadetFlowControl *fc;
   struct CadetConnectionQueue *q;
   uint16_t size;
   uint16_t type;
+
+  size = ntohs (message->size);
+  type = ntohs (message->type);
+
+  /* Allocate a copy of the message on the stack, so we can modify it as needed,
+   * adding the Connection ID, PID, and other data the Tunnel layer doesn't
+   * have access to.
+   */
+  char cbuf[size];
+  struct GNUNET_MessageHeader *copy = (struct GNUNET_MessageHeader *)cbuf;
+
+  if (GNUNET_MESSAGE_TYPE_CADET_AX == type
+      || GNUNET_MESSAGE_TYPE_CADET_KX == type)
+  {
+    GNUNET_memcpy (copy, message, size);
+    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
+    {
+      struct GNUNET_CADET_AX        *axmsg;
+
+      axmsg = (struct GNUNET_CADET_AX *) copy;
+      axmsg->cid = c->id;
+      axmsg->pid = htonl (GCC_get_pid (c, fwd));
+    }
+    else /* case GNUNET_MESSAGE_TYPE_CADET_KX */
+    {
+      struct GNUNET_CADET_KX        *kmsg;
+
+      GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_KX == type);
+      kmsg = (struct GNUNET_CADET_KX *) copy;
+      kmsg->reserved = htonl (0);
+      kmsg->cid = c->id;
+    }
+    message = copy;
+  }
 
   GCC_check_connections ();
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -3349,75 +3381,6 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   GNUNET_CONTAINER_DLL_insert (fc->q_head, fc->q_tail, q);
   GCC_check_connections ();
   return (NULL == cont) ? NULL : q;
-}
-
-
-/**
- * Sends an already built message on a connection, properly registering
- * all used resources.
- *
- * @param message Message to send.
- * @param payload_type Type of payload, in case the message is encrypted.
- * @param payload_id ID of the payload (PID, ACK, ...).
- * @param c Connection on which this message is transmitted.
- * @param fwd Is this a fwd message?
- * @param force Force the connection to accept the message (buffer overfill).
- * @param cont Continuation called once message is sent. Can be NULL.
- * @param cont_cls Closure for @c cont.
- *
- * @return Handle to cancel the message before it's sent.
- *         NULL on error or if @c cont is NULL.
- *         Invalid on @c cont call.
- */
-struct CadetConnectionQueue *
-GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           uint16_t payload_type, uint32_t payload_id,
-                           struct CadetConnection *c, int fwd, int force,
-                           GCC_sent cont, void *cont_cls)
-{
-  uint16_t size;
-  uint16_t type;
-
-  size = ntohs (message->size);
-  type = ntohs (message->type);
-
-  /* Allocate a copy of the message on the stack, so we can modify it as needed,
-   * adding the Connection ID, PID, and other data the Tunnel layer doesn't
-   * have access to.
-   */
-  if (GNUNET_MESSAGE_TYPE_CADET_AX == type
-      || GNUNET_MESSAGE_TYPE_CADET_KX == type)
-  {
-    struct GNUNET_MessageHeader *copy;
-    unsigned char cbuf[size];
-
-    copy = (struct GNUNET_MessageHeader *) cbuf;
-    GNUNET_memcpy (copy, message, size);
-    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
-    {
-      struct GNUNET_CADET_AX        *axmsg;
-
-      axmsg = (struct GNUNET_CADET_AX *) copy;
-      axmsg->cid = c->id;
-      axmsg->pid = htonl (GCC_get_pid (c, fwd));
-    }
-    else /* case GNUNET_MESSAGE_TYPE_CADET_KX */
-    {
-      struct GNUNET_CADET_KX        *kmsg;
-
-      GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_KX == type);
-      kmsg = (struct GNUNET_CADET_KX *) copy;
-      kmsg->reserved = htonl (0);
-      kmsg->cid = c->id;
-    }
-    return send_prebuilt_message (copy, payload_type, payload_id,
-                                  c, fwd, force,
-                                  cont, cont_cls);
-  }
-  return send_prebuilt_message (message, payload_type, payload_id,
-                                c, fwd, force,
-                                cont, cont_cls);
-
 }
 
 
