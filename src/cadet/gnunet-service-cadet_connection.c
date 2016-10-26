@@ -1079,6 +1079,7 @@ send_broken (struct CadetConnection *c,
   msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
   msg.cid = c->id;
+  msg.reserved = htonl (0);
   msg.peer1 = *id1;
   msg.peer2 = *id2;
   GNUNET_assert (NULL ==
@@ -1112,6 +1113,7 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
   msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
   msg.cid = *connection_id;
+  msg.reserved = htonl (0);
   msg.peer1 = *id1;
   if (NULL != id2)
     msg.peer2 = *id2;
@@ -1412,7 +1414,7 @@ connection_cancel_queues (struct CadetConnection *c,
  * @param cls Closure (poll ctx).
  */
 static void
-connection_poll (void *cls);
+send_connection_poll (void *cls);
 
 
 /**
@@ -1450,7 +1452,7 @@ poll_sent (void *cls,
   GNUNET_assert (NULL == fc->poll_task);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                &connection_poll,
+                                                &send_connection_poll,
                                                 fc);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
 }
@@ -1463,7 +1465,7 @@ poll_sent (void *cls,
  * @param cls Closure (poll ctx).
  */
 static void
-connection_poll (void *cls)
+send_connection_poll (void *cls)
 {
   struct CadetFlowControl *fc = cls;
   struct GNUNET_CADET_Poll msg;
@@ -1479,6 +1481,7 @@ connection_poll (void *cls)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_POLL);
   msg.header.size = htons (sizeof (msg));
+  msg.cid = c->id;
   msg.pid = htonl (fc->last_pid_sent);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " last pid sent: %u\n", fc->last_pid_sent);
   fc->poll_msg =
@@ -3259,15 +3262,10 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
 {
   struct GNUNET_CADET_AX        *axmsg;
   struct GNUNET_CADET_KX        *kmsg;
-  struct GNUNET_CADET_ACK       *amsg;
-  struct GNUNET_CADET_Poll      *pmsg;
-  struct GNUNET_CADET_ConnectionDestroy *dmsg;
-  struct GNUNET_CADET_ConnectionBroken  *bmsg;
   struct CadetFlowControl *fc;
   struct CadetConnectionQueue *q;
   size_t size;
   uint16_t type;
-  int droppable;
 
   GCC_check_connections ();
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -3283,7 +3281,6 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
        GC_f2s(fwd), size);
-  droppable = (GNUNET_NO == force);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_AX:
@@ -3293,13 +3290,13 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
-      if (GNUNET_YES == droppable)
+      if (GNUNET_NO == force)
       {
         fc->queue_n++;
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  not droppable, Q_N stays the same\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  forced msg, Q_N stays the same\n");
       }
       break;
 
@@ -3309,35 +3306,16 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
       kmsg->cid = c->id;
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      amsg = (struct GNUNET_CADET_ACK *) message;
-      amsg->cid = c->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
-      droppable = GNUNET_NO;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      pmsg = (struct GNUNET_CADET_Poll *) message;
-      pmsg->cid = c->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL %u\n", ntohl (pmsg->pid));
-      droppable = GNUNET_NO;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      dmsg = (struct GNUNET_CADET_ConnectionDestroy *) message;
-      dmsg->reserved = htonl (0);
-      dmsg->cid = c->id;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      bmsg = (struct GNUNET_CADET_ConnectionBroken *) message;
-      bmsg->reserved = htonl (0);
-      bmsg->cid = c->id;
-      break;
-
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
       GNUNET_break (0); /* Should've used specific functions. */
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      GNUNET_assert (GNUNET_YES == force);
       break;
 
     default:
@@ -3345,7 +3323,7 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
       return NULL;
   }
 
-  if (fc->queue_n > fc->queue_max && droppable)
+  if (fc->queue_n > fc->queue_max && GNUNET_NO == force)
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
@@ -3364,7 +3342,7 @@ send_prebuilt_message (struct GNUNET_MessageHeader *message,
   c->pending_messages++;
 
   q = GNUNET_new (struct CadetConnectionQueue);
-  q->forced = !droppable;
+  q->forced = force;
   q->peer_q = GCP_send (get_hop (c, fwd), message,
                         payload_type, payload_id,
                         c, fwd,
@@ -3410,7 +3388,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint16_t size;
 
   /* Allocate a copy of the message on the stack, so we can modify it as needed,
-   * adding the Connection ID.
+   * adding the Connection ID, PID, and other data the Tunnel layer doesn't
+   * have access to.
    */
   size = ntohs (message->size);
   {
@@ -3585,6 +3564,7 @@ GCC_send_destroy (struct CadetConnection *c)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
   msg.cid = c->id;
+  msg.reserved = htonl (0);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s\n",
               GCC_2s (c));
@@ -3635,7 +3615,7 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL started on request\n");
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                &connection_poll,
+                                                &send_connection_poll,
                                                 fc);
 }
 
