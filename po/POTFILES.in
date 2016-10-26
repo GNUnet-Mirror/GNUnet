@@ -35,7 +35,6 @@ src/cadet/cadet_api.c
 src/cadet/cadet_common.c
 src/cadet/cadet_path.c
 src/cadet/cadet_test_lib.c
-src/cadet/cadet_tunnel_tree.c
 src/cadet/gnunet-cadet.c
 src/cadet/gnunet-cadet-profiler.c
 src/cadet/gnunet-service-cadet.c
@@ -413,7 +412,6 @@ src/tun/regex.c
 src/tun/tun.c
 src/util/bandwidth.c
 src/util/bio.c
-src/util/client.c
 src/util/client_new.c
 src/util/common_allocation.c
 src/util/common_endian.c
