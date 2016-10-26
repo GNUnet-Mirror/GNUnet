@@ -215,38 +215,6 @@ struct TestContext
 
 
 /**
- *
- */
-enum TestResult
-{
-  /**
-   * NAT returned success
-   */
-  NAT_TEST_SUCCESS = GNUNET_OK,
-
-  /**
-   * NAT returned failure
-   */
-  NAT_TEST_FAIL = GNUNET_NO,
-
-  /**
-   * NAT returned failure while running test
-   */
-  NAT_TEST_INTERNAL_FAIL = GNUNET_SYSERR,
-
-  /**
-   * We could not start the test
-   */
-  NAT_TEST_FAILED_TO_START = 2,
-
-  /**
-   * We had a timeout while running the test
-   */
-  NAT_TEST_TIMEOUT = 3
-};
-
-
-/**
  * Benchmarking block size in KB
  */
 #define BLOCKSIZE 4
@@ -614,40 +582,12 @@ run_nat_test (void);
  */
 static void
 display_test_result (struct TestContext *tc,
-                     enum TestResult result)
+                     enum GNUNET_NAT_StatusCode result)
 {
-  switch (result) {
-    case NAT_TEST_FAIL:
-      FPRINTF (stderr,
-               _("Configuration for plugin `%s' did not work!\n"),
-               tc->name);
-      break;
-    case NAT_TEST_SUCCESS:
-      FPRINTF (stderr,
-               _("Configuration for plugin `%s' did work!\n"),
-               tc->name);
-      break;
-    case NAT_TEST_INTERNAL_FAIL:
-      FPRINTF (stderr,
-               _("Internal NAT error while running test for plugin `%s'\n"),
-               tc->name);
-      break;
-    case NAT_TEST_FAILED_TO_START:
-      FPRINTF (stderr,
-               _("Failed to start NAT test for plugin `%s'\n"),
-               tc->name);
-      break;
-    case NAT_TEST_TIMEOUT:
-      FPRINTF (stderr,
-               _("Timeout while waiting for result of NAT test for plugin `%s'\n"),
-               tc->name);
-      break;
-    default:
-      FPRINTF (stderr,
-               _("Configuration for plugin `%s' did not work!\n"),
-               tc->name);
-      break;
-  }
+  FPRINTF (stderr,
+           _("NAT plugin `%s' reports: %s\n"),
+           tc->name,
+           GNUNET_NAT_status2string (result));
   if (NULL != tc->tsk)
   {
     GNUNET_SCHEDULER_cancel (tc->tsk);
