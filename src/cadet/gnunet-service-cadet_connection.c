@@ -2036,8 +2036,8 @@ GCC_handle_create (struct CadetPeer *peer,
 
     if (CADET_TUNNEL_NEW == GCT_get_cstate (c->t))
       GCT_change_cstate (c->t,  CADET_TUNNEL_WAITING);
-
-    send_connection_ack (c, GNUNET_NO);
+    if (NULL == c->maintenance_q)
+      send_connection_ack (c, GNUNET_NO);
     if (CADET_CONNECTION_SENT == c->state)
       connection_change_state (c, CADET_CONNECTION_ACK);
   }
@@ -2202,10 +2202,8 @@ GCC_handle_broken (struct CadetPeer *peer,
 
   GCC_check_connections ();
   log_message (&msg->header, peer, &msg->cid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
-              GNUNET_i2s (&msg->peer1));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
-              GNUNET_i2s (&msg->peer2));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n", GNUNET_i2s (&msg->peer1));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n", GNUNET_i2s (&msg->peer2));
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
