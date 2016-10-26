@@ -335,7 +335,11 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *ev)
 unsigned int
 GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq)
 {
-  return mq->queue_length - (GNUNET_YES == mq->in_flight) ? 1 : 0;
+  if (GNUNET_YES != mq->in_flight)
+  {
+    return mq->queue_length;
+  }
+  return mq->queue_length - 1;
 }
 
 
