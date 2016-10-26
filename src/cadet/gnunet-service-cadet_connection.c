@@ -1136,6 +1136,7 @@ send_connection_keepalive (struct CadetConnection *c, int fwd)
 {
   struct GNUNET_MessageHeader msg;
   struct CadetFlowControl *fc;
+  int tunnel_ready;
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_INFO,
@@ -1144,7 +1145,9 @@ send_connection_keepalive (struct CadetConnection *c, int fwd)
 
   GNUNET_assert (NULL != c->t);
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (0 < fc->queue_n || GNUNET_YES == GCT_has_queued_traffic (c->t))
+  tunnel_ready = GNUNET_YES == GCT_has_queued_traffic (c->t)
+                 && CADET_TUNNEL_KEY_OK <= GCT_get_estate (c->t);
+  if (0 < fc->queue_n || tunnel_ready)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, traffic in queue\n");
     return;
