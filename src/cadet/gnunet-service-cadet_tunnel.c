@@ -2203,10 +2203,13 @@ GCT_handle_encrypted (struct CadetTunnel *t,
 
   if (-1 == decrypted_size)
   {
-    GNUNET_break_op (0);
     GNUNET_STATISTICS_update (stats, "# unable to decrypt", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto on tunnel %s\n", GCT_2s (t));
-    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    if (CADET_TUNNEL_KEY_PING <= t->estate)
+    {
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto, tunnel %s\n", GCT_2s (t));
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    }
     return;
   }
   GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
