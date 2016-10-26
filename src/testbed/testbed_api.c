@@ -1595,7 +1595,7 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                            controller),
     GNUNET_MQ_hd_var_size (barrier_status,
                            GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS,
-                           const struct GNUNET_TESTBED_BarrierStatusMsg,
+                           struct GNUNET_TESTBED_BarrierStatusMsg,
                            controller),
     GNUNET_MQ_handler_end ()
   };
