@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2008--2013 GNUnet e.V.
+  Copyright (C) 2008--2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -234,7 +234,7 @@ remove_barrier (struct Barrier *barrier)
     GNUNET_CONTAINER_DLL_remove (barrier->head,
                                  barrier->tail,
                                  ctx);
-    GNUNET_free (ctx);
+    ctx->barrier = NULL;
   }
   GNUNET_free (barrier->name);
   GNUNET_free (barrier);
@@ -546,6 +546,8 @@ wbarrier_status_cb (void *cls,
   struct WBarrier *wrapper = cls;
   struct Barrier *barrier = wrapper->barrier;
 
+  //FIXME: why are we removing the wrapper?  They should only be removed if they
+  //barrier is crossed or errored out
   GNUNET_assert (b_ == wrapper->hbarrier);
   wrapper->hbarrier = NULL;
   GNUNET_CONTAINER_DLL_remove (barrier->whead,
@@ -713,6 +715,7 @@ handle_barrier_init (void *cls,
     GNUNET_CONTAINER_DLL_insert_tail (barrier->whead,
                                       barrier->wtail,
                                       wrapper);
+    //FIXME: Increment barrier->num_wbarriers
     wrapper->hbarrier = GNUNET_TESTBED_barrier_init_ (slave->controller,
                                                       barrier->name,
                                                       barrier->quorum,
@@ -898,16 +901,13 @@ handle_barrier_status (void *cls,
     return;
   }
   GNUNET_SERVICE_client_continue (client);
-  while (NULL != (client_ctx = barrier->head)) /* Notify peers */
+  for(client_ctx = barrier->head; NULL != client_ctx; client_ctx = client_ctx->next) /* Notify peers */
   {
     env = GNUNET_MQ_msg_copy (&msg->header);
-    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client_ctx->client),
                     env);
-    GNUNET_CONTAINER_DLL_remove (barrier->head,
-                                 barrier->tail,
-                                 client_ctx);
-    client_ctx->barrier = NULL;
   }
+  //FIXME: Send status to wrappers if they exist
 }
 
 /* end of gnunet-service-testbed_barriers.c */

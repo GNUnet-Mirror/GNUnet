@@ -50,7 +50,7 @@ struct GNUNET_TESTBED_Barrier *barrier;
 /**
  * Identifier for the shutdown task
  */
-static struct GNUNET_SCHEDULER_Task *shutdown_task;
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Result of this test case
@@ -59,20 +59,30 @@ static int result;
 
 
 /**
+ * Handle SIGINT and SIGTERM
+ */
+static void
+shutdown_handler(void *cls)
+{
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel(timeout_task);
+    timeout_task = NULL;
+  }
+}
+
+
+/**
  * Shutdown this test case when it takes too long
  *
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_timeout (void *cls)
 {
-  shutdown_task = NULL;
-  if (NULL != barrier)
-  {
-    GNUNET_TESTBED_barrier_cancel (barrier);
-    barrier = NULL;
-  }
-
+  timeout_task = NULL;
+  if (barrier != NULL)
+      GNUNET_TESTBED_barrier_cancel (barrier);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -112,20 +122,19 @@ barrier_cb (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Barrier initialisation failed: %s",
          (NULL == emsg) ? "unknown reason" : emsg);
-    barrier = NULL;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    break;
   case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Barrier crossed\n");
     if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED)
       result = GNUNET_OK;
-    barrier = NULL;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    break;
   default:
     GNUNET_assert (0);
+    return;
   }
+  barrier = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -165,11 +174,12 @@ test_master (void *cls,
                                          100,
                                          &barrier_cb,
                                          NULL);
-  shutdown_task =
+  timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS,
                                      10 * (NUM_PEERS + 1)),
-                                    &do_shutdown, NULL);
+                                    &do_timeout, NULL);
+  GNUNET_SCHEDULER_add_shutdown(&shutdown_handler, NULL);
 }
 
 
