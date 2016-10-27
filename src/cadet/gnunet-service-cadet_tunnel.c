@@ -750,8 +750,11 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
   size_t out_size;
+  struct GNUNET_TIME_Absolute start_time;
+  struct GNUNET_TIME_Relative duration;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt start\n");
+  start_time = GNUNET_TIME_absolute_get ();
 
   ax = t->ax;
 
@@ -806,6 +809,9 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   t_hmac_derive_key (&ax->CKs, &ax->CKs, "1", 1);
 
+  duration = GNUNET_TIME_absolute_get_duration (start_time);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt duration %s\n",
+       GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
 
   return out_size;
