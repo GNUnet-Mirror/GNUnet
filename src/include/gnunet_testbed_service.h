@@ -1531,8 +1531,10 @@ enum GNUNET_TESTBED_BarrierStatus
  * @param cls the closure given to GNUNET_TESTBED_barrier_init()
  * @param name the name of the barrier
  * @param barrier the barrier handle
- * @param status status of the barrier; #GNUNET_OK if the barrier is crossed;
- *   #GNUNET_SYSERR upon error
+ * @param status status of the barrier.  The barrier is removed once it has been
+ *          crossed or an error occurs while processing it.  Therefore it is
+ *          invalid to call GNUNET_TESTBED_barrier_cancel() on a crossed or
+ *          errored barrier.
  * @param emsg if the status were to be #GNUNET_SYSERR, this parameter has the
  *   error messsage
  */
