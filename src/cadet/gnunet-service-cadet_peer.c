@@ -1124,7 +1124,7 @@ call_peer_cont (struct CadetPeerQueue *q, int sent)
         struct GNUNET_TIME_Relative wait_time;
 
         wait_time = GNUNET_TIME_absolute_get_duration (q->queue_timestamp);
-        LOG (GNUNET_ERROR_TYPE_INFO,
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
              " calling callback on %s after %s\n",
              GCC_2s (q->c),
              GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
