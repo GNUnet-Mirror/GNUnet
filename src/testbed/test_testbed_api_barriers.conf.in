@@ -17,6 +17,7 @@ FORCESTART = YES
 
 [fs]
 AUTOSTART = NO
+FORCESTART = NO
 
 [resolver]
 HOSTNAME = localhost
@@ -24,9 +25,11 @@ AUTOSTART = NO
 
 [cadet]
 AUTOSTART = NO
+FORCESTART = NO
 
 [dht]
 AUTOSTART = NO
+FORCESTART = NO
 
 [dhtcache]
 QUOTA = 1 MB
@@ -59,27 +62,34 @@ GNUNET_TEST_HOME = /tmp/test-testbed/
 
 [dns]
 AUTOSTART = NO
+FORCESTART = NO
 
 [nse]
 AUTOSTART = NO
+FORCESTART = NO
 
 [vpn]
 AUTOSTART = NO
+FORCESTART = NO
 
 [nat]
 RETURN_LOCAL_ADDRESSES = YES
+FORCESTART = NO
 
 [gns-helper-service-w32]
 AUTOSTART = NO
 
 [consensus]
 AUTOSTART = NO
+FORCESTART = NO
 
 [gns]
 AUTOSTART = NO
+FORCESTART = NO
 
 [statistics]
 AUTOSTART = NO
+FORCESTART = NO
 
 [peerinfo]
 NO_IO = YES
