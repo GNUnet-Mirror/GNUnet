@@ -3268,37 +3268,6 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   size = ntohs (message->size);
   type = ntohs (message->type);
 
-  /* Allocate a copy of the message on the stack, so we can modify it as needed,
-   * adding the Connection ID, PID, and other data the Tunnel layer doesn't
-   * have access to.
-   */
-  char cbuf[size];
-  struct GNUNET_MessageHeader *copy = (struct GNUNET_MessageHeader *)cbuf;
-
-  if (GNUNET_MESSAGE_TYPE_CADET_AX == type
-      || GNUNET_MESSAGE_TYPE_CADET_KX == type)
-  {
-    GNUNET_memcpy (copy, message, size);
-    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
-    {
-      struct GNUNET_CADET_AX        *axmsg;
-
-      axmsg = (struct GNUNET_CADET_AX *) copy;
-      axmsg->cid = c->id;
-      axmsg->pid = htonl (GCC_get_pid (c, fwd));
-    }
-    else /* case GNUNET_MESSAGE_TYPE_CADET_KX */
-    {
-      struct GNUNET_CADET_KX        *kmsg;
-
-      GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_KX == type);
-      kmsg = (struct GNUNET_CADET_KX *) copy;
-      kmsg->reserved = htonl (0);
-      kmsg->cid = c->id;
-    }
-    message = copy;
-  }
-
   GCC_check_connections ();
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   if (0 == fc->queue_max)
@@ -3307,8 +3276,6 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return NULL;
   }
 
-  size = ntohs (message->size);
-  type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "--> %s (%s %4u) on conn %s (%p) %s [%5u]\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,

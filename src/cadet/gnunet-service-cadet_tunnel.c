@@ -1406,6 +1406,9 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     }
     return NULL; /* Drop... */
   }
+  fwd = GCC_is_origin (c, GNUNET_YES);
+  ax_msg->cid = *GCC_get_id (c);
+  ax_msg->pid = htonl (GCC_get_pid (c, fwd));
 
   mid = 0;
   type = ntohs (message->type);
@@ -1429,8 +1432,6 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_ERROR, "type %s not valid\n", GC_m2s (type));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s\n", GC_m2s (type));
-
-  fwd = GCC_is_origin (c, GNUNET_YES);
 
   if (NULL == cont)
   {
@@ -1612,6 +1613,7 @@ send_kx (struct CadetTunnel *t,
   msg = (struct GNUNET_CADET_KX *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX);
   msg->header.size = htons (sizeof (struct GNUNET_CADET_KX) + size);
+  msg->reserved = htonl (0);
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
@@ -1622,6 +1624,7 @@ send_kx (struct CadetTunnel *t,
     }
     return NULL;
   }
+  msg->cid = *GCC_get_id (c);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
