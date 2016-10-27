@@ -1310,7 +1310,13 @@ handle_barrier_status (void *cls,
 
  cleanup:
   GNUNET_free_non_null (emsg);
-  if (NULL != barrier)
+  /**
+   * Do not remove the barrier if we did not echo the status back; this is
+   * required at the chained testbed controller setup to ensure the only the
+   * test-driver echos the status and the controller hierarchy properly
+   * propagates the status.
+   */
+  if ((NULL != barrier) && (GNUNET_YES == barrier->echo))
     GNUNET_TESTBED_barrier_remove_ (barrier);
 }
 

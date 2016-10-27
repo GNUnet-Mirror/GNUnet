@@ -109,6 +109,11 @@ struct WBarrier
   struct Barrier *barrier;
 
   /**
+   * Handle to the slave controller where this wrapper creates a barrier
+   */
+  struct GNUNET_TESTBED_Controller *controller;
+
+  /**
    * The barrier handle from API
    */
   struct GNUNET_TESTBED_Barrier *hbarrier;
@@ -546,14 +551,7 @@ wbarrier_status_cb (void *cls,
   struct WBarrier *wrapper = cls;
   struct Barrier *barrier = wrapper->barrier;
 
-  //FIXME: why are we removing the wrapper?  They should only be removed if they
-  //barrier is crossed or errored out
   GNUNET_assert (b_ == wrapper->hbarrier);
-  wrapper->hbarrier = NULL;
-  GNUNET_CONTAINER_DLL_remove (barrier->whead,
-                               barrier->wtail,
-                               wrapper);
-  GNUNET_free (wrapper);
   switch (status)
   {
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
@@ -712,11 +710,12 @@ handle_barrier_init (void *cls,
     }
     wrapper = GNUNET_new (struct WBarrier);
     wrapper->barrier = barrier;
+    wrapper->controller = slave->controller;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->whead,
                                       barrier->wtail,
                                       wrapper);
-    //FIXME: Increment barrier->num_wbarriers
-    wrapper->hbarrier = GNUNET_TESTBED_barrier_init_ (slave->controller,
+    barrier->num_wbarriers++;
+    wrapper->hbarrier = GNUNET_TESTBED_barrier_init_ (wrapper->controller,
                                                       barrier->name,
                                                       barrier->quorum,
                                                       &wbarrier_status_cb,
@@ -868,6 +867,7 @@ handle_barrier_status (void *cls,
   struct GNUNET_SERVICE_Client *client = cls;
   struct Barrier *barrier;
   struct ClientCtx *client_ctx;
+  struct WBarrier *wrapper;
   const char *name;
   struct GNUNET_HashCode key;
   uint16_t name_len;
@@ -907,7 +907,15 @@ handle_barrier_status (void *cls,
     GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client_ctx->client),
                     env);
   }
-  //FIXME: Send status to wrappers if they exist
+  /**
+   * The wrapper barriers do not echo the barrier status, so we have to do it
+   * here
+   */
+  for (wrapper = barrier->whead; NULL != wrapper; wrapper = wrapper->next)
+  {
+    GNUNET_TESTBED_queue_message_ (wrapper->controller,
+                                   GNUNET_copy_message (&msg->header));
+  }
 }
 
 /* end of gnunet-service-testbed_barriers.c */
