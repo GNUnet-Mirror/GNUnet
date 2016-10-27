@@ -23,7 +23,7 @@
  * @brief cadet service; dealing with connections
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMC (Gnunet Cadet Connection)
+ * All functions in this file use the prefix GCC (GNUnet Cadet Connection)
  */
 
 #ifndef GNUNET_SERVICE_CADET_CONNECTION_H
