@@ -93,3 +93,11 @@ FORCESTART = NO
 
 [peerinfo]
 NO_IO = YES
+
+[set]
+AUTOSTART = NO
+FORCESTART = NO
+
+[revocation]
+AUTOSTART = NO
+FORCESTART = NO
