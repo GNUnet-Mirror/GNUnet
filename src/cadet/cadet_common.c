@@ -192,17 +192,17 @@ GC_m2s (uint16_t m)
       break;
 
       /**
-       * Key exchange encapsulation.
+       * Key exchange message.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX:
       s = "KX";
       break;
 
       /**
-       * Axolotl key exchange message.
+       * Encrypted.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
-      s = "AX_KX";
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+      s = "ENCRYPTED";
       break;
 
       /**
@@ -273,13 +273,6 @@ GC_m2s (uint16_t m)
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       s = "CHAN_NACK";
-      break;
-
-      /**
-       * Axolotl encrypted payload.
-       */
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
-      s = "AX";
       break;
 
       /**

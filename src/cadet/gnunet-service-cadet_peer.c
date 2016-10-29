@@ -548,32 +548,6 @@ handle_poll (void *cls, const struct GNUNET_CADET_Poll *msg)
 
 
 /**
- * Check if the Key eXchange message has the appropriate size.
- *
- * @param cls Closure (unused).
- * @param msg Message to check.
- *
- * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
- */
-static int
-check_kx (void *cls, const struct GNUNET_CADET_KX *msg)
-{
-    uint16_t size;
-    uint16_t expected_size;
-
-    size = ntohs (msg->header.size);
-    expected_size = sizeof (struct GNUNET_CADET_KX)
-                    + sizeof (struct GNUNET_MessageHeader);
-
-    if (size < expected_size)
-    {
-        GNUNET_break_op (0);
-        return GNUNET_NO;
-    }
-    return GNUNET_YES;
-}
-
-/**
  * Handle for #GNUNET_MESSAGE_TYPE_CADET_KX
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
@@ -596,13 +570,13 @@ handle_kx (void *cls, const struct GNUNET_CADET_KX *msg)
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_encrypted (void *cls, const struct GNUNET_CADET_AX *msg)
+check_encrypted (void *cls, const struct GNUNET_CADET_Encrypted *msg)
 {
     uint16_t size;
     uint16_t minimum_size;
 
     size = ntohs (msg->header.size);
-    minimum_size = sizeof (struct GNUNET_CADET_AX)
+    minimum_size = sizeof (struct GNUNET_CADET_Encrypted)
                    + sizeof (struct GNUNET_MessageHeader);
 
     if (size < minimum_size)
@@ -614,13 +588,13 @@ check_encrypted (void *cls, const struct GNUNET_CADET_AX *msg)
 }
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_AX (AXolotl encrypted traffic).
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_encrypted (void *cls, const struct GNUNET_CADET_AX *msg)
+handle_encrypted (void *cls, const struct GNUNET_CADET_Encrypted *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_encrypted (peer, msg);
@@ -643,37 +617,37 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
 {
     struct GNUNET_MQ_MessageHandler core_handlers[] = {
         GNUNET_MQ_hd_var_size (create,
-        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
-        struct GNUNET_CADET_ConnectionCreate,
-        NULL),
+                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
+                               struct GNUNET_CADET_ConnectionCreate,
+                               NULL),
         GNUNET_MQ_hd_fixed_size (confirm,
-        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
-        struct GNUNET_CADET_ConnectionACK,
-        NULL),
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
+                                 struct GNUNET_CADET_ConnectionACK,
+                                 NULL),
         GNUNET_MQ_hd_fixed_size (broken,
-        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-        struct GNUNET_CADET_ConnectionBroken,
-        NULL),
+                                GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+                                struct GNUNET_CADET_ConnectionBroken,
+                                NULL),
         GNUNET_MQ_hd_fixed_size (destroy,
-        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
-        struct GNUNET_CADET_ConnectionDestroy,
-        NULL),
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
+                                 struct GNUNET_CADET_ConnectionDestroy,
+                                 NULL),
         GNUNET_MQ_hd_fixed_size (ack,
-        GNUNET_MESSAGE_TYPE_CADET_ACK,
-        struct GNUNET_CADET_ACK,
-        NULL),
+                                 GNUNET_MESSAGE_TYPE_CADET_ACK,
+                                 struct GNUNET_CADET_ACK,
+                                 NULL),
         GNUNET_MQ_hd_fixed_size (poll,
-        GNUNET_MESSAGE_TYPE_CADET_POLL,
-        struct GNUNET_CADET_Poll,
-        NULL),
-        GNUNET_MQ_hd_var_size (kx,
-        GNUNET_MESSAGE_TYPE_CADET_KX,
-        struct GNUNET_CADET_KX,
-        NULL),
+                                 GNUNET_MESSAGE_TYPE_CADET_POLL,
+                                 struct GNUNET_CADET_Poll,
+                                 NULL),
+        GNUNET_MQ_hd_fixed_size (kx,
+                                 GNUNET_MESSAGE_TYPE_CADET_KX,
+                                 struct GNUNET_CADET_KX,
+                                 NULL),
         GNUNET_MQ_hd_var_size (encrypted,
-        GNUNET_MESSAGE_TYPE_CADET_AX,
-        struct GNUNET_CADET_AX,
-        NULL),
+                               GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED,
+                               struct GNUNET_CADET_Encrypted,
+                               NULL),
         GNUNET_MQ_handler_end ()
     };
     core_handle = GNUNET_CORE_connecT (c, NULL,
@@ -755,7 +729,7 @@ get_priority (struct CadetPeerQueue *q)
     }
 
     /* Bulky payload has lower priority, control traffic has higher. */
-    if (GNUNET_MESSAGE_TYPE_CADET_AX == q->type)
+    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type)
         return low;
     return high;
 }

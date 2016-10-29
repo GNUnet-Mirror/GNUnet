@@ -127,7 +127,7 @@ extern "C"
 
 /**
  * Size of the CADET message overhead:
- * + sizeof (struct GNUNET_CADET_AX)
+ * = sizeof (struct GNUNET_CADET_Encrypted)
  * + sizeof (struct GNUNET_CADET_Data)
  * + sizeof (struct GNUNET_CADET_ACK))
  *

@@ -295,26 +295,27 @@ GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
 
 
 /**
- * Decrypt and demultiplex by message type. Call appropriate handler
- * for a message towards a channel of a local tunnel.
+ * Decrypt and process an encrypted message.
+ *
+ * Calls the appropriate handler for a message in a channel of a local tunnel.
  *
  * @param t Tunnel this message came on.
  * @param msg Message header.
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_MessageHeader *msg);
+                      const struct GNUNET_CADET_Encrypted *msg);
 
 
 /**
- * Demultiplex an encapsulated KX message by message type.
+ * Handle a Key eXchange message.
  *
  * @param t Tunnel on which the message came.
- * @param message KX message itself.
+ * @param msg KX message itself.
  */
 void
 GCT_handle_kx (struct CadetTunnel *t,
-               const struct GNUNET_MessageHeader *message);
+               const struct GNUNET_CADET_KX *msg);
 
 
 /**
@@ -494,13 +495,13 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Send an Axolotl KX message.
+ * Send a KX message.
  *
  * @param t Tunnel on which to send it.
  * @param force_reply Force the other peer to reply with a KX message.
  */
 void
-GCT_send_ax_kx (struct CadetTunnel *t, int force_reply);
+GCT_send_kx (struct CadetTunnel *t, int force_reply);
 
 
 /**

@@ -96,18 +96,6 @@ struct CadetTConnection
 
 
 /**
- * Encryption systems possible.
- */
-enum CadetTunnelEncryption
-{
-  /**
-   * Default Axolotl system.
-   */
-  CADET_Axolotl
-
-};
-
-/**
  * Struct to old keys for skipped messages while advancing the Axolotl ratchet.
  */
 struct CadetTunnelSkippedKey
@@ -265,11 +253,6 @@ struct CadetTunnel
    * Endpoint of the tunnel.
    */
   struct CadetPeer *peer;
-
-  /**
-   * Type of encryption used in the tunnel.
-   */
-  enum CadetTunnelEncryption enc_type;
 
   /**
    * Axolotl info.
@@ -550,8 +533,7 @@ is_ready (struct CadetTunnel *t)
   conn_ok = CADET_TUNNEL_READY == t->cstate;
   enc_ok = CADET_TUNNEL_KEY_OK == t->estate
            || CADET_TUNNEL_KEY_REKEY == t->estate
-           || (CADET_TUNNEL_KEY_PING == t->estate
-               && CADET_Axolotl == t->enc_type);
+           || CADET_TUNNEL_KEY_PING == t->estate;
   ready = conn_ok && enc_ok;
   ready = ready || GCT_is_loopback (t);
   return ready;
@@ -869,7 +851,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
  * @param msg Message whose header to encrypt.
  */
 static void
-t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_AX *msg)
+t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_Encrypted *msg)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
@@ -902,8 +884,8 @@ t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_AX *msg)
  * @param dst Where to decrypt header to.
  */
 static void
-t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_AX *src,
-             struct GNUNET_CADET_AX *dst)
+t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_Encrypted *src,
+             struct GNUNET_CADET_Encrypted *dst)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
@@ -941,12 +923,12 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_AX *src,
  */
 static int
 try_old_ax_keys (struct CadetTunnel *t, void *dst,
-                 const struct GNUNET_CADET_AX *src, size_t size)
+                 const struct GNUNET_CADET_Encrypted *src, size_t size)
 {
   struct CadetTunnelSkippedKey *key;
   struct GNUNET_CADET_Hash *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct GNUNET_CADET_AX plaintext_header;
+  struct GNUNET_CADET_Encrypted plaintext_header;
   struct GNUNET_CRYPTO_SymmetricSessionKey *valid_HK;
   size_t esize;
   size_t res;
@@ -955,7 +937,7 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying old keys\n");
   hmac = &plaintext_header.hmac;
-  esize = size - sizeof (struct GNUNET_CADET_AX);
+  esize = size - sizeof (struct GNUNET_CADET_Encrypted);
 
   /* Find a correct Header Key */
   for (key = t->ax->skipped_head; NULL != key; key = key->next)
@@ -976,8 +958,8 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
     return -1;
 
   /* Should've been checked in -cadet_connection.c handle_cadet_encrypted. */
-  GNUNET_assert (size > sizeof (struct GNUNET_CADET_AX));
-  len = size - sizeof (struct GNUNET_CADET_AX);
+  GNUNET_assert (size > sizeof (struct GNUNET_CADET_Encrypted));
+  len = size - sizeof (struct GNUNET_CADET_Encrypted);
   GNUNET_assert (len >= sizeof (struct GNUNET_MessageHeader));
 
   /* Decrypt header */
@@ -1120,20 +1102,20 @@ store_ax_keys (struct CadetTunnel *t,
  */
 static int
 t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
-                           const struct GNUNET_CADET_AX *src, size_t size)
+                           const struct GNUNET_CADET_Encrypted *src,
+                           size_t size)
 {
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_CADET_Hash msg_hmac;
   struct GNUNET_HashCode hmac;
-  struct GNUNET_CADET_AX plaintext_header;
+  struct GNUNET_CADET_Encrypted plaintext_header;
   uint32_t Np;
   uint32_t PNp;
-  size_t esize;
-  size_t osize;
+  size_t esize; /* Size of encryped payload */
+  size_t osize; /* Size of output (decrypted payload) */
 
+  esize = size - sizeof (struct GNUNET_CADET_Encrypted);
   ax = t->ax;
-  esize = size - sizeof (struct GNUNET_CADET_AX);
-
   if (NULL == ax)
     return -1;
 
@@ -1350,10 +1332,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        struct CadetTunnelQueue *existing_q)
 {
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_CADET_AX *ax_msg;
+  struct GNUNET_CADET_Encrypted *ax_msg;
   struct CadetTunnelQueue *tq;
   size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_CADET_AX) + size] GNUNET_ALIGN;
+  char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size] GNUNET_ALIGN;
   size_t esize;
   uint32_t mid;
   uint16_t type;
@@ -1381,11 +1363,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
-  GNUNET_assert (CADET_Axolotl == t->enc_type);
-  ax_msg = (struct GNUNET_CADET_AX *) cbuf;
+  ax_msg = (struct GNUNET_CADET_Encrypted *) cbuf;
   msg = &ax_msg->header;
-  msg->size = htons (sizeof (struct GNUNET_CADET_AX) + size);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_AX);
+  msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
   esize = t_ax_encrypt (t, &ax_msg[1], message, size);
   ax_msg->Ns = htonl (t->ax->Ns++);
   ax_msg->PNs = htonl (t->ax->PNs);
@@ -1505,12 +1486,12 @@ send_queued_data (struct CadetTunnel *t)
 
 
 /**
- * @brief Resend the AX KX until we complete the handshake.
+ * @brief Resend the KX until we complete the handshake.
  *
  * @param cls Closure (tunnel).
  */
 static void
-ax_kx_resend (void *cls)
+kx_resend (void *cls)
 {
   struct CadetTunnel *t = cls;
 
@@ -1522,7 +1503,7 @@ ax_kx_resend (void *cls)
     return;
   }
 
-  GCT_send_ax_kx (t, CADET_TUNNEL_KEY_SENT >= t->estate);
+  GCT_send_kx (t, CADET_TUNNEL_KEY_SENT >= t->estate);
 }
 
 
@@ -1549,98 +1530,15 @@ ephm_sent (void *cls,
   if (CADET_TUNNEL_KEY_OK == t->estate)
     return;
 
-  if (CADET_Axolotl == t->enc_type)
-  {
-    if (NULL != t->rekey_task)
-    {
-      GNUNET_break (0);
-      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-      GNUNET_SCHEDULER_cancel (t->rekey_task);
-    }
-    t->rekey_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                  &ax_kx_resend, t);
-  }
-}
-
-
-/**
- * Sends key exchange message on a tunnel, choosing the best connection.
- * Should not be called on loopback tunnels.
- *
- * @param t Tunnel on which this message is transmitted.
- * @param message Message to send. Function modifies it.
- *
- * @return Handle to the message in the connection queue.
- */
-static struct CadetConnectionQueue *
-send_kx (struct CadetTunnel *t,
-         const struct GNUNET_MessageHeader *message)
-{
-  struct CadetConnection *c;
-  struct GNUNET_CADET_KX *msg;
-  size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_CADET_KX) + size];
-  uint16_t type;
-  int fwd;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GCT_2s (t));
-
-  /* Avoid loopback. */
-  if (GCT_is_loopback (t))
+  if (NULL != t->rekey_task)
   {
     GNUNET_break (0);
-    return NULL;
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    GNUNET_SCHEDULER_cancel (t->rekey_task);
   }
-  type = ntohs (message->type);
+  t->rekey_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                &kx_resend, t);
 
-  /* Even if tunnel is "being destroyed", send anyway.
-   * Could be a response to a rekey initiated by remote peer,
-   * who is trying to create a new channel!
-   */
-
-  /* Must have a connection, or be looking for one. */
-  if (NULL == t->connection_head)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s with no connection\n", GC_m2s (type));
-    if (CADET_TUNNEL_SEARCHING != t->cstate)
-    {
-      GNUNET_break (0);
-      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-    }
-    return NULL;
-  }
-
-  msg = (struct GNUNET_CADET_KX *) cbuf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX);
-  msg->header.size = htons (sizeof (struct GNUNET_CADET_KX) + size);
-  msg->reserved = htonl (0);
-  c = tunnel_get_connection (t);
-  if (NULL == c)
-  {
-    if (NULL == t->destroy_task && CADET_TUNNEL_READY == t->cstate)
-    {
-      GNUNET_break (0);
-      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-    }
-    return NULL;
-  }
-  msg->cid = *GCC_get_id (c);
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
-      GNUNET_assert (NULL == t->ephm_h);
-      break;
-    default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
-      GNUNET_assert (0);
-  }
-  GNUNET_memcpy (&msg[1], message, size);
-
-  fwd = GCC_is_origin (c, GNUNET_YES);
-
-  return GCC_send_prebuilt_message (&msg->header, type, 0, c,
-                                    fwd, GNUNET_YES,
-                                    &ephm_sent, t);
 }
 
 
@@ -1965,13 +1863,145 @@ destroy_ax (struct CadetTunnel *t)
 
 
 /**
- * Handle Axolotl handshake.
+ * Demultiplex by message type and call appropriate handler for a message
+ * towards a channel of a local tunnel.
  *
  * @param t Tunnel this message came on.
- * @param msg Key eXchange Pong message.
+ * @param msgh Message header.
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
+handle_decrypted (struct CadetTunnel *t,
+                  const struct GNUNET_MessageHeader *msgh,
+                  int fwd)
+{
+  uint16_t type;
+  char buf[256];
+
+  type = ntohs (msgh->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "<-- %s on %s\n", GC_m2s (type), GCT_2s (t));
+  SPRINTF (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
+  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
+
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+      /* Do nothing, connection aleady got updated. */
+      GNUNET_STATISTICS_update (stats, "# keepalives received", 1, GNUNET_NO);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+      /* Don't send hop ACK, wait for client to ACK */
+      handle_data (t, (struct GNUNET_CADET_Data *) msgh, fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+      handle_data_ack (t, (struct GNUNET_CADET_DataACK *) msgh, fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+      handle_ch_create (t, (struct GNUNET_CADET_ChannelCreate *) msgh);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+      handle_ch_nack (t, (struct GNUNET_CADET_ChannelManage *) msgh);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+      handle_ch_ack (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
+      handle_ch_destroy (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
+      break;
+
+    default:
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "end-to-end message not known (%u)\n",
+           ntohs (msgh->type));
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+  }
+}
+
+
+/******************************************************************************/
+/********************************    API    ***********************************/
+/******************************************************************************/
+
+/**
+ * Decrypt and process an encrypted message.
+ *
+ * Calls the appropriate handler for a message in a channel of a local tunnel.
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Message header.
+ */
+void
+GCT_handle_encrypted (struct CadetTunnel *t,
+                      const struct GNUNET_CADET_Encrypted *msg)
+{
+  uint16_t size = ntohs (msg->header.size);
+  char cbuf [size];
+  int decrypted_size;
+  const struct GNUNET_MessageHeader *msgh;
+  unsigned int off;
+
+  GNUNET_STATISTICS_update (stats, "# received encrypted", 1, GNUNET_NO);
+
+  decrypted_size = t_ax_decrypt_and_validate (t, cbuf, msg, size);
+
+  if (-1 == decrypted_size)
+  {
+    GNUNET_STATISTICS_update (stats, "# unable to decrypt", 1, GNUNET_NO);
+    if (CADET_TUNNEL_KEY_PING <= t->estate)
+    {
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto, tunnel %s\n", GCT_2s (t));
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    }
+    return;
+  }
+  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
+
+  /* FIXME: this is bad, as the structs returned from
+     this loop may be unaligned, see util's MST for
+     how to do this right. */
+  off = 0;
+  while (off + sizeof (struct GNUNET_MessageHeader) <= decrypted_size)
+  {
+    uint16_t msize;
+
+    msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
+    msize = ntohs (msgh->size);
+    if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    if (off + msize < decrypted_size)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    handle_decrypted (t, msgh, GNUNET_SYSERR);
+    off += msize;
+  }
+}
+
+
+/**
+ * Handle a Key eXchange message.
+ *
+ * @param t Tunnel on which the message came.
+ * @param msg KX message itself.
+ */
+void
+GCT_handle_kx (struct CadetTunnel *t,
+               const struct GNUNET_CADET_KX *msg)
 {
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
@@ -1980,12 +2010,11 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   const struct GNUNET_PeerIdentity *pid;
   int am_I_alice;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<== {     AX_KX} on %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<== {        KX} on %s\n", GCT_2s (t));
 
   if (NULL == t->ax)
   {
     /* Something is wrong if ax is NULL. Whose fault it is? */
-    GNUNET_break (CADET_Axolotl == t->enc_type);
     return;
   }
   ax = t->ax;
@@ -2001,14 +2030,14 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     return;
   }
 
-  if (0 != (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
+  if (0 != (GNUNET_CADET_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
   {
     if (NULL != t->rekey_task)
     {
       GNUNET_SCHEDULER_cancel (t->rekey_task);
       t->rekey_task = NULL;
     }
-    GCT_send_ax_kx (t, GNUNET_NO);
+    GCT_send_kx (t, GNUNET_NO);
   }
 
   if (0 == memcmp (&ax->DHRr, &msg->ratchet_key, sizeof(msg->ratchet_key)))
@@ -2105,182 +2134,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   send_queued_data (t);
 }
 
-
-/**
- * Demultiplex by message type and call appropriate handler for a message
- * towards a channel of a local tunnel.
- *
- * @param t Tunnel this message came on.
- * @param msgh Message header.
- * @param fwd Is this message fwd? This only is meaningful in loopback channels.
- *            #GNUNET_YES if message is FWD on the respective channel (loopback)
- *            #GNUNET_NO if message is BCK on the respective channel (loopback)
- *            #GNUNET_SYSERR if message on a one-ended channel (remote)
- */
-static void
-handle_decrypted (struct CadetTunnel *t,
-                  const struct GNUNET_MessageHeader *msgh,
-                  int fwd)
-{
-  uint16_t type;
-  char buf[256];
-
-  type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "<-- %s on %s\n", GC_m2s (type), GCT_2s (t));
-  SPRINTF (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
-  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
-
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
-      /* Do nothing, connection aleady got updated. */
-      GNUNET_STATISTICS_update (stats, "# keepalives received", 1, GNUNET_NO);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
-      /* Don't send hop ACK, wait for client to ACK */
-      handle_data (t, (struct GNUNET_CADET_Data *) msgh, fwd);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
-      handle_data_ack (t, (struct GNUNET_CADET_DataACK *) msgh, fwd);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-      handle_ch_create (t, (struct GNUNET_CADET_ChannelCreate *) msgh);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      handle_ch_nack (t, (struct GNUNET_CADET_ChannelManage *) msgh);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      handle_ch_ack (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      handle_ch_destroy (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
-      break;
-
-    default:
-      GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "end-to-end message not known (%u)\n",
-           ntohs (msgh->type));
-      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-  }
-}
-
-
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
-/**
- * Decrypt old format and demultiplex by message type. Call appropriate handler
- * for a message towards a channel of a local tunnel.
- *
- * @param t Tunnel this message came on.
- * @param msg Message header.
- */
-void
-GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_MessageHeader *msg)
-{
-  uint16_t size = ntohs (msg->size);
-  char cbuf [size];
-  int decrypted_size;
-  uint16_t type;
-  const struct GNUNET_MessageHeader *msgh;
-  unsigned int off;
-
-  type = ntohs (msg->type);
-  switch (type)
-  {
-  case GNUNET_MESSAGE_TYPE_CADET_AX:
-    {
-      const struct GNUNET_CADET_AX *emsg;
-
-      GNUNET_STATISTICS_update (stats, "# received Axolotl", 1, GNUNET_NO);
-      emsg = (const struct GNUNET_CADET_AX *) msg;
-      decrypted_size = t_ax_decrypt_and_validate (t, cbuf, emsg, size);
-    }
-    break;
-  default:
-    GNUNET_break_op (0);
-    return;
-  }
-
-  if (-1 == decrypted_size)
-  {
-    GNUNET_STATISTICS_update (stats, "# unable to decrypt", 1, GNUNET_NO);
-    if (CADET_TUNNEL_KEY_PING <= t->estate)
-    {
-      GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto, tunnel %s\n", GCT_2s (t));
-      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-    }
-    return;
-  }
-  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
-
-  /* FIXME: this is bad, as the structs returned from
-     this loop may be unaligned, see util's MST for
-     how to do this right. */
-  off = 0;
-  while (off + sizeof (struct GNUNET_MessageHeader) <= decrypted_size)
-  {
-    uint16_t msize;
-
-    msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
-    msize = ntohs (msgh->size);
-    if (msize < sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    if (off + msize < decrypted_size)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    handle_decrypted (t, msgh, GNUNET_SYSERR);
-    off += msize;
-  }
-}
-
-
-/**
- * Demultiplex an encapsulated KX message by message type.
- *
- * @param t Tunnel on which the message came.
- * @param message Payload of KX message.
- *
- * FIXME: not needed anymore
- *  - substitute with call to kx_ax
- *  - eliminate encapsulation
- */
-void
-GCT_handle_kx (struct CadetTunnel *t,
-               const struct GNUNET_MessageHeader *message)
-{
-  uint16_t type;
-  char buf[256];
-
-  type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received: %s\n", GC_m2s (type));
-  sprintf (buf, "# received KX of type %hu (%s)", type, GC_m2s (type));
-  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
-      handle_kx_ax (t, (const struct GNUNET_CADET_AX_KX *) message);
-      break;
-    default:
-      GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "kx message %s unknown\n", GC_m2s (type));
-  }
-}
-
 /**
  * Initialize the tunnel subsystem.
  *
@@ -2296,7 +2149,7 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
 
   expected_overhead = 0;
-  expected_overhead += sizeof (struct GNUNET_CADET_AX);
+  expected_overhead += sizeof (struct GNUNET_CADET_Encrypted);
   expected_overhead += sizeof (struct GNUNET_CADET_Data);
   expected_overhead += sizeof (struct GNUNET_CADET_ACK);
   GNUNET_assert (GNUNET_CONSTANTS_CADET_P2P_OVERHEAD == expected_overhead);
@@ -2396,8 +2249,8 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
     }
     else if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered kx\n");
-      GCT_send_ax_kx (t, GNUNET_NO);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered KX\n");
+      GCT_send_kx (t, GNUNET_NO);
     }
     else
     {
@@ -3346,34 +3199,55 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Send an Axolotl KX message.
+ * Send a KX message.
  *
  * @param t Tunnel on which to send it.
  * @param force_reply Force the other peer to reply with a KX message.
  */
 void
-GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
+GCT_send_kx (struct CadetTunnel *t, int force_reply)
 {
-  struct GNUNET_CADET_AX_KX msg;
-  enum GNUNET_CADET_AX_KX_Flags flags;
+  struct CadetConnection *c;
+  struct GNUNET_CADET_KX msg;
+  enum GNUNET_CADET_KX_Flags flags;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "==> {     AX_KX} on %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "==> {        KX} on %s\n", GCT_2s (t));
   if (NULL != t->ephm_h)
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued, nop\n");
+    return;
+  }
+
+  /* Avoid loopback. */
+  if (GCT_is_loopback (t))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  c = tunnel_get_connection (t);
+  if (NULL == c)
+  {
+    if (NULL == t->destroy_task && CADET_TUNNEL_READY == t->cstate)
+    {
+      GNUNET_break (0);
+      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    }
     return;
   }
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
-  flags = GNUNET_CADET_AX_KX_FLAG_NONE;
-  if (force_reply)
-    flags |= GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX);
+  flags = GNUNET_CADET_KX_FLAG_NONE;
+  if (GNUNET_YES == force_reply)
+    flags |= GNUNET_CADET_KX_FLAG_FORCE_REPLY;
   msg.flags = htonl (flags);
+  msg.cid = *GCC_get_id (c);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
-  t->ephm_h = send_kx (t, &msg.header);
+  t->ephm_h = GCC_send_prebuilt_message (&msg.header, 0, 0,
+                                         c, GCC_is_origin (c, GNUNET_YES),
+                                         GNUNET_YES, &ephm_sent, t);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
 }
@@ -3532,8 +3406,8 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
 void
 GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
 {
-  struct CadetTChannel *iterch;
-  struct CadetTConnection *iterc;
+  struct CadetTChannel *iter_ch;
+  struct CadetTConnection *iter_c;
   int do_log;
 
   do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
@@ -3546,33 +3420,20 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
 #if DUMP_KEYS_TO_STDERR
-  if (CADET_Axolotl == t->enc_type)
-  {
-    ax_debug (t->ax, level);
-  }
-  else
-  {
-    LOG2 (level, "TTT  peers EPHM:\t %s\n",
-          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
-    LOG2 (level, "TTT  ENC key:\t %s\n",
-          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->e_key));
-    LOG2 (level, "TTT  DEC key:\t %s\n",
-          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
-  }
+  ax_debug (t->ax, level);
 #endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
   LOG2 (level, "TTT  destroy %p\n", t->destroy_task);
-
   LOG2 (level, "TTT  channels:\n");
-  for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
+  for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = iter_ch->next)
   {
-    GCCH_debug (iterch->ch, level);
+    GCCH_debug (iter_ch->ch, level);
   }
 
   LOG2 (level, "TTT  connections:\n");
-  for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
+  for (iter_c = t->connection_head; NULL != iter_c; iter_c = iter_c->next)
   {
-    GCC_debug (iterc->c, level);
+    GCC_debug (iter_c->c, level);
   }
 
   LOG2 (level, "TTT DEBUG TUNNEL END\n");
@@ -3636,3 +3497,4 @@ GCT_iterate_channels (struct CadetTunnel *t, GCT_chan_iter iter, void *cls)
   for (cht = t->channel_head; NULL != cht; cht = cht->next)
     iter (cls, cht->ch);
 }
+

@@ -736,7 +736,7 @@ conn_message_sent (void *cls,
     }
     GNUNET_free (q);
   }
-  else if (type == GNUNET_MESSAGE_TYPE_CADET_AX)
+  else if (type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED)
   {
     /* SHOULD NO LONGER HAPPEN FIXME: REMOVE CASE */
     // If NULL == q and ENCRYPTED == type, message must have been ch_mngmnt
@@ -771,7 +771,7 @@ conn_message_sent (void *cls,
         schedule_next_keepalive (c, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       if (GNUNET_YES == sent)
       {
         GNUNET_assert (NULL != q);
@@ -2517,7 +2517,7 @@ check_message (const struct GNUNET_MessageHeader *message,
 
   /* Check PID for payload messages */
   type = ntohs (message->type);
-  if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
+  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
   {
     fc = fwd ? &c->bck_fc : &c->fwd_fc;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
@@ -2611,7 +2611,7 @@ GCC_handle_kx (struct CadetPeer *peer,
       GNUNET_break (0);
       return;
     }
-    GCT_handle_kx (c->t, &msg[1].header);
+    GCT_handle_kx (c->t, msg);
     GCC_check_connections ();
     return;
   }
@@ -2633,7 +2633,7 @@ GCC_handle_kx (struct CadetPeer *peer,
  */
 void
 GCC_handle_encrypted (struct CadetPeer *peer,
-                      const struct GNUNET_CADET_AX *msg)
+                      const struct GNUNET_CADET_Encrypted *msg)
 {
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
@@ -2670,7 +2670,7 @@ GCC_handle_encrypted (struct CadetPeer *peer,
       GNUNET_break (GNUNET_NO != c->destroy);
       return;
     }
-    GCT_handle_encrypted (c->t, &msg->header);
+    GCT_handle_encrypted (c->t, msg);
     GCC_send_ack (c, fwd, GNUNET_NO);
     GCC_check_connections ();
     return;
@@ -3275,7 +3275,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        GC_f2s(fwd), size);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_AX:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
@@ -3312,7 +3312,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
          fc->queue_n, fc->queue_max);
-    if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
+    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
     {
       fc->queue_n--;
     }
