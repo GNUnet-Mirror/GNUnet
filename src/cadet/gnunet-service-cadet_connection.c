@@ -2122,15 +2122,8 @@ GCC_handle_confirm (struct CadetPeer *peer,
 
   connection_reset_timeout (c, fwd);
 
-  /* Add path to peers? */
-  if (NULL != c->path)
-  {
-    GCP_add_path_to_all (c->path, GNUNET_YES);
-  }
-  else
-  {
-    GNUNET_break (0);
-  }
+  GNUNET_assert (NULL != c->path);
+  GCP_add_path_to_all (c->path, GNUNET_YES);
 
   /* Message for us as creator? */
   if (GNUNET_YES == GCC_is_origin (c, GNUNET_YES))
