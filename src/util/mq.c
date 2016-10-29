@@ -445,6 +445,7 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
   
   GNUNET_assert (0 < mq->queue_length);
   mq->queue_length--;
+  mq->in_flight = GNUNET_NO;
   current_envelope = mq->current_envelope;
   current_envelope->parent_queue = NULL;
   mq->current_envelope = NULL;
