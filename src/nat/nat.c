@@ -76,7 +76,7 @@ enum LocalAddressSource
    */
   LAL_EXTERNAL_IP,
 
-   /**
+  /**
    * Address was obtained by an external STUN server
    */
   LAL_EXTERNAL_STUN_IP,

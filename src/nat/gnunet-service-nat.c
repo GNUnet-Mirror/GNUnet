@@ -39,6 +39,13 @@
 
 
 /**
+ * How often should we ask the OS about a list of active
+ * network interfaces?
+ */
+#define SCAN_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+
+/**
  * Internal data structure we track for each of our clients.
  */
 struct ClientHandle
@@ -63,16 +70,16 @@ struct ClientHandle
    * Message queue for communicating with the client.
    */
   struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Array of addresses used by the service.
+   */
+  struct sockaddr **addrs;
   
   /**
    * What does this client care about?
    */
   enum GNUNET_NAT_RegisterFlags flags;
-  
-  /**
-   * Client's IPPROTO, e.g. IPPROTO_UDP or IPPROTO_TCP.
-   */
-  uint8_t proto;
 
   /**
    * Port we would like as we are configured to use this one for
@@ -84,13 +91,45 @@ struct ClientHandle
    * Number of addresses that this service is bound to.
    */
   uint16_t num_addrs;
-
+  
   /**
-   * Array of addresses used by the service.
+   * Client's IPPROTO, e.g. IPPROTO_UDP or IPPROTO_TCP.
    */
-  struct sockaddr **addrs;
+  uint8_t proto;
 
 };
+
+
+/**
+ * List of local addresses this system has.
+ */
+struct LocalAddressList
+{
+  /**
+   * This is a linked list.
+   */
+  struct LocalAddressList *next;
+
+  /**
+   * Previous entry.
+   */
+  struct LocalAddressList *prev;
+
+  /**
+   * The address itself (i.e. `struct in_addr` or `struct in6_addr`,
+   * in the respective byte order).  Allocated at the end of this
+   * struct.
+   */
+  const void *addr;
+
+  /**
+   * Address family.
+   */
+  int af;
+
+};
+
+
 
 
 /**
@@ -118,20 +157,85 @@ static struct ClientHandle *ch_head;
  */
 static struct ClientHandle *ch_tail;
 
+/**
+ * Head of DLL of local addresses.
+ */
+static struct LocalAddressList *lal_head;
 
 /**
- * Handler for #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from client.
- * We remember the client for updates upon future NAT events.
+ * Tail of DLL of local addresses.
+ */
+static struct LocalAddressList *lal_tail;
+
+
+/**
+ * Free the DLL starting at #lal_head.
+ */ 
+static void
+destroy_lal ()
+{
+  struct LocalAddressList *lal;
+
+  while (NULL != (lal = lal_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (lal_head,
+				 lal_tail,
+				 lal);
+    GNUNET_free (lal);
+  }
+}
+
+
+/**
+ * Check validity of #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from
+ * client.
  *
  * @param cls client who sent the message
  * @param message the message received
+ * @return #GNUNET_OK if message is well-formed
  */
 static int
 check_register (void *cls,
 		const struct GNUNET_NAT_RegisterMessage *message)
 {
-  GNUNET_break (0); // not implemented
-  return GNUNET_SYSERR; 
+  uint16_t num_addrs = ntohs (message->num_addrs);
+  const char *off = (const char *) &message[1];
+  size_t left = ntohs (message->header.size) - sizeof (*message);
+
+  for (unsigned int i=0;i<num_addrs;i++)
+  {
+    size_t alen;
+    const struct sockaddr *sa = (const struct sockaddr *) off;
+
+    if (sizeof (sa_family_t) > left)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    switch (sa->sa_family)
+    {
+    case AF_INET:
+      alen = sizeof (struct sockaddr_in);
+      break;
+    case AF_INET6:
+      alen = sizeof (struct sockaddr_in6);
+      break;
+#if AF_UNIX
+    case AF_UNIX:
+      alen = sizeof (struct sockaddr_un);
+      break;
+#endif
+    default:
+      GNUNET_break (0);
+      return GNUNET_SYSERR;      
+    }
+    if (alen > left)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;      
+    }
+  }  
+  return GNUNET_OK; 
 }
 
 
@@ -147,10 +251,307 @@ handle_register (void *cls,
 		 const struct GNUNET_NAT_RegisterMessage *message)
 {
   struct ClientHandle *ch = cls;
-  // struct GNUNET_MQ_Handle *mq;
+  const char *off;
+  size_t left;
 
+  if ( (0 != ch->proto) ||
+       (NULL != ch->addrs) )
+  {
+    /* double registration not allowed */
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (ch->client);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REGISTER message from client\n");
+  ch->flags = message->flags;
+  ch->proto = message->proto;
+  ch->adv_port = ntohs (message->adv_port);
+  ch->num_addrs = ntohs (message->adv_port);
+  ch->addrs = GNUNET_new_array (ch->num_addrs,
+				struct sockaddr *);
+  left = ntohs (message->header.size) - sizeof (*message);
+  off = (const char *) &message[1];
+  for (unsigned int i=0;i<ch->num_addrs;i++)
+  {
+    size_t alen;
+    const struct sockaddr *sa = (const struct sockaddr *) off;
+
+    if (sizeof (sa_family_t) > left)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    switch (sa->sa_family)
+    {
+    case AF_INET:
+      alen = sizeof (struct sockaddr_in);
+      break;
+    case AF_INET6:
+      alen = sizeof (struct sockaddr_in6);
+      break;
+#if AF_UNIX
+    case AF_UNIX:
+      alen = sizeof (struct sockaddr_un);
+      break;
+#endif
+    default:
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;      
+    }
+    GNUNET_assert (alen <= left);
+    ch->addrs[i] = GNUNET_malloc (alen);
+    GNUNET_memcpy (ch->addrs[i],
+		   sa,
+		   alen);    
+    off += alen;
+  }  
+  GNUNET_SERVICE_client_continue (ch->client);
+}
+
+
+/**
+ * Check validity of #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN message from
+ * client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_stun (void *cls,
+	    const struct GNUNET_NAT_HandleStunMessage *message)
+{
+  size_t sa_len = ntohs (message->sender_addr_size);
+  size_t expect = sa_len + ntohs (message->payload_size);
+  
+  if (ntohs (message->header.size) - sizeof (*message) != expect)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (sa_len < sizeof (sa_family_t))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN message from
+ * client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ */
+static void
+handle_stun (void *cls,
+	     const struct GNUNET_NAT_HandleStunMessage *message)
+{
+  struct ClientHandle *ch = cls;
+  const char *buf = (const char *) &message[1];
+  const struct sockaddr *sa;
+  const void *payload;
+  size_t sa_len;
+  size_t payload_size;
+
+  sa_len = ntohs (message->sender_addr_size);
+  payload_size = ntohs (message->payload_size);
+  sa = (const struct sockaddr *) &buf[0];
+  payload = (const struct sockaddr *) &buf[sa_len];
+  switch (sa->sa_family)
+  {
+  case AF_INET:
+    if (sa_len != sizeof (struct sockaddr_in))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  case AF_INET6:
+    if (sa_len != sizeof (struct sockaddr_in6))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received HANDLE_STUN message from client\n");
+  // FIXME: actually handle STUN request!
+  GNUNET_SERVICE_client_continue (ch->client);
+}
+
+
+/**
+ * Check validity of
+ * #GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL message from
+ * client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_request_connection_reversal (void *cls,
+				   const struct GNUNET_NAT_RequestConnectionReversalMessage *message)
+{
+  size_t expect;
+
+  expect = ntohs (message->local_addr_size)
+    + ntohs (message->remote_addr_size);
+  if (ntohs (message->header.size) - sizeof (*message) != expect)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL
+ * message from client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ */
+static void
+handle_request_connection_reversal (void *cls,
+				    const struct GNUNET_NAT_RequestConnectionReversalMessage *message)
+{
+  struct ClientHandle *ch = cls;
+  const char *buf = (const char *) &message[1];
+  size_t local_sa_len = ntohs (message->local_addr_size);
+  size_t remote_sa_len = ntohs (message->remote_addr_size);
+  const struct sockaddr *local_sa = (const struct sockaddr *) &buf[0];
+  const struct sockaddr *remote_sa = (const struct sockaddr *) &buf[local_sa_len];
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received REQUEST CONNECTION REVERSAL message from client\n");
+  switch (local_sa->sa_family)
+  {
+  case AF_INET:
+    if (local_sa_len != sizeof (struct sockaddr_in))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  case AF_INET6:
+    if (local_sa_len != sizeof (struct sockaddr_in6))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (ch->client);
+    return;
+  }
+  switch (remote_sa->sa_family)
+  {
+  case AF_INET:
+    if (remote_sa_len != sizeof (struct sockaddr_in))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  case AF_INET6:
+    if (remote_sa_len != sizeof (struct sockaddr_in6))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (ch->client);
+      return;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (ch->client);
+    return;
+  }
+  /* FIXME: actually run the logic! */
+  
+  GNUNET_SERVICE_client_continue (ch->client);
+}
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST message from
+ * client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ */
+static void
+handle_test (void *cls,
+	     const struct GNUNET_NAT_RequestTestMessage *message)
+{
+  struct ClientHandle *ch = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received REQUEST_TEST message from client\n");
+  GNUNET_SERVICE_client_continue (ch->client);
+}
+
+
+/**
+ * Check validity of #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG message
+ * from client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_autoconfig_request (void *cls,
+			  const struct GNUNET_NAT_AutoconfigRequestMessage *message)
+{
+  return GNUNET_OK;  /* checked later */
+}
+
+
+/**
+ * Handler for #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG message from
+ * client.
+ *
+ * @param cls client who sent the message
+ * @param message the message received
+ */
+static void
+handle_autoconfig_request (void *cls,
+			   const struct GNUNET_NAT_AutoconfigRequestMessage *message)
+{
+  struct ClientHandle *ch = cls;
+  size_t left = ntohs (message->header.size);
+  struct GNUNET_CONFIGURATION_Handle *c;
+
+  c = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_deserialize (c,
+					(const char *) &message[1],
+					left,
+					GNUNET_NO))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (ch->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received REQUEST_AUTO_CONFIG message from client\n");
+  // FIXME: actually handle request...
+  GNUNET_CONFIGURATION_destroy (c);
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -173,6 +574,110 @@ shutdown_task (void *cls)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
+  destroy_lal ();
+}
+
+
+/**
+ * Closure for #ifc_proc.
+ */
+struct IfcProcContext
+{
+
+  /** 
+   * Head of DLL of local addresses.
+   */
+  struct LocalAddressList *lal_head;
+
+  /**
+   * Tail of DLL of local addresses.
+   */
+  struct LocalAddressList *lal_tail;
+
+};
+
+
+/**
+ * Callback function invoked for each interface found.  Adds them
+ * to our new address list.
+ *
+ * @param cls a `struct IfcProcContext *`
+ * @param name name of the interface (can be NULL for unknown)
+ * @param isDefault is this presumably the default interface
+ * @param addr address of this interface (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned)
+ * @param addrlen length of the address
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
+ */
+static int
+ifc_proc (void *cls,
+	  const char *name,
+	  int isDefault,
+	  const struct sockaddr *addr,
+	  const struct sockaddr *broadcast_addr,
+	  const struct sockaddr *netmask,
+	  socklen_t addrlen)
+{
+  struct IfcProcContext *ifc_ctx = cls;
+  struct LocalAddressList *lal;
+  size_t alen;
+  const void *ip;
+
+  switch (addr->sa_family)
+  {
+  case AF_INET:
+    alen = sizeof (struct in_addr);
+    ip = &((const struct sockaddr_in *) addr)->sin_addr;
+    break;
+  case AF_INET6:
+    alen = sizeof (struct in6_addr);
+    ip = &((const struct sockaddr_in6 *) addr)->sin6_addr;
+    break;
+#if AF_UNIX
+  case AF_UNIX:
+    GNUNET_break (0);
+    return GNUNET_OK;
+#endif
+  default:
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  lal = GNUNET_malloc (sizeof (*lal) + alen);
+  lal->af = addr->sa_family;
+  lal->addr = &lal[1];
+  GNUNET_memcpy (&lal[1],
+		 ip,
+		 alen);
+  GNUNET_CONTAINER_DLL_insert (ifc_ctx->lal_head,
+			       ifc_ctx->lal_tail,
+			       lal);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Task we run periodically to scan for network interfaces.
+ *
+ * @param cls NULL
+ */ 
+static void
+run_scan (void *cls)
+{
+  struct IfcProcContext ifc_ctx;
+  
+  scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
+					    &run_scan,
+					    NULL);
+  memset (&ifc_ctx,
+	  0,
+	  sizeof (ifc_ctx));
+  GNUNET_OS_network_interfaces_list (&ifc_proc,
+				     &ifc_ctx);
+  /* FIXME: notify clients of changes in lal-DLL */
+  destroy_lal ();
+  lal_head = ifc_ctx.lal_head;
+  lal_tail = ifc_ctx.lal_tail;
 }
 
 
@@ -193,6 +698,8 @@ run (void *cls,
 				 NULL);
   stats = GNUNET_STATISTICS_create ("nat",
 				    cfg);
+  scan_task = GNUNET_SCHEDULER_add_now (&run_scan,
+					NULL);
 }
 
 
@@ -238,6 +745,9 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (ch_head,
 			       ch_tail,
 			       ch);
+  for (unsigned int i=0;i<ch->num_addrs;i++)
+    GNUNET_free_non_null (ch->addrs[i]);
+  GNUNET_free_non_null (ch->addrs);
   GNUNET_free (ch);
 }
 
@@ -255,6 +765,22 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (register,
 			GNUNET_MESSAGE_TYPE_NAT_REGISTER,
 			struct GNUNET_NAT_RegisterMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (stun,
+			GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN,
+			struct GNUNET_NAT_HandleStunMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (request_connection_reversal,
+			GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL,
+			struct GNUNET_NAT_RequestConnectionReversalMessage,
+			NULL),
+ GNUNET_MQ_hd_fixed_size (test,
+			  GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST,
+			  struct GNUNET_NAT_RequestTestMessage,
+			  NULL),
+ GNUNET_MQ_hd_var_size (autoconfig_request,
+			GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG,
+			struct GNUNET_NAT_AutoconfigRequestMessage,
 			NULL),
  GNUNET_MQ_handler_end ());
 

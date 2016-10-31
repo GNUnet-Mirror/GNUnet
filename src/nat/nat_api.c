@@ -403,6 +403,35 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   off = (char *) &rm[1];
   for (unsigned int i=0;i<num_addrs;i++)
   {
+    switch (addrs[i]->sa_family)
+    {
+    case AF_INET:
+      if (sizeof (struct sockaddr_in) != addrlens[i])
+      {
+	GNUNET_break (0);
+	return NULL;
+      }
+      break;
+    case AF_INET6:
+      if (sizeof (struct sockaddr_in6) != addrlens[i])
+      {
+	GNUNET_break (0);
+	return NULL;
+      }
+      break;
+#if AF_UNIX
+    case AF_UNIX:
+      if (sizeof (struct sockaddr_un) != addrlens[i])
+      {
+	GNUNET_break (0);
+	return NULL;
+      }
+      break;
+#endif
+    default:
+      GNUNET_break (0);
+      return NULL;
+    }
     GNUNET_memcpy (off,
 		   addrs[i],
 		   addrlens[i]);
