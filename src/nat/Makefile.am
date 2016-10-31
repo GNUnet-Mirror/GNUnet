@@ -38,7 +38,9 @@ bin_PROGRAMS = \
  gnunet-nat
 
 libexec_PROGRAMS = \
- $(NATBIN) 
+ $(NATBIN) \
+ gnunet-service-nat
+
 
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c nat.h
@@ -54,7 +56,7 @@ gnunet_helper_nat_client_SOURCES = \
 
 
 gnunet_nat_SOURCES = \
-gnunet-nat.c nat.h
+  gnunet-nat.c nat.h
 gnunet_nat_LDADD = \
   libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la
@@ -90,6 +92,15 @@ libgnunetnatnew_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 2:0:0
 
+gnunet_service_nat_SOURCES = \
+ gnunet-service-nat.c
+gnunet_service_nat_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(LIBGCRYPT_LIBS) \
+  -lgcrypt \
+  $(GN_LIBINTL)
+
 check_PROGRAMS = \
   test_nat \
   test_nat_mini \
@@ -112,7 +123,6 @@ test_nat_mini_SOURCES = \
 test_nat_mini_LDADD = \
  libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
-
 
 test_nat_test_SOURCES = \
   test_nat_test.c
