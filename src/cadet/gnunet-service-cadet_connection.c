@@ -2179,7 +2179,6 @@ GCC_handle_confirm (struct CadetPeer *peer,
                  GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
                                             GNUNET_YES, NULL, NULL));
   GCC_check_connections ();
-  return;
 }
 
 
@@ -3292,7 +3291,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      GNUNET_break (0); /* Should've used specific functions. */
+       /* Should've only be used for restransmissions. */
+      GNUNET_break (0 == payload_type);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
