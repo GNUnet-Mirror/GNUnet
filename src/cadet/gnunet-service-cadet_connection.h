@@ -503,7 +503,7 @@ GCC_cancel (struct CadetConnectionQueue *q);
  * @param cont_cls Closure for @c cont.
  *
  * @return Handle to cancel the message before it's sent.
- *         NULL on error or if @c cont is NULL.
+ *         NULL on error.
  *         Invalid on @c cont call.
  */
 struct CadetConnectionQueue *

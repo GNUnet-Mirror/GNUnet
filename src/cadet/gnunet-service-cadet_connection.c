@@ -3231,7 +3231,7 @@ GCC_is_direct (struct CadetConnection *c)
  * @param cont_cls Closure for @c cont.
  *
  * @return Handle to cancel the message before it's sent.
- *         NULL on error or if @c cont is NULL.
+ *         NULL on error.
  *         Invalid on @c cont call.
  */
 struct CadetConnectionQueue *
@@ -3273,6 +3273,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_KX:
+      /* nothing to do here */
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
