@@ -517,25 +517,13 @@ mark_destroyed (struct CadetConnection *c)
 
 
 /**
- * Callback called when a queued ACK message is sent.
+ * Function called if a connection has been stalled for a while,
+ * possibly due to a missed ACK. Poll the neighbor about its ACK status.
  *
- * @param cls Closure (FC).
- * @param c Connection this message was on.
- * @param q Queue handler this call invalidates.
- * @param type Type of message sent.
- * @param fwd Was this a FWD going message?
- * @param size Size of the message.
+ * @param cls Closure (poll ctx).
  */
 static void
-ack_sent (void *cls,
-          struct CadetConnection *c,
-          struct CadetConnectionQueue *q,
-          uint16_t type, int fwd, size_t size)
-{
-  struct CadetFlowControl *fc = cls;
-
-  fc->ack_msg = NULL;
-}
+send_poll (void *cls);
 
 
 /**
@@ -621,7 +609,7 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
 
   prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header, UINT16_MAX, ack,
                                                 c, !fwd, GNUNET_YES,
-                                                &ack_sent, prev_fc);
+                                                NULL, NULL);
   GNUNET_assert (NULL != prev_fc->ack_msg);
   GCC_check_connections ();
 }
@@ -797,6 +785,23 @@ conn_message_sent (void *cls,
 
     case GNUNET_MESSAGE_TYPE_CADET_POLL:
       fc->poll_msg = NULL;
+      if (2 == c->destroy)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL canceled on shutdown\n");
+        return;
+      }
+      if (0 == fc->queue_max)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL cancelled: neighbor disconnected\n");
+        return;
+      }
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL sent for %s, scheduling new one!\n",
+          GCC_2s (c));
+      GNUNET_assert (NULL == fc->poll_task);
+      fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
+      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                    &send_poll, fc);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
@@ -1406,58 +1411,7 @@ connection_cancel_queues (struct CadetConnection *c,
  * @param cls Closure (poll ctx).
  */
 static void
-send_connection_poll (void *cls);
-
-
-/**
- * Callback called when a queued POLL message is sent.
- *
- * @param cls Closure (flow control context).
- * @param c Connection this message was on.
- * @param q Queue handler this call invalidates.
- * @param type Type of message sent.
- * @param fwd Was this a FWD going message?
- * @param size Size of the message.
- */
-static void
-poll_sent (void *cls,
-           struct CadetConnection *c,
-           struct CadetConnectionQueue *q,
-           uint16_t type, int fwd, size_t size)
-{
-  struct CadetFlowControl *fc = cls;
-
-  GNUNET_assert (fc->poll_msg == q);
-  fc->poll_msg = NULL;
-  if (2 == c->destroy)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL canceled on shutdown\n");
-    return;
-  }
-  if (0 == fc->queue_max)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL cancelled: neighbor disconnected\n");
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL sent for %s, scheduling new one!\n",
-       GCC_2s (c));
-  GNUNET_assert (NULL == fc->poll_task);
-  fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
-  fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                &send_connection_poll,
-                                                fc);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
-}
-
-
-/**
- * Function called if a connection has been stalled for a while,
- * possibly due to a missed ACK. Poll the neighbor about its ACK status.
- *
- * @param cls Closure (poll ctx).
- */
-static void
-send_connection_poll (void *cls)
+send_poll (void *cls)
 {
   struct CadetFlowControl *fc = cls;
   struct GNUNET_CADET_Poll msg;
@@ -1478,7 +1432,7 @@ send_connection_poll (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG, " last pid sent: %u\n", fc->last_pid_sent);
   fc->poll_msg =
       GCC_send_prebuilt_message (&msg.header, UINT16_MAX, fc->last_pid_sent, c,
-                                 fc == &c->fwd_fc, GNUNET_YES, &poll_sent, fc);
+                                 fc == &c->fwd_fc, GNUNET_YES, NULL, NULL);
   GNUNET_assert (NULL != fc->poll_msg);
   GCC_check_connections ();
 }
@@ -3540,9 +3494,7 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL started on request\n");
-  fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                &send_connection_poll,
-                                                fc);
+  fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time, &send_poll, fc);
 }
 
 
