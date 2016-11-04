@@ -3240,7 +3240,7 @@ GCT_send_kx (struct CadetTunnel *t, int force_reply)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
-  t->ephm_h = GCC_send_prebuilt_message (&msg.header, 0, 0,
+  t->ephm_h = GCC_send_prebuilt_message (&msg.header, UINT16_MAX, 0,
                                          c, GCC_is_origin (c, GNUNET_YES),
                                          GNUNET_YES, &ephm_sent, t);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
