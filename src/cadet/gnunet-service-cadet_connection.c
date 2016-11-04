@@ -720,15 +720,9 @@ conn_message_sent (void *cls,
     }
     GNUNET_free (q);
   }
-  else if (type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED)
-  {
-    /* SHOULD NO LONGER HAPPEN FIXME: REMOVE CASE */
-    // If NULL == q and ENCRYPTED == type, message must have been ch_mngmnt
-    forced = GNUNET_YES;
-    GNUNET_assert (0); // FIXME
-  }
   else /* CONN_CREATE or CONN_ACK */
   {
+    GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED != type);
     forced = GNUNET_YES;
   }
 
@@ -758,7 +752,6 @@ conn_message_sent (void *cls,
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       if (GNUNET_YES == sent)
       {
-        GNUNET_assert (NULL != q);
         fc->last_pid_sent = pid;
         if (GC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
           GCC_start_poll (c, fwd);
