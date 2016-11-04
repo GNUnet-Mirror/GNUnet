@@ -1348,9 +1348,9 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
   *task_id = GNUNET_SCHEDULER_add_delayed (delay,
                                            keepalive_task,
                                            c);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "next keepalive in %s\n",
-       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "next keepalive for %s in in %s\n",
+       GCC_2s (c), GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
   GCC_check_connections ();
 }
 
@@ -2659,7 +2659,8 @@ GCC_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  create_connection_time = GNUNET_TIME_UNIT_SECONDS;
+  create_connection_time = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
+                                                     refresh_connection_time);
   connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
 }
 
