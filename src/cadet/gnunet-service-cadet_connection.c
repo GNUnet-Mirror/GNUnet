@@ -560,15 +560,8 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
   uint32_t ack;
   int delta;
 
-  /* If origin, there is no connection to send ACKs. Wrong function! */
   GCC_check_connections ();
-  if (GCC_is_origin (c, fwd))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "connection %s is origin in %s\n",
-         GCC_2s (c), GC_f2s (fwd));
-    GNUNET_break (0);
-    return;
-  }
+  GNUNET_assert (GNUNET_NO == GCC_is_origin (c, fwd));
 
   next_fc = fwd ? &c->fwd_fc : &c->bck_fc;
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
