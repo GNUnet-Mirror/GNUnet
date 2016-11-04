@@ -36,7 +36,22 @@ extern "C"
 
 #include <stdint.h>
 
-#define CADET_DEBUG              GNUNET_YES
+#if !defined(GNUNET_CULL_LOGGING)
+  #define CADET_TIMING_START \
+          struct GNUNET_TIME_Absolute __timestamp;\
+          __timestamp = GNUNET_TIME_absolute_get()
+
+  #define CADET_TIMING_END   \
+          struct GNUNET_TIME_Relative __duration;\
+          __duration = GNUNET_TIME_absolute_get_duration (__timestamp);\
+          LOG (GNUNET_ERROR_TYPE_INFO, " %s duration %s\n",\
+              __FUNCTION__,\
+              GNUNET_STRINGS_relative_time_to_string (__duration, GNUNET_YES));
+#else
+  #define CADET_TIMING_START
+  #define CADET_TIMING_END
+#endif
+
 
 #include "platform.h"
 #include "gnunet_util_lib.h"

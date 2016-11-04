@@ -38,9 +38,9 @@
 #define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
 #if !defined(GNUNET_CULL_LOGGING)
-#define DUMP_KEYS_TO_STDERR GNUNET_YES
+  #define DUMP_KEYS_TO_STDERR GNUNET_YES
 #else
-#define DUMP_KEYS_TO_STDERR GNUNET_YES
+  #define DUMP_KEYS_TO_STDERR GNUNET_NO
 #endif
 
 #define MIN_TUNNEL_BUFFER       8
@@ -49,7 +49,6 @@
 #define MAX_KEY_GAP             256
 #define AX_HEADER_SIZE (sizeof (uint32_t) * 2\
                         + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey))
-
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -732,14 +731,11 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
   size_t out_size;
-  struct GNUNET_TIME_Absolute start_time;
-  struct GNUNET_TIME_Relative duration;
+
+  CADET_TIMING_START;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt start\n");
-  start_time = GNUNET_TIME_absolute_get ();
-
   ax = t->ax;
-
   ax->ratchet_counter++;
   if (GNUNET_YES == ax->ratchet_allowed
       && (ratchet_messages <= ax->ratchet_counter
@@ -788,13 +784,9 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   #endif
 
   out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &MK, &iv, dst);
-
   t_hmac_derive_key (&ax->CKs, &ax->CKs, "1", 1);
 
-  duration = GNUNET_TIME_absolute_get_duration (start_time);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt duration %s\n",
-       GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
+  CADET_TIMING_END;
 
   return out_size;
 }
@@ -2010,6 +2002,8 @@ GCT_handle_kx (struct CadetTunnel *t,
   const struct GNUNET_PeerIdentity *pid;
   int am_I_alice;
 
+  CADET_TIMING_START;
+
   LOG (GNUNET_ERROR_TYPE_INFO, "<== {        KX} on %s\n", GCT_2s (t));
 
   if (NULL == t->ax)
@@ -2130,8 +2124,11 @@ GCT_handle_kx (struct CadetTunnel *t,
   ax->PNs = 0;
   ax->Nr = 0;
   ax->Ns = 0;
+
   GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
   send_queued_data (t);
+
+  CADET_TIMING_END;
 }
 
 /**
