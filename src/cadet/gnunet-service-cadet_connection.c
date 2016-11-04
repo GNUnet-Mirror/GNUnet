@@ -682,7 +682,11 @@ conn_message_sent (void *cls,
   int forced;
 
   GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         ">>> %s (%s %4u) on conn %s (%p) %s [%5u] in queue %s\n",
+         GC_m2s (type), GC_m2s (payload_type), pid, GCC_2s (c), c,
+         GC_f2s(fwd), size,
+         GNUNET_STRINGS_relative_time_to_string (wait, GNUNET_YES));
 
   /* If c is NULL, nothing to update. */
   if (NULL == c)
@@ -3217,9 +3221,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u, PIDsnt: %u, ACKrcv: %u\n",
+            fc, fc->queue_n, fc->last_pid_sent, fc->last_ack_recv);
       if (GNUNET_NO == force)
       {
         fc->queue_n++;
