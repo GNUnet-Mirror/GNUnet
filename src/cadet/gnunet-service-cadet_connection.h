@@ -493,6 +493,8 @@ GCC_cancel (struct CadetConnectionQueue *q);
  *
  * @param message Message to send.
  * @param payload_type Type of payload, in case the message is encrypted.
+ *                     0 for restransmissions (when type is no longer known)
+ *                     UINT16_MAX when not applicable.
  * @param payload_id ID of the payload (PID, ACK, ...).
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
