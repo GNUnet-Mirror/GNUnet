@@ -734,7 +734,6 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   CADET_TIMING_START;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt start\n");
   ax = t->ax;
   ax->ratchet_counter++;
   if (GNUNET_YES == ax->ratchet_allowed
@@ -810,7 +809,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt start\n");
+  CADET_TIMING_START;
 
   ax = t->ax;
 
@@ -830,7 +829,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   t_hmac_derive_key (&ax->CKr, &ax->CKr, "1", 1);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt end\n");
+  CADET_TIMING_END;
 
   return out_size;
 }
@@ -849,8 +848,7 @@ t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_Encrypted *msg)
   struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_encrypt start\n");
-
+  CADET_TIMING_START;
   ax = t->ax;
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &ax->HKs, NULL, 0, NULL);
 
@@ -863,8 +861,7 @@ t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_Encrypted *msg)
                                               &ax->HKs, &iv, &msg->Ns);
 
   GNUNET_assert (AX_HEADER_SIZE == out_size);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
+  CADET_TIMING_END;
 }
 
 
@@ -883,7 +880,7 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_Encrypted *src,
   struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_decrypt start\n");
+  CADET_TIMING_START;
 
   ax = t->ax;
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &ax->HKr, NULL, 0, NULL);
@@ -898,7 +895,7 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_Encrypted *src,
 
   GNUNET_assert (AX_HEADER_SIZE == out_size);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_decrypt end\n");
+  CADET_TIMING_END;
 }
 
 
