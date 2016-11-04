@@ -566,14 +566,14 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
   next_fc = fwd ? &c->fwd_fc : &c->bck_fc;
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection send %s ack on %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send %s ack on %s\n",
        GC_f2s (fwd), GCC_2s (c));
 
   /* Check if we need to transmit the ACK. */
   delta = prev_fc->last_ack_sent - prev_fc->last_pid_recv;
   if (3 < delta && buffer < delta && GNUNET_NO == force)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer > 3\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, delta > 3\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  last pid recv: %u, last ack sent: %u\n",
          prev_fc->last_pid_recv, prev_fc->last_ack_sent);
@@ -583,10 +583,9 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   ack = prev_fc->last_pid_recv + buffer;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " last pid %u, last ack %u, qmax %u, q %u\n",
-       prev_fc->last_pid_recv, prev_fc->last_ack_sent,
+       " ACK %u, last PID %u, last ACK %u, qmax %u, q %u\n",
+       ack, prev_fc->last_pid_recv, prev_fc->last_ack_sent,
        next_fc->queue_max, next_fc->queue_n);
   if (ack == prev_fc->last_ack_sent && GNUNET_NO == force)
   {
