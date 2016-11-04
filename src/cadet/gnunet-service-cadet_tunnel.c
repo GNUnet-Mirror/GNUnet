@@ -3217,13 +3217,8 @@ GCT_send_kx (struct CadetTunnel *t, int force_reply)
     LOG (GNUNET_ERROR_TYPE_INFO, "     already queued, nop\n");
     return;
   }
+  GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
-  /* Avoid loopback. */
-  if (GCT_is_loopback (t))
-  {
-    GNUNET_break (0);
-    return;
-  }
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
