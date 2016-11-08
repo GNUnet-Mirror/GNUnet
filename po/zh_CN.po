@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2016-10-26 09:18-0500\n"
+"POT-Creation-Date: 2016-11-08 13:49+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -558,7 +558,7 @@ msgid "Quota for network `%11s' (in/out): %10s / %10s\n"
 msgstr ""
 
 #: src/ats-tool/gnunet-ats.c:748 src/ats-tool/gnunet-ats.c:761
-#: src/transport/gnunet-transport.c:1536
+#: src/transport/gnunet-transport.c:1476
 #, fuzzy, c-format
 msgid "Failed to parse peer identity `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
@@ -700,7 +700,7 @@ msgstr "无法获取有关用户“%s”的信息：%s\n"
 msgid "provide information about all tunnels"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/cadet/gnunet-service-cadet_peer.c:707
+#: src/cadet/gnunet-service-cadet_peer.c:681
 msgid "Wrong CORE service\n"
 msgstr ""
 
@@ -1228,7 +1228,7 @@ msgstr "“%s”的参数无效。\n"
 msgid "Failed to connect to CORE service!\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/core/gnunet-core.c:176 src/transport/gnunet-transport.c:1737
+#: src/core/gnunet-core.c:176 src/transport/gnunet-transport.c:1677
 msgid "provide information about all current connections (continuously)"
 msgstr ""
 
@@ -3396,7 +3396,7 @@ msgid "Option `%s' is required when using option `%s'.\n"
 msgstr ""
 
 #: src/fs/gnunet-publish.c:849 src/fs/gnunet-publish.c:857
-#: src/transport/gnunet-transport.c:1577 src/transport/gnunet-transport.c:1602
+#: src/transport/gnunet-transport.c:1517 src/transport/gnunet-transport.c:1542
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr ""
@@ -5160,6 +5160,85 @@ msgstr ""
 msgid "GNUnet NAT traversal test helper daemon"
 msgstr ""
 
+#: src/nat/nat_api.c:880 src/nat/nat.c:2010
+msgid "Operation Successful"
+msgstr ""
+
+#: src/nat/nat_api.c:882 src/nat/nat.c:2012
+msgid "Internal Failure (IPC, ...)"
+msgstr ""
+
+#: src/nat/nat_api.c:884 src/nat/nat.c:2014
+msgid "Failure in network subsystem, check permissions."
+msgstr ""
+
+#: src/nat/nat_api.c:886 src/nat/nat.c:2016
+msgid "Encountered timeout while performing operation"
+msgstr ""
+
+#: src/nat/nat_api.c:888 src/nat/nat.c:2018
+msgid "detected that we are offline"
+msgstr ""
+
+#: src/nat/nat_api.c:890 src/nat/nat.c:2020
+msgid "`upnpc` command not found"
+msgstr ""
+
+#: src/nat/nat_api.c:892 src/nat/nat.c:2022
+#, fuzzy
+msgid "Failed to run `upnpc` command"
+msgstr "运行 %s失败：%s %d\n"
+
+#: src/nat/nat_api.c:894 src/nat/nat.c:2024
+msgid "`upnpc' command took too long, process killed"
+msgstr ""
+
+#: src/nat/nat_api.c:896 src/nat/nat.c:2026
+msgid "`upnpc' command failed to establish port mapping"
+msgstr ""
+
+#: src/nat/nat_api.c:898 src/nat/nat.c:2028
+msgid "`external-ip' command not found"
+msgstr ""
+
+#: src/nat/nat_api.c:900 src/nat/nat.c:2030
+#, fuzzy
+msgid "Failed to run `external-ip` command"
+msgstr "运行 %s失败：%s %d\n"
+
+#: src/nat/nat_api.c:902 src/nat/nat.c:2032
+msgid "`external-ip' command output invalid"
+msgstr ""
+
+#: src/nat/nat_api.c:904 src/nat/nat.c:2034
+msgid "no valid address was returned by `external-ip'"
+msgstr ""
+
+#: src/nat/nat_api.c:906 src/nat/nat.c:2036
+#, fuzzy
+msgid "Could not determine interface with internal/local network address"
+msgstr "无法确定用户界面定义文件。"
+
+#: src/nat/nat_api.c:908 src/nat/nat.c:2038
+msgid "No functioning gnunet-helper-nat-server installation found"
+msgstr ""
+
+#: src/nat/nat_api.c:910 src/nat/nat.c:2040
+msgid "NAT test could not be initialized"
+msgstr ""
+
+#: src/nat/nat_api.c:912 src/nat/nat.c:2042
+msgid "NAT test timeout reached"
+msgstr ""
+
+#: src/nat/nat_api.c:914 src/nat/nat.c:2044
+msgid "could not register NAT"
+msgstr ""
+
+#: src/nat/nat_api.c:916 src/nat/nat.c:2046
+msgid "No working gnunet-helper-nat-client installation found"
+msgstr ""
+
 #: src/nat/nat_auto.c:385
 msgid "NAT traversal with ICMP Server succeeded.\n"
 msgstr ""
@@ -5257,85 +5336,6 @@ msgstr ""
 #: src/nat/nat.c:1919
 #, c-format
 msgid "Running gnunet-helper-nat-client %s %s %u\n"
-msgstr ""
-
-#: src/nat/nat.c:2010
-msgid "Operation Successful"
-msgstr ""
-
-#: src/nat/nat.c:2012
-msgid "Internal Failure (IPC, ...)"
-msgstr ""
-
-#: src/nat/nat.c:2014
-msgid "Failure in network subsystem, check permissions."
-msgstr ""
-
-#: src/nat/nat.c:2016
-msgid "Encountered timeout while performing operation"
-msgstr ""
-
-#: src/nat/nat.c:2018
-msgid "detected that we are offline"
-msgstr ""
-
-#: src/nat/nat.c:2020
-msgid "`upnpc` command not found"
-msgstr ""
-
-#: src/nat/nat.c:2022
-#, fuzzy
-msgid "Failed to run `upnpc` command"
-msgstr "运行 %s失败：%s %d\n"
-
-#: src/nat/nat.c:2024
-msgid "`upnpc' command took too long, process killed"
-msgstr ""
-
-#: src/nat/nat.c:2026
-msgid "`upnpc' command failed to establish port mapping"
-msgstr ""
-
-#: src/nat/nat.c:2028
-msgid "`external-ip' command not found"
-msgstr ""
-
-#: src/nat/nat.c:2030
-#, fuzzy
-msgid "Failed to run `external-ip` command"
-msgstr "运行 %s失败：%s %d\n"
-
-#: src/nat/nat.c:2032
-msgid "`external-ip' command output invalid"
-msgstr ""
-
-#: src/nat/nat.c:2034
-msgid "no valid address was returned by `external-ip'"
-msgstr ""
-
-#: src/nat/nat.c:2036
-#, fuzzy
-msgid "Could not determine interface with internal/local network address"
-msgstr "无法确定用户界面定义文件。"
-
-#: src/nat/nat.c:2038
-msgid "No functioning gnunet-helper-nat-server installation found"
-msgstr ""
-
-#: src/nat/nat.c:2040
-msgid "NAT test could not be initialized"
-msgstr ""
-
-#: src/nat/nat.c:2042
-msgid "NAT test timeout reached"
-msgstr ""
-
-#: src/nat/nat.c:2044
-msgid "could not register NAT"
-msgstr ""
-
-#: src/nat/nat.c:2046
-msgid "No working gnunet-helper-nat-client installation found"
 msgstr ""
 
 #: src/nat/nat_mini.c:205
@@ -7109,199 +7109,179 @@ msgstr ""
 msgid "# validations succeeded"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:518
+#: src/transport/gnunet-transport.c:486
 #, c-format
 msgid "Transmitted %llu bytes/s (%llu bytes in %s)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:528
+#: src/transport/gnunet-transport.c:496
 #, c-format
 msgid "Received %llu bytes/s (%llu bytes in %s)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:572
+#: src/transport/gnunet-transport.c:540
 #, fuzzy, c-format
 msgid "Failed to connect to `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:585
+#: src/transport/gnunet-transport.c:553
 #, fuzzy, c-format
 msgid "Failed to resolve address for peer `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/transport/gnunet-transport.c:597
+#: src/transport/gnunet-transport.c:565
 #, fuzzy
 msgid "Failed to list connections, timeout occured\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:622 src/transport/gnunet-transport.c:647
-#, fuzzy, c-format
-msgid "Configuration for plugin `%s' did not work!\n"
-msgstr "配置文件“%s”已写入。\n"
-
-#: src/transport/gnunet-transport.c:627
-#, fuzzy, c-format
-msgid "Configuration for plugin `%s' did work!\n"
-msgstr "配置文件“%s”已写入。\n"
-
-#: src/transport/gnunet-transport.c:632
-#, fuzzy, c-format
-msgid "Internal NAT error while running test for plugin `%s'\n"
-msgstr "未知错误。\n"
-
-#: src/transport/gnunet-transport.c:637
-#, fuzzy, c-format
-msgid "Failed to start NAT test for plugin `%s'\n"
-msgstr "初始化“%s”服务失败。\n"
-
-#: src/transport/gnunet-transport.c:642
+#: src/transport/gnunet-transport.c:588
 #, c-format
-msgid "Timeout while waiting for result of NAT test for plugin `%s'\n"
+msgid "NAT plugin `%s' reports: %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:735
+#: src/transport/gnunet-transport.c:675
 msgid "No transport plugins configured, peer will never communicate\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:749
+#: src/transport/gnunet-transport.c:689
 #, c-format
 msgid "No port configured for plugin `%s', cannot test it\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:774
+#: src/transport/gnunet-transport.c:714
 #, fuzzy
 msgid "Failed to start resolver!\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/transport/gnunet-transport.c:810
+#: src/transport/gnunet-transport.c:750
 #, c-format
 msgid "Transmitting %u bytes\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:844
+#: src/transport/gnunet-transport.c:784
 #, c-format
 msgid ""
 "Successfully connected to `%s', starting to send benchmark data in %u Kb "
 "blocks\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:875
+#: src/transport/gnunet-transport.c:815
 #, fuzzy, c-format
 msgid "Disconnected from peer `%s' while benchmarking\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/transport/gnunet-transport.c:899 src/transport/gnunet-transport.c:928
+#: src/transport/gnunet-transport.c:839 src/transport/gnunet-transport.c:868
 #, c-format
 msgid "%24s: %-17s %4s   (%u connections in total)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:901
+#: src/transport/gnunet-transport.c:841
 #, fuzzy
 msgid "Connected to"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/transport/gnunet-transport.c:930
+#: src/transport/gnunet-transport.c:870
 #, fuzzy
 msgid "Disconnected from"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/transport/gnunet-transport.c:965
+#: src/transport/gnunet-transport.c:905
 #, c-format
 msgid "Received %u bytes\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1002
+#: src/transport/gnunet-transport.c:942
 #, c-format
 msgid "Peer `%s': %s %s in state `%s' until %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1014
+#: src/transport/gnunet-transport.c:954
 #, fuzzy, c-format
 msgid "Peer `%s': %s %s\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/transport/gnunet-transport.c:1426
+#: src/transport/gnunet-transport.c:1366
 #, fuzzy
 msgid "Monitor disconnected from transport service. Reconnecting.\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1548
+#: src/transport/gnunet-transport.c:1488
 #, c-format
 msgid ""
 "Multiple operations given. Please choose only one operation: %s, %s, %s, %s, "
 "%s, %s %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1561
+#: src/transport/gnunet-transport.c:1501
 #, c-format
 msgid ""
 "No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1589
+#: src/transport/gnunet-transport.c:1529
 #, fuzzy
 msgid "Failed to connect to transport service for disconnection\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1595
+#: src/transport/gnunet-transport.c:1535
 msgid "Blacklisting request in place, stop with CTRL-C\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1618 src/transport/gnunet-transport.c:1648
-#: src/transport/gnunet-transport.c:1701
+#: src/transport/gnunet-transport.c:1558 src/transport/gnunet-transport.c:1588
+#: src/transport/gnunet-transport.c:1641
 #, fuzzy
 msgid "Failed to connect to transport service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1655
+#: src/transport/gnunet-transport.c:1595
 msgid "Starting to receive benchmark data\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1725
+#: src/transport/gnunet-transport.c:1665
 #, fuzzy
 msgid "print information for all peers (instead of only connected peers)"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/transport/gnunet-transport.c:1728
+#: src/transport/gnunet-transport.c:1668
 msgid "measure how fast we are receiving data from all peers (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1731
+#: src/transport/gnunet-transport.c:1671
 #, fuzzy
 msgid "disconnect from a peer"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1734
+#: src/transport/gnunet-transport.c:1674
 msgid "provide information about all current connections (once)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1740
+#: src/transport/gnunet-transport.c:1680
 msgid ""
 "provide information about all connects and disconnect events (continuously)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1743
+#: src/transport/gnunet-transport.c:1683
 msgid "do not resolve hostnames"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1746
+#: src/transport/gnunet-transport.c:1686
 #: src/transport/gnunet-transport-profiler.c:631
 msgid "peer identity"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1749
+#: src/transport/gnunet-transport.c:1689
 msgid "monitor plugin sessions"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1752
+#: src/transport/gnunet-transport.c:1692
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1755
+#: src/transport/gnunet-transport.c:1695
 msgid "test transport configuration (involves external server)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1766
+#: src/transport/gnunet-transport.c:1706
 #: src/transport/gnunet-transport-profiler.c:642
 #, fuzzy
 msgid "Direct access to transport service."
@@ -8256,7 +8236,7 @@ msgstr "创建用户出错"
 msgid "Unable to shorten unix path `%s' while keeping name unique\n"
 msgstr ""
 
-#: src/util/network.c:1737 src/util/network.c:1913
+#: src/util/network.c:1735 src/util/network.c:1911
 #, c-format
 msgid ""
 "Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"
@@ -8775,6 +8755,22 @@ msgstr ""
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Configuration for plugin `%s' did not work!\n"
+#~ msgstr "配置文件“%s”已写入。\n"
+
+#, fuzzy
+#~ msgid "Configuration for plugin `%s' did work!\n"
+#~ msgstr "配置文件“%s”已写入。\n"
+
+#, fuzzy
+#~ msgid "Internal NAT error while running test for plugin `%s'\n"
+#~ msgstr "未知错误。\n"
+
+#, fuzzy
+#~ msgid "Failed to start NAT test for plugin `%s'\n"
+#~ msgstr "初始化“%s”服务失败。\n"
 
 #, fuzzy
 #~ msgid "Could not send list result to client\n"
