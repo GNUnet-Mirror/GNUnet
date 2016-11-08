@@ -243,6 +243,8 @@ src/nat/gnunet-helper-nat-server.c
 src/nat/gnunet-helper-nat-server-windows.c
 src/nat/gnunet-nat.c
 src/nat/gnunet-nat-server.c
+src/nat/gnunet-service-nat.c
+src/nat/nat_api.c
 src/nat/nat_auto.c
 src/nat/nat.c
 src/nat/nat_mini.c
