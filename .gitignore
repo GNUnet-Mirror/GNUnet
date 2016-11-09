@@ -34,3 +34,4 @@ pkgconfig/*.pc
 src/*/*.conf
 stamp-h1
 test-driver
+INSTALL

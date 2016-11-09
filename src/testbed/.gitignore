@@ -1,0 +1,7 @@
+gnunet-testbed-profiler
+generate-underlay-topology
+gnunet-daemon-latency-logger
+gnunet-daemon-testbed-blacklist
+gnunet-daemon-testbed-underlay
+gnunet-helper-testbed
+gnunet-service-testbed

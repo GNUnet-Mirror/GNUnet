@@ -1,0 +1,9 @@
+test_common_logging_dummy
+gnunet-config
+gnunet-config-diff
+gnunet-ecc
+gnunet-qr
+gnunet-resolver
+gnunet-scrypt
+gnunet-service-resolver
+gnunet-uri
