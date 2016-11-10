@@ -269,6 +269,13 @@ AC_ARG_ENABLE(linker-hardening,
 fi])
 
 
+AC_ARG_ENABLE(sanitizer,
+  AS_HELP_STRING(--enable-sanitizer, enable Address Sanitizer and Undefined Behavior Sanitizer),
+[if test x$enableval = xyes; then
+   LDFLAGS="$CFLAGS -fsanitize=address,undefined,unsigned-integer-overflow -fsanitize-recover=all -fno-omit-frame-pointer"
+fi])
+
+
 extra_logging=GNUNET_NO
 AC_ARG_ENABLE([logging],
    AS_HELP_STRING([--enable-logging@<:@=value@:>@],[Enable logging calls. Possible values: yes,no,verbose,veryverbose ('yes' is the default)]),

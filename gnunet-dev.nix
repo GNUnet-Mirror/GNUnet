@@ -29,9 +29,10 @@ stdenv.mkDerivation rec {
     "--enable-gcc-hardening"
     "--enable-linker-hardening"
 
+    "--enable-poisoning"
+    "--enable-sanitizer"
     "--enable-experimental"
     "--enable-logging=verbose"
-    "--enable-poisoning"
   ];
 
   preConfigure = ''
