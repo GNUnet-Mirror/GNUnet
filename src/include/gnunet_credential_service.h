@@ -34,6 +34,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_gns_service.h"
+#include "gnunet_identity_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -54,6 +55,44 @@ struct GNUNET_CREDENTIAL_Handle;
  */
 struct GNUNET_CREDENTIAL_LookupRequest;
 
+/*
+* Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
+*/
+enum GNUNET_CREDENTIAL_CredentialFlags {
+
+  //Subject had credentials before, but have been revoked now
+  GNUNET_CREDENTIAL_FLAG_REVOKED=0,
+
+  //Subject flag indicates that the subject is a holder of this credential and may present it as such
+  GNUNET_CREDENTIAL_FLAG_SUBJECT=1,
+
+  //Issuer flag is used to signify that the subject is allowed to issue this credential and delegate issuance
+  GNUNET_CREDENTIAL_FLAG_ISSUER=2
+
+};
+
+GNUNET_NETWORK_STRUCT_BEGIN
+/*
+* Data stored in the credential record 
+*/
+struct GNUNET_CREDENTIAL_RecordData {
+  
+  /*
+  * Key of the 
+  */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+
+  uint32_t credential_flags GNUNET_PACKED;
+
+  uint32_t max_delegation_depth GNUNET_PACKED;
+};
+
+GNUNET_NETWORK_STRUCT_END
+
+
 
 /**
  * Initialize the connection with the Credential service.
@@ -61,7 +100,7 @@ struct GNUNET_CREDENTIAL_LookupRequest;
  * @param cfg configuration to use
  * @return handle to the Credential service, or NULL on error
  */
-struct GNUNET_Credential_Handle *
+struct GNUNET_CREDENTIAL_Handle *
 GNUNET_CREDENTIAL_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
@@ -85,7 +124,7 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
 typedef void (*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
 						  struct GNUNET_IDENTITY_Ego *issuer,
               uint16_t issuer_len,
-						  const struct GNUNET_CREDENTIAL_Value *value);
+						  const struct GNUNET_CREDENTIAL_RecordData *data);
 
 
 /**
@@ -102,7 +141,11 @@ struct GNUNET_CREDENTIAL_LookupRequest *
 GNUNET_CREDENTIAL_lookup (struct GNUNET_CREDENTIAL_Handle *handle,
 		   const char *credential,
 		   const struct GNUNET_IDENTITY_Ego *subject,
-		   GNUNET_CREDENTIAL_LookupResultProcessor proc,
+       const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+       const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+       uint32_t credential_flags,
+       uint32_t max_delegation_depth,
+       GNUNET_CREDENTIAL_LookupResultProcessor proc,
 		   void *proc_cls);
 
 
@@ -113,18 +156,18 @@ GNUNET_CREDENTIAL_lookup (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param issuer the identity that issues the credential
  * @param subject the subject of the credential
  * @param credential the name of the credential
- * @param value the value of the credential
+ * @param data the data of the credential
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_IssueRequest *
+/**struct GNUNET_CREDENTIAL_IssueRequest *
 GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
                          struct GNUNET_IDENTITY_Ego *issuer,
                          struct GNUNET_IDENTITY_Ego *subject,
                          const char *credential,
-                         struct GNUNET_CREDENTIAL_Value *value,
+                         struct GNUNET_CREDENTIAL_Data *data,
                          GNUNET_CREDENTIAL_IssueResultProcessor proc,
                          void *proc_cls);
-
+*/
 /**
  * Remove a credential
  *
@@ -134,6 +177,7 @@ GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param credential the name of the credential
  * @return handle to the queued request
  */
+ /**
 struct GNUNET_CREDENTIAL_IssueRequest *
 GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
                           struct GNUNET_IDENTITY_Ego *issuer,
@@ -141,7 +185,7 @@ GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
                           const char *credential,
                           GNUNET_CREDENTIAL_IssueResultProcessor proc,
                           void *proc_cls);
-
+*/
 
 
 /**

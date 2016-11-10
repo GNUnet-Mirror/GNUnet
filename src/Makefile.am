@@ -109,6 +109,7 @@ SUBDIRS = \
   revocation \
   vpn \
   gns \
+	credential \
   $(CONVERSATION_DIR) \
   fs \
   exit \

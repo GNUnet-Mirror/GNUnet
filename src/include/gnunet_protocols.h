@@ -2607,6 +2607,15 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT  964
 
+
+/**************************************************
+ *
+ * CREDENTIAL MESSAGE TYPES
+ */
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP     971
+
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP_RESULT 972
+
 /******************************************************************************/
 
 

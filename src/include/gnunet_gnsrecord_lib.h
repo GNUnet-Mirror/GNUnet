@@ -109,9 +109,16 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA 65546
 
 /**
+ * Record type for credential
+ */
+#define GNUNET_GNSRECORD_TYPE_CREDENTIAL 65547
+
+/**
  * Record type for reverse lookups
  */
 #define GNUNET_GNSRECORD_TYPE_REVERSE 65548
+
+
 
 /**
  * Flags that can be set for a record.
