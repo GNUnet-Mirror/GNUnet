@@ -96,6 +96,11 @@ static unsigned long long dht_replication_level;
 static struct GNUNET_SCHEDULER_Task * announce_id_task;
 
 /**
+ * Delay for the next ID announce.
+ */
+static struct GNUNET_TIME_Relative announce_delay;
+
+/**
  * GET requests to stop on shutdown.
  */
 static struct GNUNET_CONTAINER_MultiHashMap32 *get_requests;
@@ -214,26 +219,27 @@ announce_id (void *cls)
   const struct GNUNET_HELLO_Message *hello;
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_Relative next_put;
 
   announce_id_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
-  /* TODO
-   * - Set data expiration in function of X
-   * - Adapt X to churn
-   */
   hello = GCH_get_mine ();
-  if (NULL == hello || (size = GNUNET_HELLO_size (hello)) == 0)
+  size = NULL != hello ? GNUNET_HELLO_size (hello) : 0;
+  if (NULL == hello || 0 == size)
   {
-    /* Peerinfo gave us no hello yet, try again in a second. */
-    announce_id_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                     &announce_id, cls);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no hello, waiting!\n");
+    /* Peerinfo gave us no hello yet, try again soon. */
+    LOG (GNUNET_ERROR_TYPE_INFO, "  no hello, waiting!\n");
     GNUNET_STATISTICS_update (stats, "# DHT announce skipped (no hello)",
                               1, GNUNET_NO);
-
-    return;
+    expiration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+                                           announce_delay);
+    announce_delay = GNUNET_TIME_STD_BACKOFF (announce_delay);
   }
-  expiration = GNUNET_HELLO_get_last_expiration (hello);
+  else
+  {
+    expiration = GNUNET_HELLO_get_last_expiration (hello);
+    announce_delay = GNUNET_TIME_UNIT_SECONDS;
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
   GNUNET_STATISTICS_update (stats, "# DHT announce",
@@ -251,8 +257,13 @@ announce_id (void *cls)
                   expiration,  /* Data expiration */
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
-  announce_id_task =
-      GNUNET_SCHEDULER_add_delayed (id_announce_time, &announce_id, cls);
+
+  /* Call again in id_announce_time, unless HELLO expires first,
+   * but wait at least 1s. */
+  next_put = GNUNET_TIME_absolute_get_remaining (expiration);
+  next_put = GNUNET_TIME_relative_min (next_put, id_announce_time);
+  next_put = GNUNET_TIME_relative_max (next_put, GNUNET_TIME_UNIT_SECONDS);
+  announce_id_task = GNUNET_SCHEDULER_add_delayed (next_put, &announce_id, cls);
 }
 
 /**
@@ -291,11 +302,12 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DHT_REPLICATION_LEVEL",
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET",
+                                             "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "CADET", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, "CADET",
+                               "DHT_REPLICATION_LEVEL", "USING DEFAULT");
     dht_replication_level = 3;
   }
 
@@ -303,8 +315,8 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_time (c, "CADET", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "CADET", "ID_ANNOUNCE_TIME", "MISSING");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "CADET",
+                               "ID_ANNOUNCE_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -315,6 +327,7 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_break (0);
   }
 
+  announce_delay = GNUNET_TIME_UNIT_SECONDS;
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, NULL);
   get_requests = GNUNET_CONTAINER_multihashmap32_create (32);
 }
