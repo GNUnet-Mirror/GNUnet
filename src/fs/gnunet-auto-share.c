@@ -29,9 +29,9 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+#define MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 
-#define MAX_FREQUENCY GNUNET_TIME_UNIT_MINUTES
+#define MIN_DELAY GNUNET_TIME_UNIT_MINUTES
 
 
 /**
@@ -672,11 +672,11 @@ schedule_next_task ()
     /* delay by at most 4h, at least 1s, and otherwise in between depending
        on how long it took to scan */
     delay = GNUNET_TIME_absolute_get_duration (start_time);
-    delay = GNUNET_TIME_relative_min (MIN_FREQUENCY,
-				      GNUNET_TIME_relative_multiply (delay,
-								     100));
+    delay = GNUNET_TIME_relative_saturating_multiply (delay, 100);
+    delay = GNUNET_TIME_relative_min (delay,
+                                      MAX_DELAY);
     delay = GNUNET_TIME_relative_max (delay,
-				      MAX_FREQUENCY);
+                                      MIN_DELAY);
     run_task = GNUNET_SCHEDULER_add_delayed (delay,
 					     &scan,
 					     NULL);

@@ -950,7 +950,7 @@ daemon_started (void *cls,
   }
   peers[search_peer].search_str = search_strings[peer->id];
   peers[search_peer].search_str_matched = GNUNET_NO;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_saturating_multiply(
                                   reannounce_period_max,
                                   2),
                                 &find_string,

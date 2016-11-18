@@ -178,8 +178,8 @@ process_job_queue (void *cls)
       break;
     case GNUNET_FS_QUEUE_PRIORITY_NORMAL:
       run_time =
-        GNUNET_TIME_relative_multiply (h->avg_block_latency,
-                                       qe->blocks * qe->start_times);
+        GNUNET_TIME_relative_saturating_multiply (h->avg_block_latency,
+                                                  qe->blocks * qe->start_times);
       end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
       rst = GNUNET_TIME_absolute_get_remaining (end_time);
       if (0 == rst.rel_value_us)

@@ -260,7 +260,7 @@ transmit_next (void *cls)
     delay = GNUNET_TIME_UNIT_ZERO;
   if (fc->num_rounds < 64)
     delay = GNUNET_TIME_relative_max (delay,
-                                      GNUNET_TIME_relative_multiply
+                                      GNUNET_TIME_relative_saturating_multiply
                                       (fc->msg_delay,
                                        (1ULL << fc->num_rounds)));
   else
@@ -269,7 +269,7 @@ transmit_next (void *cls)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
     fc->num_rounds++;
-    delay = GNUNET_TIME_relative_multiply (fc->ack_delay, 2);
+    delay = GNUNET_TIME_relative_saturating_multiply (fc->ack_delay, 2);
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);
     fc->wack = GNUNET_YES;
@@ -432,8 +432,8 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     if (0 == ack_cnt)
     {
       /* complete loss */
-      fc->msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay,
-						     snd_cnt);
+      fc->msg_delay = GNUNET_TIME_relative_saturating_multiply (fc->msg_delay,
+                                                                snd_cnt);
     }
     else if (snd_cnt > ack_cnt)
     {
@@ -515,8 +515,8 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc,
   if (NULL != ack_delay)
     *ack_delay = fc->ack_delay;
   if (NULL != msg_delay)
-    *msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay,
-						fc->num_rounds);
+    *msg_delay = GNUNET_TIME_relative_saturating_multiply (fc->msg_delay,
+                                                           fc->num_rounds);
   GNUNET_free (fc);
 }
 

@@ -1508,7 +1508,7 @@ compute_rand_delay (struct GNUNET_TIME_Relative mean,
    * via multiplying round_interval with a 'fraction' (0 to value)/value
    */
   rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max_rand_delay);
-  ret = GNUNET_TIME_relative_multiply (mean,  rand_delay);
+  ret = GNUNET_TIME_relative_saturating_multiply (mean,  rand_delay);
   ret = GNUNET_TIME_relative_divide   (ret, max_rand_delay);
   ret = GNUNET_TIME_relative_add      (ret, half_interval);
 
@@ -2394,7 +2394,7 @@ run (void *cls,
   struct GNUNET_TIME_Relative half_round_interval;
   struct GNUNET_TIME_Relative  max_round_interval;
 
-  half_round_interval = GNUNET_TIME_relative_multiply (round_interval, .5);
+  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
   prot_sampler =   RPS_sampler_init     (sampler_size_est_need, max_round_interval);

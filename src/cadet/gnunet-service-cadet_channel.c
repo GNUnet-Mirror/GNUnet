@@ -819,8 +819,8 @@ ch_message_sent (void *cls,
         if (0 != rel->expected_delay.rel_value_us)
         {
           rel->retry_timer =
-              GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                             CADET_RETRANSMIT_MARGIN);
+              GNUNET_TIME_relative_saturating_multiply (rel->expected_delay,
+                                                        CADET_RETRANSMIT_MARGIN);
         }
         else
         {
@@ -2110,8 +2110,8 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
         struct GNUNET_TIME_Absolute new_target;
         struct GNUNET_TIME_Relative delay;
 
-        delay = GNUNET_TIME_relative_multiply (rel->retry_timer,
-                                               CADET_RETRANSMIT_MARGIN);
+        delay = GNUNET_TIME_relative_saturating_multiply (rel->retry_timer,
+                                                          CADET_RETRANSMIT_MARGIN);
         new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
                                                delay);
         delay = GNUNET_TIME_absolute_get_remaining (new_target);
