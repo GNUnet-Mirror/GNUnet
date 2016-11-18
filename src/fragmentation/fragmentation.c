@@ -258,9 +258,13 @@ transmit_next (void *cls)
                                                 fsize);
   else
     delay = GNUNET_TIME_UNIT_ZERO;
-  delay = GNUNET_TIME_relative_max (delay,
-				    GNUNET_TIME_relative_multiply (fc->msg_delay,
-								   (1ULL << fc->num_rounds)));
+  if (fc->num_rounds < 64)
+    delay = GNUNET_TIME_relative_max (delay,
+                                      GNUNET_TIME_relative_multiply
+                                      (fc->msg_delay,
+                                       (1ULL << fc->num_rounds)));
+  else
+    delay = GNUNET_TIME_UNIT_FOREVER_REL;
   if (wrap)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
