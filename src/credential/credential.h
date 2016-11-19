@@ -30,12 +30,12 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message from client to Credential service to lookup credentials.
+ * Message from client to Credential service to verify attributes.
  */
-struct LookupMessage
+struct VerifyMessage
 {
   /**
-   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP
+   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
    */
   struct GNUNET_MessageHeader header;
 
@@ -54,7 +54,7 @@ struct LookupMessage
    */
   uint32_t id GNUNET_PACKED;
 
-  /* Followed by the zero-terminated credential to look up */
+  /* Followed by the zero-terminated attributes to look up */
 
 };
 
@@ -62,10 +62,10 @@ struct LookupMessage
 /**
  * Message from CREDENTIAL service to client: new results.
  */
-struct LookupResultMessage
+struct VerifyResultMessage
 {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP_RESULT
+    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -78,9 +78,9 @@ struct LookupResultMessage
   /**
    * The number of credentials in the response
    */
-  uint32_t cd_count GNUNET_PACKED;
+  uint32_t ad_count GNUNET_PACKED;
 
-  /* followed by cd_count GNUNET_CREDENTIAL_RecordData structs*/
+  /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 
 };
 

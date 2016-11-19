@@ -58,7 +58,6 @@ credential_value_to_string (void *cls,
     char *subject_pkey;
     char *issuer_pkey;
     uint32_t cf; // Credential flags
-    uint32_t mdd; // Max delegation depth
     if (data_size < sizeof (struct GNUNET_CREDENTIAL_RecordData))
         return NULL; /* malformed */
     memcpy (&cred,
@@ -68,14 +67,12 @@ credential_value_to_string (void *cls,
     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
     issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
     cf = ntohl (cred.credential_flags);
-    mdd = ntohl (cred.max_delegation_depth);
 
      GNUNET_asprintf (&cred_str,
-                     "%s %s %u %u %s",
+                     "%s %s %u %s",
                      subject_pkey,
                      issuer_pkey,
                      (unsigned int) cf,
-                     (unsigned int) mdd,
                      &cdata[sizeof (cred)]);
       GNUNET_free (subject_pkey);
       GNUNET_free (issuer_pkey);
@@ -112,26 +109,24 @@ credential_string_to_value (void *cls,
     return GNUNET_SYSERR;
   switch (type)
   {
-   case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
-    { 
-      struct GNUNET_CREDENTIAL_RecordData *cred;
-      unsigned int cf; // credential flags
-      unsigned int mdd; // max delegation depth
+    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
+      { 
+        struct GNUNET_CREDENTIAL_RecordData *cred;
+        unsigned int cf; // credential flags
 
-      size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
+        size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
         if (enclen % 5 > 0)
           enclen += 5 - enclen % 5;
         enclen /= 5; /* 260/5 = 52 */
-      char subject_pkey[enclen + 1];
-      char issuer_pkey[enclen + 1];
-      char name[253 + 1];
+        char subject_pkey[enclen + 1];
+        char issuer_pkey[enclen + 1];
+        char name[253 + 1];
 
-      if (5 != SSCANF (s,
-                         "%52s %52s %u %u %253s",
+        if (5 != SSCANF (s,
+                         "%52s %52s %u %253s",
                          subject_pkey,
                          issuer_pkey,
                          &cf,
-                         &mdd,
                          name))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -148,18 +143,17 @@ credential_string_to_value (void *cls,
                                                     strlen (issuer_pkey),
                                                     &cred->issuer_key);
         cred->credential_flags = htonl (cf);
-        cred->max_delegation_depth = htonl (mdd);
         GNUNET_memcpy (&cred[1],
                        name,
                        strlen (name));
 
 
-      *data = GNUNET_strdup (s);
-      *data_size = strlen (s);
-      return GNUNET_OK;
-    }
-  default:
-    return GNUNET_SYSERR;
+        *data = GNUNET_strdup (s);
+        *data_size = strlen (s);
+        return GNUNET_OK;
+      }
+    default:
+      return GNUNET_SYSERR;
   }
 }
 
@@ -186,13 +180,13 @@ static struct {
  */
 static uint32_t
 credential_typename_to_number (void *cls,
-                        const char *gns_typename)
+                               const char *gns_typename)
 {
   unsigned int i;
 
   i=0;
   while ( (name_map[i].name != NULL) &&
-	  (0 != strcasecmp (gns_typename, name_map[i].name)) )
+          (0 != strcasecmp (gns_typename, name_map[i].name)) )
     i++;
   return name_map[i].number;
 }
@@ -207,13 +201,13 @@ credential_typename_to_number (void *cls,
  */
 static const char *
 credential_number_to_typename (void *cls,
-                        uint32_t type)
+                               uint32_t type)
 {
   unsigned int i;
 
   i=0;
   while ( (name_map[i].name != NULL) &&
-	  (type != name_map[i].number) )
+          (type != name_map[i].number) )
     i++;
   return name_map[i].name;
 }

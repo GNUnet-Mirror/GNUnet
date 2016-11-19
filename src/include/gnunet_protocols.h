@@ -2612,9 +2612,9 @@ extern "C"
  *
  * CREDENTIAL MESSAGE TYPES
  */
-#define GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP     971
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY     971
 
-#define GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP_RESULT 972
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT 972
 
 /******************************************************************************/
 

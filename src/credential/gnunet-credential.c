@@ -48,9 +48,9 @@ static struct GNUNET_TIME_Relative timeout;
 static char *lookup_credential;
 
 /**
- * Handle to lookup request
+ * Handle to verify request
  */
-static struct GNUNET_CREDENTIAL_LookupRequest *lookup_request;
+static struct GNUNET_CREDENTIAL_VerifyRequest *verify_request;
 
 /**
  * Lookup an ego with the identity service.
@@ -87,11 +87,6 @@ static char *issuer_key;
  */
 static int credential_flags;
 
-/*
- * Maximum delegation depth
- */
-static int max_delegation_depth;
-
 
 
 /**
@@ -118,10 +113,10 @@ do_shutdown (void *cls)
     GNUNET_IDENTITY_cancel (id_op);
     id_op = NULL;
   }
-  if (NULL != lookup_request)
+  if (NULL != verify_request)
   {
-    GNUNET_CREDENTIAL_lookup_cancel (lookup_request);
-    lookup_request = NULL;
+    GNUNET_CREDENTIAL_verify_cancel (verify_request);
+    verify_request = NULL;
   }
   if (NULL != identity)
   {
@@ -162,14 +157,14 @@ do_timeout (void *cls)
  * @param cd array of @a cd_count records with the results
  */
 static void
-handle_lookup_result (void *cls,
+handle_verify_result (void *cls,
 				struct GNUNET_IDENTITY_Ego *issuer,
               	uint16_t issuer_len,
 				const struct GNUNET_CREDENTIAL_RecordData *data)
 {
   
 
-  lookup_request = NULL;
+  verify_request = NULL;
   if (0 == issuer_len)
     printf ("No results.\n");
   else
@@ -223,14 +218,13 @@ lookup_credentials (struct GNUNET_IDENTITY_Ego *ego)
       return;
     }
     
-  lookup_request = GNUNET_CREDENTIAL_lookup(credential,
+  verify_request = GNUNET_CREDENTIAL_verify(credential,
+                    "",
                     lookup_credential,
-                    ego,
                     &subject_pkey,
                     &issuer_pkey,
                     credential_flags,
-                    max_delegation_depth,
-                    &handle_lookup_result,
+                    &handle_verify_result,
                     NULL);
    return;
   }

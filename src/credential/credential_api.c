@@ -36,20 +36,20 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "credential-api",__VA_ARGS__)
 
 /**
- * Handle to a lookup request
+ * Handle to a verify request
  */
-struct GNUNET_CREDENTIAL_LookupRequest
+struct GNUNET_CREDENTIAL_VerifyRequest
 {
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_LookupRequest *next;
+  struct GNUNET_CREDENTIAL_VerifyRequest *next;
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_LookupRequest *prev;
+  struct GNUNET_CREDENTIAL_VerifyRequest *prev;
 
   /**
    * handle to credential service
@@ -57,12 +57,12 @@ struct GNUNET_CREDENTIAL_LookupRequest
   struct GNUNET_CREDENTIAL_Handle *credential_handle;
 
   /**
-   * processor to call on lookup result
+   * processor to call on verify result
    */
-  GNUNET_CREDENTIAL_LookupResultProcessor lookup_proc;
+  GNUNET_CREDENTIAL_VerifyResultProcessor verify_proc;
 
   /**
-   * @e lookup_proc closure
+   * @e verify_proc closure
    */
   void *proc_cls;
 
@@ -96,14 +96,14 @@ struct GNUNET_CREDENTIAL_Handle
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * Head of linked list of active lookup requests.
+   * Head of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_LookupRequest *lookup_head;
+  struct GNUNET_CREDENTIAL_VerifyRequest *verify_head;
 
   /**
-   * Tail of linked list of active lookup requests.
+   * Tail of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_LookupRequest *lookup_tail;
+  struct GNUNET_CREDENTIAL_VerifyRequest *verify_tail;
 
   /**
    * Reconnect task
@@ -192,7 +192,7 @@ mq_error_handler (void *cls,
  */
 static int
 check_result (void *cls,
-              const struct LookupResultMessage *lookup_msg)
+              const struct VerifyResultMessage *vr_msg)
 {
   //TODO
   return GNUNET_OK;
@@ -207,30 +207,30 @@ check_result (void *cls,
  */
 static void
 handle_result (void *cls,
-               const struct LookupResultMessage *lookup_msg)
+               const struct VerifyResultMessage *vr_msg)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
-  uint32_t cd_count = ntohl (lookup_msg->cd_count);
-  struct GNUNET_CREDENTIAL_RecordData cd[cd_count];
-  uint32_t r_id = ntohl (lookup_msg->id);
-  struct GNUNET_CREDENTIAL_LookupRequest *lr;
-  GNUNET_CREDENTIAL_LookupResultProcessor proc;
+  uint32_t ad_count = ntohl (vr_msg->ad_count);
+  struct GNUNET_CREDENTIAL_RecordData ad[ad_count];
+  uint32_t r_id = ntohl (vr_msg->id);
+  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
+  GNUNET_CREDENTIAL_VerifyResultProcessor proc;
   void *proc_cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received lookup reply from CREDENTIAL service (%u credentials)\n",
-       (unsigned int) cd_count);
-  for (lr = handle->lookup_head; NULL != lr; lr = lr->next)
-    if (lr->r_id == r_id)
+       "Received verify reply from CREDENTIAL service (%u credentials)\n",
+       (unsigned int) ad_count);
+  for (vr = handle->verify_head; NULL != vr; vr = vr->next)
+    if (vr->r_id == r_id)
       break;
-  if (NULL == lr)
+  if (NULL == vr)
     return;
-  proc = lr->lookup_proc;
-  proc_cls = lr->proc_cls;
-  GNUNET_CONTAINER_DLL_remove (handle->lookup_head,
-                               handle->lookup_tail,
-                               lr);
-  GNUNET_free (lr);
+  proc = vr->verify_proc;
+  proc_cls = vr->proc_cls;
+  GNUNET_CONTAINER_DLL_remove (handle->verify_head,
+                               handle->verify_tail,
+                               vr);
+  GNUNET_free (vr);
   /**
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CREDENTIAL_records_deserialize (mlen,
@@ -240,8 +240,8 @@ handle_result (void *cls,
                                                          */
   proc (proc_cls,
         NULL,
-        cd_count,
-        cd); // TODO
+        ad_count,
+        ad); // TODO
 }
 
 
@@ -255,12 +255,12 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (result,
-                           GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP_RESULT,
-                           struct LookupResultMessage,
+                           GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT,
+                           struct VerifyResultMessage,
                            NULL),
     GNUNET_MQ_handler_end ()
   };
-  struct GNUNET_CREDENTIAL_LookupRequest *lh;
+  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
 
   GNUNET_assert (NULL == handle->mq);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -272,9 +272,9 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
                                       handle);
   if (NULL == handle->mq)
     return;
-  for (lh = handle->lookup_head; NULL != lh; lh = lh->next)
+  for (vr = handle->verify_head; NULL != vr; vr = vr->next)
     GNUNET_MQ_send_copy (handle->mq,
-                         lh->env);
+                         vr->env);
 }
 
 
@@ -319,31 +319,31 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
     handle->reconnect_task = NULL;
   }
-  GNUNET_assert (NULL == handle->lookup_head);
+  GNUNET_assert (NULL == handle->verify_head);
   GNUNET_free (handle);
 }
 
 
 /**
- * Cancel pending lookup request
+ * Cancel pending verify request
  *
- * @param lr the lookup request to cancel
+ * @param lr the verify request to cancel
  */
 void
-GNUNET_CREDENTIAL_lookup_cancel (struct GNUNET_CREDENTIAL_LookupRequest *lr)
+GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_VerifyRequest *vr)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = lr->credential_handle;
+  struct GNUNET_CREDENTIAL_Handle *handle = vr->credential_handle;
 
-  GNUNET_CONTAINER_DLL_remove (handle->lookup_head,
-                               handle->lookup_tail,
-                               lr);
-  GNUNET_MQ_discard (lr->env);
-  GNUNET_free (lr);
+  GNUNET_CONTAINER_DLL_remove (handle->verify_head,
+                               handle->verify_tail,
+                               vr);
+  GNUNET_MQ_discard (vr->env);
+  GNUNET_free (vr);
 }
 
 
 /**
- * Perform an asynchronous lookup operation for a credential.
+ * Perform an asynchronous verify operation for a credential.
  *
  * @param handle handle to the Credential service
  * @param credential the credential to look up
@@ -352,58 +352,57 @@ GNUNET_CREDENTIAL_lookup_cancel (struct GNUNET_CREDENTIAL_LookupRequest *lr)
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_LookupRequest*
-GNUNET_CREDENTIAL_lookup (struct GNUNET_CREDENTIAL_Handle *handle,
-                          const char *credential,
-                          const struct GNUNET_IDENTITY_Ego *subject,
+struct GNUNET_CREDENTIAL_VerifyRequest*
+GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
+                          const char *issuer_attribute,
+                          const char *subject_attribute,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                           uint32_t credential_flags,
-                          uint32_t max_delegation_depth,
-                          GNUNET_CREDENTIAL_LookupResultProcessor proc,
+                          GNUNET_CREDENTIAL_VerifyResultProcessor proc,
                           void *proc_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
-  struct LookupMessage *lookup_msg;
-  struct GNUNET_CREDENTIAL_LookupRequest *lr;
+  struct VerifyMessage *v_msg;
+  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
   size_t nlen;
 
-  if (NULL == credential)
+  if (NULL == issuer_attribute)
   {
     GNUNET_break (0);
     return NULL;
   }
   //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to lookup `%s' in CREDENTIAL\n",
-       credential);
-  nlen = strlen (credential) + 1;
-  if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*lr))
+       "Trying to verify `%s' in CREDENTIAL\n",
+       issuer_attribute);
+  nlen = strlen (issuer_attribute) + 1;
+  if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
     return NULL;
   }
-  lr = GNUNET_new (struct GNUNET_CREDENTIAL_LookupRequest);
-  lr->credential_handle = handle;
-  lr->lookup_proc = proc;
-  lr->proc_cls = proc_cls;
-  lr->r_id = handle->r_id_gen++;
-  lr->env = GNUNET_MQ_msg_extra (lookup_msg,
+  vr = GNUNET_new (struct GNUNET_CREDENTIAL_VerifyRequest);
+  vr->credential_handle = handle;
+  vr->verify_proc = proc;
+  vr->proc_cls = proc_cls;
+  vr->r_id = handle->r_id_gen++;
+  vr->env = GNUNET_MQ_msg_extra (v_msg,
                                  nlen,
-                                 GNUNET_MESSAGE_TYPE_CREDENTIAL_LOOKUP);
-  lookup_msg->id = htonl (lr->r_id);
-  lookup_msg->subject_key = *subject_key;
-  lookup_msg->issuer_key =  *issuer_key;
-  GNUNET_memcpy (&lookup_msg[1],
-                 credential,
+                                 GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
+  v_msg->id = htonl (vr->r_id);
+  v_msg->subject_key = *subject_key;
+  v_msg->issuer_key =  *issuer_key;
+  GNUNET_memcpy (&v_msg[1],
+                 subject_attribute,
                  nlen);
-  GNUNET_CONTAINER_DLL_insert (handle->lookup_head,
-                               handle->lookup_tail,
-                               lr);
+  GNUNET_CONTAINER_DLL_insert (handle->verify_head,
+                               handle->verify_tail,
+                               vr);
   if (NULL != handle->mq)
     GNUNET_MQ_send_copy (handle->mq,
-                         lr->env);
-  return lr;
+                         vr->env);
+  return vr;
 }
 
 

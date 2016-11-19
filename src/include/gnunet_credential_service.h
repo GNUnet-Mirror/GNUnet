@@ -87,7 +87,6 @@ struct GNUNET_CREDENTIAL_RecordData {
 
   uint32_t credential_flags GNUNET_PACKED;
 
-  uint32_t max_delegation_depth GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -121,7 +120,7 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param issuer_len length of issuer chain
  * @param rd the records in reply
  */
-typedef void (*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
+typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
 						  struct GNUNET_IDENTITY_Ego *issuer,
               uint16_t issuer_len,
 						  const struct GNUNET_CREDENTIAL_RecordData *data);
@@ -137,17 +136,15 @@ typedef void (*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_LookupRequest *
-GNUNET_CREDENTIAL_lookup (struct GNUNET_CREDENTIAL_Handle *handle,
-		   const char *credential,
-		   const struct GNUNET_IDENTITY_Ego *subject,
-       const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-       const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-       uint32_t credential_flags,
-       uint32_t max_delegation_depth,
-       GNUNET_CREDENTIAL_LookupResultProcessor proc,
-		   void *proc_cls);
-
+struct GNUNET_CREDENTIAL_VerifyRequest*
+GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
+                          const char *issuer_attribute,
+                          const char *subject_attribute,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+                          uint32_t credential_flags,
+                          GNUNET_CREDENTIAL_VerifyResultProcessor proc,
+                          void *proc_cls);
 
 /**
  * Issue a credential to an identity
@@ -194,7 +191,7 @@ GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_CREDENTIAL_lookup_cancel (struct GNUNET_CREDENTIAL_LookupRequest *lr);
+GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_VerifyRequest *vr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

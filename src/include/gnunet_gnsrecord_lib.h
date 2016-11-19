@@ -118,6 +118,10 @@ extern "C"
  */
 #define GNUNET_GNSRECORD_TYPE_REVERSE 65548
 
+/**
+ * Record type for reverse lookups
+ */
+#define GNUNET_GNSRECORD_TYPE_ATTRIBUTE 65549
 
 
 /**
