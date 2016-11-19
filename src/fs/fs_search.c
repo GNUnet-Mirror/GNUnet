@@ -458,8 +458,8 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
 	      (unsigned long long) off,
 	      sr);
   sr->remaining_probe_time =
-      GNUNET_TIME_relative_multiply (sr->h->avg_block_latency,
-                                     2 * (1 + sr->availability_trials));
+      GNUNET_TIME_relative_saturating_multiply (sr->h->avg_block_latency,
+                                                2 * (1 + sr->availability_trials));
   sr->probe_ctx =
       GNUNET_FS_download_start (sr->h, sr->uri, sr->meta, NULL, NULL, off,
                                 len, sr->anonymity,

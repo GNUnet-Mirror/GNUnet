@@ -1318,8 +1318,8 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
   {
     if (1 > c->create_retry)
       c->create_retry = 1;
-    delay = GNUNET_TIME_relative_multiply (create_connection_time,
-                                           c->create_retry);
+    delay = GNUNET_TIME_relative_saturating_multiply (create_connection_time,
+                                                      c->create_retry);
     if (c->create_retry < 64) // TODO make configurable
       c->create_retry *= 2;
   }
@@ -1548,7 +1548,7 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
 
     if (NULL != *ti)
       GNUNET_SCHEDULER_cancel (*ti);
-    delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
+    delay = GNUNET_TIME_relative_saturating_multiply (refresh_connection_time, 4);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  timing out in %s\n",
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_NO));
@@ -1681,7 +1681,7 @@ schedule_check_duplicates (struct CadetConnection *c)
 
   if (NULL != c->check_duplicates_task)
     return;
-  delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 5);
+  delay = GNUNET_TIME_relative_saturating_multiply (refresh_connection_time, 5);
   c->check_duplicates_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                            &check_duplicates,
                                                            c);

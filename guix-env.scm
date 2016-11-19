@@ -104,8 +104,6 @@
 
 (define %source-dir (dirname (current-filename)))
 
-;; This will be needed when gnunet source moves to git.
-;; Taken from https://gitlab.com/dustyweb/pubstrate/blob/master/guix.scm
 (define git-file?
   (let* ((pipe (with-directory-excursion %source-dir
                  (open-pipe* OPEN_READ "git" "ls-files")))
@@ -123,14 +121,14 @@
          (any (cut string-suffix? <> file) files))
         (_ #f)))))
 
-(define gnunet-svn
+(define gnunet-git
   (package
-    (name "gnunet-svn")
+    (name "gnunet-git")
     (version (string-append "0.10.1-" "dev"))
     (source
      (local-file %source-dir
                  #:recursive? #t))
-                 ;;#:select? git-file?))
+                 ;;#:select? git-file?)) ; XXX: FIXME.
     (build-system gnu-build-system)
     (inputs
      `(("glpk" ,glpk)
@@ -176,7 +174,7 @@
        (list (string-append "--with-nssdir=" %output "/lib")
              "--enable-experimental"
              ;; These appear to be "broken" on Guix, needs debugging.
-             ;;"--enable-gcc-hardening"
+             "--enable-gcc-hardening"
              "--enable-linker-hardening"
              "--enable-logging=verbose"
              "--enable-poisoning"
@@ -217,4 +215,4 @@ kinds of basic applications for the foundation of a GNU internet.")
     (license license:gpl3+)
     (home-page "https://gnunet.org/")))
 
-gnunet-svn
+gnunet-git

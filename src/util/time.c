@@ -446,6 +446,32 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
 
 
 /**
+ * Saturating multiply relative time by a given factor.
+ *
+ * @param rel some duration
+ * @param factor integer to multiply with
+ * @return FOREVER if rel=FOREVER or on overflow; otherwise rel*factor
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_saturating_multiply (struct GNUNET_TIME_Relative rel,
+                                          unsigned long long factor)
+{
+  struct GNUNET_TIME_Relative ret;
+
+  if (0 == factor)
+    return GNUNET_TIME_UNIT_ZERO;
+  if (rel.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  ret.rel_value_us = rel.rel_value_us * factor;
+  if (ret.rel_value_us / factor != rel.rel_value_us)
+  {
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  }
+  return ret;
+}
+
+
+/**
  * Divide relative time by a given factor.
  *
  * @param rel some duration

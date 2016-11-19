@@ -564,8 +564,8 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   {
     dc->latency = estimate_latency (mc);
   }
-  delay = GNUNET_TIME_relative_multiply (dc->latency,
-                                         bc + 1);
+  delay = GNUNET_TIME_relative_saturating_multiply (dc->latency,
+                                                    bc + 1);
   if ( (last + fid == num_fragments) ||
        (0 == mc->bits) ||
        (GNUNET_YES == duplicate) )

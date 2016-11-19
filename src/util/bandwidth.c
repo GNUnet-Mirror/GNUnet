@@ -204,8 +204,8 @@ update_excess (struct GNUNET_BANDWIDTH_Tracker *av)
   else
   {
     double factor = 1.0 * left_bytes / (double) av->available_bytes_per_s__; 
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                           (unsigned long long) factor);
+    delay = GNUNET_TIME_relative_saturating_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                      (unsigned long long) factor);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "At %llu bps it will take us %s for %lld bytes to reach excess threshold\n",

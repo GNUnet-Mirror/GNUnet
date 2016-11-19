@@ -196,7 +196,7 @@ endif
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
 gnunet-qr: gnunet-qr.py.in Makefile
-	$(do_subst) < gnunet-qr.py.in > gnunet-qr
+	$(do_subst) < $(top_srcdir)/src/util/gnunet-qr.py.in > gnunet-qr
 	chmod +x gnunet-qr
 
 gnunet_service_resolver_SOURCES = \

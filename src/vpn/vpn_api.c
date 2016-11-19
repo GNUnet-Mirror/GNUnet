@@ -352,7 +352,7 @@ reconnect (struct GNUNET_VPN_Handle *vh)
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
     rr->request_id = 0;
   vh->backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
-					  GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (vh->backoff, 2),
+					  GNUNET_TIME_relative_min (GNUNET_TIME_relative_saturating_multiply (vh->backoff, 2),
 								    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)));
   vh->rt = GNUNET_SCHEDULER_add_delayed (vh->backoff,
 					 &connect_task,

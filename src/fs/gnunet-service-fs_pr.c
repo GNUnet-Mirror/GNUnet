@@ -1036,7 +1036,7 @@ put_migration_continuation (void *cls, int success,
 						       ppd->migration_delay);
       mig_pause.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 							 ppd->migration_delay.rel_value_us);
-      ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
+      ppd->migration_delay = GNUNET_TIME_relative_saturating_multiply (ppd->migration_delay, 2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Replicated content already exists locally, asking to stop migration for %s\n",
 		  GNUNET_STRINGS_relative_time_to_string (mig_pause,

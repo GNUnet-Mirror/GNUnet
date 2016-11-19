@@ -1835,7 +1835,7 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
   GNUNET_assert(y <= (double) solver->parameters.step_time_max.rel_value_us);
   GNUNET_assert(y >= (double) solver->parameters.step_time_min.rel_value_us);
 
-  time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
+  time_next = GNUNET_TIME_relative_saturating_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
 
 //  LOG (GNUNET_ERROR_TYPE_INFO, "ratio: %f, factor: %f, offset: %f, y: %f\n",
 //      used_ratio,

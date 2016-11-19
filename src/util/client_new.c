@@ -495,11 +495,12 @@ try_unixpath (const char *service_name,
     sock = GNUNET_NETWORK_socket_create (AF_UNIX,
                                          SOCK_STREAM,
                                          0);
-    if ( (GNUNET_OK ==
-          GNUNET_NETWORK_socket_connect (sock,
-                                         (struct sockaddr *) &s_un,
-                                         sizeof (s_un))) ||
-         (EINPROGRESS == errno) )
+    if ( (NULL != sock) &&
+         ( (GNUNET_OK ==
+            GNUNET_NETWORK_socket_connect (sock,
+                                           (struct sockaddr *) &s_un,
+                                           sizeof (s_un))) ||
+           (EINPROGRESS == errno) ) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Successfully connected to unixpath `%s'!\n",
