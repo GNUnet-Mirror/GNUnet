@@ -61,7 +61,7 @@ struct AttributeRecordEntry
   /**
    * Payload
    */
-  struct GNUNET_CREDENTIAL_RecordData record_data;
+  struct GNUNET_CREDENTIAL_AttributeRecordData record_data;
 };
 
 /**
@@ -231,7 +231,7 @@ send_lookup_response (void* cls,
   int attr_record_count;
   struct GNUNET_MQ_Envelope *env;
   struct VerifyResultMessage *rmsg;
-  const struct GNUNET_CREDENTIAL_RecordData *ard;
+  const struct GNUNET_CREDENTIAL_AttributeRecordData *ard;
   struct AttributeRecordEntry *ar_entry;
 
   attr_record_count = 0;
@@ -260,7 +260,7 @@ send_lookup_response (void* cls,
   /**
    * Get serialized record data size
    */
-  len = attr_record_count * sizeof (struct GNUNET_CREDENTIAL_RecordData);
+  len = attr_record_count * sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData);
 
   /**
    * Prepare a lookup result response message for the client
@@ -277,12 +277,12 @@ send_lookup_response (void* cls,
    * Append at the end of rmsg
    */
   i = 0;
-  struct GNUNET_CREDENTIAL_RecordData *tmp_record = (struct GNUNET_CREDENTIAL_RecordData*) &rmsg[1];
+  struct GNUNET_CREDENTIAL_AttributeRecordData *tmp_record = (struct GNUNET_CREDENTIAL_AttributeRecordData*) &rmsg[1];
   for (ar_entry = vrh->attr_chain_head; NULL != ar_entry; ar_entry = ar_entry->next)
   {
     memcpy (tmp_record,
             &ar_entry->record_data,
-            sizeof (struct GNUNET_CREDENTIAL_RecordData));
+            sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData));
     tmp_record++;
   }
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(vrh->client),

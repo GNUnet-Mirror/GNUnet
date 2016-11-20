@@ -50,7 +50,7 @@ static char *lookup_credential;
 /**
  * Handle to verify request
  */
-static struct GNUNET_CREDENTIAL_VerifyRequest *verify_request;
+static struct GNUNET_CREDENTIAL_Request *verify_request;
 
 /**
  * Lookup an ego with the identity service.
@@ -81,11 +81,6 @@ static char *subject_key;
  * Subject pubkey string
  */
 static char *issuer_key;
-
-/*
- * Credential flags
- */
-static int credential_flags;
 
 
 
@@ -158,20 +153,18 @@ do_timeout (void *cls)
  */
 static void
 handle_verify_result (void *cls,
-				struct GNUNET_IDENTITY_Ego *issuer,
-              	uint16_t issuer_len,
-				const struct GNUNET_CREDENTIAL_RecordData *data)
+                      struct GNUNET_CRYPTO_EcdsaPublicKey *issuer,
+                      uint32_t status)
 {
-  
+
 
   verify_request = NULL;
-  if (0 == issuer_len)
-    printf ("No results.\n");
+  if (GNUNET_NO == status)
+    printf ("Verify failed.\n");
   else
-  	printf ("%u\n",
-    	  issuer_len);
+    printf ("Successful.\n");
 
-  
+
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -188,7 +181,7 @@ handle_verify_result (void *cls,
 static void
 lookup_credentials (struct GNUNET_IDENTITY_Ego *ego)
 {
-  
+
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_pkey;
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_pkey;
 
@@ -217,21 +210,20 @@ lookup_credentials (struct GNUNET_IDENTITY_Ego *ego)
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    
-  verify_request = GNUNET_CREDENTIAL_verify(credential,
-                    "",
-                    lookup_credential,
-                    &subject_pkey,
-                    &issuer_pkey,
-                    credential_flags,
-                    &handle_verify_result,
-                    NULL);
-   return;
+
+    verify_request = GNUNET_CREDENTIAL_verify(credential,
+                                              &issuer_pkey,
+                                              "test", //TODO argument
+                                              &subject_pkey,
+                                              lookup_credential,
+                                              &handle_verify_result,
+                                              NULL);
+    return;
   }
   else
   {
     fprintf (stderr,
-       _("Please specify name to lookup, subject key and issuer key!\n"));
+             _("Please specify name to lookup, subject key and issuer key!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -252,23 +244,23 @@ lookup_credentials (struct GNUNET_IDENTITY_Ego *ego)
  */
 static void
 identity_master_cb (void *cls,
-		    struct GNUNET_IDENTITY_Ego *ego,
-		    void **ctx,
-		    const char *name)
+                    struct GNUNET_IDENTITY_Ego *ego,
+                    void **ctx,
+                    const char *name)
 {
-  
+
   id_op = NULL;
   if (NULL == ego)
   {
     fprintf (stderr,
-	     _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
+             _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   lookup_credentials(ego);
 
-  
+
 }
 
 
@@ -286,41 +278,41 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  
+
   cfg = c;
   credential = GNUNET_CREDENTIAL_connect (cfg);
   identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
 
- 
 
-  
+
+
   if (NULL == credential)
   {
     fprintf (stderr,
-	     _("Failed to connect to CREDENTIAL\n"));
+             _("Failed to connect to CREDENTIAL\n"));
     return;
   }
   if (NULL == identity)
   {
     fprintf (stderr,
-	     _("Failed to connect to IDENTITY\n"));
+             _("Failed to connect to IDENTITY\n"));
     return;
   }
   tt = GNUNET_SCHEDULER_add_delayed (timeout,
-				     &do_timeout, NULL);
+                                     &do_timeout, NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-  
-
-  
-	GNUNET_break (NULL == id_op);
-	id_op = GNUNET_IDENTITY_get (identity,
-			 "gns-master",//# TODO: Create credential-master
-			 &identity_master_cb,
-			 cls);
-	GNUNET_assert (NULL != id_op);
 
 
- 
+
+  GNUNET_break (NULL == id_op);
+  id_op = GNUNET_IDENTITY_get (identity,
+                               "gns-master",//# TODO: Create credential-master
+                               &identity_master_cb,
+                               cls);
+  GNUNET_assert (NULL != id_op);
+
+
+
 
 }
 
@@ -339,15 +331,15 @@ main (int argc, char *const *argv)
     {'u', "lookup", "CREDENTIAL",
       gettext_noop ("Lookup a record for the given credential"), 1,
       &GNUNET_GETOPT_set_string, &lookup_credential},
-   /** { 'T', "timeout", "DELAY",
+    /** { 'T', "timeout", "DELAY",
       gettext_noop ("Specify timeout for the lookup"), 1,
       &GNUNET_GETOPT_set_relative_time, &timeout },
-    {'t', "type", "TYPE",
+      {'t', "type", "TYPE",
       gettext_noop ("Specify the type of the record to lookup"), 1,
-    &GNUNET_GETOPT_set_string, &lookup_type},**/
+      &GNUNET_GETOPT_set_string, &lookup_type},**/
     {'z', "zone", "NAME",
-    gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
-    &GNUNET_GETOPT_set_string, &zone_ego_name},
+      gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
+      &GNUNET_GETOPT_set_string, &zone_ego_name},
     {'s', "subject", "PKEY",
       gettext_noop ("Specify the public key of the subject to lookup the credential for"), 1,
       &GNUNET_GETOPT_set_string, &subject_key},
@@ -364,11 +356,11 @@ main (int argc, char *const *argv)
 
   GNUNET_log_setup ("gnunet-credential", "WARNING", NULL);
   ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-credential",
-                           _("GNUnet credential resolver tool"),
-			   options,
-                           &run, NULL)) ? 0 : 1;
+    (GNUNET_OK ==
+     GNUNET_PROGRAM_run (argc, argv, "gnunet-credential",
+                         _("GNUnet credential resolver tool"),
+                         options,
+                         &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }

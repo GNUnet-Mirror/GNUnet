@@ -53,7 +53,7 @@ struct GNUNET_CREDENTIAL_Handle;
 /**
  * Handle to control a lookup operation.
  */
-struct GNUNET_CREDENTIAL_LookupRequest;
+struct GNUNET_CREDENTIAL_Request;
 
 /*
 * Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
@@ -72,22 +72,58 @@ enum GNUNET_CREDENTIAL_CredentialFlags {
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
-/*
-* Data stored in the credential record 
-*/
-struct GNUNET_CREDENTIAL_RecordData {
+/**
+ * The attribute record 
+ */
+struct GNUNET_CREDENTIAL_AttributeRecordData {
   
-  /*
-  * Key of the 
-  */
+  /**
+   * Public key of the subject this credential was issued to
+   */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
   
+  /**
+   * Public key of the issuer
+   */
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
 
-
+  /**
+   * Flags for this credential
+   */
   uint32_t credential_flags GNUNET_PACKED;
 
+  /**
+   * Expiration time of this credential
+   */
+  uint64_t expiration GNUNET_PACKED;
+  
+  /**
+   * The signature for this credential by the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
+  
+  /**
+   * Followed by the attribute string
+   */
 };
+
+
+/**
+ * The attribute delegation record
+*/
+struct GNUNET_CREDENTIAL_AttributeDelegationRecordData {
+  
+  /**
+   * Public key of the subject this attribute was delegated to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  
+  /**
+   * Followed by the attribute that was delegated to as string
+   */
+};
+
+
 
 GNUNET_NETWORK_STRUCT_END
 
@@ -113,58 +149,129 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
 
 
 /**
- * Iterator called on obtained result for a Credential lookup.
+ * Iterator called on obtained result for an attribute verification.
  *
  * @param cls closure
- * @param issuer the issuer chain
- * @param issuer_len length of issuer chain
+ * @param issuer the issuer of the attribute NULL if verification failed
+ * @param result the result of the verification
  * @param rd the records in reply
  */
 typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
-						  struct GNUNET_IDENTITY_Ego *issuer,
-              uint16_t issuer_len,
-						  const struct GNUNET_CREDENTIAL_RecordData *data);
+						  struct GNUNET_CRYPTO_EcdsaPublicKey *issuer,
+              uint32_t result);
+
+/**
+ * Iterator called on obtained result for an attribute issuance.
+ *
+ * @param cls closure
+ * @param result the record data that can be handed to the subject
+ */
+typedef void (*GNUNET_CREDENTIAL_IssueResultProcessor) (void *cls,
+						  struct GNUNET_CREDENTIAL_AttributeRecordData *data);
+
+/**
+ * Iterator called on obtained result for an attribute delegation.
+ *
+ * @param cls closure
+ * @param success GNUNET_YES if successful
+ * @param result the record data that can be handed to the subject
+ */
+typedef void (*GNUNET_CREDENTIAL_DelegateResultProcessor) (void *cls,
+						  uint32_t success);
+
+/**
+ * Iterator called on obtained result for an attribute delegation removal.
+ *
+ * @param cls closure
+ * @param success GNUNET_YES if successful
+ * @param result the record data that can be handed to the subject
+ */
+typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
+						  uint32_t success);
+
+
 
 
 /**
- * Perform an asynchronous lookup operation for a credential.
+ * Performs attribute verification.
+ * Checks if there is a delegation chain from
+ * attribute ``issuer_attribute'' issued by the issuer
+ * with public key ``issuer_key'' maps to the attribute
+ * ``subject_attribute'' claimed by the subject with key
+ * ``subject_key''
  *
  * @param handle handle to the Credential service
- * @param credential the credential to look up
- * @param subject Ego to check the credential for
+ * @param issuer_key the issuer public key
+ * @param issuer_attribute the issuer attribute
+ * @param subject_key the subject public key
+ * @param subject_attribute the attribute claimed by the subject
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_VerifyRequest*
+struct GNUNET_CREDENTIAL_Request*
 GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
-                          const char *issuer_attribute,
-                          const char *subject_attribute,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                          uint32_t credential_flags,
+                          const char *issuer_attribute,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+                          const char *subject_attribute,
                           GNUNET_CREDENTIAL_VerifyResultProcessor proc,
                           void *proc_cls);
 
 /**
- * Issue a credential to an identity
+ * Delegate an attribute
  *
  * @param handle handle to the Credential service
- * @param issuer the identity that issues the credential
- * @param subject the subject of the credential
- * @param credential the name of the credential
- * @param data the data of the credential
+ * @param issuer the ego that should be used to delegate the attribute
+ * @param attribute the name of the attribute to delegate
+ * @param subject the subject of the delegation
+ * @param delegated_attribute the name of the attribute that is delegated to
  * @return handle to the queued request
  */
-/**struct GNUNET_CREDENTIAL_IssueRequest *
+struct GNUNET_CREDENTIAL_Request *
+GNUNET_CREDENTIAL_add_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
+                                  struct GNUNET_IDENTITY_Ego *issuer,
+                                  const char *attribute,
+                                  struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                                  const char *delegated_attribute,
+                                  GNUNET_CREDENTIAL_DelegateResultProcessor proc,
+                                  void *proc_cls);
+
+/**
+ * Remove a delegation
+ *
+ * @param handle handle to the Credential service
+ * @param issuer the ego that was used to delegate the attribute
+ * @param attribute the name of the attribute that is delegated
+ * @return handle to the queued request
+ */
+struct GNUNET_CREDENTIAL_Request *
+GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
+                                  struct GNUNET_IDENTITY_Ego *issuer,
+                                  const char *attribute,
+                                  GNUNET_CREDENTIAL_RemoveDelegateResultProcessor proc,
+                                  void *proc_cls);
+
+
+
+/**
+ * Issue an attribute to a subject
+ *
+ * @param handle handle to the Credential service
+ * @param issuer the ego that should be used to issue the attribute
+ * @param subject the subject of the attribute
+ * @param attribute the name of the attribute
+ * @return handle to the queued request
+ */
+struct GNUNET_CREDENTIAL_Request *
 GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
                          struct GNUNET_IDENTITY_Ego *issuer,
-                         struct GNUNET_IDENTITY_Ego *subject,
-                         const char *credential,
-                         struct GNUNET_CREDENTIAL_Data *data,
+                         struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                         const char *attribute,
                          GNUNET_CREDENTIAL_IssueResultProcessor proc,
                          void *proc_cls);
-*/
+
+
 /**
  * Remove a credential
  *
@@ -174,15 +281,15 @@ GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param credential the name of the credential
  * @return handle to the queued request
  */
- /**
-struct GNUNET_CREDENTIAL_IssueRequest *
-GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
-                          struct GNUNET_IDENTITY_Ego *issuer,
-                          struct GNUNET_IDENTITY_Ego *subject,
-                          const char *credential,
-                          GNUNET_CREDENTIAL_IssueResultProcessor proc,
-                          void *proc_cls);
-*/
+/**
+  struct GNUNET_CREDENTIAL_IssueRequest *
+  GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
+  struct GNUNET_IDENTITY_Ego *issuer,
+  struct GNUNET_IDENTITY_Ego *subject,
+  const char *credential,
+  GNUNET_CREDENTIAL_IssueResultProcessor proc,
+  void *proc_cls);
+  */
 
 
 /**
@@ -191,7 +298,7 @@ GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_VerifyRequest *vr);
+GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_Request *vr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

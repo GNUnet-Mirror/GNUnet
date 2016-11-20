@@ -53,12 +53,12 @@ credential_value_to_string (void *cls,
   {
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
-    struct GNUNET_CREDENTIAL_RecordData cred;
+    struct GNUNET_CREDENTIAL_AttributeRecordData cred;
     char *cred_str;
     char *subject_pkey;
     char *issuer_pkey;
     uint32_t cf; // Credential flags
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_RecordData))
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
         return NULL; /* malformed */
     memcpy (&cred,
               data,
@@ -111,7 +111,7 @@ credential_string_to_value (void *cls,
   {
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
       { 
-        struct GNUNET_CREDENTIAL_RecordData *cred;
+        struct GNUNET_CREDENTIAL_AttributeRecordData *cred;
         unsigned int cf; // credential flags
 
         size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
@@ -134,7 +134,7 @@ credential_string_to_value (void *cls,
                       s);
           return GNUNET_SYSERR;
         }
-        *data_size = sizeof (struct GNUNET_CREDENTIAL_RecordData) + strlen (name) + 1;
+        *data_size = sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData) + strlen (name) + 1;
         *data = cred = GNUNET_malloc (*data_size);
         GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
                                                     strlen (subject_pkey),

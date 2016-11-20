@@ -38,18 +38,18 @@
 /**
  * Handle to a verify request
  */
-struct GNUNET_CREDENTIAL_VerifyRequest
+struct GNUNET_CREDENTIAL_Request
 {
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_VerifyRequest *next;
+  struct GNUNET_CREDENTIAL_Request *next;
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_VerifyRequest *prev;
+  struct GNUNET_CREDENTIAL_Request *prev;
 
   /**
    * handle to credential service
@@ -98,12 +98,12 @@ struct GNUNET_CREDENTIAL_Handle
   /**
    * Head of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_VerifyRequest *verify_head;
+  struct GNUNET_CREDENTIAL_Request *verify_head;
 
   /**
    * Tail of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_VerifyRequest *verify_tail;
+  struct GNUNET_CREDENTIAL_Request *verify_tail;
 
   /**
    * Reconnect task
@@ -210,16 +210,13 @@ handle_result (void *cls,
                const struct VerifyResultMessage *vr_msg)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
-  uint32_t ad_count = ntohl (vr_msg->ad_count);
-  struct GNUNET_CREDENTIAL_RecordData ad[ad_count];
   uint32_t r_id = ntohl (vr_msg->id);
-  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
+  struct GNUNET_CREDENTIAL_Request *vr;
   GNUNET_CREDENTIAL_VerifyResultProcessor proc;
   void *proc_cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received verify reply from CREDENTIAL service (%u credentials)\n",
-       (unsigned int) ad_count);
+       "Received verify reply from CREDENTIAL service\n");
   for (vr = handle->verify_head; NULL != vr; vr = vr->next)
     if (vr->r_id == r_id)
       break;
@@ -240,8 +237,7 @@ handle_result (void *cls,
                                                          */
   proc (proc_cls,
         NULL,
-        ad_count,
-        ad); // TODO
+        GNUNET_NO); // TODO
 }
 
 
@@ -260,7 +256,7 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
                            NULL),
     GNUNET_MQ_handler_end ()
   };
-  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
+  struct GNUNET_CREDENTIAL_Request *vr;
 
   GNUNET_assert (NULL == handle->mq);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -330,7 +326,7 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * @param lr the verify request to cancel
  */
 void
-GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_VerifyRequest *vr)
+GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_Request *vr)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = vr->credential_handle;
 
@@ -341,30 +337,35 @@ GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_VerifyRequest *vr)
   GNUNET_free (vr);
 }
 
-
 /**
- * Perform an asynchronous verify operation for a credential.
+ * Performs attribute verification.
+ * Checks if there is a delegation chain from
+ * attribute ``issuer_attribute'' issued by the issuer
+ * with public key ``issuer_key'' maps to the attribute
+ * ``subject_attribute'' claimed by the subject with key
+ * ``subject_key''
  *
  * @param handle handle to the Credential service
- * @param credential the credential to look up
- * @param subject Ego to check the credential for
+ * @param issuer_key the issuer public key
+ * @param issuer_attribute the issuer attribute
+ * @param subject_key the subject public key
+ * @param subject_attribute the attribute claimed by the subject
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_VerifyRequest*
+struct GNUNET_CREDENTIAL_Request*
 GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
-                          const char *issuer_attribute,
-                          const char *subject_attribute,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                          uint32_t credential_flags,
+                          const char *issuer_attribute,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+                          const char *subject_attribute,
                           GNUNET_CREDENTIAL_VerifyResultProcessor proc,
                           void *proc_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
   struct VerifyMessage *v_msg;
-  struct GNUNET_CREDENTIAL_VerifyRequest *vr;
+  struct GNUNET_CREDENTIAL_Request *vr;
   size_t nlen;
 
   if (NULL == issuer_attribute)
@@ -382,7 +383,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
     GNUNET_break (0);
     return NULL;
   }
-  vr = GNUNET_new (struct GNUNET_CREDENTIAL_VerifyRequest);
+  vr = GNUNET_new (struct GNUNET_CREDENTIAL_Request);
   vr->credential_handle = handle;
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
