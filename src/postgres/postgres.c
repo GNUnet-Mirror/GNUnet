@@ -192,7 +192,8 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 		     "postgres",
-                     _("Unable to initialize Postgres: %s\n"),
+                     _("Unable to connect to Postgres database '%s': %s\n"),
+                     conninfo,
                      PQerrorMessage (dbh));
     PQfinish (dbh);
     return NULL;
