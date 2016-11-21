@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2016-11-08 13:49+0100\n"
+"POT-Creation-Date: 2016-11-21 18:08+0100\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -2789,27 +2789,27 @@ msgstr "# fragmentos transmitidos"
 msgid "# fragments retransmitted"
 msgstr "# fragmentos retransmitidos"
 
-#: src/fragmentation/fragmentation.c:274
+#: src/fragmentation/fragmentation.c:278
 msgid "# fragments wrap arounds"
 msgstr "# encajes de fragmentos"
 
-#: src/fragmentation/fragmentation.c:321
+#: src/fragmentation/fragmentation.c:325
 msgid "# messages fragmented"
 msgstr "# mensajes fragmentados"
 
-#: src/fragmentation/fragmentation.c:327
+#: src/fragmentation/fragmentation.c:331
 msgid "# total size of fragmented messages"
 msgstr "# tamaño total de los mensajes fragmentados"
 
-#: src/fragmentation/fragmentation.c:451
+#: src/fragmentation/fragmentation.c:455
 msgid "# fragment acknowledgements received"
 msgstr "# reconocimientos de fragmentos recibidos"
 
-#: src/fragmentation/fragmentation.c:458
+#: src/fragmentation/fragmentation.c:462
 msgid "# bits removed from fragmentation ACKs"
 msgstr "# bits eliminados de reconocimientos de fragmentos"
 
-#: src/fragmentation/fragmentation.c:482
+#: src/fragmentation/fragmentation.c:486
 msgid "# fragmentation transmissions completed"
 msgstr "# transmisiones de fragmentos completadas"
 
@@ -5908,8 +5908,8 @@ msgstr "«%s:%s» falló en %s:%d con error: %s"
 
 #: src/postgres/postgres.c:195
 #, fuzzy, c-format
-msgid "Unable to initialize Postgres: %s\n"
-msgstr "No se pudo inicializar Postgres: %s"
+msgid "Unable to connect to Postgres database '%s': %s\n"
+msgstr "Imposible guardar el fichero de configuración '%s':"
 
 #: src/psycstore/gnunet-service-psycstore.c:249
 #, fuzzy
@@ -8188,7 +8188,7 @@ msgstr "Los metadatos serializados «%s» son mayores de lo permitido (%u>%u)"
 msgid "Metadata `%s' failed to deserialize"
 msgstr "Se produjo un fallo al deserializar los metadatos «%s»"
 
-#: src/util/client_new.c:863
+#: src/util/client_new.c:864
 #, c-format
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr "Se necesita un nombre de máquina no vacío para el servicio «%s».\n"
@@ -9231,6 +9231,10 @@ msgstr "Violación externa del protocolo detectada en %s:%d.\n"
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
+
+#, fuzzy
+#~ msgid "Unable to initialize Postgres: %s\n"
+#~ msgstr "No se pudo inicializar Postgres: %s"
 
 #, fuzzy
 #~ msgid "Configuration for plugin `%s' did not work!\n"
@@ -11757,10 +11761,6 @@ msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
 #, fuzzy
 #~ msgid "Service `%s' stopped\n"
 #~ msgstr "Servicio eliminado.\n"
-
-#, fuzzy
-#~ msgid "Unable to accept connection for service `%s': %s\n"
-#~ msgstr "Imposible guardar el fichero de configuración '%s':"
 
 #~ msgid "KiB"
 #~ msgstr "KiB"

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2016-11-08 13:49+0100\n"
+"POT-Creation-Date: 2016-11-21 18:08+0100\n"
 "PO-Revision-Date: 2015-03-08 16:16+0100\n"
 "Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
@@ -2697,29 +2697,29 @@ msgstr "# Selbstbekanntmachungen übertragen"
 msgid "# fragments retransmitted"
 msgstr "# Selbstbekanntmachungen übertragen"
 
-#: src/fragmentation/fragmentation.c:274
+#: src/fragmentation/fragmentation.c:278
 #, fuzzy
 msgid "# fragments wrap arounds"
 msgstr "# verworfener Nachrichten"
 
-#: src/fragmentation/fragmentation.c:321
+#: src/fragmentation/fragmentation.c:325
 msgid "# messages fragmented"
 msgstr "# fragmentierter Nachrichten"
 
-#: src/fragmentation/fragmentation.c:327
+#: src/fragmentation/fragmentation.c:331
 msgid "# total size of fragmented messages"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:451
+#: src/fragmentation/fragmentation.c:455
 #, fuzzy
 msgid "# fragment acknowledgements received"
 msgstr "# Knotenankündigungen empfangen"
 
-#: src/fragmentation/fragmentation.c:458
+#: src/fragmentation/fragmentation.c:462
 msgid "# bits removed from fragmentation ACKs"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:482
+#: src/fragmentation/fragmentation.c:486
 #, fuzzy
 msgid "# fragmentation transmissions completed"
 msgstr "# Klartext PONG Nachrichten empfangen"
@@ -5724,8 +5724,8 @@ msgstr "`%s' schlug bei %s:%d mit dem Fehler %s fehl\n"
 
 #: src/postgres/postgres.c:195
 #, fuzzy, c-format
-msgid "Unable to initialize Postgres: %s\n"
-msgstr "SQLite Datenbank konnte nicht initialisiert werden: %s.\n"
+msgid "Unable to connect to Postgres database '%s': %s\n"
+msgstr "Fehler beim Anlegen des Benutzerkontos:"
 
 #: src/psycstore/gnunet-service-psycstore.c:249
 #, fuzzy
@@ -7899,7 +7899,7 @@ msgstr ""
 msgid "Metadata `%s' failed to deserialize"
 msgstr ""
 
-#: src/util/client_new.c:863
+#: src/util/client_new.c:864
 #, c-format
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr ""
@@ -8910,6 +8910,10 @@ msgstr "Protokollverletzung auf Socket. Kommando erwartet.\n"
 #, fuzzy, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "`%s' schlug bei Datei `%s' fehl. Ort: %s:%d. Fehler: %s\n"
+
+#, fuzzy
+#~ msgid "Unable to initialize Postgres: %s\n"
+#~ msgstr "SQLite Datenbank konnte nicht initialisiert werden: %s.\n"
 
 #, fuzzy
 #~ msgid "Configuration for plugin `%s' did not work!\n"
