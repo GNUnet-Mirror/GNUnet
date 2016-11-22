@@ -118,12 +118,12 @@ conversation_string_to_value (void *cls,
   case GNUNET_GNSRECORD_TYPE_PHONE:
     {
       struct GNUNET_CONVERSATION_PhoneRecord *pr;
-      char line_port[128];
+      char line_port[103];
       const char *dash;
       struct GNUNET_PeerIdentity peer;
 
       if ( (NULL == (dash = strchr (s, '-'))) ||
-	   (1 != sscanf (s, "%128s-", line_port)) ||
+	   (1 != sscanf (s, "%103s-", line_port)) ||
 	   (GNUNET_OK !=
 	    GNUNET_CRYPTO_eddsa_public_key_from_string (dash + 1,
                                                         strlen (dash + 1),
