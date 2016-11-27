@@ -20,7 +20,7 @@
 
 /**
  * @file src/nat/gnunet-nat.c
- * @brief Daemon to auto configure nat
+ * @brief Command-line tool to interact with the NAT service
  * @author Christian Grothoff
  * @author Bruno Cabral
  */
