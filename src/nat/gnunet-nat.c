@@ -192,7 +192,7 @@ auto_config_cb (void *cls,
                                                "nat",
                                                &auto_conf_iter,
                                                NULL);
-  // Have option to save config
+  // FIXME: have option to save config
   test_finished ();
 }
 
@@ -219,7 +219,7 @@ test_report_cb (void *cls,
  * Signature of the callback passed to #GNUNET_NAT_register() for
  * a function to call whenever our set of 'valid' addresses changes.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param add_remove #GNUNET_YES to add a new public IP address, 
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
@@ -233,7 +233,12 @@ address_cb (void *cls,
 	    const struct sockaddr *addr,
 	    socklen_t addrlen)
 {
-  // FIXME: print!
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+	      "%s %s (%d)\n",
+	      add_remove ? "+" : "-",
+	      GNUNET_a2s (addr,
+			  addrlen),
+	      (int) ac);
 }
 
 
@@ -242,7 +247,7 @@ address_cb (void *cls,
  * for a function to call whenever someone asks us to do connection
  * reversal.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param local_addr address where we received the request
  * @param local_addrlen actual length of the @a local_addr
  * @param remote_addr public IP address of the other peer
@@ -255,7 +260,10 @@ reversal_cb (void *cls,
 	     const struct sockaddr *remote_addr,
 	     socklen_t remote_addrlen)
 {
-  // FIXME: print!
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+	      "Connection reversal requested by %s\n",
+	      GNUNET_a2s (remote_addr,
+			  remote_addrlen));
 }
 
 
@@ -498,6 +506,7 @@ main (int argc,
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },
+    // FIMXE: -s not implemented!
     {'t', "tcp", NULL,
      gettext_noop ("use TCP"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },
