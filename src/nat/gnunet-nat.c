@@ -39,9 +39,9 @@ static int global_ret;
 static struct GNUNET_NAT_AutoHandle *ah;
 
 /**
- * Port we use.
+ * Port we advertise.
  */ 
-static unsigned int port;
+static unsigned int adv_port;
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -198,6 +198,68 @@ auto_config_cb (void *cls,
 
 
 /**
+ * Function called to report success or failure for
+ * NAT configuration test.
+ *
+ * @param cls closure
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+test_report_cb (void *cls,
+		enum GNUNET_NAT_StatusCode result)
+{
+  nt = NULL;
+  PRINTF ("NAT test result: %s\n",
+	  GNUNET_NAT_status2string (result));
+  test_finished ();
+}
+
+
+/**
+ * Signature of the callback passed to #GNUNET_NAT_register() for
+ * a function to call whenever our set of 'valid' addresses changes.
+ *
+ * @param cls closure
+ * @param add_remove #GNUNET_YES to add a new public IP address, 
+ *                   #GNUNET_NO to remove a previous (now invalid) one
+ * @param ac address class the address belongs to
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual length of the @a addr
+ */
+static void
+address_cb (void *cls,
+	    int add_remove,
+	    enum GNUNET_NAT_AddressClass ac,
+	    const struct sockaddr *addr,
+	    socklen_t addrlen)
+{
+  // FIXME: print!
+}
+
+
+/**
+ * Signature of the callback passed to #GNUNET_NAT_register().
+ * for a function to call whenever someone asks us to do connection
+ * reversal.
+ *
+ * @param cls closure
+ * @param local_addr address where we received the request
+ * @param local_addrlen actual length of the @a local_addr
+ * @param remote_addr public IP address of the other peer
+ * @param remote_addrlen actual length of the @a remote_addr
+ */
+static void
+reversal_cb (void *cls,
+	     const struct sockaddr *local_addr,
+	     socklen_t local_addrlen,
+	     const struct sockaddr *remote_addr,
+	     socklen_t remote_addrlen)
+{
+  // FIXME: print!
+}
+
+
+/**
  * Task run on shutdown.
  *
  * @param cls NULL
@@ -237,6 +299,14 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  uint8_t af;
+  struct sockaddr_in bind_sa;
+  struct sockaddr_in extern_sa;
+  struct sockaddr *local_sa;
+  struct sockaddr *remote_sa;
+  size_t local_len;
+  size_t remote_len;
+  
   if (use_tcp && use_udp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -256,6 +326,130 @@ run (void *cls,
     global_ret = 1;
     return;
   }
+  if (NULL != bind_addr)
+  {
+    if (GNUNET_OK !=
+	GNUNET_STRINGS_to_address_ipv4 (bind_addr,
+					strlen (bind_addr),
+					&bind_sa))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Invalid socket address `%s'\n",
+		  bind_addr);
+      global_ret = 1;
+      return;
+    }
+  }
+  if (NULL != extern_addr)
+  {
+    if (GNUNET_OK !=
+	GNUNET_STRINGS_to_address_ipv4 (extern_addr,
+					strlen (extern_addr),
+					&extern_sa))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Invalid socket address `%s'\n",
+		  extern_addr);
+      global_ret = 1;
+      return;
+    }
+  }
+  if (NULL != local_addr)
+  {
+    local_len = GNUNET_STRINGS_parse_socket_addr (local_addr,
+						  &af,
+						  &local_sa);
+    if (0 == local_len)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Invalid socket address `%s'\n",
+		  local_addr);
+      global_ret = 1;
+      return;
+    }
+  }
+  if (NULL != remote_addr)
+  {
+    remote_len = GNUNET_STRINGS_parse_socket_addr (remote_addr,
+						   &af,
+						   &remote_sa);
+    if (0 == remote_len)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Invalid socket address `%s'\n",
+		  remote_addr);
+      global_ret = 1;
+      return;
+    }
+  }
+
+  if (NULL != bind_addr)
+  {
+    if (NULL == extern_addr)
+      extern_sa = bind_sa;
+    nt = GNUNET_NAT_test_start (c,
+				proto,
+				bind_sa.sin_addr,
+				ntohs (bind_sa.sin_port),
+				extern_sa.sin_addr,
+				ntohs (extern_sa.sin_port),
+				&test_report_cb,
+				NULL);
+  }
+
+  if (NULL != local_addr)
+  {
+    nh = GNUNET_NAT_register (c,
+			      proto,
+			      (uint16_t) adv_port,
+			      1,
+			      (const struct sockaddr **) &local_sa,
+			      &local_len,
+			      &address_cb,
+			      (listen_reversal) ? &reversal_cb : NULL,
+			      NULL);
+  }
+
+  if (NULL != remote_addr)
+  {
+    int ret;
+    
+    if ( (NULL == nh) ||
+	 (sizeof (struct sockaddr_in) != local_len) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Require IPv4 local address to initiate connection reversal\n");
+      global_ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (sizeof (struct sockaddr_in) != remote_len)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Require IPv4 reversal target address\n");
+      global_ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    ret = GNUNET_NAT_request_reversal (nh,
+				       (const struct sockaddr_in *) &local_sa,
+				       (const struct sockaddr_in *) &remote_sa);
+    switch (ret)
+    {
+    case GNUNET_SYSERR:
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Connection reversal internal error\n");
+      break;
+    case GNUNET_NO:
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Connection reversal unavailable\n");
+      break;
+    case GNUNET_OK:
+      /* operation in progress */
+      break;
+    }
+  }
+  
   if (do_auto)
   {
     ah = GNUNET_NAT_autoconfig_start (c,
@@ -285,22 +479,22 @@ main (int argc,
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_auto },
     {'b', "bind", "ADDRESS",
      gettext_noop ("which IP and port are we bound to"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &bind_addr},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &bind_addr },
     {'e', "external", "ADDRESS",
      gettext_noop ("which external IP and port should be used to test"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &extern_addr},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &extern_addr },
     {'l', "local", "ADDRESS",
      gettext_noop ("which IP and port are we locally using to listen to for connection reversals"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &local_addr},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &local_addr },
     {'r', "remote", "ADDRESS",
      gettext_noop ("which remote IP and port should be asked for connection reversal"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr },
     {'L', "listen", NULL,
      gettext_noop ("listen for connection reversal requests"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &listen_reversal },
     {'p', "port", NULL,
-     gettext_noop ("port to use"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &port},
+     gettext_noop ("port to use to advertise"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &adv_port },
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },

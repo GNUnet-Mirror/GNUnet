@@ -1209,7 +1209,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
 
 
 /**
- * Tries to convert 'zt_addr' string to an IPv6 address.
+ * Tries to convert @a zt_addr string to an IPv6 address.
  * The string is expected to have the format "[ABCD::01]:80".
  *
  * @param zt_addr 0-terminated string. May be mangled by the function.
@@ -1292,7 +1292,8 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
  *         the contents of @a r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
+GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
+				uint16_t addrlen,
 				struct sockaddr_in *r_buf)
 {
   unsigned int temps[4];
@@ -1301,7 +1302,13 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 
   if (addrlen < 9)
     return GNUNET_SYSERR;
-  cnt = SSCANF (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
+  cnt = SSCANF (zt_addr,
+		"%u.%u.%u.%u:%u",
+		&temps[0],
+		&temps[1],
+		&temps[2],
+		&temps[3],
+		&port);
   if (5 != cnt)
     return GNUNET_SYSERR;
   for (cnt = 0; cnt < 4; cnt++)
@@ -1328,8 +1335,8 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
  * @param addrlen number of bytes in @a addr (if addr is 0-terminated,
  *        0-terminator should not be counted towards addrlen).
  * @param r_buf a buffer to fill.
- * @return #GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
- *         case the contents of r_buf are undefined.
+ * @return #GNUNET_OK if conversion succeded. #GNUNET_SYSERR otherwise, in which
+ *         case the contents of @a r_buf are undefined.
  */
 int
 GNUNET_STRINGS_to_address_ip (const char *addr,
@@ -1343,6 +1350,62 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
   return GNUNET_STRINGS_to_address_ipv4 (addr,
                                          addrlen,
                                          (struct sockaddr_in *) r_buf);
+}
+
+
+/**
+ * Parse an address given as a string into a 
+ * `struct sockaddr`.
+ *
+ * @param addr the address
+ * @param[out] af set to the parsed address family (i.e. AF_INET)
+ * @param[out] sa set to the parsed address
+ * @return 0 on error, otherwise number of bytes in @a sa
+ */
+size_t
+GNUNET_STRINGS_parse_socket_addr (const char *addr,
+				  uint8_t *af,
+				  struct sockaddr **sa)
+{
+  char *cp = GNUNET_strdup (addr);
+
+  *af = AF_UNSPEC;
+  if ('[' == *addr)
+  {
+    /* IPv6 */    
+    *sa = GNUNET_malloc (sizeof (struct sockaddr_in6));
+    if (GNUNET_OK !=
+	GNUNET_STRINGS_to_address_ipv6 (cp,
+					strlen (cp),
+					(struct sockaddr_in6 *) *sa))
+    {
+      GNUNET_free (*sa);
+      *sa = NULL;
+      GNUNET_free (cp);
+      return 0;
+    }
+    *af = AF_INET6;
+    GNUNET_free (cp);
+    return sizeof (struct sockaddr_in6);
+  }
+  else
+  {
+    /* IPv4 */
+    *sa = GNUNET_malloc (sizeof (struct sockaddr_in));
+    if (GNUNET_OK !=
+	GNUNET_STRINGS_to_address_ipv4 (cp,
+					strlen (cp),
+					(struct sockaddr_in *) *sa))
+    {
+      GNUNET_free (*sa);
+      *sa = NULL;
+      GNUNET_free (cp);
+      return 0;
+    }
+    *af = AF_INET;
+    GNUNET_free (cp);
+    return sizeof (struct sockaddr_in);
+  }
 }
 
 
@@ -1388,7 +1451,10 @@ _make_continuous_arg_copy (int argc,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *const **u8argv)
+GNUNET_STRINGS_get_utf8_args (int argc,
+			      char *const *argv,
+			      int *u8argc,
+			      char *const **u8argv)
 {
 #if WINDOWS
   wchar_t *wcmd;
