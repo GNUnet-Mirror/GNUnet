@@ -58,7 +58,7 @@ gnunet_helper_nat_client_SOURCES = \
 gnunet_nat_SOURCES = \
   gnunet-nat.c nat.h
 gnunet_nat_LDADD = \
-  libgnunetnat.la \
+  libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 
