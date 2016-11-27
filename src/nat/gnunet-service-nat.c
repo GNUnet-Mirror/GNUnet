@@ -116,11 +116,10 @@ struct LocalAddressList
   struct LocalAddressList *prev;
 
   /**
-   * The address itself (i.e. `struct in_addr` or `struct in6_addr`,
-   * in the respective byte order).  Allocated at the end of this
-   * struct.
+   * The address itself (i.e. `struct sockaddr_in` or `struct
+   * sockaddr_in6`, in the respective byte order).
    */
-  const void *addr;
+  struct sockaddr_storage addr;
 
   /**
    * Address family.
@@ -701,7 +700,7 @@ ifc_proc (void *cls,
   switch (addr->sa_family)
   {
   case AF_INET:
-    alen = sizeof (struct in_addr);
+    alen = sizeof (struct sockaddr_in);
     ip = &((const struct sockaddr_in *) addr)->sin_addr;
     if (match_ipv4 ("127.0.0.0", ip, 8))
       ac = GNUNET_NAT_AC_LOOPBACK;
@@ -715,7 +714,7 @@ ifc_proc (void *cls,
       ac = GNUNET_NAT_AC_GLOBAL;
     break;
   case AF_INET6:
-    alen = sizeof (struct in6_addr);
+    alen = sizeof (struct sockaddr_in6);
     ip = &((const struct sockaddr_in6 *) addr)->sin6_addr;
     if (match_ipv6 ("::1", ip, 128))
       ac = GNUNET_NAT_AC_LOOPBACK;
@@ -742,12 +741,11 @@ ifc_proc (void *cls,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  lal = GNUNET_malloc (sizeof (*lal) + alen);
+  lal = GNUNET_malloc (sizeof (*lal));
   lal->af = addr->sa_family;
-  lal->addr = &lal[1];
   lal->ac = ac;
-  GNUNET_memcpy (&lal[1],
-		 ip,
+  GNUNET_memcpy (&lal->addr,
+		 addr,
 		 alen);
   GNUNET_CONTAINER_DLL_insert (ifc_ctx->lal_head,
 			       ifc_ctx->lal_tail,
@@ -773,9 +771,6 @@ notify_clients (struct LocalAddressList *delta,
   {
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
-    void *addr;
-    struct sockaddr_in v4;
-    struct sockaddr_in6 v6;
     size_t alen;
     
     if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
@@ -784,23 +779,9 @@ notify_clients (struct LocalAddressList *delta,
     {
     case AF_INET:
       alen = sizeof (struct sockaddr_in);
-      addr = &v4;
-      memset (&v4, 0, sizeof (v4));
-      v4.sin_family = AF_INET;
-      GNUNET_memcpy (&v4.sin_addr,
-		     delta->addr,
-		     sizeof (struct in_addr));
-      /* FIXME: set port */
       break;
     case AF_INET6:
       alen = sizeof (struct sockaddr_in6);
-      addr = &v6;
-      memset (&v6, 0, sizeof (v6));
-      v6.sin6_family = AF_INET6;
-      GNUNET_memcpy (&v6.sin6_addr,
-		     delta->addr,
-		     sizeof (struct in6_addr));
-      /* FIXME: set port, and link/interface! */
       break;
     default:
       GNUNET_break (0);
@@ -812,7 +793,7 @@ notify_clients (struct LocalAddressList *delta,
     msg->add_remove = htonl (add);
     msg->addr_class = htonl (delta->ac);
     GNUNET_memcpy (&msg[1],
-		   addr,
+		   &delta->addr,
 		   alen);
     GNUNET_MQ_send (ch->mq,
 		    env);
@@ -849,11 +830,11 @@ run_scan (void *cls)
 	 pos = pos->next)
     {
       if ( (pos->af == lal->af) &&
-	   (0 == memcmp (lal->addr,
-			 pos->addr,
+	   (0 == memcmp (&lal->addr,
+			 &pos->addr,
 			 (AF_INET == lal->af)
-			 ? sizeof (struct in_addr)
-			 : sizeof (struct in6_addr))) )
+			 ? sizeof (struct sockaddr_in)
+			 : sizeof (struct sockaddr_in6))) )
 	found = GNUNET_YES;
     }
     if (GNUNET_NO == found)
@@ -871,11 +852,11 @@ run_scan (void *cls)
 	 lal = lal->next)
     {
       if ( (pos->af == lal->af) &&
-	   (0 == memcmp (lal->addr,
-			 pos->addr,
+	   (0 == memcmp (&lal->addr,
+			 &pos->addr,
 			 (AF_INET == lal->af)
-			 ? sizeof (struct in_addr)
-			 : sizeof (struct in6_addr))) )
+			 ? sizeof (struct sockaddr_in)
+			 : sizeof (struct sockaddr_in6))) )
 	found = GNUNET_YES;
     }
     if (GNUNET_NO == found)
