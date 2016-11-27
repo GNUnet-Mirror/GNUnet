@@ -795,6 +795,7 @@ notify_clients (struct LocalAddressList *delta,
     GNUNET_memcpy (&msg[1],
 		   &delta->addr,
 		   alen);
+    /* FIXME: what about the port number? */
     GNUNET_MQ_send (ch->mq,
 		    env);
   }
