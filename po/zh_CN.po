@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2016-11-21 18:08+0100\n"
+"POT-Creation-Date: 2016-11-27 09:18+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -241,7 +241,7 @@ msgid "Control services and the Automated Restart Manager (ARM)"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:374 src/transport/plugin_transport_tcp.c:633
-#: src/util/service.c:565 src/util/service_new.c:604
+#: src/util/service.c:565 src/util/service_new.c:612
 #, c-format
 msgid ""
 "Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"
@@ -251,25 +251,26 @@ msgstr ""
 #: src/transport/plugin_transport_tcp.c:652
 #: src/transport/plugin_transport_tcp.c:658
 #: src/transport/plugin_transport_tcp.c:3299 src/util/service.c:584
-#: src/util/service.c:590 src/util/service_new.c:629 src/util/service_new.c:635
+#: src/util/service.c:590 src/util/service_new.c:637
+#: src/util/service_new.c:643
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:430 src/transport/plugin_transport_tcp.c:689
-#: src/util/client_new.c:464 src/util/service.c:621 src/util/service_new.c:674
+#: src/util/client_new.c:464 src/util/service.c:621 src/util/service_new.c:682
 #, c-format
 msgid "UNIXPATH `%s' too long, maximum length is %llu\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:434 src/transport/plugin_transport_tcp.c:693
-#: src/util/client_new.c:469 src/util/service.c:625 src/util/service_new.c:679
+#: src/util/client_new.c:469 src/util/service.c:625 src/util/service_new.c:687
 #, fuzzy, c-format
 msgid "Using `%s' instead\n"
 msgstr "%s：选项“%s”有歧义\n"
 
 #: src/arm/gnunet-service-arm.c:465 src/transport/plugin_transport_tcp.c:724
-#: src/util/service.c:656 src/util/service_new.c:715
+#: src/util/service.c:656 src/util/service_new.c:723
 #, c-format
 msgid ""
 "Disabling UNIX domain socket support for service `%s', failed to create UNIX "
@@ -277,7 +278,7 @@ msgid ""
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:482 src/transport/plugin_transport_tcp.c:741
-#: src/util/service.c:673 src/util/service_new.c:733
+#: src/util/service.c:673 src/util/service_new.c:741
 #, c-format
 msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
 msgstr ""
@@ -285,7 +286,7 @@ msgstr ""
 #: src/arm/gnunet-service-arm.c:513
 #: src/transport/plugin_transport_http_server.c:2617
 #: src/transport/plugin_transport_tcp.c:772 src/util/service.c:704
-#: src/util/service_new.c:774
+#: src/util/service_new.c:782
 #, fuzzy, c-format
 msgid "Failed to resolve `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
@@ -293,7 +294,7 @@ msgstr "打开日志文件“%s”失败：%s\n"
 #: src/arm/gnunet-service-arm.c:532
 #: src/transport/plugin_transport_http_server.c:2635
 #: src/transport/plugin_transport_tcp.c:791 src/util/service.c:723
-#: src/util/service_new.c:794
+#: src/util/service_new.c:802
 #, fuzzy, c-format
 msgid "Failed to find %saddress for `%s'.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
@@ -386,11 +387,13 @@ msgid ""
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-ats-solver-eval.c:3293 src/ats-tests/gnunet-solver-eval.c:935
+#: src/ats/gnunet-ats-solver-eval.c:3293
+#: src/ats-tests/gnunet-solver-eval.c:935
 msgid "solver to use"
 msgstr ""
 
-#: src/ats/gnunet-ats-solver-eval.c:3296 src/ats-tests/gnunet-solver-eval.c:938
+#: src/ats/gnunet-ats-solver-eval.c:3296
+#: src/ats-tests/gnunet-solver-eval.c:938
 #: src/ats-tests/gnunet-solver-eval.c:941
 msgid "experiment to use"
 msgstr ""
@@ -1873,7 +1876,8 @@ msgstr ""
 msgid "Prints all packets that go through the DHT."
 msgstr ""
 
-#: src/dht/gnunet_dht_profiler.c:1161 src/testbed/gnunet-testbed-profiler.c:255
+#: src/dht/gnunet_dht_profiler.c:1161
+#: src/testbed/gnunet-testbed-profiler.c:255
 #, fuzzy, c-format
 msgid "Exiting as the number of peers is %u\n"
 msgstr "增加 TCP/IP 的最大连接数"
@@ -2050,7 +2054,8 @@ msgstr ""
 msgid "# GET requests given to datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_hello.c:84 src/dht/gnunet-service-xdht_hello.c:82
+#: src/dht/gnunet-service-dht_hello.c:84
+#: src/dht/gnunet-service-xdht_hello.c:82
 msgid "# HELLOs obtained from peerinfo"
 msgstr ""
 
@@ -4989,7 +4994,8 @@ msgstr ""
 msgid "Invalid public key for reverse lookup `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/namestore/gnunet-namestore.c:979 src/peerinfo-tool/gnunet-peerinfo.c:775
+#: src/namestore/gnunet-namestore.c:979
+#: src/peerinfo-tool/gnunet-peerinfo.c:775
 #, fuzzy, c-format
 msgid "Invalid URI `%s'\n"
 msgstr "无效条目。\n"
@@ -7936,7 +7942,7 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "Expected `%s' to be a directory!\n"
 msgstr "“%s”应为目录！\n"
 
-#: src/util/disk.c:1486 src/util/service.c:1322 src/util/service_new.c:1371
+#: src/util/disk.c:1486 src/util/service.c:1322 src/util/service_new.c:1379
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
@@ -8284,17 +8290,17 @@ msgstr ""
 msgid "Could not determine plugin installation path.\n"
 msgstr "无法确定用户界面定义文件。"
 
-#: src/util/program.c:244 src/util/service.c:1456 src/util/service_new.c:1801
+#: src/util/program.c:244 src/util/service.c:1456 src/util/service_new.c:1809
 #, fuzzy, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/util/program.c:256 src/util/service.c:1471 src/util/service_new.c:1818
+#: src/util/program.c:256 src/util/service.c:1471 src/util/service_new.c:1826
 #, fuzzy, c-format
 msgid "Could not access configuration file `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/util/program.c:261 src/util/service.c:1466 src/util/service_new.c:1812
+#: src/util/program.c:261 src/util/service.c:1466 src/util/service_new.c:1820
 #, fuzzy
 msgid "Malformed configuration, exit ...\n"
 msgstr "解析配置文件“%s”失败\n"
@@ -8332,17 +8338,17 @@ msgstr ""
 msgid "Could not resolve our FQDN: %s\n"
 msgstr "无法解析“%s”(%s)：%s\n"
 
-#: src/util/server.c:478 src/util/service_new.c:1103
+#: src/util/server.c:478 src/util/service_new.c:1111
 #, fuzzy, c-format
 msgid "`%s' failed for port %d (%s).\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/server.c:488 src/util/service_new.c:1113
+#: src/util/server.c:488 src/util/service_new.c:1121
 #, c-format
 msgid "`%s' failed for port %d (%s): address already in use\n"
 msgstr ""
 
-#: src/util/server.c:494 src/util/service_new.c:1119
+#: src/util/server.c:494 src/util/service_new.c:1127
 #, fuzzy, c-format
 msgid "`%s' failed for `%s': address already in use\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
@@ -8354,7 +8360,7 @@ msgid ""
 "`GNUNET_SERVER_receive_done' after %s\n"
 msgstr ""
 
-#: src/util/service.c:347 src/util/service_new.c:2335
+#: src/util/service.c:347 src/util/service_new.c:2343
 #, c-format
 msgid "Unknown address family %d\n"
 msgstr ""
@@ -8364,26 +8370,26 @@ msgstr ""
 msgid "Access from `%s' denied to service `%s'\n"
 msgstr ""
 
-#: src/util/service.c:410 src/util/service_new.c:431
+#: src/util/service.c:410 src/util/service_new.c:439
 #, c-format
 msgid "Could not parse IPv4 network specification `%s' for `%s:%s'\n"
 msgstr ""
 
-#: src/util/service.c:448 src/util/service_new.c:474
+#: src/util/service.c:448 src/util/service_new.c:482
 #, c-format
 msgid "Could not parse IPv6 network specification `%s' for `%s:%s'\n"
 msgstr ""
 
-#: src/util/service.c:912 src/util/service_new.c:1034
+#: src/util/service.c:912 src/util/service_new.c:1042
 msgid "Could not access a pre-bound socket, will try to bind myself\n"
 msgstr ""
 
-#: src/util/service.c:961 src/util/service.c:979 src/util/service_new.c:1186
+#: src/util/service.c:961 src/util/service.c:979 src/util/service_new.c:1194
 #, c-format
 msgid "Specified value for `%s' of service `%s' is invalid\n"
 msgstr ""
 
-#: src/util/service.c:1004 src/util/service_new.c:1218
+#: src/util/service.c:1004 src/util/service_new.c:1226
 #, c-format
 msgid "Could not access pre-bound socket %u, will try to bind myself\n"
 msgstr ""
@@ -8398,37 +8404,37 @@ msgstr "运行 %s失败：%s %d\n"
 msgid "Service `%s' runs at %s\n"
 msgstr ""
 
-#: src/util/service.c:1260 src/util/service_new.c:1493
+#: src/util/service.c:1260 src/util/service_new.c:1501
 msgid "Service process failed to initialize\n"
 msgstr ""
 
-#: src/util/service.c:1264 src/util/service_new.c:1497
+#: src/util/service.c:1264 src/util/service_new.c:1505
 msgid "Service process could not initialize server function\n"
 msgstr ""
 
-#: src/util/service.c:1268 src/util/service_new.c:1501
+#: src/util/service.c:1268 src/util/service_new.c:1509
 msgid "Service process failed to report status\n"
 msgstr ""
 
-#: src/util/service.c:1323 src/util/service_new.c:1373
+#: src/util/service.c:1323 src/util/service_new.c:1381
 msgid "No such user"
 msgstr "无此用户"
 
-#: src/util/service.c:1336 src/util/service_new.c:1392
+#: src/util/service.c:1336 src/util/service_new.c:1400
 #, c-format
 msgid "Cannot change user/group to `%s': %s\n"
 msgstr "无法更改用户/组为“%s”：%s\n"
 
-#: src/util/service.c:1406 src/util/service_new.c:1729
+#: src/util/service.c:1406 src/util/service_new.c:1737
 msgid "do daemonize (detach from terminal)"
 msgstr ""
 
-#: src/util/service_new.c:1298
+#: src/util/service_new.c:1306
 msgid ""
 "Could not bind to any of the ports I was supposed to, refusing to run!\n"
 msgstr ""
 
-#: src/util/service_new.c:2085
+#: src/util/service_new.c:2093
 #, c-format
 msgid ""
 "Processing code for message of type %u did not call "
