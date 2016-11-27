@@ -127,6 +127,11 @@ struct LocalAddressList
    */
   int af;
 
+  /**
+   * What type of address is this?
+   */
+  enum GNUNET_NAT_AddressClass ac;
+  
 };
 
 
@@ -502,6 +507,7 @@ handle_test (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REQUEST_TEST message from client\n");
+  /* FIXME: actually process test request */
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -657,6 +663,70 @@ ifc_proc (void *cls,
 
 
 /**
+ * Notify all clients about a change in the list
+ * of addresses this peer has.
+ *
+ * @param delta the entry in the list that changed
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+notify_clients (struct LocalAddressList *delta,
+		int add)
+{
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
+    void *addr;
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
+    size_t alen;
+    
+    if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
+      continue;
+    switch (delta->af)
+    {
+    case AF_INET:
+      alen = sizeof (struct sockaddr_in);
+      addr = &v4;
+      memset (&v4, 0, sizeof (v4));
+      v4.sin_family = AF_INET;
+      GNUNET_memcpy (&v4.sin_addr,
+		     delta->addr,
+		     sizeof (struct in_addr));
+      /* FIXME: set port */
+      break;
+    case AF_INET6:
+      alen = sizeof (struct sockaddr_in6);
+      addr = &v6;
+      memset (&v6, 0, sizeof (v6));
+      v6.sin6_family = AF_INET6;
+      GNUNET_memcpy (&v6.sin6_addr,
+		     delta->addr,
+		     sizeof (struct in6_addr));
+      /* FIXME: set port, and link/interface! */
+      break;
+    default:
+      GNUNET_break (0);
+      continue;
+    }
+    env = GNUNET_MQ_msg_extra (msg,
+			       alen,
+			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
+    msg->add_remove = htonl (add);
+    msg->addr_class = htonl (delta->ac);
+    GNUNET_memcpy (&msg[1],
+		   addr,
+		   alen);
+    GNUNET_MQ_send (ch->mq,
+		    env);
+  }
+}
+
+
+/**
  * Task we run periodically to scan for network interfaces.
  *
  * @param cls NULL
@@ -665,6 +735,7 @@ static void
 run_scan (void *cls)
 {
   struct IfcProcContext ifc_ctx;
+  int found;
   
   scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
 					    &run_scan,
@@ -674,7 +745,50 @@ run_scan (void *cls)
 	  sizeof (ifc_ctx));
   GNUNET_OS_network_interfaces_list (&ifc_proc,
 				     &ifc_ctx);
-  /* FIXME: notify clients of changes in lal-DLL */
+  for (struct LocalAddressList *lal = lal_head;
+       NULL != lal;
+       lal = lal->next)
+  {
+    found = GNUNET_NO;
+    for (struct LocalAddressList *pos = ifc_ctx.lal_head;
+	 NULL != pos;
+	 pos = pos->next)
+    {
+      if ( (pos->af == lal->af) &&
+	   (0 == memcmp (lal->addr,
+			 pos->addr,
+			 (AF_INET == lal->af)
+			 ? sizeof (struct in_addr)
+			 : sizeof (struct in6_addr))) )
+	found = GNUNET_YES;
+    }
+    if (GNUNET_NO == found)
+      notify_clients (lal,
+		      GNUNET_NO);
+  }
+
+  for (struct LocalAddressList *pos = ifc_ctx.lal_head;
+       NULL != pos;
+       pos = pos->next)
+  {
+    found = GNUNET_NO;
+    for (struct LocalAddressList *lal = lal_head;
+	 NULL != lal;
+	 lal = lal->next)
+    {
+      if ( (pos->af == lal->af) &&
+	   (0 == memcmp (lal->addr,
+			 pos->addr,
+			 (AF_INET == lal->af)
+			 ? sizeof (struct in_addr)
+			 : sizeof (struct in6_addr))) )
+	found = GNUNET_YES;
+    }
+    if (GNUNET_NO == found)
+      notify_clients (pos,
+		      GNUNET_YES);
+  }
+
   destroy_lal ();
   lal_head = ifc_ctx.lal_head;
   lal_tail = ifc_ctx.lal_tail;
