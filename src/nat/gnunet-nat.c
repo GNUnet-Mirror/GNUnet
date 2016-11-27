@@ -618,7 +618,6 @@ main (int argc,
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },
-    // FIMXE: -s not implemented!
     {'t', "tcp", NULL,
      gettext_noop ("use TCP"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },
