@@ -244,7 +244,7 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  * How much data is available to be read on this descriptor?
  *
  * @param desc socket
- * @returns #GNUNET_NO if no data is available, or on error!
+ * @returns #GNUNET_SYSERR if no data is available, or on error!
  */
 ssize_t
 GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *desc);

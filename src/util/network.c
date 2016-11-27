@@ -770,7 +770,7 @@ GNUNET_NETWORK_socket_listen (const struct GNUNET_NETWORK_Handle *desc,
  * How much data is available to be read on this descriptor?
  *
  * @param desc socket
- * @returns #GNUNET_NO if no data is available, or on error!
+ * @returns #GNUNET_SYSERR if no data is available, or on error!
  */
 ssize_t
 GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *desc)
@@ -784,9 +784,9 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *desc)
   error = ioctl (desc->fd,
                  FIONREAD,
                  &pending);
-  if (error == 0)
+  if (0 == error)
     return (ssize_t) pending;
-  return GNUNET_NO;
+  return GNUNET_SYSERR;
 #else
   u_long pending;
 
@@ -795,7 +795,7 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *desc)
                        &pending);
   if (error != SOCKET_ERROR)
     return (ssize_t) pending;
-  return GNUNET_NO;
+  return GNUNET_SYSERR;
 #endif
 }
 
