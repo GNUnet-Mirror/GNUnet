@@ -64,16 +64,21 @@ enum GNUNET_NAT_AddressClass
   GNUNET_NAT_AC_OTHER = 1,
 
   /**
-   * Addresses that are global and are insensitive
-   * (i.e. IPv4).
+   * Addresses that are highly sensitive
+   * (i.e. IPv6 with our MAC).
    */
-  GNUNET_NAT_AC_GLOBAL = 2,
+  GNUNET_NAT_AC_PRIVATE = 2,
+
+  /**
+   * Addresses that are global (i.e. IPv4).
+   */
+  GNUNET_NAT_AC_GLOBAL = 4,
 
   /**
    * Addresses that are global and are sensitive
    * (i.e. IPv6 with our MAC).
    */
-  GNUNET_NAT_AC_GLOBAL_PRIVATE = 4,
+  GNUNET_NAT_AC_GLOBAL_PRIVATE = 6,
 
   /**
    * Addresses useful in the local wired network,
@@ -81,6 +86,13 @@ enum GNUNET_NAT_AddressClass
    * Useful for broadcasts.
    */
   GNUNET_NAT_AC_LAN = 8,
+  
+  /**
+   * Addresses useful in the local wired network,
+   * i.e. a MAC.  Sensitive, but obvious to people nearby.
+   * Useful for broadcasts.
+   */
+  GNUNET_NAT_AC_LAN_PRIVATE = 10,
 
   /**
    * Addresses useful in the local wireless network,
@@ -95,6 +107,11 @@ enum GNUNET_NAT_AddressClass
    */
   GNUNET_NAT_AC_BT = 32,
 
+  /**
+   * Loopback addresses, only useful under special cirumstances.
+   */
+  GNUNET_NAT_AC_LOOPBACK = 64,
+  
   /**
    * Bitmask for "any" address.
    */

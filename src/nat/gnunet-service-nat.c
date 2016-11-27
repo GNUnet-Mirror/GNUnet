@@ -604,6 +604,72 @@ struct IfcProcContext
 
 
 /**
+ * Check if @a ip is in @a network with @a bits netmask.
+ *
+ * @param network to test
+ * @param ip IP address to test
+ * @param bits bitmask for the network
+ * @return #GNUNET_YES if @a ip is in @a network
+ */
+static int
+match_ipv4 (const char *network,
+	    const struct in_addr *ip,
+	    uint8_t bits)
+{
+  struct in_addr net;
+  
+  if (0 == bits)
+    return GNUNET_YES;
+  GNUNET_assert (1 == inet_pton (AF_INET,
+				 network,
+				 &net));
+  return ! ((ip->s_addr ^ net.s_addr) & htonl (0xFFFFFFFFu << (32 - bits)));
+}
+
+
+/**
+ * Check if @a ip is in @a network with @a bits netmask.
+ *
+ * @param network to test
+ * @param ip IP address to test
+ * @param bits bitmask for the network
+ * @return #GNUNET_YES if @a ip is in @a network
+ */
+static int
+match_ipv6 (const char *network,
+	    const struct in6_addr *ip,
+	    uint8_t bits)
+{
+  struct in6_addr net;
+  struct in6_addr mask;
+  unsigned int off;
+  
+  if (0 == bits)
+    return GNUNET_YES;
+  GNUNET_assert (1 == inet_pton (AF_INET,
+				 network,
+				 &net));
+  memset (&mask, 0, sizeof (mask));
+  off = 0;
+  while (bits > 8)
+  {
+    mask.s6_addr[off++] = 0xFF;
+    bits -= 8;
+  }
+  while (bits > 0)
+  {
+    mask.s6_addr[off] = (mask.s6_addr[off] >> 1) + 0x80;
+    bits--;
+  }
+  for (unsigned j = 0; j < sizeof (struct in6_addr) / sizeof (uint32_t); j++)
+    if (((((uint32_t *) ip)[j] & ((uint32_t *) &mask)[j])) !=
+	(((uint32_t *) &net)[j] & ((int *) &mask)[j]))
+      return GNUNET_NO;
+  return GNUNET_YES;
+}
+
+
+/**
  * Callback function invoked for each interface found.  Adds them
  * to our new address list.
  *
@@ -629,16 +695,43 @@ ifc_proc (void *cls,
   struct LocalAddressList *lal;
   size_t alen;
   const void *ip;
+  const struct in6_addr *v6;
+  enum GNUNET_NAT_AddressClass ac;
 
   switch (addr->sa_family)
   {
   case AF_INET:
     alen = sizeof (struct in_addr);
     ip = &((const struct sockaddr_in *) addr)->sin_addr;
+    if (match_ipv4 ("127.0.0.0", ip, 8))
+      ac = GNUNET_NAT_AC_LOOPBACK;
+    else if (match_ipv4 ("10.0.0.0", ip, 8) || /* RFC 1918 */
+	     match_ipv4 ("100.64.0.0", ip, 10) || /* CG-NAT, RFC 6598 */
+	     match_ipv4 ("192.168.0.0", ip, 12) || /* RFC 1918 */
+	     match_ipv4 ("169.254.0.0", ip, 16) || /* AUTO, RFC 3927 */
+	     match_ipv4 ("172.16.0.0", ip, 16))  /* RFC 1918 */
+      ac = GNUNET_NAT_AC_LAN;
+    else
+      ac = GNUNET_NAT_AC_GLOBAL;
     break;
   case AF_INET6:
     alen = sizeof (struct in6_addr);
     ip = &((const struct sockaddr_in6 *) addr)->sin6_addr;
+    if (match_ipv6 ("::1", ip, 128))
+      ac = GNUNET_NAT_AC_LOOPBACK;
+    else if (match_ipv6 ("fc00::", ip, 7) || /* RFC 4193 */
+	     match_ipv6 ("fec0::", ip, 10) || /* RFC 3879 */
+	     match_ipv6 ("fe80::", ip, 10)) /* RFC 4291, link-local */
+      ac = GNUNET_NAT_AC_LAN;
+    else
+      ac = GNUNET_NAT_AC_GLOBAL;
+    v6 = ip;
+    if ( (v6->s6_addr[11] == 0xFF) &&
+	 (v6->s6_addr[12] == 0xFE) )
+    {
+      /* contains a MAC, be extra careful! */
+      ac |= GNUNET_NAT_AC_PRIVATE;
+    }
     break;
 #if AF_UNIX
   case AF_UNIX:
@@ -652,6 +745,7 @@ ifc_proc (void *cls,
   lal = GNUNET_malloc (sizeof (*lal) + alen);
   lal->af = addr->sa_family;
   lal->addr = &lal[1];
+  lal->ac = ac;
   GNUNET_memcpy (&lal[1],
 		 ip,
 		 alen);
