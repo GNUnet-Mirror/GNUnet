@@ -84,7 +84,9 @@ libgnunetnat_la_LDFLAGS = \
   -version-info 1:1:1
 
 libgnunetnatnew_la_SOURCES = \
-  nat_api.c nat.h
+  nat_api.c \
+  nat_api_stun.c nat_stun.h \
+  nat.h
 libgnunetnatnew_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) @EXT_LIBS@ 
@@ -93,7 +95,8 @@ libgnunetnatnew_la_LDFLAGS = \
   -version-info 2:0:0
 
 gnunet_service_nat_SOURCES = \
- gnunet-service-nat.c
+ gnunet-service-nat.c \
+ gnunet-service-nat_stun.c gnunet-service-nat_stun.h
 gnunet_service_nat_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

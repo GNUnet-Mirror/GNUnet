@@ -544,15 +544,15 @@ test_stun_packet (const void *data,
  * Handle an incoming STUN message.  This function is useful as
  * some GNUnet service may be listening on a UDP port and might
  * thus receive STUN messages while trying to receive other data.
- * In this case, this function can be used to act as a proper
- * STUN server (if desired).
+ * In this case, this function can be used to process replies
+ * to STUN requests.
  *
  * The function does some basic sanity checks on packet size and
- * content, try to extract a bit of information, and possibly replies
- * if this is an actual STUN message.
+ * content, try to extract a bit of information.
  * 
  * At the moment this only processes BIND requests, and returns the
- * externally visible address of the request. 
+ * externally visible address of the request to the rest of the
+ * NAT logic.
  *
  * @param nh handle to the NAT service
  * @param sender_addr address from which we got @a data

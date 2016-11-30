@@ -34,6 +34,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_nat_service.h"
+#include "gnunet-service-nat_stun.h"
 #include "nat.h"
 #include <gcrypt.h>
 
@@ -360,6 +361,7 @@ handle_stun (void *cls,
   const void *payload;
   size_t sa_len;
   size_t payload_size;
+  struct sockaddr_in external_addr;
 
   sa_len = ntohs (message->sender_addr_size);
   payload_size = ntohs (message->payload_size);
@@ -386,7 +388,28 @@ handle_stun (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received HANDLE_STUN message from client\n");
-  // FIXME: actually handle STUN request!
+  if (GNUNET_OK ==
+      GNUNET_NAT_stun_handle_packet_ (payload,
+				      payload_size,
+				      &external_addr))
+  {     
+    /* FIXME: do something with "external_addr"! We 
+       now know that a server at "sa" claims that
+       we are visible at IP "external_addr". 
+
+       We should (for some fixed period of time) tell
+       all of our clients that listen to a NAT'ed address
+       that they might want to consider the given 'external_ip'
+       as their public IP address (this includes TCP and UDP
+       clients, even if only UDP sends STUN requests).
+
+       If we do not get a renewal, the "external_addr" should be
+       removed again.  The timeout frequency should be configurable
+       (with a sane default), so that the UDP plugin can tell how
+       often to re-request STUN.
+    */
+    
+  }
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -786,12 +809,14 @@ ifc_proc (void *cls,
  * of addresses this peer has.
  *
  * @param delta the entry in the list that changed
+ * @param ch client to contact
  * @param add #GNUNET_YES to add, #GNUNET_NO to remove
  * @param addr the address that changed
  * @param addr_len number of bytes in @a addr
  */
 static void
 notify_client (struct LocalAddressList *delta,
+	       struct ClientHandle *ch,
 	       int add,
 	       const void *addr,
 	       size_t addr_len)
@@ -800,13 +825,13 @@ notify_client (struct LocalAddressList *delta,
   struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
 
   env = GNUNET_MQ_msg_extra (msg,
-			     alen,
+			     addr_len,
 			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
   msg->add_remove = htonl (add);
   msg->addr_class = htonl (delta->ac);
   GNUNET_memcpy (&msg[1],
 		 addr,
-		 alen);
+		 addr_len);
   GNUNET_MQ_send (ch->mq,
 		  env);
 }	     	       
@@ -849,6 +874,7 @@ notify_clients (struct LocalAddressList *delta,
 	c4 = (const struct sockaddr_in *) ch->addrs[i];
 	v4.sin_port = c4->sin_port;
 	notify_client (delta,
+		       ch,
 		       add,
 		       &v4,
 		       alen);
@@ -866,8 +892,9 @@ notify_clients (struct LocalAddressList *delta,
 	if (AF_INET6 != ch->addrs[i]->sa_family)
 	  continue; /* IPv4 not relevant */
 	c6 = (const struct sockaddr_in6 *) ch->addrs[i];
-	v6.sin_port = c6->sin_port;
+	v6.sin6_port = c6->sin6_port;
 	notify_client (delta,
+		       ch,
 		       add,
 		       &v6,
 		       alen);
