@@ -71,4 +71,19 @@ void
 GN_stop_gnunet_nat_server_ (struct HelperContext *h);
 
 
+/**
+ * We want to connect to a peer that is behind NAT.  Run the
+ * gnunet-helper-nat-client to send dummy ICMP responses to cause
+ * that peer to connect to us (connection reversal).
+ *
+ * @param internal_address out internal address to use
+ * @param sa the address of the peer (IPv4-only)
+ * @return #GNUNET_SYSERR on error,
+ *         #GNUNET_OK otherwise
+ */
+int
+GN_request_connection_reversal (const char *internal_address,
+				const struct sockaddr_in *sa);
+
+
 /* end of gnunet-service-nat_helper.h */

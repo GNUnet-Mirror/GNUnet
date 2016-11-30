@@ -342,4 +342,69 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h)
   GNUNET_free (h);
 }
 
+
+/**
+ * We want to connect to a peer that is behind NAT.  Run the
+ * gnunet-helper-nat-client to send dummy ICMP responses to cause
+ * that peer to connect to us (connection reversal).
+ *
+ * @param internal_address out internal address to use
+ * @param sa the address of the peer (IPv4-only)
+ * @return #GNUNET_SYSERR on error,
+ *         #GNUNET_OK otherwise
+ */
+int
+GN_request_connection_reversal (const char *internal_address,
+				const struct sockaddr_in *sa)
+{
+  char inet4[INET_ADDRSTRLEN];
+  char port_as_string[6];
+  struct GNUNET_OS_Process *proc;
+  char *binary;
+
+  GNUNET_assert (sa->sin_family == AF_INET);
+  if (NULL == inet_ntop (AF_INET,
+			 &sa->sin_addr,
+			 inet4,
+			 INET_ADDRSTRLEN))
+  {
+    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
+                              "nat",
+                              "inet_ntop");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_snprintf (port_as_string,
+                   sizeof (port_as_string),
+                   "%d",
+                   ntohs (sa->sin_port));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Running gnunet-helper-nat-client %s %s %u\n"),
+       internal_address,
+       inet4,
+       ntohs (sa->sin_port));
+  binary
+    = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
+  proc
+    = GNUNET_OS_start_process (GNUNET_NO,
+			       0,
+			       NULL,
+			       NULL,
+			       NULL,
+                               binary,
+                               "gnunet-helper-nat-client",
+                               internal_address,
+                               inet4,
+			       port_as_string,
+			       NULL);
+  GNUNET_free (binary);
+  if (NULL == proc)
+    return GNUNET_SYSERR;
+  /* we know that the gnunet-helper-nat-client will terminate virtually
+   * instantly */
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_destroy (proc);
+  return GNUNET_OK;
+}
+
+
 /* end of gnunet-service-nat_helper.c */
