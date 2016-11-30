@@ -30,7 +30,6 @@
  * TODO:
  * - call GN_start_gnunet_nat_server_() if possible (i.e.
  *   when we find we have a non-global IPv4 address)
- * - implement handle_test
  * - implement autoconfig
  * - implmeent UPnPC/PMP-based NAT traversal
  * - implement NEW logic for external IP detection
