@@ -272,7 +272,7 @@ fi])
 AC_ARG_ENABLE(sanitizer,
   AS_HELP_STRING(--enable-sanitizer, enable Address Sanitizer and Undefined Behavior Sanitizer),
 [if test x$enableval = xyes; then
-   LDFLAGS="$CFLAGS -fsanitize=address,undefined -fsanitize-recover=all -fno-omit-frame-pointer"
+   LDFLAGS="$CFLAGS -fsanitize=address,undefined -fno-omit-frame-pointer"
 fi])
 
 
