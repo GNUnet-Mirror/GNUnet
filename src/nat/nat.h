@@ -234,61 +234,6 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
 
 
 /**
- * Client requesting test of network connectivity.
- */
-struct GNUNET_NAT_RequestTestMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Port to bind to, in NBO
-   */
-  uint16_t bind_port GNUNET_PACKED;
-
-  /**
-   * Port external verifier should try to connect to, in NBO.
-   */
-  uint16_t extern_port GNUNET_PACKED;
-
-  /**
-   * IPv4 to bind to, in NBO.
-   */
-  struct in_addr bind_ip GNUNET_PACKED;
-
-  /**
-   * IPv4 external verifier should try to connect to, in NBO.
-   */
-  struct in_addr extern_ip GNUNET_PACKED;
-  
-  /**
-   * IP protocol to use, i.e. IPPROTO_UDP or IPPROTO_TCP.
-   */
-  uint8_t proto;
-
-};
-
-
-/**
- * Service responding with network connectivity test result.
- */
-struct GNUNET_NAT_TestResultMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * An `enum GNUNET_NAT_StatusCode` in NBO.
-   */
-  int32_t status_code GNUNET_PACKED;
-};
-
-
-/**
  * Client requesting automatic configuration.
  */
 struct GNUNET_NAT_AutoconfigRequestMessage

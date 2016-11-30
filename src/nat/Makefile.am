@@ -86,6 +86,7 @@ libgnunetnat_la_LDFLAGS = \
 libgnunetnatnew_la_SOURCES = \
   nat_api.c \
   nat_api_stun.c nat_stun.h \
+  nat_api_test.c \
   nat.h
 libgnunetnatnew_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \

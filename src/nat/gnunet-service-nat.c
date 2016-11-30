@@ -26,6 +26,14 @@
  * The purpose of this service is to enable transports to 
  * traverse NAT routers, by providing traversal options and
  * knowledge about the local network topology.
+ *
+ * TODO:
+ * - call GN_start_gnunet_nat_server_() if possible (i.e.
+ *   when we find we have a non-global IPv4 address)
+ * - implement handle_test
+ * - implement autoconfig
+ * - implmeent UPnPC/PMP-based NAT traversal
+ * - implement NEW logic for external IP detection
  */
 #include "platform.h"
 #include <math.h>
@@ -507,28 +515,9 @@ handle_request_connection_reversal (void *cls,
     GNUNET_SERVICE_client_drop (ch->client);
     return;
   }
-  /* FIXME: actually run the logic! */
+  /* FIXME: actually run the logic by
+     calling 'GN_request_connection_reversal()' */
   
-  GNUNET_SERVICE_client_continue (ch->client);
-}
-
-
-/**
- * Handler for #GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST message from
- * client.
- *
- * @param cls client who sent the message
- * @param message the message received
- */
-static void
-handle_test (void *cls,
-	     const struct GNUNET_NAT_RequestTestMessage *message)
-{
-  struct ClientHandle *ch = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received REQUEST_TEST message from client\n");
-  /* FIXME: actually process test request */
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -1071,10 +1060,6 @@ GNUNET_SERVICE_MAIN
 			GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL,
 			struct GNUNET_NAT_RequestConnectionReversalMessage,
 			NULL),
- GNUNET_MQ_hd_fixed_size (test,
-			  GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST,
-			  struct GNUNET_NAT_RequestTestMessage,
-			  NULL),
  GNUNET_MQ_hd_var_size (autoconfig_request,
 			GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG,
 			struct GNUNET_NAT_AutoconfigRequestMessage,
