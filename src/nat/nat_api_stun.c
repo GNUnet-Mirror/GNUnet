@@ -229,7 +229,8 @@ GNUNET_NAT_stun_make_request (const char *server,
   rh->dns_active = GNUNET_RESOLVER_ip_get (rh->stun_server,
                                            AF_INET,
                                            TIMEOUT,
-                                           &stun_dns_callback, rh);
+                                           &stun_dns_callback,
+					   rh);
   if (NULL == rh->dns_active)
   {
     GNUNET_NAT_stun_make_request_cancel (rh);

@@ -144,6 +144,51 @@ struct LocalAddressList
 
 
 /**
+ * External IP address as given to us via some STUN server.
+ */
+struct StunExternalIP
+{
+  /**
+   * Kept in a DLL.
+   */ 
+  struct StunExternalIP *next;
+
+  /**
+   * Kept in a DLL.
+   */ 
+  struct StunExternalIP *prev;
+
+  /**
+   * Task we run to remove this entry when it is stale.
+   */
+  struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Our external IP address as reported by the 
+   * STUN server.
+   */
+  struct sockaddr_in external_addr;
+
+  /**
+   * Address of the reporting STUN server.  Used to 
+   * detect when a STUN server changes its opinion
+   * to more quickly remove stale results.
+   */
+  struct sockaddr_storage stun_server_addr;
+
+  /**
+   * Number of bytes used in @e stun_server_addr.
+   */
+  size_t stun_server_addr_len;
+};
+
+
+/**
+ * Timeout to use when STUN data is considered stale.
+ */
+static struct GNUNET_TIME_Relative stun_stale_timeout;
+
+/**
  * Handle to our current configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -177,6 +222,16 @@ static struct LocalAddressList *lal_head;
  * Tail of DLL of local addresses.
  */
 static struct LocalAddressList *lal_tail;
+
+/**
+ * Kept in a DLL.
+ */ 
+static struct StunExternalIP *se_head;
+
+/**
+ * Kept in a DLL.
+ */ 
+static struct StunExternalIP *se_tail;
 
 
 /**
@@ -353,6 +408,43 @@ check_stun (void *cls,
 
 
 /**
+ * Notify all clients about our external IP address
+ * as reported by the STUN server.
+ *
+ * @param ip the external IP
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+notify_clients_stun_change (const struct sockaddr_in *ip,
+			    int add)
+{
+  /* FIXME: notify clients about add/drop */
+}
+
+
+/**
+ * Function to be called when we decide that an
+ * external IP address as told to us by a STUN
+ * server has gone stale.
+ *
+ * @param cls the `struct StunExternalIP` to drop
+ */
+static void
+stun_ip_timeout (void *cls)
+{
+  struct StunExternalIP *se = cls;
+
+  se->timeout_task = NULL;
+  notify_clients_stun_change (&se->external_addr,
+			      GNUNET_NO);
+  GNUNET_CONTAINER_DLL_remove (se_head,
+			       se_tail,
+			       se);
+  GNUNET_free (se);
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN message from
  * client.
  *
@@ -401,8 +493,7 @@ handle_stun (void *cls,
 				      payload_size,
 				      &external_addr))
   {     
-    /* FIXME: do something with "external_addr"! We 
-       now know that a server at "sa" claims that
+    /* We now know that a server at "sa" claims that
        we are visible at IP "external_addr". 
 
        We should (for some fixed period of time) tell
@@ -416,7 +507,50 @@ handle_stun (void *cls,
        (with a sane default), so that the UDP plugin can tell how
        often to re-request STUN.
     */
-    
+    struct StunExternalIP *se;
+
+    /* Check if we had a prior response from this STUN server */
+    for (se = se_head; NULL != se; se = se->next)
+    {
+      if ( (se->stun_server_addr_len != sa_len) ||
+	   (0 != memcmp (sa,
+			 &se->stun_server_addr,
+			 sa_len)) )
+	continue; /* different STUN server */
+      if (0 != memcmp (&external_addr,
+		       &se->external_addr,
+		       sizeof (struct sockaddr_in)))
+      {
+	/* external IP changed, update! */
+	notify_clients_stun_change (&se->external_addr,
+				    GNUNET_NO);
+	se->external_addr = external_addr;
+	notify_clients_stun_change (&se->external_addr,
+				    GNUNET_YES);
+      }
+      /* update timeout */
+      GNUNET_SCHEDULER_cancel (se->timeout_task);
+      se->timeout_task
+	= GNUNET_SCHEDULER_add_delayed (stun_stale_timeout,
+					&stun_ip_timeout,
+					se);
+      return;
+    }
+    /* STUN server is completely new, create fresh entry */
+    se = GNUNET_new (struct StunExternalIP);
+    se->external_addr = external_addr;
+    GNUNET_memcpy (&se->stun_server_addr,
+		   sa,
+		   sa_len);
+    se->stun_server_addr_len = sa_len;
+    se->timeout_task = GNUNET_SCHEDULER_add_delayed (stun_stale_timeout,
+						     &stun_ip_timeout,
+						     se);
+    GNUNET_CONTAINER_DLL_insert (se_head,
+				 se_tail,
+				 se);
+    notify_clients_stun_change (&se->external_addr,
+				GNUNET_NO);
   }
   GNUNET_SERVICE_client_continue (ch->client);
 }
@@ -579,6 +713,16 @@ handle_autoconfig_request (void *cls,
 static void
 shutdown_task (void *cls)
 {
+  struct StunExternalIP *se;
+
+  while (NULL != (se = se_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (se_head,
+				 se_tail,
+				 se);
+    GNUNET_SCHEDULER_cancel (se->timeout_task);
+    GNUNET_free (se);
+  }
   if (NULL != scan_task)
   {
     GNUNET_SCHEDULER_cancel (scan_task);
@@ -979,6 +1123,12 @@ run (void *cls,
      struct GNUNET_SERVICE_Handle *service)
 {
   cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "NAT",
+					   "STUN_STALE",
+					   &stun_stale_timeout))
+    stun_stale_timeout = GNUNET_TIME_UNIT_HOURS;
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   stats = GNUNET_STATISTICS_create ("nat",
