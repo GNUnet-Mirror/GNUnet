@@ -134,8 +134,6 @@ struct LocalAddressList
 };
 
 
-
-
 /**
  * Handle to our current configuration.
  */
@@ -669,6 +667,42 @@ match_ipv6 (const char *network,
 
 
 /**
+ * Test if the given IPv4 address is in a known range
+ * for private networks.
+ *
+ * @param ip address to test
+ * @return #GNUNET_YES if @a ip is in a NAT range
+ */
+static int
+is_nat_v4 (const struct in_addr *ip)
+{
+  return
+    match_ipv4 ("10.0.0.0", ip, 8) || /* RFC 1918 */
+    match_ipv4 ("100.64.0.0", ip, 10) || /* CG-NAT, RFC 6598 */
+    match_ipv4 ("192.168.0.0", ip, 12) || /* RFC 1918 */
+    match_ipv4 ("169.254.0.0", ip, 16) || /* AUTO, RFC 3927 */
+    match_ipv4 ("172.16.0.0", ip, 16);  /* RFC 1918 */
+}
+
+
+/**
+ * Test if the given IPv6 address is in a known range
+ * for private networks.
+ *
+ * @param ip address to test
+ * @return #GNUNET_YES if @a ip is in a NAT range
+ */
+static int
+is_nat_v6 (const struct in6_addr *ip)
+{
+  return
+    match_ipv6 ("fc00::", ip, 7) || /* RFC 4193 */
+    match_ipv6 ("fec0::", ip, 10) || /* RFC 3879 */
+    match_ipv6 ("fe80::", ip, 10); /* RFC 4291, link-local */
+}
+
+
+/**
  * Callback function invoked for each interface found.  Adds them
  * to our new address list.
  *
@@ -693,40 +727,33 @@ ifc_proc (void *cls,
   struct IfcProcContext *ifc_ctx = cls;
   struct LocalAddressList *lal;
   size_t alen;
-  const void *ip;
-  const struct in6_addr *v6;
+  const struct in_addr *ip4;
+  const struct in6_addr *ip6;
   enum GNUNET_NAT_AddressClass ac;
 
   switch (addr->sa_family)
   {
   case AF_INET:
     alen = sizeof (struct sockaddr_in);
-    ip = &((const struct sockaddr_in *) addr)->sin_addr;
-    if (match_ipv4 ("127.0.0.0", ip, 8))
+    ip4 = &((const struct sockaddr_in *) addr)->sin_addr;
+    if (match_ipv4 ("127.0.0.0", ip4, 8))
       ac = GNUNET_NAT_AC_LOOPBACK;
-    else if (match_ipv4 ("10.0.0.0", ip, 8) || /* RFC 1918 */
-	     match_ipv4 ("100.64.0.0", ip, 10) || /* CG-NAT, RFC 6598 */
-	     match_ipv4 ("192.168.0.0", ip, 12) || /* RFC 1918 */
-	     match_ipv4 ("169.254.0.0", ip, 16) || /* AUTO, RFC 3927 */
-	     match_ipv4 ("172.16.0.0", ip, 16))  /* RFC 1918 */
+    else if (is_nat_v4 (ip4))
       ac = GNUNET_NAT_AC_LAN;
     else
       ac = GNUNET_NAT_AC_GLOBAL;
     break;
   case AF_INET6:
     alen = sizeof (struct sockaddr_in6);
-    ip = &((const struct sockaddr_in6 *) addr)->sin6_addr;
-    if (match_ipv6 ("::1", ip, 128))
+    ip6 = &((const struct sockaddr_in6 *) addr)->sin6_addr;
+    if (match_ipv6 ("::1", ip6, 128))
       ac = GNUNET_NAT_AC_LOOPBACK;
-    else if (match_ipv6 ("fc00::", ip, 7) || /* RFC 4193 */
-	     match_ipv6 ("fec0::", ip, 10) || /* RFC 3879 */
-	     match_ipv6 ("fe80::", ip, 10)) /* RFC 4291, link-local */
+    else if (is_nat_v6 (ip6))
       ac = GNUNET_NAT_AC_LAN;
     else
       ac = GNUNET_NAT_AC_GLOBAL;
-    v6 = ip;
-    if ( (v6->s6_addr[11] == 0xFF) &&
-	 (v6->s6_addr[12] == 0xFE) )
+    if ( (ip6->s6_addr[11] == 0xFF) &&
+	 (ip6->s6_addr[12] == 0xFE) )
     {
       /* contains a MAC, be extra careful! */
       ac |= GNUNET_NAT_AC_PRIVATE;
@@ -755,6 +782,37 @@ ifc_proc (void *cls,
 
 
 /**
+ * Notify client about a change in the list
+ * of addresses this peer has.
+ *
+ * @param delta the entry in the list that changed
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ * @param addr the address that changed
+ * @param addr_len number of bytes in @a addr
+ */
+static void
+notify_client (struct LocalAddressList *delta,
+	       int add,
+	       const void *addr,
+	       size_t addr_len)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
+
+  env = GNUNET_MQ_msg_extra (msg,
+			     alen,
+			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
+  msg->add_remove = htonl (add);
+  msg->addr_class = htonl (delta->ac);
+  GNUNET_memcpy (&msg[1],
+		 addr,
+		 alen);
+  GNUNET_MQ_send (ch->mq,
+		  env);
+}	     	       
+
+
+/**
  * Notify all clients about a change in the list
  * of addresses this peer has.
  *
@@ -769,9 +827,9 @@ notify_clients (struct LocalAddressList *delta,
        NULL != ch;
        ch = ch->next)
   {
-    struct GNUNET_MQ_Envelope *env;
-    struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
     size_t alen;
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
     
     if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
       continue;
@@ -779,25 +837,46 @@ notify_clients (struct LocalAddressList *delta,
     {
     case AF_INET:
       alen = sizeof (struct sockaddr_in);
+      GNUNET_memcpy (&v4,
+		     &delta->addr,
+		     alen);
+      for (unsigned int i=0;i<ch->num_addrs;i++)
+      {
+	const struct sockaddr_in *c4;
+	
+	if (AF_INET != ch->addrs[i]->sa_family)
+	  continue; /* IPv4 not relevant */
+	c4 = (const struct sockaddr_in *) ch->addrs[i];
+	v4.sin_port = c4->sin_port;
+	notify_client (delta,
+		       add,
+		       &v4,
+		       alen);
+      }
       break;
     case AF_INET6:
       alen = sizeof (struct sockaddr_in6);
+      GNUNET_memcpy (&v6,
+		     &delta->addr,
+		     alen);
+      for (unsigned int i=0;i<ch->num_addrs;i++)
+      {
+	const struct sockaddr_in6 *c6;
+	
+	if (AF_INET6 != ch->addrs[i]->sa_family)
+	  continue; /* IPv4 not relevant */
+	c6 = (const struct sockaddr_in6 *) ch->addrs[i];
+	v6.sin_port = c6->sin_port;
+	notify_client (delta,
+		       add,
+		       &v6,
+		       alen);
+      }
       break;
     default:
       GNUNET_break (0);
       continue;
     }
-    env = GNUNET_MQ_msg_extra (msg,
-			       alen,
-			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
-    msg->add_remove = htonl (add);
-    msg->addr_class = htonl (delta->ac);
-    GNUNET_memcpy (&msg[1],
-		   &delta->addr,
-		   alen);
-    /* FIXME: what about the port number? */
-    GNUNET_MQ_send (ch->mq,
-		    env);
   }
 }
 
