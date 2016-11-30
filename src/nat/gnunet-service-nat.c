@@ -35,6 +35,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_nat_service.h"
 #include "gnunet-service-nat_stun.h"
+#include "gnunet-service-nat_helper.h"
 #include "nat.h"
 #include <gcrypt.h>
 
