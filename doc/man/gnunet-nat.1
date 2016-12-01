@@ -6,7 +6,6 @@ gnunet\-nat \- interact with the NAT service
 .SH SYNOPSIS
 .B gnunet\-nat
 .RI [ options ]
-.RI PORT
 .br
 
 .SH DESCRIPTION
@@ -21,7 +20,7 @@ Attempt auto\-configuration for NAT traversal.
 
 .B
 .IP "\-b ADDRESS,  \-\-bind=ADDRESS"
-Assume that the service is bound to ADDRESS.
+Assume that the service is (locally) bound to ADDRESS.
 
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
@@ -37,7 +36,7 @@ Assuming we are listening at ADDRESS for connection reversal requests.
 
 .B
 .IP "\-r ADDRESS,  \-\-remote=ADDRESS"
-Ask the peer at ADDRESS for connection reversal.
+Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
 
 .B
 .IP "\-L,  \-\-listen"
@@ -49,7 +48,7 @@ Use PORT as our external port for advertising for incoming requests.
 
 .B
 .IP "\-s,  \-\-stun"
-Enable processing of STUN requests. (Not implemented).
+Enable processing of STUN requests.  Will try to read UDP packets from the bind address and handle the packets if they are STUN packets. Will only work with UDP.
 
 .B
 .IP "\-t,  \-\-tcp"

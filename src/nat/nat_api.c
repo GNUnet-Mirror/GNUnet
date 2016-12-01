@@ -544,15 +544,15 @@ test_stun_packet (const void *data,
  * Handle an incoming STUN message.  This function is useful as
  * some GNUnet service may be listening on a UDP port and might
  * thus receive STUN messages while trying to receive other data.
- * In this case, this function can be used to act as a proper
- * STUN server (if desired).
+ * In this case, this function can be used to process replies
+ * to STUN requests.
  *
  * The function does some basic sanity checks on packet size and
- * content, try to extract a bit of information, and possibly replies
- * if this is an actual STUN message.
+ * content, try to extract a bit of information.
  * 
  * At the moment this only processes BIND requests, and returns the
- * externally visible address of the request. 
+ * externally visible address of the request to the rest of the
+ * NAT logic.
  *
  * @param nh handle to the NAT service
  * @param sender_addr address from which we got @a data
@@ -692,148 +692,6 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh)
   GNUNET_free (nh);
 }
 
-
-/**
- * Handle to a NAT test.
- */
-struct GNUNET_NAT_Test
-{
-
-  /**
-   * Configuration we use.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
-  /**
-   * Message queue for communicating with the NAT service.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
-   * Function called to report success or failure for
-   * NAT configuration test.
-   */
-  GNUNET_NAT_TestCallback cb;
-
-  /**
-   * Closure for @e cb.
-   */
-  void *cb_cls;
-
-};
-
-
-/**
- * Handle result for a NAT test from the service.
- *
- * @param cls our `struct GNUNET_NAT_Test *`
- * @param rm message with the result of the test
- */
-static void
-handle_test_result (void *cls,
-		    const struct GNUNET_NAT_TestResultMessage *rm)
-{
-  struct GNUNET_NAT_Test *tst = cls;
-  enum GNUNET_NAT_StatusCode sc;
-
-  sc = (enum GNUNET_NAT_StatusCode) ntohl (rm->status_code);
-  tst->cb (tst->cb_cls,
-	   sc);
-  GNUNET_NAT_test_stop (tst);  
-}
-		    
-
-/**
- * Handle queue errors by reporting test failure.
- *
- * @param cls the `struct GNUNET_NAT_Test *`
- * @param error details about the error
- */
-static void
-tst_error_handler (void *cls,
-		  enum GNUNET_MQ_Error error)
-{
-  struct GNUNET_NAT_Test *tst = cls;
-
-  tst->cb (tst->cb_cls,
-	   GNUNET_NAT_ERROR_IPC_FAILURE);
-  GNUNET_NAT_test_stop (tst);
-}
-
-
-/**
- * Start testing if NAT traversal works using the given configuration
- * (IPv4-only).  The transport adapters should be down while using
- * this function.
- *
- * @param cfg configuration for the NAT traversal
- * @param proto protocol to test, i.e. IPPROTO_TCP or IPPROTO_UDP
- * @param bind_ip IPv4 address to bind to
- * @param bnd_port port to bind to, 0 to test connection reversal
- * @param extern_ip IPv4 address to externally advertise
- * @param extern_port externally advertised port to use
- * @param report function to call with the result of the test
- * @param report_cls closure for @a report
- * @return handle to cancel NAT test
- */
-struct GNUNET_NAT_Test *
-GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       uint8_t proto,
-		       struct in_addr bind_ip,
-                       uint16_t bnd_port,
-		       struct in_addr extern_ip,
-                       uint16_t extern_port,
-                       GNUNET_NAT_TestCallback report,
-                       void *report_cls)
-{
-  struct GNUNET_NAT_Test *tst = GNUNET_new (struct GNUNET_NAT_Test);
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (test_result,
-			     GNUNET_MESSAGE_TYPE_NAT_TEST_RESULT,
-			     struct GNUNET_NAT_TestResultMessage,
-			     tst),
-    GNUNET_MQ_handler_end ()
-  };
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_NAT_RequestTestMessage *req;
-
-  tst->cb = report;
-  tst->cb_cls = report_cls;
-  tst->mq = GNUNET_CLIENT_connecT (cfg,
-				   "nat",
-				   handlers,
-				   &tst_error_handler,
-				   tst);
-  if (NULL == tst->mq)
-  {
-    GNUNET_break (0);
-    GNUNET_free (tst);
-    return NULL;
-  }
-  env = GNUNET_MQ_msg (req,
-		       GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST);
-  req->bind_port = htons (bnd_port);
-  req->extern_port = htons (extern_port);
-  req->bind_ip = bind_ip;
-  req->extern_ip = extern_ip;
-  req->proto = proto;
-  GNUNET_MQ_send (tst->mq,
-		  env);
-  return tst;
-}
-
-
-/**
- * Stop an active NAT test.
- *
- * @param tst test to stop.
- */
-void
-GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
-{
-  GNUNET_MQ_destroy (tst->mq);
-  GNUNET_free (tst);
-}
 
 
 /**

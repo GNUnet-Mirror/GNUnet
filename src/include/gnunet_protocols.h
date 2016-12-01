@@ -2827,16 +2827,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE 1064
 
 /**
- * Message to ask NAT service to test an address.
- */
-#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_TEST 1065
-
-/**
- * Message from NAT service with the address test result.
- */
-#define GNUNET_MESSAGE_TYPE_NAT_TEST_RESULT 1066
-
-/**
  * Message to ask NAT service to request autoconfiguration.
  */
 #define GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG 1067

@@ -105,6 +105,16 @@ static struct GNUNET_NAT_Test *nt;
  */
 static struct GNUNET_NAT_Handle *nh;
 
+/**
+ * Listen socket for STUN processing.
+ */ 
+static struct GNUNET_NETWORK_Handle *ls;
+
+/**
+ * Task for reading STUN packets.
+ */
+static struct GNUNET_SCHEDULER_Task *rtask;
+
 
 /**
  * Test if all activities have finished, and if so,
@@ -118,6 +128,8 @@ test_finished ()
   if (NULL != nt)
     return;
   if (NULL != nh)
+    return;
+  if (NULL != rtask)
     return;
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -290,6 +302,63 @@ do_shutdown (void *cls)
     GNUNET_NAT_unregister (nh);
     nh = NULL;
   }
+  if (NULL != ls)
+  {
+    GNUNET_NETWORK_socket_close (ls);
+    ls = NULL;
+  }
+  if (NULL != rtask)
+  {
+    GNUNET_SCHEDULER_cancel (rtask);
+    rtask = NULL;
+  }
+}
+
+
+/**
+ * Task to receive incoming packets for STUN processing.
+ */
+static void
+stun_read_task (void *cls)
+{
+  ssize_t size;
+  
+  rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					 ls,
+					 &stun_read_task,
+					 NULL);
+  size = GNUNET_NETWORK_socket_recvfrom_amount (ls);
+  if (size > 0)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    global_ret = 1;
+    return;
+  }
+  {
+    char buf[size + 1];
+    struct sockaddr_storage sa;
+    socklen_t salen = sizeof (sa);
+    ssize_t ret;
+    
+    ret = GNUNET_NETWORK_socket_recvfrom (ls,
+					  buf,
+					  size + 1,
+					  (struct sockaddr *) &sa,
+					  &salen);
+    if (ret != size)
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_shutdown ();
+      global_ret = 1;
+      return;
+    }
+    (void) GNUNET_NAT_stun_handle_packet (nh,
+					  (const struct sockaddr *) &sa,
+					  salen,
+					  buf,
+					  ret);
+  }
 }
 
 
@@ -418,6 +487,9 @@ run (void *cls,
 			      NULL);
   }
 
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
+
   if (NULL != remote_addr)
   {
     int ret;
@@ -464,8 +536,48 @@ run (void *cls,
 				      &auto_config_cb,
 				      NULL);
   }
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
+
+  if (do_stun)
+  {
+    if (NULL == local_addr)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "Require local address to support STUN requests\n");
+      global_ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (IPPROTO_UDP != proto)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  "STUN only supported over UDP\n");
+      global_ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    ls = GNUNET_NETWORK_socket_create (af,
+				       SOCK_DGRAM,
+				       IPPROTO_UDP);
+    if (GNUNET_OK !=
+	GNUNET_NETWORK_socket_bind (ls,
+				    local_sa,
+				    local_len))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to bind to %s: %s\n",
+		  GNUNET_a2s (local_sa,
+			      local_len),
+		  STRERROR (errno));
+      global_ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					   ls,
+					   &stun_read_task,
+					   NULL);
+  }
+
   test_finished ();
 }
 
@@ -506,7 +618,6 @@ main (int argc,
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },
-    // FIMXE: -s not implemented!
     {'t', "tcp", NULL,
      gettext_noop ("use TCP"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },

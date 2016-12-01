@@ -64,16 +64,21 @@ enum GNUNET_NAT_AddressClass
   GNUNET_NAT_AC_OTHER = 1,
 
   /**
-   * Addresses that are global and are insensitive
-   * (i.e. IPv4).
+   * Addresses that are highly sensitive
+   * (i.e. IPv6 with our MAC).
    */
-  GNUNET_NAT_AC_GLOBAL = 2,
+  GNUNET_NAT_AC_PRIVATE = 2,
+
+  /**
+   * Addresses that are global (i.e. IPv4).
+   */
+  GNUNET_NAT_AC_GLOBAL = 4,
 
   /**
    * Addresses that are global and are sensitive
    * (i.e. IPv6 with our MAC).
    */
-  GNUNET_NAT_AC_GLOBAL_PRIVATE = 4,
+  GNUNET_NAT_AC_GLOBAL_PRIVATE = 6,
 
   /**
    * Addresses useful in the local wired network,
@@ -81,6 +86,13 @@ enum GNUNET_NAT_AddressClass
    * Useful for broadcasts.
    */
   GNUNET_NAT_AC_LAN = 8,
+  
+  /**
+   * Addresses useful in the local wired network,
+   * i.e. a MAC.  Sensitive, but obvious to people nearby.
+   * Useful for broadcasts.
+   */
+  GNUNET_NAT_AC_LAN_PRIVATE = 10,
 
   /**
    * Addresses useful in the local wireless network,
@@ -95,6 +107,11 @@ enum GNUNET_NAT_AddressClass
    */
   GNUNET_NAT_AC_BT = 32,
 
+  /**
+   * Loopback addresses, only useful under special cirumstances.
+   */
+  GNUNET_NAT_AC_LOOPBACK = 64,
+  
   /**
    * Bitmask for "any" address.
    */
@@ -178,37 +195,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls);
-
-
-/**
- * Handle an incoming STUN message.  This function is useful as
- * some GNUnet service may be listening on a UDP port and might
- * thus receive STUN messages while trying to receive other data.
- * In this case, this function can be used to act as a proper
- * STUN server (if desired).
- *
- * The function does some basic sanity checks on packet size and
- * content, try to extract a bit of information, and possibly replies
- * if this is an actual STUN message.
- * 
- * At the moment this only processes BIND requests, and returns the
- * externally visible address of the request. 
- *
- * @param nh handle to the NAT service
- * @param sender_addr address from which we got @a data
- * @param sender_addr_len number of bytes in @a sender_addr
- * @param data the packet
- * @param data_size number of bytes in @a data
- * @return #GNUNET_OK on success
- *         #GNUNET_NO if the packet is not a STUN packet
- *         #GNUNET_SYSERR on internal error handling the packet
- */
-int
-GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
-			       const struct sockaddr *sender_addr,
-			       size_t sender_addr_len,
-			       const void *data,
-                               size_t data_size);
 
 
 /**
@@ -378,6 +364,77 @@ enum GNUNET_NAT_StatusCode
 typedef void
 (*GNUNET_NAT_TestCallback) (void *cls,
 			    enum GNUNET_NAT_StatusCode result);
+
+
+/**
+ * Handle an incoming STUN message.  This function is useful as
+ * some GNUnet service may be listening on a UDP port and might
+ * thus receive STUN messages while trying to receive other data.
+ * In this case, this function can be used to process replies
+ * to STUN requests.
+ *
+ * The function does some basic sanity checks on packet size and
+ * content, try to extract a bit of information.
+ * 
+ * At the moment this only processes BIND requests, and returns the
+ * externally visible address of the request to the rest of the
+ * NAT logic.
+ *
+ * @param nh handle to the NAT service
+ * @param sender_addr address from which we got @a data
+ * @param sender_addr_len number of bytes in @a sender_addr
+ * @param data the packet
+ * @param data_size number of bytes in @a data
+ * @return #GNUNET_OK on success
+ *         #GNUNET_NO if the packet is not a STUN packet
+ *         #GNUNET_SYSERR on internal error handling the packet
+ */
+int
+GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
+			       const struct sockaddr *sender_addr,
+			       size_t sender_addr_len,
+			       const void *data,
+                               size_t data_size);
+
+
+/**
+ * Handle to a request given to the resolver.  Can be used to cancel
+ * the request prior to the timeout or successful execution.  Also
+ * used to track our internal state for the request.
+ */
+struct GNUNET_NAT_STUN_Handle;
+
+
+/**
+ * Make Generic STUN request. Sends a generic stun request to the
+ * server specified using the specified socket.  If we do this,
+ * we need to watch for possible responses and call
+ * #GNUNET_NAT_stun_handle_packet() on incoming packets.
+ *
+ * @param server the address of the stun server
+ * @param port port of the stun server, in host byte order
+ * @param sock the socket used to send the request, must be a
+ *             UDP socket
+ * @param cb callback in case of error
+ * @param cb_cls closure for @a cb
+ * @return NULL on error
+ */
+struct GNUNET_NAT_STUN_Handle *
+GNUNET_NAT_stun_make_request (const char *server,
+                              uint16_t port,
+                              struct GNUNET_NETWORK_Handle *sock,
+                              GNUNET_NAT_TestCallback cb,
+                              void *cb_cls);
+
+
+/**
+ * Cancel active STUN request. Frees associated resources
+ * and ensures that the callback is no longer invoked.
+ *
+ * @param rh request to cancel
+ */
+void
+GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
 
 
 /**
