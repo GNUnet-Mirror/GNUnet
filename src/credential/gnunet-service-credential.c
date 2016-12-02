@@ -45,6 +45,29 @@
 /**
  * DLL for record
  */
+struct CredentialRecordEntry
+{
+  /**
+   * DLL
+   */
+  struct CredentialRecordEntry *next;
+
+  /**
+   * DLL
+   */
+  struct CredentialRecordEntry *prev;
+
+
+  /**
+   * Payload
+   */
+  struct GNUNET_CREDENTIAL_CredentialRecordData record_data;
+};
+
+/**
+ * DLL for attributes - Used as a queue
+ * Insert tail - Pop head
+ */
 struct AttributeRecordEntry
 {
   /**
@@ -57,12 +80,11 @@ struct AttributeRecordEntry
    */
   struct AttributeRecordEntry *prev;
 
-
   /**
-   * Payload
+   *
    */
-  struct GNUNET_CREDENTIAL_AttributeRecordData record_data;
-};
+  struct GNUNET_CREDENTIAL_AttributeDelegationRecordData;
+}
 
 /**
  * Handle to a lookup operation from api
@@ -101,14 +123,24 @@ struct VerifyRequestHandle
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
 
   /**
-   * Attribute Chain
+   * Credential Chain
    */
-  struct AttributeRecordEntry *attr_chain_head;
+  struct CredentialRecordEntry *cred_chain_head;
 
   /**
-   * Attribute Chain
+   * Credential Chain
    */
-  struct AttributeRecordEntry *attr_chain_tail;
+  struct CredentialRecordEntry *cred_chain_tail;
+
+  /**
+   * Attribute Queue
+   */
+  struct AttributeRecordEntry *attr_queue_head;
+  
+  /**
+   * Attribute Queue
+   */
+  struct AttributeRecordEntry *attr_queue_tail;
 
   /**
    * request id
@@ -228,19 +260,26 @@ send_lookup_response (void* cls,
   struct VerifyRequestHandle *vrh = cls;
   size_t len;
   int i;
-  int attr_record_count;
+  int cred_record_count;
   struct GNUNET_MQ_Envelope *env;
   struct VerifyResultMessage *rmsg;
-  const struct GNUNET_CREDENTIAL_AttributeRecordData *ard;
-  struct AttributeRecordEntry *ar_entry;
+  const struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_CREDENTIAL_AttributeDelegationRecordData *adrd;
+  struct CredentialRecordEntry *cr_entry;
+  struct AttributeRecordEntry *attr_entry;
+  bool cred_verified;
 
-  attr_record_count = 0;
+  cred_record_count = 0;
+  adrd = GNUNET_CREDENTIAL_AttributeDelegationRecordData   
+  GNUNET_CONTAINER_DLL_insert_tail (vrh->attr_queue_head,
+                                    vrh->attr_queue_tail,
+                                    attr_entry);
   for (i=0; i < rd_count; i++)
   {
-    if (GNUNET_GNSRECORD_TYPE_ATTRIBUTE != rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_CREDENTIAL != rd[i].record_type)
       continue;
-    attr_record_count++;
-    ard = rd[i].data;
+    cred_record_count++;
+    crd = rd[i].data;
     /**
      * TODO:
      * Check if we have already found our credential here
@@ -249,18 +288,33 @@ send_lookup_response (void* cls,
      *  Save all found attributes/issues and prepare forward
      *  resolution of issuer attribute
      */
-    ar_entry = GNUNET_new (struct AttributeRecordEntry);
-    ar_entry->record_data = *ard;
-    GNUNET_CONTAINER_DLL_insert_tail (vrh->attr_chain_head,
-                                      vrh->attr_chain_tail,
-                                      ar_entry);
+    cr_entry = GNUNET_new (struct CredentialRecordEntry);
+    cr_entry->record_data = *crd;
+    GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
+                                      vrh->cred_chain_tail,
+                                      cr_entry);
+
+    if(GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, purpose, sig, issuer_key))
+    {   
+      cred_verified = true;
+      break;
+    }
 
   }
+  
+
+  /**
+   * Check for attributes from the issuer and follow the chain 
+   * till you get the required subject's attributes
+   */
+  if(cred_verified != true){
+    for(i=0 ; i < rd_count ; i++){
+
 
   /**
    * Get serialized record data size
    */
-  len = attr_record_count * sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData);
+  len = cred_record_count * sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData);
 
   /**
    * Prepare a lookup result response message for the client
@@ -277,12 +331,12 @@ send_lookup_response (void* cls,
    * Append at the end of rmsg
    */
   i = 0;
-  struct GNUNET_CREDENTIAL_AttributeRecordData *tmp_record = (struct GNUNET_CREDENTIAL_AttributeRecordData*) &rmsg[1];
+  struct GNUNET_CREDENTIAL_CredentialRecordData *tmp_record = (struct GNUNET_CREDENTIAL_CredentialRecordData*) &rmsg[1];
   for (ar_entry = vrh->attr_chain_head; NULL != ar_entry; ar_entry = ar_entry->next)
   {
     memcpy (tmp_record,
             &ar_entry->record_data,
-            sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData));
+            sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData));
     tmp_record++;
   }
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(vrh->client),
@@ -301,13 +355,13 @@ send_lookup_response (void* cls,
                             "Completed verifications", 1,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (statistics,
-                            "Attributes resolved",
+                            "Credentials resolved",
                             rd_count,
                             GNUNET_NO);
 }
 
 /**
- * Handle attribute verification requests from client
+ * Handle Credential verification requests from client
  *
  * @param cls the closure
  * @param client the client
@@ -361,7 +415,7 @@ handle_verify (void *cls,
   vrh->lookup_request = GNUNET_GNS_lookup (gns,
                                            subject_attribute,
                                            &v_msg->subject_key, //subject_pkey,
-                                           GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
+                                           GNUNET_GNSRECORD_TYPE_CREDENTIAL,
                                            GNUNET_GNS_LO_DEFAULT,
                                            NULL, //shorten_key, always NULL
                                            &send_lookup_response,
