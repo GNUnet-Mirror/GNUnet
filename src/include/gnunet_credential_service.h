@@ -20,6 +20,7 @@
 
 /**
  * @author Martin Schanzenbach
+ * @author Adnan Husain
  *
  * @file
  * API to the Credential service
