@@ -74,9 +74,9 @@ enum GNUNET_CREDENTIAL_CredentialFlags {
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
- * The attribute record 
+ * The credential record 
  */
-struct GNUNET_CREDENTIAL_AttributeRecordData {
+struct GNUNET_CREDENTIAL_CredentialRecordData {
   
   /**
    * Public key of the subject this credential was issued to
@@ -112,7 +112,7 @@ struct GNUNET_CREDENTIAL_AttributeRecordData {
 /**
  * The attribute delegation record
 */
-struct GNUNET_CREDENTIAL_AttributeDelegationRecordData {
+struct GNUNET_CREDENTIAL_AttributeRecordData {
   
   /**
    * Public key of the subject this attribute was delegated to
@@ -121,6 +121,7 @@ struct GNUNET_CREDENTIAL_AttributeDelegationRecordData {
   
   /**
    * Followed by the attribute that was delegated to as string
+   * May be empty
    */
 };
 
