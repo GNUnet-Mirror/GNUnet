@@ -258,6 +258,17 @@ send_lookup_response (void* cls,
   }
 
   /**
+   * TODO
+   * Start resolution of Attribute delegations from issuer
+   *
+   * - Build adequate data structures for attribute(s) to lookup
+   * - Use GNUNET_GNSRECORD_TYPE_XXX
+   * - recursively try to find match(es) with results found top
+   * - return one found credential chain
+   *
+   */
+
+  /**
    * Get serialized record data size
    */
   len = attr_record_count * sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData);
