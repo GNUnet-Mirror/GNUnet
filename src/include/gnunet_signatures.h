@@ -190,6 +190,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET 27
 
+/**
+ * Signature for a GNUnet credential
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CREDENTIAL 28
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

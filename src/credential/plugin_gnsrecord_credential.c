@@ -51,6 +51,26 @@ credential_value_to_string (void *cls,
 
   switch (type)
   {
+   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
+   {
+    struct GNUNET_CREDENTIAL_AttributeRecordData attr;
+    char *attr_str;
+    char *subject_pkey;
+    
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
+      return NULL; /* malformed */
+    memcpy (&attr,
+            data,
+            sizeof (attr));
+    cdata = data;
+    subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&attr.subject_key);
+    GNUNET_asprintf (&attr_str,
+                     "%s.%s",
+                     subject_pkey,
+                     &cdata[sizeof (attr)]);
+    GNUNET_free (subject_pkey);
+    return attr_str;
+   }
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
     struct GNUNET_CREDENTIAL_CredentialRecordData cred;

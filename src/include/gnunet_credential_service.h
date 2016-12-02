@@ -79,16 +79,27 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_CREDENTIAL_CredentialRecordData {
   
   /**
-   * Public key of the subject this credential was issued to
+   * The signature for this credential by the issuer
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
   
+
   /**
    * Public key of the issuer
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+  
+  /**
+   * Signature purpose (data to sign, kind of signature)
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
+   * Public key of the subject this credential was issued to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  
+    /**
    * Flags for this credential
    */
   uint32_t credential_flags GNUNET_PACKED;
@@ -98,12 +109,7 @@ struct GNUNET_CREDENTIAL_CredentialRecordData {
    */
   uint64_t expiration GNUNET_PACKED;
   
-  /**
-   * The signature for this credential by the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
-  
-  /**
+    /**
    * Followed by the attribute string
    */
 };
