@@ -183,7 +183,8 @@ enum nss_status _nss_gns_gethostbyname2_r(
     /* Addresses */
     astart = idx;
     l = u.count*address_length;
-    GNUNET_memcpy(buffer+astart, &u.data, l);
+    if (0 != l)
+      memcpy(buffer+astart, &u.data, l);
     /* address_length is a multiple of 32bits, so idx is still aligned
      * correctly */
     idx += l;

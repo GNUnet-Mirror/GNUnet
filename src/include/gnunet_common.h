@@ -654,6 +654,16 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 
 /**
  * @ingroup logging
+ * Use this for fatal errors that cannot be handled
+ * 
+ * @param cond Condition to evaluate
+ * @param comp Component string to use for logging
+ */
+#define GNUNET_assert_from(cond, comp) do { if (! (cond)) { GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR, comp, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
+
+
+/**
+ * @ingroup logging
  * Use this for internal assertion violations that are
  * not fatal (can be handled) but should not occur.
  */
