@@ -172,12 +172,14 @@
     (arguments
      `(#:configure-flags
        (list (string-append "--with-nssdir=" %output "/lib")
-             "--enable-experimental"
              ;; These appear to be "broken" on Guix, needs debugging.
              "--enable-gcc-hardening"
              "--enable-linker-hardening"
-             "--enable-logging=verbose"
+
              "--enable-poisoning"
+             "--enable-sanitizer"
+             "--enable-experimental"
+             "--enable-logging=verbose"
              "CFLAGS=-ggdb -O0")
        ;;#:parallel-tests? #f ; parallel building seems to fail
        ;;#:tests? #f ; fail: test_gnunet_statistics.py

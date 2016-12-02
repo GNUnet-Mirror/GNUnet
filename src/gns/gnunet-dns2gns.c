@@ -533,17 +533,20 @@ read_dns4 (void *cls)
       return; /* read error!? */
     }
   {
-    char buf[size];
+    char buf[size + 1];
 
     addrlen = sizeof (v4);
     GNUNET_break (size ==
 		  GNUNET_NETWORK_socket_recvfrom (listen_socket4,
 						  buf,
-						  size,
+						  size + 1,
 						  (struct sockaddr *) &v4,
 						  &addrlen));
-    handle_request (listen_socket4, &v4, addrlen,
-		    buf, size);
+    handle_request (listen_socket4,
+		    &v4,
+		    addrlen,
+		    buf,
+		    size);
   }
 }
 

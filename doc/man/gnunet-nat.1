@@ -1,0 +1,66 @@
+.TH GNUNET\-NAT 1 "27 Nov 2016" "GNUnet"
+
+.SH NAME
+gnunet\-nat \- interact with the NAT service
+
+.SH SYNOPSIS
+.B gnunet\-nat
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+
+This tool allows testing various NAT traversal functions, as well
+as attempting auto\-configuration.
+
+.SH OPTIONS
+.B
+.IP "\-a,  \-\-auto"
+Attempt auto\-configuration for NAT traversal.
+
+.B
+.IP "\-b ADDRESS,  \-\-bind=ADDRESS"
+Assume that the service is (locally) bound to ADDRESS.
+
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+
+.B
+.IP "\-e ADDRESS,  \-\-external=ADDRESS"
+Assume that ADDRESS is the globally visible address of the peer.
+
+.B
+.IP "\-l ADDRESS,  \-\-local=ADDRESS"
+Assuming we are listening at ADDRESS for connection reversal requests.
+
+.B
+.IP "\-r ADDRESS,  \-\-remote=ADDRESS"
+Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
+
+.B
+.IP "\-L,  \-\-listen"
+Listen for connection reversal requests.  
+
+.B
+.IP "\-p PORT,  \-\-port=PORT"
+Use PORT as our external port for advertising for incoming requests.
+
+.B
+.IP "\-s,  \-\-stun"
+Enable processing of STUN requests.  Will try to read UDP packets from the bind address and handle the packets if they are STUN packets. Will only work with UDP.
+
+.B
+.IP "\-t,  \-\-tcp"
+Use TCP.
+
+.B
+.IP "\-u,  \-\-udp"
+Use UDP.
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-transport(1)
+

@@ -74,21 +74,32 @@ enum GNUNET_CREDENTIAL_CredentialFlags {
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
- * The attribute record 
+ * The credential record 
  */
-struct GNUNET_CREDENTIAL_AttributeRecordData {
+struct GNUNET_CREDENTIAL_CredentialRecordData {
   
+  /**
+   * The signature for this credential by the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
+  
+
+  /**
+   * Public key of the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+  
+  /**
+   * Signature purpose (data to sign, kind of signature)
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
   /**
    * Public key of the subject this credential was issued to
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
   
-  /**
-   * Public key of the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-
-  /**
+    /**
    * Flags for this credential
    */
   uint32_t credential_flags GNUNET_PACKED;
@@ -98,12 +109,7 @@ struct GNUNET_CREDENTIAL_AttributeRecordData {
    */
   uint64_t expiration GNUNET_PACKED;
   
-  /**
-   * The signature for this credential by the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
-  
-  /**
+    /**
    * Followed by the attribute string
    */
 };
@@ -112,7 +118,7 @@ struct GNUNET_CREDENTIAL_AttributeRecordData {
 /**
  * The attribute delegation record
 */
-struct GNUNET_CREDENTIAL_AttributeDelegationRecordData {
+struct GNUNET_CREDENTIAL_AttributeRecordData {
   
   /**
    * Public key of the subject this attribute was delegated to
@@ -121,6 +127,7 @@ struct GNUNET_CREDENTIAL_AttributeDelegationRecordData {
   
   /**
    * Followed by the attribute that was delegated to as string
+   * May be empty
    */
 };
 

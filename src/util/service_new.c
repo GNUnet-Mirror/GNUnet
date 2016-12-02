@@ -390,6 +390,14 @@ service_main (void *cls)
     GNUNET_SCHEDULER_add_shutdown (&service_shutdown,
                                    sh);
   GNUNET_SERVICE_resume (sh);
+
+  if (-1 != sh->ready_confirm_fd)
+  {
+    GNUNET_break (1 == WRITE (sh->ready_confirm_fd, ".", 1));
+    GNUNET_break (0 == CLOSE (sh->ready_confirm_fd));
+    sh->ready_confirm_fd = -1;
+  }
+
   if (NULL != sh->service_init_cb)
     sh->service_init_cb (sh->cb_cls,
 			 sh->cfg,

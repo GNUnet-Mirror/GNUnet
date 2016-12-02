@@ -24,6 +24,7 @@ man_MANS = \
   gnunet-namecache.1 \
   gnunet-namestore.1 \
   gnunet-namestore-fcfsd.1 \
+  gnunet-nat.1 \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \

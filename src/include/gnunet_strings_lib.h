@@ -349,25 +349,27 @@ GNUNET_STRINGS_base64_encode (const char *data, size_t len, char **output);
  *
  * @param data the data to encode
  * @param len the length of the input
- * @param output where to write the output (*output should be NULL,
+ * @param[out] output where to write the output (*output should be NULL,
  *   is allocated)
  * @return the size of the output
  */
 size_t
-GNUNET_STRINGS_base64_decode (const char *data, size_t len, char **output);
+GNUNET_STRINGS_base64_decode (const char *data,
+			      size_t len,
+			      char **output);
 
 
 /**
  * Parse a path that might be an URI.
  *
  * @param path path to parse. Must be NULL-terminated.
- * @param scheme_part a pointer to 'char *' where a pointer to a string that
+ * @param[out] scheme_part pointer to a string that
  *        represents the URI scheme will be stored. Can be NULL. The string is
  *        allocated by the function, and should be freed by GNUNET_free() when
  *        it is no longer needed.
  * @param path_part a pointer to 'const char *' where a pointer to the path
  *        part of the URI will be stored. Can be NULL. Points to the same block
- *        of memory as 'path', and thus must not be freed. Might point to '\0',
+ *        of memory as @a path, and thus must not be freed. Might point to '\0',
  *        if path part is zero-length.
  * @return #GNUNET_YES if it's an URI, #GNUNET_NO otherwise. If 'path' is not
  *         an URI, '* scheme_part' and '*path_part' will remain unchanged
@@ -472,6 +474,21 @@ int
 GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 				uint16_t addrlen,
 				struct sockaddr_in *r_buf);
+
+
+/**
+ * Parse an address given as a string into a 
+ * `struct sockaddr`.
+ *
+ * @param addr the address
+ * @param[out] af set to the parsed address family (i.e. AF_INET)
+ * @param[out] sa set to the parsed address
+ * @return 0 on error, otherwise number of bytes in @a sa
+ */
+size_t
+GNUNET_STRINGS_parse_socket_addr (const char *addr,
+				  uint8_t *af,
+				  struct sockaddr **sa);
 
 
 /**

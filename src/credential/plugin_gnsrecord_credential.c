@@ -51,14 +51,34 @@ credential_value_to_string (void *cls,
 
   switch (type)
   {
+   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
+   {
+    struct GNUNET_CREDENTIAL_AttributeRecordData attr;
+    char *attr_str;
+    char *subject_pkey;
+    
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
+      return NULL; /* malformed */
+    memcpy (&attr,
+            data,
+            sizeof (attr));
+    cdata = data;
+    subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&attr.subject_key);
+    GNUNET_asprintf (&attr_str,
+                     "%s.%s",
+                     subject_pkey,
+                     &cdata[sizeof (attr)]);
+    GNUNET_free (subject_pkey);
+    return attr_str;
+   }
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
-    struct GNUNET_CREDENTIAL_AttributeRecordData cred;
+    struct GNUNET_CREDENTIAL_CredentialRecordData cred;
     char *cred_str;
     char *subject_pkey;
     char *issuer_pkey;
     uint32_t cf; // Credential flags
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
         return NULL; /* malformed */
     memcpy (&cred,
               data,
@@ -111,7 +131,7 @@ credential_string_to_value (void *cls,
   {
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
       { 
-        struct GNUNET_CREDENTIAL_AttributeRecordData *cred;
+        struct GNUNET_CREDENTIAL_CredentialRecordData *cred;
         unsigned int cf; // credential flags
 
         size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
@@ -134,7 +154,7 @@ credential_string_to_value (void *cls,
                       s);
           return GNUNET_SYSERR;
         }
-        *data_size = sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData) + strlen (name) + 1;
+        *data_size = sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (name) + 1;
         *data = cred = GNUNET_malloc (*data_size);
         GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
                                                     strlen (subject_pkey),
