@@ -3865,7 +3865,7 @@ run (void *cls,
     if (GNUNET_YES !=
 	GNUNET_OS_check_helper_binary (binary,
                                        GNUNET_YES,
-                                       "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")) //no nat, ipv4 only
+                                       "gnunet-vpn - - - 169.1.3.7 255.255.255.0")) //no nat, ipv4 only
     {
       GNUNET_free (binary);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
