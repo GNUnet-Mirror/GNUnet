@@ -99,11 +99,6 @@ struct GNUNET_CREDENTIAL_CredentialRecordData {
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
   
-    /**
-   * Flags for this credential
-   */
-  uint32_t credential_flags GNUNET_PACKED;
-
   /**
    * Expiration time of this credential
    */
@@ -167,15 +162,6 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
 typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
 						  struct GNUNET_CRYPTO_EcdsaPublicKey *issuer,
               uint32_t result);
-
-/**
- * Iterator called on obtained result for an attribute issuance.
- *
- * @param cls closure
- * @param result the record data that can be handed to the subject
- */
-typedef void (*GNUNET_CREDENTIAL_IssueResultProcessor) (void *cls,
-						  struct GNUNET_CREDENTIAL_AttributeRecordData *data);
 
 /**
  * Iterator called on obtained result for an attribute delegation.
@@ -271,13 +257,11 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param attribute the name of the attribute
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request *
+struct GNUNET_CREDENTIAL_CredentialRecordData *
 GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
-                         struct GNUNET_IDENTITY_Ego *issuer,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                          struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                         const char *attribute,
-                         GNUNET_CREDENTIAL_IssueResultProcessor proc,
-                         void *proc_cls);
+                         const char *attribute);
 
 
 /**

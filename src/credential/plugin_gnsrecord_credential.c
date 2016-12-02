@@ -77,7 +77,6 @@ credential_value_to_string (void *cls,
     char *cred_str;
     char *subject_pkey;
     char *issuer_pkey;
-    uint32_t cf; // Credential flags
     if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
         return NULL; /* malformed */
     memcpy (&cred,
@@ -86,13 +85,11 @@ credential_value_to_string (void *cls,
     cdata = data;  
     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
     issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
-    cf = ntohl (cred.credential_flags);
 
      GNUNET_asprintf (&cred_str,
-                     "%s %s %u %s",
+                     "%s %s %s",
                      subject_pkey,
                      issuer_pkey,
-                     (unsigned int) cf,
                      &cdata[sizeof (cred)]);
       GNUNET_free (subject_pkey);
       GNUNET_free (issuer_pkey);
@@ -132,7 +129,6 @@ credential_string_to_value (void *cls,
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
       { 
         struct GNUNET_CREDENTIAL_CredentialRecordData *cred;
-        unsigned int cf; // credential flags
 
         size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
         if (enclen % 5 > 0)
@@ -143,10 +139,9 @@ credential_string_to_value (void *cls,
         char name[253 + 1];
 
         if (5 != SSCANF (s,
-                         "%52s %52s %u %253s",
+                         "%52s %52s %253s",
                          subject_pkey,
                          issuer_pkey,
-                         &cf,
                          name))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -162,7 +157,6 @@ credential_string_to_value (void *cls,
         GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
                                                     strlen (issuer_pkey),
                                                     &cred->issuer_key);
-        cred->credential_flags = htonl (cf);
         GNUNET_memcpy (&cred[1],
                        name,
                        strlen (name));

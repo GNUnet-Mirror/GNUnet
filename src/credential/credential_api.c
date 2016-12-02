@@ -28,6 +28,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
+#include "gnunet_signatures.h"
 #include "credential.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_identity_service.h"
@@ -405,6 +406,50 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                          vr->env);
   return vr;
 }
+
+/**
+ * Issue an attribute to a subject
+ *
+ * @param handle handle to the Credential service
+ * @param issuer the ego that should be used to issue the attribute
+ * @param subject the subject of the attribute
+ * @param attribute the name of the attribute
+ * @return handle to the queued request
+ */
+struct GNUNET_CREDENTIAL_CredentialRecordData *
+GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+                         struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                         const char *attribute)
+{
+  struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+
+  crd = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (attribute) + 1);
+
+  crd->purpose.size = htonl (strlen (attribute) + 1 +
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+			                       sizeof (struct GNUNET_TIME_AbsoluteNBO));
+  crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
+                                      &crd->issuer_key);
+
+  GNUNET_memcpy (&crd[1],
+                 attribute,
+                 strlen (attribute));
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_sign (issuer,
+                                &crd->purpose,
+                                &crd->sig))
+  {
+    GNUNET_break (0);
+    GNUNET_free (crd);
+    return NULL;
+  }
+  return crd;
+}
+
+
 
 
 /* end of credential_api.c */
