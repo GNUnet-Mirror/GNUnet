@@ -82,10 +82,11 @@ struct AttributeRecordEntry
   struct AttributeRecordEntry *prev;
 
   /**
-   *
+   * Payload
    */
   struct GNUNET_CREDENTIAL_AttributeRecordData record_data;
 };
+
 
 /**
  * Handle to a lookup operation from api
@@ -117,6 +118,11 @@ struct VerifyRequestHandle
    * Issuer public key
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+  
+  /**
+   * Issuer attribute
+   */
+  char *issuer_attribute;
 
   /**
    * Subject public key
@@ -142,6 +148,11 @@ struct VerifyRequestHandle
    * Attribute Queue
    */
   struct AttributeRecordEntry *attr_queue_tail;
+  
+  /**
+   * Current Attribute Pointer
+   */
+  struct AttributeRecordEntry* attr_pointer; 
 
   /**
    * request id
@@ -245,6 +256,58 @@ check_verify (void *cls,
   return GNUNET_OK;
 }
 
+static void
+start_backward_resolution (void* cls,
+                           uint32_t rd_count,
+                           const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct VerifyRequestHandle *vrh = cls;
+  int i;
+  struct GNUNET_CREDENTIAL_CredentialRecordData *cred;
+  struct GNUNET_CREDENTIAL_AttributeRecordData *attr;
+  struct CredentialRecordEntry *cred_pointer;  
+  const char *attribute;
+  const char *cred_attribute;
+  char *issuer_key;
+  char *cred_issuer_key;
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key_ecdsa; 
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *cred_issuer_key_ecdsa; 
+
+  for(cred_pointer = vrh->cred_chain_head; cred_pointer != NULL; 
+      cred_pointer = cred_pointer->next){
+    cred = &cred_pointer->record_data;
+    issuer_key_ecdsa =  &vrh->attr_pointer->record_data.subject_key;
+    cred_issuer_key_ecdsa = &cred_pointer->record_data.issuer_key;
+
+    issuer_key =  GNUNET_CRYPTO_ecdsa_public_key_to_string(issuer_key_ecdsa);
+    cred_issuer_key = GNUNET_CRYPTO_ecdsa_public_key_to_string(cred_issuer_key_ecdsa);
+    if(0 == strcmp(issuer_key,cred_issuer_key))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found issuer\n");
+    }         
+
+  }
+  
+
+  
+  //Start from next to head
+  for(vrh->attr_pointer = vrh->attr_queue_head->next ; vrh->attr_pointer->next != NULL ;
+        vrh->attr_pointer = vrh->attr_pointer->next ){
+
+    //Start with backward resolution
+    GNUNET_GNS_lookup (gns,
+                       vrh->issuer_attribute,
+                       &vrh->issuer_key, //issuer_key,
+                       GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
+                       GNUNET_GNS_LO_DEFAULT,
+                       NULL, //shorten_key, always NULL
+                       &start_backward_resolution,
+                       vrh);
+  }
+
+
+} 
 
 /**
  * Result from GNS lookup.
@@ -269,6 +332,16 @@ send_lookup_response (void* cls,
   int cred_verified;
 
   cred_record_count = 0;
+  struct AttributeRecordEntry *attr_entry;
+
+  struct GNUNET_CREDENTIAL_AttributeRecordData *ard = 
+    GNUNET_new(struct GNUNET_CREDENTIAL_AttributeRecordData); 
+  
+  attr_entry->record_data = *ard; 
+  ard->subject_key = vrh->issuer_key;
+  GNUNET_CONTAINER_DLL_insert_tail (vrh->attr_queue_head,
+                                    vrh->attr_queue_tail,
+                                    attr_entry);
   for (i=0; i < rd_count; i++)
   {
     if (GNUNET_GNSRECORD_TYPE_CREDENTIAL != rd[i].record_type)
@@ -298,7 +371,28 @@ send_lookup_response (void* cls,
     }
 
   }
-  
+
+
+  /**
+   * Check for attributes from the issuer and follow the chain 
+   * till you get the required subject's attributes
+   */
+  if(cred_verified != GNUNET_YES){
+
+
+    vrh->attr_pointer = vrh->attr_queue_head; 
+
+    //Start with backward resolution
+    GNUNET_GNS_lookup (gns,
+                       vrh->issuer_attribute,
+                       &vrh->issuer_key, //issuer_key,
+                       GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
+                       GNUNET_GNS_LO_DEFAULT,
+                       NULL, //shorten_key, always NULL
+                       &start_backward_resolution,
+                       vrh);
+  }
+
 
 
   /**
@@ -395,6 +489,7 @@ handle_verify (void *cls,
   vrh->request_id = v_msg->id;
   vrh->issuer_key = v_msg->issuer_key;
   vrh->subject_key = v_msg->subject_key;
+  vrh->issuer_attribute = issuer_attribute;
 
   if (NULL == subject_attribute)
   {
