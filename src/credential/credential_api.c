@@ -378,7 +378,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to verify `%s' in CREDENTIAL\n",
        issuer_attribute);
-  nlen = strlen (issuer_attribute) + 1 + strlen (subject_attribute) + 1;
+  nlen = strlen (issuer_attribute) + strlen (subject_attribute) + 1;
   if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
@@ -395,10 +395,12 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
   v_msg->issuer_key =  *issuer_key;
+  v_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
+  v_msg->subject_attribute_len = htons(strlen(subject_attribute));
   GNUNET_memcpy (&v_msg[1],
                  issuer_attribute,
                  strlen (issuer_attribute));
-  GNUNET_memcpy (((char*)&v_msg[1]) + strlen (issuer_attribute) + 1,
+  GNUNET_memcpy (((char*)&v_msg[1]) + strlen (issuer_attribute),
                  subject_attribute,
                  strlen (subject_attribute));
   GNUNET_CONTAINER_DLL_insert (handle->verify_head,
