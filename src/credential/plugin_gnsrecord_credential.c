@@ -136,7 +136,7 @@ credential_string_to_value (void *cls,
         char issuer_pkey[enclen + 1];
         char name[253 + 1];
 
-        if (5 != SSCANF (s,
+        if (3 != SSCANF (s,
                          "%52s %52s %253s",
                          subject_pkey,
                          issuer_pkey,
