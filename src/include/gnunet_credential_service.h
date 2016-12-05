@@ -90,11 +90,6 @@ struct GNUNET_CREDENTIAL_CredentialRecordData {
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
   
   /**
-   * Signature purpose (data to sign, kind of signature)
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
    * Public key of the subject this credential was issued to
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;

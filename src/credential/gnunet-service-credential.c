@@ -262,6 +262,7 @@ send_lookup_response (void* cls,
   struct GNUNET_MQ_Envelope *env;
   struct VerifyResultMessage *rmsg;
   const struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *purp;
   struct CredentialRecordEntry *cr_entry;
 
   cred_record_count = 0;
@@ -284,16 +285,26 @@ send_lookup_response (void* cls,
     GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
                                       vrh->cred_chain_tail,
                                       cr_entry);
+    purp = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                          strlen ((char*)&crd[1]) +1 );
+    purp->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                        strlen ((char*)&crd[1]) +1 );
 
+    purp->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
     if(GNUNET_OK == GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
-                                               &crd->purpose,
-                                               &crd->sig, &crd->issuer_key))
-    {   
+                                               purp,
+                                               &crd->sig,
+                                               &crd->issuer_key))
+    {
+      GNUNET_free (purp);
       break;
     }
+    GNUNET_free (purp);
 
   }
-  
+
 
 
   /**
