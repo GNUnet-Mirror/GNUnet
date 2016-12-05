@@ -50,6 +50,16 @@ struct VerifyMessage
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
 
   /**
+   * Length of the issuer attribute
+   */
+  uint16_t issuer_attribute_len;
+
+  /**
+   * Length of the subject attribute
+   */
+  uint16_t subject_attribute_len;
+
+  /**
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;

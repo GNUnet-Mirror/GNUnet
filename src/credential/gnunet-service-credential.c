@@ -228,9 +228,7 @@ check_verify (void *cls,
 		    const struct VerifyMessage *v_msg)
 {
   size_t msg_size;
-  size_t attr_len;
-  const char* s_attr;
-  const char* i_attr;
+  const char* attrs;
 
   msg_size = ntohs (v_msg->header.size);
   if (msg_size < sizeof (struct VerifyMessage))
@@ -238,17 +236,16 @@ check_verify (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  i_attr = (const char *) &v_msg[1];
-  if ( ('\0' != i_attr[v_msg->header.size - sizeof (struct VerifyMessage) - 1]) ||
-       (strlen (i_attr) > GNUNET_CREDENTIAL_MAX_LENGTH) )
+  if ((ntohs (v_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH) ||
+      (ntohs (v_msg->subject_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  attr_len = strlen (i_attr);
-  s_attr = ((const char *) &v_msg[1]) + attr_len + 1;
-  if ( ('\0' != s_attr[v_msg->header.size - sizeof (struct VerifyMessage) - 1]) ||
-       (strlen (s_attr) > GNUNET_CREDENTIAL_MAX_LENGTH) )
+  attrs = (const char *) &v_msg[1];
+  
+  if ( ('\0' != attrs[ntohs(v_msg->header.size) - sizeof (struct VerifyMessage) - 1]) ||
+       (strlen (attrs) > GNUNET_CREDENTIAL_MAX_LENGTH * 2) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -328,8 +325,8 @@ send_lookup_response (void* cls,
   struct GNUNET_MQ_Envelope *env;
   struct VerifyResultMessage *rmsg;
   const struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *purp;
   struct CredentialRecordEntry *cr_entry;
-  int cred_verified;
 
   cred_record_count = 0;
   struct AttributeRecordEntry *attr_entry;
@@ -361,14 +358,23 @@ send_lookup_response (void* cls,
     GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
                                       vrh->cred_chain_tail,
                                       cr_entry);
+    purp = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                          strlen ((char*)&crd[1]) +1 );
+    purp->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                        strlen ((char*)&crd[1]) +1 );
 
+    purp->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
     if(GNUNET_OK == GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
-                                               &crd->purpose,
-                                               &crd->sig, &crd->issuer_key))
-    {   
-      cred_verified = GNUNET_YES;
+                                               purp,
+                                               &crd->sig,
+                                               &crd->issuer_key))
+    {
+      GNUNET_free (purp);
       break;
     }
+    GNUNET_free (purp);
 
   }
 
@@ -392,7 +398,6 @@ send_lookup_response (void* cls,
                        &start_backward_resolution,
                        vrh);
   }
-
 
 
   /**
@@ -466,12 +471,12 @@ static void
 handle_verify (void *cls,
                const struct VerifyMessage *v_msg) 
 {
+  char attrs[GNUNET_CREDENTIAL_MAX_LENGTH*2 + 1];
   char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char subject_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
-  size_t issuer_attribute_len;
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
-  char *attrptr = issuer_attribute;
+  char *attrptr = attrs;
   const char *utf_in;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -479,10 +484,11 @@ handle_verify (void *cls,
 
   utf_in = (const char *) &v_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
-  issuer_attribute_len = strlen (utf_in);
-  utf_in = (const char *) (&v_msg[1] + issuer_attribute_len + 1);
-  attrptr = subject_attribute;
-  GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
+
+  GNUNET_memcpy (issuer_attribute, attrs, ntohs (v_msg->issuer_attribute_len));
+  issuer_attribute[ntohs (v_msg->issuer_attribute_len)] = '\0';
+  GNUNET_memcpy (subject_attribute, attrs+strlen(issuer_attribute), ntohs (v_msg->subject_attribute_len));
+  subject_attribute[ntohs (v_msg->subject_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
   vrh->client = client;

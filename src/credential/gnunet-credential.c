@@ -180,6 +180,7 @@ identity_cb (void *cls,
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  char *res;
 
   el = NULL;
   if (NULL == ego)
@@ -200,10 +201,11 @@ identity_cb (void *cls,
                                  privkey,
                                  &subject_pkey,
                                  issuer_attr);
-  printf ("Success.\n");
-  printf (GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_CREDENTIAL,
-                                            crd,
-                                            sizeof (crd) + strlen (issuer_attr) + 1));
+  res =  GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_CREDENTIAL,
+                                           crd,
+                                           sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (issuer_attr) + 1);
+  printf ("%s\n", res);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -225,15 +227,6 @@ run (void *cls,
 {
 
   cfg = c;
-  credential = GNUNET_CREDENTIAL_connect (cfg);
-
-  if (NULL == credential)
-  {
-    fprintf (stderr,
-             _("Failed to connect to CREDENTIAL\n"));
-    return;
-  }
-
 
 
   tt = GNUNET_SCHEDULER_add_delayed (timeout,
@@ -281,6 +274,22 @@ run (void *cls,
                issuer_key);
       GNUNET_SCHEDULER_shutdown ();
     }
+    credential = GNUNET_CREDENTIAL_connect (cfg);
+
+    if (NULL == credential)
+    {
+      fprintf (stderr,
+               _("Failed to connect to CREDENTIAL\n"));
+      GNUNET_SCHEDULER_shutdown ();
+    }
+
+    if (NULL == issuer_attr || NULL == subject_credential)
+    {
+      fprintf (stderr,
+               _("You must provide issuer and subject attributes\n"));
+      GNUNET_SCHEDULER_shutdown ();
+    }
+
 
     verify_request = GNUNET_CREDENTIAL_verify(credential,
                                               &issuer_pkey,
@@ -332,7 +341,7 @@ main (int argc, char *const *argv)
     {'s', "subject", "PKEY",
       gettext_noop ("The public key of the subject to lookup the credential for"), 1,
       &GNUNET_GETOPT_set_string, &subject_key},
-    {'c', "credential", "CRED",
+    {'b', "credential", "CRED",
       gettext_noop ("The name of the credential presented by the subject"), 1,
       &GNUNET_GETOPT_set_string, &subject_credential},
     {'i', "issuer", "PKEY",

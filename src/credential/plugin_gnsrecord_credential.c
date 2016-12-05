@@ -73,33 +73,36 @@ credential_value_to_string (void *cls,
    }
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
-    struct GNUNET_CREDENTIAL_CredentialRecordData cred;
-    char *cred_str;
-    char *subject_pkey;
-    char *issuer_pkey;
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
-        return NULL; /* malformed */
-    memcpy (&cred,
-              data,
-              sizeof (cred));
-    cdata = data;  
-    subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
-    issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
-
+     struct GNUNET_CREDENTIAL_CredentialRecordData cred;
+     char *cred_str;
+     char *subject_pkey;
+     char *issuer_pkey;
+     char *signature;
+     
+     if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
+       return NULL; /* malformed */
+     memcpy (&cred,
+             data,
+             sizeof (cred));
+     cdata = data;  
+     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
+     issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
+     GNUNET_STRINGS_base64_encode ((char*)&cred.sig,
+                                   sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                   &signature);
      GNUNET_asprintf (&cred_str,
-                     "%s %s %s",
-                     subject_pkey,
-                     issuer_pkey,
-                     &cdata[sizeof (cred)]);
-      GNUNET_free (subject_pkey);
-      GNUNET_free (issuer_pkey);
-
-
-
-    return cred_str;
-    }
-  default:
-    return NULL;
+                      "%s.%s -> %s sig:%s",
+                      issuer_pkey,
+                      &cdata[sizeof (cred)],
+                      subject_pkey,
+                      signature);
+     GNUNET_free (subject_pkey);
+     GNUNET_free (issuer_pkey);
+     GNUNET_free (signature);
+     return cred_str;
+   }
+   default:
+   return NULL;
   }
 }
 
@@ -117,10 +120,10 @@ credential_value_to_string (void *cls,
  */
 static int
 credential_string_to_value (void *cls,
-                     uint32_t type,
-                     const char *s,
-                     void **data,
-                     size_t *data_size)
+                            uint32_t type,
+                            const char *s,
+                            void **data,
+                            size_t *data_size)
 {
   if (NULL == s)
     return GNUNET_SYSERR;
@@ -137,12 +140,15 @@ credential_string_to_value (void *cls,
         char subject_pkey[enclen + 1];
         char issuer_pkey[enclen + 1];
         char name[253 + 1];
+        char signature[128]; //TODO max payload size
+        struct GNUNET_CRYPTO_EcdsaSignature *sig;
 
-        if (5 != SSCANF (s,
-                         "%52s %52s %253s",
-                         subject_pkey,
+        if (4 != SSCANF (s,
+                         "%52s.%253s -> %52s sig:%s",
                          issuer_pkey,
-                         name))
+                         name,
+                         subject_pkey,
+                         signature))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Unable to parse CRED record string `%s'\n"),
@@ -157,6 +163,11 @@ credential_string_to_value (void *cls,
         GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
                                                     strlen (issuer_pkey),
                                                     &cred->issuer_key);
+        GNUNET_STRINGS_base64_decode (signature,
+                                      strlen (signature),
+                                      (char**)&sig);
+        cred->sig = *sig;
+        GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,
                        strlen (name));

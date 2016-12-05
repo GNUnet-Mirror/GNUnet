@@ -369,7 +369,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   struct GNUNET_CREDENTIAL_Request *vr;
   size_t nlen;
 
-  if (NULL == issuer_attribute)
+  if (NULL == issuer_attribute || NULL == subject_attribute)
   {
     GNUNET_break (0);
     return NULL;
@@ -378,7 +378,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to verify `%s' in CREDENTIAL\n",
        issuer_attribute);
-  nlen = strlen (issuer_attribute) + 1;
+  nlen = strlen (issuer_attribute) + strlen (subject_attribute) + 1;
   if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
@@ -395,9 +395,14 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
   v_msg->issuer_key =  *issuer_key;
+  v_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
+  v_msg->subject_attribute_len = htons(strlen(subject_attribute));
   GNUNET_memcpy (&v_msg[1],
+                 issuer_attribute,
+                 strlen (issuer_attribute));
+  GNUNET_memcpy (((char*)&v_msg[1]) + strlen (issuer_attribute),
                  subject_attribute,
-                 nlen);
+                 strlen (subject_attribute));
   GNUNET_CONTAINER_DLL_insert (handle->verify_head,
                                handle->verify_tail,
                                vr);
@@ -423,23 +428,32 @@ GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
                          const char *attribute)
 {
   struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *purp;
 
   crd = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (attribute) + 1);
 
-  crd->purpose.size = htonl (strlen (attribute) + 1 +
-                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-                			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-			                       sizeof (struct GNUNET_TIME_AbsoluteNBO));
-  crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  purp = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                        strlen (attribute) + 1);
+  purp->size = htonl (strlen (attribute) + 1 +
+                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                			sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
+  
+  purp->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
                                       &crd->issuer_key);
-
+  crd->subject_key = *subject;
   GNUNET_memcpy (&crd[1],
+                 attribute,
+                 strlen (attribute));
+  GNUNET_memcpy (&purp[1],
+                 subject,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_memcpy (&purp[1] + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                  attribute,
                  strlen (attribute));
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                &crd->purpose,
+                                purp,
                                 &crd->sig))
   {
     GNUNET_break (0);
