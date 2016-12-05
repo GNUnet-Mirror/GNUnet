@@ -433,7 +433,7 @@ GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
   crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
                                       &crd->issuer_key);
-
+  crd->subject_key = *subject;
   GNUNET_memcpy (&crd[1],
                  attribute,
                  strlen (attribute));

@@ -73,33 +73,31 @@ credential_value_to_string (void *cls,
    }
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
-    struct GNUNET_CREDENTIAL_CredentialRecordData cred;
-    char *cred_str;
-    char *subject_pkey;
-    char *issuer_pkey;
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
-        return NULL; /* malformed */
-    memcpy (&cred,
-              data,
-              sizeof (cred));
-    cdata = data;  
-    subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
-    issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
+     struct GNUNET_CREDENTIAL_CredentialRecordData cred;
+     char *cred_str;
+     char *subject_pkey;
+     char *issuer_pkey;
+     if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
+       return NULL; /* malformed */
+     memcpy (&cred,
+             data,
+             sizeof (cred));
+     cdata = data;  
+     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
+     issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
 
      GNUNET_asprintf (&cred_str,
-                     "%s %s %s",
-                     subject_pkey,
-                     issuer_pkey,
-                     &cdata[sizeof (cred)]);
-      GNUNET_free (subject_pkey);
-      GNUNET_free (issuer_pkey);
+                      "%s %s %s",
+                      subject_pkey,
+                      issuer_pkey,
+                      &cdata[sizeof (cred)]);
+     GNUNET_free (subject_pkey);
+     GNUNET_free (issuer_pkey);
 
-
-
-    return cred_str;
-    }
-  default:
-    return NULL;
+     return cred_str;
+   }
+   default:
+   return NULL;
   }
 }
 
@@ -117,10 +115,10 @@ credential_value_to_string (void *cls,
  */
 static int
 credential_string_to_value (void *cls,
-                     uint32_t type,
-                     const char *s,
-                     void **data,
-                     size_t *data_size)
+                            uint32_t type,
+                            const char *s,
+                            void **data,
+                            size_t *data_size)
 {
   if (NULL == s)
     return GNUNET_SYSERR;
