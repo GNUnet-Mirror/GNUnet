@@ -28,16 +28,9 @@ gnunet-identity -C testissuer -c test_credential_lookup.conf
 gnunet-identity -C testsubject -c test_credential_lookup.conf
 SUBJECT_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testsubject | awk '{print $3}')
 ISSUER_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testissuer | awk '{print $3}')
-EXPECTED="$SUBJECT_KEY $ISSUER_KEY $TEST_ATTR"
 #TODO1 Get credential and store it with subject (3)
-CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR -c test_credential_lookup.conf`
+$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR -c test_credential_lookup.conf
+STATUS=$?
 
 gnunet-arm -e -c test_credential_lookup.conf
-
-if [ "$EXPECTED" == "$CRED" ]
-then
-  exit 0
-else
-  echo "FAIL: Failed to issue credential, got $CRED."
-  exit 1
-fi
+exit $STATUS

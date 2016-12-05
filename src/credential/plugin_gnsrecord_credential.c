@@ -77,6 +77,8 @@ credential_value_to_string (void *cls,
      char *cred_str;
      char *subject_pkey;
      char *issuer_pkey;
+     char *signature;
+     
      if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
        return NULL; /* malformed */
      memcpy (&cred,
@@ -85,15 +87,18 @@ credential_value_to_string (void *cls,
      cdata = data;  
      subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
      issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
-
+     GNUNET_STRINGS_base64_encode ((char*)&cred.sig,
+                                   sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                   &signature);
      GNUNET_asprintf (&cred_str,
-                      "%s %s %s",
-                      subject_pkey,
+                      "%s.%s -> %s sig:%s",
                       issuer_pkey,
-                      &cdata[sizeof (cred)]);
+                      &cdata[sizeof (cred)],
+                      subject_pkey,
+                      signature);
      GNUNET_free (subject_pkey);
      GNUNET_free (issuer_pkey);
-
+     GNUNET_free (signature);
      return cred_str;
    }
    default:
@@ -135,12 +140,15 @@ credential_string_to_value (void *cls,
         char subject_pkey[enclen + 1];
         char issuer_pkey[enclen + 1];
         char name[253 + 1];
+        char signature[128]; //TODO max payload size
+        struct GNUNET_CRYPTO_EcdsaSignature *sig;
 
-        if (3 != SSCANF (s,
-                         "%52s %52s %253s",
-                         subject_pkey,
+        if (4 != SSCANF (s,
+                         "%52s.%253s -> %52s sig:%s",
                          issuer_pkey,
-                         name))
+                         name,
+                         subject_pkey,
+                         signature))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Unable to parse CRED record string `%s'\n"),
@@ -155,6 +163,11 @@ credential_string_to_value (void *cls,
         GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
                                                     strlen (issuer_pkey),
                                                     &cred->issuer_key);
+        GNUNET_STRINGS_base64_decode (signature,
+                                      strlen (signature),
+                                      (char**)&sig);
+        cred->sig = *sig;
+        GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,
                        strlen (name));
