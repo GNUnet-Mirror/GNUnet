@@ -29,6 +29,7 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_gnsrecord_plugin.h"
+#include "gnunet_signatures.h"
 
 
 /**
@@ -96,12 +97,12 @@ credential_value_to_string (void *cls,
                                    sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
                                    &signature);
      GNUNET_asprintf (&cred_str,
-                      "%s.%s -> %s exp:%s sig:%s",
+                      "%s.%s -> %s | %s | %s",
                       issuer_pkey,
                       &cdata[sizeof (cred)],
                       subject_pkey,
-                      expiration,
-                      signature);
+                      signature,
+                      expiration);
      GNUNET_free (subject_pkey);
      GNUNET_free (issuer_pkey);
      GNUNET_free (signature);
@@ -153,18 +154,21 @@ credential_string_to_value (void *cls,
         struct GNUNET_TIME_Absolute etime_abs;
 
         if (5 != SSCANF (s,
-                         "%52s.%253s -> %52s exp:%255s sig:%127s",
+                         "%52s.%253s -> %52s | %s | %255[0-9a-zA-Z: ]",
                          issuer_pkey,
                          name,
                          subject_pkey,
-                         expiration,
-                         signature))
+                         signature,
+                         expiration))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Unable to parse CRED record string `%s'\n"),
                       s);
           return GNUNET_SYSERR;
         }
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Found %s, %s, %s, %s, %s\n",
+                    issuer_pkey, name, subject_pkey, signature, expiration);
         *data_size = sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (name) + 1;
         *data = cred = GNUNET_malloc (*data_size);
         GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
@@ -179,15 +183,16 @@ credential_string_to_value (void *cls,
                                       strlen (signature),
                                       (char**)&sig);
         cred->sig = *sig;
-        cred->expiration = htonl (etime_abs.abs_value_us);
+        cred->expiration = GNUNET_htonll (etime_abs.abs_value_us);
+        cred->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+        cred->purpose.size = strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t);
         GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,
                        strlen (name));
 
 
-        *data = GNUNET_strdup (s);
-        *data_size = strlen (s);
         return GNUNET_OK;
       }
     default:

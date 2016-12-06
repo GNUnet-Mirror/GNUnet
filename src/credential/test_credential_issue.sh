@@ -29,8 +29,16 @@ gnunet-identity -C testsubject -c test_credential_lookup.conf
 SUBJECT_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testsubject | awk '{print $3}')
 ISSUER_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testissuer | awk '{print $3}')
 #TODO1 Get credential and store it with subject (3)
-$DO_TIMEOUT valgrind gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR --ttl=5m -c test_credential_lookup.conf
+CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR --ttl=5m -c test_credential_lookup.conf`
 STATUS=$?
 
+if test $? != 0
+then
+  echo "Error issuing..."
+  exit 1
+fi
+#Try import
+$DO_TIMEOUT gnunet-namestore -a -z testsubject -n c1 -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+
 gnunet-arm -e -c test_credential_lookup.conf
-exit $STATUS
+exit $?
