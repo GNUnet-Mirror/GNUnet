@@ -68,6 +68,11 @@ static char *subject_key;
 static char *subject_credential;
 
 /**
+ * Credential TTL
+ */
+static char *expiration;
+
+/**
  * Subject key
  */
 struct GNUNET_CRYPTO_EcdsaPublicKey subject_pkey;
@@ -180,6 +185,8 @@ identity_cb (void *cls,
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_TIME_Absolute etime_abs;
+  struct GNUNET_TIME_Relative etime_rel;
   char *res;
 
   el = NULL;
@@ -194,13 +201,35 @@ identity_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  if (NULL == expiration)
+  {
+    fprintf (stderr,
+             "Please specify a TTL\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  } else if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration,
+                                                          &etime_rel))
+  {
+    etime_abs = GNUNET_TIME_relative_to_absolute (etime_rel);
+  } else if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute (expiration,
+                                                                 &etime_abs))
+  {
+    fprintf (stderr,
+             "%s is not a valid ttl!\n",
+             expiration);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
   GNUNET_free_non_null (issuer_ego_name);
   issuer_ego_name = NULL;
   crd = GNUNET_CREDENTIAL_issue (credential,
                                  privkey,
                                  &subject_pkey,
-                                 issuer_attr);
+                                 issuer_attr,
+                                 &etime_abs);
   res =  GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_CREDENTIAL,
                                            crd,
                                            sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (issuer_attr) + 1);
@@ -353,6 +382,9 @@ main (int argc, char *const *argv)
     {'a', "attribute", "ATTR",
       gettext_noop ("The issuer attribute to verify against or to issue"), 1, 
       &GNUNET_GETOPT_set_string, &issuer_attr},
+    {'T', "ttl", "EXP",
+      gettext_noop ("The time to live for the credential"), 1,
+      &GNUNET_GETOPT_set_string, &expiration},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

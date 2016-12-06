@@ -425,35 +425,29 @@ struct GNUNET_CREDENTIAL_CredentialRecordData *
 GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                          struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                         const char *attribute)
+                         const char *attribute,
+                         struct GNUNET_TIME_Absolute *expiration)
 {
   struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
-  struct GNUNET_CRYPTO_EccSignaturePurpose *purp;
 
   crd = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (attribute) + 1);
 
-  purp = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-                        strlen (attribute) + 1);
-  purp->size = htonl (strlen (attribute) + 1 +
+  crd->purpose.size = htonl (strlen (attribute) + 1 +
                       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-                			sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
+                			sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                      sizeof (uint64_t));
   
-  purp->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
                                       &crd->issuer_key);
   crd->subject_key = *subject;
+  crd->expiration = GNUNET_htonll (expiration->abs_value_us);
   GNUNET_memcpy (&crd[1],
-                 attribute,
-                 strlen (attribute));
-  GNUNET_memcpy (&purp[1],
-                 subject,
-                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  GNUNET_memcpy (&purp[1] + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                  attribute,
                  strlen (attribute));
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                purp,
+                                &crd->purpose,
                                 &crd->sig))
   {
     GNUNET_break (0);
