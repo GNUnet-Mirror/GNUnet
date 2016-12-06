@@ -166,9 +166,6 @@ credential_string_to_value (void *cls,
                       s);
           return GNUNET_SYSERR;
         }
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Found %s, %s, %s, %s, %s\n",
-                    issuer_pkey, name, subject_pkey, signature, expiration);
         *data_size = sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (name) + 1;
         *data = cred = GNUNET_malloc (*data_size);
         GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,

@@ -236,9 +236,18 @@ handle_result (void *cls,
                                                        rd_count,
                                                          rd));
                                                          */
-  proc (proc_cls,
-        NULL,
-        GNUNET_NO); // TODO
+  if (GNUNET_NO == ntohl (vr_msg->cred_found))
+  {
+    proc (proc_cls,
+          NULL,
+          0,
+          NULL); // TODO
+  } else {
+    proc (proc_cls,
+          (struct GNUNET_CREDENTIAL_CredentialRecordData*) &vr_msg[1],
+          0,
+          NULL);
+  }
 }
 
 
@@ -254,7 +263,7 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
     GNUNET_MQ_hd_var_size (result,
                            GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT,
                            struct VerifyResultMessage,
-                           NULL),
+                           handle),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_CREDENTIAL_Request *vr;

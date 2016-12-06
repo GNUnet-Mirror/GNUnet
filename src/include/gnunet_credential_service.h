@@ -159,8 +159,9 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param rd the records in reply
  */
 typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
-						  struct GNUNET_CRYPTO_EcdsaPublicKey *issuer,
-              uint32_t result);
+						  struct GNUNET_CREDENTIAL_CredentialRecordData *credential,
+              uint32_t delegation_length,
+              struct GNUNET_CREDENTIAL_AttributeRecordData *delegation_chain);
 
 /**
  * Iterator called on obtained result for an attribute delegation.

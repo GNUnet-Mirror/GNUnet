@@ -157,13 +157,14 @@ do_timeout (void *cls)
  */
 static void
 handle_verify_result (void *cls,
-                      struct GNUNET_CRYPTO_EcdsaPublicKey *issuer,
-                      uint32_t status)
+                      struct GNUNET_CREDENTIAL_CredentialRecordData *cred,
+                      uint32_t delegation_count,
+                      struct GNUNET_CREDENTIAL_AttributeRecordData *deleg)
 {
 
 
   verify_request = NULL;
-  if (GNUNET_NO == status)
+  if (NULL == cred)
     printf ("Verify failed.\n");
   else
     printf ("Successful.\n");

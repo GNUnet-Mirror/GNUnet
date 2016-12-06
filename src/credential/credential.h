@@ -83,12 +83,16 @@ struct VerifyResultMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
+  
+  /**
+   * Indicates if credential has been found at all
+   */
+  uint32_t cred_found GNUNET_PACKED;
 
   /**
    * The number of credentials in the response
    */
-  uint32_t ad_count GNUNET_PACKED;
+  uint32_t cd_count GNUNET_PACKED;
 
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 
