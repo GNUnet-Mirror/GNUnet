@@ -74,10 +74,13 @@ credential_value_to_string (void *cls,
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
      struct GNUNET_CREDENTIAL_CredentialRecordData cred;
+     struct GNUNET_TIME_Absolute etime_abs;
      char *cred_str;
      char *subject_pkey;
      char *issuer_pkey;
      char *signature;
+     const char *expiration;
+
      
      if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
        return NULL; /* malformed */
@@ -87,14 +90,17 @@ credential_value_to_string (void *cls,
      cdata = data;  
      subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
      issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
+     etime_abs.abs_value_us = GNUNET_ntohll(cred.expiration);
+     expiration = GNUNET_STRINGS_absolute_time_to_string (etime_abs);
      GNUNET_STRINGS_base64_encode ((char*)&cred.sig,
                                    sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
                                    &signature);
      GNUNET_asprintf (&cred_str,
-                      "%s.%s -> %s sig:%s",
+                      "%s.%s -> %s exp:%s sig:%s",
                       issuer_pkey,
                       &cdata[sizeof (cred)],
                       subject_pkey,
+                      expiration,
                       signature);
      GNUNET_free (subject_pkey);
      GNUNET_free (issuer_pkey);
@@ -141,13 +147,17 @@ credential_string_to_value (void *cls,
         char issuer_pkey[enclen + 1];
         char name[253 + 1];
         char signature[128]; //TODO max payload size
-        struct GNUNET_CRYPTO_EcdsaSignature *sig;
+        char expiration[256];
 
-        if (4 != SSCANF (s,
-                         "%52s.%253s -> %52s sig:%s",
+        struct GNUNET_CRYPTO_EcdsaSignature *sig;
+        struct GNUNET_TIME_Absolute etime_abs;
+
+        if (5 != SSCANF (s,
+                         "%52s.%253s -> %52s exp:%255s sig:%127s",
                          issuer_pkey,
                          name,
                          subject_pkey,
+                         expiration,
                          signature))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -163,10 +173,13 @@ credential_string_to_value (void *cls,
         GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
                                                     strlen (issuer_pkey),
                                                     &cred->issuer_key);
+        GNUNET_STRINGS_fancy_time_to_absolute (expiration,
+                                               &etime_abs);
         GNUNET_STRINGS_base64_decode (signature,
                                       strlen (signature),
                                       (char**)&sig);
         cred->sig = *sig;
+        cred->expiration = htonl (etime_abs.abs_value_us);
         GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,

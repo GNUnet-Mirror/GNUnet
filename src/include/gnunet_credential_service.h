@@ -83,6 +83,10 @@ struct GNUNET_CREDENTIAL_CredentialRecordData {
    */
   struct GNUNET_CRYPTO_EcdsaSignature sig;
   
+  /**
+   * Signature meta
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * Public key of the issuer
@@ -250,13 +254,15 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param issuer the ego that should be used to issue the attribute
  * @param subject the subject of the attribute
  * @param attribute the name of the attribute
+ * @param expiration the TTL of the credential
  * @return handle to the queued request
  */
 struct GNUNET_CREDENTIAL_CredentialRecordData *
 GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                          struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                         const char *attribute);
+                         const char *attribute,
+                         struct GNUNET_TIME_Absolute *expiration);
 
 
 /**

@@ -327,6 +327,7 @@ send_lookup_response (void* cls,
   const struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purp;
   struct CredentialRecordEntry *cr_entry;
+  uint32_t cred_verified;
 
   cred_record_count = 0;
   struct AttributeRecordEntry *attr_entry;
