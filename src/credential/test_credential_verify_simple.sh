@@ -19,7 +19,7 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
-gnunet-arm -s -c test_credential_lookup.conf
+#gnunet-arm -s -c test_credential_lookup.conf
 gnunet-identity -C testissuer -c test_credential_lookup.conf
 gnunet-identity -C testsubject -c test_credential_lookup.conf
 
@@ -45,6 +45,6 @@ if [ "$RES_CRED" == "Successful." ]
 then
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_IP."
+  echo "FAIL: Failed to verify credential."
   exit 1
 fi

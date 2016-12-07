@@ -434,7 +434,7 @@ handle_credential_query (void* cls,
     GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
                                       vrh->cred_chain_tail,
                                       cr_entry);
-    /*if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
+    if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
                                                &crd->purpose,
                                                &crd->sig,
                                                &crd->issuer_key))
@@ -442,7 +442,7 @@ handle_credential_query (void* cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Invalid credential found\n");
       continue;
-    }*/
+    }
     if (0 != memcmp (&crd->issuer_key,
                      &vrh->issuer_key,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))

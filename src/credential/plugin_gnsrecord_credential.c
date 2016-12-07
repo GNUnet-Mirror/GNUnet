@@ -182,8 +182,8 @@ credential_string_to_value (void *cls,
         cred->sig = *sig;
         cred->expiration = GNUNET_htonll (etime_abs.abs_value_us);
         cred->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
-        cred->purpose.size = strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t);
+        cred->purpose.size = htonl (strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t));
         GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,
