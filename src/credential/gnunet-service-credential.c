@@ -476,11 +476,16 @@ start_backward_resolution (void* cls,
   strcpy (issuer_attribute_name,
           (char*)&vrh->current_attribute->data[1]);
   char *next_attr = strtok (issuer_attribute_name, ".");
-    GNUNET_asprintf (&lookup_attr,
+  GNUNET_asprintf (&lookup_attr,
                    "%s.gnu",
                    next_attr);
-  next_attr += strlen (next_attr) + 1;
-  vrh->current_attribute->attr_trailer = GNUNET_strdup (next_attr);
+  if (strlen (next_attr) == strlen ((char*)&vrh->current_attribute->data[1]))
+  {
+    vrh->current_attribute->attr_trailer = NULL;
+  } else {
+    next_attr += strlen (next_attr) + 1;
+    vrh->current_attribute->attr_trailer = GNUNET_strdup (next_attr);
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Looking up %s\n", lookup_attr);

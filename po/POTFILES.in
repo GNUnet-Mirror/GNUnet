@@ -71,6 +71,10 @@ src/core/gnunet-service-core.c
 src/core/gnunet-service-core_kx.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
+src/credential/credential_api.c
+src/credential/gnunet-credential.c
+src/credential/gnunet-service-credential.c
+src/credential/plugin_gnsrecord_credential.c
 src/curl/curl.c
 src/curl/curl_reschedule.c
 src/datacache/datacache.c
@@ -244,7 +248,11 @@ src/nat/gnunet-helper-nat-server-windows.c
 src/nat/gnunet-nat.c
 src/nat/gnunet-nat-server.c
 src/nat/gnunet-service-nat.c
+src/nat/gnunet-service-nat_helper.c
+src/nat/gnunet-service-nat_stun.c
 src/nat/nat_api.c
+src/nat/nat_api_stun.c
+src/nat/nat_api_test.c
 src/nat/nat_auto.c
 src/nat/nat.c
 src/nat/nat_mini.c
