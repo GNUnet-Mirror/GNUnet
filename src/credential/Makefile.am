@@ -103,8 +103,10 @@ libgnunetcredential_la_LDFLAGS = \
 # $(GN_PLUGIN_LDFLAGS)
 
 
-#check_SCRIPTS = \
-  #test_gns_lookup.sh 
+check_SCRIPTS = \
+  test_credential_issue.sh \
+	test_credential_verify_simple.sh \
+	test_credential_verify.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE

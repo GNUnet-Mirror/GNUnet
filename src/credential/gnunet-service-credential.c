@@ -526,14 +526,6 @@ handle_credential_query (void* cls,
       continue;
     cred_record_count++;
     crd = rd[i].data;
-    /**
-     * TODO:
-     * Check if we have already found our credential here
-     * If so return success
-     * Else
-     *  Save all found attributes/issues and prepare forward
-     *  resolution of issuer attribute
-     */
     if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
                                                &crd->purpose,
                                                &crd->sig,
