@@ -100,6 +100,11 @@ struct AttributeQueueEntry
    * Parent attribute delegation
    */
   struct AttributeQueueEntry *parent;
+
+  /**
+   * Trailing attribute context
+   */
+  char *attr_trailer;
 };
 
 
@@ -364,39 +369,73 @@ start_backward_resolution (void* cls,
   const struct GNUNET_CREDENTIAL_AttributeRecordData *attr;
   struct CredentialRecordEntry *cred_pointer;
   struct AttributeQueueEntry *attr_entry;
+  char *expanded_attr;
+  char *check_attr;
   int i;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got %d attrs\n", rd_count);
 
   for (i=0; i < rd_count; i++) 
   {
     if (GNUNET_GNSRECORD_TYPE_ATTRIBUTE != rd[i].record_type)
       continue;
+
     attr = rd[i].data;
+    attr_entry = GNUNET_new (struct AttributeQueueEntry);
+    attr_entry->data_size = rd[i].data_size;
+    if (NULL != vrh->current_attribute &&
+        NULL != vrh->current_attribute->attr_trailer)
+    {
+      if (rd[i].data_size == sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
+      {
+        GNUNET_asprintf (&expanded_attr,
+                         "%s",
+                         vrh->current_attribute->attr_trailer);
+
+      } else {
+        GNUNET_asprintf (&expanded_attr,
+                         "%s.%s",
+                         (char*)&attr[1],
+                         vrh->current_attribute->attr_trailer);
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Expanded to %s\n", expanded_attr);
+      attr_entry->data_size += strlen (vrh->current_attribute->attr_trailer) + 1;
+    } else {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Not Expanding %s\n", (char*)&attr[1]);
+    }
+    attr_entry->data = GNUNET_malloc (attr_entry->data_size);
+    memcpy (attr_entry->data,
+            rd[i].data,
+            rd[i].data_size);
+    if (NULL != vrh->current_attribute && NULL != vrh->current_attribute->attr_trailer)
+    {
+      memcpy ((char*)&attr_entry->data[1],
+              expanded_attr,
+              strlen (expanded_attr));
+    } 
+    check_attr = (char*)&attr_entry->data[1];
+    check_attr[attr_entry->data_size] = '\0';
+    attr_entry->parent = vrh->current_attribute;
+
+    GNUNET_CONTAINER_DLL_insert (vrh->attr_queue_head,
+                                 vrh->attr_queue_tail,
+                                 attr_entry);
     for(cred_pointer = vrh->cred_chain_head; cred_pointer != NULL; 
         cred_pointer = cred_pointer->next){
       cred = cred_pointer->data;
-      
-      attr_entry = GNUNET_new (struct AttributeQueueEntry);
-
-      attr_entry->data = GNUNET_malloc (rd[i].data_size);
-      memcpy (attr_entry->data,
-              rd[i].data,
-              rd[i].data_size);
-      attr_entry->data_size = rd[i].data_size;
-
-      attr_entry->parent = vrh->current_attribute;
-
-      GNUNET_CONTAINER_DLL_insert (vrh->attr_queue_head,
-                                   vrh->attr_queue_tail,
-                                   attr_entry);
-
       if(0 != memcmp (&attr->subject_key, 
                       &cred_pointer->data->issuer_key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)))
         continue;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Checking if %s matches %s\n",
+                  (char*)&attr_entry->data[1], (char*)&cred[1]);
 
-      if (0 != strcmp ((char*)&attr[1], (char*)&cred[1]))
+      if (0 != strcmp ((char*)&attr_entry->data[1], (char*)&cred[1]))
         continue;
-
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Found issuer\n");
@@ -417,9 +456,9 @@ start_backward_resolution (void* cls,
   //Start from next to head
   vrh->current_attribute = vrh->attr_queue_head;
 
-  if(vrh->current_attribute != NULL)
+  if(NULL == vrh->current_attribute)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "We are all out of attributes...\n");
     send_lookup_response (vrh);
     return;
@@ -432,14 +471,32 @@ start_backward_resolution (void* cls,
 
 
   //Start with backward resolution
+  char issuer_attribute_name[strlen ((char*)&vrh->current_attribute->data[1])];
+  char *lookup_attr;
+  strcpy (issuer_attribute_name,
+          (char*)&vrh->current_attribute->data[1]);
+  char *next_attr = strtok (issuer_attribute_name, ".");
+    GNUNET_asprintf (&lookup_attr,
+                   "%s.gnu",
+                   next_attr);
+  next_attr += strlen (next_attr) + 1;
+  vrh->current_attribute->attr_trailer = GNUNET_strdup (next_attr);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Looking up %s\n", lookup_attr);
+  if (NULL != vrh->current_attribute->attr_trailer)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s still to go...\n", vrh->current_attribute->attr_trailer);
+
   vrh->lookup_request = GNUNET_GNS_lookup (gns,
-                                           (char*)&vrh->current_attribute->data[1],
+                                           lookup_attr,
                                            &vrh->current_attribute->data->subject_key, //issuer_key,
                                            GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
                                            GNUNET_GNS_LO_DEFAULT,
                                            NULL, //shorten_key, always NULL
                                            &start_backward_resolution,
                                            vrh);
+  GNUNET_free (lookup_attr);
 } 
 
 
@@ -513,8 +570,6 @@ handle_credential_query (void* cls,
 
   }
 
-  GNUNET_break (0); //TODO remove when implemented
-
   /**
    * Check for attributes from the issuer and follow the chain 
    * till you get the required subject's attributes
@@ -524,6 +579,9 @@ handle_credential_query (void* cls,
           vrh->issuer_attribute);
   strcpy (issuer_attribute_name + strlen (vrh->issuer_attribute),
           ".gnu");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Looking up %s\n", issuer_attribute_name);
+
   //Start with backward resolution
   GNUNET_GNS_lookup (gns,
                      issuer_attribute_name,

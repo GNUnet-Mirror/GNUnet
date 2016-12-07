@@ -65,10 +65,15 @@ credential_value_to_string (void *cls,
             sizeof (attr));
     cdata = data;
     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&attr.subject_key);
-    GNUNET_asprintf (&attr_str,
-                     "%s.%s",
-                     subject_pkey,
-                     &cdata[sizeof (attr)]);
+    if (data_size == sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData))
+    {
+      return subject_pkey;
+    } else {
+      GNUNET_asprintf (&attr_str,
+                       "%s %s",
+                       subject_pkey,
+                       &cdata[sizeof (attr)]);
+    }
     GNUNET_free (subject_pkey);
     return attr_str;
    }
@@ -82,7 +87,7 @@ credential_value_to_string (void *cls,
      char *signature;
      const char *expiration;
 
-     
+
      if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
        return NULL; /* malformed */
      memcpy (&cred,
@@ -136,6 +141,41 @@ credential_string_to_value (void *cls,
     return GNUNET_SYSERR;
   switch (type)
   {
+    case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
+      {
+        struct GNUNET_CREDENTIAL_AttributeRecordData *attr;
+        char attr_str[253 + 1];
+        char subject_pkey[52 + 1];
+        int matches = 0;
+        matches = SSCANF (s,
+                          "%s %s",
+                          subject_pkey,
+                          attr_str);
+        if (0 == matches)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Unable to parse ATTR record string `%s'\n"),
+                      s);
+          return GNUNET_SYSERR;
+
+        }
+        if (1 == matches) {
+          *data_size = sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData);
+        } else if (2 == matches) {
+          *data_size = sizeof (struct GNUNET_CREDENTIAL_AttributeRecordData) + strlen (attr_str) + 1;
+        }
+        *data = attr = GNUNET_malloc (*data_size);
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
+                                                    strlen (subject_pkey),
+                                                    &attr->subject_key);
+        if (NULL != attr_str)
+          GNUNET_memcpy (&attr[1],
+                         attr_str,
+                         strlen (attr_str));
+
+
+        return GNUNET_OK;
+      }
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
       { 
         struct GNUNET_CREDENTIAL_CredentialRecordData *cred;
@@ -183,7 +223,7 @@ credential_string_to_value (void *cls,
         cred->expiration = GNUNET_htonll (etime_abs.abs_value_us);
         cred->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
         cred->purpose.size = htonl (strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t));
+                                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t));
         GNUNET_free (sig);
         GNUNET_memcpy (&cred[1],
                        name,
@@ -207,6 +247,7 @@ static struct {
   uint32_t number;
 } name_map[] = {
   { "CRED", GNUNET_GNSRECORD_TYPE_CREDENTIAL },
+  { "ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE },
   { NULL, UINT32_MAX }
 };
 
