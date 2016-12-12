@@ -4,16 +4,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 EXTRA_DIST = \
   test_credential_defaults.conf \
   test_credential_lookup.conf
-#  test_gns_nick_shorten.conf \
-####  test_gns_proxy.conf \
-#  test_gns_simple_lookup.conf \
-#  gns-helper-service-w32.conf \
-#  w32nsp.def \
-#  gnunet-gns-proxy-setup-ca \
-#  zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
-#  zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
-#  zonefiles/test_zonekey \
-#  $(check_SCRIPTS)
 
 
 if USE_COVERAGE
@@ -45,11 +35,11 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_credential.la
 
 
-#if HAVE_MHD
-#if HAVE_JSON
-#plugin_LTLIBRARIES += libgnunet_plugin_rest_gns.la
-#endif
-#endif
+if HAVE_MHD
+if HAVE_JSON
+plugin_LTLIBRARIES += libgnunet_plugin_rest_credential.la
+endif
+endif
 
 
 gnunet_credential_SOURCES = \
@@ -89,18 +79,17 @@ libgnunetcredential_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 
-#libgnunet_plugin_rest_gns_la_SOURCES = \
-#  plugin_rest_gns.c
-#libgnunet_plugin_rest_gns_la_LIBADD = \
-#  libgnunetgns.la \
-#	$(top_builddir)/src/rest/libgnunetrest.la \
-#  $(top_builddir)/src/identity/libgnunetidentity.la \
-#	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-#  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
-#  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-#  $(LTLIBINTL) -ljansson -lmicrohttpd
-#libgnunet_plugin_rest_gns_la_LDFLAGS = \
-# $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_rest_credential_la_SOURCES = \
+  plugin_rest_credential.c
+libgnunet_plugin_rest_credential_la_LIBADD = \
+  libgnunetcredential.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_credential_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 
 check_SCRIPTS = \
