@@ -457,7 +457,7 @@ GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_sign (issuer,
                                 &crd->purpose,
-                                &crd->sig))
+                                &crd->signature))
   {
     GNUNET_break (0);
     GNUNET_free (crd);

@@ -81,7 +81,7 @@ struct GNUNET_CREDENTIAL_CredentialRecordData {
   /**
    * The signature for this credential by the issuer
    */
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
   
   /**
    * Signature meta

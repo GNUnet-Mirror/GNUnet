@@ -98,7 +98,7 @@ credential_value_to_string (void *cls,
      issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
      etime_abs.abs_value_us = GNUNET_ntohll(cred.expiration);
      expiration = GNUNET_STRINGS_absolute_time_to_string (etime_abs);
-     GNUNET_STRINGS_base64_encode ((char*)&cred.sig,
+     GNUNET_STRINGS_base64_encode ((char*)&cred.signature,
                                    sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
                                    &signature);
      GNUNET_asprintf (&cred_str,
@@ -219,7 +219,7 @@ credential_string_to_value (void *cls,
         GNUNET_STRINGS_base64_decode (signature,
                                       strlen (signature),
                                       (char**)&sig);
-        cred->sig = *sig;
+        cred->signature = *sig;
         cred->expiration = GNUNET_htonll (etime_abs.abs_value_us);
         cred->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
         cred->purpose.size = htonl (strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +

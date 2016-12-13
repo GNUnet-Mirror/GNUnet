@@ -37,6 +37,12 @@
 
 #define GNUNET_REST_API_NS_CREDENTIAL "/credential"
 
+#define GNUNET_REST_JSONAPI_CREDENTIAL "credential"
+
+#define GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO "credential"
+
+#define GNUNET_REST_JSONAPI_CREDENTIAL_CHAIN "chain"
+
 #define GNUNET_REST_JSONAPI_CREDENTIAL_ISSUER_ATTR "attribute"
 
 #define GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_ATTR "credential"
@@ -174,6 +180,143 @@ do_error (void *cls)
   cleanup_handle (handle);
 }
 
+/**
+ * Attribute delegation to JSON
+ * @param attr the attribute
+ * @return JSON, NULL if failed
+ */
+static json_t*
+attribute_delegation_to_json (struct GNUNET_CREDENTIAL_AttributeRecordData *attr)
+{
+  char *subject;
+  char *attribute;
+  json_t *attr_obj;
+
+  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&attr->subject_key);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Subject in credential malformed\n");
+    return NULL;
+  }
+  attribute = (char*)&attr[1];
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj, "subject", json_string (subject));
+  json_object_set_new (attr_obj, "attribute", json_string (attribute));
+  GNUNET_free (subject);
+  return attr_obj;
+}
+
+/**
+ * Credential to JSON
+ * @param cred the credential
+ * @return the resulting json, NULL if failed
+ */
+static json_t*
+credential_to_json (struct GNUNET_CREDENTIAL_CredentialRecordData *cred)
+{
+  struct GNUNET_TIME_Absolute exp;
+  const char* exp_str;
+  char *issuer;
+  char *subject;
+  char *attribute;
+  char *signature;
+  json_t *cred_obj;
+
+  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
+  if (NULL == issuer)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Issuer in credential malformed\n");
+    return NULL;
+  }  
+  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
+  if (NULL == subject)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Subject in credential malformed\n");
+    GNUNET_free (issuer);
+    return NULL;
+  }
+  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
+                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                &signature);
+  attribute = (char*)&cred[1];
+  exp.abs_value_us = ntohs (cred->expiration);
+  exp_str = GNUNET_STRINGS_absolute_time_to_string (exp);
+  cred_obj = json_object ();
+  json_object_set_new (cred_obj, "issuer", json_string (issuer));
+  json_object_set_new (cred_obj, "subject", json_string (subject));
+  json_object_set_new (cred_obj, "attribute", json_string (attribute));
+  json_object_set_new (cred_obj, "signature", json_string (signature));
+  json_object_set_new (cred_obj, "expiration", json_string (exp_str));
+  GNUNET_free (issuer);
+  GNUNET_free (subject);
+  GNUNET_free (signature);
+  return cred_obj;
+}
+
+/**
+ * Function called with the result of a Credential lookup.
+ *
+ * @param cls the 'const char *' name that was resolved
+ * @param cd_count number of records returned
+ * @param cd array of @a cd_count records with the results
+ */
+static void
+handle_verify_response (void *cls,
+                        struct GNUNET_CREDENTIAL_CredentialRecordData *cred,
+                        uint32_t delegation_count,
+                        struct GNUNET_CREDENTIAL_AttributeRecordData *deleg)
+{
+
+  struct VerifyHandle *handle = cls;
+  struct MHD_Response *resp;
+  struct GNUNET_JSONAPI_Document *json_document;
+  struct GNUNET_JSONAPI_Resource *json_resource;
+  json_t *cred_obj;
+  json_t *attr_obj;
+  json_t *result_array;
+  char *result;
+  uint32_t i;
+
+  handle->verify_request = NULL;
+  if (NULL == cred) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Verify failed.\n");
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  json_document = GNUNET_JSONAPI_document_new ();
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO,
+                                               handle->issuer_attr);
+  cred_obj = credential_to_json (cred);
+  result_array = json_array ();
+  for (i = 0; i < delegation_count; i++)
+  {
+    attr_obj = attribute_delegation_to_json (&(deleg[i]));
+    json_array_append (result_array, attr_obj);
+    json_decref (attr_obj);
+  }
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    GNUNET_REST_JSONAPI_CREDENTIAL,
+                                    cred_obj);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    GNUNET_REST_JSONAPI_CREDENTIAL_CHAIN,
+                                    result_array);
+  GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
+  GNUNET_JSONAPI_document_serialize (json_document, &result);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Result %s\n",
+              result);
+  json_decref (result_array);
+  GNUNET_JSONAPI_document_delete (json_document);
+  resp = GNUNET_REST_create_response (result);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result);
+  cleanup_handle (handle);
+}
+
 
 static void
 verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
@@ -292,14 +435,14 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   }
   handle->subject_attr = GNUNET_strdup (tmp);
   GNUNET_free (entity_attr);
-  
+
   handle->verify_request = GNUNET_CREDENTIAL_verify (handle->credential,
                                                      &handle->issuer_key,
                                                      handle->issuer_attr,
                                                      &handle->subject_key,
                                                      handle->subject_attr,
-                                                     NULL,
-                                                     NULL);
+                                                     &handle_verify_response,
+                                                     handle);
 
 }
 
@@ -341,8 +484,8 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
  */
 static void
 rest_credential_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
-                         GNUNET_REST_ResultProcessor proc,
-                         void *proc_cls)
+                                GNUNET_REST_ResultProcessor proc,
+                                void *proc_cls)
 {
   struct VerifyHandle *handle = GNUNET_new (struct VerifyHandle);
   struct GNUNET_REST_RequestHandlerError err;

@@ -533,7 +533,7 @@ handle_credential_query (void* cls,
     crd = rd[i].data;
     if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
                                                &crd->purpose,
-                                               &crd->sig,
+                                               &crd->signature,
                                                &crd->issuer_key))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
