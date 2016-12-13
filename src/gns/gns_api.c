@@ -357,6 +357,7 @@ handle_result (void *cls,
   GNUNET_CONTAINER_DLL_remove (handle->lookup_head,
                                handle->lookup_tail,
                                lr);
+  GNUNET_free (lr->env);
   GNUNET_free (lr);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_GNSRECORD_records_deserialize (mlen,

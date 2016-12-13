@@ -298,6 +298,16 @@ cleanup_delegation_queue (struct DelegationQueueEntry *dq_entry)
                                  child);
     cleanup_delegation_queue (child);
   }
+  if (NULL != dq_entry->issuer_key)
+    GNUNET_free (dq_entry->issuer_key);
+  if (NULL != dq_entry->lookup_attribute)
+    GNUNET_free (dq_entry->lookup_attribute);
+  if (NULL != dq_entry->issuer_attribute)
+    GNUNET_free (dq_entry->issuer_attribute);
+  if (NULL != dq_entry->unresolved_attribute_delegation)
+    GNUNET_free (dq_entry->unresolved_attribute_delegation);
+  if (NULL != dq_entry->attr_trailer)
+    GNUNET_free (dq_entry->attr_trailer);
   if (NULL != dq_entry->lookup_request)
   {
     GNUNET_GNS_lookup_cancel (dq_entry->lookup_request);
@@ -317,6 +327,7 @@ cleanup_delegation_queue (struct DelegationQueueEntry *dq_entry)
 static void
 cleanup_handle (struct VerifyRequestHandle *vrh)
 {
+  struct CredentialRecordEntry *cr_entry;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Cleaning up...\n");
   if (NULL != vrh->lookup_request)
@@ -324,9 +335,22 @@ cleanup_handle (struct VerifyRequestHandle *vrh)
     GNUNET_GNS_lookup_cancel (vrh->lookup_request);
     vrh->lookup_request = NULL;
   }
+  if (NULL != vrh->credential)
+    GNUNET_free (vrh->credential);
   cleanup_delegation_queue (vrh->chain_start);
   if (NULL != vrh->issuer_attribute)
     GNUNET_free (vrh->issuer_attribute);
+  for (cr_entry = vrh->cred_chain_head; 
+       NULL != vrh->cred_chain_head;
+       cr_entry = vrh->cred_chain_head)
+  {
+    GNUNET_CONTAINER_DLL_remove (vrh->cred_chain_head,
+                                 vrh->cred_chain_tail,
+                                 cr_entry);
+    if (NULL != cr_entry->data)
+      GNUNET_free (cr_entry->data);
+    GNUNET_free (cr_entry);
+  }
   GNUNET_free (vrh);
 }
 
@@ -712,7 +736,10 @@ handle_credential_query (void* cls,
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Looking up %s\n", issuer_attribute_name);
   dq_entry = GNUNET_new (struct DelegationQueueEntry);
-  dq_entry->issuer_key = &vrh->issuer_key;
+  dq_entry->issuer_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
+  memcpy (dq_entry->issuer_key,
+          &vrh->issuer_key,
+          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   dq_entry->issuer_attribute = GNUNET_strdup (vrh->issuer_attribute);
   dq_entry->handle = vrh;
   dq_entry->lookup_attribute = GNUNET_strdup (vrh->issuer_attribute);
