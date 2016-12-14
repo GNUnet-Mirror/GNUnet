@@ -90,9 +90,14 @@ struct VerifyResultMessage
   uint32_t cred_found GNUNET_PACKED;
 
   /**
-   * The number of credentials in the response
+   * The number of delegations in the response
    */
   uint32_t d_count GNUNET_PACKED;
+
+  /**
+   * The number of credentials in the response
+   */
+  uint32_t c_count GNUNET_PACKED;
 
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 

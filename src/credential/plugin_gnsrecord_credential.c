@@ -65,12 +65,6 @@ credential_value_to_string (void *cls,
     memcpy (&sets,
             data,
             sizeof (sets));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "SIZE %llu needed: %llu + %llu\n", 
-                data_size,
-                GNUNET_ntohll (sets.data_size),
-                sizeof (sets));
-
     cdata = data;
     struct GNUNET_CREDENTIAL_DelegationSetRecord set[ntohl(sets.set_count)];
     if (GNUNET_OK != GNUNET_CREDENTIAL_delegation_set_deserialize (GNUNET_ntohll (sets.data_size),
@@ -238,15 +232,8 @@ credential_string_to_value (void *cls,
                                                       strlen (subject_pkey),
                                                       &set[i].subject_key);
           if (2 == matches) {
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                        "Adding %s (data size %llu)\n",
-                        attr_str,
-                        tmp_data_size);
-            /*GNUNET_memcpy (&set[1],
-                           attr_str,
-                           strlen (attr_str)+1);*/
             set[i].subject_attribute_len = strlen (attr_str) + 1;
-            set[i].subject_attribute = GNUNET_strdup (attr_str);//(const char*)&set[1];
+            set[i].subject_attribute = GNUNET_strdup (attr_str);
           }
           token = strtok (NULL , ",");
         }

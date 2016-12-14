@@ -159,6 +159,7 @@ static void
 handle_verify_result (void *cls,
                       unsigned int d_count,
                       struct GNUNET_CREDENTIAL_Delegation *dc,
+                      unsigned int c_count,
                       struct GNUNET_CREDENTIAL_Credential *cred)
 {
   int i;
@@ -170,29 +171,35 @@ handle_verify_result (void *cls,
     printf ("Failed.\n");
   else
   {
-    iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
-    sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
-    printf ("(0) %s.%s <- %s (Subject)\n",
-            iss_key, cred->issuer_attribute,
-            sub_key);
-    GNUNET_free (iss_key);
-    GNUNET_free (sub_key);
+    printf("Delegation Chain:\n");
     for (i=0;i<d_count;i++)
     {
       iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
       sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
       if (0 != dc[i].subject_attribute_len)
       {
-        printf ("(%d) %s.%s <- %s.%s\n", i+1,
+        printf ("(%d) %s.%s <- %s.%s\n", i,
                 iss_key, dc[i].issuer_attribute,
                 sub_key, dc[i].subject_attribute);
       } else {
-        printf ("(%d) %s.%s <- %s\n", i+1,
+        printf ("(%d) %s.%s <- %s\n", i,
                 iss_key, dc[i].issuer_attribute,
                 sub_key);
       }
       GNUNET_free (iss_key);
       GNUNET_free (sub_key);
+    }
+    printf("\nCredentials:\n");
+    for (i=0;i<c_count;i++)
+    {
+      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].issuer_key);
+      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].subject_key);
+      printf ("%s.%s <- %s\n",
+              iss_key, cred[i].issuer_attribute,
+              sub_key);
+      GNUNET_free (iss_key);
+      GNUNET_free (sub_key);
+
     }
     printf ("Successful.\n");
   }
@@ -347,7 +354,9 @@ run (void *cls,
                _("You must provide issuer and subject attributes\n"));
       GNUNET_SCHEDULER_shutdown ();
     }
-
+    
+    printf ("Trying to find a chain from a credential under %s of %s to the attribute %s issued by %s\n",
+            subject_credential, subject_key, issuer_attr, issuer_key);
 
     verify_request = GNUNET_CREDENTIAL_verify(credential,
                                               &issuer_pkey,

@@ -184,18 +184,21 @@ GNUNET_CREDENTIAL_delegation_set_deserialize (size_t len,
  *
  * @param d_count number of delegation chain entries
  * @param dd array of #GNUNET_CREDENTIAL_Delegation
+ * @param c_count number of credential entries
  * @param cd a #GNUNET_CREDENTIAL_Credential
  * @return the required size to serialize
  */
 size_t
 GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
                                              const struct GNUNET_CREDENTIAL_Delegation *dd,
+                                             unsigned int c_count,
                                              const struct GNUNET_CREDENTIAL_Credential *cd)
 {
   unsigned int i;
   size_t ret;
 
-  ret = sizeof (struct ChainEntry) * (d_count + 1);
+  ret = sizeof (struct ChainEntry) * (d_count);
+  ret += sizeof (struct ChainEntry) * (c_count);
 
   for (i=0; i<d_count;i++)
   {
@@ -204,8 +207,11 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
                     dd[i].subject_attribute_len) >= ret);
     ret += dd[i].issuer_attribute_len + dd[i].subject_attribute_len;
   }
-  GNUNET_assert ((ret + cd->issuer_attribute_len) >= ret);
-  ret += cd->issuer_attribute_len;
+  for (i=0; i<c_count;i++)
+  {
+    GNUNET_assert ((ret + cd[i].issuer_attribute_len) >= ret);
+    ret += cd[i].issuer_attribute_len;
+  }
   return ret;
 }
 
@@ -214,6 +220,7 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
  *
  * @param d_count number of delegation chain entries
  * @param dd array of #GNUNET_CREDENTIAL_Delegation
+ * @param c_count number of credential entries
  * @param cd a #GNUNET_CREDENTIAL_Credential
  * @param dest_size size of the destination
  * @param dest where to store the result
@@ -222,6 +229,7 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
 ssize_t
 GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
                                               const struct GNUNET_CREDENTIAL_Delegation *dd,
+                                              unsigned int c_count,
                                               const struct GNUNET_CREDENTIAL_Credential *cd,
                                               size_t dest_size,
                                               char *dest)
@@ -258,21 +266,25 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
                    dd[i].subject_attribute_len);
     off += dd[i].subject_attribute_len;
   }
-  rec.issuer_attribute_len = htonl ((uint32_t) cd->issuer_attribute_len);
-  rec.subject_attribute_len = htonl (0);
-  rec.issuer_key = cd->issuer_key;
-  if (off + sizeof (rec) > dest_size)
-    return -1;
-  GNUNET_memcpy (&dest[off],
-                 &rec,
-                 sizeof (rec));
-  off += sizeof (rec);
-  if (off + cd->issuer_attribute_len > dest_size)
-    return -1;
-  GNUNET_memcpy (&dest[off],
-                 cd->issuer_attribute,
-                 cd->issuer_attribute_len);
-  off += cd->issuer_attribute_len;
+  for (i=0;i<c_count;i++)
+  {
+    rec.issuer_attribute_len = htonl ((uint32_t) cd[i].issuer_attribute_len);
+    rec.subject_attribute_len = htonl (0);
+    rec.issuer_key = cd[i].issuer_key;
+    rec.subject_key = cd[i].subject_key;
+    if (off + sizeof (rec) > dest_size)
+      return -1;
+    GNUNET_memcpy (&dest[off],
+                   &rec,
+                   sizeof (rec));
+    off += sizeof (rec);
+    if (off + cd[i].issuer_attribute_len > dest_size)
+      return -1;
+    GNUNET_memcpy (&dest[off],
+                   cd[i].issuer_attribute,
+                   cd[i].issuer_attribute_len);
+    off += cd[i].issuer_attribute_len;
+  }
 
   return off;
 }
@@ -285,6 +297,7 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
  * @param src the serialized data
  * @param d_count the number of delegation chain entries
  * @param dd where to put the delegation chain entries
+ * @param c_count the number of credential entries
  * @param cd where to put the credential data
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
@@ -293,6 +306,7 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
                                                 const char *src,
                                                 unsigned int d_count,
                                                 struct GNUNET_CREDENTIAL_Delegation *dd,
+                                                unsigned int c_count,
                                                 struct GNUNET_CREDENTIAL_Credential *cd)
 {
   struct ChainEntry rec;
@@ -319,17 +333,20 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
     dd[i].subject_attribute = &src[off];
     off += dd[i].subject_attribute_len;
   }
-  if (off + sizeof (rec) > len)
-    return GNUNET_SYSERR;
-  GNUNET_memcpy (&rec, &src[off], sizeof (rec));
-  cd->issuer_attribute_len = ntohl ((uint32_t) rec.issuer_attribute_len);
-  cd->issuer_key = rec.issuer_key;
-  cd->subject_key = rec.subject_key;
-  off += sizeof (rec);
-  if (off + cd->issuer_attribute_len > len)
-    return GNUNET_SYSERR;
-  cd->issuer_attribute = &src[off];
-  off += cd->issuer_attribute_len;
+  for (i=0;i<c_count;i++)
+  {
+    if (off + sizeof (rec) > len)
+      return GNUNET_SYSERR;
+    GNUNET_memcpy (&rec, &src[off], sizeof (rec));
+    cd[i].issuer_attribute_len = ntohl ((uint32_t) rec.issuer_attribute_len);
+    cd[i].issuer_key = rec.issuer_key;
+    cd[i].subject_key = rec.subject_key;
+    off += sizeof (rec);
+    if (off + cd[i].issuer_attribute_len > len)
+      return GNUNET_SYSERR;
+    cd[i].issuer_attribute = &src[off];
+    off += cd[i].issuer_attribute_len;
+  }
   return GNUNET_OK;
 }
 

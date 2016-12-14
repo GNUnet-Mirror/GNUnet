@@ -216,8 +216,9 @@ handle_result (void *cls,
   struct GNUNET_CREDENTIAL_Request *vr;
   size_t mlen = ntohs (vr_msg->header.size) - sizeof (*vr_msg);
   uint32_t d_count = ntohl (vr_msg->d_count);
+  uint32_t c_count = ntohl (vr_msg->c_count);
   struct GNUNET_CREDENTIAL_Delegation d_chain[d_count];
-  struct GNUNET_CREDENTIAL_Credential cred;
+  struct GNUNET_CREDENTIAL_Credential creds[c_count];
   GNUNET_CREDENTIAL_VerifyResultProcessor proc;
   void *proc_cls;
 
@@ -239,18 +240,21 @@ handle_result (void *cls,
                                                        (const char*) &vr_msg[1],
                                                        d_count,
                                                        d_chain,
-                                                       &cred));
+                                                       c_count,
+                                                       creds));
   if (GNUNET_NO == ntohl (vr_msg->cred_found))
   {
     proc (proc_cls,
           0,
           NULL,
+          0,
           NULL); // TODO
   } else {
     proc (proc_cls,
           d_count,
           d_chain,
-          &cred);
+          c_count,
+          creds);
   }
 }
 

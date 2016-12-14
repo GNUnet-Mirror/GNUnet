@@ -41,7 +41,7 @@
 
 #define GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO "credential"
 
-#define GNUNET_REST_JSONAPI_CREDENTIAL_CHAIN "chain"
+#define GNUNET_REST_JSONAPI_DELEGATIONS "delegations"
 
 #define GNUNET_REST_JSONAPI_CREDENTIAL_ISSUER_ATTR "attribute"
 
@@ -273,6 +273,7 @@ static void
 handle_verify_response (void *cls,
                         unsigned int d_count,
                         struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
+                        unsigned int c_count,
                         struct GNUNET_CREDENTIAL_Credential *cred)
 {
 
@@ -282,7 +283,8 @@ handle_verify_response (void *cls,
   struct GNUNET_JSONAPI_Resource *json_resource;
   json_t *cred_obj;
   json_t *attr_obj;
-  json_t *result_array;
+  json_t *cred_array;
+  json_t *attr_array;
   char *result;
   uint32_t i;
 
@@ -298,25 +300,33 @@ handle_verify_response (void *cls,
   json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO,
                                                handle->issuer_attr);
   cred_obj = credential_to_json (cred);
-  result_array = json_array ();
+  attr_array = json_array ();
   for (i = 0; i < d_count; i++)
   {
     attr_obj = attribute_delegation_to_json (&delegation_chain[i]);
-    json_array_append (result_array, attr_obj);
+    json_array_append (attr_array, attr_obj);
     json_decref (attr_obj);
+  }
+  cred_array = json_array ();
+  for (i=0;i<c_count;i++)
+  {
+    cred_obj = credential_to_json (&cred[i]);
+    json_array_append (cred_array, cred_obj);
+    json_decref (cred_obj);
   }
   GNUNET_JSONAPI_resource_add_attr (json_resource,
                                     GNUNET_REST_JSONAPI_CREDENTIAL,
-                                    cred_obj);
+                                    cred_array);
   GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                    GNUNET_REST_JSONAPI_CREDENTIAL_CHAIN,
-                                    result_array);
+                                    GNUNET_REST_JSONAPI_DELEGATIONS,
+                                    attr_array);
   GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
   GNUNET_JSONAPI_document_serialize (json_document, &result);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Result %s\n",
               result);
-  json_decref (result_array);
+  json_decref (attr_array);
+  json_decref (cred_array);
   GNUNET_JSONAPI_document_delete (json_document);
   resp = GNUNET_REST_create_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
