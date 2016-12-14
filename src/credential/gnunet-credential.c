@@ -162,26 +162,37 @@ handle_verify_result (void *cls,
                       struct GNUNET_CREDENTIAL_Credential *cred)
 {
   int i;
+  char* iss_key;
+  char* sub_key;
 
   verify_request = NULL;
   if (NULL == cred)
     printf ("Failed.\n");
   else
   {
+    iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
+    sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
+    printf ("(0) %s.%s <- %s (Subject)\n",
+            iss_key, cred->issuer_attribute,
+            sub_key);
+    GNUNET_free (iss_key);
+    GNUNET_free (sub_key);
     for (i=0;i<d_count;i++)
     {
-      char* iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
-      char* sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
+      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
+      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
       if (0 != dc[i].subject_attribute_len)
       {
-        printf ("%s.%s <- %s.%s\n",
+        printf ("(%d) %s.%s <- %s.%s\n", i+1,
                 iss_key, dc[i].issuer_attribute,
                 sub_key, dc[i].subject_attribute);
       } else {
-        printf ("%s.%s <- %s\n",
+        printf ("(%d) %s.%s <- %s\n", i+1,
                 iss_key, dc[i].issuer_attribute,
                 sub_key);
       }
+      GNUNET_free (iss_key);
+      GNUNET_free (sub_key);
     }
     printf ("Successful.\n");
   }

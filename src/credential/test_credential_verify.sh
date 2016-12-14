@@ -60,6 +60,7 @@ gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c 
 #TODO2 Add -z swich like in gnunet-gns
 RES_CRED=`gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
 
+
 #TODO cleanup properly
 gnunet-namestore -z alice -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
 gnunet-namestore -z gnu -d -n $GNU_PROJECT_ATTR -t ATTR -c test_credential_lookup.conf
@@ -69,7 +70,7 @@ gnunet-arm -e -c test_credential_lookup.conf
 
 if [ "$RES_CRED" != "Failed." ]
 then
-  echo $RES_CRED
+  echo -e "${RES_CRED}"
   exit 0
 else
   echo "FAIL: Failed to verify credential $RES_CRED."

@@ -472,7 +472,7 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
    * Append at the end of rmsg
    */
   cred.issuer_key = vrh->credential->issuer_key;
-  cred.subject_key = vrh->credential->issuer_key;
+  cred.subject_key = vrh->credential->subject_key;
   cred.issuer_attribute_len = strlen((char*)&vrh->credential[1]);
   cred.issuer_attribute = (char*)&vrh->credential[1];
   size = GNUNET_CREDENTIAL_delegation_chain_get_size (vrh->d_count,
@@ -520,6 +520,7 @@ backward_resolution (void* cls,
   struct DelegationQueueEntry *current_delegation;
   struct DelegationQueueEntry *dq_entry;
   char *expanded_attr;
+  char *lookup_attribute;
   int i;
 
 
@@ -605,6 +606,9 @@ backward_resolution (void* cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Found issuer\n");
       vrh->credential = GNUNET_malloc (cred_pointer->data_size);
+      memcpy (vrh->credential,
+              cred,
+              cred_pointer->data_size);
       vrh->credential_size = cred_pointer->data_size;
       vrh->chain_end = dq_entry;
       vrh->d_count = dq_entry->d_count;
@@ -620,8 +624,11 @@ backward_resolution (void* cls,
     strcpy (issuer_attribute_name,
             dq_entry->unresolved_attribute_delegation);
     char *next_attr = strtok (issuer_attribute_name, ".");
-    GNUNET_asprintf (&dq_entry->lookup_attribute,
+    GNUNET_asprintf (&lookup_attribute,
                      "%s.gnu",
+                     next_attr);
+    GNUNET_asprintf (&dq_entry->lookup_attribute,
+                     "%s",
                      next_attr);
     if (strlen (next_attr) == strlen (dq_entry->unresolved_attribute_delegation))
     {
@@ -640,13 +647,14 @@ backward_resolution (void* cls,
     vrh->pending_lookups++;
     dq_entry->handle = vrh;
     dq_entry->lookup_request = GNUNET_GNS_lookup (gns,
-                                                  dq_entry->lookup_attribute,
+                                                  lookup_attribute,
                                                   dq_entry->issuer_key, //issuer_key,
                                                   GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
                                                   GNUNET_GNS_LO_DEFAULT,
                                                   NULL, //shorten_key, always NULL
                                                   &backward_resolution,
                                                   dq_entry);
+    GNUNET_free (lookup_attribute);
   }
 
   if(0 == vrh->pending_lookups)
