@@ -98,7 +98,8 @@ libgnunet_plugin_rest_credential_la_LDFLAGS = \
 check_SCRIPTS = \
   test_credential_issue.sh \
 	test_credential_verify_simple.sh \
-	test_credential_verify.sh
+	test_credential_verify.sh \
+	test_credential_verify_and.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE
