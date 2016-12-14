@@ -126,6 +126,46 @@ struct GNUNET_CREDENTIAL_AttributeRecordData {
 };
 
 /**
+ * The attribute delegation record
+*/
+struct GNUNET_CREDENTIAL_DelegationRecordData {
+  
+  uint32_t set_count;
+
+  uint64_t data_size;
+
+  char *data;
+  
+  /**
+   * Followed by the attribute that was delegated to as string
+   * May be empty
+   */
+};
+
+
+
+/**
+ * The attribute delegation record
+*/
+struct GNUNET_CREDENTIAL_DelegationSetRecord {
+  
+  /**
+   * Public key of the subject this attribute was delegated to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  uint32_t subject_attribute_len;
+
+  const char *subject_attribute;
+  
+  /**
+   * Followed by the attribute that was delegated to as string
+   * May be empty
+   */
+};
+
+
+/**
  * A delegation
 */
 struct GNUNET_CREDENTIAL_Delegation {

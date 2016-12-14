@@ -23,7 +23,7 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
-gnunet-arm -s -c test_credential_lookup.conf
+#gnunet-arm -s -c test_credential_lookup.conf
 gnunet-identity -C service -c test_credential_lookup.conf
 gnunet-identity -C alice -c test_credential_lookup.conf
 gnunet-identity -C gnu -c test_credential_lookup.conf
@@ -43,6 +43,8 @@ TEST_CREDENTIAL="mygnunetcreds"
 
 # (1) A service assigns the attribute "user" to all entities that have been assigned "member" by entities that werde assigned "project" from GNU
 gnunet-namestore -p -z service -a -n $USER_ATTR -t ATTR -V "$GNU_KEY $GNU_PROJECT_ATTR.$MEMBER_ATTR" -e 5m -c test_credential_lookup.conf
+
+valgrind gnunet-namestore -D -z service -c test_credential_lookup.conf
 
 # (2) GNU recognized GNUnet as a GNU project and delegates the "project" attribute
 gnunet-namestore -p -z gnu -a -n $GNU_PROJECT_ATTR -t ATTR -V "$GNUNET_KEY" -e 5m -c test_credential_lookup.conf

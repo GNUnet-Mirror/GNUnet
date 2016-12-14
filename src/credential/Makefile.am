@@ -55,6 +55,7 @@ gnunet_credential_LDADD = \
 libgnunet_plugin_gnsrecord_credential_la_SOURCES = \
   plugin_gnsrecord_credential.c
 libgnunet_plugin_gnsrecord_credential_la_LIBADD = \
+	libgnunetcredential.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_gnsrecord_credential_la_LDFLAGS = \
