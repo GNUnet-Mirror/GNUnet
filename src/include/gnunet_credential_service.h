@@ -125,6 +125,69 @@ struct GNUNET_CREDENTIAL_AttributeRecordData {
    */
 };
 
+/**
+ * A delegation
+*/
+struct GNUNET_CREDENTIAL_Delegation {
+  
+  /**
+   * The issuer of the delegation
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+  /**
+   * Public key of the subject this attribute was delegated to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  /**
+   * Length of the attribute
+   */
+  uint32_t issuer_attribute_len;
+
+  /**
+   * The attribute
+   */
+  const char *issuer_attribute;
+
+  /**
+   * Length of the attribute
+   */
+  uint32_t subject_attribute_len;
+
+  /**
+   * The attribute
+   */
+  const char *subject_attribute;
+};
+
+
+/**
+ * A credential
+*/
+struct GNUNET_CREDENTIAL_Credential {
+  
+  /**
+   * The issuer of the credential
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+  /**
+   * Public key of the subject this credential was issued to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  /**
+   * Length of the attribute
+   */
+  uint32_t issuer_attribute_len;
+
+  /**
+   * The attribute
+   */
+  const char *issuer_attribute;
+  
+};
 
 
 GNUNET_NETWORK_STRUCT_END
@@ -159,9 +222,9 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param rd the records in reply
  */
 typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
-						  struct GNUNET_CREDENTIAL_CredentialRecordData *credential,
-              uint32_t delegation_length,
-              struct GNUNET_CREDENTIAL_AttributeRecordData *delegation_chain);
+                                                         unsigned int d_count,
+                                                         struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
+                                                         struct GNUNET_CREDENTIAL_Credential *credential);
 
 /**
  * Iterator called on obtained result for an attribute delegation.

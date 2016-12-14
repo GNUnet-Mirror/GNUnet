@@ -157,17 +157,43 @@ do_timeout (void *cls)
  */
 static void
 handle_verify_result (void *cls,
-                      struct GNUNET_CREDENTIAL_CredentialRecordData *cred,
-                      uint32_t delegation_count,
-                      struct GNUNET_CREDENTIAL_AttributeRecordData *deleg)
+                      unsigned int d_count,
+                      struct GNUNET_CREDENTIAL_Delegation *dc,
+                      struct GNUNET_CREDENTIAL_Credential *cred)
 {
-
+  int i;
 
   verify_request = NULL;
   if (NULL == cred)
-    printf ("Verify failed.\n");
+    printf ("Failed.\n");
   else
+  {
+    for (i=0;i<d_count;i++)
+    {
+      char iss_attr[dc[i].issuer_attribute_len];
+      char* iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
+      char* sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
+
+      char sub_attr[dc[i].subject_attribute_len];
+      memcpy (iss_attr,
+              dc[i].issuer_attribute,
+              dc[i].issuer_attribute_len);
+      iss_attr[dc[i].issuer_attribute_len] = '\0';
+      printf ("%s.%s <- ",iss_key, iss_attr);
+      printf ("%s",sub_key);
+      if (0 != dc[i].subject_attribute_len)
+      {
+        memcpy (sub_attr,
+                dc[i].subject_attribute,
+                dc[i].subject_attribute_len);
+        sub_attr[dc[i].subject_attribute_len] = '\0';
+
+        printf (".%s",sub_attr);
+      }
+      printf ("\n");
+    }
     printf ("Successful.\n");
+  }
 
 
   GNUNET_SCHEDULER_shutdown ();
@@ -209,7 +235,7 @@ identity_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   } else if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration,
-                                                          &etime_rel))
+                                                                 &etime_rel))
   {
     etime_abs = GNUNET_TIME_relative_to_absolute (etime_rel);
   } else if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute (expiration,

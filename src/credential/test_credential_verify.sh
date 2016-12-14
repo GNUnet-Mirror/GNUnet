@@ -67,10 +67,11 @@ gnunet-namestore -z gnunet -d -n $MEMBER_ATTR -t ATTR -c test_credential_lookup.
 gnunet-namestore -z service -d -n $USER_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_CRED" == "Successful." ]
+if [ "$RES_CRED" != "Failed." ]
 then
+  echo $RES_CRED
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_IP."
+  echo "FAIL: Failed to verify credential $RES_CRED."
   exit 1
 fi

@@ -92,7 +92,7 @@ struct VerifyResultMessage
   /**
    * The number of credentials in the response
    */
-  uint32_t cd_count GNUNET_PACKED;
+  uint32_t d_count GNUNET_PACKED;
 
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 

@@ -186,22 +186,45 @@ do_error (void *cls)
  * @return JSON, NULL if failed
  */
 static json_t*
-attribute_delegation_to_json (struct GNUNET_CREDENTIAL_AttributeRecordData *attr)
+attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_chain_entry)
 {
   char *subject;
-  char *attribute;
+  char *issuer;
+  char iss_attribute[delegation_chain_entry->issuer_attribute_len];
+  char sub_attribute[delegation_chain_entry->subject_attribute_len];
   json_t *attr_obj;
 
-  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&attr->subject_key);
+  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&delegation_chain_entry->issuer_key);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Issuer in delegation malformed\n");
+    return NULL;
+  }
+  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&delegation_chain_entry->subject_key);
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject in credential malformed\n");
+    GNUNET_free (issuer);
     return NULL;
   }
-  attribute = (char*)&attr[1];
   attr_obj = json_object ();
+  memcpy (iss_attribute,
+          delegation_chain_entry->issuer_attribute,
+          delegation_chain_entry->issuer_attribute_len);
+  iss_attribute[delegation_chain_entry->issuer_attribute_len] = '\0';
+
   json_object_set_new (attr_obj, "subject", json_string (subject));
-  json_object_set_new (attr_obj, "attribute", json_string (attribute));
+  json_object_set_new (attr_obj, "issuer", json_string (issuer));
+  json_object_set_new (attr_obj, "issuer_attribute", json_string (iss_attribute));
+
+  if (0 < delegation_chain_entry->subject_attribute_len)
+  {
+    memcpy (sub_attribute,
+            delegation_chain_entry->subject_attribute,
+            delegation_chain_entry->subject_attribute_len);
+    sub_attribute[delegation_chain_entry->subject_attribute_len] = '\0';
+    json_object_set_new (attr_obj, "subject_attribute", json_string (sub_attribute));
+  }
   GNUNET_free (subject);
   return attr_obj;
 }
@@ -212,14 +235,11 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_AttributeRecordData *attr
  * @return the resulting json, NULL if failed
  */
 static json_t*
-credential_to_json (struct GNUNET_CREDENTIAL_CredentialRecordData *cred)
+credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
 {
-  struct GNUNET_TIME_Absolute exp;
-  const char* exp_str;
   char *issuer;
   char *subject;
-  char *attribute;
-  char *signature;
+  char attribute[cred->issuer_attribute_len + 1];
   json_t *cred_obj;
 
   issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
@@ -237,21 +257,16 @@ credential_to_json (struct GNUNET_CREDENTIAL_CredentialRecordData *cred)
     GNUNET_free (issuer);
     return NULL;
   }
-  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
-                                &signature);
-  attribute = (char*)&cred[1];
-  exp.abs_value_us = ntohs (cred->expiration);
-  exp_str = GNUNET_STRINGS_absolute_time_to_string (exp);
+  memcpy (attribute,
+          cred->issuer_attribute,
+          cred->issuer_attribute_len);
+  attribute[cred->issuer_attribute_len] = '\0';
   cred_obj = json_object ();
   json_object_set_new (cred_obj, "issuer", json_string (issuer));
   json_object_set_new (cred_obj, "subject", json_string (subject));
   json_object_set_new (cred_obj, "attribute", json_string (attribute));
-  json_object_set_new (cred_obj, "signature", json_string (signature));
-  json_object_set_new (cred_obj, "expiration", json_string (exp_str));
   GNUNET_free (issuer);
   GNUNET_free (subject);
-  GNUNET_free (signature);
   return cred_obj;
 }
 
@@ -264,9 +279,9 @@ credential_to_json (struct GNUNET_CREDENTIAL_CredentialRecordData *cred)
  */
 static void
 handle_verify_response (void *cls,
-                        struct GNUNET_CREDENTIAL_CredentialRecordData *cred,
-                        uint32_t delegation_count,
-                        struct GNUNET_CREDENTIAL_AttributeRecordData *deleg)
+                        unsigned int d_count,
+                        struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
+                        struct GNUNET_CREDENTIAL_Credential *cred)
 {
 
   struct VerifyHandle *handle = cls;
@@ -292,9 +307,9 @@ handle_verify_response (void *cls,
                                                handle->issuer_attr);
   cred_obj = credential_to_json (cred);
   result_array = json_array ();
-  for (i = 0; i < delegation_count; i++)
+  for (i = 0; i < d_count; i++)
   {
-    attr_obj = attribute_delegation_to_json (&(deleg[i]));
+    attr_obj = attribute_delegation_to_json (&delegation_chain[i]);
     json_array_append (result_array, attr_obj);
     json_decref (attr_obj);
   }

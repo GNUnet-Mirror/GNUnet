@@ -30,6 +30,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "credential.h"
+#include "credential_serialization.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_identity_service.h"
 
@@ -213,6 +214,10 @@ handle_result (void *cls,
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
   struct GNUNET_CREDENTIAL_Request *vr;
+  size_t mlen = ntohs (vr_msg->header.size) - sizeof (*vr_msg);
+  uint32_t d_count = ntohl (vr_msg->d_count);
+  struct GNUNET_CREDENTIAL_Delegation d_chain[d_count];
+  struct GNUNET_CREDENTIAL_Credential cred;
   GNUNET_CREDENTIAL_VerifyResultProcessor proc;
   void *proc_cls;
 
@@ -229,24 +234,23 @@ handle_result (void *cls,
                                handle->verify_tail,
                                vr);
   GNUNET_free (vr);
-  /**
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CREDENTIAL_records_deserialize (mlen,
-                                                       (const char*) &lookup_msg[1],
-                                                       rd_count,
-                                                         rd));
-                                                         */
+                 GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,
+                                                       (const char*) &vr_msg[1],
+                                                       d_count,
+                                                       d_chain,
+                                                       &cred));
   if (GNUNET_NO == ntohl (vr_msg->cred_found))
   {
     proc (proc_cls,
-          NULL,
           0,
+          NULL,
           NULL); // TODO
   } else {
     proc (proc_cls,
-          (struct GNUNET_CREDENTIAL_CredentialRecordData*) &vr_msg[1],
-          0,
-          NULL);
+          d_count,
+          d_chain,
+          &cred);
   }
 }
 

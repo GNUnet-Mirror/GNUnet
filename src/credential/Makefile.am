@@ -63,8 +63,9 @@ libgnunet_plugin_gnsrecord_credential_la_LDFLAGS = \
 
 
 gnunet_service_credential_SOURCES = \
- gnunet-service-credential.c 
+ gnunet-service-credential.c
 gnunet_service_credential_LDADD = \
+	libgnunetcredential.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -72,7 +73,8 @@ gnunet_service_credential_LDADD = \
 
 
 libgnunetcredential_la_SOURCES = \
- credential_api.c credential.h
+ credential_api.c credential.h \
+ credential_serialization.c
 libgnunetcredential_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) 
 libgnunetcredential_la_LDFLAGS = \
