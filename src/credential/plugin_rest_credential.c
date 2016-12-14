@@ -190,8 +190,6 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
 {
   char *subject;
   char *issuer;
-  char iss_attribute[delegation_chain_entry->issuer_attribute_len];
-  char sub_attribute[delegation_chain_entry->subject_attribute_len];
   json_t *attr_obj;
 
   issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&delegation_chain_entry->issuer_key);
@@ -208,22 +206,16 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
     return NULL;
   }
   attr_obj = json_object ();
-  memcpy (iss_attribute,
-          delegation_chain_entry->issuer_attribute,
-          delegation_chain_entry->issuer_attribute_len);
-  iss_attribute[delegation_chain_entry->issuer_attribute_len] = '\0';
 
   json_object_set_new (attr_obj, "subject", json_string (subject));
   json_object_set_new (attr_obj, "issuer", json_string (issuer));
-  json_object_set_new (attr_obj, "issuer_attribute", json_string (iss_attribute));
+  json_object_set_new (attr_obj, "issuer_attribute",
+                       json_string (delegation_chain_entry->issuer_attribute));
 
   if (0 < delegation_chain_entry->subject_attribute_len)
   {
-    memcpy (sub_attribute,
-            delegation_chain_entry->subject_attribute,
-            delegation_chain_entry->subject_attribute_len);
-    sub_attribute[delegation_chain_entry->subject_attribute_len] = '\0';
-    json_object_set_new (attr_obj, "subject_attribute", json_string (sub_attribute));
+    json_object_set_new (attr_obj, "subject_attribute",
+                         json_string (delegation_chain_entry->subject_attribute));
   }
   GNUNET_free (subject);
   return attr_obj;

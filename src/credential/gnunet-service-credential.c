@@ -457,12 +457,12 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
     dd[i].issuer_key = dq_entry->delegation_chain_entry->issuer_key;
     dd[i].subject_key = dq_entry->delegation_chain_entry->subject_key;
     dd[i].issuer_attribute = dq_entry->delegation_chain_entry->issuer_attribute;
-    dd[i].issuer_attribute_len = strlen (dq_entry->delegation_chain_entry->issuer_attribute);
+    dd[i].issuer_attribute_len = strlen (dq_entry->delegation_chain_entry->issuer_attribute)+1;
     dd[i].subject_attribute_len = 0;
     if (NULL != dq_entry->delegation_chain_entry->subject_attribute)
     {
       dd[i].subject_attribute = dq_entry->delegation_chain_entry->subject_attribute;
-      dd[i].subject_attribute_len = strlen(dq_entry->delegation_chain_entry->subject_attribute);
+      dd[i].subject_attribute_len = strlen(dq_entry->delegation_chain_entry->subject_attribute)+1;
     }
     dq_entry = dq_entry->parent;
   }
@@ -471,7 +471,7 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
    * Get serialized record data
    * Append at the end of rmsg
    */
-   cred.issuer_key = vrh->credential->issuer_key;
+  cred.issuer_key = vrh->credential->issuer_key;
   cred.subject_key = vrh->credential->issuer_key;
   cred.issuer_attribute_len = strlen((char*)&vrh->credential[1]);
   cred.issuer_attribute = (char*)&vrh->credential[1];
@@ -496,41 +496,6 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
                                                 size,
                                                 (char*)&rmsg[1]));
 
-
-  /*for (dq_entry = vrh->chain_end; NULL != dq_entry; dq_entry = dq_entry->parent)
-    {
-    if (NULL == dq_entry->delegation_chain_entry)
-    break;
-    size += sizeof (struct GNUNET_CREDENTIAL_DelegationChainEntry);
-    if (NULL != dq_entry->delegation_chain_entry->subject_attribute)
-    size += strlen (dq_entry->delegation_chain_entry->subject_attribute) + 1;
-    size += strlen(dq_entry->delegation_chain_entry->issuer_attribute) + 1;
-    d_count++;
-    }*/
-
-  //TODO refactor into serializer module
-  /*write_ptr = (char*)&rmsg[1] + vrh->credential_size;
-    for (dq_entry = vrh->chain_end; NULL != dq_entry; dq_entry = dq_entry->parent)
-    {
-    if (NULL == dq_entry->delegation_chain_entry)
-    break;
-    memcpy (write_ptr,
-    dq_entry->delegation_chain_entry,
-    sizeof (struct GNUNET_CREDENTIAL_DelegationChainEntry));
-    write_ptr += sizeof (struct GNUNET_CREDENTIAL_DelegationChainEntry);
-    if (NULL != dq_entry->delegation_chain_entry->subject_attribute)
-    {
-    GNUNET_snprintf (write_ptr,
-    strlen (dq_entry->delegation_chain_entry->subject_attribute) + 2,
-    "%s;",
-    dq_entry->delegation_chain_entry->subject_attribute);
-    write_ptr += strlen (dq_entry->delegation_chain_entry->subject_attribute) + 1;
-    }
-    memcpy (write_ptr,
-    dq_entry->delegation_chain_entry->issuer_attribute,
-    strlen(dq_entry->delegation_chain_entry->issuer_attribute));
-    write_ptr += strlen(dq_entry->delegation_chain_entry->issuer_attribute) + 1;
-    }*/
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(vrh->client),
                   env);
   GNUNET_CONTAINER_DLL_remove (vrh_head, vrh_tail, vrh);

@@ -170,27 +170,18 @@ handle_verify_result (void *cls,
   {
     for (i=0;i<d_count;i++)
     {
-      char iss_attr[dc[i].issuer_attribute_len];
       char* iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
       char* sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
-
-      char sub_attr[dc[i].subject_attribute_len];
-      memcpy (iss_attr,
-              dc[i].issuer_attribute,
-              dc[i].issuer_attribute_len);
-      iss_attr[dc[i].issuer_attribute_len] = '\0';
-      printf ("%s.%s <- ",iss_key, iss_attr);
-      printf ("%s",sub_key);
       if (0 != dc[i].subject_attribute_len)
       {
-        memcpy (sub_attr,
-                dc[i].subject_attribute,
-                dc[i].subject_attribute_len);
-        sub_attr[dc[i].subject_attribute_len] = '\0';
-
-        printf (".%s",sub_attr);
+        printf ("%s.%s <- %s.%s\n",
+                iss_key, dc[i].issuer_attribute,
+                sub_key, dc[i].subject_attribute);
+      } else {
+        printf ("%s.%s <- %s\n",
+                iss_key, dc[i].issuer_attribute,
+                sub_key);
       }
-      printf ("\n");
     }
     printf ("Successful.\n");
   }
