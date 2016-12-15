@@ -234,6 +234,7 @@ handle_result (void *cls,
   GNUNET_CONTAINER_DLL_remove (handle->verify_head,
                                handle->verify_tail,
                                vr);
+  GNUNET_MQ_discard (vr->env);
   GNUNET_free (vr);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,

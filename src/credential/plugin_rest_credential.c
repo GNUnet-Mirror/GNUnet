@@ -193,12 +193,14 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
   json_t *attr_obj;
 
   issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&delegation_chain_entry->issuer_key);
+  if (NULL == issuer)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Issuer in delegation malformed\n");
     return NULL;
   }
   subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&delegation_chain_entry->subject_key);
+  if (NULL == subject)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject in credential malformed\n");
@@ -207,16 +209,17 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
   }
   attr_obj = json_object ();
 
-  json_object_set_new (attr_obj, "subject", json_string (subject));
-  json_object_set_new (attr_obj, "issuer", json_string (issuer));
+    json_object_set_new (attr_obj, "issuer", json_string (issuer));
   json_object_set_new (attr_obj, "issuer_attribute",
                        json_string (delegation_chain_entry->issuer_attribute));
 
+  json_object_set_new (attr_obj, "subject", json_string (subject));
   if (0 < delegation_chain_entry->subject_attribute_len)
   {
     json_object_set_new (attr_obj, "subject_attribute",
                          json_string (delegation_chain_entry->subject_attribute));
   }
+  GNUNET_free (issuer);
   GNUNET_free (subject);
   return attr_obj;
 }
@@ -286,6 +289,8 @@ handle_verify_response (void *cls,
   json_t *cred_array;
   json_t *attr_array;
   char *result;
+  char *issuer;
+  char *id;
   uint32_t i;
 
   handle->verify_request = NULL;
@@ -296,23 +301,33 @@ handle_verify_response (void *cls,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&handle->issuer_key);
+  if (NULL == issuer)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Issuer in delegation malformed\n");
+    return;
+  }
+  GNUNET_asprintf (&id,
+                   "%s.%s",
+                   issuer,
+                   handle->issuer_attr);
+  GNUNET_free (issuer);
   json_document = GNUNET_JSONAPI_document_new ();
   json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO,
-                                               handle->issuer_attr);
-  cred_obj = credential_to_json (cred);
+                                               id);
+  GNUNET_free (id);
   attr_array = json_array ();
   for (i = 0; i < d_count; i++)
   {
     attr_obj = attribute_delegation_to_json (&delegation_chain[i]);
-    json_array_append (attr_array, attr_obj);
-    json_decref (attr_obj);
+    json_array_append_new (attr_array, attr_obj);
   }
   cred_array = json_array ();
   for (i=0;i<c_count;i++)
   {
     cred_obj = credential_to_json (&cred[i]);
-    json_array_append (cred_array, cred_obj);
-    json_decref (cred_obj);
+    json_array_append_new (cred_array, cred_obj);
   }
   GNUNET_JSONAPI_resource_add_attr (json_resource,
                                     GNUNET_REST_JSONAPI_CREDENTIAL,
