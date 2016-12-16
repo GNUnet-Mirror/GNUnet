@@ -445,7 +445,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->reversal_callback = reversal_callback;
   nh->callback_cls = callback_cls;
   do_connect (nh);
-  GNUNET_break (0);
   return nh;
 }
 
