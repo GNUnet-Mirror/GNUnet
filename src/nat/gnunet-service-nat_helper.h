@@ -77,13 +77,15 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h);
  * that peer to connect to us (connection reversal).
  *
  * @param internal_address out internal address to use
- * @param sa the address of the peer (IPv4-only)
+ * @param internal_port internal port to use
+ * @param remote_v4 the address of the peer (IPv4-only)
  * @return #GNUNET_SYSERR on error,
  *         #GNUNET_OK otherwise
  */
 int
-GN_request_connection_reversal (const char *internal_address,
-				const struct sockaddr_in *sa);
+GN_request_connection_reversal (const struct in_addr *internal_address,
+				uint16_t internal_port,
+				const struct in_addr *sa);
 
 
 /* end of gnunet-service-nat_helper.h */

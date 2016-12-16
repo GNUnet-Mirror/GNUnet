@@ -1,4 +1,14 @@
 [nat]
+AUTOSTART = @AUTOSTART@
+@UNIXONLY@ PORT = 2121
+HOSTNAME = localhost
+BINARY = gnunet-service-nat
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-nat.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
+
 # Are we behind NAT?
 BEHIND_NAT = NO
 
