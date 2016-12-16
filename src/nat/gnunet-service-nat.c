@@ -28,10 +28,8 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - call GN_start_gnunet_nat_server_() if possible (i.e.
- *   when we find we have a non-global IPv4 address)
+ * - implement UPnPC/PMP-based NAT traversal
  * - implement autoconfig
- * - implmeent UPnPC/PMP-based NAT traversal
  * - implement NEW logic for external IP detection
  */
 #include "platform.h"
@@ -90,6 +88,11 @@ struct ClientHandle
    */
   enum GNUNET_NAT_RegisterFlags flags;
 
+  /**
+   * Is any of the @e addrs in a reserved subnet for NAT?
+   */
+  int natted_address;
+  
   /**
    * Port we would like as we are configured to use this one for
    * advertising (in addition to the one we are binding to).
@@ -306,6 +309,108 @@ check_register (void *cls,
 
 
 /**
+ * Check if @a ip is in @a network with @a bits netmask.
+ *
+ * @param network to test
+ * @param ip IP address to test
+ * @param bits bitmask for the network
+ * @return #GNUNET_YES if @a ip is in @a network
+ */
+static int
+match_ipv4 (const char *network,
+	    const struct in_addr *ip,
+	    uint8_t bits)
+{
+  struct in_addr net;
+  
+  if (0 == bits)
+    return GNUNET_YES;
+  GNUNET_assert (1 == inet_pton (AF_INET,
+				 network,
+				 &net));
+  return ! ((ip->s_addr ^ net.s_addr) & htonl (0xFFFFFFFFu << (32 - bits)));
+}
+
+
+/**
+ * Check if @a ip is in @a network with @a bits netmask.
+ *
+ * @param network to test
+ * @param ip IP address to test
+ * @param bits bitmask for the network
+ * @return #GNUNET_YES if @a ip is in @a network
+ */
+static int
+match_ipv6 (const char *network,
+	    const struct in6_addr *ip,
+	    uint8_t bits)
+{
+  struct in6_addr net;
+  struct in6_addr mask;
+  unsigned int off;
+  
+  if (0 == bits)
+    return GNUNET_YES;
+  GNUNET_assert (1 == inet_pton (AF_INET,
+				 network,
+				 &net));
+  memset (&mask, 0, sizeof (mask));
+  off = 0;
+  while (bits > 8)
+  {
+    mask.s6_addr[off++] = 0xFF;
+    bits -= 8;
+  }
+  while (bits > 0)
+  {
+    mask.s6_addr[off] = (mask.s6_addr[off] >> 1) + 0x80;
+    bits--;
+  }
+  for (unsigned j = 0; j < sizeof (struct in6_addr) / sizeof (uint32_t); j++)
+    if (((((uint32_t *) ip)[j] & ((uint32_t *) &mask)[j])) !=
+	(((uint32_t *) &net)[j] & ((int *) &mask)[j]))
+      return GNUNET_NO;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Test if the given IPv4 address is in a known range
+ * for private networks.
+ *
+ * @param ip address to test
+ * @return #GNUNET_YES if @a ip is in a NAT range
+ */
+static int
+is_nat_v4 (const struct in_addr *ip)
+{
+  return
+    match_ipv4 ("10.0.0.0", ip, 8) || /* RFC 1918 */
+    match_ipv4 ("100.64.0.0", ip, 10) || /* CG-NAT, RFC 6598 */
+    match_ipv4 ("192.168.0.0", ip, 12) || /* RFC 1918 */
+    match_ipv4 ("169.254.0.0", ip, 16) || /* AUTO, RFC 3927 */
+    match_ipv4 ("172.16.0.0", ip, 16);  /* RFC 1918 */
+}
+
+
+/**
+ * Test if the given IPv6 address is in a known range
+ * for private networks.
+ *
+ * @param ip address to test
+ * @return #GNUNET_YES if @a ip is in a NAT range
+ */
+static int
+is_nat_v6 (const struct in6_addr *ip)
+{
+  return
+    match_ipv6 ("fc00::", ip, 7) || /* RFC 4193 */
+    match_ipv6 ("fec0::", ip, 10) || /* RFC 3879 */
+    match_ipv6 ("fe80::", ip, 10); /* RFC 4291, link-local */
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from client.
  * We remember the client for updates upon future NAT events.
  *
@@ -352,10 +457,22 @@ handle_register (void *cls,
     switch (sa->sa_family)
     {
     case AF_INET:
-      alen = sizeof (struct sockaddr_in);
+      {
+	const struct sockaddr_in *s4 = (const struct sockaddr_in *) sa;
+	
+	alen = sizeof (struct sockaddr_in);
+	if (is_nat_v4 (&s4->sin_addr))
+	  ch->natted_address = GNUNET_YES;
+      }
       break;
     case AF_INET6:
-      alen = sizeof (struct sockaddr_in6);
+      {
+	const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) sa;
+	
+	alen = sizeof (struct sockaddr_in6);
+	if (is_nat_v6 (&s6->sin6_addr))
+	  ch->natted_address = GNUNET_YES;
+      }
       break;
 #if AF_UNIX
     case AF_UNIX:
@@ -418,7 +535,30 @@ static void
 notify_clients_stun_change (const struct sockaddr_in *ip,
 			    int add)
 {
-  /* FIXME: notify clients about add/drop */
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+  {
+    struct sockaddr_in v4;
+    struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
+    struct GNUNET_MQ_Envelope *env;
+    
+    if (! ch->natted_address)
+      continue;
+    v4 = *ip;
+    v4.sin_port = htons (ch->adv_port);
+    env = GNUNET_MQ_msg_extra (msg,
+			       sizeof (v4),
+			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
+    msg->add_remove = htonl ((int32_t) add);
+    msg->addr_class = htonl (GNUNET_NAT_AC_GLOBAL_EXTERN |
+			     GNUNET_NAT_AC_GLOBAL);
+    GNUNET_memcpy (&msg[1],
+		   &v4,
+		   sizeof (v4));
+    GNUNET_MQ_send (ch->mq,
+		    env);
+  }
 }
 
 
@@ -599,6 +739,9 @@ handle_request_connection_reversal (void *cls,
   size_t remote_sa_len = ntohs (message->remote_addr_size);
   const struct sockaddr *local_sa = (const struct sockaddr *) &buf[0];
   const struct sockaddr *remote_sa = (const struct sockaddr *) &buf[local_sa_len];
+  const struct sockaddr_in *l4 = NULL;
+  const struct sockaddr_in *r4;
+  int ret;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REQUEST CONNECTION REVERSAL message from client\n");
@@ -611,6 +754,7 @@ handle_request_connection_reversal (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    l4 = (const struct sockaddr_in *) local_sa;    
     break;
   case AF_INET6:
     if (local_sa_len != sizeof (struct sockaddr_in6))
@@ -619,6 +763,9 @@ handle_request_connection_reversal (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Connection reversal for IPv6 not supported yet\n"));
+    ret = GNUNET_SYSERR;
     break;
   default:
     GNUNET_break (0);
@@ -634,6 +781,10 @@ handle_request_connection_reversal (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    r4 = (const struct sockaddr_in *) remote_sa;
+    ret = GN_request_connection_reversal (&l4->sin_addr,
+					  ntohs (l4->sin_port),
+					  &r4->sin_addr);
     break;
   case AF_INET6:
     if (remote_sa_len != sizeof (struct sockaddr_in6))
@@ -642,15 +793,18 @@ handle_request_connection_reversal (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Connection reversal for IPv6 not supported yet\n"));
+    ret = GNUNET_SYSERR;
     break;
   default:
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (ch->client);
     return;
   }
-  /* FIXME: actually run the logic by
-     calling 'GN_request_connection_reversal()' */
-  
+  if (GNUNET_OK != ret)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Connection reversal request failed\n"));  
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -754,108 +908,6 @@ struct IfcProcContext
   struct LocalAddressList *lal_tail;
 
 };
-
-
-/**
- * Check if @a ip is in @a network with @a bits netmask.
- *
- * @param network to test
- * @param ip IP address to test
- * @param bits bitmask for the network
- * @return #GNUNET_YES if @a ip is in @a network
- */
-static int
-match_ipv4 (const char *network,
-	    const struct in_addr *ip,
-	    uint8_t bits)
-{
-  struct in_addr net;
-  
-  if (0 == bits)
-    return GNUNET_YES;
-  GNUNET_assert (1 == inet_pton (AF_INET,
-				 network,
-				 &net));
-  return ! ((ip->s_addr ^ net.s_addr) & htonl (0xFFFFFFFFu << (32 - bits)));
-}
-
-
-/**
- * Check if @a ip is in @a network with @a bits netmask.
- *
- * @param network to test
- * @param ip IP address to test
- * @param bits bitmask for the network
- * @return #GNUNET_YES if @a ip is in @a network
- */
-static int
-match_ipv6 (const char *network,
-	    const struct in6_addr *ip,
-	    uint8_t bits)
-{
-  struct in6_addr net;
-  struct in6_addr mask;
-  unsigned int off;
-  
-  if (0 == bits)
-    return GNUNET_YES;
-  GNUNET_assert (1 == inet_pton (AF_INET,
-				 network,
-				 &net));
-  memset (&mask, 0, sizeof (mask));
-  off = 0;
-  while (bits > 8)
-  {
-    mask.s6_addr[off++] = 0xFF;
-    bits -= 8;
-  }
-  while (bits > 0)
-  {
-    mask.s6_addr[off] = (mask.s6_addr[off] >> 1) + 0x80;
-    bits--;
-  }
-  for (unsigned j = 0; j < sizeof (struct in6_addr) / sizeof (uint32_t); j++)
-    if (((((uint32_t *) ip)[j] & ((uint32_t *) &mask)[j])) !=
-	(((uint32_t *) &net)[j] & ((int *) &mask)[j]))
-      return GNUNET_NO;
-  return GNUNET_YES;
-}
-
-
-/**
- * Test if the given IPv4 address is in a known range
- * for private networks.
- *
- * @param ip address to test
- * @return #GNUNET_YES if @a ip is in a NAT range
- */
-static int
-is_nat_v4 (const struct in_addr *ip)
-{
-  return
-    match_ipv4 ("10.0.0.0", ip, 8) || /* RFC 1918 */
-    match_ipv4 ("100.64.0.0", ip, 10) || /* CG-NAT, RFC 6598 */
-    match_ipv4 ("192.168.0.0", ip, 12) || /* RFC 1918 */
-    match_ipv4 ("169.254.0.0", ip, 16) || /* AUTO, RFC 3927 */
-    match_ipv4 ("172.16.0.0", ip, 16);  /* RFC 1918 */
-}
-
-
-/**
- * Test if the given IPv6 address is in a known range
- * for private networks.
- *
- * @param ip address to test
- * @return #GNUNET_YES if @a ip is in a NAT range
- */
-static int
-is_nat_v6 (const struct in6_addr *ip)
-{
-  return
-    match_ipv6 ("fc00::", ip, 7) || /* RFC 4193 */
-    match_ipv6 ("fec0::", ip, 10) || /* RFC 3879 */
-    match_ipv6 ("fe80::", ip, 10); /* RFC 4291, link-local */
-}
 
 
 /**

@@ -319,7 +319,7 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h)
     GNUNET_SCHEDULER_cancel (h->server_read_task);
     h->server_read_task = NULL;
   }
-    if (NULL != h->server_proc)
+  if (NULL != h->server_proc)
   {
     if (0 != GNUNET_OS_process_kill (h->server_proc,
                                      GNUNET_TERM_SIG))
@@ -349,23 +349,25 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h)
  * that peer to connect to us (connection reversal).
  *
  * @param internal_address out internal address to use
- * @param sa the address of the peer (IPv4-only)
+ * @param internal_port port to use
+ * @param remote_v4 the address of the peer (IPv4-only)
  * @return #GNUNET_SYSERR on error,
  *         #GNUNET_OK otherwise
  */
 int
-GN_request_connection_reversal (const char *internal_address,
-				const struct sockaddr_in *sa)
+GN_request_connection_reversal (const struct in_addr *internal_address,
+				uint16_t internal_port,
+				const struct in_addr *remote_v4)
 {
-  char inet4[INET_ADDRSTRLEN];
+  char intv4[INET_ADDRSTRLEN];
+  char remv4[INET_ADDRSTRLEN];
   char port_as_string[6];
   struct GNUNET_OS_Process *proc;
   char *binary;
 
-  GNUNET_assert (sa->sin_family == AF_INET);
   if (NULL == inet_ntop (AF_INET,
-			 &sa->sin_addr,
-			 inet4,
+			 internal_address,
+			 intv4,
 			 INET_ADDRSTRLEN))
   {
     GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
@@ -373,15 +375,25 @@ GN_request_connection_reversal (const char *internal_address,
                               "inet_ntop");
     return GNUNET_SYSERR;
   }
+  if (NULL == inet_ntop (AF_INET,
+			 remote_v4,
+			 remv4,
+			 INET_ADDRSTRLEN))
+  {
+    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
+                              "nat",
+                              "inet_ntop");
+    return GNUNET_SYSERR;
+  }  
   GNUNET_snprintf (port_as_string,
                    sizeof (port_as_string),
                    "%d",
-                   ntohs (sa->sin_port));
+                   internal_port);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Running gnunet-helper-nat-client %s %s %u\n"),
-       internal_address,
-       inet4,
-       ntohs (sa->sin_port));
+       intv4,
+       remv4,
+       internal_port);
   binary
     = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   proc
@@ -392,8 +404,8 @@ GN_request_connection_reversal (const char *internal_address,
 			       NULL,
                                binary,
                                "gnunet-helper-nat-client",
-                               internal_address,
-                               inet4,
+                               intv4,
+                               remv4,
 			       port_as_string,
 			       NULL);
   GNUNET_free (binary);
