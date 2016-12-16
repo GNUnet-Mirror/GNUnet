@@ -737,7 +737,7 @@ GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
   case GNUNET_NAT_ERROR_SUCCESS:
     return _ ("Operation Successful");
   case GNUNET_NAT_ERROR_IPC_FAILURE:
-    return _ ("Internal Failure (IPC, ...)");
+    return _ ("IPC failure");
   case GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR:
     return _ ("Failure in network subsystem, check permissions.");
   case GNUNET_NAT_ERROR_TIMEOUT:

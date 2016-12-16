@@ -176,34 +176,38 @@ auto_config_cb (void *cls,
   ah = NULL;
   switch (type)
   {
-    case GNUNET_NAT_TYPE_NO_NAT:
-      nat_type = "NO NAT";
-      break;
-    case GNUNET_NAT_TYPE_UNREACHABLE_NAT:
-      nat_type = "NAT but we can traverse";
-      break;
-    case GNUNET_NAT_TYPE_STUN_PUNCHED_NAT:
-      nat_type = "NAT but STUN is able to identify the correct information";
-      break;
-    case GNUNET_NAT_TYPE_UPNP_NAT:
-      nat_type = "NAT but UPNP opened the ports";
-      break;
-    default:
-      SPRINTF (unknown_type,
-	       "NAT unknown, type %u",
-	       type);
-      nat_type = unknown_type;
+  case GNUNET_NAT_TYPE_NO_NAT:
+    nat_type = "NO NAT";
+    break;
+  case GNUNET_NAT_TYPE_UNREACHABLE_NAT:
+    nat_type = "NAT but we can traverse";
+    break;
+  case GNUNET_NAT_TYPE_STUN_PUNCHED_NAT:
+    nat_type = "NAT but STUN is able to identify the correct information";
+    break;
+  case GNUNET_NAT_TYPE_UPNP_NAT:
+    nat_type = "NAT but UPNP opened the ports";
+    break;
+  default:
+    SPRINTF (unknown_type,
+	     "NAT unknown, type %u",
+	     type);
+    nat_type = unknown_type;
+    break;
   }
 
   PRINTF ("NAT status: %s/%s\n",
 	  GNUNET_NAT_status2string (result),
 	  nat_type);
-  
-  PRINTF ("SUGGESTED CHANGES:\n");
-  GNUNET_CONFIGURATION_iterate_section_values (diff,
-                                               "nat",
-                                               &auto_conf_iter,
-                                               NULL);
+
+  if (NULL != diff)
+  {
+    PRINTF ("SUGGESTED CHANGES:\n");
+    GNUNET_CONFIGURATION_iterate_section_values (diff,
+						 "nat",
+						 &auto_conf_iter,
+						 NULL);
+  }
   // FIXME: have option to save config
   test_finished ();
 }
@@ -396,8 +400,18 @@ run (void *cls,
     proto = IPPROTO_TCP;
   if (use_udp)
     proto = IPPROTO_UDP;
+
+  if (do_auto)
+  {
+    ah = GNUNET_NAT_autoconfig_start (c,
+				      &auto_config_cb,
+				      NULL);
+  }
+
   if (0 == proto)
   {
+    if (do_auto)
+      return; /* all good, we just run auto config */
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		"Must specify either TCP or UDP\n");
     global_ret = 1;
@@ -530,13 +544,6 @@ run (void *cls,
     }
   }
   
-  if (do_auto)
-  {
-    ah = GNUNET_NAT_autoconfig_start (c,
-				      &auto_config_cb,
-				      NULL);
-  }
-
   if (do_stun)
   {
     if (NULL == local_addr)

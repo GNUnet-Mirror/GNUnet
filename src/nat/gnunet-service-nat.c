@@ -351,7 +351,7 @@ match_ipv6 (const char *network,
   
   if (0 == bits)
     return GNUNET_YES;
-  GNUNET_assert (1 == inet_pton (AF_INET,
+  GNUNET_assert (1 == inet_pton (AF_INET6,
 				 network,
 				 &net));
   memset (&mask, 0, sizeof (mask));
