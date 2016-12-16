@@ -837,7 +837,7 @@ handle_autoconfig_request (void *cls,
 			   const struct GNUNET_NAT_AutoconfigRequestMessage *message)
 {
   struct ClientHandle *ch = cls;
-  size_t left = ntohs (message->header.size);
+  size_t left = ntohs (message->header.size) - sizeof (*message);
   struct GNUNET_CONFIGURATION_Handle *c;
 
   c = GNUNET_CONFIGURATION_create ();

@@ -401,6 +401,9 @@ run (void *cls,
   if (use_udp)
     proto = IPPROTO_UDP;
 
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
+
   if (do_auto)
   {
     ah = GNUNET_NAT_autoconfig_start (c,
@@ -500,9 +503,6 @@ run (void *cls,
 			      (listen_reversal) ? &reversal_cb : NULL,
 			      NULL);
   }
-
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
 
   if (NULL != remote_addr)
   {
