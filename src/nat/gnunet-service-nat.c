@@ -218,6 +218,11 @@ struct AutoconfigContext
   struct GNUNET_CONFIGURATION_Handle *c;
 
   /**
+   * Original configuration (for diffing).
+   */ 
+  struct GNUNET_CONFIGURATION_Handle *orig;
+
+  /**
    * Timeout task to force termination.
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
@@ -1247,13 +1252,17 @@ conclude_autoconfig_request (void *cls)
   struct GNUNET_MQ_Envelope *env;
   size_t c_size;
   char *buf;
-
+  struct GNUNET_CONFIGURATION_Handle *diff;
+  
   ac->timeout_task = NULL;
   terminate_ac_activities (ac);
 
   /* Send back response */
-  buf = GNUNET_CONFIGURATION_serialize (ac->c,
+  diff = GNUNET_CONFIGURATION_get_diff (ac->orig,
+					ac->c);
+  buf = GNUNET_CONFIGURATION_serialize (diff,
 					&c_size);
+  GNUNET_CONFIGURATION_destroy (diff);
   env = GNUNET_MQ_msg_extra (arm,
 			     c_size,
 			     GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT);
@@ -1268,6 +1277,7 @@ conclude_autoconfig_request (void *cls)
 
   /* clean up */
   GNUNET_free (ac->system_type);
+  GNUNET_CONFIGURATION_destroy (ac->orig);
   GNUNET_CONFIGURATION_destroy (ac->c);
   GNUNET_CONTAINER_DLL_remove (ac_head,
 			       ac_tail,
@@ -1404,6 +1414,8 @@ handle_autoconfig_request (void *cls,
   GNUNET_CONTAINER_DLL_insert (ac_head,
 			       ac_tail,
 			       ac);
+  ac->orig
+    = GNUNET_CONFIGURATION_dup (ac->c);
   ac->timeout_task
     = GNUNET_SCHEDULER_add_delayed (AUTOCONFIG_TIMEOUT,
 				    &conclude_autoconfig_request,
