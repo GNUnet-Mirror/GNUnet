@@ -769,23 +769,41 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
 					  int add)
 {
   struct sockaddr_in sa;
+  uint16_t port;
+  uint16_t bport;
 
-  // FIXME: (1) check if client cares;
-  GNUNET_break (0); // FIXME: implement!
+  /* (1) check if client cares. */
+  if (! ch->natted_address)
+    return;
+  if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
+    return;
+  bport = 0;
+  for (unsigned int i=0;i<ch->num_addrs;i++)
+  {
+    const struct sockaddr *sa = ch->addrs[i];
+
+    if (AF_INET != sa->sa_family)
+      continue;
+    bport = ntohs (((const struct sockaddr_in *) sa)->sin_port);
+  }
+  if (0 == bport)
+    return; /* IPv6-only */
   
   /* (2) figure out external port, build sockaddr */
+  port = ch->adv_port;
+  if (0 == port)
+    port = bport;
   memset (&sa,
 	  0,
 	  sizeof (sa));
   sa.sin_family = AF_INET;
   sa.sin_addr = *v4;
-  sa.sin_port = 42; // FIXME
+  sa.sin_port = htons (port);
   
   /* (3) notify client of change */
-
-  // FIXME: handle case where 'v4' is still in the NAT range
-  // (in case of double-NAT!)
-  notify_client (GNUNET_NAT_AC_GLOBAL_EXTERN,
+  notify_client (is_nat_v4 (v4)
+		 ? GNUNET_NAT_AC_LAN_PRIVATE
+		 : GNUNET_NAT_AC_GLOBAL_EXTERN,
 		 ch,
 		 add,
 		 &sa,
