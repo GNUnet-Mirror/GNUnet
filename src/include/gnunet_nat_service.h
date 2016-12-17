@@ -83,7 +83,7 @@ enum GNUNET_NAT_AddressClass
   /**
    * Addresses useful in the local wired network,
    * i.e. a MAC.  Sensitive, but obvious to people nearby.
-
+   *
    * Useful for broadcasts.
    */
   GNUNET_NAT_AC_LAN = 8,

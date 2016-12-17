@@ -78,7 +78,7 @@ enum GNUNET_NAT_RegisterFlags
 
   /**
    * This client wants to be informed about changes to our
-   * external addresses.
+   * applicable addresses.
    */
   GNUNET_NAT_RF_ADDRESSES = 1,
 

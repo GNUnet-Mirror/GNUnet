@@ -331,6 +331,7 @@ do_connect (void *cls)
 			   nh),
     GNUNET_MQ_handler_end ()
   };
+  struct GNUNET_MQ_Envelope *env;
 
   nh->reconnect_task = NULL;
   nh->mq = GNUNET_CLIENT_connecT (nh->cfg,
@@ -339,7 +340,13 @@ do_connect (void *cls)
 				  &mq_error_handler,
 				  nh);
   if (NULL == nh->mq)
+  {
     reconnect (nh);
+    return;
+  }
+  env = GNUNET_MQ_msg_copy (nh->reg);
+  GNUNET_MQ_send (nh->mq,
+		  env);
 }
 
 

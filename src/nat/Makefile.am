@@ -98,6 +98,7 @@ libgnunetnatnew_la_LDFLAGS = \
 gnunet_service_nat_SOURCES = \
  gnunet-service-nat.c \
  gnunet-service-nat_stun.c gnunet-service-nat_stun.h \
+ gnunet-service-nat_mini.c gnunet-service-nat_mini.h \
  gnunet-service-nat_helper.c gnunet-service-nat_helper.h
 gnunet_service_nat_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
