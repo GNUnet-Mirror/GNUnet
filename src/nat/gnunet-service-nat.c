@@ -57,6 +57,24 @@
  */
 #define AUTOCONFIG_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command failed to terminate nicely?
+ */
+#define EXTERN_IP_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command failed (but terminated)?
+ */
+#define EXTERN_IP_RETRY_FAILURE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command succeeded?
+ */
+#define EXTERN_IP_RETRY_SUCCESS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
 
 /**
  * Internal data structure we track for each of our clients.
@@ -322,6 +340,22 @@ static struct StunExternalIP *se_tail;
  */
 static int enable_upnp;
 
+/**
+ * Task run to obtain our external IP (if #enable_upnp is set
+ * and if we find we have a NATed IP address).
+ */
+static struct GNUNET_SCHEDULER_Task *probe_external_ip_task;
+
+/**
+ * Handle to our operation to run `external-ip`.
+ */
+static struct GNUNET_NAT_ExternalHandle *probe_external_ip_op;
+
+/**
+ * What is our external IP address as claimed by `external-ip`?
+ * 0 for unknown.
+ */
+static struct in_addr mini_external_ipv4;
 
 /**
  * Free the DLL starting at #lal_head.
@@ -604,14 +638,14 @@ ifc_proc (void *cls,
  * Notify client about a change in the list of addresses this peer
  * has.
  *
- * @param delta the entry in the list that changed
+ * @param ac address class of the entry in the list that changed
  * @param ch client to contact
  * @param add #GNUNET_YES to add, #GNUNET_NO to remove
  * @param addr the address that changed
  * @param addr_len number of bytes in @a addr
  */
 static void
-notify_client (struct LocalAddressList *delta,
+notify_client (enum GNUNET_NAT_AddressClass ac,
 	       struct ClientHandle *ch,
 	       int add,
 	       const void *addr,
@@ -624,7 +658,7 @@ notify_client (struct LocalAddressList *delta,
 			     addr_len,
 			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
   msg->add_remove = htonl (add);
-  msg->addr_class = htonl (delta->ac);
+  msg->addr_class = htonl (ac);
   GNUNET_memcpy (&msg[1],
 		 addr,
 		 addr_len);
@@ -667,7 +701,7 @@ check_notify_client (struct LocalAddressList *delta,
 	return; /* IPv4 not relevant */
       c4 = (const struct sockaddr_in *) ch->addrs[i];
       v4.sin_port = c4->sin_port;
-      notify_client (delta,
+      notify_client (delta->ac,
 		     ch,
 		     add,
 		     &v4,
@@ -687,7 +721,7 @@ check_notify_client (struct LocalAddressList *delta,
 	return; /* IPv4 not relevant */
       c6 = (const struct sockaddr_in6 *) ch->addrs[i];
       v6.sin6_port = c6->sin6_port;
-      notify_client (delta,
+      notify_client (delta->ac,
 		     ch,
 		     add,
 		     &v6,
@@ -722,6 +756,142 @@ notify_clients (struct LocalAddressList *delta,
 
 
 /**
+ * Tell relevant client about a change in our external
+ * IPv4 address.
+ * 
+ * @param v4 the external address that changed
+ * @param ch client to check if it cares and possibly notify
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+check_notify_client_external_ipv4_change (const struct in_addr *v4,
+					  struct ClientHandle *ch,
+					  int add)
+{
+  struct sockaddr_in sa;
+
+  // FIXME: (1) check if client cares;
+  GNUNET_break (0); // FIXME: implement!
+  
+  /* (2) figure out external port, build sockaddr */
+  memset (&sa,
+	  0,
+	  sizeof (sa));
+  sa.sin_family = AF_INET;
+  sa.sin_addr = *v4;
+  sa.sin_port = 42; // FIXME
+  
+  /* (3) notify client of change */
+
+  // FIXME: handle case where 'v4' is still in the NAT range
+  // (in case of double-NAT!)
+  notify_client (GNUNET_NAT_AC_GLOBAL_EXTERN,
+		 ch,
+		 add,
+		 &sa,
+		 sizeof (sa));
+}
+
+
+/**
+ * Tell relevant clients about a change in our external
+ * IPv4 address.
+ * 
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ * @param v4 the external address that changed
+ */
+static void
+notify_clients_external_ipv4_change (int add,
+				     const struct in_addr *v4)
+{
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+    check_notify_client_external_ipv4_change (v4,
+					      ch,
+					      add);
+}
+
+
+/**
+ * Task used to run `external-ip` to get our external IPv4
+ * address and pass it to NATed clients if possible.
+ *
+ * @param cls NULL
+ */
+static void
+run_external_ip (void *cls);
+
+
+/**
+ * We learn our current external IP address.  If it changed,
+ * notify all of our applicable clients. Also re-schedule
+ * #run_external_ip with an appropriate timeout.
+ * 
+ * @param cls NULL
+ * @param addr the address, NULL on errors
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+handle_external_ip (void *cls,
+		    const struct in_addr *addr,
+		    enum GNUNET_NAT_StatusCode result)
+{
+  probe_external_ip_op = NULL;
+  GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+  probe_external_ip_task
+    = GNUNET_SCHEDULER_add_delayed ((NULL == addr)
+				    ? EXTERN_IP_RETRY_FAILURE
+				    : EXTERN_IP_RETRY_SUCCESS,
+				    &run_external_ip,
+				    NULL);
+  switch (result)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    if (addr->s_addr == mini_external_ipv4.s_addr)
+      return; /* not change */
+    if (0 != mini_external_ipv4.s_addr)
+      notify_clients_external_ipv4_change (GNUNET_NO,
+					   &mini_external_ipv4);
+    mini_external_ipv4 = *addr;
+    notify_clients_external_ipv4_change (GNUNET_YES,
+					 &mini_external_ipv4);
+    break;
+  default:
+    if (0 != mini_external_ipv4.s_addr)
+      notify_clients_external_ipv4_change (GNUNET_NO,
+					   &mini_external_ipv4);
+    mini_external_ipv4.s_addr = 0; 
+    break;
+  }
+}
+
+
+/**
+ * Task used to run `external-ip` to get our external IPv4
+ * address and pass it to NATed clients if possible.
+ *
+ * @param cls NULL
+ */
+static void
+run_external_ip (void *cls)
+{
+  probe_external_ip_task
+    = GNUNET_SCHEDULER_add_delayed (EXTERN_IP_RETRY_TIMEOUT,
+				    &run_external_ip,
+				    NULL);
+  if (NULL != probe_external_ip_op)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+    probe_external_ip_op = NULL;
+  }
+  probe_external_ip_op
+    = GNUNET_NAT_mini_get_external_ipv4_ (&handle_external_ip,
+					  NULL);
+}
+
+
+/**
  * Task we run periodically to scan for network interfaces.
  *
  * @param cls NULL
@@ -731,6 +901,7 @@ run_scan (void *cls)
 {
   struct IfcProcContext ifc_ctx;
   int found;
+  int have_nat;
   
   scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
 					    &run_scan,
@@ -764,11 +935,14 @@ run_scan (void *cls)
   }
 
   /* add addresses that appeared */
+  have_nat = GNUNET_NO;
   for (struct LocalAddressList *pos = ifc_ctx.lal_head;
        NULL != pos;
        pos = pos->next)
   {
     found = GNUNET_NO;
+    if (GNUNET_NAT_AC_LAN == (GNUNET_NAT_AC_LAN & pos->ac))
+      have_nat = GNUNET_YES;
     for (struct LocalAddressList *lal = lal_head;
 	 NULL != lal;
 	 lal = lal->next)
@@ -785,7 +959,30 @@ run_scan (void *cls)
       notify_clients (pos,
 		      GNUNET_YES);
   }
-
+  if ( (GNUNET_YES == have_nat) &&
+       (GNUNET_YES == enable_upnp) &&
+       (NULL == probe_external_ip_task) &&
+       (NULL == probe_external_ip_op) )
+  {
+    probe_external_ip_task
+      = GNUNET_SCHEDULER_add_now (&run_external_ip,
+				  NULL);
+  }
+  if ( (GNUNET_NO == have_nat) &&
+       (GNUNET_YES == enable_upnp) )
+  {
+    if (NULL != probe_external_ip_task)
+    {
+      GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+      probe_external_ip_task = NULL;
+    }
+    if (NULL != probe_external_ip_op)
+    {
+      GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+      probe_external_ip_op = NULL;
+    }
+  }
+  
   destroy_lal ();
   lal_head = ifc_ctx.lal_head;
   lal_tail = ifc_ctx.lal_tail;
@@ -881,6 +1078,13 @@ handle_register (void *cls,
     check_notify_client (lal,
 			 ch,
 			 GNUNET_YES);
+  }
+  /* Also consider IPv4 determined by `external-ip` */
+  if (0 != mini_external_ipv4.s_addr)
+  {
+    check_notify_client_external_ipv4_change (&mini_external_ipv4,
+					      ch,
+					      GNUNET_YES);
   }
   GNUNET_SERVICE_client_continue (ch->client);
 }
@@ -1318,13 +1522,13 @@ update_enable_upnpc_option (struct AutoconfigContext *ac)
   case GNUNET_YES:
     GNUNET_CONFIGURATION_set_value_string (ac->c,
 					   "NAT",
-					   "ENABLE_UPNPC",
+					   "ENABLE_UPNP",
 					   "YES");
     break;
   case GNUNET_NO:
     GNUNET_CONFIGURATION_set_value_string (ac->c,
 					   "NAT",
-					   "ENABLE_UPNPC",
+					   "ENABLE_UPNP",
 					   "NO");
     break;
   case GNUNET_SYSERR:
@@ -1358,6 +1562,9 @@ auto_external_result_cb (void *cls,
   case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
   case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
   case GNUNET_NAT_ERROR_IPC_FAILURE:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Disabling UPNPC: %d\n",
+		(int) result);
     ac->enable_upnpc = GNUNET_NO; /* did not work */
     break;
   default:
@@ -1387,6 +1594,7 @@ handle_autoconfig_request (void *cls,
   struct AutoconfigContext *ac;
 
   ac = GNUNET_new (struct AutoconfigContext);
+  ac->status_code = GNUNET_NAT_ERROR_SUCCESS;
   ac->ch = ch;
   ac->c = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
