@@ -1399,7 +1399,7 @@ handle_autoconfig_request (void *cls,
 					     "PEER",
 					     "SYSTEM_TYPE",
 					     &ac->system_type))
-    ac->system_type = "UNKNOWN";
+    ac->system_type = GNUNET_strdup ("UNKNOWN");
 
   GNUNET_CONTAINER_DLL_insert (ac_head,
 			       ac_tail,
