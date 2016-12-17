@@ -1377,6 +1377,7 @@ handle_autoconfig_request (void *cls,
   struct AutoconfigContext *ac;
 
   ac = GNUNET_new (struct AutoconfigContext);
+  ac->ch = ch;
   ac->c = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_deserialize (ac->c,
