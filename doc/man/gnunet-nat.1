@@ -39,10 +39,6 @@ Assuming we are listening at ADDRESS for connection reversal requests.
 Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
 
 .B
-.IP "\-L,  \-\-listen"
-Listen for connection reversal requests.  
-
-.B
 .IP "\-p PORT,  \-\-port=PORT"
 Use PORT as our external port for advertising for incoming requests.
 
@@ -61,6 +57,11 @@ Use UDP.
 .B
 .IP "\-w,  \-\-write"
 Write configuration to configuration file, useful in combination with autoconfiguration (\-a).
+
+.B
+.IP "\-W,  \-\-watch"
+Watch for connection reversal requests.  
+
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

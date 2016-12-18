@@ -29,7 +29,8 @@
  *
  * TODO:
  * - TEST UPnPC/PMP-based NAT traversal
- * - implement STUN processing to classify NAT
+ * - implement STUN processing to classify NAT;
+ *   basically, open port & try different methods.
  * - implement "more" autoconfig
  * - implement NEW logic for external IP detection
  */
