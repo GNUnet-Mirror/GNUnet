@@ -28,8 +28,9 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - implement UPnPC/PMP-based NAT traversal
- * - implement autoconfig
+ * - TEST UPnPC/PMP-based NAT traversal
+ * - implement STUN processing to classify NAT
+ * - implement "more" autoconfig
  * - implement NEW logic for external IP detection
  */
 #include "platform.h"
