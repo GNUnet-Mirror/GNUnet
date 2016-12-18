@@ -31,7 +31,7 @@
 #include "gnunet_gnsrecord_plugin.h"
 #include "gnunet_signatures.h"
 #include "credential_serialization.h"
-
+#include "credential_misc.h"
 
 /**
  * Convert the 'value' of a record to a string.
@@ -55,18 +55,18 @@ credential_value_to_string (void *cls,
   {
    case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
    {
-    struct GNUNET_CREDENTIAL_DelegationRecordData sets;
+    struct GNUNET_CREDENTIAL_DelegationRecord sets;
     char *attr_str;
     char *subject_pkey;
     char *tmp_str;
     int i;
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_DelegationRecordData))
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_DelegationRecord))
       return NULL; /* malformed */
     memcpy (&sets,
             data,
             sizeof (sets));
     cdata = data;
-    struct GNUNET_CREDENTIAL_DelegationSetRecord set[ntohl(sets.set_count)];
+    struct GNUNET_CREDENTIAL_DelegationSet set[ntohl(sets.set_count)];
     if (GNUNET_OK != GNUNET_CREDENTIAL_delegation_set_deserialize (GNUNET_ntohll (sets.data_size),
                                                                    &cdata[sizeof (sets)],
                                                                    ntohl (sets.set_count),
@@ -116,38 +116,13 @@ credential_value_to_string (void *cls,
    }
    case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
    {
-     struct GNUNET_CREDENTIAL_CredentialRecordData cred;
-     struct GNUNET_TIME_Absolute etime_abs;
+     struct GNUNET_CREDENTIAL_Credential *cred;
      char *cred_str;
-     char *subject_pkey;
-     char *issuer_pkey;
-     char *signature;
-     const char *expiration;
 
-
-     if (data_size < sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData))
-       return NULL; /* malformed */
-     memcpy (&cred,
-             data,
-             sizeof (cred));
-     cdata = data;  
-     subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.subject_key);
-     issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred.issuer_key);
-     etime_abs.abs_value_us = GNUNET_ntohll(cred.expiration);
-     expiration = GNUNET_STRINGS_absolute_time_to_string (etime_abs);
-     GNUNET_STRINGS_base64_encode ((char*)&cred.signature,
-                                   sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
-                                   &signature);
-     GNUNET_asprintf (&cred_str,
-                      "%s.%s -> %s | %s | %s",
-                      issuer_pkey,
-                      &cdata[sizeof (cred)],
-                      subject_pkey,
-                      signature,
-                      expiration);
-     GNUNET_free (subject_pkey);
-     GNUNET_free (issuer_pkey);
-     GNUNET_free (signature);
+     cred = GNUNET_CREDENTIAL_credential_deserialize (data,
+                                                      data_size);
+     cred_str = GNUNET_CREDENTIAL_credential_to_string (cred);
+     GNUNET_free (cred);
      return cred_str;
    }
    default:
@@ -180,7 +155,7 @@ credential_string_to_value (void *cls,
   {
     case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
       {
-        struct GNUNET_CREDENTIAL_DelegationRecordData *sets;
+        struct GNUNET_CREDENTIAL_DelegationRecord *sets;
         char attr_str[253 + 1];
         char subject_pkey[52 + 1];
         char *token;
@@ -194,7 +169,7 @@ credential_string_to_value (void *cls,
         token = strtok (tmp_str, ",");
         entries = 0;
         tmp_data_size = 0;
-        *data_size = sizeof (struct GNUNET_CREDENTIAL_DelegationRecordData);
+        *data_size = sizeof (struct GNUNET_CREDENTIAL_DelegationRecord);
         while (NULL != token)
         {
           matches = SSCANF (token,
@@ -210,9 +185,9 @@ credential_string_to_value (void *cls,
             return GNUNET_SYSERR;
           }
           if (1 == matches) {
-            tmp_data_size += sizeof (struct GNUNET_CREDENTIAL_DelegationSetRecord);
+            tmp_data_size += sizeof (struct GNUNET_CREDENTIAL_DelegationRecordSet);
           } else if (2 == matches) {
-            tmp_data_size += sizeof (struct GNUNET_CREDENTIAL_DelegationSetRecord) + strlen (attr_str) + 1;
+            tmp_data_size += sizeof (struct GNUNET_CREDENTIAL_DelegationRecordSet) + strlen (attr_str) + 1;
           }
           entries++;
           token = strtok (NULL, ",");
@@ -220,8 +195,7 @@ credential_string_to_value (void *cls,
         GNUNET_free (tmp_str);
         tmp_str = GNUNET_strdup (s);
         token = strtok (tmp_str, ",");
-        struct GNUNET_CREDENTIAL_DelegationSetRecord *set;
-        set = GNUNET_malloc (entries * sizeof (struct GNUNET_CREDENTIAL_DelegationSetRecord));
+        struct GNUNET_CREDENTIAL_DelegationSet set[entries];
         for (i=0;i<entries;i++)
         {
           matches = SSCANF (token,
@@ -239,6 +213,7 @@ credential_string_to_value (void *cls,
         }
         tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries,
                                                                    set);
+        
         if (-1 == tmp_data_size)
           return GNUNET_SYSERR;
         *data_size += tmp_data_size;
@@ -247,6 +222,11 @@ credential_string_to_value (void *cls,
                                                     set,
                                                     tmp_data_size,
                                                     (char*)&sets[1]);
+        for (i=0;i<entries;i++)
+        {
+          if (0 != set[i].subject_attribute_len)
+            GNUNET_free ((char*)set[i].subject_attribute);
+        }
         sets->set_count = htonl (entries);
         sets->data_size = GNUNET_htonll (tmp_data_size);
 
@@ -255,58 +235,11 @@ credential_string_to_value (void *cls,
       }
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
       { 
-        struct GNUNET_CREDENTIAL_CredentialRecordData *cred;
+        struct GNUNET_CREDENTIAL_Credential *cred;
+        cred = GNUNET_CREDENTIAL_credential_from_string (s);
 
-        size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
-        if (enclen % 5 > 0)
-          enclen += 5 - enclen % 5;
-        enclen /= 5; /* 260/5 = 52 */
-        char subject_pkey[enclen + 1];
-        char issuer_pkey[enclen + 1];
-        char name[253 + 1];
-        char signature[128]; //TODO max payload size
-        char expiration[256];
-
-        struct GNUNET_CRYPTO_EcdsaSignature *sig;
-        struct GNUNET_TIME_Absolute etime_abs;
-
-        if (5 != SSCANF (s,
-                         "%52s.%253s -> %52s | %s | %255[0-9a-zA-Z: ]",
-                         issuer_pkey,
-                         name,
-                         subject_pkey,
-                         signature,
-                         expiration))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Unable to parse CRED record string `%s'\n"),
-                      s);
-          return GNUNET_SYSERR;
-        }
-        *data_size = sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (name) + 1;
-        *data = cred = GNUNET_malloc (*data_size);
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
-                                                    strlen (subject_pkey),
-                                                    &cred->subject_key);
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
-                                                    strlen (issuer_pkey),
-                                                    &cred->issuer_key);
-        GNUNET_STRINGS_fancy_time_to_absolute (expiration,
-                                               &etime_abs);
-        GNUNET_STRINGS_base64_decode (signature,
-                                      strlen (signature),
-                                      (char**)&sig);
-        cred->signature = *sig;
-        cred->expiration = GNUNET_htonll (etime_abs.abs_value_us);
-        cred->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
-        cred->purpose.size = htonl (strlen (name) + 1 + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) + sizeof (uint64_t));
-        GNUNET_free (sig);
-        GNUNET_memcpy (&cred[1],
-                       name,
-                       strlen (name));
-
-
+        *data_size = GNUNET_CREDENTIAL_credential_serialize (cred,
+                                                             (char**)data);
         return GNUNET_OK;
       }
     default:

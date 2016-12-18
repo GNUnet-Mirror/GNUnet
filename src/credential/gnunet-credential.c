@@ -26,6 +26,8 @@
 #include <gnunet_util_lib.h>
 #include <gnunet_credential_service.h>
 #include <gnunet_gnsrecord_lib.h>
+#include "credential_misc.h"
+#include "credential_serialization.h"
 
 /**
  * Configuration we are using.
@@ -220,7 +222,7 @@ identity_cb (void *cls,
              const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_CredentialRecordData *crd;
+  struct GNUNET_CREDENTIAL_Credential *crd;
   struct GNUNET_TIME_Absolute etime_abs;
   struct GNUNET_TIME_Relative etime_rel;
   char *res;
@@ -261,14 +263,13 @@ identity_cb (void *cls,
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
   GNUNET_free_non_null (issuer_ego_name);
   issuer_ego_name = NULL;
-  crd = GNUNET_CREDENTIAL_issue (credential,
-                                 privkey,
-                                 &subject_pkey,
-                                 issuer_attr,
-                                 &etime_abs);
-  res =  GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_CREDENTIAL,
-                                           crd,
-                                           sizeof (struct GNUNET_CREDENTIAL_CredentialRecordData) + strlen (issuer_attr) + 1);
+  crd = GNUNET_CREDENTIAL_credential_issue (privkey,
+                                            &subject_pkey,
+                                            issuer_attr,
+                                            &etime_abs);
+
+  res = GNUNET_CREDENTIAL_credential_to_string (crd);
+  GNUNET_free (crd);
   printf ("%s\n", res);
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -354,7 +355,7 @@ run (void *cls,
                _("You must provide issuer and subject attributes\n"));
       GNUNET_SCHEDULER_shutdown ();
     }
-    
+
     printf ("Trying to find a chain from a credential under %s of %s to the attribute %s issued by %s\n",
             subject_credential, subject_key, issuer_attr, issuer_key);
 

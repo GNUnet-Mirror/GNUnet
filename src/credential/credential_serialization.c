@@ -29,48 +29,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_credential_service.h"
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
-struct DelegationRecordData
-{
-  /**
-   * Subject key
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
-  /**
-   * Subject attributes
-   */
-  uint32_t subject_attribute_len GNUNET_PACKED;
-};
-
-
-struct ChainEntry
-{
-  /**
-   * Issuer key
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-  
-  /**
-   * Subject key
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
-  /**
-   * Issuer attributes
-   */
-  uint32_t issuer_attribute_len GNUNET_PACKED;
-  
-  /**
-   * Subject attributes
-   */
-  uint32_t subject_attribute_len GNUNET_PACKED;
-};
-
-GNUNET_NETWORK_STRUCT_END
-
+#include "gnunet_signatures.h"
+#include "credential.h"
 
 /**
  * Calculate how many bytes we will need to serialize
@@ -83,7 +43,7 @@ GNUNET_NETWORK_STRUCT_END
  */
 size_t
 GNUNET_CREDENTIAL_delegation_set_get_size (unsigned int ds_count,
-                                           const struct GNUNET_CREDENTIAL_DelegationSetRecord *dsr)
+                                           const struct GNUNET_CREDENTIAL_DelegationSet *dsr)
 {
   unsigned int i;
   size_t ret;
@@ -110,7 +70,7 @@ GNUNET_CREDENTIAL_delegation_set_get_size (unsigned int ds_count,
  */
 ssize_t
 GNUNET_CREDENTIAL_delegation_set_serialize (unsigned int d_count,
-                                            const struct GNUNET_CREDENTIAL_DelegationSetRecord *dsr,
+                                            const struct GNUNET_CREDENTIAL_DelegationSet *dsr,
                                             size_t dest_size,
                                             char *dest)
 {
@@ -156,7 +116,7 @@ int
 GNUNET_CREDENTIAL_delegation_set_deserialize (size_t len,
                                               const char *src,
                                               unsigned int d_count,
-                                              struct GNUNET_CREDENTIAL_DelegationSetRecord *dsr)
+                                              struct GNUNET_CREDENTIAL_DelegationSet *dsr)
 {
   struct DelegationRecordData rec;
   unsigned int i;
@@ -173,7 +133,7 @@ GNUNET_CREDENTIAL_delegation_set_deserialize (size_t len,
     dsr[i].subject_attribute_len = ntohl ((uint32_t) rec.subject_attribute_len);
     if (off + dsr[i].subject_attribute_len > len)
       return GNUNET_SYSERR;
-    dsr[i].subject_attribute = &src[off];
+    dsr[i].subject_attribute = (char*)&src[off];
     off += dsr[i].subject_attribute_len;
   }
   return GNUNET_OK;
@@ -198,7 +158,7 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
   size_t ret;
 
   ret = sizeof (struct ChainEntry) * (d_count);
-  ret += sizeof (struct ChainEntry) * (c_count);
+  ret += sizeof (struct CredentialEntry) * (c_count);
 
   for (i=0; i<d_count;i++)
   {
@@ -235,6 +195,7 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
                                               char *dest)
 {
   struct ChainEntry rec;
+  struct CredentialEntry c_rec;
   unsigned int i;
   size_t off;
 
@@ -268,16 +229,19 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
   }
   for (i=0;i<c_count;i++)
   {
-    rec.issuer_attribute_len = htonl ((uint32_t) cd[i].issuer_attribute_len);
-    rec.subject_attribute_len = htonl (0);
-    rec.issuer_key = cd[i].issuer_key;
-    rec.subject_key = cd[i].subject_key;
-    if (off + sizeof (rec) > dest_size)
+    c_rec.issuer_attribute_len = htonl ((uint32_t) cd[i].issuer_attribute_len);
+    c_rec.issuer_key = cd[i].issuer_key;
+    c_rec.subject_key = cd[i].subject_key;
+    c_rec.signature = cd[i].signature;
+    c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+    c_rec.purpose.size = htonl ((sizeof (struct CredentialEntry) + cd[i].issuer_attribute_len) - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+    c_rec.expiration = htonl ((uint32_t) cd[i].expiration.abs_value_us);
+    if (off + sizeof (c_rec) > dest_size)
       return -1;
     GNUNET_memcpy (&dest[off],
-                   &rec,
-                   sizeof (rec));
-    off += sizeof (rec);
+                   &c_rec,
+                   sizeof (c_rec));
+    off += sizeof (c_rec);
     if (off + cd[i].issuer_attribute_len > dest_size)
       return -1;
     GNUNET_memcpy (&dest[off],
@@ -310,6 +274,7 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
                                                 struct GNUNET_CREDENTIAL_Credential *cd)
 {
   struct ChainEntry rec;
+  struct CredentialEntry c_rec;
   unsigned int i;
   size_t off;
 
@@ -335,13 +300,15 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
   }
   for (i=0;i<c_count;i++)
   {
-    if (off + sizeof (rec) > len)
+    if (off + sizeof (c_rec) > len)
       return GNUNET_SYSERR;
-    GNUNET_memcpy (&rec, &src[off], sizeof (rec));
-    cd[i].issuer_attribute_len = ntohl ((uint32_t) rec.issuer_attribute_len);
-    cd[i].issuer_key = rec.issuer_key;
-    cd[i].subject_key = rec.subject_key;
-    off += sizeof (rec);
+    GNUNET_memcpy (&c_rec, &src[off], sizeof (c_rec));
+    cd[i].issuer_attribute_len = ntohl ((uint32_t) c_rec.issuer_attribute_len);
+    cd[i].issuer_key = c_rec.issuer_key;
+    cd[i].subject_key = c_rec.subject_key;
+    cd[i].signature = c_rec.signature;
+    cd[i].expiration.abs_value_us = ntohl((uint32_t) c_rec.expiration);
+    off += sizeof (c_rec);
     if (off + cd[i].issuer_attribute_len > len)
       return GNUNET_SYSERR;
     cd[i].issuer_attribute = &src[off];
@@ -349,5 +316,75 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
   }
   return GNUNET_OK;
 }
+
+
+int
+GNUNET_CREDENTIAL_credential_serialize (struct GNUNET_CREDENTIAL_Credential *cred,
+                                        char **data)
+{
+  size_t size;
+  struct CredentialEntry *cdata;
+
+  size = sizeof (struct CredentialEntry) + strlen (cred->issuer_attribute) + 1;
+  *data = GNUNET_malloc (size);
+  cdata = (struct CredentialEntry*)*data;
+  cdata->subject_key = cred->subject_key;
+  cdata->issuer_key = cred->issuer_key;
+  cdata->expiration = GNUNET_htonll (cred->expiration.abs_value_us);
+  cdata->signature = cred->signature;
+  cdata->issuer_attribute_len = htonl (strlen (cred->issuer_attribute) + 1);
+  cdata->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  cdata->purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+  GNUNET_memcpy (&cdata[1],
+                 cred->issuer_attribute,
+                 strlen (cred->issuer_attribute));
+
+  if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
+                                             &cdata->purpose,
+                                             &cdata->signature,
+                                             &cdata->issuer_key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid credential\n");
+    //return NULL;
+  }
+  return size;
+}
+
+struct GNUNET_CREDENTIAL_Credential*
+GNUNET_CREDENTIAL_credential_deserialize (const char* data,
+                                          size_t data_size)
+{
+  struct GNUNET_CREDENTIAL_Credential *cred;
+  struct CredentialEntry *cdata;
+  char *issuer_attribute;
+
+  if (data_size < sizeof (struct CredentialEntry))
+    return NULL;
+  cdata = (struct CredentialEntry*)data;
+  if(GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL, 
+                                             &cdata->purpose,
+                                             &cdata->signature,
+                                             &cdata->issuer_key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid credential\n");
+    //return NULL;
+  }
+  issuer_attribute = (char*)&cdata[1];
+
+  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) + ntohl(cdata->issuer_attribute_len));
+
+  cred->issuer_key = cdata->issuer_key;
+  cred->subject_key = cdata->subject_key;
+  GNUNET_memcpy (&cred[1],
+                 issuer_attribute,
+                 ntohl (cdata->issuer_attribute_len));
+  cred->signature = cdata->signature;
+  cred->issuer_attribute = (char*)&cred[1];
+  cred->expiration.abs_value_us = GNUNET_ntohll (cdata->expiration);
+  return cred;
+}
+
 
 /* end of credential_serialization.c */

@@ -39,6 +39,6 @@ then
 fi
 #Try import
 $DO_TIMEOUT gnunet-namestore -a -z testsubject -n c1 -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
-
+RES=$?
 gnunet-arm -e -c test_credential_lookup.conf
-exit $?
+exit $RES

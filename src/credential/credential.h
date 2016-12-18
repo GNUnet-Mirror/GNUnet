@@ -103,6 +103,82 @@ struct VerifyResultMessage
 
 };
 
+struct DelegationRecordData
+{
+  /**
+   * Subject key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  
+  /**
+   * Subject attributes
+   */
+  uint32_t subject_attribute_len GNUNET_PACKED;
+};
+
+
+struct ChainEntry
+{
+  /**
+   * Issuer key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+  
+  /**
+   * Subject key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+  
+  /**
+   * Issuer attributes
+   */
+  uint32_t issuer_attribute_len GNUNET_PACKED;
+  
+  /**
+   * Subject attributes
+   */
+  uint32_t subject_attribute_len GNUNET_PACKED;
+};
+
+
+struct CredentialEntry
+{
+
+  /**
+   * The signature for this credential by the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
+
+  /**
+   * Signature meta
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Public key of the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+  /**
+   * Public key of the subject this credential was issued to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  /**
+   * Expiration time of this credential
+   */
+  uint64_t expiration GNUNET_PACKED;
+   
+  /**
+   * Issuer attribute length
+   */
+  uint32_t issuer_attribute_len;
+
+  /**
+   * Followed by the attribute string
+   */
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 

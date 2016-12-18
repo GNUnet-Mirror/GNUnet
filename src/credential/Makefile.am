@@ -74,8 +74,9 @@ gnunet_service_credential_LDADD = \
 
 
 libgnunetcredential_la_SOURCES = \
- credential_api.c credential.h \
- credential_serialization.c
+ credential_api.c \
+ credential_serialization.c \
+ credential_misc.c
 libgnunetcredential_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) 
 libgnunetcredential_la_LDFLAGS = \

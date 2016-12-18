@@ -223,12 +223,12 @@ check_exchange_result (void *cls,
               const struct ExchangeResultMessage *erm)
 {
   char *str;
-  size_t size = ntohs (erm->header.size) - sizeof (*erm);
+  size_t size = ntohs (erm->header.size);
   
 
-  str = (char *) &erm[1];
+  str = (char *) &erm[0];
   if ( (size > sizeof (struct ExchangeResultMessage)) &&
-       ('\0' != str[size - sizeof (struct ExchangeResultMessage) - 1]) )
+       ('\0' != str[size - 1]) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -248,10 +248,10 @@ check_result (void *cls,
               const struct IssueResultMessage *irm)
 {
   char *str;
-  size_t size = ntohs (irm->header.size) - sizeof (*irm);
-  str = (char*) &irm[1];
+  size_t size = ntohs (irm->header.size);
+  str = (char*) &irm[0];
   if ( (size > sizeof (struct IssueResultMessage)) &&
-       ('\0' != str[size - sizeof (struct IssueResultMessage) - 1]) )
+       ('\0' != str[size - 1]) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

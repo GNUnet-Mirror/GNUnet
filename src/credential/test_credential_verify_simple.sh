@@ -39,7 +39,7 @@ RES_CRED=`gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR
 gnunet-namestore -z testsubject -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
 gnunet-identity -D testsubject -c test_credential_lookup.conf
 gnunet-arm -e -c test_credential_lookup.conf
-
+echo $RES_CRED
 #TODO3 proper test
 if [ "$RES_CRED" == "Successful." ]
 then

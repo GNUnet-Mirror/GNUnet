@@ -332,28 +332,20 @@ GNUNET_JSONAPI_document_to_json (const struct GNUNET_JSONAPI_Document *doc,
                          GNUNET_JSONAPI_KEY_ERRORS,
                          res_json);
   } else {
-    switch (doc->res_count)
+    if (0 == doc->res_count)
     {
-      case 0:
-        res_json = json_null();
-        break;
-      case 1:
+      res_json = json_null();
+    } else {
+      res_json = json_array ();
+      for (res = doc->res_list_head;
+           res != NULL;
+           res = res->next)
+      {
         GNUNET_assert (GNUNET_OK ==
-                       GNUNET_JSONAPI_resource_to_json (doc->res_list_head,
-                                                        &res_json));
-        break;
-      default:
-        res_json = json_array ();
-        for (res = doc->res_list_head;
-             res != NULL;
-             res = res->next)
-        {
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_JSONAPI_resource_to_json (res,
-                                                          &res_json_tmp));
-          json_array_append (res_json, res_json_tmp);
-        }
-        break;
+                       GNUNET_JSONAPI_resource_to_json (res,
+                                                        &res_json_tmp));
+        json_array_append (res_json, res_json_tmp);
+      }
     }
     json_object_set_new (*root_json,
                          GNUNET_JSONAPI_KEY_DATA,

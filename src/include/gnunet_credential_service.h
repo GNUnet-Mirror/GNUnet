@@ -74,65 +74,49 @@ enum GNUNET_CREDENTIAL_CredentialFlags {
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
- * The credential record 
- */
-struct GNUNET_CREDENTIAL_CredentialRecordData {
-  
-  /**
-   * The signature for this credential by the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
-  
-  /**
-   * Signature meta
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * Public key of the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-  
-  /**
-   * Public key of the subject this credential was issued to
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
-  /**
-   * Expiration time of this credential
-   */
-  uint64_t expiration GNUNET_PACKED;
-  
-    /**
-   * Followed by the attribute string
-   */
-};
-
-
-/**
  * The attribute delegation record
-*/
-struct GNUNET_CREDENTIAL_DelegationRecordData {
-  
+ */
+struct GNUNET_CREDENTIAL_DelegationRecord {
+
+  /**
+   * Number of delegation sets in this record
+   */
   uint32_t set_count;
 
-  uint64_t data_size;
-
-  char *data;
-  
   /**
-   * Followed by the attribute that was delegated to as string
-   * May be empty
+   * Length of delegation sets
+   */
+  uint64_t data_size;
+  /**
+   * Followed by set_count DelegationSetRecords
+   *
    */
 };
 
+/**
+ * The attribute delegation record
+ */
+struct GNUNET_CREDENTIAL_DelegationRecordSet {
 
+  /**
+   * Public key of the subject this attribute was delegated to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  /**
+   * Length of attribute, may be 0
+   */
+  uint32_t subject_attribute_len;
+};
+
+
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * The attribute delegation record
-*/
-struct GNUNET_CREDENTIAL_DelegationSetRecord {
-  
+ */
+struct GNUNET_CREDENTIAL_DelegationSet {
+
   /**
    * Public key of the subject this attribute was delegated to
    */
@@ -140,20 +124,18 @@ struct GNUNET_CREDENTIAL_DelegationSetRecord {
 
   uint32_t subject_attribute_len;
 
-  const char *subject_attribute;
-  
   /**
-   * Followed by the attribute that was delegated to as string
-   * May be empty
+   * The subject attribute
    */
+  const char *subject_attribute;
 };
 
 
 /**
  * A delegation
-*/
+ */
 struct GNUNET_CREDENTIAL_Delegation {
-  
+
   /**
    * The issuer of the delegation
    */
@@ -188,9 +170,9 @@ struct GNUNET_CREDENTIAL_Delegation {
 
 /**
  * A credential
-*/
+ */
 struct GNUNET_CREDENTIAL_Credential {
-  
+
   /**
    * The issuer of the credential
    */
@@ -202,6 +184,16 @@ struct GNUNET_CREDENTIAL_Credential {
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
 
   /**
+   * Signature of this credential
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
+
+  /**
+   * Expiration of this credential
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
    * Length of the attribute
    */
   uint32_t issuer_attribute_len;
@@ -210,11 +202,8 @@ struct GNUNET_CREDENTIAL_Credential {
    * The attribute
    */
   const char *issuer_attribute;
-  
+
 };
-
-
-GNUNET_NETWORK_STRUCT_END
 
 
 
@@ -260,7 +249,7 @@ typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
  * @param result the record data that can be handed to the subject
  */
 typedef void (*GNUNET_CREDENTIAL_DelegateResultProcessor) (void *cls,
-						  uint32_t success);
+                                                           uint32_t success);
 
 /**
  * Iterator called on obtained result for an attribute delegation removal.
@@ -270,7 +259,7 @@ typedef void (*GNUNET_CREDENTIAL_DelegateResultProcessor) (void *cls,
  * @param result the record data that can be handed to the subject
  */
 typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
-						  uint32_t success);
+                                                                 uint32_t success);
 
 
 
@@ -330,10 +319,10 @@ GNUNET_CREDENTIAL_add_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  */
 struct GNUNET_CREDENTIAL_Request *
 GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
-                                  struct GNUNET_IDENTITY_Ego *issuer,
-                                  const char *attribute,
-                                  GNUNET_CREDENTIAL_RemoveDelegateResultProcessor proc,
-                                  void *proc_cls);
+                                     struct GNUNET_IDENTITY_Ego *issuer,
+                                     const char *attribute,
+                                     GNUNET_CREDENTIAL_RemoveDelegateResultProcessor proc,
+                                     void *proc_cls);
 
 
 
@@ -347,12 +336,12 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param expiration the TTL of the credential
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_CredentialRecordData *
-GNUNET_CREDENTIAL_issue (struct GNUNET_CREDENTIAL_Handle *handle,
-                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
-                         struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                         const char *attribute,
-                         struct GNUNET_TIME_Absolute *expiration);
+struct GNUNET_CREDENTIAL_Credential*
+GNUNET_CREDENTIAL_credential_issue (
+                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+                                    struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                                    const char *attribute,
+                                    struct GNUNET_TIME_Absolute *expiration);
 
 
 /**
