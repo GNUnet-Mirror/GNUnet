@@ -77,6 +77,26 @@
 
 
 /**
+ * Information we track per client address. 
+ */
+struct ClientAddress
+{
+  /**
+   * Network address used by the client.
+   */
+  struct sockaddr_storage ss;
+
+  /**
+   * Handle to active UPnP request where we asked upnpc to open
+   * a port at the NAT.  NULL if we do not have such a request
+   * pending.
+   */
+  struct GNUNET_NAT_MiniHandle *mh;
+  
+};
+
+
+/**
  * Internal data structure we track for each of our clients.
  */
 struct ClientHandle
@@ -105,7 +125,7 @@ struct ClientHandle
   /**
    * Array of addresses used by the service.
    */
-  struct sockaddr **addrs;
+  struct ClientAddress *caddrs;
   
   /**
    * What does this client care about?
@@ -113,7 +133,7 @@ struct ClientHandle
   enum GNUNET_NAT_RegisterFlags flags;
 
   /**
-   * Is any of the @e addrs in a reserved subnet for NAT?
+   * Is any of the @e caddrs in a reserved subnet for NAT?
    */
   int natted_address;
   
@@ -125,8 +145,9 @@ struct ClientHandle
 
   /**
    * Number of addresses that this service is bound to.
+   * Length of the @e caddrs array.
    */
-  uint16_t num_addrs;
+  uint16_t num_caddrs;
   
   /**
    * Client's IPPROTO, e.g. IPPROTO_UDP or IPPROTO_TCP.
@@ -356,6 +377,7 @@ static struct GNUNET_NAT_ExternalHandle *probe_external_ip_op;
  * 0 for unknown.
  */
 static struct in_addr mini_external_ipv4;
+
 
 /**
  * Free the DLL starting at #lal_head.
@@ -693,13 +715,13 @@ check_notify_client (struct LocalAddressList *delta,
     GNUNET_memcpy (&v4,
 		   &delta->addr,
 		   alen);
-    for (unsigned int i=0;i<ch->num_addrs;i++)
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
     {
       const struct sockaddr_in *c4;
       
-      if (AF_INET != ch->addrs[i]->sa_family)
+      if (AF_INET != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
-      c4 = (const struct sockaddr_in *) ch->addrs[i];
+      c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
       v4.sin_port = c4->sin_port;
       notify_client (delta->ac,
 		     ch,
@@ -713,13 +735,13 @@ check_notify_client (struct LocalAddressList *delta,
     GNUNET_memcpy (&v6,
 		   &delta->addr,
 		   alen);
-    for (unsigned int i=0;i<ch->num_addrs;i++)
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
     {
       const struct sockaddr_in6 *c6;
       
-      if (AF_INET6 != ch->addrs[i]->sa_family)
+      if (AF_INET6 != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
-      c6 = (const struct sockaddr_in6 *) ch->addrs[i];
+      c6 = (const struct sockaddr_in6 *) &ch->caddrs[i].ss;
       v6.sin6_port = c6->sin6_port;
       notify_client (delta->ac,
 		     ch,
@@ -778,13 +800,13 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
   if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
     return;
   bport = 0;
-  for (unsigned int i=0;i<ch->num_addrs;i++)
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
-    const struct sockaddr *sa = ch->addrs[i];
+    const struct sockaddr_storage *ss = &ch->caddrs[i].ss;
 
-    if (AF_INET != sa->sa_family)
+    if (AF_INET != ss->ss_family)
       continue;
-    bport = ntohs (((const struct sockaddr_in *) sa)->sin_port);
+    bport = ntohs (((const struct sockaddr_in *) ss)->sin_port);
   }
   if (0 == bport)
     return; /* IPv6-only */
@@ -1008,6 +1030,66 @@ run_scan (void *cls)
 
 
 /**
+ * Function called whenever our set of external addresses
+ * as created by `upnpc` changes.
+ *
+ * @param cls closure with our `struct ClientHandle *`
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
+ *     the previous (now invalid) one, #GNUNET_SYSERR indicates an error
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual length of the @a addr
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+upnp_addr_change_cb (void *cls,
+		     int add_remove,
+		     const struct sockaddr *addr,
+		     socklen_t addrlen,
+		     enum GNUNET_NAT_StatusCode result)
+{
+  struct ClientHandle *ch = cls;
+  enum GNUNET_NAT_AddressClass ac;
+
+  switch (result)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    GNUNET_assert (NULL != addr);
+    break;
+  case GNUNET_NAT_ERROR_UPNPC_FAILED:
+  case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Running upnpc failed: %d\n",
+		result);
+    return;
+  default:
+    GNUNET_break (0); /* should not be possible */
+    return;
+  }
+  switch (addr->sa_family)
+  {
+  case AF_INET:
+    ac = is_nat_v4 (&((const struct sockaddr_in *) addr)->sin_addr)
+      ? GNUNET_NAT_AC_LAN_PRIVATE
+      : GNUNET_NAT_AC_GLOBAL_EXTERN;
+    break;
+  case AF_INET6:
+    ac = is_nat_v6 (&((const struct sockaddr_in6 *) addr)->sin6_addr)
+      ? GNUNET_NAT_AC_LAN_PRIVATE
+      : GNUNET_NAT_AC_GLOBAL_EXTERN;
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  notify_client (ac,
+		 ch,
+		 add_remove,
+		 addr,
+		 addrlen);
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from client.
  * We remember the client for updates upon future NAT events.
  *
@@ -1023,7 +1105,7 @@ handle_register (void *cls,
   size_t left;
 
   if ( (0 != ch->proto) ||
-       (NULL != ch->addrs) )
+       (NULL != ch->caddrs) )
   {
     /* double registration not allowed */
     GNUNET_break (0);
@@ -1035,15 +1117,17 @@ handle_register (void *cls,
   ch->flags = message->flags;
   ch->proto = message->proto;
   ch->adv_port = ntohs (message->adv_port);
-  ch->num_addrs = ntohs (message->num_addrs);
-  ch->addrs = GNUNET_new_array (ch->num_addrs,
-				struct sockaddr *);
+  ch->num_caddrs = ntohs (message->num_addrs);
+  ch->caddrs = GNUNET_new_array (ch->num_caddrs,
+				 struct ClientAddress);
   left = ntohs (message->header.size) - sizeof (*message);
   off = (const char *) &message[1];
-  for (unsigned int i=0;i<ch->num_addrs;i++)
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
     size_t alen;
     const struct sockaddr *sa = (const struct sockaddr *) off;
+    uint16_t port;
+    int is_nat;
 
     if (sizeof (sa_family_t) > left)
     {
@@ -1051,6 +1135,7 @@ handle_register (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    is_nat = GNUNET_NO;
     switch (sa->sa_family)
     {
     case AF_INET:
@@ -1059,7 +1144,8 @@ handle_register (void *cls,
 	
 	alen = sizeof (struct sockaddr_in);
 	if (is_nat_v4 (&s4->sin_addr))
-	  ch->natted_address = GNUNET_YES;
+	  is_nat = GNUNET_YES;
+	port = ntohs (s4->sin_port);
       }
       break;
     case AF_INET6:
@@ -1068,12 +1154,14 @@ handle_register (void *cls,
 	
 	alen = sizeof (struct sockaddr_in6);
 	if (is_nat_v6 (&s6->sin6_addr))
-	  ch->natted_address = GNUNET_YES;
+	  is_nat = GNUNET_YES;
+	port = ntohs (s6->sin6_port);
       }
       break;
 #if AF_UNIX
     case AF_UNIX:
       alen = sizeof (struct sockaddr_un);
+      port = 0;
       break;
 #endif
     default:
@@ -1081,11 +1169,27 @@ handle_register (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;      
     }
+    /* store address */
     GNUNET_assert (alen <= left);
-    ch->addrs[i] = GNUNET_malloc (alen);
-    GNUNET_memcpy (ch->addrs[i],
+    GNUNET_assert (alen <= sizeof (struct sockaddr_storage));
+    GNUNET_memcpy (&ch->caddrs[i].ss,
 		   sa,
 		   alen);    
+
+    /* If applicable, try UPNPC NAT punching */
+    if ( (is_nat) &&
+	 (enable_upnp) &&
+	 ( (IPPROTO_TCP == ch->proto) ||
+	   (IPPROTO_UDP == ch->proto) ) )
+    {
+      ch->natted_address = GNUNET_YES;
+      ch->caddrs[i].mh
+	= GNUNET_NAT_mini_map_start (port,
+				     IPPROTO_TCP == ch->proto,
+				     &upnp_addr_change_cb,
+				     ch);
+    }
+
     off += alen;
   }
   /* Actually send IP address list to client */
@@ -1822,9 +1926,15 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (ch_head,
 			       ch_tail,
 			       ch);
-  for (unsigned int i=0;i<ch->num_addrs;i++)
-    GNUNET_free_non_null (ch->addrs[i]);
-  GNUNET_free_non_null (ch->addrs);
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
+  {
+    if (NULL != ch->caddrs[i].mh)
+    {
+      GNUNET_NAT_mini_map_stop (ch->caddrs[i].mh);
+      ch->caddrs[i].mh = NULL;
+    }
+  }
+  GNUNET_free_non_null (ch->caddrs);
   GNUNET_free (ch);
 }
 

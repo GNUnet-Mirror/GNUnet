@@ -431,7 +431,7 @@ process_refresh_output (void *cls,
     }
     return;
   }
-  if (!mini->did_map)
+  if (! mini->did_map)
     return;                     /* never mapped, won't find our mapping anyway */
 
   /* we're looking for output of the form:
@@ -538,8 +538,8 @@ do_refresh (void *cls)
     mini->refresh_cmd = NULL;
     ac = GNUNET_YES;
   }
-  mini->refresh_cmd =
-      GNUNET_OS_command_run (&process_refresh_output,
+  mini->refresh_cmd 
+    = GNUNET_OS_command_run (&process_refresh_output,
 			     mini,
 			     MAP_TIMEOUT,
                              "upnpc",
@@ -581,10 +581,10 @@ process_map_output (void *cls,
                 NULL, 0,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (NULL == mini->refresh_task)
-      mini->refresh_task =
-        GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-				      &do_refresh,
-				      mini);
+      mini->refresh_task 
+        = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+					&do_refresh,
+					mini);
     return;
   }
   /*
@@ -600,7 +600,9 @@ process_map_output (void *cls,
   }
   ipa = GNUNET_strdup (ipaddr + 1);
   strstr (ipa, ":")[0] = '\0';
-  if (1 != inet_pton (AF_INET, ipa, &mini->current_addr.sin_addr))
+  if (1 != inet_pton (AF_INET,
+		      ipa,
+		      &mini->current_addr.sin_addr))
   {
     GNUNET_free (ipa);
     return;                     /* skip line */
@@ -613,7 +615,8 @@ process_map_output (void *cls,
   mini->current_addr.sin_len = sizeof (struct sockaddr_in);
 #endif
   mini->did_map = GNUNET_YES;
-  mini->ac (mini->ac_cls, GNUNET_YES,
+  mini->ac (mini->ac_cls,
+	    GNUNET_YES,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
             GNUNET_NAT_ERROR_SUCCESS);
