@@ -805,6 +805,15 @@ handle_credential_query (void* cls,
 
   vrh->lookup_request = NULL;
   cred_record_count = 0;
+
+  if (0 == rd_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No credentials found\n");
+    send_lookup_response (vrh);
+    return;
+  }
+
   for (i=0; i < rd_count; i++)
   {
     if (GNUNET_GNSRECORD_TYPE_CREDENTIAL != rd[i].record_type)
