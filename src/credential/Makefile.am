@@ -88,6 +88,7 @@ libgnunet_plugin_rest_credential_la_SOURCES = \
 libgnunet_plugin_rest_credential_la_LIBADD = \
   libgnunetcredential.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
   $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \

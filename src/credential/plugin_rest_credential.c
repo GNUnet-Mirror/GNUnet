@@ -512,7 +512,7 @@ send_cred_response (struct RequestHandle *handle,
   char *signature;
   char *id;
 
-  GNUNET_assert (NULL == cred);
+  GNUNET_assert (NULL != cred);
   issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
   if (NULL == issuer)
   {
