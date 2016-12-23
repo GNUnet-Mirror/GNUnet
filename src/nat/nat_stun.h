@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2015 GNUnet e.V.
+     Copyright (C) 2009, 2015, 2016 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -135,12 +135,13 @@ enum StunAttributes {
  * @param msg the received message
  * @return the converted StunClass
  */
-static int
-decode_class(int msg)
+static enum StunClasses
+decode_class (int msg)
 {
   /* Sorry for the magic, but this maps the class according to rfc5245 */
-  return ((msg & 0x0010) >> 4) | ((msg & 0x0100) >> 7);
+  return (enum StunClasses) ((msg & 0x0010) >> 4) | ((msg & 0x0100) >> 7);
 }
+
 
 /**
  * Convert a message to a StunMethod
@@ -148,10 +149,10 @@ decode_class(int msg)
  * @param msg the received message
  * @return the converted StunMethod
  */
-static int
-decode_method(int msg)
+static enum StunMethods
+decode_method (int msg)
 {
-  return (msg & 0x000f) | ((msg & 0x00e0) >> 1) | ((msg & 0x3e00) >> 2);
+  return (enum StunMethods) (msg & 0x000f) | ((msg & 0x00e0) >> 1) | ((msg & 0x3e00) >> 2);
 }
 
 
@@ -161,6 +162,7 @@ decode_method(int msg)
  * @param msg
  * @return string with the message class and method
  */
+GNUNET_UNUSED
 static const char *
 stun_msg2str (int msg)
 {
@@ -172,14 +174,14 @@ stun_msg2str (int msg)
     { STUN_INDICATION, "Indication" },
     { STUN_RESPONSE, "Response" },
     { STUN_ERROR_RESPONSE, "Error Response" },
-    { 0, NULL }
+    { INVALID_CLASS, NULL }
   };
   static const struct {
     enum StunMethods value;
     const char *name;
   } methods[] = {
     { STUN_BINDING, "Binding" },
-    { 0, NULL }
+    { INVALID_METHOD, NULL }
   };
   static char result[64];
   const char *msg_class = NULL;
@@ -215,6 +217,7 @@ stun_msg2str (int msg)
  * @param msg with a attribute type
  * @return string with the attribute name
  */
+GNUNET_UNUSED
 static const char *
 stun_attr2str (enum StunAttributes msg)
 {
