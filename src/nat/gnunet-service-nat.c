@@ -1059,9 +1059,30 @@ upnp_addr_change_cb (void *cls,
     break;
   case GNUNET_NAT_ERROR_UPNPC_FAILED:
   case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
+  case GNUNET_NAT_ERROR_IPC_FAILURE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Running upnpc failed: %d\n",
 		result);
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"external-ip binary not found\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"external-ip binary could not be run\n");
+    return;
+  case GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"upnpc failed to create port mapping\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Invalid output from upnpc\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Invalid address returned by upnpc\n");
     return;
   default:
     GNUNET_break (0); /* should not be possible */
@@ -1822,6 +1843,16 @@ shutdown_task (void *cls)
 				 se);
     GNUNET_SCHEDULER_cancel (se->timeout_task);
     GNUNET_free (se);
+  }
+  if (NULL != probe_external_ip_task)
+  {
+    GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+    probe_external_ip_task = NULL;
+  }
+  if (NULL != probe_external_ip_op)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+    probe_external_ip_op = NULL;
   }
   if (NULL != scan_task)
   {

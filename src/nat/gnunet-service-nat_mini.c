@@ -139,7 +139,7 @@ read_external_ipv4 (void *cls)
 			eh->buf,
 			&addr))
     {
-      if (0 != addr.s_addr)
+      if (0 == addr.s_addr)
         eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID;       /* got 0.0.0.0 */
       else
         eh->ret = GNUNET_NAT_ERROR_SUCCESS;
@@ -578,7 +578,8 @@ process_map_output (void *cls,
     if (GNUNET_YES != mini->did_map)
       mini->ac (mini->ac_cls,
                 GNUNET_SYSERR,
-                NULL, 0,
+                NULL,
+		0,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (NULL == mini->refresh_task)
       mini->refresh_task 
