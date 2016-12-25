@@ -29,9 +29,10 @@
  *
  * TODO:
  * - test ICMP based NAT traversal
+ * - implement "more" autoconfig:
+ *   re-work gnunet-nat-server & integrate!
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
- * - implement "more" autoconfig
  * - implement NEW logic for external IP detection
  */
 #include "platform.h"

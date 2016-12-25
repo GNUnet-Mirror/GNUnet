@@ -459,7 +459,7 @@ run (void *cls,
   struct sockaddr_in extern_sa;
   struct sockaddr *local_sa;
   struct sockaddr *remote_sa;
-  size_t local_len;
+  socklen_t local_len;
   size_t remote_len;
 
   cfg_file = cfgfile;
@@ -527,9 +527,9 @@ run (void *cls,
   }
   if (NULL != local_addr)
   {
-    local_len = GNUNET_STRINGS_parse_socket_addr (local_addr,
-						  &af,
-						  &local_sa);
+    local_len = (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr,
+							      &af,
+							      &local_sa);
     if (0 == local_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
