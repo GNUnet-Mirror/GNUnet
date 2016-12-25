@@ -724,6 +724,29 @@ check_notify_client (struct LocalAddressList *delta,
       if (AF_INET != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
       c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
+      if ( match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   (! match_ipv4 ("127.0.0.1", &v4.sin_addr, 8)) )
+	continue; /* bound to loopback, but this is not loopback */
+      if ( (! match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) ) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   match_ipv4 ("127.0.0.1", &v4.sin_addr, 8) )
+	continue; /* bound to non-loopback, but this is loopback */
+      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   (! is_nat_v4 (&v4.sin_addr)) )
+	continue; /* based on external-IP, but this IP is not
+		     from private address range. */
+      if ( (0 != memcmp (&v4.sin_addr,
+			 &c4->sin_addr,
+			 sizeof (struct in_addr))) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   ( (! is_nat_v4 (&c4->sin_addr)) ||
+	     (0 == (ch->flags & GNUNET_NAT_AC_EXTERN))) )
+	continue; /* this IP is not from private address range,
+		     and IP does not match. */
+
+      /* OK, IP seems relevant, notify client */
       v4.sin_port = c4->sin_port;
       notify_client (delta->ac,
 		     ch,
@@ -744,6 +767,46 @@ check_notify_client (struct LocalAddressList *delta,
       if (AF_INET6 != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
       c6 = (const struct sockaddr_in6 *) &ch->caddrs[i].ss;
+      if ( match_ipv6 ("::1", &c6->sin6_addr, 128) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! match_ipv6 ("::1", &v6.sin6_addr, 128)) )
+	continue; /* bound to loopback, but this is not loopback */
+      if ( (! match_ipv6 ("::1", &c6->sin6_addr, 128) ) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   match_ipv6 ("::1", &v6.sin6_addr, 128) )
+	continue; /* bound to non-loopback, but this is loopback */
+      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! is_nat_v6 (&v6.sin6_addr)) )
+	continue; /* based on external-IP, but this IP is not
+		     from private address range. */
+      if ( (0 != memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr,
+			 sizeof (struct in6_addr))) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! is_nat_v6 (&c6->sin6_addr)) )
+	continue; /* this IP is not from private address range,
+		     and IP does not match. */
+      if ( (match_ipv6 ("fe80::", &c6->sin6_addr, 10)) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (0 != memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr,
+			 sizeof (struct in6_addr))) &&
+	   (0 == (delta->ac & GNUNET_NAT_AC_EXTERN)) )
+	continue; /* client bound to link-local, and the other address
+		     does not match and is not an external IP */
+
+      /* OK, IP seems relevant, notify client */
       v6.sin6_port = c6->sin6_port;
       notify_client (delta->ac,
 		     ch,
@@ -826,8 +889,8 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
   
   /* (3) notify client of change */
   notify_client (is_nat_v4 (v4)
-		 ? GNUNET_NAT_AC_LAN_PRIVATE
-		 : GNUNET_NAT_AC_GLOBAL_EXTERN,
+		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN_PRIVATE 
+		 : GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_GLOBAL,
 		 ch,
 		 add,
 		 &sa,
@@ -879,6 +942,8 @@ handle_external_ip (void *cls,
 		    const struct in_addr *addr,
 		    enum GNUNET_NAT_StatusCode result)
 {
+  char buf[INET_ADDRSTRLEN];
+  
   probe_external_ip_op = NULL;
   GNUNET_SCHEDULER_cancel (probe_external_ip_task);
   probe_external_ip_task
@@ -892,6 +957,12 @@ handle_external_ip (void *cls,
   case GNUNET_NAT_ERROR_SUCCESS:
     if (addr->s_addr == mini_external_ipv4.s_addr)
       return; /* not change */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Our external IP is now %s\n",
+		inet_ntop (AF_INET,
+			   addr,
+			   buf,
+			   sizeof (buf)));
     if (0 != mini_external_ipv4.s_addr)
       notify_clients_external_ipv4_change (GNUNET_NO,
 					   &mini_external_ipv4);
@@ -1093,17 +1164,22 @@ upnp_addr_change_cb (void *cls,
   case AF_INET:
     ac = is_nat_v4 (&((const struct sockaddr_in *) addr)->sin_addr)
       ? GNUNET_NAT_AC_LAN_PRIVATE
-      : GNUNET_NAT_AC_GLOBAL_EXTERN;
+      : GNUNET_NAT_AC_EXTERN;
     break;
   case AF_INET6:
     ac = is_nat_v6 (&((const struct sockaddr_in6 *) addr)->sin6_addr)
       ? GNUNET_NAT_AC_LAN_PRIVATE
-      : GNUNET_NAT_AC_GLOBAL_EXTERN;
+      : GNUNET_NAT_AC_EXTERN;
     break;
   default:
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "upnp external address %s: %s\n",
+	      add_remove ? "added" : "removed",
+	      GNUNET_a2s (addr,
+			  addrlen));
   notify_client (ac,
 		 ch,
 		 add_remove,
@@ -1291,7 +1367,7 @@ notify_clients_stun_change (const struct sockaddr_in *ip,
 			       sizeof (v4),
 			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
     msg->add_remove = htonl ((int32_t) add);
-    msg->addr_class = htonl (GNUNET_NAT_AC_GLOBAL_EXTERN |
+    msg->addr_class = htonl (GNUNET_NAT_AC_EXTERN |
 			     GNUNET_NAT_AC_GLOBAL);
     GNUNET_memcpy (&msg[1],
 		   &v4,

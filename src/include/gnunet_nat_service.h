@@ -114,11 +114,13 @@ enum GNUNET_NAT_AddressClass
   GNUNET_NAT_AC_LOOPBACK = 64,
   
   /**
-   * Addresses that should be our global external IP address
+   * Addresses that should be our external IP address
    * on the outside of a NAT.  Might be incorrectly determined.
-   * Used as a bit in combination with #GNUNET_NAT_AC_GLOBAL.
+   * Used as a bit in combination with #GNUNET_NAT_AC_GLOBAL,
+   * or in case of double-NAT with 
+   * #GNUNET_NAT_AC_LAN.
    */
-  GNUNET_NAT_AC_GLOBAL_EXTERN = 128,
+  GNUNET_NAT_AC_EXTERN = 128,
 
   /**
    * Bitmask for "any" address.
