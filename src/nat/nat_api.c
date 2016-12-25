@@ -49,6 +49,11 @@ struct AddrEntry
   struct AddrEntry *prev;
 
   /**
+   * Address class of the address.
+   */
+  enum GNUNET_NAT_AddressClass ac;
+  
+  /**
    * Number of bytes that follow.
    */
   socklen_t addrlen;
@@ -130,10 +135,24 @@ do_connect (void *cls);
 static void
 reconnect (struct GNUNET_NAT_Handle *nh)
 {
+  struct AddrEntry *ae;
+  
   if (NULL != nh->mq)
   {
     GNUNET_MQ_destroy (nh->mq);
     nh->mq = NULL;
+  }
+  while (NULL != (ae = nh->ae_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nh->ae_head,
+				 nh->ae_tail,
+				 ae);
+    nh->address_callback (nh->callback_cls,
+			  GNUNET_NO,
+			  ae->ac,
+			  (const struct sockaddr *) &ae[1],
+			  ae->addrlen);
+    GNUNET_free (ae);
   }
   nh->reconnect_delay
     = GNUNET_TIME_STD_BACKOFF (nh->reconnect_delay);
@@ -260,6 +279,7 @@ handle_address_change_notification (void *cls,
   if (GNUNET_YES == ntohl (acn->add_remove))
   {
     ae = GNUNET_malloc (sizeof (*ae) + alen);
+    ae->ac = ac;
     ae->addrlen = alen;
     GNUNET_memcpy (&ae[1],
 		   sa,

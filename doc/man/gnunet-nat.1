@@ -67,7 +67,7 @@ Watch for connection reversal requests.
 
 \fBBasic examples\fR
 
-We are bound to "0.0.0.0:8080" on UDP and want to obtain all applicable IP addresses (BUG: sometimes upnpc fails to create mapping, cause unclear):
+We are bound to "0.0.0.0:8080" on UDP and want to obtain all applicable IP addresses:
 
   # gnunet-nat -i 0.0.0.0:8080 -u
 
@@ -75,7 +75,7 @@ We are bound to "::0" on port 8080 on TCP and want to obtain all applicable IP a
 
   # gnunet-nat -i '[::0]':8080 -t
 
-We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP addresses (BUG: currently fails, also gives IPs from other interfaces in output!):
+We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP addresses:
 
   # gnunet-nat -i 127.0.0.1:8080 -u
 

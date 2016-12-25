@@ -28,8 +28,8 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - TEST UPnPC/PMP-based NAT traversal
- * - implement STUN processing to classify NAT;
+ * - test ICMP based NAT traversal
+ * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
  * - implement "more" autoconfig
  * - implement NEW logic for external IP detection
