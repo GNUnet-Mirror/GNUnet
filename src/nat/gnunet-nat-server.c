@@ -42,8 +42,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
 /**
- * Try contacting the peer using autonomous
- * NAT traveral method.
+ * Try contacting the peer using autonomous NAT traveral method.
  *
  * @param dst_ipv4 IPv4 address to send the fake ICMP message
  * @param dport destination port to include in ICMP message
@@ -78,7 +77,7 @@ try_anat (uint32_t dst_ipv4,
 
 
 /**
- * Closure for 'tcp_send'.
+ * Closure for #tcp_send.
  */
 struct TcpContext
 {
@@ -98,7 +97,7 @@ struct TcpContext
  * Task called by the scheduler once we can do the TCP send
  * (or once we failed to connect...).
  *
- * @param cls the 'struct TcpContext'
+ * @param cls the `struct TcpContext`
  */
 static void
 tcp_send (void *cls)
@@ -182,7 +181,7 @@ try_send_tcp (uint32_t dst_ipv4,
 
 /**
  * Try to send @a data to the
- * IP @a dst_ipv4' at port @a dport via UDP.
+ * IP @a dst_ipv4 at port @a dport via UDP.
  *
  * @param dst_ipv4 target IP
  * @param dport target port
@@ -313,12 +312,13 @@ run (void *cls,
   };
 
   cfg = c;
-  if ((args[0] == NULL) || (1 != SSCANF (args[0], "%u", &port)) || (0 == port)
-      || (65536 <= port))
+  if ( (NULL == args[0]) ||
+       (1 != SSCANF (args[0], "%u", &port)) ||
+       (0 == port) ||
+       (65536 <= port) )
   {
     FPRINTF (stderr,
-             _
-             ("Please pass valid port number as the first argument! (got `%s')\n"),
+             _("Please pass valid port number as the first argument! (got `%s')\n"),
              args[0]);
     return;
   }
@@ -332,10 +332,14 @@ run (void *cls,
   in4.sin_len = sizeof (in4);
   in6.sin6_len = sizeof (in6);
 #endif
-  server =
-      GNUNET_SERVER_create (NULL, NULL, (struct sockaddr * const *) sa, slen,
-                            GNUNET_TIME_UNIT_SECONDS, GNUNET_YES);
-  GNUNET_SERVER_add_handlers (server, handlers);
+  server = GNUNET_SERVER_create (NULL,
+				 NULL,
+				 (struct sockaddr * const *) sa,
+				 slen,
+				 GNUNET_TIME_UNIT_SECONDS,
+				 GNUNET_YES);
+  GNUNET_SERVER_add_handlers (server,
+			      handlers);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
@@ -355,13 +359,19 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-nat-server [options] PORT",
-                          _("GNUnet NAT traversal test helper daemon"), options,
-                          &run, NULL))
+      GNUNET_PROGRAM_run (argc,
+			  argv,
+			  "gnunet-nat-server [options] PORT",
+                          _("GNUnet NAT traversal test helper daemon"),
+			  options,
+                          &run,
+			  NULL))
   {
     GNUNET_free ((void*) argv);
     return 1;

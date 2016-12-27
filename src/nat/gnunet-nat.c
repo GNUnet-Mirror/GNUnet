@@ -59,6 +59,22 @@ static int listen_reversal;
 static int use_tcp;
 
 /**
+ * If we do auto-configuration, should we write the result
+ * to a file?
+ */
+static int write_cfg;
+
+/**
+ * Configuration filename.
+ */ 
+static const char *cfg_file;
+
+/**
+ * Original configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Protocol to use.
  */
 static uint8_t proto;
@@ -149,9 +165,16 @@ auto_conf_iter (void *cls,
                 const char *option,
                 const char *value)
 {
+  struct GNUNET_CONFIGURATION_Handle *new_cfg = cls;
+  
   PRINTF ("%s: %s\n",
 	  option,
 	  value);
+  if (NULL != new_cfg)
+    GNUNET_CONFIGURATION_set_value_string (new_cfg,
+					   section,
+					   option,
+					   value);
 }
 
 
@@ -172,6 +195,7 @@ auto_config_cb (void *cls,
 {
   const char *nat_type;
   char unknown_type[64];
+  struct GNUNET_CONFIGURATION_Handle *new_cfg;
 
   ah = NULL;
   switch (type)
@@ -196,19 +220,69 @@ auto_config_cb (void *cls,
     break;
   }
 
-  PRINTF ("NAT status: %s/%s\n",
-	  GNUNET_NAT_status2string (result),
-	  nat_type);
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+	      "NAT status: %s/%s\n",
+	      GNUNET_NAT_status2string (result),
+	      nat_type);
 
+  /* Shortcut: if there are no changes suggested, bail out early. */
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_is_dirty (diff))
+  {
+    test_finished ();
+    return;
+  }
+
+  /* Apply diff to original configuration and show changes
+     to the user */
+  new_cfg = write_cfg ? GNUNET_CONFIGURATION_dup (cfg) : NULL;
+  
   if (NULL != diff)
   {
-    PRINTF ("SUGGESTED CHANGES:\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		_("Suggested configuration changes:\n"));
     GNUNET_CONFIGURATION_iterate_section_values (diff,
 						 "nat",
 						 &auto_conf_iter,
-						 NULL);
+						 new_cfg);
   }
-  // FIXME: have option to save config
+
+  /* If desired, write configuration to file; we write only the
+     changes to the defaults to keep things compact. */
+  if ( (write_cfg) &&
+       (NULL != diff) )
+  {
+    struct GNUNET_CONFIGURATION_Handle *def_cfg;
+
+    GNUNET_CONFIGURATION_set_value_string (new_cfg,
+					   "ARM",
+					   "CONFIG",
+					   NULL);
+    def_cfg = GNUNET_CONFIGURATION_create ();
+    GNUNET_break (GNUNET_OK ==
+		  GNUNET_CONFIGURATION_load (def_cfg,
+					     NULL));
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_write_diffs (def_cfg,
+					  new_cfg,
+					  cfg_file))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  _("Failed to write configuration to `%s'\n"),
+		  cfg_file);
+      global_ret = 1;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		  _("Wrote updated configuration to `%s'\n"),
+		  cfg_file);
+    }
+    GNUNET_CONFIGURATION_destroy (def_cfg);
+  }
+
+  if (NULL != new_cfg)
+    GNUNET_CONFIGURATION_destroy (new_cfg);
   test_finished ();
 }
 
@@ -385,8 +459,11 @@ run (void *cls,
   struct sockaddr_in extern_sa;
   struct sockaddr *local_sa;
   struct sockaddr *remote_sa;
-  size_t local_len;
+  socklen_t local_len;
   size_t remote_len;
+
+  cfg_file = cfgfile;
+  cfg = c;
   
   if (use_tcp && use_udp)
   {
@@ -450,9 +527,9 @@ run (void *cls,
   }
   if (NULL != local_addr)
   {
-    local_len = GNUNET_STRINGS_parse_socket_addr (local_addr,
-						  &af,
-						  &local_sa);
+    local_len = (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr,
+							      &af,
+							      &local_sa);
     if (0 == local_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -611,14 +688,11 @@ main (int argc,
      gettext_noop ("which external IP and port should be used to test"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &extern_addr },
     {'i', "in", "ADDRESS",
-     gettext_noop ("which IP and port are we locally using to listen to for connection reversals"),
+     gettext_noop ("which IP and port are we locally using to bind/listen to"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &local_addr },
     {'r', "remote", "ADDRESS",
      gettext_noop ("which remote IP and port should be asked for connection reversal"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr },
-    {'L', "listen", NULL,
-     gettext_noop ("listen for connection reversal requests"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &listen_reversal },
     {'p', "port", NULL,
      gettext_noop ("port to use to advertise"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &adv_port },
@@ -631,6 +705,12 @@ main (int argc,
     {'u', "udp", NULL,
      gettext_noop ("use UDP"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &use_udp },
+    {'w', "write", NULL,
+     gettext_noop ("write configuration file (for autoconfiguration)"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &write_cfg },
+    {'W', "watch", NULL,
+     gettext_noop ("watch for connection reversal requests"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &listen_reversal },
    GNUNET_GETOPT_OPTION_END
   };
 

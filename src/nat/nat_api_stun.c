@@ -199,9 +199,7 @@ stun_dns_callback (void *cls,
 
 /**
  * Make Generic STUN request. Sends a generic stun request to the
- * server specified using the specified socket, possibly waiting for
- * a reply and filling the 'reply' field with the externally visible
- * address.
+ * server specified using the specified socket.  
  *
  * @param server the address of the stun server
  * @param port port of the stun server, in host byte order

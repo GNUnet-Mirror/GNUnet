@@ -39,10 +39,6 @@ Assuming we are listening at ADDRESS for connection reversal requests.
 Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
 
 .B
-.IP "\-L,  \-\-listen"
-Listen for connection reversal requests.  
-
-.B
 .IP "\-p PORT,  \-\-port=PORT"
 Use PORT as our external port for advertising for incoming requests.
 
@@ -57,6 +53,54 @@ Use TCP.
 .B
 .IP "\-u,  \-\-udp"
 Use UDP.
+
+.B
+.IP "\-w,  \-\-write"
+Write configuration to configuration file, useful in combination with autoconfiguration (\-a).
+
+.B
+.IP "\-W,  \-\-watch"
+Watch for connection reversal requests.  
+
+.SH EXAMPLES
+.PP
+
+\fBBasic examples\fR
+
+We are bound to "0.0.0.0:8080" on UDP and want to obtain all applicable IP addresses:
+
+  # gnunet-nat -i 0.0.0.0:8080 -u
+
+We are bound to "::0" on port 8080 on TCP and want to obtain all applicable IP addresses:
+
+  # gnunet-nat -i '[::0]':8080 -t
+
+We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP addresses:
+
+  # gnunet-nat -i 127.0.0.1:8080 -u
+
+\fBICMP-based NAT traversal:\fR
+
+Watch for connection reversal request:
+
+  # gnunet-nat FIXME
+
+Initiate connection reversal request:
+
+  # gnunet-nat FIXME
+
+\fBSTUN-based XXX:\fR
+
+XXX:
+
+  # gnunet-nat FIXME -s
+
+\fBAutomatic configuration:\fR
+
+Probe and write result to configuration:
+
+  # gnunet-nat -aw
+  
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

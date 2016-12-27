@@ -28,8 +28,11 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - implement UPnPC/PMP-based NAT traversal
- * - implement autoconfig
+ * - test ICMP based NAT traversal
+ * - implement "more" autoconfig:
+ *   re-work gnunet-nat-server & integrate!
+ * - implement & test STUN processing to classify NAT;
+ *   basically, open port & try different methods.
  * - implement NEW logic for external IP detection
  */
 #include "platform.h"
@@ -40,6 +43,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_nat_service.h"
 #include "gnunet-service-nat_stun.h"
+#include "gnunet-service-nat_mini.h"
 #include "gnunet-service-nat_helper.h"
 #include "nat.h"
 #include <gcrypt.h>
@@ -50,6 +54,49 @@
  * network interfaces?
  */
 #define SCAN_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
+ * How long do we wait until we forcefully terminate autoconfiguration?
+ */
+#define AUTOCONFIG_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command failed to terminate nicely?
+ */
+#define EXTERN_IP_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command failed (but terminated)?
+ */
+#define EXTERN_IP_RETRY_FAILURE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
+ * How long do we wait until we re-try running `external-ip` if the
+ * command succeeded?
+ */
+#define EXTERN_IP_RETRY_SUCCESS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+
+/**
+ * Information we track per client address. 
+ */
+struct ClientAddress
+{
+  /**
+   * Network address used by the client.
+   */
+  struct sockaddr_storage ss;
+
+  /**
+   * Handle to active UPnP request where we asked upnpc to open
+   * a port at the NAT.  NULL if we do not have such a request
+   * pending.
+   */
+  struct GNUNET_NAT_MiniHandle *mh;
+  
+};
 
 
 /**
@@ -81,7 +128,7 @@ struct ClientHandle
   /**
    * Array of addresses used by the service.
    */
-  struct sockaddr **addrs;
+  struct ClientAddress *caddrs;
   
   /**
    * What does this client care about?
@@ -89,7 +136,7 @@ struct ClientHandle
   enum GNUNET_NAT_RegisterFlags flags;
 
   /**
-   * Is any of the @e addrs in a reserved subnet for NAT?
+   * Is any of the @e caddrs in a reserved subnet for NAT?
    */
   int natted_address;
   
@@ -101,8 +148,9 @@ struct ClientHandle
 
   /**
    * Number of addresses that this service is bound to.
+   * Length of the @e caddrs array.
    */
-  uint16_t num_addrs;
+  uint16_t num_caddrs;
   
   /**
    * Client's IPPROTO, e.g. IPPROTO_UDP or IPPROTO_TCP.
@@ -187,6 +235,80 @@ struct StunExternalIP
 
 
 /**
+ * Context for autoconfiguration operations.
+ */
+struct AutoconfigContext
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct AutoconfigContext *prev;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct AutoconfigContext *next;
+
+  /**
+   * Which client asked the question.
+   */
+  struct ClientHandle *ch;
+
+  /**
+   * Configuration we are creating.
+   */ 
+  struct GNUNET_CONFIGURATION_Handle *c;
+
+  /**
+   * Original configuration (for diffing).
+   */ 
+  struct GNUNET_CONFIGURATION_Handle *orig;
+
+  /**
+   * Timeout task to force termination.
+   */
+  struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * What type of system are we on?
+   */
+  char *system_type;
+
+  /**
+   * Handle to activity to probe for our external IP.
+   */
+  struct GNUNET_NAT_ExternalHandle *probe_external;
+
+  /**
+   * #GNUNET_YES if upnpc should be used,
+   * #GNUNET_NO if upnpc should not be used,
+   * #GNUNET_SYSERR if we should simply not change the option.
+   */
+  int enable_upnpc;
+
+  /**
+   * Status code to return to the client.
+   */
+  enum GNUNET_NAT_StatusCode status_code;
+
+  /**
+   * NAT type to return to the client.
+   */
+  enum GNUNET_NAT_Type type;
+};
+
+
+/**
+ * DLL of our autoconfiguration operations.
+ */
+static struct AutoconfigContext *ac_head;
+
+/**
+ * DLL of our autoconfiguration operations.
+ */
+static struct AutoconfigContext *ac_tail;
+
+/**
  * Timeout to use when STUN data is considered stale.
  */
 static struct GNUNET_TIME_Relative stun_stale_timeout;
@@ -235,6 +357,29 @@ static struct StunExternalIP *se_head;
  * Kept in a DLL.
  */ 
 static struct StunExternalIP *se_tail;
+
+/**
+ * Is UPnP enabled? #GNUNET_YES if enabled, #GNUNET_NO if disabled,
+ * #GNUNET_SYSERR if configuration enabled but binary is unavailable.
+ */
+static int enable_upnp;
+
+/**
+ * Task run to obtain our external IP (if #enable_upnp is set
+ * and if we find we have a NATed IP address).
+ */
+static struct GNUNET_SCHEDULER_Task *probe_external_ip_task;
+
+/**
+ * Handle to our operation to run `external-ip`.
+ */
+static struct GNUNET_NAT_ExternalHandle *probe_external_ip_op;
+
+/**
+ * What is our external IP address as claimed by `external-ip`?
+ * 0 for unknown.
+ */
+static struct in_addr mini_external_ipv4;
 
 
 /**
@@ -322,7 +467,9 @@ match_ipv4 (const char *network,
 	    uint8_t bits)
 {
   struct in_addr net;
-  
+
+  if (0 == ip->s_addr)
+    return GNUNET_YES;
   if (0 == bits)
     return GNUNET_YES;
   GNUNET_assert (1 == inet_pton (AF_INET,
@@ -355,6 +502,10 @@ match_ipv6 (const char *network,
 				 network,
 				 &net));
   memset (&mask, 0, sizeof (mask));
+  if (0 == memcmp (&mask,
+		   ip,
+		   sizeof (mask)))
+    return GNUNET_YES;
   off = 0;
   while (bits > 8)
   {
@@ -411,6 +562,634 @@ is_nat_v6 (const struct in6_addr *ip)
 
 
 /**
+ * Closure for #ifc_proc.
+ */
+struct IfcProcContext
+{
+
+  /** 
+   * Head of DLL of local addresses.
+   */
+  struct LocalAddressList *lal_head;
+
+  /**
+   * Tail of DLL of local addresses.
+   */
+  struct LocalAddressList *lal_tail;
+
+};
+
+
+/**
+ * Callback function invoked for each interface found.  Adds them
+ * to our new address list.
+ *
+ * @param cls a `struct IfcProcContext *`
+ * @param name name of the interface (can be NULL for unknown)
+ * @param isDefault is this presumably the default interface
+ * @param addr address of this interface (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned)
+ * @param addrlen length of the address
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
+ */
+static int
+ifc_proc (void *cls,
+	  const char *name,
+	  int isDefault,
+	  const struct sockaddr *addr,
+	  const struct sockaddr *broadcast_addr,
+	  const struct sockaddr *netmask,
+	  socklen_t addrlen)
+{
+  struct IfcProcContext *ifc_ctx = cls;
+  struct LocalAddressList *lal;
+  size_t alen;
+  const struct in_addr *ip4;
+  const struct in6_addr *ip6;
+  enum GNUNET_NAT_AddressClass ac;
+
+  switch (addr->sa_family)
+  {
+  case AF_INET:
+    alen = sizeof (struct sockaddr_in);
+    ip4 = &((const struct sockaddr_in *) addr)->sin_addr;
+    if (match_ipv4 ("127.0.0.0", ip4, 8))
+      ac = GNUNET_NAT_AC_LOOPBACK;
+    else if (is_nat_v4 (ip4))
+      ac = GNUNET_NAT_AC_LAN;
+    else
+      ac = GNUNET_NAT_AC_GLOBAL;
+    break;
+  case AF_INET6:
+    alen = sizeof (struct sockaddr_in6);
+    ip6 = &((const struct sockaddr_in6 *) addr)->sin6_addr;
+    if (match_ipv6 ("::1", ip6, 128))
+      ac = GNUNET_NAT_AC_LOOPBACK;
+    else if (is_nat_v6 (ip6))
+      ac = GNUNET_NAT_AC_LAN;
+    else
+      ac = GNUNET_NAT_AC_GLOBAL;
+    if ( (ip6->s6_addr[11] == 0xFF) &&
+	 (ip6->s6_addr[12] == 0xFE) )
+    {
+      /* contains a MAC, be extra careful! */
+      ac |= GNUNET_NAT_AC_PRIVATE;
+    }
+    break;
+#if AF_UNIX
+  case AF_UNIX:
+    GNUNET_break (0);
+    return GNUNET_OK;
+#endif
+  default:
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  lal = GNUNET_malloc (sizeof (*lal));
+  lal->af = addr->sa_family;
+  lal->ac = ac;
+  GNUNET_memcpy (&lal->addr,
+		 addr,
+		 alen);
+  GNUNET_CONTAINER_DLL_insert (ifc_ctx->lal_head,
+			       ifc_ctx->lal_tail,
+			       lal);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Notify client about a change in the list of addresses this peer
+ * has.
+ *
+ * @param ac address class of the entry in the list that changed
+ * @param ch client to contact
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ * @param addr the address that changed
+ * @param addr_len number of bytes in @a addr
+ */
+static void
+notify_client (enum GNUNET_NAT_AddressClass ac,
+	       struct ClientHandle *ch,
+	       int add,
+	       const void *addr,
+	       size_t addr_len)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
+  
+  env = GNUNET_MQ_msg_extra (msg,
+			     addr_len,
+			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
+  msg->add_remove = htonl (add);
+  msg->addr_class = htonl (ac);
+  GNUNET_memcpy (&msg[1],
+		 addr,
+		 addr_len);
+  GNUNET_MQ_send (ch->mq,
+		  env);
+}	     	       
+
+
+/**
+ * Check if we should bother to notify this client about this
+ * address change, and if so, do it.
+ *
+ * @param delta the entry in the list that changed
+ * @param ch client to check
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+check_notify_client (struct LocalAddressList *delta,
+		     struct ClientHandle *ch,
+		     int add)
+{
+  size_t alen;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  
+  if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
+    return;
+  switch (delta->af)
+  {
+  case AF_INET:
+    alen = sizeof (struct sockaddr_in);
+    GNUNET_memcpy (&v4,
+		   &delta->addr,
+		   alen);
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
+    {
+      const struct sockaddr_in *c4;
+      
+      if (AF_INET != ch->caddrs[i].ss.ss_family)
+	return; /* IPv4 not relevant */
+      c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
+      if ( match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   (! match_ipv4 ("127.0.0.1", &v4.sin_addr, 8)) )
+	continue; /* bound to loopback, but this is not loopback */
+      if ( (! match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) ) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   match_ipv4 ("127.0.0.1", &v4.sin_addr, 8) )
+	continue; /* bound to non-loopback, but this is loopback */
+      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   (! is_nat_v4 (&v4.sin_addr)) )
+	continue; /* based on external-IP, but this IP is not
+		     from private address range. */
+      if ( (0 != memcmp (&v4.sin_addr,
+			 &c4->sin_addr,
+			 sizeof (struct in_addr))) &&
+	   (0 != c4->sin_addr.s_addr) &&
+	   ( (! is_nat_v4 (&c4->sin_addr)) ||
+	     (0 == (ch->flags & GNUNET_NAT_AC_EXTERN))) )
+	continue; /* this IP is not from private address range,
+		     and IP does not match. */
+
+      /* OK, IP seems relevant, notify client */
+      v4.sin_port = c4->sin_port;
+      notify_client (delta->ac,
+		     ch,
+		     add,
+		     &v4,
+		     alen);
+    }
+    break;
+  case AF_INET6:
+    alen = sizeof (struct sockaddr_in6);
+    GNUNET_memcpy (&v6,
+		   &delta->addr,
+		   alen);
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
+    {
+      const struct sockaddr_in6 *c6;
+      
+      if (AF_INET6 != ch->caddrs[i].ss.ss_family)
+	return; /* IPv4 not relevant */
+      c6 = (const struct sockaddr_in6 *) &ch->caddrs[i].ss;
+      if ( match_ipv6 ("::1", &c6->sin6_addr, 128) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! match_ipv6 ("::1", &v6.sin6_addr, 128)) )
+	continue; /* bound to loopback, but this is not loopback */
+      if ( (! match_ipv6 ("::1", &c6->sin6_addr, 128) ) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   match_ipv6 ("::1", &v6.sin6_addr, 128) )
+	continue; /* bound to non-loopback, but this is loopback */
+      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! is_nat_v6 (&v6.sin6_addr)) )
+	continue; /* based on external-IP, but this IP is not
+		     from private address range. */
+      if ( (0 != memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr,
+			 sizeof (struct in6_addr))) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (! is_nat_v6 (&c6->sin6_addr)) )
+	continue; /* this IP is not from private address range,
+		     and IP does not match. */
+      if ( (match_ipv6 ("fe80::", &c6->sin6_addr, 10)) &&
+	   (0 != memcmp (&c6->sin6_addr,
+			 &in6addr_any,
+			 sizeof (struct in6_addr))) &&
+	   (0 != memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr,
+			 sizeof (struct in6_addr))) &&
+	   (0 == (delta->ac & GNUNET_NAT_AC_EXTERN)) )
+	continue; /* client bound to link-local, and the other address
+		     does not match and is not an external IP */
+
+      /* OK, IP seems relevant, notify client */
+      v6.sin6_port = c6->sin6_port;
+      notify_client (delta->ac,
+		     ch,
+		     add,
+		     &v6,
+		     alen);
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+}
+
+
+/**
+ * Notify all clients about a change in the list
+ * of addresses this peer has.
+ *
+ * @param delta the entry in the list that changed
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+notify_clients (struct LocalAddressList *delta,
+		int add)
+{
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+    check_notify_client (delta,
+			 ch,
+			 add);
+}
+
+
+/**
+ * Tell relevant client about a change in our external
+ * IPv4 address.
+ * 
+ * @param v4 the external address that changed
+ * @param ch client to check if it cares and possibly notify
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ */
+static void
+check_notify_client_external_ipv4_change (const struct in_addr *v4,
+					  struct ClientHandle *ch,
+					  int add)
+{
+  struct sockaddr_in sa;
+  uint16_t port;
+  uint16_t bport;
+
+  /* (1) check if client cares. */
+  if (! ch->natted_address)
+    return;
+  if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
+    return;
+  bport = 0;
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
+  {
+    const struct sockaddr_storage *ss = &ch->caddrs[i].ss;
+
+    if (AF_INET != ss->ss_family)
+      continue;
+    bport = ntohs (((const struct sockaddr_in *) ss)->sin_port);
+  }
+  if (0 == bport)
+    return; /* IPv6-only */
+  
+  /* (2) figure out external port, build sockaddr */
+  port = ch->adv_port;
+  if (0 == port)
+    port = bport;
+  memset (&sa,
+	  0,
+	  sizeof (sa));
+  sa.sin_family = AF_INET;
+  sa.sin_addr = *v4;
+  sa.sin_port = htons (port);
+  
+  /* (3) notify client of change */
+  notify_client (is_nat_v4 (v4)
+		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN_PRIVATE 
+		 : GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_GLOBAL,
+		 ch,
+		 add,
+		 &sa,
+		 sizeof (sa));
+}
+
+
+/**
+ * Tell relevant clients about a change in our external
+ * IPv4 address.
+ * 
+ * @param add #GNUNET_YES to add, #GNUNET_NO to remove
+ * @param v4 the external address that changed
+ */
+static void
+notify_clients_external_ipv4_change (int add,
+				     const struct in_addr *v4)
+{
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+    check_notify_client_external_ipv4_change (v4,
+					      ch,
+					      add);
+}
+
+
+/**
+ * Task used to run `external-ip` to get our external IPv4
+ * address and pass it to NATed clients if possible.
+ *
+ * @param cls NULL
+ */
+static void
+run_external_ip (void *cls);
+
+
+/**
+ * We learn our current external IP address.  If it changed,
+ * notify all of our applicable clients. Also re-schedule
+ * #run_external_ip with an appropriate timeout.
+ * 
+ * @param cls NULL
+ * @param addr the address, NULL on errors
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+handle_external_ip (void *cls,
+		    const struct in_addr *addr,
+		    enum GNUNET_NAT_StatusCode result)
+{
+  char buf[INET_ADDRSTRLEN];
+  
+  probe_external_ip_op = NULL;
+  GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+  probe_external_ip_task
+    = GNUNET_SCHEDULER_add_delayed ((NULL == addr)
+				    ? EXTERN_IP_RETRY_FAILURE
+				    : EXTERN_IP_RETRY_SUCCESS,
+				    &run_external_ip,
+				    NULL);
+  switch (result)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    if (addr->s_addr == mini_external_ipv4.s_addr)
+      return; /* not change */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Our external IP is now %s\n",
+		inet_ntop (AF_INET,
+			   addr,
+			   buf,
+			   sizeof (buf)));
+    if (0 != mini_external_ipv4.s_addr)
+      notify_clients_external_ipv4_change (GNUNET_NO,
+					   &mini_external_ipv4);
+    mini_external_ipv4 = *addr;
+    notify_clients_external_ipv4_change (GNUNET_YES,
+					 &mini_external_ipv4);
+    break;
+  default:
+    if (0 != mini_external_ipv4.s_addr)
+      notify_clients_external_ipv4_change (GNUNET_NO,
+					   &mini_external_ipv4);
+    mini_external_ipv4.s_addr = 0; 
+    break;
+  }
+}
+
+
+/**
+ * Task used to run `external-ip` to get our external IPv4
+ * address and pass it to NATed clients if possible.
+ *
+ * @param cls NULL
+ */
+static void
+run_external_ip (void *cls)
+{
+  probe_external_ip_task
+    = GNUNET_SCHEDULER_add_delayed (EXTERN_IP_RETRY_TIMEOUT,
+				    &run_external_ip,
+				    NULL);
+  if (NULL != probe_external_ip_op)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+    probe_external_ip_op = NULL;
+  }
+  probe_external_ip_op
+    = GNUNET_NAT_mini_get_external_ipv4_ (&handle_external_ip,
+					  NULL);
+}
+
+
+/**
+ * Task we run periodically to scan for network interfaces.
+ *
+ * @param cls NULL
+ */ 
+static void
+run_scan (void *cls)
+{
+  struct IfcProcContext ifc_ctx;
+  int found;
+  int have_nat;
+  
+  scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
+					    &run_scan,
+					    NULL);
+  memset (&ifc_ctx,
+	  0,
+	  sizeof (ifc_ctx));
+  GNUNET_OS_network_interfaces_list (&ifc_proc,
+				     &ifc_ctx);
+  /* remove addresses that disappeared */
+  for (struct LocalAddressList *lal = lal_head;
+       NULL != lal;
+       lal = lal->next)
+  {
+    found = GNUNET_NO;
+    for (struct LocalAddressList *pos = ifc_ctx.lal_head;
+	 NULL != pos;
+	 pos = pos->next)
+    {
+      if ( (pos->af == lal->af) &&
+	   (0 == memcmp (&lal->addr,
+			 &pos->addr,
+			 (AF_INET == lal->af)
+			 ? sizeof (struct sockaddr_in)
+			 : sizeof (struct sockaddr_in6))) )
+	found = GNUNET_YES;
+    }
+    if (GNUNET_NO == found)
+      notify_clients (lal,
+		      GNUNET_NO);
+  }
+
+  /* add addresses that appeared */
+  have_nat = GNUNET_NO;
+  for (struct LocalAddressList *pos = ifc_ctx.lal_head;
+       NULL != pos;
+       pos = pos->next)
+  {
+    found = GNUNET_NO;
+    if (GNUNET_NAT_AC_LAN == (GNUNET_NAT_AC_LAN & pos->ac))
+      have_nat = GNUNET_YES;
+    for (struct LocalAddressList *lal = lal_head;
+	 NULL != lal;
+	 lal = lal->next)
+    {
+      if ( (pos->af == lal->af) &&
+	   (0 == memcmp (&lal->addr,
+			 &pos->addr,
+			 (AF_INET == lal->af)
+			 ? sizeof (struct sockaddr_in)
+			 : sizeof (struct sockaddr_in6))) )
+	found = GNUNET_YES;
+    }
+    if (GNUNET_NO == found)
+      notify_clients (pos,
+		      GNUNET_YES);
+  }
+  if ( (GNUNET_YES == have_nat) &&
+       (GNUNET_YES == enable_upnp) &&
+       (NULL == probe_external_ip_task) &&
+       (NULL == probe_external_ip_op) )
+  {
+    probe_external_ip_task
+      = GNUNET_SCHEDULER_add_now (&run_external_ip,
+				  NULL);
+  }
+  if ( (GNUNET_NO == have_nat) &&
+       (GNUNET_YES == enable_upnp) )
+  {
+    if (NULL != probe_external_ip_task)
+    {
+      GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+      probe_external_ip_task = NULL;
+    }
+    if (NULL != probe_external_ip_op)
+    {
+      GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+      probe_external_ip_op = NULL;
+    }
+  }
+  
+  destroy_lal ();
+  lal_head = ifc_ctx.lal_head;
+  lal_tail = ifc_ctx.lal_tail;
+}
+
+
+/**
+ * Function called whenever our set of external addresses
+ * as created by `upnpc` changes.
+ *
+ * @param cls closure with our `struct ClientHandle *`
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
+ *     the previous (now invalid) one, #GNUNET_SYSERR indicates an error
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual length of the @a addr
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+upnp_addr_change_cb (void *cls,
+		     int add_remove,
+		     const struct sockaddr *addr,
+		     socklen_t addrlen,
+		     enum GNUNET_NAT_StatusCode result)
+{
+  struct ClientHandle *ch = cls;
+  enum GNUNET_NAT_AddressClass ac;
+
+  switch (result)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    GNUNET_assert (NULL != addr);
+    break;
+  case GNUNET_NAT_ERROR_UPNPC_FAILED:
+  case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
+  case GNUNET_NAT_ERROR_IPC_FAILURE:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Running upnpc failed: %d\n",
+		result);
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"external-ip binary not found\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"external-ip binary could not be run\n");
+    return;
+  case GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"upnpc failed to create port mapping\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Invalid output from upnpc\n");
+    return;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Invalid address returned by upnpc\n");
+    return;
+  default:
+    GNUNET_break (0); /* should not be possible */
+    return;
+  }
+  switch (addr->sa_family)
+  {
+  case AF_INET:
+    ac = is_nat_v4 (&((const struct sockaddr_in *) addr)->sin_addr)
+      ? GNUNET_NAT_AC_LAN_PRIVATE
+      : GNUNET_NAT_AC_EXTERN;
+    break;
+  case AF_INET6:
+    ac = is_nat_v6 (&((const struct sockaddr_in6 *) addr)->sin6_addr)
+      ? GNUNET_NAT_AC_LAN_PRIVATE
+      : GNUNET_NAT_AC_EXTERN;
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "upnp external address %s: %s\n",
+	      add_remove ? "added" : "removed",
+	      GNUNET_a2s (addr,
+			  addrlen));
+  notify_client (ac,
+		 ch,
+		 add_remove,
+		 addr,
+		 addrlen);
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from client.
  * We remember the client for updates upon future NAT events.
  *
@@ -426,7 +1205,7 @@ handle_register (void *cls,
   size_t left;
 
   if ( (0 != ch->proto) ||
-       (NULL != ch->addrs) )
+       (NULL != ch->caddrs) )
   {
     /* double registration not allowed */
     GNUNET_break (0);
@@ -438,15 +1217,17 @@ handle_register (void *cls,
   ch->flags = message->flags;
   ch->proto = message->proto;
   ch->adv_port = ntohs (message->adv_port);
-  ch->num_addrs = ntohs (message->adv_port);
-  ch->addrs = GNUNET_new_array (ch->num_addrs,
-				struct sockaddr *);
+  ch->num_caddrs = ntohs (message->num_addrs);
+  ch->caddrs = GNUNET_new_array (ch->num_caddrs,
+				 struct ClientAddress);
   left = ntohs (message->header.size) - sizeof (*message);
   off = (const char *) &message[1];
-  for (unsigned int i=0;i<ch->num_addrs;i++)
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
     size_t alen;
     const struct sockaddr *sa = (const struct sockaddr *) off;
+    uint16_t port;
+    int is_nat;
 
     if (sizeof (sa_family_t) > left)
     {
@@ -454,6 +1235,7 @@ handle_register (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;
     }
+    is_nat = GNUNET_NO;
     switch (sa->sa_family)
     {
     case AF_INET:
@@ -462,7 +1244,8 @@ handle_register (void *cls,
 	
 	alen = sizeof (struct sockaddr_in);
 	if (is_nat_v4 (&s4->sin_addr))
-	  ch->natted_address = GNUNET_YES;
+	  is_nat = GNUNET_YES;
+	port = ntohs (s4->sin_port);
       }
       break;
     case AF_INET6:
@@ -471,12 +1254,14 @@ handle_register (void *cls,
 	
 	alen = sizeof (struct sockaddr_in6);
 	if (is_nat_v6 (&s6->sin6_addr))
-	  ch->natted_address = GNUNET_YES;
+	  is_nat = GNUNET_YES;
+	port = ntohs (s6->sin6_port);
       }
       break;
 #if AF_UNIX
     case AF_UNIX:
       alen = sizeof (struct sockaddr_un);
+      port = 0;
       break;
 #endif
     default:
@@ -484,13 +1269,45 @@ handle_register (void *cls,
       GNUNET_SERVICE_client_drop (ch->client);
       return;      
     }
+    /* store address */
     GNUNET_assert (alen <= left);
-    ch->addrs[i] = GNUNET_malloc (alen);
-    GNUNET_memcpy (ch->addrs[i],
+    GNUNET_assert (alen <= sizeof (struct sockaddr_storage));
+    GNUNET_memcpy (&ch->caddrs[i].ss,
 		   sa,
 		   alen);    
+
+    /* If applicable, try UPNPC NAT punching */
+    if ( (is_nat) &&
+	 (enable_upnp) &&
+	 ( (IPPROTO_TCP == ch->proto) ||
+	   (IPPROTO_UDP == ch->proto) ) )
+    {
+      ch->natted_address = GNUNET_YES;
+      ch->caddrs[i].mh
+	= GNUNET_NAT_mini_map_start (port,
+				     IPPROTO_TCP == ch->proto,
+				     &upnp_addr_change_cb,
+				     ch);
+    }
+
     off += alen;
-  }  
+  }
+  /* Actually send IP address list to client */
+  for (struct LocalAddressList *lal = lal_head;
+       NULL != lal;
+       lal = lal->next)
+  {
+    check_notify_client (lal,
+			 ch,
+			 GNUNET_YES);
+  }
+  /* Also consider IPv4 determined by `external-ip` */
+  if (0 != mini_external_ipv4.s_addr)
+  {
+    check_notify_client_external_ipv4_change (&mini_external_ipv4,
+					      ch,
+					      GNUNET_YES);
+  }
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -551,7 +1368,7 @@ notify_clients_stun_change (const struct sockaddr_in *ip,
 			       sizeof (v4),
 			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
     msg->add_remove = htonl ((int32_t) add);
-    msg->addr_class = htonl (GNUNET_NAT_AC_GLOBAL_EXTERN |
+    msg->addr_class = htonl (GNUNET_NAT_AC_EXTERN |
 			     GNUNET_NAT_AC_GLOBAL);
     GNUNET_memcpy (&msg[1],
 		   &v4,
@@ -826,6 +1643,163 @@ check_autoconfig_request (void *cls,
 
 
 /**
+ * Stop all pending activities with respect to the @a ac
+ *
+ * @param ac autoconfiguration to terminate activities for
+ */
+static void
+terminate_ac_activities (struct AutoconfigContext *ac)
+{
+  if (NULL != ac->probe_external)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel_ (ac->probe_external);
+    ac->probe_external = NULL;
+  }
+  if (NULL != ac->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (ac->timeout_task);
+    ac->timeout_task = NULL;
+  }
+}
+
+
+/**
+ * Finish handling the autoconfiguration request and send
+ * the response to the client.
+ *
+ * @param cls the `struct AutoconfigContext` to conclude
+ */
+static void
+conclude_autoconfig_request (void *cls)
+{
+  struct AutoconfigContext *ac = cls;
+  struct ClientHandle *ch = ac->ch;
+  struct GNUNET_NAT_AutoconfigResultMessage *arm;
+  struct GNUNET_MQ_Envelope *env;
+  size_t c_size;
+  char *buf;
+  struct GNUNET_CONFIGURATION_Handle *diff;
+  
+  ac->timeout_task = NULL;
+  terminate_ac_activities (ac);
+
+  /* Send back response */
+  diff = GNUNET_CONFIGURATION_get_diff (ac->orig,
+					ac->c);
+  buf = GNUNET_CONFIGURATION_serialize (diff,
+					&c_size);
+  GNUNET_CONFIGURATION_destroy (diff);
+  env = GNUNET_MQ_msg_extra (arm,
+			     c_size,
+			     GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT);
+  arm->status_code = htonl ((uint32_t) ac->status_code);
+  arm->type = htonl ((uint32_t) ac->type);
+  GNUNET_memcpy (&arm[1],
+		 buf,
+		 c_size);
+  GNUNET_free (buf);
+  GNUNET_MQ_send (ch->mq,
+		  env);
+
+  /* clean up */
+  GNUNET_free (ac->system_type);
+  GNUNET_CONFIGURATION_destroy (ac->orig);
+  GNUNET_CONFIGURATION_destroy (ac->c);
+  GNUNET_CONTAINER_DLL_remove (ac_head,
+			       ac_tail,
+			       ac);
+  GNUNET_free (ac);
+  GNUNET_SERVICE_client_continue (ch->client);
+}
+
+
+/**
+ * Check if all autoconfiguration operations have concluded,
+ * and if they have, send the result back to the client.
+ *
+ * @param ac autoconfiguation context to check
+ */
+static void
+check_autoconfig_finished (struct AutoconfigContext *ac)
+{
+  if (NULL != ac->probe_external)
+    return;
+  GNUNET_SCHEDULER_cancel (ac->timeout_task);
+  ac->timeout_task
+    = GNUNET_SCHEDULER_add_now (&conclude_autoconfig_request,
+				ac);
+}
+
+
+/**
+ * Update ENABLE_UPNPC configuration option.
+ *
+ * @param ac autoconfiguration to update
+ */
+static void
+update_enable_upnpc_option (struct AutoconfigContext *ac)
+{
+  switch (ac->enable_upnpc)
+  {
+  case GNUNET_YES:
+    GNUNET_CONFIGURATION_set_value_string (ac->c,
+					   "NAT",
+					   "ENABLE_UPNP",
+					   "YES");
+    break;
+  case GNUNET_NO:
+    GNUNET_CONFIGURATION_set_value_string (ac->c,
+					   "NAT",
+					   "ENABLE_UPNP",
+					   "NO");
+    break;
+  case GNUNET_SYSERR:
+    /* We are unsure, do not change option */
+    break;
+  }
+}
+
+
+/**
+ * Handle result from external IP address probe during
+ * autoconfiguration.
+ *
+ * @param cls our `struct AutoconfigContext`
+ * @param addr the address, NULL on errors
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+static void
+auto_external_result_cb (void *cls,
+			 const struct in_addr *addr,
+			 enum GNUNET_NAT_StatusCode result)
+{
+  struct AutoconfigContext *ac = cls;
+
+  ac->probe_external = NULL;
+  switch (result)
+  {
+  case GNUNET_NAT_ERROR_SUCCESS:
+    ac->enable_upnpc = GNUNET_YES;
+    break;
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
+  case GNUNET_NAT_ERROR_IPC_FAILURE:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Disabling UPNPC: %d\n",
+		(int) result);
+    ac->enable_upnpc = GNUNET_NO; /* did not work */
+    break;
+  default:
+    GNUNET_break (0); /* unexpected */
+    ac->enable_upnpc = GNUNET_SYSERR;
+    break;    
+  }
+  update_enable_upnpc_option (ac);
+  check_autoconfig_finished (ac);
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG message from
  * client.
  *
@@ -838,24 +1812,85 @@ handle_autoconfig_request (void *cls,
 {
   struct ClientHandle *ch = cls;
   size_t left = ntohs (message->header.size) - sizeof (*message);
-  struct GNUNET_CONFIGURATION_Handle *c;
+  struct LocalAddressList *lal;
+  struct AutoconfigContext *ac;
 
-  c = GNUNET_CONFIGURATION_create ();
+  ac = GNUNET_new (struct AutoconfigContext);
+  ac->status_code = GNUNET_NAT_ERROR_SUCCESS;
+  ac->ch = ch;
+  ac->c = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_deserialize (c,
+      GNUNET_CONFIGURATION_deserialize (ac->c,
 					(const char *) &message[1],
 					left,
 					GNUNET_NO))
   {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (ch->client);
+    GNUNET_CONFIGURATION_destroy (ac->c);
+    GNUNET_free (ac);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REQUEST_AUTO_CONFIG message from client\n");
-  // FIXME: actually handle request...
-  GNUNET_CONFIGURATION_destroy (c);
-  GNUNET_SERVICE_client_continue (ch->client);
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (ac->c,
+					     "PEER",
+					     "SYSTEM_TYPE",
+					     &ac->system_type))
+    ac->system_type = GNUNET_strdup ("UNKNOWN");
+
+  GNUNET_CONTAINER_DLL_insert (ac_head,
+			       ac_tail,
+			       ac);
+  ac->orig
+    = GNUNET_CONFIGURATION_dup (ac->c);
+  ac->timeout_task
+    = GNUNET_SCHEDULER_add_delayed (AUTOCONFIG_TIMEOUT,
+				    &conclude_autoconfig_request,
+				    ac);
+  ac->enable_upnpc = GNUNET_SYSERR; /* undecided */
+  
+  /* Probe for upnpc */
+  if (GNUNET_SYSERR ==
+      GNUNET_OS_check_helper_binary ("upnpc",
+				     GNUNET_NO,
+				     NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("UPnP client `upnpc` command not found, disabling UPnP\n"));
+    ac->enable_upnpc = GNUNET_NO;
+  }
+  else
+  {
+    for (lal = lal_head; NULL != lal; lal = lal->next)
+      if (GNUNET_NAT_AC_LAN == (lal->ac & GNUNET_NAT_AC_LAN))
+	/* we are behind NAT, useful to try upnpc */
+	ac->enable_upnpc = GNUNET_YES;
+  }
+  if (GNUNET_YES == ac->enable_upnpc)
+  {
+    /* If we are a mobile device, always leave it on as the network
+       may change to one that supports UPnP anytime.  If we are
+       stationary, check if our network actually supports UPnP, and if
+       not, disable it. */
+    if ( (0 == strcasecmp (ac->system_type,
+			   "INFRASTRUCTURE")) ||
+	 (0 == strcasecmp (ac->system_type,
+			   "DESKTOP")) )
+    {
+      /* Check if upnpc gives us an external IP */
+      ac->probe_external
+	= GNUNET_NAT_mini_get_external_ipv4_ (&auto_external_result_cb,
+					      ac);
+    }
+  }
+  if (NULL == ac->probe_external)
+    update_enable_upnpc_option (ac);
+
+  /* Finally, check if we are already done */  
+  check_autoconfig_finished (ac);
 }
 
 
@@ -868,7 +1903,16 @@ static void
 shutdown_task (void *cls)
 {
   struct StunExternalIP *se;
+  struct AutoconfigContext *ac;
 
+  while (NULL != (ac = ac_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ac_head,
+				 ac_tail,
+				 ac);
+    terminate_ac_activities (ac);
+    GNUNET_free (ac);
+  }
   while (NULL != (se = se_head))
   {
     GNUNET_CONTAINER_DLL_remove (se_head,
@@ -877,6 +1921,16 @@ shutdown_task (void *cls)
     GNUNET_SCHEDULER_cancel (se->timeout_task);
     GNUNET_free (se);
   }
+  if (NULL != probe_external_ip_task)
+  {
+    GNUNET_SCHEDULER_cancel (probe_external_ip_task);
+    probe_external_ip_task = NULL;
+  }
+  if (NULL != probe_external_ip_op)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
+    probe_external_ip_op = NULL;
+  }
   if (NULL != scan_task)
   {
     GNUNET_SCHEDULER_cancel (scan_task);
@@ -884,7 +1938,8 @@ shutdown_task (void *cls)
   }
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (stats,
+			       GNUNET_NO);
     stats = NULL;
   }
   destroy_lal ();
@@ -892,278 +1947,7 @@ shutdown_task (void *cls)
 
 
 /**
- * Closure for #ifc_proc.
- */
-struct IfcProcContext
-{
-
-  /** 
-   * Head of DLL of local addresses.
-   */
-  struct LocalAddressList *lal_head;
-
-  /**
-   * Tail of DLL of local addresses.
-   */
-  struct LocalAddressList *lal_tail;
-
-};
-
-
-/**
- * Callback function invoked for each interface found.  Adds them
- * to our new address list.
- *
- * @param cls a `struct IfcProcContext *`
- * @param name name of the interface (can be NULL for unknown)
- * @param isDefault is this presumably the default interface
- * @param addr address of this interface (can be NULL for unknown or unassigned)
- * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
- * @param netmask the network mask (can be NULL for unknown or unassigned)
- * @param addrlen length of the address
- * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
- */
-static int
-ifc_proc (void *cls,
-	  const char *name,
-	  int isDefault,
-	  const struct sockaddr *addr,
-	  const struct sockaddr *broadcast_addr,
-	  const struct sockaddr *netmask,
-	  socklen_t addrlen)
-{
-  struct IfcProcContext *ifc_ctx = cls;
-  struct LocalAddressList *lal;
-  size_t alen;
-  const struct in_addr *ip4;
-  const struct in6_addr *ip6;
-  enum GNUNET_NAT_AddressClass ac;
-
-  switch (addr->sa_family)
-  {
-  case AF_INET:
-    alen = sizeof (struct sockaddr_in);
-    ip4 = &((const struct sockaddr_in *) addr)->sin_addr;
-    if (match_ipv4 ("127.0.0.0", ip4, 8))
-      ac = GNUNET_NAT_AC_LOOPBACK;
-    else if (is_nat_v4 (ip4))
-      ac = GNUNET_NAT_AC_LAN;
-    else
-      ac = GNUNET_NAT_AC_GLOBAL;
-    break;
-  case AF_INET6:
-    alen = sizeof (struct sockaddr_in6);
-    ip6 = &((const struct sockaddr_in6 *) addr)->sin6_addr;
-    if (match_ipv6 ("::1", ip6, 128))
-      ac = GNUNET_NAT_AC_LOOPBACK;
-    else if (is_nat_v6 (ip6))
-      ac = GNUNET_NAT_AC_LAN;
-    else
-      ac = GNUNET_NAT_AC_GLOBAL;
-    if ( (ip6->s6_addr[11] == 0xFF) &&
-	 (ip6->s6_addr[12] == 0xFE) )
-    {
-      /* contains a MAC, be extra careful! */
-      ac |= GNUNET_NAT_AC_PRIVATE;
-    }
-    break;
-#if AF_UNIX
-  case AF_UNIX:
-    GNUNET_break (0);
-    return GNUNET_OK;
-#endif
-  default:
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
-  lal = GNUNET_malloc (sizeof (*lal));
-  lal->af = addr->sa_family;
-  lal->ac = ac;
-  GNUNET_memcpy (&lal->addr,
-		 addr,
-		 alen);
-  GNUNET_CONTAINER_DLL_insert (ifc_ctx->lal_head,
-			       ifc_ctx->lal_tail,
-			       lal);
-  return GNUNET_OK;
-}
-
-
-/**
- * Notify client about a change in the list
- * of addresses this peer has.
- *
- * @param delta the entry in the list that changed
- * @param ch client to contact
- * @param add #GNUNET_YES to add, #GNUNET_NO to remove
- * @param addr the address that changed
- * @param addr_len number of bytes in @a addr
- */
-static void
-notify_client (struct LocalAddressList *delta,
-	       struct ClientHandle *ch,
-	       int add,
-	       const void *addr,
-	       size_t addr_len)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
-
-  env = GNUNET_MQ_msg_extra (msg,
-			     addr_len,
-			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
-  msg->add_remove = htonl (add);
-  msg->addr_class = htonl (delta->ac);
-  GNUNET_memcpy (&msg[1],
-		 addr,
-		 addr_len);
-  GNUNET_MQ_send (ch->mq,
-		  env);
-}	     	       
-
-
-/**
- * Notify all clients about a change in the list
- * of addresses this peer has.
- *
- * @param delta the entry in the list that changed
- * @param add #GNUNET_YES to add, #GNUNET_NO to remove
- */
-static void
-notify_clients (struct LocalAddressList *delta,
-		int add)
-{
-  for (struct ClientHandle *ch = ch_head;
-       NULL != ch;
-       ch = ch->next)
-  {
-    size_t alen;
-    struct sockaddr_in v4;
-    struct sockaddr_in6 v6;
-    
-    if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
-      continue;
-    switch (delta->af)
-    {
-    case AF_INET:
-      alen = sizeof (struct sockaddr_in);
-      GNUNET_memcpy (&v4,
-		     &delta->addr,
-		     alen);
-      for (unsigned int i=0;i<ch->num_addrs;i++)
-      {
-	const struct sockaddr_in *c4;
-	
-	if (AF_INET != ch->addrs[i]->sa_family)
-	  continue; /* IPv4 not relevant */
-	c4 = (const struct sockaddr_in *) ch->addrs[i];
-	v4.sin_port = c4->sin_port;
-	notify_client (delta,
-		       ch,
-		       add,
-		       &v4,
-		       alen);
-      }
-      break;
-    case AF_INET6:
-      alen = sizeof (struct sockaddr_in6);
-      GNUNET_memcpy (&v6,
-		     &delta->addr,
-		     alen);
-      for (unsigned int i=0;i<ch->num_addrs;i++)
-      {
-	const struct sockaddr_in6 *c6;
-	
-	if (AF_INET6 != ch->addrs[i]->sa_family)
-	  continue; /* IPv4 not relevant */
-	c6 = (const struct sockaddr_in6 *) ch->addrs[i];
-	v6.sin6_port = c6->sin6_port;
-	notify_client (delta,
-		       ch,
-		       add,
-		       &v6,
-		       alen);
-      }
-      break;
-    default:
-      GNUNET_break (0);
-      continue;
-    }
-  }
-}
-
-
-/**
- * Task we run periodically to scan for network interfaces.
- *
- * @param cls NULL
- */ 
-static void
-run_scan (void *cls)
-{
-  struct IfcProcContext ifc_ctx;
-  int found;
-  
-  scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
-					    &run_scan,
-					    NULL);
-  memset (&ifc_ctx,
-	  0,
-	  sizeof (ifc_ctx));
-  GNUNET_OS_network_interfaces_list (&ifc_proc,
-				     &ifc_ctx);
-  for (struct LocalAddressList *lal = lal_head;
-       NULL != lal;
-       lal = lal->next)
-  {
-    found = GNUNET_NO;
-    for (struct LocalAddressList *pos = ifc_ctx.lal_head;
-	 NULL != pos;
-	 pos = pos->next)
-    {
-      if ( (pos->af == lal->af) &&
-	   (0 == memcmp (&lal->addr,
-			 &pos->addr,
-			 (AF_INET == lal->af)
-			 ? sizeof (struct sockaddr_in)
-			 : sizeof (struct sockaddr_in6))) )
-	found = GNUNET_YES;
-    }
-    if (GNUNET_NO == found)
-      notify_clients (lal,
-		      GNUNET_NO);
-  }
-
-  for (struct LocalAddressList *pos = ifc_ctx.lal_head;
-       NULL != pos;
-       pos = pos->next)
-  {
-    found = GNUNET_NO;
-    for (struct LocalAddressList *lal = lal_head;
-	 NULL != lal;
-	 lal = lal->next)
-    {
-      if ( (pos->af == lal->af) &&
-	   (0 == memcmp (&lal->addr,
-			 &pos->addr,
-			 (AF_INET == lal->af)
-			 ? sizeof (struct sockaddr_in)
-			 : sizeof (struct sockaddr_in6))) )
-	found = GNUNET_YES;
-    }
-    if (GNUNET_NO == found)
-      notify_clients (pos,
-		      GNUNET_YES);
-  }
-
-  destroy_lal ();
-  lal_head = ifc_ctx.lal_head;
-  lal_tail = ifc_ctx.lal_tail;
-}
-
-
-/**
- * Handle network size estimate clients.
+ * Setup NAT service.
  *
  * @param cls closure
  * @param c configuration to use
@@ -1181,6 +1965,26 @@ run (void *cls,
 					   "STUN_STALE",
 					   &stun_stale_timeout))
     stun_stale_timeout = GNUNET_TIME_UNIT_HOURS;
+
+  /* Check for UPnP */
+  enable_upnp 
+    = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+					    "NAT",
+					    "ENABLE_UPNP");
+  if (GNUNET_YES == enable_upnp)
+  {
+    /* check if it works */
+    if (GNUNET_SYSERR ==
+        GNUNET_OS_check_helper_binary ("upnpc",
+				       GNUNET_NO,
+				       NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("UPnP enabled in configuration, but UPnP client `upnpc` command not found, disabling UPnP\n"));
+      enable_upnp = GNUNET_SYSERR;
+    }
+  }
+  
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   stats = GNUNET_STATISTICS_create ("nat",
@@ -1232,9 +2036,15 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (ch_head,
 			       ch_tail,
 			       ch);
-  for (unsigned int i=0;i<ch->num_addrs;i++)
-    GNUNET_free_non_null (ch->addrs[i]);
-  GNUNET_free_non_null (ch->addrs);
+  for (unsigned int i=0;i<ch->num_caddrs;i++)
+  {
+    if (NULL != ch->caddrs[i].mh)
+    {
+      GNUNET_NAT_mini_map_stop (ch->caddrs[i].mh);
+      ch->caddrs[i].mh = NULL;
+    }
+  }
+  GNUNET_free_non_null (ch->caddrs);
   GNUNET_free (ch);
 }
 
