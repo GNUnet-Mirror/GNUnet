@@ -31,15 +31,11 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 
-// For Looking up GNS request
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_identity_service.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
-#include "gnunet_gns_service.h"
-
-
 
 
 #define GNUNET_CREDENTIAL_MAX_LENGTH 255
@@ -311,6 +307,16 @@ struct VerifyRequestHandle
    */
   uint64_t pending_lookups;
 
+  /**
+   * Credential iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *cred_collection_iter;
+
+  /**
+   * Collect task
+   */
+  struct GNUNET_SCHEDULER_Task *collect_next_task;
+
 };
 
 
@@ -334,6 +340,11 @@ static struct GNUNET_STATISTICS_Handle *statistics;
  */
 static struct GNUNET_GNS_Handle *gns;
 
+
+/**
+ * Handle to namestore service
+ */
+static struct GNUNET_NAMESTORE_Handle *namestore;
 
 static void
 cleanup_delegation_set (struct DelegationSetQueueEntry *ds_entry)
@@ -444,6 +455,11 @@ shutdown_task (void *cls)
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
   }
+  if (NULL != namestore)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore);
+    namestore = NULL;
+  }
   if (NULL != statistics)
   {
     GNUNET_STATISTICS_destroy (statistics,
@@ -453,42 +469,7 @@ shutdown_task (void *cls)
 
 }
 
-/**
- * Checks a #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY message
- *
- * @param cls client sending the message
- * @param v_msg message of type `struct VerifyMessage`
- * @return #GNUNET_OK if @a v_msg is well-formed
- */
-static int
-check_verify (void *cls,
-              const struct VerifyMessage *v_msg)
-{
-  size_t msg_size;
-  const char* attrs;
 
-  msg_size = ntohs (v_msg->header.size);
-  if (msg_size < sizeof (struct VerifyMessage))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if ((ntohs (v_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH) ||
-      (ntohs (v_msg->subject_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  attrs = (const char *) &v_msg[1];
-
-  if ( ('\0' != attrs[ntohs(v_msg->header.size) - sizeof (struct VerifyMessage) - 1]) ||
-       (strlen (attrs) > GNUNET_CREDENTIAL_MAX_LENGTH * 2) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
 
 /**
  * Send.
@@ -499,7 +480,7 @@ static void
 send_lookup_response (struct VerifyRequestHandle *vrh)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct VerifyResultMessage *rmsg;
+  struct DelegationChainResultMessage *rmsg;
   struct DelegationChainEntry *dce;
   struct GNUNET_CREDENTIAL_Delegation dd[vrh->delegation_chain_size];
   struct GNUNET_CREDENTIAL_Credential cred[vrh->cred_chain_size];
@@ -792,21 +773,14 @@ backward_resolution (void* cls,
  * @param rd the record data
  */
 static void
-handle_credential_query (void* cls,
-                         uint32_t rd_count,
-                         const struct GNUNET_GNSRECORD_Data *rd)
+delegation_chain_resolution_start (void* cls)
 {
   struct VerifyRequestHandle *vrh = cls;
   struct DelegationSetQueueEntry *ds_entry;
-  struct GNUNET_CREDENTIAL_Credential *crd;
   struct CredentialRecordEntry *cr_entry;
-  int cred_record_count;
-  int i;
-
   vrh->lookup_request = NULL;
-  cred_record_count = 0;
 
-  if (0 == rd_count)
+  if (0 == vrh->cred_chain_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No credentials found\n");
@@ -814,31 +788,13 @@ handle_credential_query (void* cls,
     return;
   }
 
-  for (i=0; i < rd_count; i++)
+  for (cr_entry = vrh->cred_chain_head; cr_entry != NULL; cr_entry = cr_entry->next)
   {
-    if (GNUNET_GNSRECORD_TYPE_CREDENTIAL != rd[i].record_type)
-      continue;
-    cred_record_count++;
-    crd = GNUNET_CREDENTIAL_credential_deserialize (rd[i].data,
-                                                    rd[i].data_size);
-    if (NULL == crd)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid credential found\n");
-      continue;
-    }
-    cr_entry = GNUNET_new (struct CredentialRecordEntry);
-    cr_entry->credential = crd;
-    GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
-                                      vrh->cred_chain_tail,
-                                      cr_entry);
-    vrh->cred_chain_size++;
-
-    if (0 != memcmp (&crd->issuer_key,
+    if (0 != memcmp (&cr_entry->credential->issuer_key,
                      &vrh->issuer_key,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
       continue;
-    if (0 != strcmp (crd->issuer_attribute, vrh->issuer_attribute))
+    if (0 != strcmp (cr_entry->credential->issuer_attribute, vrh->issuer_attribute))
       continue;
     //Found match prematurely
     send_lookup_response (vrh);
@@ -878,6 +834,40 @@ handle_credential_query (void* cls,
                                                 ds_entry);
 }
 
+/**
+ * Checks a #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY message
+ *
+ * @param cls client sending the message
+ * @param v_msg message of type `struct VerifyMessage`
+ * @return #GNUNET_OK if @a v_msg is well-formed
+ */
+static int
+check_verify (void *cls,
+              const struct VerifyMessage *v_msg)
+{
+  size_t msg_size;
+  const char* attr;
+
+  msg_size = ntohs (v_msg->header.size);
+  if (msg_size < sizeof (struct VerifyMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (ntohs (v_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  attr = (const char *) &v_msg[1];
+
+  if ( strlen (attr) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
 /**
  * Handle Credential verification requests from client
@@ -890,12 +880,11 @@ static void
 handle_verify (void *cls,
                const struct VerifyMessage *v_msg) 
 {
-  char attrs[GNUNET_CREDENTIAL_MAX_LENGTH*2 + 1];
+  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
-  char subject_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1 + 4];
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
-  char *attrptr = attrs;
+  char *attrptr = attr;
   const char *utf_in;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -904,12 +893,8 @@ handle_verify (void *cls,
   utf_in = (const char *) &v_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
 
-  GNUNET_memcpy (issuer_attribute, attrs, ntohs (v_msg->issuer_attribute_len));
+  GNUNET_memcpy (issuer_attribute, attr, ntohs (v_msg->issuer_attribute_len));
   issuer_attribute[ntohs (v_msg->issuer_attribute_len)] = '\0';
-  GNUNET_memcpy (subject_attribute, attrs+strlen(issuer_attribute), ntohs (v_msg->subject_attribute_len));
-  strcpy (subject_attribute+ntohs (v_msg->subject_attribute_len),
-          ".gnu");
-  subject_attribute[ntohs (v_msg->subject_attribute_len)+4] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
   vrh->client = client;
@@ -917,14 +902,169 @@ handle_verify (void *cls,
   vrh->issuer_key = v_msg->issuer_key;
   vrh->subject_key = v_msg->subject_key;
   vrh->issuer_attribute = GNUNET_strdup (issuer_attribute);
-
-  if (NULL == subject_attribute)
+  if (NULL == issuer_attribute)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "No subject attribute provided!\n");
+                "No issuer attribute provided!\n");
     send_lookup_response (vrh);
     return;
   }
+  /**
+   * First, collect credentials
+   * TODO: cleanup!
+   */
+  uint32_t credentials_count = ntohl(v_msg->c_count);
+  int i;
+  uint32_t credential_data_size = ntohs (v_msg->header.size) 
+    - sizeof (struct VerifyMessage)
+    - ntohs (v_msg->issuer_attribute_len)
+    - 1;
+  struct GNUNET_CREDENTIAL_Credential credentials[credentials_count];
+  char *credential_data = (char*)&v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
+  struct CredentialRecordEntry *cr_entry;
+  if (GNUNET_OK != GNUNET_CREDENTIAL_credentials_deserialize (credential_data_size,
+                                                              credential_data,
+                                                              credentials_count,
+                                                              credentials))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "Cannot deserialize credentials!\n");
+    send_lookup_response (vrh);
+    return;
+  }
+
+  for (i=0;i<credentials_count;i++) {
+    cr_entry = GNUNET_new (struct CredentialRecordEntry);
+    cr_entry->credential = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) +
+                                          strlen (credentials[i].issuer_attribute) + 1);
+    GNUNET_memcpy (cr_entry->credential,
+                   &credentials[i],
+                   sizeof (struct GNUNET_CREDENTIAL_Credential));
+    GNUNET_memcpy (&cr_entry->credential[1],
+                   credentials[i].issuer_attribute,
+                   strlen (credentials[i].issuer_attribute));
+    cr_entry->credential->issuer_attribute = (char*)&cr_entry->credential[1];
+    GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
+                                      vrh->cred_chain_tail,
+                                      cr_entry);
+    vrh->cred_chain_size++;
+  }
+
+  delegation_chain_resolution_start (vrh);
+
+}
+
+/**
+ * We encountered an error while collecting
+ */
+static void
+handle_cred_collection_error_cb (void *cls)
+{
+  struct VerifyRequestHandle *vrh = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got disconnected from namestore database.\n");
+  vrh->cred_collection_iter = NULL;
+  send_lookup_response (vrh);
+}
+
+static void
+collect_next (void *cls)
+{
+  struct VerifyRequestHandle *vrh = cls;
+  vrh->collect_next_task = NULL;
+  GNUNET_assert (NULL != vrh->cred_collection_iter);
+  GNUNET_NAMESTORE_zone_iterator_next (vrh->cred_collection_iter);
+}
+
+/**
+ * Store credential
+ */
+static void
+handle_cred_collection_cb (void *cls,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                           const char *label,
+                           unsigned int rd_count,
+                           const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct VerifyRequestHandle *vrh = cls;
+  struct GNUNET_CREDENTIAL_Credential *crd;
+  struct CredentialRecordEntry *cr_entry;
+  int cred_record_count;
+  int i;
+
+  cred_record_count = 0;
+  for (i=0; i < rd_count; i++)
+  {
+    if (GNUNET_GNSRECORD_TYPE_CREDENTIAL != rd[i].record_type)
+      continue;
+    cred_record_count++;
+    crd = GNUNET_CREDENTIAL_credential_deserialize (rd[i].data,
+                                                    rd[i].data_size);
+    if (NULL == crd)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Invalid credential found\n");
+      continue;
+    }
+    cr_entry = GNUNET_new (struct CredentialRecordEntry);
+    cr_entry->credential = crd;
+    GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
+                                      vrh->cred_chain_tail,
+                                      cr_entry);
+    vrh->cred_chain_size++;
+  }
+  vrh->collect_next_task = GNUNET_SCHEDULER_add_now (&collect_next,
+                                                     vrh);
+}
+
+/**
+ * We encountered an error while collecting
+ */
+static void
+handle_cred_collection_finished_cb (void *cls)
+{
+  struct VerifyRequestHandle *vrh = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Done collecting credentials.\n");
+  vrh->cred_collection_iter = NULL;
+  delegation_chain_resolution_start (vrh);
+}
+
+/**
+ * Handle Credential collection requests from client
+ *
+ * @param cls the closure
+ * @param client the client
+ * @param message the message
+ */
+static void
+handle_collect (void *cls,
+                const struct CollectMessage *c_msg) 
+{
+  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
+  char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
+  struct VerifyRequestHandle *vrh;
+  struct GNUNET_SERVICE_Client *client = cls;
+  char *attrptr = attr;
+  const char *utf_in;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received COLLECT message\n");
+
+  utf_in = (const char *) &c_msg[1];
+  GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
+
+  GNUNET_memcpy (issuer_attribute, attr, ntohs (c_msg->issuer_attribute_len));
+  issuer_attribute[ntohs (c_msg->issuer_attribute_len)] = '\0';
+  vrh = GNUNET_new (struct VerifyRequestHandle);
+  GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
+  vrh->client = client;
+  vrh->request_id = c_msg->id;
+  vrh->issuer_key = c_msg->issuer_key;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&c_msg->subject_key,
+                                      &vrh->subject_key);
+  vrh->issuer_attribute = GNUNET_strdup (issuer_attribute);
+
   if (NULL == issuer_attribute)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
@@ -933,21 +1073,56 @@ handle_verify (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Looking up %s\n",
-              subject_attribute);
+              "Getting credentials for subject\n");
   /**
    * First, get attribute from subject
    */
-  vrh->lookup_request = GNUNET_GNS_lookup (gns,
-                                           subject_attribute,
-                                           &v_msg->subject_key, //subject_pkey,
-                                           GNUNET_GNSRECORD_TYPE_CREDENTIAL,
-                                           GNUNET_GNS_LO_DEFAULT,
-                                           NULL, //shorten_key, always NULL
-                                           &handle_credential_query,
-                                           vrh);
+  vrh->cred_collection_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore,
+                                                                     &c_msg->subject_key,
+                                                                     &handle_cred_collection_error_cb,
+                                                                     vrh,
+                                                                     &handle_cred_collection_cb,
+                                                                     vrh,
+                                                                     &handle_cred_collection_finished_cb,
+                                                                     vrh);
 }
 
+
+/**
+ * Checks a #GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT message
+ *
+ * @param cls client sending the message
+ * @param v_msg message of type `struct CollectMessage`
+ * @return #GNUNET_OK if @a v_msg is well-formed
+ */
+static int
+check_collect (void *cls,
+               const struct CollectMessage *c_msg)
+{
+  size_t msg_size;
+  const char* attr;
+
+  msg_size = ntohs (c_msg->header.size);
+  if (msg_size < sizeof (struct CollectMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (ntohs (c_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  attr = (const char *) &c_msg[1];
+
+  if ( ('\0' != attr[ntohs(c_msg->header.size) - sizeof (struct CollectMessage) - 1]) ||
+       (strlen (attr) > GNUNET_CREDENTIAL_MAX_LENGTH) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
 /**
  * One of our clients disconnected, clean up after it.
@@ -1003,6 +1178,12 @@ run (void *cls,
     fprintf (stderr,
              _("Failed to connect to GNS\n"));
   }
+  namestore = GNUNET_NAMESTORE_connect (c);
+  if (NULL == namestore)
+  {
+    fprintf (stderr,
+             _("Failed to connect to namestore\n"));
+  }
 
   statistics = GNUNET_STATISTICS_create ("credential", c);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
@@ -1022,6 +1203,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (verify,
                         GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY,
                         struct VerifyMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (collect,
+                        GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT,
+                        struct CollectMessage,
                         NULL),
  GNUNET_MQ_handler_end());
 

@@ -2616,6 +2616,10 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT 972
 
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT 973
+
+#define GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT_RESULT 974
+
 /******************************************************************************/
 
 

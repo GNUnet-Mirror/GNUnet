@@ -492,7 +492,8 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
                                                      &handle->issuer_key,
                                                      handle->issuer_attr,
                                                      &handle->subject_key,
-                                                     handle->subject_attr,
+                                                     0,
+                                                     NULL,//TODOhandle->subject_attr,
                                                      &handle_verify_response,
                                                      handle);
 

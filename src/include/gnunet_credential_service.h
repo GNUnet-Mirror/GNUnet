@@ -235,7 +235,7 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param c_count the number of credentials found
  * @param credential the credentials
  */
-typedef void (*GNUNET_CREDENTIAL_VerifyResultProcessor) (void *cls,
+typedef void (*GNUNET_CREDENTIAL_CredentialResultProcessor) (void *cls,
                                                          unsigned int d_count,
                                                          struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
                                                          unsigned int c_count,
@@ -286,9 +286,18 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                           const char *issuer_attribute,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-                          const char *subject_attribute,
-                          GNUNET_CREDENTIAL_VerifyResultProcessor proc,
+                          uint32_t credential_count,
+                          const struct GNUNET_CREDENTIAL_Credential *credentials,
+                          GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                           void *proc_cls);
+
+struct GNUNET_CREDENTIAL_Request*
+GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+                           const char *issuer_attribute,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
+                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+                           void *proc_cls);
 
 /**
  * Delegate an attribute

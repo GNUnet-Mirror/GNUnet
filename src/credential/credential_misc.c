@@ -105,6 +105,7 @@ GNUNET_CREDENTIAL_credential_from_string (const char* s)
   GNUNET_memcpy (&cred[1],
                  name,
                  strlen (name)+1);
+  cred->issuer_attribute_len = strlen ((char*)&cred[1]);
   cred->issuer_attribute = (char*)&cred[1];
   return cred;
 }

@@ -57,8 +57,11 @@ CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=gnunet --subject=$ALICE_KEY --
 # Alice stores the credential under "mygnunetcreds"
 gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
 
+CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+
+echo gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
 #TODO2 Add -z swich like in gnunet-gns
-RES_CRED=`gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
+gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf
 
 
 #TODO cleanup properly

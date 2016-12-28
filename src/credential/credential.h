@@ -30,6 +30,41 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
+ * Message from client to Credential service to collect credentials.
+ */
+struct CollectMessage
+{
+  /**
+   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Subject public key
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey subject_key;
+
+  /**
+   * Trust anchor
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+  /**
+   * Length of the issuer attribute
+   */
+  uint16_t issuer_attribute_len;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /* Followed by the zero-terminated attribute */
+
+};
+
+
+/**
  * Message from client to Credential service to verify attributes.
  */
 struct VerifyMessage
@@ -50,21 +85,21 @@ struct VerifyMessage
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
 
   /**
+   * Number of credentials
+   */
+  uint32_t c_count;
+
+  /**
    * Length of the issuer attribute
    */
   uint16_t issuer_attribute_len;
-
-  /**
-   * Length of the subject attribute
-   */
-  uint16_t subject_attribute_len;
 
   /**
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
 
-  /* Followed by the zero-terminated attributes to look up */
+  /* Followed by the zero-terminated attribute and credentials to look up */
 
 };
 
@@ -72,7 +107,7 @@ struct VerifyMessage
 /**
  * Message from CREDENTIAL service to client: new results.
  */
-struct VerifyResultMessage
+struct DelegationChainResultMessage
 {
   /**
     * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
