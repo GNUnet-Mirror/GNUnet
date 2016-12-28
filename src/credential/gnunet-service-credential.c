@@ -880,19 +880,22 @@ static void
 handle_verify (void *cls,
                const struct VerifyMessage *v_msg) 
 {
-  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
-  char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
+  struct CredentialRecordEntry *cr_entry;
+  uint32_t credentials_count;
+  uint32_t credential_data_size;
+  int i;
+  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
+  char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char *attrptr = attr;
+  char *credential_data;
   const char *utf_in;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received VERIFY message\n");
-
   utf_in = (const char *) &v_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
-
   GNUNET_memcpy (issuer_attribute, attr, ntohs (v_msg->issuer_attribute_len));
   issuer_attribute[ntohs (v_msg->issuer_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
@@ -913,15 +916,13 @@ handle_verify (void *cls,
    * First, collect credentials
    * TODO: cleanup!
    */
-  uint32_t credentials_count = ntohl(v_msg->c_count);
-  int i;
-  uint32_t credential_data_size = ntohs (v_msg->header.size) 
+  credentials_count = ntohl(v_msg->c_count);
+  credential_data_size = ntohs (v_msg->header.size) 
     - sizeof (struct VerifyMessage)
     - ntohs (v_msg->issuer_attribute_len)
     - 1;
   struct GNUNET_CREDENTIAL_Credential credentials[credentials_count];
-  char *credential_data = (char*)&v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
-  struct CredentialRecordEntry *cr_entry;
+  credential_data = (char*)&v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
   if (GNUNET_OK != GNUNET_CREDENTIAL_credentials_deserialize (credential_data_size,
                                                               credential_data,
                                                               credentials_count,

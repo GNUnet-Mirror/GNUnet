@@ -245,6 +245,76 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
 }
 
 /**
+ * JSONAPI resource to Credential
+ * @param res the JSONAPI resource
+ * @return the resulting credential, NULL if failed
+ */
+static struct GNUNET_CREDENTIAL_Credential*
+json_to_credential (json_t *res)
+{
+  struct GNUNET_CREDENTIAL_Credential *cred;
+  json_t *tmp;
+  const char *attribute;
+  const char *signature;
+  char *sig;
+
+  tmp = json_object_get (res, "attribute");
+  if (0 == json_is_string (tmp))
+  {
+    return NULL;
+  }
+  attribute = json_string_value (tmp);
+  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential)
+                        + strlen (attribute));
+  cred->issuer_attribute = attribute;
+  cred->issuer_attribute_len = strlen (attribute);
+  tmp = json_object_get (res, "issuer");
+  if (0 == json_is_string (tmp))
+  {
+    GNUNET_free (cred);
+    return NULL;
+  }
+
+  GNUNET_CRYPTO_ecdsa_public_key_from_string (json_string_value(tmp),
+                                              strlen (json_string_value(tmp)),
+                                              &cred->issuer_key);
+  tmp = json_object_get (res, "subject");
+  if (0 == json_is_string (tmp))
+  {
+    GNUNET_free (cred);
+    return NULL;
+  }
+  GNUNET_CRYPTO_ecdsa_public_key_from_string (json_string_value(tmp),
+                                              strlen (json_string_value(tmp)),
+                                              &cred->subject_key);
+
+  tmp = json_object_get (res, "signature");
+  if (0 == json_is_string (tmp))
+  {
+    GNUNET_free (cred);
+    return NULL;
+  }
+  signature = json_string_value (tmp);
+  GNUNET_STRINGS_base64_decode (signature,
+                                strlen (signature),
+                                (char**)&sig);
+  GNUNET_memcpy (&cred->signature,
+                 sig,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+  GNUNET_free (sig);
+ 
+  tmp = json_object_get (res, "expiration");
+  if (0 == json_is_integer (tmp))
+  {
+    GNUNET_free (cred);
+    return NULL;
+  }
+  cred->expiration.abs_value_us = json_integer_value (tmp); 
+  return cred;
+}
+
+
+/**
  * Credential to JSON
  * @param cred the credential
  * @return the resulting json, NULL if failed
@@ -254,6 +324,7 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
 {
   char *issuer;
   char *subject;
+  char *signature;
   char attribute[cred->issuer_attribute_len + 1];
   json_t *cred_obj;
 
@@ -272,6 +343,9 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
     GNUNET_free (issuer);
     return NULL;
   }
+  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
+                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                &signature);
   memcpy (attribute,
           cred->issuer_attribute,
           cred->issuer_attribute_len);
@@ -280,8 +354,11 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
   json_object_set_new (cred_obj, "issuer", json_string (issuer));
   json_object_set_new (cred_obj, "subject", json_string (subject));
   json_object_set_new (cred_obj, "attribute", json_string (attribute));
+  json_object_set_new (cred_obj, "signature", json_string (signature));
+  json_object_set_new (cred_obj, "expiration", json_integer (cred->expiration.abs_value_us));
   GNUNET_free (issuer);
   GNUNET_free (subject);
+  GNUNET_free (signature);
   return cred_obj;
 }
 
@@ -377,8 +454,17 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
+  struct GNUNET_JSONAPI_Document *json_obj;
+  struct GNUNET_JSONAPI_Resource *res;
+  struct GNUNET_CREDENTIAL_Credential *cred;
   char *tmp;
   char *entity_attr;
+  int i;
+  uint32_t credential_count;
+  uint32_t resource_count;
+  json_t *cred_json;
+  json_t *data_js;
+  json_error_t err;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting...\n");
@@ -456,8 +542,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   }
   tmp = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
                                            &key);
-  entity_attr = GNUNET_strdup (tmp);
-  tmp = strtok(entity_attr, ".");
   if (NULL == tmp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -476,26 +560,74 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  tmp = strtok (NULL, ".");
-  if (NULL == tmp)
+  GNUNET_free (entity_attr);
+
+  if (0 >= handle->rest_handle->data_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Malformed subject attribute\n");
-    GNUNET_free (entity_attr);
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+                "Missing credentials\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->subject_attr = GNUNET_strdup (tmp);
-  GNUNET_free (entity_attr);
+
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
+  char term_data[handle->rest_handle->data_size+1];
+  term_data[handle->rest_handle->data_size] = '\0';
+  credential_count = 0;
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_js = json_loads (term_data,
+                        JSON_DECODE_ANY,
+                        &err);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (data_js, docspec,
+                                                 NULL, NULL));
+  json_decref (data_js);
+  if (NULL == json_obj)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  resource_count = GNUNET_JSONAPI_document_resource_count(json_obj);
+  struct GNUNET_CREDENTIAL_Credential credentials[credential_count];
+  for (i=0;i<resource_count;i++)
+  {
+    res = (GNUNET_JSONAPI_document_get_resource(json_obj, i));
+    if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type(res,
+                                                        GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Resource not a credential!\n");
+      continue;
+    }
+    credential_count++;
+    cred_json = GNUNET_JSONAPI_resource_read_attr (res,
+                                                   GNUNET_REST_JSONAPI_CREDENTIAL);
+    cred = json_to_credential (cred_json);
+    GNUNET_memcpy (&credentials[i],
+                   cred,
+                   sizeof (struct GNUNET_CREDENTIAL_Credential));
+    credentials[i].issuer_attribute = GNUNET_strdup (cred->issuer_attribute);
+    GNUNET_free (cred);
+  }
 
   handle->verify_request = GNUNET_CREDENTIAL_verify (handle->credential,
                                                      &handle->issuer_key,
                                                      handle->issuer_attr,
                                                      &handle->subject_key,
-                                                     0,
-                                                     NULL,//TODOhandle->subject_attr,
+                                                     credential_count,
+                                                     credentials,
                                                      &handle_verify_response,
                                                      handle);
+  for (i=0;i<credential_count;i++)
+    GNUNET_free ((char*)credentials[i].issuer_attribute);
 
 }
 
