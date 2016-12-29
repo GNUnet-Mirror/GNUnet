@@ -57,26 +57,29 @@ CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=gnunet --subject=$ALICE_KEY --
 # Alice stores the credential under "mygnunetcreds"
 gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
 
+# (5) GNUnet issues Alice the credential "developer"
+CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=gnunet --subject=$ALICE_KEY --attribute=$USER_ATTR --ttl=5m -c test_credential_lookup.conf`
+
+# Alice stores the credential under "mygnunetcreds"
+gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+
 #TODO2 Add -z swich like in gnunet-gns
-#RES_CRED=`gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
+#RES_CRED=`gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY -c test_credential_lookup.conf`
 
 gnunet-arm -i rest -c test_credential_lookup.conf
 
 sleep 5
 
-CREDS=`curl "localhost:7776/credential/collect?attribute=$SERVICE_KEY.$USER_ATTR&subject=alice"`
-
-echo $CREDS
-
-curl -v "localhost:7776/credential/verify?attribute=$SERVICE_KEY.$USER_ATTR&subject_key=$ALICE_KEY" --data "$CREDS"
+curl -v "localhost:7776/credential/collect?attribute=$SERVICE_KEY.$USER_ATTR&subject=alice"
 
 #TODO cleanup properly
 gnunet-namestore -z alice -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
 gnunet-namestore -z gnu -d -n $GNU_PROJECT_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z gnunet -d -n $MEMBER_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z service -d -n $USER_ATTR -t ATTR -c test_credential_lookup.conf
+echo "Stopping arm..."
 gnunet-arm -e -c test_credential_lookup.conf
-
+echo "Done"
 if [ "$RES_CRED" != "Failed." ]
 then
   echo -e "${RES_CRED}"

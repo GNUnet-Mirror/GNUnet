@@ -41,9 +41,13 @@
 
 #define GNUNET_REST_API_NS_CREDENTIAL_VERIFY "/credential/verify"
 
+#define GNUNET_REST_API_NS_CREDENTIAL_COLLECT "/credential/collect"
+
 #define GNUNET_REST_JSONAPI_CREDENTIAL_EXPIRATION "expiration"
 
 #define GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_KEY "subject_key"
+
+#define GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_EGO "subject"
 
 #define GNUNET_REST_JSONAPI_CREDENTIAL "credential"
 
@@ -91,6 +95,11 @@ struct RequestHandle
    * Handle to identity operation
    */
   struct GNUNET_IDENTITY_Operation *id_op;
+
+  /**
+   * Handle to ego lookup
+   */
+  struct GNUNET_IDENTITY_EgoLookup *ego_lookup;
 
   /**
    * Handle to rest request
@@ -173,6 +182,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_CREDENTIAL_disconnect (handle->credential);
   if (NULL != handle->id_op)
     GNUNET_IDENTITY_cancel (handle->id_op);
+  if (NULL != handle->ego_lookup)
+    GNUNET_IDENTITY_ego_lookup_cancel (handle->ego_lookup);
   if (NULL != handle->identity)
     GNUNET_IDENTITY_disconnect (handle->identity);
   if (NULL != handle->timeout_task)
@@ -370,6 +381,103 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
  * @param cd array of @a cd_count records with the results
  */
 static void
+handle_collect_response (void *cls,
+                        unsigned int d_count,
+                        struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
+                        unsigned int c_count,
+                        struct GNUNET_CREDENTIAL_Credential *cred)
+{
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
+  struct GNUNET_JSONAPI_Document *json_document;
+  struct GNUNET_JSONAPI_Resource *json_resource;
+  json_t *cred_obj;
+  json_t *cred_array;
+  char *result;
+  char *issuer;
+  char *id;
+  uint32_t i;
+
+  handle->verify_request = NULL;
+  if (NULL == cred) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Verify failed.\n");
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&handle->issuer_key);
+  if (NULL == issuer)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Issuer in delegation malformed\n");
+    return;
+  }
+  GNUNET_asprintf (&id,
+                   "%s.%s",
+                   issuer,
+                   handle->issuer_attr);
+  GNUNET_free (issuer);
+  json_document = GNUNET_JSONAPI_document_new ();
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO,
+                                               id);
+  GNUNET_free (id);
+  cred_array = json_array ();
+  for (i=0;i<c_count;i++)
+  {
+    cred_obj = credential_to_json (&cred[i]);
+    json_array_append_new (cred_array, cred_obj);
+  }
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    GNUNET_REST_JSONAPI_CREDENTIAL,
+                                    cred_array);
+  GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
+  GNUNET_JSONAPI_document_serialize (json_document, &result);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Result %s\n",
+              result);
+  json_decref (cred_array);
+  GNUNET_JSONAPI_document_delete (json_document);
+  resp = GNUNET_REST_create_response (result);
+  GNUNET_free(result);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  cleanup_handle (handle);
+}
+
+static void
+subject_ego_lookup (void *cls,
+                    const struct GNUNET_IDENTITY_Ego *ego)
+{
+  struct RequestHandle *handle = cls;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *sub_key;
+  handle->ego_lookup = NULL;
+
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Subject not found\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  sub_key = GNUNET_IDENTITY_ego_get_private_key (ego);
+  handle->verify_request = GNUNET_CREDENTIAL_collect (handle->credential,
+                                                      &handle->issuer_key,
+                                                      handle->issuer_attr,
+                                                      sub_key,
+                                                      &handle_collect_response,
+                                                      handle);
+}
+
+
+
+/**
+ * Function called with the result of a Credential lookup.
+ *
+ * @param cls the 'const char *' name that was resolved
+ * @param cd_count number of records returned
+ * @param cd array of @a cd_count records with the results
+ */
+static void
 handle_verify_response (void *cls,
                         unsigned int d_count,
                         struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
@@ -445,6 +553,107 @@ handle_verify_response (void *cls,
   GNUNET_free (result);
   cleanup_handle (handle);
 }
+
+static void
+collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
+                   const char* url,
+                   void *cls)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_HashCode key;
+  char *tmp;
+  char *entity_attr;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting...\n");
+  handle->credential = GNUNET_CREDENTIAL_connect (cfg);
+  handle->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->timeout,
+                                                       &do_error, handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connected\n");
+  if (NULL == handle->credential)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Connecting to CREDENTIAL failed\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_ISSUER_ATTR,
+                      strlen (GNUNET_REST_JSONAPI_CREDENTIAL_ISSUER_ATTR),
+                      &key);
+  if ( GNUNET_NO ==
+       GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
+                                               &key) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Missing issuer attribute\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    return;
+  }
+  tmp = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
+                                           &key);
+  entity_attr = GNUNET_strdup (tmp);
+  tmp = strtok(entity_attr, ".");
+  if (NULL == tmp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed issuer or attribute\n");
+    GNUNET_free (entity_attr);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (GNUNET_OK != 
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (tmp,
+                                                  strlen (tmp),
+                                                  &handle->issuer_key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed issuer key\n");
+    GNUNET_free (entity_attr);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  tmp = strtok (NULL, "."); //Issuer attribute
+  if (NULL == tmp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed attribute\n");
+    GNUNET_free (entity_attr);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->issuer_attr = GNUNET_strdup (tmp);
+  GNUNET_free (entity_attr);
+
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_EGO,
+                      strlen (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_EGO),
+                      &key);
+  if ( GNUNET_NO ==
+       GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
+                                               &key) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Missing subject\n");
+    GNUNET_free (entity_attr);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  tmp = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
+                                           &key);
+  if (NULL == tmp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed subject\n");
+    GNUNET_free (entity_attr);
+    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    return;
+  }
+  handle->ego_lookup = GNUNET_IDENTITY_ego_lookup (cfg,
+                                                   tmp,
+                                                   &subject_ego_lookup,
+                                                   handle);
+}
+
 
 
 static void
@@ -527,15 +736,15 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->issuer_attr = GNUNET_strdup (tmp);
   GNUNET_free (entity_attr);
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_ATTR,
-                      strlen (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_ATTR),
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_KEY,
+                      strlen (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_KEY),
                       &key);
   if ( GNUNET_NO ==
        GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
                                                &key) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Missing subject or attribute\n");
+                "Missing subject key\n");
     GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -560,7 +769,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_free (entity_attr);
 
   if (0 >= handle->rest_handle->data_size)
   {
@@ -596,28 +804,44 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   }
 
   resource_count = GNUNET_JSONAPI_document_resource_count(json_obj);
-  struct GNUNET_CREDENTIAL_Credential credentials[credential_count];
-  for (i=0;i<resource_count;i++)
+  GNUNET_assert (1 == resource_count);
+  res = (GNUNET_JSONAPI_document_get_resource(json_obj, 0));
+  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type(res,
+                                                      GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO))
   {
-    res = (GNUNET_JSONAPI_document_get_resource(json_obj, i));
-    if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type(res,
-                                                        GNUNET_REST_JSONAPI_CREDENTIAL_TYPEINFO))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Resource not a credential!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_JSONAPI_document_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  cred_json = GNUNET_JSONAPI_resource_read_attr (res,
+                                                 GNUNET_REST_JSONAPI_CREDENTIAL);
+
+  GNUNET_assert (json_is_array (cred_json));
+
+  credential_count = json_array_size(cred_json);
+
+  struct GNUNET_CREDENTIAL_Credential credentials[credential_count];
+  for (i=0;i<credential_count;i++)
+  {
+    cred = json_to_credential (json_array_get (cred_json, i));
+    if (NULL == cred)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Resource not a credential!\n");
+                  "Unable to parse credential!\n");
       continue;
     }
-    credential_count++;
-    cred_json = GNUNET_JSONAPI_resource_read_attr (res,
-                                                   GNUNET_REST_JSONAPI_CREDENTIAL);
-    cred = json_to_credential (cred_json);
     GNUNET_memcpy (&credentials[i],
                    cred,
                    sizeof (struct GNUNET_CREDENTIAL_Credential));
     credentials[i].issuer_attribute = GNUNET_strdup (cred->issuer_attribute);
     GNUNET_free (cred);
   }
-
+  GNUNET_JSONAPI_document_delete(json_obj);
   handle->verify_request = GNUNET_CREDENTIAL_verify (handle->credential,
                                                      &handle->issuer_key,
                                                      handle->issuer_attr,
@@ -888,7 +1112,8 @@ rest_credential_process_request(struct GNUNET_REST_RequestHandle *conndata_handl
   handle->rest_handle = conndata_handle;
 
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_CREDENTIAL_VERIFY, &verify_cred_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_CREDENTIAL_VERIFY, &verify_cred_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_CREDENTIAL_COLLECT, &collect_cred_cont},
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_CREDENTIAL_ISSUE, &issue_cred_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_CREDENTIAL, &options_cont},
     GNUNET_REST_HANDLER_END

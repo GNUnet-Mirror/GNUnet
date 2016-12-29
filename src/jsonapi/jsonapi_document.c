@@ -344,7 +344,7 @@ GNUNET_JSONAPI_document_to_json (const struct GNUNET_JSONAPI_Document *doc,
         GNUNET_assert (GNUNET_OK ==
                        GNUNET_JSONAPI_resource_to_json (res,
                                                         &res_json_tmp));
-        json_array_append (res_json, res_json_tmp);
+        json_array_append_new (res_json, res_json_tmp);
       }
     }
     json_object_set_new (*root_json,
