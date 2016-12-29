@@ -92,7 +92,11 @@ struct CredentialRecordEntry
    * DLL
    */
   struct CredentialRecordEntry *prev;
-
+  
+  /**
+   * Number of references in delegation chains
+   */
+  uint32_t refcount;
 
   /**
    * Payload
@@ -485,6 +489,7 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   struct GNUNET_CREDENTIAL_Delegation dd[vrh->delegation_chain_size];
   struct GNUNET_CREDENTIAL_Credential cred[vrh->cred_chain_size];
   struct CredentialRecordEntry *cd;
+  struct CredentialRecordEntry *tmp;
   size_t size;
   int i;
 
@@ -505,6 +510,26 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
       dd[i].subject_attribute_len = strlen(dce->subject_attribute)+1;
     }
     dce = dce->next;
+  }
+
+  /**
+   * Remove all credentials not needed
+   */
+  for (cd = vrh->cred_chain_head; NULL != cd;)
+  {
+    if (cd->refcount > 0)
+    {
+      cd = cd->next;
+      continue;
+    }
+    tmp = cd;
+    cd = cd->next;
+    GNUNET_CONTAINER_DLL_remove (vrh->cred_chain_head,
+                                 vrh->cred_chain_tail,
+                                 tmp);
+    GNUNET_free (tmp->credential);
+    GNUNET_free (tmp);
+    vrh->cred_chain_size--;
   }
 
   /**
@@ -681,7 +706,7 @@ backward_resolution (void* cls,
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Found issuer\n");
-
+        cred_pointer->refcount++;
         //Backtrack
         for (tmp_set = ds_entry;
              NULL != tmp_set->parent_queue_entry;
@@ -796,6 +821,7 @@ delegation_chain_resolution_start (void* cls)
       continue;
     if (0 != strcmp (cr_entry->credential->issuer_attribute, vrh->issuer_attribute))
       continue;
+    cr_entry->refcount++;
     //Found match prematurely
     send_lookup_response (vrh);
     return;

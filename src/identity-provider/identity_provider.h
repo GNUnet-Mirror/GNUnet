@@ -134,6 +134,11 @@ struct IssueMessage
   uint64_t nonce;
 
   /**
+   * Length of scopes
+   */
+  uint64_t scope_len;
+
+  /**
    * Expiration of token in NBO.
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;

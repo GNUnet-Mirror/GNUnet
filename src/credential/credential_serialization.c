@@ -192,7 +192,7 @@ GNUNET_CREDENTIAL_credentials_serialize (unsigned int c_count,
     c_rec.signature = cd[i].signature;
     c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
     c_rec.purpose.size = htonl ((sizeof (struct CredentialEntry) + cd[i].issuer_attribute_len) - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-    c_rec.expiration = htonl ((uint32_t) cd[i].expiration.abs_value_us);
+    c_rec.expiration = GNUNET_htonll (cd[i].expiration.abs_value_us);
     if (off + sizeof (c_rec) > dest_size)
       return -1;
     GNUNET_memcpy (&dest[off],
@@ -241,7 +241,7 @@ GNUNET_CREDENTIAL_credentials_deserialize (size_t len,
     cd[i].issuer_key = c_rec.issuer_key;
     cd[i].subject_key = c_rec.subject_key;
     cd[i].signature = c_rec.signature;
-    cd[i].expiration.abs_value_us = ntohl((uint32_t) c_rec.expiration);
+    cd[i].expiration.abs_value_us = GNUNET_ntohll(c_rec.expiration);
     off += sizeof (c_rec);
     if (off + cd[i].issuer_attribute_len > len)
       return GNUNET_SYSERR;

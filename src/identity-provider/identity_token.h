@@ -103,6 +103,11 @@ struct TokenAttrValue
    * used if NULL == value
    */
   uint64_t int_value;
+
+  /**
+   * Json value
+   */
+  json_t *json_value;
 };
 
 struct TokenTicketPayload
@@ -213,10 +218,10 @@ token_add_attr_int (struct IdentityToken *token,
  * @param value the value
  *
  */
-  void
-  token_add_json (const struct IdentityToken *token,
-                  const char* key,
-                  json_t* value);
+void
+token_add_attr_json (struct IdentityToken *token,
+                     const char* key,
+                     json_t* value);
 
 /**
  * Serialize a token. The token will be signed and base64 according to the
@@ -234,11 +239,11 @@ token_add_attr_int (struct IdentityToken *token,
  *
  * @return GNUNET_OK on success
  */
-  int 
-  token_serialize (const struct IdentityToken*token,
-                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                   struct GNUNET_CRYPTO_EcdhePrivateKey **ecdhe_privkey,
-                   char **result);
+int 
+token_serialize (const struct IdentityToken*token,
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 struct GNUNET_CRYPTO_EcdhePrivateKey **ecdhe_privkey,
+                 char **result);
 
 /**
  * Parses the serialized token and returns a token
@@ -249,10 +254,10 @@ token_add_attr_int (struct IdentityToken *token,
  *
  * @return GNUNET_OK on success
  */
-               int
-               token_parse (const char* data,
-                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                            struct IdentityToken **result);
+int
+token_parse (const char* data,
+             const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+             struct IdentityToken **result);
 
 /**
  * Parses the serialized token and returns a token
@@ -283,10 +288,10 @@ token_parse2 (const char* data,
  *
  * @return GNUNET_OK on success
  */
-  int
-  token_to_string (const struct IdentityToken *token,
-                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                   char **result);
+int
+token_to_string (const struct IdentityToken *token,
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 char **result);
 
 /**
  *
@@ -316,10 +321,10 @@ ticket_create (uint64_t nonce,
  *
  * @return GNUNET_OK on success
  */
-  int
-  ticket_serialize (struct TokenTicket *ticket,
-                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                    char **result);
+int
+ticket_serialize (struct TokenTicket *ticket,
+                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                  char **result);
 
 /**
  * Destroys a ticket

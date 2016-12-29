@@ -257,6 +257,38 @@ token_destroy (struct IdentityToken *token)
 }
 
 void
+token_add_attr_json (struct IdentityToken *token,
+                     const char* key,
+                     json_t* value)
+{
+  struct TokenAttr *attr;
+  struct TokenAttrValue *new_val;
+  GNUNET_assert (NULL != token);
+
+  new_val = GNUNET_malloc (sizeof (struct TokenAttrValue));
+  new_val->json_value = value;
+  json_incref(value);
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    if (0 == strcmp (key, attr->name))
+      break;
+  }
+
+  if (NULL == attr)
+  {
+    attr = GNUNET_malloc (sizeof (struct TokenAttr));
+    attr->name = GNUNET_strdup (key);
+    GNUNET_CONTAINER_DLL_insert (token->attr_head,
+                                 token->attr_tail,
+                                 attr);
+  }
+
+  GNUNET_CONTAINER_DLL_insert (attr->val_head,
+                               attr->val_tail,
+                               new_val);
+}
+
+void
 token_add_attr (struct IdentityToken *token,
                 const char* key,
                 const char* value)
@@ -345,17 +377,23 @@ parse_json_payload(const char* payload_base64,
         if (json_is_integer (arr_value))
           token_add_attr_int (token, key,
                               json_integer_value (arr_value));
-        else
+        else if (json_is_string (arr_value))
           token_add_attr (token,
                           key,
                           json_string_value (arr_value));
+        else
+          token_add_attr_json (token,
+                               key,
+                               (json_t*)arr_value);
       }
     } else {
       if (json_is_integer (value))
         token_add_attr_int (token, key,
                             json_integer_value (value));
-      else
+      else if (json_is_string (value))
         token_add_attr (token, key, json_string_value (value));
+      else
+        token_add_attr_json (token, key, (json_t*)value);
     }
   }
 
@@ -424,7 +462,7 @@ token_parse (const char* raw_data,
   GNUNET_asprintf (&tmp_buf, "%s", raw_data);
   ecdh_pubkey_str = strtok (tmp_buf, ",");
   enc_token_str = strtok (NULL, ",");
-  
+
   GNUNET_assert (NULL != ecdh_pubkey_str);
   GNUNET_assert (NULL != enc_token_str);
 
@@ -476,7 +514,11 @@ create_json_payload (const struct IdentityToken *token)
         json_object_set_new (root,
                              attr->name,
                              json_string (val->value)); 
-      } else {
+      } else if (NULL != val->json_value) {
+        json_object_set (root,
+                         attr->name,
+                         val->json_value);
+      }else {
         json_object_set_new (root,
                              attr->name,
                              json_integer (val->int_value));
@@ -715,8 +757,8 @@ ticket_serialize (struct TokenTicket *ticket,
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET);
   write_ptr = (char*) &purpose[1];
   GNUNET_memcpy (write_ptr,
-          &ticket->ecdh_pubkey,
-          sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+                 &ticket->ecdh_pubkey,
+                 sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
   GNUNET_memcpy (write_ptr, enc_ticket_payload, strlen (code_payload_str));
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign (priv_key,
@@ -825,7 +867,7 @@ ticket_payload_parse(const char *raw_data,
 
   nonce_str = json_string_value (nonce_json);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found nonce: %s\n", nonce_str);
-  
+
   GNUNET_assert (0 != sscanf (nonce_str, "%"SCNu64, &nonce));
 
   *result = ticket_payload_create (nonce,

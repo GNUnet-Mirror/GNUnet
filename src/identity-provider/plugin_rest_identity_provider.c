@@ -110,6 +110,12 @@
 #define GNUNET_IDENTITY_TOKEN_ATTR_LIST "requested_attrs"
 
 /**
+ * Attributes passed to issue request
+ */
+#define GNUNET_IDENTITY_TOKEN_V_ATTR_LIST "requested_verified_attrs"
+
+
+/**
  * Token expiration string
  */
 #define GNUNET_IDENTITY_TOKEN_EXP_STRING "expiration"
@@ -460,6 +466,7 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
   char *exp_str;
   char *nonce_str;
   char *scopes;
+  char *vattrs;
   uint64_t time;
   uint64_t nonce;
 
@@ -536,6 +543,21 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
   scopes = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                               &key);
 
+  //vattrs
+  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_V_ATTR_LIST,
+                      strlen (GNUNET_IDENTITY_TOKEN_V_ATTR_LIST),
+                      &key);
+
+  vattrs = NULL;
+  if ( GNUNET_YES ==
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    vattrs = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                &key);
+  }
+
+
 
   //Token audience
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST,
@@ -547,15 +569,15 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
                                                &key) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Audience missing!\n");
+                "Audience missing!\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   audience = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                 &key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Audience to issue token for: %s\n",
-	      audience);
+              "Audience to issue token for: %s\n",
+              audience);
 
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
@@ -581,8 +603,8 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                  &key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request nonce: %s\n",
-	      nonce_str);
+              "Request nonce: %s\n",
+              nonce_str);
   GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &nonce));
 
   //Get expiration for token from URL parameter
@@ -619,6 +641,7 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
                                                          priv_key,
                                                          &aud_key,
                                                          scopes,
+                                                         vattrs,
                                                          exp_time,
                                                          nonce,
                                                          &token_creat_cont,
@@ -739,16 +762,16 @@ token_collect (void *cls,
                                                rd[i].data_size);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token: %s\n", data);
       json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                                        label);
+                                                   label);
       issuer = json_string (handle->ego_head->identifier);
       GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                             GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
-                                             issuer);
+                                        GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
+                                        issuer);
       json_decref (issuer);
       token = json_string (data);
       GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                             GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                             token);
+                                        GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
+                                        token);
       json_decref (token);
 
       GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
@@ -865,7 +888,7 @@ exchange_cont (void *cls,
     return;
   }
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                  &key);
+                                                 &key);
   GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &expected_nonce));
 
   if (ticket_nonce != expected_nonce)

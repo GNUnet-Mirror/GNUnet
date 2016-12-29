@@ -430,6 +430,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
                                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss_key,
                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                                       const char* scopes,
+                                      const char* vattr,
                                       struct GNUNET_TIME_Absolute expiration,
                                       uint64_t nonce,
                                       GNUNET_IDENTITY_PROVIDER_IssueCallback cb,
@@ -440,6 +441,8 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   size_t slen;
 
   slen = strlen (scopes) + 1;
+  if (NULL != vattr)
+    slen += strlen (vattr) + 1;
   if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
   {
     GNUNET_break (0);
@@ -456,9 +459,14 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   im->id = op->r_id;
   im->iss_key = *iss_key;
   im->aud_key = *aud_key;
+  im->scope_len = htonl (strlen(scopes)+1);
   im->nonce = htonl (nonce);
   im->expiration = GNUNET_TIME_absolute_hton (expiration);
-  GNUNET_memcpy (&im[1], scopes, slen);
+  GNUNET_memcpy (&im[1], scopes, strlen(scopes));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "VATTRAPI: %s\n", vattr);
+  if (NULL != vattr)
+    GNUNET_memcpy ((char*)&im[1]+strlen(scopes)+1, vattr, strlen(vattr));
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
                                     id->op_tail,
                                     op);

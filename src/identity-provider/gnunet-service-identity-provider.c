@@ -30,6 +30,7 @@
 #include "gnunet_identity_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_credential_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_signatures.h"
@@ -93,6 +94,11 @@ static struct GNUNET_NAMESTORE_Handle *ns_handle;
 static struct GNUNET_GNS_Handle *gns_handle;
 
 /**
+ * Credential handle
+ */
+static struct GNUNET_CREDENTIAL_Handle *credential_handle;
+
+/**
  * Namestore qe
  */
 static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
@@ -153,6 +159,23 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+struct VerifiedAttributeEntry
+{
+  /**
+   * DLL
+   */
+  struct VerifiedAttributeEntry *prev;
+
+  /**
+   * DLL
+   */
+  struct VerifiedAttributeEntry *next;
+
+  /**
+   * Attribute Name
+   */
+  char* name;
+};
 
 struct ExchangeHandle
 {
@@ -227,6 +250,16 @@ struct IssueHandle
   char *scopes;
 
   /**
+   * DLL
+   */
+  struct VerifiedAttributeEntry *v_attr_head;
+
+  /**
+   * DLL
+   */
+  struct VerifiedAttributeEntry *v_attr_tail;
+
+  /**
    * nonce
    */
   uint64_t nonce;
@@ -235,6 +268,11 @@ struct IssueHandle
    * NS iterator
    */
   struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
+
+  /**
+   * Cred request
+   */
+  struct GNUNET_CREDENTIAL_Request *credential_request;
 
   /**
    * Attribute map
@@ -876,6 +914,8 @@ cleanup()
     GNUNET_IDENTITY_disconnect (identity_handle);
   if (NULL != gns_handle)
     GNUNET_GNS_disconnect (gns_handle);
+  if (NULL != credential_handle)
+    GNUNET_CREDENTIAL_disconnect (credential_handle);
   if (NULL != ns_it)
     GNUNET_NAMESTORE_zone_iteration_stop (ns_it);
   if (NULL != ns_qe)
@@ -1114,6 +1154,108 @@ sign_and_return_token (void *cls)
   GNUNET_free (token_metadata);
 }
 
+/**
+ * Credential to JSON
+ * @param cred the credential
+ * @return the resulting json, NULL if failed
+ */
+static json_t*
+credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
+{
+  char *issuer;
+  char *subject;
+  char *signature;
+  char attribute[cred->issuer_attribute_len + 1];
+  json_t *cred_obj;
+
+  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
+  if (NULL == issuer)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Issuer in credential malformed\n");
+    return NULL;
+  }  
+  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
+  if (NULL == subject)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Subject in credential malformed\n");
+    GNUNET_free (issuer);
+    return NULL;
+  }
+  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
+                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                &signature);
+  memcpy (attribute,
+          cred->issuer_attribute,
+          cred->issuer_attribute_len);
+  attribute[cred->issuer_attribute_len] = '\0';
+  cred_obj = json_object ();
+  json_object_set_new (cred_obj, "issuer", json_string (issuer));
+  json_object_set_new (cred_obj, "subject", json_string (subject));
+  json_object_set_new (cred_obj, "attribute", json_string (attribute));
+  json_object_set_new (cred_obj, "signature", json_string (signature));
+  json_object_set_new (cred_obj, "expiration", json_integer (cred->expiration.abs_value_us));
+  GNUNET_free (issuer);
+  GNUNET_free (subject);
+  GNUNET_free (signature);
+  return cred_obj;
+}
+
+
+static void
+handle_vattr_collection (void* cls,
+                         unsigned int d_count,
+                         struct GNUNET_CREDENTIAL_Delegation *dc,
+                         unsigned int c_count,
+                         struct GNUNET_CREDENTIAL_Credential *cred)
+{
+  struct IssueHandle *handle = cls;
+  struct VerifiedAttributeEntry *vattr;
+  json_t *cred_json;
+  json_t *cred_array;
+  int i;
+  handle->credential_request = NULL;
+
+  if (NULL == cred)
+  {
+    GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+    return;
+  }
+  cred_array = json_array();
+  for (i=0;i<c_count;i++)
+  {
+    cred_json = credential_to_json (cred);
+    if (NULL == cred_json)
+      continue;
+    json_array_append (cred_array, cred_json);
+    token_add_attr_json (handle->token,
+                    handle->v_attr_head->name,
+                    cred_array);
+  }
+  json_decref (cred_array);
+  vattr = handle->v_attr_head;
+
+  GNUNET_CONTAINER_DLL_remove (handle->v_attr_head,
+                               handle->v_attr_tail,
+                               vattr);
+  GNUNET_free (vattr->name);
+  GNUNET_free (vattr);
+  
+  if (NULL == handle->v_attr_head)
+  {
+    GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+    return;
+  }
+  handle->credential_request = GNUNET_CREDENTIAL_collect (credential_handle,
+                                                          &handle->aud_key,
+                                                          handle->v_attr_head->name,
+                                                          &handle->iss_key,
+                                                          &handle_vattr_collection,
+                                                          handle);
+
+}
+
 
 static void
 attr_collect_error (void *cls)
@@ -1133,10 +1275,19 @@ attr_collect_finished (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute END: \n");
   handle->ns_it = NULL;
-  GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+
+  if (NULL == handle->v_attr_head)
+  {
+    GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+    return;
+  }
+  handle->credential_request = GNUNET_CREDENTIAL_collect (credential_handle,
+                                                          &handle->aud_key,
+                                                          handle->v_attr_head->name,
+                                                          &handle->iss_key,
+                                                          &handle_vattr_collection,
+                                                          handle);
 }
-
-
 /**
  * Collect attributes for token
  */
@@ -1532,11 +1683,14 @@ handle_issue_message (void *cls,
   const char *scopes;
   char *scopes_tmp;
   char *scope;
+  const char *v_attrs;
   struct GNUNET_HashCode key;
   struct IssueHandle *issue_handle;
+  struct VerifiedAttributeEntry *vattr_entry;
   struct GNUNET_SERVICE_Client *client = cls;
 
   scopes = (const char *) &im[1];
+  v_attrs = (const char *) &im[1] + ntohl(im->scope_len);
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
@@ -1553,6 +1707,22 @@ handle_issue_message (void *cls,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   GNUNET_free (scopes_tmp);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "VATTRS: %s\n", v_attrs);
+  scopes_tmp = GNUNET_strdup (v_attrs);
+
+  for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
+  {
+    vattr_entry = GNUNET_new (struct VerifiedAttributeEntry);
+    vattr_entry->name = GNUNET_strdup (scope);
+    GNUNET_CONTAINER_DLL_insert (issue_handle->v_attr_head,
+                                 issue_handle->v_attr_tail,
+                                 vattr_entry);
+  }
+  GNUNET_free (scopes_tmp);
+
+
+
   issue_handle->r_id = im->id;
   issue_handle->aud_key = im->aud_key;
   issue_handle->iss_key = im->iss_key;
@@ -1606,7 +1776,11 @@ run (void *cls,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connecting to gns");
   }
-
+  credential_handle = GNUNET_CREDENTIAL_connect (cfg);
+  if (NULL == credential_handle)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connecting to credential");
+  }
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              &list_ego,
                                              NULL);
