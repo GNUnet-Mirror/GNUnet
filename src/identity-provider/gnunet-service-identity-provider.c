@@ -1707,8 +1707,6 @@ handle_issue_message (void *cls,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   GNUNET_free (scopes_tmp);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "VATTRS: %s\n", v_attrs);
   scopes_tmp = GNUNET_strdup (v_attrs);
 
   for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))

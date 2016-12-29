@@ -463,8 +463,6 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   im->nonce = htonl (nonce);
   im->expiration = GNUNET_TIME_absolute_hton (expiration);
   GNUNET_memcpy (&im[1], scopes, strlen(scopes));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "VATTRAPI: %s\n", vattr);
   if (NULL != vattr)
     GNUNET_memcpy ((char*)&im[1]+strlen(scopes)+1, vattr, strlen(vattr));
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
