@@ -28,9 +28,12 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - test ICMP based NAT traversal
+ * - test and document (!) ICMP based NAT traversal
+ * - implement manual hole punching support (incl. DNS
+ *   lookup for DynDNS setups!)
  * - implement "more" autoconfig:
  *   re-work gnunet-nat-server & integrate!
+ *   + test manually punched NAT (how?)
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
  * - implement NEW logic for external IP detection
@@ -129,6 +132,16 @@ struct ClientHandle
    * Array of addresses used by the service.
    */
   struct ClientAddress *caddrs;
+
+  /**
+   * External DNS name and port given by user due to manual
+   * hole punching.  Special DNS name 'AUTO' is used to indicate
+   * desire for automatic determination of the external IP 
+   * (instead of DNS or manual configuration, i.e. to be used 
+   * if the IP keeps changing and we have no DynDNS, but we do
+   * have a hole punched).
+   */
+  char *hole_external;
   
   /**
    * What does this client care about?
@@ -140,12 +153,6 @@ struct ClientHandle
    */
   int natted_address;
   
-  /**
-   * Port we would like as we are configured to use this one for
-   * advertising (in addition to the one we are binding to).
-   */
-  uint16_t adv_port;
-
   /**
    * Number of addresses that this service is bound to.
    * Length of the @e caddrs array.
@@ -459,7 +466,14 @@ check_register (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;      
     }
-  }  
+    off += alen;
+    left -= alen;
+  }
+  if (left != ntohs (message->hole_external_len))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;      
+  }
   return GNUNET_OK; 
 }
 
@@ -870,36 +884,33 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
 					  int add)
 {
   struct sockaddr_in sa;
-  uint16_t port;
-  uint16_t bport;
+  int have_v4;
 
   /* (1) check if client cares. */
   if (! ch->natted_address)
     return;
   if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
     return;
-  bport = 0;
+  have_v4 = GNUNET_NO;
   for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
     const struct sockaddr_storage *ss = &ch->caddrs[i].ss;
 
     if (AF_INET != ss->ss_family)
       continue;
-    bport = ntohs (((const struct sockaddr_in *) ss)->sin_port);
+    have_v4 = GNUNET_YES;
+    break;
   }
-  if (0 == bport)
+  if (GNUNET_NO == have_v4)
     return; /* IPv6-only */
-  
-  /* (2) figure out external port, build sockaddr */
-  port = ch->adv_port;
-  if (0 == port)
-    port = bport;
+
+  /* build address info */
   memset (&sa,
 	  0,
 	  sizeof (sa));
   sa.sin_family = AF_INET;
   sa.sin_addr = *v4;
-  sa.sin_port = htons (port);
+  sa.sin_port = htons (0);
   
   /* (3) notify client of change */
   notify_client (is_nat_v4 (v4)
@@ -1303,7 +1314,6 @@ handle_register (void *cls,
 	      "Received REGISTER message from client\n");
   ch->flags = message->flags;
   ch->proto = message->proto;
-  ch->adv_port = ntohs (message->adv_port);
   ch->num_caddrs = ntohs (message->num_addrs);
   ch->caddrs = GNUNET_new_array (ch->num_caddrs,
 				 struct ClientAddress);
@@ -1379,6 +1389,11 @@ handle_register (void *cls,
 
     off += alen;
   }
+
+  ch->hole_external
+    = GNUNET_strndup (off,
+		      ntohs (message->hole_external_len));
+    
   /* Actually send IP address list to client */
   for (struct LocalAddressList *lal = lal_head;
        NULL != lal;
@@ -1450,7 +1465,7 @@ notify_clients_stun_change (const struct sockaddr_in *ip,
     if (! ch->natted_address)
       continue;
     v4 = *ip;
-    v4.sin_port = htons (ch->adv_port);
+    v4.sin_port = htons (0);
     env = GNUNET_MQ_msg_extra (msg,
 			       sizeof (v4),
 			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
@@ -2132,6 +2147,7 @@ client_disconnect_cb (void *cls,
     }
   }
   GNUNET_free_non_null (ch->caddrs);
+  GNUNET_free (ch->hole_external);
   GNUNET_free (ch);
 }
 

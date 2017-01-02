@@ -110,10 +110,11 @@ struct GNUNET_NAT_RegisterMessage
   uint8_t proto;
 
   /**
-   * Port we would like as we are configured to use this one for
-   * advertising (in addition to the one we are binding to).
+   * Number of bytes in the string that follow which
+   * specify the hostname and port of a manually punched
+   * hole for this client.
    */
-  uint16_t adv_port GNUNET_PACKED;
+  uint16_t hole_external_len GNUNET_PACKED;
 
   /**
    * Number of addresses that this service is bound to that follow.
@@ -124,6 +125,9 @@ struct GNUNET_NAT_RegisterMessage
 
   /* Followed by @e num_addrs addresses of type 'struct
      sockaddr' */
+
+  /* Followed by @e hole_external_len bytes giving a hostname
+     and port */
   
 };
 

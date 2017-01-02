@@ -180,8 +180,7 @@ struct GNUNET_NAT_Handle;
  *
  * @param cfg configuration to use
  * @param proto protocol this is about, IPPROTO_TCP or IPPROTO_UDP
- * @param adv_port advertised port (port we are either bound to or that our OS
- *                 locally performs redirection from to our bound port).
+ * @param hole_external hostname and port of manually punched hole in NAT, otherwise NULL (or empty string)
  * @param num_addrs number of addresses in @a addrs
  * @param addrs list of local addresses packets should be redirected to
  * @param addrlens actual lengths of the addresses in @a addrs
@@ -194,7 +193,7 @@ struct GNUNET_NAT_Handle;
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      uint8_t proto,
-                     uint16_t adv_port,
+                     const char *hole_external,
                      unsigned int num_addrs,
                      const struct sockaddr **addrs,
                      const socklen_t *addrlens,
