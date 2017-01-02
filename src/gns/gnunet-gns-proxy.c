@@ -1761,7 +1761,8 @@ create_response (void *cls,
   {
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Processing %lu bytes UPLOAD\n", *upload_data_size);
+                "Processing %u bytes UPLOAD\n",
+		(unsigned int) *upload_data_size);
     
     /* FIXME: This must be set or a header with Transfer-Encoding: chunked. Else
      * upload callback is not called!
