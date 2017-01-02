@@ -155,15 +155,11 @@ typedef void
  * reversal.
  *
  * @param cls closure
- * @param local_addr address where we received the request
- * @param local_addrlen actual length of the @a local_addr
  * @param remote_addr public IP address of the other peer
  * @param remote_addrlen actual length of the @a remote_addr
  */
 typedef void
 (*GNUNET_NAT_ReversalCallback) (void *cls,
-                                const struct sockaddr *local_addr,
-                                socklen_t local_addrlen,
 				const struct sockaddr *remote_addr,
                                 socklen_t remote_addrlen);
 

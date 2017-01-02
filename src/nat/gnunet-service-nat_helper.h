@@ -56,7 +56,7 @@ typedef void
  * @return NULL on error
  */
 struct HelperContext *
-GN_start_gnunet_nat_server_ (const char *internal_address,
+GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
 			     GN_ReversalCallback cb,
 			     void *cb_cls);
 

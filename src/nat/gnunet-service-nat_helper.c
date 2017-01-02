@@ -39,7 +39,7 @@ struct HelperContext
   /**
    * IP address we pass to the NAT helper.
    */
-  const char *internal_address;
+  struct in_addr internal_address;
 
   /**
    * Function to call if we receive a reversal request.
@@ -220,6 +220,7 @@ restart_nat_server (void *cls)
 {
   struct HelperContext *h = cls;
   char *binary;
+  char ia[INET_ADDRSTRLEN];
   
   h->server_read_task = NULL;
   h->server_stdout 
@@ -232,10 +233,15 @@ restart_nat_server (void *cls)
     try_again (h);
     return;
   }
+  GNUNET_assert (NULL !=
+		 inet_ntop (AF_INET,
+			    &h->internal_address,
+			    ia,
+			    sizeof (ia)));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Starting `%s' at `%s'\n",
        "gnunet-helper-nat-server",
-       h->internal_address);
+       ia);
   /* Start the server process */
   binary
     = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
@@ -247,7 +253,7 @@ restart_nat_server (void *cls)
 			       NULL,
 			       binary,
 			       "gnunet-helper-nat-server",
-			       h->internal_address,
+			       ia,
 			       NULL);
   GNUNET_free (binary);
   if (NULL == h->server_proc)
@@ -285,7 +291,7 @@ restart_nat_server (void *cls)
  * @return NULL on error
  */
 struct HelperContext *
-GN_start_gnunet_nat_server_ (const char *internal_address,
+GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
 			     GN_ReversalCallback cb,
 			     void *cb_cls)
 {
@@ -294,8 +300,7 @@ GN_start_gnunet_nat_server_ (const char *internal_address,
   h = GNUNET_new (struct HelperContext);
   h->cb = cb;
   h->cb_cls = cb_cls;
-  h->internal_address
-    = internal_address;
+  h->internal_address = *internal_address;
   if (NULL == h->server_stdout)
   {
     GN_stop_gnunet_nat_server_ (h);

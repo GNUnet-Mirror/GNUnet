@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2016 GNUnet e.V.
+  Copyright (C) 2016, 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -175,6 +175,12 @@ struct LocalAddressList
    */
   struct LocalAddressList *prev;
 
+  /**
+   * Context for a gnunet-helper-nat-server used to listen
+   * for ICMP messages to this client for connection reversal.
+   */
+  struct HelperContext *hc;
+  
   /**
    * The address itself (i.e. `struct sockaddr_in` or `struct
    * sockaddr_in6`, in the respective byte order).
@@ -395,6 +401,11 @@ destroy_lal ()
     GNUNET_CONTAINER_DLL_remove (lal_head,
 				 lal_tail,
 				 lal);
+    if (NULL != lal->hc)
+    {
+      GN_stop_gnunet_nat_server_ (lal->hc);
+      lal->hc = NULL;
+    }
     GNUNET_free (lal);
   }
 }
@@ -718,10 +729,12 @@ check_notify_client (struct LocalAddressList *delta,
     GNUNET_memcpy (&v4,
 		   &delta->addr,
 		   alen);
+    
+    /* Check for client notifications */
     for (unsigned int i=0;i<ch->num_caddrs;i++)
     {
       const struct sockaddr_in *c4;
-      
+
       if (AF_INET != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
       c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
@@ -890,7 +903,7 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
   
   /* (3) notify client of change */
   notify_client (is_nat_v4 (v4)
-		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN_PRIVATE 
+		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN 
 		 : GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_GLOBAL,
 		 ch,
 		 add,
@@ -1006,6 +1019,65 @@ run_external_ip (void *cls)
 
 
 /**
+ * We got a connection reversal request from another peer.
+ * Notify applicable clients.
+ *
+ * @param cls closure with the `struct LocalAddressList` 
+ * @param ra IP address of the peer who wants us to connect to it 
+ */
+static void
+reversal_callback (void *cls,
+		   const struct sockaddr_in *ra)
+{
+  struct LocalAddressList *lal = cls;
+  const struct sockaddr_in *l4;
+
+  GNUNET_assert (AF_INET == lal->af);
+  l4 = (const struct sockaddr_in *) &lal->addr;
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+  {    
+    struct GNUNET_NAT_ConnectionReversalRequestedMessage *crrm;
+    struct GNUNET_MQ_Envelope *env;
+    int match;
+
+    /* Check if client is in applicable range for ICMP NAT traversal
+       for this local address */
+    if (! ch->natted_address)
+      continue;
+    match = GNUNET_NO;
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
+    {
+      struct ClientAddress *ca = &ch->caddrs[i];
+      const struct sockaddr_in *c4;
+      
+      if (AF_INET != ca->ss.ss_family)
+	continue;
+      c4 = (const struct sockaddr_in *) &ca->ss;
+      if ( (0 != c4->sin_addr.s_addr) &&
+	   (l4->sin_addr.s_addr != c4->sin_addr.s_addr) )
+	continue;
+      match = GNUNET_YES;
+      break;
+    }
+    if (! match)
+      continue;
+
+    /* Notify applicable client about connection reversal request */
+    env = GNUNET_MQ_msg_extra (crrm,
+			       sizeof (struct sockaddr_in),
+			       GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED);
+    GNUNET_memcpy (&crrm[1],
+		   ra,
+		   sizeof (struct sockaddr_in));
+    GNUNET_MQ_send (ch->mq,
+		    env);
+  }
+}
+
+
+/**
  * Task we run periodically to scan for network interfaces.
  *
  * @param cls NULL
@@ -1041,7 +1113,11 @@ run_scan (void *cls)
 			 (AF_INET == lal->af)
 			 ? sizeof (struct sockaddr_in)
 			 : sizeof (struct sockaddr_in6))) )
+      {
 	found = GNUNET_YES;
+	pos->hc = lal->hc;
+	lal->hc = NULL;
+      }
     }
     if (GNUNET_NO == found)
       notify_clients (lal,
@@ -1072,6 +1148,17 @@ run_scan (void *cls)
     if (GNUNET_NO == found)
       notify_clients (pos,
 		      GNUNET_YES);
+    if ( (AF_INET == pos->af) &&
+	 (NULL == pos->hc) &&
+	 (0 != (GNUNET_NAT_AC_LAN & pos->ac)) )
+    {
+      const struct sockaddr_in *s4
+	= (const struct sockaddr_in *) &pos->addr;
+      
+      pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
+					     &reversal_callback,
+					     pos);
+    }
   }
   if ( (GNUNET_YES == have_nat) &&
        (GNUNET_YES == enable_upnp) &&
@@ -1164,12 +1251,12 @@ upnp_addr_change_cb (void *cls,
   {
   case AF_INET:
     ac = is_nat_v4 (&((const struct sockaddr_in *) addr)->sin_addr)
-      ? GNUNET_NAT_AC_LAN_PRIVATE
+      ? GNUNET_NAT_AC_LAN
       : GNUNET_NAT_AC_EXTERN;
     break;
   case AF_INET6:
     ac = is_nat_v6 (&((const struct sockaddr_in6 *) addr)->sin6_addr)
-      ? GNUNET_NAT_AC_LAN_PRIVATE
+      ? GNUNET_NAT_AC_LAN
       : GNUNET_NAT_AC_EXTERN;
     break;
   default:

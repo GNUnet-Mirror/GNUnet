@@ -191,19 +191,7 @@ struct GNUNET_NAT_ConnectionReversalRequestedMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * Size of the local address where we received the request, in NBO.
-   */
-  uint16_t local_addr_size;
-
-  /**
-   * Size of the remote address making the request, in NBO.
-   */
-  uint16_t remote_addr_size;
-
-  /* followed by a `struct sockaddr` of @e local_addr_size bytes */
-
-  /* followed by a `struct sockaddr` of @e remote_addr_size bytes */
+  /* followed by a `struct sockaddr_in` */
   
 };
 

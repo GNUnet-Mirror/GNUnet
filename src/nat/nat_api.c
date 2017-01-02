@@ -176,14 +176,7 @@ check_connection_reversal_request (void *cls,
 {
   if (ntohs (crm->header.size) !=
       sizeof (*crm) +
-      ntohs (crm->local_addr_size) +
-      ntohs (crm->remote_addr_size) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if ( (sizeof (struct sockaddr_in) != ntohs (crm->local_addr_size)) ||
-       (sizeof (struct sockaddr_in) != ntohs (crm->remote_addr_size)) )
+      sizeof (struct sockaddr_in) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -203,13 +196,9 @@ handle_connection_reversal_request (void *cls,
 				    const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
 {
   struct GNUNET_NAT_Handle *nh = cls;
-  const struct sockaddr_in *local_sa = (const struct sockaddr_in *) &crm[1];
-  const struct sockaddr_in *remote_sa = &local_sa[1];
 
   nh->reversal_callback (nh->callback_cls,
-			 (const struct sockaddr *) local_sa,
-			 sizeof (struct sockaddr_in),
-			 (const struct sockaddr *) remote_sa,
+			 (const struct sockaddr *) &crm[1],
 			 sizeof (struct sockaddr_in));
 }
 

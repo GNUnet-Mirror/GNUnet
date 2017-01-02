@@ -338,15 +338,11 @@ address_cb (void *cls,
  * reversal.
  *
  * @param cls closure, NULL
- * @param local_addr address where we received the request
- * @param local_addrlen actual length of the @a local_addr
  * @param remote_addr public IP address of the other peer
  * @param remote_addrlen actual length of the @a remote_addr
  */
 static void
 reversal_cb (void *cls,
-	     const struct sockaddr *local_addr,
-	     socklen_t local_addrlen,
 	     const struct sockaddr *remote_addr,
 	     socklen_t remote_addrlen)
 {
@@ -579,6 +575,14 @@ run (void *cls,
 			      &address_cb,
 			      (listen_reversal) ? &reversal_cb : NULL,
 			      NULL);
+  }
+  else if (listen_reversal)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		"Use of `-W` only effective in combination with `-i`\n");    
+    global_ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 
   if (NULL != remote_addr)
