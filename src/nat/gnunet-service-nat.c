@@ -396,6 +396,31 @@ static struct in_addr mini_external_ipv4;
 
 
 /**
+ * Remove and free an entry from the #lal_head DLL.
+ *
+ * @param lal entry to free
+ */
+static void
+free_lal (struct LocalAddressList *lal)
+{
+  GNUNET_CONTAINER_DLL_remove (lal_head,
+			       lal_tail,
+			       lal);
+  if (NULL != lal->hc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		"Lost NATed local address %s, stopping NAT server\n",
+		GNUNET_a2s ((const struct sockaddr *) &lal->addr,
+			    sizeof (struct sockaddr_in)));
+
+    GN_stop_gnunet_nat_server_ (lal->hc);
+    lal->hc = NULL;
+  }
+  GNUNET_free (lal);
+}
+
+
+/**
  * Free the DLL starting at #lal_head.
  */ 
 static void
@@ -404,17 +429,7 @@ destroy_lal ()
   struct LocalAddressList *lal;
 
   while (NULL != (lal = lal_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (lal_head,
-				 lal_tail,
-				 lal);
-    if (NULL != lal->hc)
-    {
-      GN_stop_gnunet_nat_server_ (lal->hc);
-      lal->hc = NULL;
-    }
-    GNUNET_free (lal);
-  }
+    free_lal (lal);
 }
 
 
@@ -1099,6 +1114,7 @@ run_scan (void *cls)
   struct IfcProcContext ifc_ctx;
   int found;
   int have_nat;
+  struct LocalAddressList *lnext;
   
   scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
 					    &run_scan,
@@ -1111,8 +1127,9 @@ run_scan (void *cls)
   /* remove addresses that disappeared */
   for (struct LocalAddressList *lal = lal_head;
        NULL != lal;
-       lal = lal->next)
+       lal = lnext)
   {
+    lnext = lal->next;
     found = GNUNET_NO;
     for (struct LocalAddressList *pos = ifc_ctx.lal_head;
 	 NULL != pos;
@@ -1126,20 +1143,21 @@ run_scan (void *cls)
 			 : sizeof (struct sockaddr_in6))) )
       {
 	found = GNUNET_YES;
-	pos->hc = lal->hc;
-	lal->hc = NULL;
       }
     }
     if (GNUNET_NO == found)
+    {
       notify_clients (lal,
 		      GNUNET_NO);
+      free_lal (lal);
+    }
   }
 
   /* add addresses that appeared */
   have_nat = GNUNET_NO;
   for (struct LocalAddressList *pos = ifc_ctx.lal_head;
        NULL != pos;
-       pos = pos->next)
+       pos = ifc_ctx.lal_head)
   {
     found = GNUNET_NO;
     if (GNUNET_NAT_AC_LAN == (GNUNET_NAT_AC_LAN & pos->ac))
@@ -1156,19 +1174,34 @@ run_scan (void *cls)
 			 : sizeof (struct sockaddr_in6))) )
 	found = GNUNET_YES;
     }
-    if (GNUNET_NO == found)
+    GNUNET_CONTAINER_DLL_remove (ifc_ctx.lal_head,
+				 ifc_ctx.lal_tail,
+				 pos);
+    if (GNUNET_YES == found)
+    {
+      GNUNET_free (pos);
+    }
+    else
+    {
       notify_clients (pos,
 		      GNUNET_YES);
-    if ( (AF_INET == pos->af) &&
-	 (NULL == pos->hc) &&
-	 (0 != (GNUNET_NAT_AC_LAN & pos->ac)) )
-    {
-      const struct sockaddr_in *s4
-	= (const struct sockaddr_in *) &pos->addr;
-      
-      pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
-					     &reversal_callback,
-					     pos);
+      GNUNET_CONTAINER_DLL_insert (lal_head,
+				   lal_tail,
+				   pos);
+      if ( (AF_INET == pos->af) &&
+	   (NULL == pos->hc) &&
+	   (0 != (GNUNET_NAT_AC_LAN & pos->ac)) )
+      {
+	const struct sockaddr_in *s4
+	  = (const struct sockaddr_in *) &pos->addr;
+	
+	GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		    "Found NATed local address %s, starting NAT server\n",
+		    GNUNET_a2s ((void *) &pos->addr, sizeof (*s4)));
+	pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
+					       &reversal_callback,
+					       pos);
+      }
     }
   }
   if ( (GNUNET_YES == have_nat) &&
@@ -1194,10 +1227,6 @@ run_scan (void *cls)
       probe_external_ip_op = NULL;
     }
   }
-  
-  destroy_lal ();
-  lal_head = ifc_ctx.lal_head;
-  lal_tail = ifc_ctx.lal_tail;
 }
 
 

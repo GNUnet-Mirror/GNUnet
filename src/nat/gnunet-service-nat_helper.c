@@ -28,7 +28,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-nat_helper.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
 
 /**
  * Information we keep per NAT helper process.
@@ -133,11 +132,11 @@ nat_server_read (void *cls)
 			     sizeof (mybuf));
   if (bytes < 1)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Finished reading from server stdout with code: %d\n",
-         bytes);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Finished reading from server stdout with code: %d\n",
+		bytes);
     if (0 != GNUNET_OS_process_kill (h->server_proc,
--				     GNUNET_TERM_SIG))
+				     GNUNET_TERM_SIG))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
 				"nat",
 				"kill");
@@ -183,10 +182,9 @@ nat_server_read (void *cls)
 			 &sin_addr.sin_addr)))
   {
     /* should we restart gnunet-helper-nat-server? */
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "nat",
-         _("gnunet-helper-nat-server generated malformed address `%s'\n"),
-         mybuf);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("gnunet-helper-nat-server generated malformed address `%s'\n"),
+		mybuf);
     h->server_read_task 
       = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                         h->server_stdout_handle,
@@ -195,10 +193,10 @@ nat_server_read (void *cls)
     return;
   }
   sin_addr.sin_port = htons ((uint16_t) port);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "gnunet-helper-nat-server read: %s:%d\n",
-       mybuf,
-       port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "gnunet-helper-nat-server read: %s:%d\n",
+	      mybuf,
+	      port);
   h->cb (h->cb_cls,
 	 &sin_addr);
   h->server_read_task 
@@ -238,10 +236,10 @@ restart_nat_server (void *cls)
 			    &h->internal_address,
 			    ia,
 			    sizeof (ia)));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting `%s' at `%s'\n",
-       "gnunet-helper-nat-server",
-       ia);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting `%s' at `%s'\n",
+	      "gnunet-helper-nat-server",
+	      ia);
   /* Start the server process */
   binary
     = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
@@ -258,10 +256,9 @@ restart_nat_server (void *cls)
   GNUNET_free (binary);
   if (NULL == h->server_proc)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "nat",
-	 _("Failed to start %s\n"),
-	 "gnunet-helper-nat-server");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to start %s\n"),
+		"gnunet-helper-nat-server");
     GNUNET_DISK_pipe_close (h->server_stdout);
     h->server_stdout = NULL;
     try_again (h);
@@ -301,6 +298,7 @@ GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->internal_address = *internal_address;
+  restart_nat_server (h);
   if (NULL == h->server_stdout)
   {
     GN_stop_gnunet_nat_server_ (h);
@@ -328,9 +326,8 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h)
   {
     if (0 != GNUNET_OS_process_kill (h->server_proc,
                                      GNUNET_TERM_SIG))
-      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
-                                "nat",
-                                "kill");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_destroy (h->server_proc);
     h->server_proc = NULL;
@@ -375,9 +372,8 @@ GN_request_connection_reversal (const struct in_addr *internal_address,
 			 intv4,
 			 INET_ADDRSTRLEN))
   {
-    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
-                              "nat",
-                              "inet_ntop");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "inet_ntop");
     return GNUNET_SYSERR;
   }
   if (NULL == inet_ntop (AF_INET,
@@ -385,20 +381,19 @@ GN_request_connection_reversal (const struct in_addr *internal_address,
 			 remv4,
 			 INET_ADDRSTRLEN))
   {
-    GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
-                              "nat",
-                              "inet_ntop");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "inet_ntop");
     return GNUNET_SYSERR;
   }  
   GNUNET_snprintf (port_as_string,
                    sizeof (port_as_string),
                    "%d",
                    internal_port);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       _("Running gnunet-helper-nat-client %s %s %u\n"),
-       intv4,
-       remv4,
-       internal_port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      _("Running gnunet-helper-nat-client %s %s %u\n"),
+	      intv4,
+	      remv4,
+	      internal_port);
   binary
     = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   proc
