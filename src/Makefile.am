@@ -122,6 +122,7 @@ SUBDIRS = \
   psycstore \
   psyc \
   social \
+  auction \
   $(EXP_DIR) \
   $(PROVIDER_DIR)
 

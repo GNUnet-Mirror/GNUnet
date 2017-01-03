@@ -28,6 +28,8 @@ src/ats-tests/ats-testing-traffic.c
 src/ats-tests/gnunet-ats-sim.c
 src/ats-tests/gnunet-solver-eval.c
 src/ats-tool/gnunet-ats.c
+src/auction/gnunet-auction.c
+src/auction/gnunet-service-auction.c
 src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c

@@ -1551,6 +1551,7 @@ src/ats/Makefile
 src/ats/ats.conf
 src/ats-tool/Makefile
 src/ats-tests/Makefile
+src/auction/Makefile
 src/block/Makefile
 src/cadet/Makefile
 src/cadet/cadet.conf
