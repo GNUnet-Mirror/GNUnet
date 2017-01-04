@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2016 GNUnet e.V.
+  Copyright (C) 2016, 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -28,9 +28,12 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - test ICMP based NAT traversal
+ * - test and document (!) ICMP based NAT traversal
+ * - implement manual hole punching support (incl. DNS
+ *   lookup for DynDNS setups!)
  * - implement "more" autoconfig:
  *   re-work gnunet-nat-server & integrate!
+ *   + test manually punched NAT (how?)
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
  * - implement NEW logic for external IP detection
@@ -129,6 +132,16 @@ struct ClientHandle
    * Array of addresses used by the service.
    */
   struct ClientAddress *caddrs;
+
+  /**
+   * External DNS name and port given by user due to manual
+   * hole punching.  Special DNS name 'AUTO' is used to indicate
+   * desire for automatic determination of the external IP 
+   * (instead of DNS or manual configuration, i.e. to be used 
+   * if the IP keeps changing and we have no DynDNS, but we do
+   * have a hole punched).
+   */
+  char *hole_external;
   
   /**
    * What does this client care about?
@@ -140,12 +153,6 @@ struct ClientHandle
    */
   int natted_address;
   
-  /**
-   * Port we would like as we are configured to use this one for
-   * advertising (in addition to the one we are binding to).
-   */
-  uint16_t adv_port;
-
   /**
    * Number of addresses that this service is bound to.
    * Length of the @e caddrs array.
@@ -175,6 +182,12 @@ struct LocalAddressList
    */
   struct LocalAddressList *prev;
 
+  /**
+   * Context for a gnunet-helper-nat-server used to listen
+   * for ICMP messages to this client for connection reversal.
+   */
+  struct HelperContext *hc;
+  
   /**
    * The address itself (i.e. `struct sockaddr_in` or `struct
    * sockaddr_in6`, in the respective byte order).
@@ -383,6 +396,31 @@ static struct in_addr mini_external_ipv4;
 
 
 /**
+ * Remove and free an entry from the #lal_head DLL.
+ *
+ * @param lal entry to free
+ */
+static void
+free_lal (struct LocalAddressList *lal)
+{
+  GNUNET_CONTAINER_DLL_remove (lal_head,
+			       lal_tail,
+			       lal);
+  if (NULL != lal->hc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		"Lost NATed local address %s, stopping NAT server\n",
+		GNUNET_a2s ((const struct sockaddr *) &lal->addr,
+			    sizeof (struct sockaddr_in)));
+
+    GN_stop_gnunet_nat_server_ (lal->hc);
+    lal->hc = NULL;
+  }
+  GNUNET_free (lal);
+}
+
+
+/**
  * Free the DLL starting at #lal_head.
  */ 
 static void
@@ -391,12 +429,7 @@ destroy_lal ()
   struct LocalAddressList *lal;
 
   while (NULL != (lal = lal_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (lal_head,
-				 lal_tail,
-				 lal);
-    GNUNET_free (lal);
-  }
+    free_lal (lal);
 }
 
 
@@ -448,7 +481,14 @@ check_register (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;      
     }
-  }  
+    off += alen;
+    left -= alen;
+  }
+  if (left != ntohs (message->hole_external_len))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;      
+  }
   return GNUNET_OK; 
 }
 
@@ -718,10 +758,12 @@ check_notify_client (struct LocalAddressList *delta,
     GNUNET_memcpy (&v4,
 		   &delta->addr,
 		   alen);
+    
+    /* Check for client notifications */
     for (unsigned int i=0;i<ch->num_caddrs;i++)
     {
       const struct sockaddr_in *c4;
-      
+
       if (AF_INET != ch->caddrs[i].ss.ss_family)
 	return; /* IPv4 not relevant */
       c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
@@ -857,40 +899,37 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
 					  int add)
 {
   struct sockaddr_in sa;
-  uint16_t port;
-  uint16_t bport;
+  int have_v4;
 
   /* (1) check if client cares. */
   if (! ch->natted_address)
     return;
   if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
     return;
-  bport = 0;
+  have_v4 = GNUNET_NO;
   for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
     const struct sockaddr_storage *ss = &ch->caddrs[i].ss;
 
     if (AF_INET != ss->ss_family)
       continue;
-    bport = ntohs (((const struct sockaddr_in *) ss)->sin_port);
+    have_v4 = GNUNET_YES;
+    break;
   }
-  if (0 == bport)
+  if (GNUNET_NO == have_v4)
     return; /* IPv6-only */
-  
-  /* (2) figure out external port, build sockaddr */
-  port = ch->adv_port;
-  if (0 == port)
-    port = bport;
+
+  /* build address info */
   memset (&sa,
 	  0,
 	  sizeof (sa));
   sa.sin_family = AF_INET;
   sa.sin_addr = *v4;
-  sa.sin_port = htons (port);
+  sa.sin_port = htons (0);
   
   /* (3) notify client of change */
   notify_client (is_nat_v4 (v4)
-		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN_PRIVATE 
+		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN 
 		 : GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_GLOBAL,
 		 ch,
 		 add,
@@ -1006,6 +1045,65 @@ run_external_ip (void *cls)
 
 
 /**
+ * We got a connection reversal request from another peer.
+ * Notify applicable clients.
+ *
+ * @param cls closure with the `struct LocalAddressList` 
+ * @param ra IP address of the peer who wants us to connect to it 
+ */
+static void
+reversal_callback (void *cls,
+		   const struct sockaddr_in *ra)
+{
+  struct LocalAddressList *lal = cls;
+  const struct sockaddr_in *l4;
+
+  GNUNET_assert (AF_INET == lal->af);
+  l4 = (const struct sockaddr_in *) &lal->addr;
+  for (struct ClientHandle *ch = ch_head;
+       NULL != ch;
+       ch = ch->next)
+  {    
+    struct GNUNET_NAT_ConnectionReversalRequestedMessage *crrm;
+    struct GNUNET_MQ_Envelope *env;
+    int match;
+
+    /* Check if client is in applicable range for ICMP NAT traversal
+       for this local address */
+    if (! ch->natted_address)
+      continue;
+    match = GNUNET_NO;
+    for (unsigned int i=0;i<ch->num_caddrs;i++)
+    {
+      struct ClientAddress *ca = &ch->caddrs[i];
+      const struct sockaddr_in *c4;
+      
+      if (AF_INET != ca->ss.ss_family)
+	continue;
+      c4 = (const struct sockaddr_in *) &ca->ss;
+      if ( (0 != c4->sin_addr.s_addr) &&
+	   (l4->sin_addr.s_addr != c4->sin_addr.s_addr) )
+	continue;
+      match = GNUNET_YES;
+      break;
+    }
+    if (! match)
+      continue;
+
+    /* Notify applicable client about connection reversal request */
+    env = GNUNET_MQ_msg_extra (crrm,
+			       sizeof (struct sockaddr_in),
+			       GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED);
+    GNUNET_memcpy (&crrm[1],
+		   ra,
+		   sizeof (struct sockaddr_in));
+    GNUNET_MQ_send (ch->mq,
+		    env);
+  }
+}
+
+
+/**
  * Task we run periodically to scan for network interfaces.
  *
  * @param cls NULL
@@ -1016,6 +1114,7 @@ run_scan (void *cls)
   struct IfcProcContext ifc_ctx;
   int found;
   int have_nat;
+  struct LocalAddressList *lnext;
   
   scan_task = GNUNET_SCHEDULER_add_delayed (SCAN_FREQ,
 					    &run_scan,
@@ -1028,8 +1127,9 @@ run_scan (void *cls)
   /* remove addresses that disappeared */
   for (struct LocalAddressList *lal = lal_head;
        NULL != lal;
-       lal = lal->next)
+       lal = lnext)
   {
+    lnext = lal->next;
     found = GNUNET_NO;
     for (struct LocalAddressList *pos = ifc_ctx.lal_head;
 	 NULL != pos;
@@ -1041,18 +1141,23 @@ run_scan (void *cls)
 			 (AF_INET == lal->af)
 			 ? sizeof (struct sockaddr_in)
 			 : sizeof (struct sockaddr_in6))) )
+      {
 	found = GNUNET_YES;
+      }
     }
     if (GNUNET_NO == found)
+    {
       notify_clients (lal,
 		      GNUNET_NO);
+      free_lal (lal);
+    }
   }
 
   /* add addresses that appeared */
   have_nat = GNUNET_NO;
   for (struct LocalAddressList *pos = ifc_ctx.lal_head;
        NULL != pos;
-       pos = pos->next)
+       pos = ifc_ctx.lal_head)
   {
     found = GNUNET_NO;
     if (GNUNET_NAT_AC_LAN == (GNUNET_NAT_AC_LAN & pos->ac))
@@ -1069,9 +1174,35 @@ run_scan (void *cls)
 			 : sizeof (struct sockaddr_in6))) )
 	found = GNUNET_YES;
     }
-    if (GNUNET_NO == found)
+    GNUNET_CONTAINER_DLL_remove (ifc_ctx.lal_head,
+				 ifc_ctx.lal_tail,
+				 pos);
+    if (GNUNET_YES == found)
+    {
+      GNUNET_free (pos);
+    }
+    else
+    {
       notify_clients (pos,
 		      GNUNET_YES);
+      GNUNET_CONTAINER_DLL_insert (lal_head,
+				   lal_tail,
+				   pos);
+      if ( (AF_INET == pos->af) &&
+	   (NULL == pos->hc) &&
+	   (0 != (GNUNET_NAT_AC_LAN & pos->ac)) )
+      {
+	const struct sockaddr_in *s4
+	  = (const struct sockaddr_in *) &pos->addr;
+	
+	GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		    "Found NATed local address %s, starting NAT server\n",
+		    GNUNET_a2s ((void *) &pos->addr, sizeof (*s4)));
+	pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
+					       &reversal_callback,
+					       pos);
+      }
+    }
   }
   if ( (GNUNET_YES == have_nat) &&
        (GNUNET_YES == enable_upnp) &&
@@ -1096,10 +1227,6 @@ run_scan (void *cls)
       probe_external_ip_op = NULL;
     }
   }
-  
-  destroy_lal ();
-  lal_head = ifc_ctx.lal_head;
-  lal_tail = ifc_ctx.lal_tail;
 }
 
 
@@ -1164,12 +1291,12 @@ upnp_addr_change_cb (void *cls,
   {
   case AF_INET:
     ac = is_nat_v4 (&((const struct sockaddr_in *) addr)->sin_addr)
-      ? GNUNET_NAT_AC_LAN_PRIVATE
+      ? GNUNET_NAT_AC_LAN
       : GNUNET_NAT_AC_EXTERN;
     break;
   case AF_INET6:
     ac = is_nat_v6 (&((const struct sockaddr_in6 *) addr)->sin6_addr)
-      ? GNUNET_NAT_AC_LAN_PRIVATE
+      ? GNUNET_NAT_AC_LAN
       : GNUNET_NAT_AC_EXTERN;
     break;
   default:
@@ -1216,7 +1343,6 @@ handle_register (void *cls,
 	      "Received REGISTER message from client\n");
   ch->flags = message->flags;
   ch->proto = message->proto;
-  ch->adv_port = ntohs (message->adv_port);
   ch->num_caddrs = ntohs (message->num_addrs);
   ch->caddrs = GNUNET_new_array (ch->num_caddrs,
 				 struct ClientAddress);
@@ -1292,6 +1418,11 @@ handle_register (void *cls,
 
     off += alen;
   }
+
+  ch->hole_external
+    = GNUNET_strndup (off,
+		      ntohs (message->hole_external_len));
+    
   /* Actually send IP address list to client */
   for (struct LocalAddressList *lal = lal_head;
        NULL != lal;
@@ -1363,7 +1494,7 @@ notify_clients_stun_change (const struct sockaddr_in *ip,
     if (! ch->natted_address)
       continue;
     v4 = *ip;
-    v4.sin_port = htons (ch->adv_port);
+    v4.sin_port = htons (0);
     env = GNUNET_MQ_msg_extra (msg,
 			       sizeof (v4),
 			       GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
@@ -2045,6 +2176,7 @@ client_disconnect_cb (void *cls,
     }
   }
   GNUNET_free_non_null (ch->caddrs);
+  GNUNET_free (ch->hole_external);
   GNUNET_free (ch);
 }
 

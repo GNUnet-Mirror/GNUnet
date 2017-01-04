@@ -39,9 +39,10 @@ static int global_ret;
 static struct GNUNET_NAT_AutoHandle *ah;
 
 /**
- * Port we advertise.
+ * External hostname and port, if user manually punched
+ * the NAT.  
  */ 
-static unsigned int adv_port;
+static char *hole_external;
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -338,15 +339,11 @@ address_cb (void *cls,
  * reversal.
  *
  * @param cls closure, NULL
- * @param local_addr address where we received the request
- * @param local_addrlen actual length of the @a local_addr
  * @param remote_addr public IP address of the other peer
  * @param remote_addrlen actual length of the @a remote_addr
  */
 static void
 reversal_cb (void *cls,
-	     const struct sockaddr *local_addr,
-	     socklen_t local_addrlen,
 	     const struct sockaddr *remote_addr,
 	     socklen_t remote_addrlen)
 {
@@ -572,13 +569,21 @@ run (void *cls,
   {
     nh = GNUNET_NAT_register (c,
 			      proto,
-			      (uint16_t) adv_port,
+			      hole_external,
 			      1,
 			      (const struct sockaddr **) &local_sa,
 			      &local_len,
 			      &address_cb,
 			      (listen_reversal) ? &reversal_cb : NULL,
 			      NULL);
+  }
+  else if (listen_reversal)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		"Use of `-W` only effective in combination with `-i`\n");    
+    global_ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 
   if (NULL != remote_addr)
@@ -693,9 +698,9 @@ main (int argc,
     {'r', "remote", "ADDRESS",
      gettext_noop ("which remote IP and port should be asked for connection reversal"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr },
-    {'p', "port", NULL,
-     gettext_noop ("port to use to advertise"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &adv_port },
+    {'p', "punched", NULL,
+     gettext_noop ("external hostname and port of NAT, if punched manually; use AUTO for hostname for automatic determination of the external IP"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &hole_external },
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },
