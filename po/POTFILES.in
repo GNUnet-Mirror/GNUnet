@@ -245,6 +245,7 @@ src/nat/gnunet-nat.c
 src/nat/gnunet-nat-server.c
 src/nat/gnunet-service-nat.c
 src/nat/gnunet-service-nat_helper.c
+src/nat/gnunet-service-nat_mini.c
 src/nat/gnunet-service-nat_stun.c
 src/nat/nat_api.c
 src/nat/nat_api_stun.c
@@ -489,6 +490,7 @@ src/vpn/gnunet-helper-vpn-windows.c
 src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
+src/zonemaster/gnunet-service-zonemaster.c
 src/fs/fs_api.h
 src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h

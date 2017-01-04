@@ -81,13 +81,15 @@ We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP add
 
 \fBICMP-based NAT traversal:\fR
 
-Watch for connection reversal request:
+Watch for connection reversal request (you must be bound to NAT range or to wildcard, 0.0.0.0), only works for IPv4:
 
-  # gnunet-nat FIXME
+  # gnunet-nat -Wt -i 192.168.178.12:8080
 
-Initiate connection reversal request:
+Initiate connection reversal request from peer at external IPv4 address 1.2.3.4 while we are running ourselves at 2.3.4.5:8080 (must use IPv4 addresses):
 
-  # gnunet-nat FIXME
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
+
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080 ### TEST THIS!
 
 \fBManual hole punching:\fR
 

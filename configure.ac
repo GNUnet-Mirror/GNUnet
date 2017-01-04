@@ -1641,6 +1641,8 @@ src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
+src/zonemaster/Makefile
+src/zonemaster/zonemaster.conf
 src/rest/Makefile
 src/identity-provider/Makefile
 pkgconfig/Makefile

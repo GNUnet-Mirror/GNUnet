@@ -1,0 +1,25 @@
+[gns]
+AUTOSTART = @AUTOSTART@
+FORCESTART = YES
+HOSTNAME = localhost
+BINARY = gnunet-service-zonemaster
+UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-zonemaster.sock
+@JAVAPORT@PORT = 2123
+
+# Do we require users that want to access GNS to run this process
+# (usually not a good idea)
+UNIX_MATCH_UID = NO
+
+# Do we require users that want to access GNS to be in the 'gnunet' group?
+UNIX_MATCH_GID = NO
+
+# How many queries is GNS allowed to perform in the background at the same time?
+MAX_PARALLEL_BACKGROUND_QUERIES = 1000
+
+# How frequently do we try to publish our full zone?
+ZONE_PUBLISH_TIME_WINDOW = 4 h
+
+# Using caching or always ask DHT
+# USE_CACHE = YES
+
+# PREFIX = valgrind --leak-check=full --track-origins=yes
