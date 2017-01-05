@@ -123,6 +123,12 @@ enum GNUNET_NAT_AddressClass
   GNUNET_NAT_AC_EXTERN = 128,
 
   /**
+   * Addresses that were manually configured by the user.
+   * Used as a bit in combination with #GNUNET_NAT_AC_GLOBAL.
+   */
+  GNUNET_NAT_AC_MANUAL = 256,
+
+  /**
    * Bitmask for "any" address.
    */
   GNUNET_NAT_AC_ANY = 65535

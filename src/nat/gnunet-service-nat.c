@@ -44,6 +44,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_nat_service.h"
 #include "gnunet-service-nat_stun.h"
 #include "gnunet-service-nat_mini.h"
@@ -80,6 +81,11 @@
  * command succeeded?
  */
 #define EXTERN_IP_RETRY_SUCCESS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+/**
+ * How often do we scan for changes in how our external (dyndns) hostname resolves?
+ */
+#define DYNDNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 7)
 
 
 /**
@@ -142,6 +148,33 @@ struct ClientHandle
    * have a hole punched).
    */
   char *hole_external;
+
+  /**
+   * Task for periodically re-running the @e ext_dns DNS lookup.
+   */ 
+  struct GNUNET_SCHEDULER_Task *ext_dns_task;
+  
+  /**
+   * Handle for (DYN)DNS lookup of our external IP as given in
+   * @e hole_external.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *ext_dns;
+
+  /**
+   * External IP address as given in @e hole_external.
+   */
+  struct sockaddr_storage ext_addr;
+
+  /**
+   * Do we currently have a valid @e ext_addr which we told the
+   * client about? 
+   */
+  int ext_addr_set;
+
+  /**
+   * Port number we found in @e hole_external.
+   */ 
+  uint16_t ext_dns_port;
   
   /**
    * What does this client care about?
@@ -325,6 +358,11 @@ static struct AutoconfigContext *ac_tail;
  * Timeout to use when STUN data is considered stale.
  */
 static struct GNUNET_TIME_Relative stun_stale_timeout;
+
+/**
+ * How often do we scan for changes in how our external (dyndns) hostname resolves?
+ */
+static struct GNUNET_TIME_Relative dyndns_frequency;
 
 /**
  * Handle to our current configuration.
@@ -765,7 +803,7 @@ check_notify_client (struct LocalAddressList *delta,
       const struct sockaddr_in *c4;
 
       if (AF_INET != ch->caddrs[i].ss.ss_family)
-	return; /* IPv4 not relevant */
+	continue; /* IPv4 not relevant */
       c4 = (const struct sockaddr_in *) &ch->caddrs[i].ss;
       if ( match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) &&
 	   (0 != c4->sin_addr.s_addr) &&
@@ -808,7 +846,7 @@ check_notify_client (struct LocalAddressList *delta,
       const struct sockaddr_in6 *c6;
       
       if (AF_INET6 != ch->caddrs[i].ss.ss_family)
-	return; /* IPv4 not relevant */
+	continue; /* IPv4 not relevant */
       c6 = (const struct sockaddr_in6 *) &ch->caddrs[i].ss;
       if ( match_ipv6 ("::1", &c6->sin6_addr, 128) &&
 	   (0 != memcmp (&c6->sin6_addr,
@@ -1317,6 +1355,182 @@ upnp_addr_change_cb (void *cls,
 
 
 /**
+ * Resolve the `hole_external` name to figure out our 
+ * external address from a manually punched hole.  The
+ * port number has already been parsed, this task is 
+ * responsible for periodically doing a DNS lookup.
+ *
+ * @param ch client handle to act upon
+ */
+static void
+dyndns_lookup (void *cls);
+
+
+/**
+ * Our (external) hostname was resolved.  Update lists of
+ * current external IPs (note that DNS may return multiple
+ * addresses!) and notify client accordingly.
+ *
+ * @param cls the `struct ClientHandle`
+ * @param addr NULL on error, otherwise result of DNS lookup
+ * @param addrlen number of bytes in @a addr
+ */
+static void
+process_external_ip (void *cls,
+                     const struct sockaddr *addr,
+                     socklen_t addrlen)
+{
+  struct ClientHandle *ch = cls;
+
+  if (NULL == addr)
+  {
+    ch->ext_dns = NULL;
+    ch->ext_dns_task 
+      = GNUNET_SCHEDULER_add_delayed (dyndns_frequency,
+				      &dyndns_lookup,
+				      ch);
+    /* Current iteration is over, remove 'old' IPs now */
+    // FIXME: remove IPs we did NOT find!
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got IP `%s' for external address `%s'\n",
+	      GNUNET_a2s (addr,
+			  addrlen),
+	      ch->hole_external);
+  // FIXME: notify client, and remember IP for later removal!
+}
+
+
+/**
+ * Resolve the `hole_external` name to figure out our 
+ * external address from a manually punched hole.  The
+ * port number has already been parsed, this task is 
+ * responsible for periodically doing a DNS lookup.
+ *
+ * @param ch client handle to act upon
+ */
+static void
+dyndns_lookup (void *cls)
+{
+  struct ClientHandle *ch = cls;
+
+  ch->ext_dns_task = NULL;
+  ch->ext_dns = GNUNET_RESOLVER_ip_get (ch->hole_external,
+					AF_UNSPEC,
+					GNUNET_TIME_UNIT_MINUTES,
+					&process_external_ip,
+					ch);  
+}
+
+
+/**
+ * Resolve the `hole_external` name to figure out our 
+ * external address from a manually punched hole.  The
+ * given name may be "AUTO" in which case we should use
+ * the IP address(es) we have from upnpc or other methods.
+ * The name can also be an IP address, in which case we 
+ * do not need to do DNS resolution.  Finally, we also
+ * need to parse the port number.
+ *
+ * @param ch client handle to act upon
+ */
+static void
+lookup_hole_external (struct ClientHandle *ch)
+{
+  char *port;
+  unsigned int pnum;
+  struct sockaddr_in *s4;
+  struct LocalAddressList lal;
+    
+  port = strrchr (ch->hole_external, ':');
+  if (NULL == port)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Malformed punched hole specification `%s' (lacks port)\n"),
+		ch->hole_external);
+    return;
+  }
+  if ( (1 != sscanf (port + 1,
+		     "%u",
+		     &pnum)) ||
+       (pnum > 65535) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Invalid port number in punched hole specification `%s' (lacks port)\n"),
+		port + 1);
+    return;    
+  }
+  ch->ext_dns_port = (uint16_t) pnum;
+  *port = '\0';
+  if ('[' == *ch->hole_external)
+  {
+    struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) &ch->ext_addr;
+
+    memset (s6, 0, sizeof (*s6));
+    s6->sin6_family = AF_INET6;
+    if (']' != (ch->hole_external[strlen(ch->hole_external)-1]))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Malformed punched hole specification `%s' (lacks `]')\n"),
+		  ch->hole_external);
+      return;
+    }
+    ch->hole_external[strlen(ch->hole_external)-1] = '\0';
+    if (1 != inet_pton (AF_INET6,
+			ch->hole_external + 1,
+			&s6->sin6_addr))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Malformed punched hole specification `%s' (IPv6 address invalid)"),
+		  ch->hole_external + 1);
+      return;
+    }
+    s6->sin6_port = htons (ch->ext_dns_port);
+    memset (&lal, 0, sizeof (lal));
+    GNUNET_memcpy (&lal.addr, s6, sizeof (*s6));
+    lal.af = AF_INET6;
+    lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+    check_notify_client (&lal,
+			 ch,
+			 GNUNET_YES);
+    ch->ext_addr_set = GNUNET_YES;
+    return;
+  } 
+  s4 = (struct sockaddr_in *) &ch->ext_addr;
+  memset (s4, 0, sizeof (*s4));
+  s4->sin_family = AF_INET;
+  if (1 == inet_pton (AF_INET,
+		      ch->hole_external,
+		      &s4->sin_addr))
+  {
+    s4->sin_port = htons (ch->ext_dns_port);
+    memset (&lal, 0, sizeof (lal));
+    GNUNET_memcpy (&lal.addr, s4, sizeof (*s4));
+    lal.af = AF_INET;
+    lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+    check_notify_client (&lal,
+			 ch,
+			 GNUNET_YES);
+    ch->ext_addr_set = GNUNET_YES;
+    return;
+  }
+  if (0 == strcasecmp (ch->hole_external,
+		       "AUTO"))
+  {
+    // FIXME: use `external-ip` address(es)!
+    GNUNET_break (0); // not implemented!
+    return;
+  }
+  /* got a DNS name, trigger lookup! */
+  ch->ext_dns_task
+    = GNUNET_SCHEDULER_add_now (&dyndns_lookup,
+				ch);  
+}
+
+
+/**
  * Handler for #GNUNET_MESSAGE_TYPE_NAT_REGISTER message from client.
  * We remember the client for updates upon future NAT events.
  *
@@ -1422,7 +1636,9 @@ handle_register (void *cls,
   ch->hole_external
     = GNUNET_strndup (off,
 		      ntohs (message->hole_external_len));
-    
+  if (0 != ntohs (message->hole_external_len))
+    lookup_hole_external (ch);
+  
   /* Actually send IP address list to client */
   for (struct LocalAddressList *lal = lal_head;
        NULL != lal;
@@ -2115,6 +2331,12 @@ run (void *cls,
       enable_upnp = GNUNET_SYSERR;
     }
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "nat",
+					   "DYNDNS_FREQUENCY",
+                                           &dyndns_frequency))
+    dyndns_frequency = DYNDNS_FREQUENCY;
   
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
@@ -2176,6 +2398,16 @@ client_disconnect_cb (void *cls,
     }
   }
   GNUNET_free_non_null (ch->caddrs);
+  if (NULL != ch->ext_dns_task)
+  {
+    GNUNET_SCHEDULER_cancel (ch->ext_dns_task);
+    ch->ext_dns_task = NULL;
+  }
+  if (NULL != ch->ext_dns)
+  {
+    GNUNET_RESOLVER_request_cancel (ch->ext_dns);
+    ch->ext_dns = NULL;
+  }
   GNUNET_free (ch->hole_external);
   GNUNET_free (ch);
 }
