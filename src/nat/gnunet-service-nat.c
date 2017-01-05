@@ -29,15 +29,17 @@
  *
  * TODO:
  * - test and document (!) ICMP based NAT traversal
- * - implement manual hole punching support (incl. DNS
- *   lookup for DynDNS setups!)
+ * - implement NEW logic for external IP detection;
+ *   => introduce higher-level abstraction for external-IPs 
+ *      for subsystems to hook into!
+ * - implement manual hole punching support (AUTO missing)
+ * - test manual hole punching support
  * - implement "more" autoconfig:
- *   + re-work gnunet-nat-server & integrate!
  *   + consider moving autoconfig-logic into separate service! 
+ *   + re-work gnunet-nat-server & integrate!
  *   + test manually punched NAT (how?)
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
- * - implement NEW logic for external IP detection
  */
 #include "platform.h"
 #include <math.h>
@@ -110,6 +112,53 @@ struct ClientAddress
 
 
 /**
+ * List of local addresses this system has.
+ */
+struct LocalAddressList
+{
+  /**
+   * This is a linked list.
+   */
+  struct LocalAddressList *next;
+
+  /**
+   * Previous entry.
+   */
+  struct LocalAddressList *prev;
+
+  /**
+   * Context for a gnunet-helper-nat-server used to listen
+   * for ICMP messages to this client for connection reversal.
+   */
+  struct HelperContext *hc;
+  
+  /**
+   * The address itself (i.e. `struct sockaddr_in` or `struct
+   * sockaddr_in6`, in the respective byte order).
+   */
+  struct sockaddr_storage addr;
+
+  /**
+   * Address family. (FIXME: redundant, addr.ss_family! Remove!?)
+   */
+  int af;
+  
+  /**
+   * #GNUNET_YES if we saw this one in the previous iteration,
+   * but not in the current iteration and thus might need to
+   * remove it at the end.
+   */
+  int old;
+
+  /**
+   * What type of address is this?
+   */
+  enum GNUNET_NAT_AddressClass ac;
+  
+};
+
+
+/**
  * Internal data structure we track for each of our clients.
  */
 struct ClientHandle
@@ -162,15 +211,14 @@ struct ClientHandle
   struct GNUNET_RESOLVER_RequestHandle *ext_dns;
 
   /**
-   * External IP address as given in @e hole_external.
+   * DLL of external IP addresses as given in @e hole_external.
    */
-  struct sockaddr_storage ext_addr;
+  struct LocalAddressList *ext_addr_head;
 
   /**
-   * Do we currently have a valid @e ext_addr which we told the
-   * client about? 
+   * DLL of external IP addresses as given in @e hole_external.
    */
-  int ext_addr_set;
+  struct LocalAddressList *ext_addr_tail;
 
   /**
    * Port number we found in @e hole_external.
@@ -198,46 +246,6 @@ struct ClientHandle
    */
   uint8_t proto;
 
-};
-
-
-/**
- * List of local addresses this system has.
- */
-struct LocalAddressList
-{
-  /**
-   * This is a linked list.
-   */
-  struct LocalAddressList *next;
-
-  /**
-   * Previous entry.
-   */
-  struct LocalAddressList *prev;
-
-  /**
-   * Context for a gnunet-helper-nat-server used to listen
-   * for ICMP messages to this client for connection reversal.
-   */
-  struct HelperContext *hc;
-  
-  /**
-   * The address itself (i.e. `struct sockaddr_in` or `struct
-   * sockaddr_in6`, in the respective byte order).
-   */
-  struct sockaddr_storage addr;
-
-  /**
-   * Address family.
-   */
-  int af;
-
-  /**
-   * What type of address is this?
-   */
-  enum GNUNET_NAT_AddressClass ac;
-  
 };
 
 
@@ -1382,17 +1390,35 @@ process_external_ip (void *cls,
                      socklen_t addrlen)
 {
   struct ClientHandle *ch = cls;
+  struct LocalAddressList *lal;
+  struct sockaddr_storage ss;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
 
   if (NULL == addr)
   {
+    struct LocalAddressList *laln;
+    
     ch->ext_dns = NULL;
     ch->ext_dns_task 
       = GNUNET_SCHEDULER_add_delayed (dyndns_frequency,
 				      &dyndns_lookup,
 				      ch);
     /* Current iteration is over, remove 'old' IPs now */
-    // FIXME: remove IPs we did NOT find!
-    GNUNET_break (0);
+    for (lal = ch->ext_addr_head; NULL != lal; lal = laln)
+    {
+      laln = lal->next;
+      if (GNUNET_YES == lal->old)
+      {
+	GNUNET_CONTAINER_DLL_remove (ch->ext_addr_head,
+				     ch->ext_addr_tail,
+				     lal);
+	check_notify_client (lal,
+			     ch,
+			     GNUNET_NO);
+	GNUNET_free (lal);
+      }
+    }
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1400,7 +1426,50 @@ process_external_ip (void *cls,
 	      GNUNET_a2s (addr,
 			  addrlen),
 	      ch->hole_external);
-  // FIXME: notify client, and remember IP for later removal!
+  
+  /* build sockaddr storage with port number */
+  memset (&ss, 0, sizeof (ss));
+  memcpy (&ss, addr, addrlen);
+  switch (addr->sa_family)
+  {
+  case AF_INET:
+    v4 = (struct sockaddr_in *) &ss;
+    v4->sin_port = htons (ch->ext_dns_port);
+    break;
+  case AF_INET6:
+    v6 = (struct sockaddr_in6 *) &ss;
+    v6->sin6_port = htons (ch->ext_dns_port);
+    break;
+  default:
+    GNUNET_break (0);
+    return;
+  }
+  /* See if 'ss' matches any of our known addresses */
+  for (lal = ch->ext_addr_head; NULL != lal; lal = lal->next)
+  {
+    if (GNUNET_NO == lal->old)
+      continue; /* already processed, skip */
+    if ( (addr->sa_family == lal->addr.ss_family) &&
+	 (0 == memcmp (&ss,
+		       &lal->addr,
+		       addrlen)) )
+    {
+      /* Address unchanged, remember so we do not remove */
+      lal->old = GNUNET_NO;
+      return; /* done here */
+    }
+  }
+  /* notify client, and remember IP for later removal! */
+  lal = GNUNET_new (struct LocalAddressList);
+  lal->addr = ss;
+  lal->af = ss.ss_family;
+  lal->ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+  GNUNET_CONTAINER_DLL_insert (ch->ext_addr_head,
+			       ch->ext_addr_tail,
+			       lal);
+  check_notify_client (lal,
+		       ch,
+		       GNUNET_YES);
 }
 
 
@@ -1416,7 +1485,10 @@ static void
 dyndns_lookup (void *cls)
 {
   struct ClientHandle *ch = cls;
+  struct LocalAddressList *lal;
 
+  for (lal = ch->ext_addr_head; NULL != lal; lal = lal->next)
+    lal->old = GNUNET_YES;
   ch->ext_dns_task = NULL;
   ch->ext_dns = GNUNET_RESOLVER_ip_get (ch->hole_external,
 					AF_UNSPEC,
@@ -1443,7 +1515,7 @@ lookup_hole_external (struct ClientHandle *ch)
   char *port;
   unsigned int pnum;
   struct sockaddr_in *s4;
-  struct LocalAddressList lal;
+  struct LocalAddressList *lal;
     
   port = strrchr (ch->hole_external, ':');
   if (NULL == port)
@@ -1465,17 +1537,19 @@ lookup_hole_external (struct ClientHandle *ch)
   }
   ch->ext_dns_port = (uint16_t) pnum;
   *port = '\0';
+
+  lal = GNUNET_new (struct LocalAddressList);
   if ('[' == *ch->hole_external)
   {
-    struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) &ch->ext_addr;
+    struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) &lal->addr;
 
-    memset (s6, 0, sizeof (*s6));
     s6->sin6_family = AF_INET6;
     if (']' != (ch->hole_external[strlen(ch->hole_external)-1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Malformed punched hole specification `%s' (lacks `]')\n"),
 		  ch->hole_external);
+      GNUNET_free (lal);
       return;
     }
     ch->hole_external[strlen(ch->hole_external)-1] = '\0';
@@ -1486,35 +1560,36 @@ lookup_hole_external (struct ClientHandle *ch)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Malformed punched hole specification `%s' (IPv6 address invalid)"),
 		  ch->hole_external + 1);
+      GNUNET_free (lal);
       return;
     }
     s6->sin6_port = htons (ch->ext_dns_port);
-    memset (&lal, 0, sizeof (lal));
-    GNUNET_memcpy (&lal.addr, s6, sizeof (*s6));
-    lal.af = AF_INET6;
-    lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
-    check_notify_client (&lal,
+    lal->af = AF_INET6;
+    lal->ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+    GNUNET_CONTAINER_DLL_insert (ch->ext_addr_head,
+				 ch->ext_addr_tail,
+				 lal);
+    check_notify_client (lal,
 			 ch,
 			 GNUNET_YES);
-    ch->ext_addr_set = GNUNET_YES;
     return;
-  } 
-  s4 = (struct sockaddr_in *) &ch->ext_addr;
-  memset (s4, 0, sizeof (*s4));
+  }
+
+  s4 = (struct sockaddr_in *) &lal->addr;
   s4->sin_family = AF_INET;
   if (1 == inet_pton (AF_INET,
 		      ch->hole_external,
 		      &s4->sin_addr))
   {
     s4->sin_port = htons (ch->ext_dns_port);
-    memset (&lal, 0, sizeof (lal));
-    GNUNET_memcpy (&lal.addr, s4, sizeof (*s4));
-    lal.af = AF_INET;
-    lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
-    check_notify_client (&lal,
+    lal->af = AF_INET;
+    lal->ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+    GNUNET_CONTAINER_DLL_insert (ch->ext_addr_head,
+				 ch->ext_addr_tail,
+				 lal);
+    check_notify_client (lal,
 			 ch,
 			 GNUNET_YES);
-    ch->ext_addr_set = GNUNET_YES;
     return;
   }
   if (0 == strcasecmp (ch->hole_external,
@@ -1522,9 +1597,11 @@ lookup_hole_external (struct ClientHandle *ch)
   {
     // FIXME: use `external-ip` address(es)!
     GNUNET_break (0); // not implemented!
+    GNUNET_free (lal);
     return;
   }
   /* got a DNS name, trigger lookup! */
+  GNUNET_free (lal);
   ch->ext_dns_task
     = GNUNET_SCHEDULER_add_now (&dyndns_lookup,
 				ch);  
@@ -2386,6 +2463,7 @@ client_disconnect_cb (void *cls,
 		      void *internal_cls)
 {
   struct ClientHandle *ch = internal_cls;
+  struct LocalAddressList *lal;
 
   GNUNET_CONTAINER_DLL_remove (ch_head,
 			       ch_tail,
@@ -2399,6 +2477,13 @@ client_disconnect_cb (void *cls,
     }
   }
   GNUNET_free_non_null (ch->caddrs);
+  while (NULL != (lal = ch->ext_addr_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ch->ext_addr_head,
+				 ch->ext_addr_tail,
+				 lal);
+    GNUNET_free (lal);
+  }
   if (NULL != ch->ext_dns_task)
   {
     GNUNET_SCHEDULER_cancel (ch->ext_dns_task);
