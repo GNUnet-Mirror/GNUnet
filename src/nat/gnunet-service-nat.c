@@ -30,10 +30,16 @@
  * TODO:
  * - test and document (!) ICMP based NAT traversal
  * - test manual hole punching support
+ * - consider passing transport plugin name instead of
+ *   external IP address string (more flexible!)
+ * - adapt existing transports to use new NAT logic
+ * - abandon legacy NAT code
+ *
  * - implement "more" autoconfig:
  *   + consider moving autoconfig-logic into separate service! 
  *   + re-work gnunet-nat-server & integrate!
  *   + test manually punched NAT (how?)
+ *
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
  */
