@@ -23,7 +23,7 @@
  * @author Christian Grothoff
  * @author Milan Bouchet-Valat
  *
- * @file nat/nat_api_auto.c.c
+ * @file nat/nat_api_auto.c
  * Routines for NAT auto configuration.
  */
 #include "platform.h"

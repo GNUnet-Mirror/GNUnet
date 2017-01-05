@@ -32,7 +32,8 @@
  * - implement manual hole punching support (incl. DNS
  *   lookup for DynDNS setups!)
  * - implement "more" autoconfig:
- *   re-work gnunet-nat-server & integrate!
+ *   + re-work gnunet-nat-server & integrate!
+ *   + consider moving autoconfig-logic into separate service! 
  *   + test manually punched NAT (how?)
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.
