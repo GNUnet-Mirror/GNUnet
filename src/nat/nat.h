@@ -29,6 +29,7 @@
 #include "gnunet_util_lib.h"
 
 
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -111,10 +112,9 @@ struct GNUNET_NAT_RegisterMessage
 
   /**
    * Number of bytes in the string that follow which
-   * specify the hostname and port of a manually punched
-   * hole for this client.
+   * specifies a section name in the configuration.
    */
-  uint16_t hole_external_len GNUNET_PACKED;
+  uint16_t str_len GNUNET_PACKED;
 
   /**
    * Number of addresses that this service is bound to that follow.
@@ -126,8 +126,7 @@ struct GNUNET_NAT_RegisterMessage
   /* Followed by @e num_addrs addresses of type 'struct
      sockaddr' */
 
-  /* Followed by @e hole_external_len bytes giving a hostname
-     and port */
+  /* Followed by @e str_len section name to use for options */
   
 };
 

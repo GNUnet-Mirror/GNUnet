@@ -30,8 +30,6 @@
  * TODO:
  * - test and document (!) ICMP based NAT traversal
  * - test manual hole punching support
- * - consider passing transport plugin name instead of
- *   external IP address string (more flexible!)
  * - adapt existing transports to use new NAT logic
  * - abandon legacy NAT code
  *
@@ -184,6 +182,11 @@ struct ClientHandle
    * have a hole punched).
    */
   char *hole_external;
+
+  /**
+   * Name of the configuration section this client cares about.
+   */
+  char *section_name;
 
   /**
    * Task for periodically re-running the @e ext_dns DNS lookup.
@@ -505,7 +508,7 @@ check_register (void *cls,
     off += alen;
     left -= alen;
   }
-  if (left != ntohs (message->hole_external_len))
+  if (left != ntohs (message->str_len))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;      
@@ -1575,10 +1578,14 @@ handle_register (void *cls,
     off += alen;
   }
 
-  ch->hole_external
+  ch->section_name
     = GNUNET_strndup (off,
-		      ntohs (message->hole_external_len));
-  if (0 != ntohs (message->hole_external_len))
+		      ntohs (message->str_len));
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     ch->section_name,
+					     "HOLE_EXTERNAL",
+					     &ch->hole_external))
     lookup_hole_external (ch);
   
   /* Actually send IP address list to client */
@@ -2352,6 +2359,7 @@ client_disconnect_cb (void *cls,
     ch->ext_dns = NULL;
   }
   GNUNET_free (ch->hole_external);
+  GNUNET_free (ch->section_name);
   GNUNET_free (ch);
 }
 

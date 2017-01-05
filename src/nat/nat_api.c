@@ -368,8 +368,8 @@ do_connect (void *cls)
  * address_callback for any 'plausible' external address.
  *
  * @param cfg configuration to use
+ * @param config_section name of the configuration section for optionsx
  * @param proto protocol this is about, IPPROTO_TCP or IPPROTO_UDP
- * @param hole_external hostname and port of manually punched hole in NAT, otherwise NULL (or empty string)
  * @param num_addrs number of addresses in @a addrs
  * @param addrs list of local addresses packets should be redirected to
  * @param addrlens actual lengths of the addresses in @a addrs
@@ -381,8 +381,8 @@ do_connect (void *cls)
  */
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const char *config_section,
                      uint8_t proto,
-                     const char *hole_external,
                      unsigned int num_addrs,
                      const struct sockaddr **addrs,
                      const socklen_t *addrlens,
@@ -393,17 +393,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_NAT_Handle *nh;
   struct GNUNET_NAT_RegisterMessage *rm;
   size_t len;
-  size_t hole_external_len;
+  size_t str_len;
   char *off;
   
   len = 0;
   for (unsigned int i=0;i<num_addrs;i++)
     len += addrlens[i];
-  hole_external_len
-    = (NULL == hole_external)
-    ? 0
-    : strlen (hole_external);
-  len += hole_external_len;
+  str_len = strlen (config_section) + 1;
+  len += str_len;
   if ( (len > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
        (num_addrs > UINT16_MAX) )
   {
@@ -419,7 +416,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != reversal_callback)
     rm->flags |= GNUNET_NAT_RF_REVERSAL;
   rm->proto = proto;
-  rm->hole_external_len = htons (hole_external_len);
+  rm->str_len = htons (str_len);
   rm->num_addrs = htons ((uint16_t) num_addrs);
   off = (char *) &rm[1];
   for (unsigned int i=0;i<num_addrs;i++)
@@ -459,8 +456,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     off += addrlens[i];
   }
   GNUNET_memcpy (off,
-		 hole_external,
-		 hole_external_len);
+		 config_section,
+		 str_len);
 
   nh = GNUNET_new (struct GNUNET_NAT_Handle);
   nh->reg = &rm->header;

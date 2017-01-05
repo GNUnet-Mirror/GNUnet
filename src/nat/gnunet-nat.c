@@ -39,10 +39,10 @@ static int global_ret;
 static struct GNUNET_NAT_AutoHandle *ah;
 
 /**
- * External hostname and port, if user manually punched
- * the NAT.  
+ * Name of section in configuration file to use for 
+ * additional options.
  */ 
-static char *hole_external;
+static char *section_name;
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -568,8 +568,8 @@ run (void *cls,
   if (NULL != local_addr)
   {
     nh = GNUNET_NAT_register (c,
+			      section_name,
 			      proto,
-			      hole_external,
 			      1,
 			      (const struct sockaddr **) &local_sa,
 			      &local_len,
@@ -698,9 +698,9 @@ main (int argc,
     {'r', "remote", "ADDRESS",
      gettext_noop ("which remote IP and port should be asked for connection reversal"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr },
-    {'p', "punched", NULL,
-     gettext_noop ("external hostname and port of NAT, if punched manually; use AUTO for hostname for automatic determination of the external IP"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &hole_external },
+    {'S', "section", NULL,
+     gettext_noop ("name of configuration section to find additional options, such as manual host punching data"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &section_name },
     {'s', "stun", NULL,
      gettext_noop ("enable STUN processing"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },

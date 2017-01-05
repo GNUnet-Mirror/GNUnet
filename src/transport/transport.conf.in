@@ -55,6 +55,9 @@ MAX_CONNECTIONS = 128
 # Enable TCP stealth?
 TCP_STEALTH = NO
 
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
+
 [transport-udp]
 # Use PORT = 0 to autodetect a port available
 PORT = 2086
@@ -68,6 +71,9 @@ BROADCAST_INTERVAL = 30 s
 # quotas.
 MAX_BPS = 1000000
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
 
 [transport-http_client]
 MAX_CONNECTIONS = 128
@@ -98,6 +104,9 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 # Enable TCP stealth?
 TCP_STEALTH = NO
+
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
 
 [transport-https_client]
 MAX_CONNECTIONS = 128
@@ -139,6 +148,10 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 # Enable TCP stealth?
 TCP_STEALTH = NO
+
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
+
 
 [transport-wlan]
 # Name of the interface in monitor mode (typically monX)

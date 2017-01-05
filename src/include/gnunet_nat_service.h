@@ -185,8 +185,8 @@ struct GNUNET_NAT_Handle;
  * address_callback for any 'plausible' external address.
  *
  * @param cfg configuration to use
+ * @param config_section name of the configuration section for optionsx
  * @param proto protocol this is about, IPPROTO_TCP or IPPROTO_UDP
- * @param hole_external hostname and port of manually punched hole in NAT, otherwise NULL (or empty string)
  * @param num_addrs number of addresses in @a addrs
  * @param addrs list of local addresses packets should be redirected to
  * @param addrlens actual lengths of the addresses in @a addrs
@@ -198,8 +198,8 @@ struct GNUNET_NAT_Handle;
  */
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const char *config_section,
                      uint8_t proto,
-                     const char *hole_external,
                      unsigned int num_addrs,
                      const struct sockaddr **addrs,
                      const socklen_t *addrlens,
