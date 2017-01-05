@@ -109,6 +109,7 @@ SUBDIRS = \
   revocation \
   vpn \
   gns \
+  zonemaster \
   $(CONVERSATION_DIR) \
   fs \
   exit \
