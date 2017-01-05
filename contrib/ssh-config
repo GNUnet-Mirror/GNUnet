@@ -1,0 +1,33 @@
+# ~/.ssh/config for buildbots
+
+Host *.buildbot.gnunet
+  User root
+
+Host debian-amd64-grothoff.buildbot.gnunet
+  Hostname gnunet.org
+  Port 20004
+
+Host debian-i686-wachs.buildbot.gnunet
+  Hostname gnunet.org
+  Port 20000
+
+Host ubuntu-amd64-wachs.buildbot.gnunet
+  Hostname gnunet.org
+  Port 20003
+
+Host opensuse-amd64-wachs.buildbot.gnunet
+  Hostname gnunet.org
+  Port 20002
+
+Host freebsd-amd64-wachs.buildbot.gnunet
+  Hostname gnunet.org
+  Port 20006
+
+Host debian-powerpc-wachs.buildbot.gnunet
+  Hostname powerpcbot.decentralise.rennes.inria.fr
+
+Host debian-armv7l-evans.buildbot.gnunet
+  Hostname efikamxbot.decentralise.rennes.inria.fr
+
+Host debian-sparc64-wachs.buildbot.gnunet
+  Hostname sparcbot.decentralise.rennes.inria.fr
