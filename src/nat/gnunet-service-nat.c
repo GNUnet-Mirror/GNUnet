@@ -29,9 +29,6 @@
  *
  * TODO:
  * - test and document (!) ICMP based NAT traversal
- * - implement NEW logic for external IP detection;
- *   => introduce higher-level abstraction for external-IPs 
- *      for subsystems to hook into!
  * - implement manual hole punching support (AUTO missing)
  * - test manual hole punching support
  * - implement "more" autoconfig:
@@ -49,6 +46,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_nat_service.h"
+#include "gnunet-service-nat.h"
+#include "gnunet-service-nat_externalip.h"
 #include "gnunet-service-nat_stun.h"
 #include "gnunet-service-nat_mini.h"
 #include "gnunet-service-nat_helper.h"
@@ -66,24 +65,6 @@
  * How long do we wait until we forcefully terminate autoconfiguration?
  */
 #define AUTOCONFIG_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
- * How long do we wait until we re-try running `external-ip` if the
- * command failed to terminate nicely?
- */
-#define EXTERN_IP_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
-
-/**
- * How long do we wait until we re-try running `external-ip` if the
- * command failed (but terminated)?
- */
-#define EXTERN_IP_RETRY_FAILURE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
-
-/**
- * How long do we wait until we re-try running `external-ip` if the
- * command succeeded?
- */
-#define EXTERN_IP_RETRY_SUCCESS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * How often do we scan for changes in how our external (dyndns) hostname resolves?
@@ -210,6 +191,11 @@ struct ClientHandle
    */
   struct GNUNET_RESOLVER_RequestHandle *ext_dns;
 
+  /**
+   * Handle for monitoring external IP changes.
+   */
+  struct GN_ExternalIPMonitor *external_monitor;
+  
   /**
    * DLL of external IP addresses as given in @e hole_external.
    */
@@ -422,24 +408,7 @@ static struct StunExternalIP *se_tail;
  * Is UPnP enabled? #GNUNET_YES if enabled, #GNUNET_NO if disabled,
  * #GNUNET_SYSERR if configuration enabled but binary is unavailable.
  */
-static int enable_upnp;
-
-/**
- * Task run to obtain our external IP (if #enable_upnp is set
- * and if we find we have a NATed IP address).
- */
-static struct GNUNET_SCHEDULER_Task *probe_external_ip_task;
-
-/**
- * Handle to our operation to run `external-ip`.
- */
-static struct GNUNET_NAT_ExternalHandle *probe_external_ip_op;
-
-/**
- * What is our external IP address as claimed by `external-ip`?
- * 0 for unknown.
- */
-static struct in_addr mini_external_ipv4;
+int enable_upnp;
 
 
 /**
@@ -936,15 +905,16 @@ notify_clients (struct LocalAddressList *delta,
  * Tell relevant client about a change in our external
  * IPv4 address.
  * 
+ * @param cls client to check if it cares and possibly notify
  * @param v4 the external address that changed
- * @param ch client to check if it cares and possibly notify
  * @param add #GNUNET_YES to add, #GNUNET_NO to remove
  */
 static void
-check_notify_client_external_ipv4_change (const struct in_addr *v4,
-					  struct ClientHandle *ch,
-					  int add)
+notify_client_external_ipv4_change (void *cls,
+				    const struct in_addr *v4,
+				    int add)
 {
+  struct ClientHandle *ch = cls;
   struct sockaddr_in sa;
   int have_v4;
 
@@ -982,112 +952,6 @@ check_notify_client_external_ipv4_change (const struct in_addr *v4,
 		 add,
 		 &sa,
 		 sizeof (sa));
-}
-
-
-/**
- * Tell relevant clients about a change in our external
- * IPv4 address.
- * 
- * @param add #GNUNET_YES to add, #GNUNET_NO to remove
- * @param v4 the external address that changed
- */
-static void
-notify_clients_external_ipv4_change (int add,
-				     const struct in_addr *v4)
-{
-  for (struct ClientHandle *ch = ch_head;
-       NULL != ch;
-       ch = ch->next)
-    check_notify_client_external_ipv4_change (v4,
-					      ch,
-					      add);
-}
-
-
-/**
- * Task used to run `external-ip` to get our external IPv4
- * address and pass it to NATed clients if possible.
- *
- * @param cls NULL
- */
-static void
-run_external_ip (void *cls);
-
-
-/**
- * We learn our current external IP address.  If it changed,
- * notify all of our applicable clients. Also re-schedule
- * #run_external_ip with an appropriate timeout.
- * 
- * @param cls NULL
- * @param addr the address, NULL on errors
- * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
- */
-static void
-handle_external_ip (void *cls,
-		    const struct in_addr *addr,
-		    enum GNUNET_NAT_StatusCode result)
-{
-  char buf[INET_ADDRSTRLEN];
-  
-  probe_external_ip_op = NULL;
-  GNUNET_SCHEDULER_cancel (probe_external_ip_task);
-  probe_external_ip_task
-    = GNUNET_SCHEDULER_add_delayed ((NULL == addr)
-				    ? EXTERN_IP_RETRY_FAILURE
-				    : EXTERN_IP_RETRY_SUCCESS,
-				    &run_external_ip,
-				    NULL);
-  switch (result)
-  {
-  case GNUNET_NAT_ERROR_SUCCESS:
-    if (addr->s_addr == mini_external_ipv4.s_addr)
-      return; /* not change */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Our external IP is now %s\n",
-		inet_ntop (AF_INET,
-			   addr,
-			   buf,
-			   sizeof (buf)));
-    if (0 != mini_external_ipv4.s_addr)
-      notify_clients_external_ipv4_change (GNUNET_NO,
-					   &mini_external_ipv4);
-    mini_external_ipv4 = *addr;
-    notify_clients_external_ipv4_change (GNUNET_YES,
-					 &mini_external_ipv4);
-    break;
-  default:
-    if (0 != mini_external_ipv4.s_addr)
-      notify_clients_external_ipv4_change (GNUNET_NO,
-					   &mini_external_ipv4);
-    mini_external_ipv4.s_addr = 0; 
-    break;
-  }
-}
-
-
-/**
- * Task used to run `external-ip` to get our external IPv4
- * address and pass it to NATed clients if possible.
- *
- * @param cls NULL
- */
-static void
-run_external_ip (void *cls)
-{
-  probe_external_ip_task
-    = GNUNET_SCHEDULER_add_delayed (EXTERN_IP_RETRY_TIMEOUT,
-				    &run_external_ip,
-				    NULL);
-  if (NULL != probe_external_ip_op)
-  {
-    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
-    probe_external_ip_op = NULL;
-  }
-  probe_external_ip_op
-    = GNUNET_NAT_mini_get_external_ipv4_ (&handle_external_ip,
-					  NULL);
 }
 
 
@@ -1251,29 +1115,7 @@ run_scan (void *cls)
       }
     }
   }
-  if ( (GNUNET_YES == have_nat) &&
-       (GNUNET_YES == enable_upnp) &&
-       (NULL == probe_external_ip_task) &&
-       (NULL == probe_external_ip_op) )
-  {
-    probe_external_ip_task
-      = GNUNET_SCHEDULER_add_now (&run_external_ip,
-				  NULL);
-  }
-  if ( (GNUNET_NO == have_nat) &&
-       (GNUNET_YES == enable_upnp) )
-  {
-    if (NULL != probe_external_ip_task)
-    {
-      GNUNET_SCHEDULER_cancel (probe_external_ip_task);
-      probe_external_ip_task = NULL;
-    }
-    if (NULL != probe_external_ip_op)
-    {
-      GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
-      probe_external_ip_op = NULL;
-    }
-  }
+  GN_nat_status_changed (have_nat);
 }
 
 
@@ -1727,12 +1569,9 @@ handle_register (void *cls,
 			 GNUNET_YES);
   }
   /* Also consider IPv4 determined by `external-ip` */
-  if (0 != mini_external_ipv4.s_addr)
-  {
-    check_notify_client_external_ipv4_change (&mini_external_ipv4,
-					      ch,
-					      GNUNET_YES);
-  }
+  ch->external_monitor
+    = GN_external_ipv4_monitor_start (&notify_client_external_ipv4_change,
+				      ch);
   GNUNET_SERVICE_client_continue (ch->client);
 }
 
@@ -2346,16 +2185,7 @@ shutdown_task (void *cls)
     GNUNET_SCHEDULER_cancel (se->timeout_task);
     GNUNET_free (se);
   }
-  if (NULL != probe_external_ip_task)
-  {
-    GNUNET_SCHEDULER_cancel (probe_external_ip_task);
-    probe_external_ip_task = NULL;
-  }
-  if (NULL != probe_external_ip_op)
-  {
-    GNUNET_NAT_mini_get_external_ipv4_cancel_ (probe_external_ip_op);
-    probe_external_ip_op = NULL;
-  }
+  GN_nat_status_changed (GNUNET_NO);
   if (NULL != scan_task)
   {
     GNUNET_SCHEDULER_cancel (scan_task);
@@ -2488,6 +2318,11 @@ client_disconnect_cb (void *cls,
   {
     GNUNET_SCHEDULER_cancel (ch->ext_dns_task);
     ch->ext_dns_task = NULL;
+  }
+  if (NULL != ch->external_monitor)
+  {
+    GN_external_ipv4_monitor_stop (ch->external_monitor);
+    ch->external_monitor = NULL;
   }
   if (NULL != ch->ext_dns)
   {

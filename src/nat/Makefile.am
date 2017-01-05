@@ -97,7 +97,8 @@ libgnunetnatnew_la_LDFLAGS = \
   -version-info 2:0:0
 
 gnunet_service_nat_SOURCES = \
- gnunet-service-nat.c \
+ gnunet-service-nat.c gnunet-service-nat.h \
+ gnunet-service-nat_externalip.c gnunet-service-nat_externalip.h \
  gnunet-service-nat_stun.c gnunet-service-nat_stun.h \
  gnunet-service-nat_mini.c gnunet-service-nat_mini.h \
  gnunet-service-nat_helper.c gnunet-service-nat_helper.h
