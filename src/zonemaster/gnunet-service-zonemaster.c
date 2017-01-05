@@ -710,7 +710,8 @@ run (void *cls,
   put_interval = INITIAL_PUT_INTERVAL;
   zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_time (c, "gns",
+      GNUNET_CONFIGURATION_get_value_time (c,
+					   "zonemaster",
                                            "ZONE_PUBLISH_TIME_WINDOW",
                                            &zone_publish_time_window_default))
   {
@@ -721,7 +722,8 @@ run (void *cls,
   }
   zone_publish_time_window = zone_publish_time_window_default;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (c, "gns",
+      GNUNET_CONFIGURATION_get_value_number (c,
+					     "zonemaster",
                                              "MAX_PARALLEL_BACKGROUND_QUERIES",
                                              &max_parallel_bg_queries))
   {

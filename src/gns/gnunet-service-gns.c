@@ -574,7 +574,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  unsigned long long max_parallel_bg_queries = 0;
+  unsigned long long max_parallel_bg_queries = 16;
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
   v4_enabled = GNUNET_NETWORK_test_pf (PF_INET); 
@@ -594,7 +594,16 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (c,
+					     "gns",
+                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
+                                             &max_parallel_bg_queries))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Number of allowed parallel background queries: %llu\n",
+                max_parallel_bg_queries);
+  }
   dht_handle = GNUNET_DHT_connect (c,
                                    (unsigned int) max_parallel_bg_queries);
   if (NULL == dht_handle)
