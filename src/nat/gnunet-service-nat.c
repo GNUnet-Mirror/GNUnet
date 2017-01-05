@@ -29,7 +29,6 @@
  *
  * TODO:
  * - test and document (!) ICMP based NAT traversal
- * - implement manual hole punching support (AUTO missing)
  * - test manual hole punching support
  * - implement "more" autoconfig:
  *   + consider moving autoconfig-logic into separate service! 
@@ -918,6 +917,24 @@ notify_client_external_ipv4_change (void *cls,
   struct sockaddr_in sa;
   int have_v4;
 
+  /* (0) check if this impacts 'hole_external' */
+  if (0 == strcasecmp (ch->hole_external,
+		       "AUTO"))
+  {
+    struct LocalAddressList lal;
+    struct sockaddr_in *s4;
+  
+    memset (&lal, 0, sizeof (lal));
+    s4 = (struct sockaddr_in *) &lal.addr;
+    s4->sin_family = AF_INET;
+    s4->sin_port = htons (ch->ext_dns_port);
+    lal.af = AF_INET;
+    lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
+    check_notify_client (&lal,
+			 ch,
+			 add);
+  }
+  
   /* (1) check if client cares. */
   if (! ch->natted_address)
     return;
@@ -936,7 +953,7 @@ notify_client_external_ipv4_change (void *cls,
   if (GNUNET_NO == have_v4)
     return; /* IPv6-only */
 
-  /* build address info */
+  /* (2) build address info */
   memset (&sa,
 	  0,
 	  sizeof (sa));
@@ -1437,8 +1454,7 @@ lookup_hole_external (struct ClientHandle *ch)
   if (0 == strcasecmp (ch->hole_external,
 		       "AUTO"))
   {
-    // FIXME: use `external-ip` address(es)!
-    GNUNET_break (0); // not implemented!
+    /* handled in #notify_client_external_ipv4_change() */
     GNUNET_free (lal);
     return;
   }
