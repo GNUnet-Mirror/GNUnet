@@ -85,6 +85,7 @@ SUBDIRS = \
   template \
   ats \
   nat \
+  nat-auto \
   fragmentation \
   transport \
   ats-tool \

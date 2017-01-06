@@ -18,14 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file nat/nat_api_test.c
+ * @file nat/nat_auto_api_test.c
  * @brief functions to test if the NAT configuration is successful at achieving NAT traversal (with the help of a gnunet-nat-server)
  * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_nat_lib.h"
-#include "nat.h"
+#include "nat-auto.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
 

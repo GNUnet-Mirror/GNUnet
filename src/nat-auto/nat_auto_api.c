@@ -23,13 +23,13 @@
  * @author Christian Grothoff
  * @author Milan Bouchet-Valat
  *
- * @file nat/nat_api_auto.c
+ * @file nat/nat_auto_api.c
  * Routines for NAT auto configuration.
  */
 #include "platform.h"
 #include "gnunet_nat_service.h"
-#include "nat.h"
-#include "nat_stun.h"
+#include "gnunet_nat_auto_service.h"
+#include "nat-auto.h"
 
 
 
@@ -248,7 +248,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   env = GNUNET_MQ_msg_extra (req,
 			     size,
-			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG);
+			     GNUNET_MESSAGE_TYPE_NAT_AUTO_REQUEST_CFG);
   GNUNET_memcpy (&req[1],
 		 buf,
 		 size);

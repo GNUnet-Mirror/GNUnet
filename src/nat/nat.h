@@ -224,45 +224,6 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
 };
 
 
-/**
- * Client requesting automatic configuration.
- */
-struct GNUNET_NAT_AutoconfigRequestMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG
-   */
-  struct GNUNET_MessageHeader header;
-
-  /* Followed by configuration (diff, serialized, compressed) */
-  
-};
-
-
-/**
- * Service responding with proposed configuration.
- */
-struct GNUNET_NAT_AutoconfigResultMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-  
-  /**
-   * An `enum GNUNET_NAT_StatusCode` in NBO.
-   */
-  int32_t status_code GNUNET_PACKED;
-
-  /**
-   * An `enum GNUNET_NAT_Type` in NBO.
-   */
-  int32_t type GNUNET_PACKED;
-
-  /* Followed by configuration (diff, serialized, compressed) */
-};
-
-
 GNUNET_NETWORK_STRUCT_END
 
 #endif

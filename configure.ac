@@ -1596,6 +1596,8 @@ src/namestore/Makefile
 src/namestore/namestore.conf
 src/nat/Makefile
 src/nat/nat.conf
+src/nat-auto/Makefile
+src/nat-auto/nat-auto.conf
 src/nse/Makefile
 src/nse/nse.conf
 src/peerinfo/Makefile

@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_nat_lib.h"
 #include "gnunet_protocols.h"
-#include "nat.h"
+#include "nat-auto.h"
 
 
 /**

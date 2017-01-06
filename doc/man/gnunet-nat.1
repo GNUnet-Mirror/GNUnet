@@ -14,9 +14,6 @@ This tool allows testing various NAT traversal functions, as well
 as attempting auto\-configuration.
 
 .SH OPTIONS
-.B
-.IP "\-a,  \-\-auto"
-Attempt auto\-configuration for NAT traversal.
 
 .B
 .IP "\-b ADDRESS,  \-\-bind=ADDRESS"
@@ -53,10 +50,6 @@ Use TCP.
 .B
 .IP "\-u,  \-\-udp"
 Use UDP.
-
-.B
-.IP "\-w,  \-\-write"
-Write configuration to configuration file, useful in combination with autoconfiguration (\-a).
 
 .B
 .IP "\-W,  \-\-watch"
@@ -103,12 +96,6 @@ XXX:
 
   # gnunet-nat FIXME -s
 
-\fBAutomatic configuration:\fR
-
-Probe and write result to configuration:
-
-  # gnunet-nat -aw
-  
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

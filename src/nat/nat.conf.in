@@ -67,8 +67,3 @@ STUN_SERVERS = stun.gnunet.org stun.services.mozilla.com:3478 stun.ekiga.net:347
 # After how long do we consider STUN data stale?
 STUN_STALE = 60 min
 
-
-[gnunet-nat-server]
-HOSTNAME = gnunet.org
-PORT = 5724
-NOARMBIND = YES

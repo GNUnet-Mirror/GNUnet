@@ -2820,7 +2820,7 @@ extern "C"
 /**
  * Message to ask NAT service to request autoconfiguration.
  */
-#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG 1067
+#define GNUNET_MESSAGE_TYPE_NAT_AUTO_REQUEST_CFG 1067
 
 /**
  * Message from NAT service with the autoconfiguration result.

@@ -34,19 +34,12 @@ install-exec-hook:
 endif
 
 bin_PROGRAMS = \
- gnunet-nat-server \
  gnunet-nat
 
 libexec_PROGRAMS = \
  $(NATBIN) \
  gnunet-service-nat
 
-
-gnunet_nat_server_SOURCES = \
- gnunet-nat-server.c nat.h
-gnunet_nat_server_LDADD = \
-  libgnunetnat.la \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)
@@ -85,9 +78,7 @@ libgnunetnat_la_LDFLAGS = \
 
 libgnunetnatnew_la_SOURCES = \
   nat_api.c \
-  nat_api_auto.c \
   nat_api_stun.c nat_stun.h \
-  nat_api_test.c \
   nat.h
 libgnunetnatnew_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
