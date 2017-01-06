@@ -37,7 +37,7 @@ static int global_ret;
  * Name of section in configuration file to use for 
  * additional options.
  */ 
-static char *section_name;
+static char *section_name = "undefined";
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -340,9 +340,11 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+    GNUNET_assert (AF_INET == local_sa->sa_family);
+    GNUNET_assert (AF_INET == remote_sa->sa_family);
     ret = GNUNET_NAT_request_reversal (nh,
-				       (const struct sockaddr_in *) &local_sa,
-				       (const struct sockaddr_in *) &remote_sa);
+				       (const struct sockaddr_in *) local_sa,
+				       (const struct sockaddr_in *) remote_sa);
     switch (ret)
     {
     case GNUNET_SYSERR:

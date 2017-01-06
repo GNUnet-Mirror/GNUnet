@@ -678,6 +678,8 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
 
   if (NULL == nh->mq)
     return GNUNET_SYSERR;
+  GNUNET_break (AF_INET == local_sa->sin_family);
+  GNUNET_break (AF_INET == remote_sa->sin_family);
   env = GNUNET_MQ_msg_extra (req,
 			     2 * sizeof (struct sockaddr_in),
 			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL);

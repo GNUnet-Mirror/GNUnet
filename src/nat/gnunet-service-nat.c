@@ -1774,71 +1774,36 @@ handle_request_connection_reversal (void *cls,
   const char *buf = (const char *) &message[1];
   size_t local_sa_len = ntohs (message->local_addr_size);
   size_t remote_sa_len = ntohs (message->remote_addr_size);
-  const struct sockaddr *local_sa = (const struct sockaddr *) &buf[0];
-  const struct sockaddr *remote_sa = (const struct sockaddr *) &buf[local_sa_len];
-  const struct sockaddr_in *l4 = NULL;
-  const struct sockaddr_in *r4;
+  struct sockaddr_in l4;
+  struct sockaddr_in r4;
   int ret;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REQUEST CONNECTION REVERSAL message from client\n");
-  switch (local_sa->sa_family)
+  if (local_sa_len != sizeof (struct sockaddr_in))
   {
-  case AF_INET:
-    if (local_sa_len != sizeof (struct sockaddr_in))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVICE_client_drop (ch->client);
-      return;
-    }
-    l4 = (const struct sockaddr_in *) local_sa;    
-    break;
-  case AF_INET6:
-    if (local_sa_len != sizeof (struct sockaddr_in6))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVICE_client_drop (ch->client);
-      return;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Connection reversal for IPv6 not supported yet\n"));
-    ret = GNUNET_SYSERR;
-    break;
-  default:
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     GNUNET_SERVICE_client_drop (ch->client);
     return;
   }
-  switch (remote_sa->sa_family)
+  if (remote_sa_len != sizeof (struct sockaddr_in))
   {
-  case AF_INET:
-    if (remote_sa_len != sizeof (struct sockaddr_in))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVICE_client_drop (ch->client);
-      return;
-    }
-    r4 = (const struct sockaddr_in *) remote_sa;
-    ret = GN_request_connection_reversal (&l4->sin_addr,
-					  ntohs (l4->sin_port),
-					  &r4->sin_addr);
-    break;
-  case AF_INET6:
-    if (remote_sa_len != sizeof (struct sockaddr_in6))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVICE_client_drop (ch->client);
-      return;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Connection reversal for IPv6 not supported yet\n"));
-    ret = GNUNET_SYSERR;
-    break;
-  default:
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     GNUNET_SERVICE_client_drop (ch->client);
     return;
   }
+  GNUNET_memcpy (&l4,
+		 buf,
+		 sizeof (struct sockaddr_in));
+  GNUNET_break_op (AF_INET == l4.sin_family);
+  buf += sizeof (struct sockaddr_in);
+  GNUNET_memcpy (&r4,
+		 buf,
+		 sizeof (struct sockaddr_in));
+  GNUNET_break_op (AF_INET == r4.sin_family);
+  ret = GN_request_connection_reversal (&l4.sin_addr,
+					ntohs (l4.sin_port),
+					&r4.sin_addr);
   if (GNUNET_OK != ret)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Connection reversal request failed\n"));  
