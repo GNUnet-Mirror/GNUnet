@@ -853,8 +853,9 @@ notify_client_external_ipv4_change (void *cls,
   int have_v4;
 
   /* (0) check if this impacts 'hole_external' */
-  if (0 == strcasecmp (ch->hole_external,
-		       "AUTO"))
+  if ( (NULL != ch->hole_external) &&
+       (0 == strcasecmp (ch->hole_external,
+			 "AUTO")) )
   {
     struct LocalAddressList lal;
     struct sockaddr_in *s4;
@@ -2007,7 +2008,7 @@ client_disconnect_cb (void *cls,
     GNUNET_RESOLVER_request_cancel (ch->ext_dns);
     ch->ext_dns = NULL;
   }
-  GNUNET_free (ch->hole_external);
+  GNUNET_free_non_null (ch->hole_external);
   GNUNET_free (ch->section_name);
   GNUNET_free (ch);
 }
