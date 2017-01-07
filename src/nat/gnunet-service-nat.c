@@ -28,13 +28,8 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - adapt existing transports to use new NAT logic
- * - abandon legacy NAT code
- *
- * - implement "more" autoconfig:
- *   + consider moving autoconfig-logic into separate service! 
- *   + re-work gnunet-nat-server & integrate!
- *   + test manually punched NAT (how?)
+ * - migrate test cases to new NAT service
+ * - add new traceroute-based logic for external IP detection
  *
  * - implement & test STUN processing to classify NAT;
  *   basically, open port & try different methods.

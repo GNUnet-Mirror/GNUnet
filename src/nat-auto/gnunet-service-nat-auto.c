@@ -27,6 +27,7 @@
  * - merge client handle and autoconfig context
  * - implement "more" autoconfig:
  *   + re-work gnunet-nat-server & integrate!
+ *   + integrate "legacy" code
  *   + test manually punched NAT (how?)
  */
 #include "platform.h"
@@ -450,7 +451,7 @@ client_disconnect_cb (void *cls,
  * Define "main" method using service macro.
  */
 GNUNET_SERVICE_MAIN
-("nat",
+("nat-auto",
  GNUNET_SERVICE_OPTION_NONE,
  &run,
  &client_connect_cb,

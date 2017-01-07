@@ -235,7 +235,6 @@ gnunet_transport_profiler_SOURCES = \
  gnunet-transport-profiler.c
 gnunet_transport_profiler_LDADD = \
   libgnunettransport.la \
-  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -267,7 +266,6 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
@@ -371,7 +369,6 @@ libgnunet_plugin_transport_http_client_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(LIB_GNURL) \
-  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_http_client_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
@@ -402,7 +399,6 @@ libgnunet_plugin_transport_https_client_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(LIB_GNURL) \
-  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_https_client_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
@@ -418,7 +414,7 @@ libgnunet_plugin_transport_https_server_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/nat/libgnunetnat.la \
+  $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_https_server_la_LDFLAGS = \
  $(GN_LIBMHD) \
@@ -1175,7 +1171,6 @@ test_quota_compliance_wlan_asymmetric_LDADD = \
 test_quota_compliance_bluetooth_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_bluetooth_LDADD = \
- $(top_builddir)/src/nat/libgnunetnat.la \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
