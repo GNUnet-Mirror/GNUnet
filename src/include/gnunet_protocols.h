@@ -2828,8 +2828,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT 1068
 
 
+/* 1080-1109 reserved for TMCG (Heiko Stamer, see gnunet-developers, January 2017) */
+
 /**
- * Next available: 1080
+ * Next available: 1110
  */
 
 
