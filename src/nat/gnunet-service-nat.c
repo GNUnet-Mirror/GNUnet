@@ -28,7 +28,6 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - test manual hole punching support
  * - adapt existing transports to use new NAT logic
  * - abandon legacy NAT code
  *
@@ -863,6 +862,7 @@ notify_client_external_ipv4_change (void *cls,
     s4 = (struct sockaddr_in *) &lal.addr;
     s4->sin_family = AF_INET;
     s4->sin_port = htons (ch->ext_dns_port);
+    s4->sin_addr = *v4;
     lal.af = AF_INET;
     lal.ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
     check_notify_client (&lal,
