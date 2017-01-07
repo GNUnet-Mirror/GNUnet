@@ -1245,31 +1245,48 @@ udp_plugin_check_address (void *cls,
 
   if (sizeof(struct IPv4UdpAddress) == addrlen)
   {
+    struct sockaddr_in s4;
+    
     v4 = (const struct IPv4UdpAddress *) addr;
     if (GNUNET_OK != check_port (plugin,
                                  ntohs (v4->u4_port)))
       return GNUNET_SYSERR;
+    memset (&s4, 0, sizeof (s4));
+    s4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (s4);
+#endif
+    s4.sin_port = v4->u4_port;
+    s4.sin_addr.s_addr = v4->ipv4_addr;
+    
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v4->ipv4_addr,
-                                 sizeof (struct in_addr)))
+	GNUNET_NAT_test_address (plugin->nat,
+				 &s4,
+				 sizeof (struct sockaddr_in)))
       return GNUNET_SYSERR;
   }
   else if (sizeof(struct IPv6UdpAddress) == addrlen)
   {
+    struct sockaddr_in6 s6;
+
     v6 = (const struct IPv6UdpAddress *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-    if (GNUNET_OK != check_port (plugin,
-                                 ntohs (v6->u6_port)))
-      return GNUNET_SYSERR;
+    memset (&s6, 0, sizeof (s6));
+    s6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (s6);
+#endif
+    s6.sin6_port = v6->u6_port;
+    s6.sin6_addr = v6->ipv6_addr;
+
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v6->ipv6_addr,
-                                 sizeof (struct in6_addr)))
+	GNUNET_NAT_test_address (plugin->nat,
+				 &s6,
+				 sizeof(struct sockaddr_in6)))
       return GNUNET_SYSERR;
   }
   else

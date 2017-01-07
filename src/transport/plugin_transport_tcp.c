@@ -2413,27 +2413,6 @@ tcp_plugin_address_pretty_printer (void *cls,
 
 
 /**
- * Check if the given port is plausible (must be either our listen
- * port or our advertised port), or any port if we are behind NAT
- * and do not have a port open.  If it is neither, we return
- * #GNUNET_SYSERR.
- *
- * @param plugin global variables
- * @param in_port port number to check
- * @return #GNUNET_OK if port is either open_port or adv_port
- */
-static int
-check_port (struct Plugin *plugin,
-	    uint16_t in_port)
-{
-  if ( (in_port == plugin->adv_port) ||
-       (in_port == plugin->open_port) )
-    return GNUNET_OK;
-  return GNUNET_SYSERR;
-}
-
-
-/**
  * Function that will be called to check if a binary address for this
  * plugin is well-formed and corresponds to an address for THIS peer
  * (as per our configuration).  Naturally, if absolutely necessary,
@@ -2466,6 +2445,8 @@ tcp_plugin_check_address (void *cls,
 
   if (addrlen == sizeof(struct IPv4TcpAddress))
   {
+    struct sockaddr_in s4;
+    
     v4 = (const struct IPv4TcpAddress *) addr;
     if (0 != memcmp (&v4->options,
                      &plugin->myoptions,
@@ -2474,17 +2455,24 @@ tcp_plugin_check_address (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    if (GNUNET_OK != check_port (plugin,
-				 ntohs (v4->t4_port)))
-      return GNUNET_SYSERR;
+    memset (&s4, 0, sizeof (s4));
+    s4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (s4);
+#endif
+    s4.sin_port = v4->t4_port;
+    s4.sin_addr.s_addr = v4->ipv4_addr;
+    
     if (GNUNET_OK !=
 	GNUNET_NAT_test_address (plugin->nat,
-				 &v4->ipv4_addr,
-				 sizeof (struct in_addr)))
+				 &s4,
+				 sizeof (struct sockaddr_in)))
       return GNUNET_SYSERR;
   }
   else
   {
+    struct sockaddr_in6 s6;
+    
     v6 = (const struct IPv6TcpAddress *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
     {
@@ -2498,13 +2486,18 @@ tcp_plugin_check_address (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    if (GNUNET_OK != check_port (plugin,
-				 ntohs (v6->t6_port)))
-      return GNUNET_SYSERR;
+    memset (&s6, 0, sizeof (s6));
+    s6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (s6);
+#endif
+    s6.sin6_port = v6->t6_port;
+    s6.sin6_addr = v6->ipv6_addr;
+
     if (GNUNET_OK !=
 	GNUNET_NAT_test_address (plugin->nat,
-				 &v6->ipv6_addr,
-				 sizeof(struct in6_addr)))
+				 &s6,
+				 sizeof(struct sockaddr_in6)))
       return GNUNET_SYSERR;
   }
   return GNUNET_OK;
