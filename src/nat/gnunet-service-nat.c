@@ -28,7 +28,6 @@
  * knowledge about the local network topology.
  *
  * TODO:
- * - test and document (!) ICMP based NAT traversal
  * - test manual hole punching support
  * - adapt existing transports to use new NAT logic
  * - abandon legacy NAT code

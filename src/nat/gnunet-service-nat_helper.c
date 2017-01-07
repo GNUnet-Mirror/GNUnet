@@ -390,7 +390,7 @@ GN_request_connection_reversal (const struct in_addr *internal_address,
                    "%d",
                    internal_port);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      _("Running gnunet-helper-nat-client %s %s %u\n"),
+	      "Running gnunet-helper-nat-client %s %s %u\n",
 	      intv4,
 	      remv4,
 	      internal_port);

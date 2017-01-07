@@ -78,11 +78,13 @@ Watch for connection reversal request (you must be bound to NAT range or to wild
 
   # gnunet-nat -Wt -i 192.168.178.12:8080
 
-Initiate connection reversal request from peer at external IPv4 address 1.2.3.4 while we are running ourselves at 2.3.4.5:8080 (must use IPv4 addresses):
+Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, while we are running ourselves at 2.3.4.5:8080 (must use IPv4 addresses):
 
   # gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
 
-  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080 ### TEST THIS!
+Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, and let the kernel fill in whatever IPv4 address we happen to have:
+
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080 
 
 \fBManual hole punching:\fR
 
