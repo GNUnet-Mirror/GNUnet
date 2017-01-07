@@ -1,7 +1,6 @@
-
 /*
      This file is part of GNUnet.
-     Copyright (C) 2007-2016 GNUnet e.V.
+     Copyright (C) 2007-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,7 +22,7 @@
  * @author Christian Grothoff
  * @author Milan Bouchet-Valat
  *
- * @file nat/nat_auto_api.c
+ * @file nat-auto/nat_auto_api.c
  * Routines for NAT auto configuration.
  */
 #include "platform.h"
@@ -36,7 +35,7 @@
 /**
  * Handle to auto-configuration in progress.
  */
-struct GNUNET_NAT_AutoHandle
+struct GNUNET_NAT_AUTO_AutoHandle
 {
 
   /**
@@ -52,7 +51,7 @@ struct GNUNET_NAT_AutoHandle
   /**
    * Function called with the result from the autoconfiguration.
    */
-  GNUNET_NAT_AutoResultCallback arc;
+  GNUNET_NAT_AUTO_AutoResultCallback arc;
 
   /**
    * Closure for @e arc.
@@ -69,7 +68,7 @@ struct GNUNET_NAT_AutoHandle
  * @return point to a static string containing the error code
  */
 const char *
-GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
+GNUNET_NAT_AUTO_status2string (enum GNUNET_NAT_StatusCode err)
 {
   switch (err)
   {
@@ -120,13 +119,13 @@ GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
 /**
  * Check result from autoconfiguration attempt.
  *
- * @param cls the `struct GNUNET_NAT_AutoHandle`
+ * @param cls the `struct GNUNET_NAT_AUTO_AutoHandle`
  * @param res the result
  * @return #GNUNET_OK if @a res is well-formed (always for now)
  */
 static int
 check_auto_result (void *cls,
-		   const struct GNUNET_NAT_AutoconfigResultMessage *res)
+		   const struct GNUNET_NAT_AUTO_AutoconfigResultMessage *res)
 {
   return GNUNET_OK;
 }
@@ -135,14 +134,14 @@ check_auto_result (void *cls,
 /**
  * Handle result from autoconfiguration attempt.
  *
- * @param cls the `struct GNUNET_NAT_AutoHandle`
+ * @param cls the `struct GNUNET_NAT_AUTO_AutoHandle`
  * @param res the result
  */
 static void
 handle_auto_result (void *cls,
-		    const struct GNUNET_NAT_AutoconfigResultMessage *res)
+		    const struct GNUNET_NAT_AUTO_AutoconfigResultMessage *res)
 {
-  struct GNUNET_NAT_AutoHandle *ah = cls;
+  struct GNUNET_NAT_AUTO_AutoHandle *ah = cls;
   size_t left;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   enum GNUNET_NAT_Type type
@@ -172,27 +171,27 @@ handle_auto_result (void *cls,
 	     type);
   }
   GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_NAT_autoconfig_cancel (ah);
+  GNUNET_NAT_AUTO_autoconfig_cancel (ah);
 }
 
 
 /**
  * Handle queue errors by reporting autoconfiguration failure.
  *
- * @param cls the `struct GNUNET_NAT_AutoHandle *`
+ * @param cls the `struct GNUNET_NAT_AUTO_AutoHandle *`
  * @param error details about the error
  */
 static void
 ah_error_handler (void *cls,
 		  enum GNUNET_MQ_Error error)
 {
-  struct GNUNET_NAT_AutoHandle *ah = cls;
+  struct GNUNET_NAT_AUTO_AutoHandle *ah = cls;
 
   ah->arc (ah->arc_cls,
 	   NULL,
 	   GNUNET_NAT_ERROR_IPC_FAILURE,
 	   GNUNET_NAT_TYPE_UNKNOWN);
-  GNUNET_NAT_autoconfig_cancel (ah);
+  GNUNET_NAT_AUTO_autoconfig_cancel (ah);
 }
 
 
@@ -205,21 +204,21 @@ ah_error_handler (void *cls,
  * @param cb_cls closure for @a cb
  * @return handle to cancel operation
  */
-struct GNUNET_NAT_AutoHandle *
-GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_NAT_AutoResultCallback cb,
+struct GNUNET_NAT_AUTO_AutoHandle *
+GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			     GNUNET_NAT_AUTO_AutoResultCallback cb,
 			     void *cb_cls)
 {
-  struct GNUNET_NAT_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
+  struct GNUNET_NAT_AUTO_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AUTO_AutoHandle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (auto_result,
 			   GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT,
-			   struct GNUNET_NAT_AutoconfigResultMessage,
+			   struct GNUNET_NAT_AUTO_AutoconfigResultMessage,
 			   ah),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_NAT_AutoconfigRequestMessage *req;
+  struct GNUNET_NAT_AUTO_AutoconfigRequestMessage *req;
   char *buf;
   size_t size;
 
@@ -265,7 +264,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ah handle for operation to abort
  */
 void
-GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
+GNUNET_NAT_AUTO_autoconfig_cancel (struct GNUNET_NAT_AUTO_AutoHandle *ah)
 {
   GNUNET_MQ_destroy (ah->mq);
   GNUNET_free (ah);

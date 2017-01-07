@@ -35,95 +35,13 @@
 #define GNUNET_NAT_AUTO_SERVICE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_nat_service.h"
 
 
 /**
  * Handle to a NAT test.
  */
-struct GNUNET_NAT_Test;
-
-
-/**
- * Function called to report success or failure for
- * NAT configuration test.
- *
- * @param cls closure
- * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
- */
-typedef void
-(*GNUNET_NAT_TestCallback) (void *cls,
-			    enum GNUNET_NAT_StatusCode result);
-
-
-/**
- * Handle an incoming STUN message.  This function is useful as
- * some GNUnet service may be listening on a UDP port and might
- * thus receive STUN messages while trying to receive other data.
- * In this case, this function can be used to process replies
- * to STUN requests.
- *
- * The function does some basic sanity checks on packet size and
- * content, try to extract a bit of information.
- * 
- * At the moment this only processes BIND requests, and returns the
- * externally visible address of the request to the rest of the
- * NAT logic.
- *
- * @param nh handle to the NAT service
- * @param sender_addr address from which we got @a data
- * @param sender_addr_len number of bytes in @a sender_addr
- * @param data the packet
- * @param data_size number of bytes in @a data
- * @return #GNUNET_OK on success
- *         #GNUNET_NO if the packet is not a STUN packet
- *         #GNUNET_SYSERR on internal error handling the packet
- */
-int
-GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
-			       const struct sockaddr *sender_addr,
-			       size_t sender_addr_len,
-			       const void *data,
-                               size_t data_size);
-
-
-/**
- * Handle to a request given to the resolver.  Can be used to cancel
- * the request prior to the timeout or successful execution.  Also
- * used to track our internal state for the request.
- */
-struct GNUNET_NAT_STUN_Handle;
-
-
-/**
- * Make Generic STUN request. Sends a generic stun request to the
- * server specified using the specified socket.  If we do this,
- * we need to watch for possible responses and call
- * #GNUNET_NAT_stun_handle_packet() on incoming packets.
- *
- * @param server the address of the stun server
- * @param port port of the stun server, in host byte order
- * @param sock the socket used to send the request, must be a
- *             UDP socket
- * @param cb callback in case of error
- * @param cb_cls closure for @a cb
- * @return NULL on error
- */
-struct GNUNET_NAT_STUN_Handle *
-GNUNET_NAT_stun_make_request (const char *server,
-                              uint16_t port,
-                              struct GNUNET_NETWORK_Handle *sock,
-                              GNUNET_NAT_TestCallback cb,
-                              void *cb_cls);
-
-
-/**
- * Cancel active STUN request. Frees associated resources
- * and ensures that the callback is no longer invoked.
- *
- * @param rh request to cancel
- */
-void
-GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
+struct GNUNET_NAT_AUTO_Test;
 
 
 /**
@@ -141,15 +59,15 @@ GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test
  */
-struct GNUNET_NAT_Test *
-GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       uint8_t proto,
-		       struct in_addr bind_ip,
-                       uint16_t bnd_port,
-		       struct in_addr extern_ip,
-                       uint16_t extern_port,
-                       GNUNET_NAT_TestCallback report,
-                       void *report_cls);
+struct GNUNET_NAT_AUTO_Test *
+GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    uint8_t proto,
+			    struct in_addr bind_ip,
+			    uint16_t bnd_port,
+			    struct in_addr extern_ip,
+			    uint16_t extern_port,
+			    GNUNET_NAT_TestCallback report,
+			    void *report_cls);
 
 
 /**
@@ -158,13 +76,13 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param tst test to stop.
  */
 void
-GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
+GNUNET_NAT_AUTO_test_stop (struct GNUNET_NAT_AUTO_Test *tst);
 
 
 /**
  * Handle to auto-configuration in progress.
  */
-struct GNUNET_NAT_AutoHandle;
+struct GNUNET_NAT_AUTO_AutoHandle;
 
 
 /**
@@ -174,7 +92,7 @@ struct GNUNET_NAT_AutoHandle;
  * @return point to a static string containing the error code
  */
 const char *
-GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err);
+GNUNET_NAT_AUTO_status2string (enum GNUNET_NAT_StatusCode err);
 
 
 /**
@@ -187,10 +105,10 @@ GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err);
  * @param type what the situation of the NAT
  */
 typedef void
-(*GNUNET_NAT_AutoResultCallback)(void *cls,
-                                 const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 enum GNUNET_NAT_StatusCode result,
-                                 enum GNUNET_NAT_Type type);
+(*GNUNET_NAT_AUTO_AutoResultCallback)(void *cls,
+				      const struct GNUNET_CONFIGURATION_Handle *diff,
+				      enum GNUNET_NAT_StatusCode result,
+				      enum GNUNET_NAT_Type type);
 
 
 /**
@@ -202,10 +120,10 @@ typedef void
  * @param cb_cls closure for @a cb
  * @return handle to cancel operation
  */
-struct GNUNET_NAT_AutoHandle *
-GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_NAT_AutoResultCallback cb,
-			     void *cb_cls);
+struct GNUNET_NAT_AUTO_AutoHandle *
+GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				  GNUNET_NAT_AUTO_AutoResultCallback cb,
+				  void *cb_cls);
 
 
 /**
@@ -214,7 +132,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ah handle for operation to abort
  */
 void
-GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
+GNUNET_NAT_AUTO_autoconfig_cancel (struct GNUNET_NAT_AUTO_AutoHandle *ah);
 
 
 #endif

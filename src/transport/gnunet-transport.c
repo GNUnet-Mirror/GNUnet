@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2011-2014, 2016 GNUnet e.V.
+ Copyright (C) 2011-2014, 2016, 2017 GNUnet e.V.
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -194,7 +194,7 @@ struct TestContext
   /**
    * Task identifier for the timeout.
    */
-  struct GNUNET_SCHEDULER_Task * tsk;
+  struct GNUNET_SCHEDULER_Task *tsk;
 
   /**
    * Name of plugin under test.

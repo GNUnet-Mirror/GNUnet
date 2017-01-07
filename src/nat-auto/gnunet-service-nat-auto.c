@@ -170,7 +170,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static int
 check_autoconfig_request (void *cls,
-			  const struct GNUNET_NAT_AutoconfigRequestMessage *message)
+			  const struct GNUNET_NAT_AUTO_AutoconfigRequestMessage *message)
 {
   return GNUNET_OK;  /* checked later */
 }
@@ -203,7 +203,7 @@ conclude_autoconfig_request (void *cls)
 {
   struct AutoconfigContext *ac = cls;
   struct ClientHandle *ch = ac->ch;
-  struct GNUNET_NAT_AutoconfigResultMessage *arm;
+  struct GNUNET_NAT_AUTO_AutoconfigResultMessage *arm;
   struct GNUNET_MQ_Envelope *env;
   size_t c_size;
   char *buf;
@@ -295,7 +295,7 @@ update_enable_upnpc_option (struct AutoconfigContext *ac)
  */
 static void
 handle_autoconfig_request (void *cls,
-			   const struct GNUNET_NAT_AutoconfigRequestMessage *message)
+			   const struct GNUNET_NAT_AUTO_AutoconfigRequestMessage *message)
 {
   struct ClientHandle *ch = cls;
   size_t left = ntohs (message->header.size) - sizeof (*message);
@@ -458,7 +458,7 @@ GNUNET_SERVICE_MAIN
  NULL,
  GNUNET_MQ_hd_var_size (autoconfig_request,
 			GNUNET_MESSAGE_TYPE_NAT_AUTO_REQUEST_CFG,
-			struct GNUNET_NAT_AutoconfigRequestMessage,
+			struct GNUNET_NAT_AUTO_AutoconfigRequestMessage,
 			NULL),
  GNUNET_MQ_handler_end ());
 

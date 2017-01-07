@@ -425,6 +425,58 @@ GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
                                size_t data_size);
 
 
+/**
+ * Handle to a request given to the resolver.  Can be used to cancel
+ * the request prior to the timeout or successful execution.  Also
+ * used to track our internal state for the request.
+ */
+struct GNUNET_NAT_STUN_Handle;
+
+
+/**
+ * Function called to report success or failure for
+ * NAT configuration test.
+ *
+ * @param cls closure
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+typedef void
+(*GNUNET_NAT_TestCallback) (void *cls,
+			    enum GNUNET_NAT_StatusCode result);
+
+
+/**
+ * Make Generic STUN request. Sends a generic stun request to the
+ * server specified using the specified socket.  If we do this,
+ * we need to watch for possible responses and call
+ * #GNUNET_NAT_stun_handle_packet() on incoming packets.
+ *
+ * @param server the address of the stun server
+ * @param port port of the stun server, in host byte order
+ * @param sock the socket used to send the request, must be a
+ *             UDP socket
+ * @param cb callback in case of error
+ * @param cb_cls closure for @a cb
+ * @return NULL on error
+ */
+struct GNUNET_NAT_STUN_Handle *
+GNUNET_NAT_stun_make_request (const char *server,
+                              uint16_t port,
+                              struct GNUNET_NETWORK_Handle *sock,
+                              GNUNET_NAT_TestCallback cb,
+                              void *cb_cls);
+
+
+/**
+ * Cancel active STUN request. Frees associated resources
+ * and ensures that the callback is no longer invoked.
+ *
+ * @param rh request to cancel
+ */
+void
+GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
+
+
 #endif
 
 /** @} */  /* end of group */

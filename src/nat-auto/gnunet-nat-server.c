@@ -240,12 +240,12 @@ test (void *cls,
       struct GNUNET_SERVER_Client *client,
       const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_NAT_TestMessage *tm;
+  const struct GNUNET_NAT_AUTO_TestMessage *tm;
   uint16_t dport;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received test request\n");
-  tm = (const struct GNUNET_NAT_TestMessage *) msg;
+  tm = (const struct GNUNET_NAT_AUTO_TestMessage *) msg;
   dport = ntohs (tm->dport);
   if (0 == dport)
     try_anat (tm->dst_ipv4,
@@ -293,7 +293,7 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&test, NULL, GNUNET_MESSAGE_TYPE_NAT_TEST,
-     sizeof (struct GNUNET_NAT_TestMessage)},
+     sizeof (struct GNUNET_NAT_AUTO_TestMessage)},
     {NULL, NULL, 0, 0}
   };
   unsigned int port;

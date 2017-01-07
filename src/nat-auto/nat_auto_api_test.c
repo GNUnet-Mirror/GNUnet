@@ -54,7 +54,7 @@ struct NatActivity
   /**
    * Handle of the master context.
    */
-  struct GNUNET_NAT_Test *h;
+  struct GNUNET_NAT_AUTO_Test *h;
 
   /**
    * Task reading from the incoming connection.
@@ -86,7 +86,7 @@ struct ClientActivity
   /**
    * Handle to overall NAT test.
    */
-  struct GNUNET_NAT_Test *h;
+  struct GNUNET_NAT_AUTO_Test *h;
 
 };
 
@@ -94,7 +94,7 @@ struct ClientActivity
 /**
  * Handle to a NAT test.
  */
-struct GNUNET_NAT_Test
+struct GNUNET_NAT_AUTO_Test
 {
 
   /**
@@ -187,7 +187,7 @@ reversal_cb (void *cls,
              const struct sockaddr *addr,
              socklen_t addrlen)
 {
-  struct GNUNET_NAT_Test *h = cls;
+  struct GNUNET_NAT_AUTO_Test *h = cls;
   const struct sockaddr_in *sa;
 
   if (sizeof (struct sockaddr_in) != addrlen)
@@ -209,12 +209,12 @@ reversal_cb (void *cls,
  * Activity on our incoming socket.  Read data from the
  * incoming connection.
  *
- * @param cls the `struct GNUNET_NAT_Test`
+ * @param cls the `struct GNUNET_NAT_AUTO_Test`
  */
 static void
 do_udp_read (void *cls)
 {
-  struct GNUNET_NAT_Test *tst = cls;
+  struct GNUNET_NAT_AUTO_Test *tst = cls;
   uint16_t data;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
 
@@ -255,7 +255,7 @@ static void
 do_read (void *cls)
 {
   struct NatActivity *na = cls;
-  struct GNUNET_NAT_Test *tst;
+  struct GNUNET_NAT_AUTO_Test *tst;
   uint16_t data;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
 
@@ -292,12 +292,12 @@ do_read (void *cls)
  * Activity on our listen socket. Accept the
  * incoming connection.
  *
- * @param cls the `struct GNUNET_NAT_Test`
+ * @param cls the `struct GNUNET_NAT_AUTO_Test`
  */
 static void
 do_accept (void *cls)
 {
-  struct GNUNET_NAT_Test *tst = cls;
+  struct GNUNET_NAT_AUTO_Test *tst = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct NatActivity *wl;
 
@@ -342,7 +342,7 @@ mq_error_handler (void *cls,
                   enum GNUNET_MQ_Error error)
 {
   struct ClientActivity *ca = cls;
-  struct GNUNET_NAT_Test *tst = ca->h;
+  struct GNUNET_NAT_AUTO_Test *tst = ca->h;
 
   GNUNET_CONTAINER_DLL_remove (tst->ca_head,
                                tst->ca_tail,
@@ -367,10 +367,10 @@ addr_cb (void *cls,
          const struct sockaddr *addr,
          socklen_t addrlen)
 {
-  struct GNUNET_NAT_Test *h = cls;
+  struct GNUNET_NAT_AUTO_Test *h = cls;
   struct ClientActivity *ca;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_NAT_TestMessage *msg;
+  struct GNUNET_NAT_AUTO_TestMessage *msg;
   const struct sockaddr_in *sa;
 
   if (GNUNET_YES != add_remove)
@@ -428,7 +428,7 @@ addr_cb (void *cls,
 static void
 do_timeout (void *cls)
 {
-  struct GNUNET_NAT_Test *nh = cls;
+  struct GNUNET_NAT_AUTO_Test *nh = cls;
 
   nh->ttask = NULL;
   nh->report (nh->report_cls,
@@ -453,8 +453,8 @@ do_timeout (void *cls)
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test or NULL. The error is always indicated via the report callback
  */
-struct GNUNET_NAT_Test *
-GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_NAT_AUTO_Test *
+GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int is_tcp,
                        uint16_t bnd_port,
                        uint16_t adv_port,
@@ -462,7 +462,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        GNUNET_NAT_TestCallback report,
                        void *report_cls)
 {
-  struct GNUNET_NAT_Test *nh;
+  struct GNUNET_NAT_AUTO_Test *nh;
   struct sockaddr_in sa;
   const struct sockaddr *addrs[] = {
     (const struct sockaddr *) &sa
@@ -478,7 +478,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sa.sin_len = sizeof (sa);
 #endif
 
-  nh = GNUNET_new (struct GNUNET_NAT_Test);
+  nh = GNUNET_new (struct GNUNET_NAT_AUTO_Test);
   nh->cfg = cfg;
   nh->is_tcp = is_tcp;
   nh->data = bnd_port;
@@ -594,7 +594,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param tst test to stop.
  */
 void
-GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
+GNUNET_NAT_AUTO_test_stop (struct GNUNET_NAT_AUTO_Test *tst)
 {
   struct NatActivity *pos;
   struct ClientActivity *cpos;
@@ -641,4 +641,4 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
   GNUNET_free (tst);
 }
 
-/* end of nat_test.c */
+/* end of nat_auto_api_test.c */

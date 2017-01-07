@@ -37,7 +37,7 @@ static int global_ret;
 /**
  * Handle to ongoing autoconfiguration.
  */
-static struct GNUNET_NAT_AutoHandle *ah;
+static struct GNUNET_NAT_AUTO_AutoHandle *ah;
 
 /**
  * If we do auto-configuration, should we write the result
@@ -75,7 +75,7 @@ static unsigned int do_auto;
 /**
  * Handle to a NAT test operation.
  */
-static struct GNUNET_NAT_Test *nt;
+static struct GNUNET_NAT_AUTO_Test *nt;
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -178,7 +178,7 @@ auto_config_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 	      "NAT status: %s/%s\n",
-	      GNUNET_NAT_status2string (result),
+	      GNUNET_NAT_AUTO_status2string (result),
 	      nat_type);
 
   /* Shortcut: if there are no changes suggested, bail out early. */
@@ -256,7 +256,7 @@ test_report_cb (void *cls,
 {
   nt = NULL;
   PRINTF ("NAT test result: %s\n",
-	  GNUNET_NAT_status2string (result));
+	  GNUNET_NAT_AUTO_status2string (result));
   test_finished ();
 }
 
@@ -271,12 +271,12 @@ do_shutdown (void *cls)
 {
   if (NULL != ah)
   {
-    GNUNET_NAT_autoconfig_cancel (ah);
+    GNUNET_NAT_AUTO_autoconfig_cancel (ah);
     ah = NULL;
   }
   if (NULL != nt)
   {
-    GNUNET_NAT_test_stop (nt);
+    GNUNET_NAT_AUTO_test_stop (nt);
     nt = NULL;
   }
 }
@@ -307,7 +307,7 @@ run (void *cls,
 
   if (do_auto)
   {
-    ah = GNUNET_NAT_autoconfig_start (c,
+    ah = GNUNET_NAT_AUTO_autoconfig_start (c,
 				      &auto_config_cb,
 				      NULL);
   }
@@ -360,14 +360,14 @@ run (void *cls,
   {
     if (NULL == extern_addr)
       extern_sa = bind_sa;
-    nt = GNUNET_NAT_test_start (c,
-				proto,
-				bind_sa.sin_addr,
-				ntohs (bind_sa.sin_port),
-				extern_sa.sin_addr,
-				ntohs (extern_sa.sin_port),
-				&test_report_cb,
-				NULL);
+    nt = GNUNET_NAT_AUTO_test_start (c,
+				     proto,
+				     bind_sa.sin_addr,
+				     ntohs (bind_sa.sin_port),
+				     extern_sa.sin_addr,
+				     ntohs (extern_sa.sin_port),
+				     &test_report_cb,
+				     NULL);
   }
   test_finished ();
 }
