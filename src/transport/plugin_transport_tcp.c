@@ -26,7 +26,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_signatures.h"
@@ -945,13 +945,15 @@ notify_session_monitor (struct Plugin *plugin,
  * @param cls closure, the `struct Plugin`
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
+ * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of @a addr
  */
 static void
 tcp_nat_port_map_callback (void *cls,
                            int add_remove,
-                           const struct sockaddr *addr,
+			   enum GNUNET_NAT_AddressClass ac,
+			   const struct sockaddr *addr,
                            socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
@@ -961,10 +963,10 @@ tcp_nat_port_map_callback (void *cls,
   void *arg;
   size_t args;
 
-  LOG(GNUNET_ERROR_TYPE_INFO,
-      "NAT notification to %s address `%s'\n",
-      (GNUNET_YES == add_remove) ? "add" : "remove",
-      GNUNET_a2s (addr, addrlen));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "NAT notification to %s address `%s'\n",
+       (GNUNET_YES == add_remove) ? "add" : "remove",
+       GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */
   switch (addr->sa_family)
   {
@@ -980,8 +982,9 @@ tcp_nat_port_map_callback (void *cls,
   case AF_INET6:
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in6));
     memset (&t6, 0, sizeof(t6));
-    GNUNET_memcpy (&t6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
-        sizeof(struct in6_addr));
+    GNUNET_memcpy (&t6.ipv6_addr,
+		   &((struct sockaddr_in6 *) addr)->sin6_addr,
+		   sizeof(struct in6_addr));
     t6.options = htonl (plugin->myoptions);
     t6.t6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &t6;
@@ -993,11 +996,17 @@ tcp_nat_port_map_callback (void *cls,
   }
   /* modify our published address list */
   GNUNET_assert ((args == sizeof (struct IPv4TcpAddress)) ||
-      (args == sizeof (struct IPv6TcpAddress)));
+		 (args == sizeof (struct IPv6TcpAddress)));
+  /* TODO: use 'ac' here in the future... */
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
-      PLUGIN_NAME, arg, args, GNUNET_HELLO_ADDRESS_INFO_NONE);
-  plugin->env->notify_address (plugin->env->cls, add_remove, address);
-  GNUNET_HELLO_address_free(address);
+					   PLUGIN_NAME,
+					   arg,
+					   args,
+					   GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->env->notify_address (plugin->env->cls,
+			       add_remove,
+			       address);
+  GNUNET_HELLO_address_free (address);
 }
 
 
@@ -2068,6 +2077,8 @@ tcp_plugin_get_session (void *cls,
         GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
                                                 &address->peer)))
   {
+    struct sockaddr_in local_sa;
+    
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found valid IPv4 NAT address (creating session)!\n");
     session = create_session (plugin,
@@ -2085,23 +2096,29 @@ tcp_plugin_get_session (void *cls,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Created NAT WAIT connection to `%4s' at `%s'\n",
+         "Created NAT WAIT connection to `%s' at `%s'\n",
          GNUNET_i2s (&session->target),
          GNUNET_a2s (sb, sbs));
-    if (GNUNET_OK == GNUNET_NAT_run_client (plugin->nat, &a4))
-    {
+    memset (&local_sa,
+	    0,
+	    sizeof (local_sa));
+    local_sa.sin_family = AF_INET;
+    local_sa.sin_port = htons (plugin->open_port);
+    /* We leave sin_address at 0, let the kernel figure it out,
+       even if our bind() is more specific.  (May want to reconsider
+       later.) */
+    if (GNUNET_OK ==
+	GNUNET_NAT_request_reversal (plugin->nat,
+				     &local_sa,
+				     &a4))
       return session;
-    }
-    else
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Running NAT client for `%4s' at `%s' failed\n",
-          GNUNET_i2s (&session->target),
-          GNUNET_a2s (sb, sbs));
-      tcp_plugin_disconnect_session (plugin,
-                                     session);
-      return NULL;
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Running NAT client for `%s' at `%s' failed\n",
+	 GNUNET_i2s (&session->target),
+	 GNUNET_a2s (sb, sbs));
+    tcp_plugin_disconnect_session (plugin,
+				   session);
+    return NULL;
   }
 
   /* create new outbound session */
@@ -3388,15 +3405,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
            GNUNET_a2s (addrs[ret], addrlens[ret]));
     plugin->nat
       = GNUNET_NAT_register (env->cfg,
-                             GNUNET_YES,
-                             aport,
+			     "transport-tcp",
+			     IPPROTO_TCP,
                              (unsigned int) ret_s,
                              (const struct sockaddr **) addrs,
 			     addrlens,
                              &tcp_nat_port_map_callback,
                              &try_connection_reversal,
-                             plugin,
-			     NULL);
+                             plugin);
     for (ret = ret_s -1; ret >= 0; ret--)
       GNUNET_free (addrs[ret]);
     GNUNET_free_non_null (addrs);
@@ -3405,15 +3421,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   else
   {
     plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
-                                       GNUNET_YES,
-                                       0,
+                                       "transport-tcp",
+				       IPPROTO_TCP,
                                        0,
                                        NULL,
                                        NULL,
                                        NULL,
                                        &try_connection_reversal,
-                                       plugin,
-                                       NULL);
+                                       plugin);
   }
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
