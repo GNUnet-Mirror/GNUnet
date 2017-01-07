@@ -25,7 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
 #include "gnunet_protocols.h"
 #include "nat-auto.h"
 
@@ -54,24 +54,39 @@ try_anat (uint32_t dst_ipv4,
           int is_tcp)
 {
   struct GNUNET_NAT_Handle *h;
-  struct sockaddr_in sa;
+  struct sockaddr_in lsa;
+  struct sockaddr_in rsa;
+  socklen_t sa_len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking for connection reversal with %x and code %u\n",
               (unsigned int) dst_ipv4,
               (unsigned int) dport);
-  h = GNUNET_NAT_register (cfg,
-                           is_tcp,
-                           dport,
-                           0,
-                           NULL, NULL, NULL, NULL, NULL, NULL);
-  memset (&sa, 0, sizeof (sa));
-  sa.sin_family = AF_INET;
+  memset (&lsa, 0, sizeof (lsa));
+  lsa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  sa.sin_len = sizeof (sa);
+  lsa.sin_len = sizeof (sa);
 #endif
-  sa.sin_addr.s_addr = dst_ipv4;
-  GNUNET_NAT_run_client (h, &sa);
+  lsa.sin_addr.s_addr = 0;
+  lsa.sin_port = htons (dport);
+  memset (&rsa, 0, sizeof (rsa));
+  rsa.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  rsa.sin_len = sizeof (sa);
+#endif
+  rsa.sin_addr.s_addr = dst_ipv4;
+  rsa.sin_port = htons (dport);
+  sa_len = sizeof (lsa);
+  h = GNUNET_NAT_register (cfg,
+			   "none",
+                           is_tcp ? IPPROTO_TCP : IPPROTO_UDP,
+                           1,
+			   (const struct sockaddr **) &lsa,
+			   &sa_len,
+                           NULL, NULL, NULL);
+  GNUNET_NAT_request_reversal (h,
+			       &lsa,
+			       &rsa);
   GNUNET_NAT_unregister (h);
 }
 

@@ -18,7 +18,7 @@ libexec_PROGRAMS = \
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c nat-auto.h
 gnunet_nat_server_LDADD = \
-  $(top_builddir)/src/nat/libgnunetnat.la \
+  $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_nat_auto_SOURCES = \
