@@ -37,7 +37,7 @@ static int global_ret;
  * Name of section in configuration file to use for 
  * additional options.
  */ 
-static char *section_name = "undefined";
+static char *section_name;
 
 /**
  * Flag set to 1 if we use IPPROTO_UDP.
@@ -300,6 +300,8 @@ run (void *cls,
 
   if (NULL != local_addr)
   {
+    if (NULL == section_name)
+      section_name = GNUNET_strdup ("undefined");
     nh = GNUNET_NAT_register (c,
 			      section_name,
 			      proto,
