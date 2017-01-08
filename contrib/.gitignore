@@ -4,3 +4,4 @@ pydiffer.py
 terminate.py
 timeout_watchdog
 gnunet_pyexpect.py
+gnunet_pyexpect.pyc
