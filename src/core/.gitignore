@@ -1,2 +1,9 @@
 gnunet-service-core
 gnunet-core
+test_core_api
+test_core_api_reliability
+test_core_api_send_to_self
+test_core_api_start_only
+test_core_quota_compliance_asymmetric_recv_limited
+test_core_quota_compliance_asymmetric_send_limited
+test_core_quota_compliance_symmetric

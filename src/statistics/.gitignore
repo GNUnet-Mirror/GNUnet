@@ -1,2 +1,7 @@
 gnunet-statistics
 gnunet-service-statistics
+test_gnunet_statistics.py
+test_statistics_api
+test_statistics_api_loop
+test_statistics_api_watch
+test_statistics_api_watch_zero_value

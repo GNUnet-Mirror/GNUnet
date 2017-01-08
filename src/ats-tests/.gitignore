@@ -1,2 +1,8 @@
 gnunet-solver-eval
 gnunet-ats-sim
+perf_ats_proportional_core_bandwidth
+perf_ats_proportional_core_latency
+perf_ats_proportional_core_none
+perf_ats_proportional_transport_bandwidth
+perf_ats_proportional_transport_latency
+perf_ats_proportional_transport_none

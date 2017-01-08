@@ -1,2 +1,7 @@
 list-keys
 gnunet-testing
+test_testing_peerstartup
+test_testing_peerstartup2
+test_testing_portreservation
+test_testing_servicestartup
+test_testing_sharedservices

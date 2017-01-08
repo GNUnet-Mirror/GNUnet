@@ -1,1 +1,5 @@
 gnunet-service-peerinfo
+test_peerinfo_api
+test_peerinfo_api_friend_only
+test_peerinfo_api_notify_friend_only
+test_peerinfo_shipped_hellos

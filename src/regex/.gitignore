@@ -3,3 +3,10 @@ gnunet-daemon-regexprofiler
 gnunet-regex-profiler
 gnunet-regex-simulation-profiler
 gnunet-service-regex
+test_graph.dot
+test_regex_api
+test_regex_eval_api
+test_regex_graph_api
+test_regex_integration
+test_regex_iterate_api
+test_regex_proofs
