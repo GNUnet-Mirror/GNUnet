@@ -1968,7 +1968,7 @@ client_disconnect_cb (void *cls,
     ch->ext_dns = NULL;
   }
   GNUNET_free_non_null (ch->hole_external);
-  GNUNET_free (ch->section_name);
+  GNUNET_free_non_null (ch->section_name);
   GNUNET_free (ch);
 }
 
