@@ -709,7 +709,11 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
 void
 GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh)
 {
-  GNUNET_MQ_destroy (nh->mq);
+  if (NULL != nh->mq)
+  {
+    GNUNET_MQ_destroy (nh->mq);
+    nh->mq = NULL;
+  }
   GNUNET_free (nh->reg);
   GNUNET_free (nh);
 }
