@@ -1,2 +1,4 @@
 gnunet-service-identity
 gnunet-identity
+test_identity
+test_identity_defaults
