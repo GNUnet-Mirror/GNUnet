@@ -224,13 +224,16 @@ announce_id (void *cls)
   announce_id_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
   hello = GCH_get_mine ();
-  size = NULL != hello ? GNUNET_HELLO_size (hello) : 0;
-  if (NULL == hello || 0 == size)
+  size = (NULL != hello) ? GNUNET_HELLO_size (hello) : 0;
+  if ( (NULL == hello) || (0 == size) )
   {
     /* Peerinfo gave us no hello yet, try again soon. */
-    LOG (GNUNET_ERROR_TYPE_INFO, "  no hello, waiting!\n");
-    GNUNET_STATISTICS_update (stats, "# DHT announce skipped (no hello)",
-                              1, GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_INFO,
+	 "  no hello, waiting!\n");
+    GNUNET_STATISTICS_update (stats,
+			      "# DHT announce skipped (no hello)",
+                              1,
+			      GNUNET_NO);
     expiration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                            announce_delay);
     announce_delay = GNUNET_TIME_STD_BACKOFF (announce_delay);
@@ -241,29 +244,43 @@ announce_id (void *cls)
     announce_delay = GNUNET_TIME_UNIT_SECONDS;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
-  GNUNET_STATISTICS_update (stats, "# DHT announce",
-                            1, GNUNET_NO);
-  memset (&phash, 0, sizeof (phash));
-  GNUNET_memcpy (&phash, &my_full_id, sizeof (my_full_id));
-  GNUNET_DHT_put (dht_handle,   /* DHT handle */
-                  &phash,       /* Key to use */
-                  dht_replication_level,     /* Replication level */
-                  GNUNET_DHT_RO_RECORD_ROUTE
-                  | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-                  GNUNET_BLOCK_TYPE_DHT_HELLO,       /* Block type */
-                  size,  /* Size of the data */
-                  (const char *) hello, /* Data itself */
-                  expiration,  /* Data expiration */
-                  NULL,         /* Continuation */
-                  NULL);        /* Continuation closure */
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Hello %p size: %u\n",
+       hello,
+       size);
+  if (NULL != hello)
+  {
+    GNUNET_STATISTICS_update (stats,
+			      "# DHT announce",
+			      1, GNUNET_NO);
+    memset (&phash,
+	    0,
+	    sizeof (phash));
+    GNUNET_memcpy (&phash,
+		   &my_full_id,
+		   sizeof (my_full_id));
+    GNUNET_DHT_put (dht_handle,   /* DHT handle */
+		    &phash,       /* Key to use */
+		    dht_replication_level,     /* Replication level */
+		    GNUNET_DHT_RO_RECORD_ROUTE
+		    | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
+		    GNUNET_BLOCK_TYPE_DHT_HELLO,       /* Block type */
+		    size,  /* Size of the data */
+		    (const char *) hello, /* Data itself */
+		    expiration,  /* Data expiration */
+		    NULL,         /* Continuation */
+		    NULL);        /* Continuation closure */
+  }
   /* Call again in id_announce_time, unless HELLO expires first,
    * but wait at least 1s. */
   next_put = GNUNET_TIME_absolute_get_remaining (expiration);
-  next_put = GNUNET_TIME_relative_min (next_put, id_announce_time);
-  next_put = GNUNET_TIME_relative_max (next_put, GNUNET_TIME_UNIT_SECONDS);
-  announce_id_task = GNUNET_SCHEDULER_add_delayed (next_put, &announce_id, cls);
+  next_put = GNUNET_TIME_relative_min (next_put,
+				       id_announce_time);
+  next_put = GNUNET_TIME_relative_max (next_put,
+				       GNUNET_TIME_UNIT_SECONDS);
+  announce_id_task = GNUNET_SCHEDULER_add_delayed (next_put,
+						   &announce_id,
+						   cls);
 }
 
 /**
@@ -378,8 +395,11 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
                                     GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                     NULL,       /* xquery */
                                     0,     /* xquery bits */
-                                    &dht_get_id_handler, h);
-  GNUNET_CONTAINER_multihashmap32_put (get_requests, h->peer_id, h,
+                                    &dht_get_id_handler,
+				    h);
+  GNUNET_CONTAINER_multihashmap32_put (get_requests,
+				       h->peer_id,
+				       h,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   return h;
 }
