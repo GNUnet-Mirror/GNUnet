@@ -1224,7 +1224,8 @@ GCP_send (struct CadetPeer *peer,
     {
         if (GNUNET_YES == should_I_drop ())
         {
-            LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
+            LOG (GNUNET_ERROR_TYPE_WARNING,
+		 "DD %s (%s %u) on conn %s %s (random drop for testing)\n",
                  GC_m2s (q->type), GC_m2s (q->payload_type),
                  q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
 	    q->drop_task = GNUNET_SCHEDULER_add_now (&drop_cb,

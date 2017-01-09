@@ -132,7 +132,8 @@ struct CadetFlowControl
   uint32_t recv_bitmap;
 
   /**
-   * Last ACK sent to the peer (peer can't send more than this PID).
+   * Last ACK sent to the peer (peer is not allowed to send
+   * messages with PIDs higher than this value).
    */
   uint32_t last_ack_sent;
 
@@ -540,7 +541,10 @@ send_poll (void *cls);
  * @param force Don't optimize out.
  */
 static void
-send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
+send_ack (struct CadetConnection *c,
+	  unsigned int buffer,
+	  int fwd,
+	  int force)
 {
   struct CadetFlowControl *next_fc;
   struct CadetFlowControl *prev_fc;
@@ -598,7 +602,8 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
       return;
     }
   }
-
+  GNUNET_break (GC_is_pid_bigger (ack,
+				  prev_fc->last_ack_sent));
   prev_fc->last_ack_sent = ack;
 
   /* Build ACK message and send on conn */
@@ -607,7 +612,9 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
   msg.ack = htonl (ack);
   msg.cid = c->id;
 
-  prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header, UINT16_MAX, ack,
+  prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header,
+						UINT16_MAX,
+						ack,
                                                 c, !fwd, GNUNET_YES,
                                                 NULL, NULL);
   GNUNET_assert (NULL != prev_fc->ack_msg);
@@ -2310,8 +2317,8 @@ GCC_handle_ack (struct CadetPeer *peer,
     fc->last_ack_recv = ack;
 
   /* Cancel polling if the ACK is big enough. */
-  if (NULL != fc->poll_task &&
-      GC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+  if ( (NULL != fc->poll_task) &
+       GC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
     GNUNET_SCHEDULER_cancel (fc->poll_task);
@@ -2458,7 +2465,9 @@ check_message (const struct GNUNET_MessageHeader *message,
   {
     fc = fwd ? &c->bck_fc : &c->fwd_fc;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
-         pid, fc->last_pid_recv + 1, fc->last_ack_sent);
+         pid,
+	 fc->last_pid_recv + 1,
+	 fc->last_ack_sent);
     if (GC_is_pid_bigger (pid, fc->last_ack_sent))
     {
       GNUNET_STATISTICS_update (stats,
@@ -2963,8 +2972,9 @@ GCC_get_allowed (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (CADET_CONNECTION_READY != c->state
-      || GC_is_pid_bigger (fc->last_pid_recv, fc->last_ack_sent))
+  if ( (CADET_CONNECTION_READY != c->state) ||
+       GC_is_pid_bigger (fc->last_pid_recv,
+			 fc->last_ack_sent) )
   {
     return 0;
   }

@@ -1969,21 +1969,23 @@ GCCH_handle_data (struct CadetChannel *ch,
        GC_m2s (GNUNET_MESSAGE_TYPE_CADET_DATA), GC_m2s (payload_type), mid,
        GCCH_2s (ch), ch, GC_f2s (fwd), ntohs (msg->header.size));
 
-  if (GNUNET_NO == ch->reliable ||
-      ( !GC_is_pid_bigger (rel->mid_recv, mid) &&
-        GC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
+  if ( (GNUNET_NO == ch->reliable) ||
+       ( (! GC_is_pid_bigger (rel->mid_recv, mid)) &&
+	 GC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
     if (GNUNET_YES == ch->reliable)
     {
       /* Is this the exact next expected messasge? */
       if (mid == rel->mid_recv)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "as expected, sending to client\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+	     "as expected, sending to client\n");
         send_client_data (ch, msg, fwd);
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+	     "save for later\n");
         add_buffered_data (msg, rel);
       }
     }
@@ -2001,7 +2003,7 @@ GCCH_handle_data (struct CadetChannel *ch,
     if (GC_is_pid_bigger (rel->mid_recv, mid))
     {
       GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_INFO,
+      LOG (GNUNET_ERROR_TYPE_WARNING,
            "MID %u on channel %s not expected (window: %u - %u). Dropping!\n",
            mid, GCCH_2s (ch), rel->mid_recv, rel->mid_recv + 63);
     }
