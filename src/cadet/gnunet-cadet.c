@@ -553,23 +553,23 @@ data_callback (void *cls,
 
   if (GNUNET_YES == echo)
   {
-    if (NULL != listen_port)
-    {
-      /* Just listening to echo incoming messages*/
-      if (NULL != th)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Last echo reply not yet sent, dropping current reply.\n");
-        return GNUNET_OK;
-      }
-      th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               sizeof (struct GNUNET_MessageHeader),
-                                               &data_ready, NULL);
-      return GNUNET_OK;
-    }
-    else
-    {
+    //if (NULL != listen_port)
+    //{
+    //  /* Just listening to echo incoming messages*/
+    //  if (NULL != th)
+    //  {
+    //    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    //                "Last echo reply not yet sent, dropping current reply.\n");
+    //    return GNUNET_OK;
+    //  }
+    //  th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
+    //                                           GNUNET_TIME_UNIT_FOREVER_REL,
+    //                                           sizeof (struct GNUNET_MessageHeader),
+    //                                           &data_ready, NULL);
+    //  return GNUNET_OK;
+    //}
+    //else
+    //{
       struct GNUNET_TIME_Relative latency;
 
       latency = GNUNET_TIME_absolute_get_duration (echo_time);
@@ -578,7 +578,7 @@ data_callback (void *cls,
                GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
       echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                 &send_echo, NULL);
-    }
+    //}
   }
 
   len = ntohs (message->size) - sizeof (*message);
@@ -993,6 +993,9 @@ main (int argc, char *const *argv)
 //     {'m', "monitor", NULL,
 //      gettext_noop ("provide information about all events (continuously)"),
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_mode},
+    //{'f', "frequency", "RTT_FREQUENCY",
+    // gettext_noop ("frequency for the round-trip time measurement"),
+    // GNUNET_NO, &GNUNET_GETOPT_set_uint, &rtt_frequency},
     {'o', "open-port", NULL,
      gettext_noop ("port to listen to"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
