@@ -1106,6 +1106,7 @@ call_peer_cont (struct CadetPeerQueue *q, int sent)
                  q->c, q->c_fwd, sent,
                  q->type, q->payload_type, q->payload_id,
                  q->size, wait_time);
+	q->cont = NULL;
     }
     GNUNET_CONTAINER_DLL_remove (q->peer->q_head, q->peer->q_tail, q);
 }
@@ -1191,7 +1192,8 @@ GCP_send (struct CadetPeer *peer,
     q->payload_id = payload_id;
     q->c = c;
     q->c_fwd = fwd;
-    GNUNET_MQ_notify_sent (q->env, mq_sent, q);
+    GNUNET_MQ_notify_sent (q->env, &mq_sent, q);
+    GNUNET_CONTAINER_DLL_insert (peer->q_head, peer->q_tail, q);
 
     if (GNUNET_YES == q->management_traffic)
     {
@@ -1206,6 +1208,7 @@ GCP_send (struct CadetPeer *peer,
                  q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
             GNUNET_MQ_discard (q->env);
             call_peer_cont (q, GNUNET_YES);
+	    GNUNET_CONTAINER_DLL_remove (peer->q_head, peer->q_tail, q);
             GNUNET_free (q);
             return NULL;
         }
@@ -1213,7 +1216,6 @@ GCP_send (struct CadetPeer *peer,
         peer->queue_n++;
     }
 
-    GNUNET_CONTAINER_DLL_insert (peer->q_head, peer->q_tail, q);
     GCC_check_connections ();
     return q;
 }

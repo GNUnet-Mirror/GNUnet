@@ -685,7 +685,7 @@ conn_message_sent (void *cls,
     LOG (GNUNET_ERROR_TYPE_INFO,
          ">>> %s (%s %4u) on conn %s (%p) %s [%5u] in queue %s\n",
          GC_m2s (type), GC_m2s (payload_type), pid, GCC_2s (c), c,
-         GC_f2s(fwd), size,
+         GC_f2s (fwd), size,
          GNUNET_STRINGS_relative_time_to_string (wait, GNUNET_YES));
 
   /* If c is NULL, nothing to update. */
@@ -3264,7 +3264,10 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   c->pending_messages++;
 
   q = GNUNET_new (struct CadetConnectionQueue);
+  q->cont = cont;
+  q->cont_cls = cont_cls;
   q->forced = force;
+  GNUNET_CONTAINER_DLL_insert (fc->q_head, fc->q_tail, q);
   q->peer_q = GCP_send (get_hop (c, fwd), message,
                         payload_type, payload_id,
                         c, fwd,
@@ -3272,13 +3275,11 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == q->peer_q)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "dropping msg on %s, NULL q\n", GCC_2s (c));
+    GNUNET_CONTAINER_DLL_remove (fc->q_head, fc->q_tail, q);
     GNUNET_free (q);
     GCC_check_connections ();
     return NULL;
   }
-  q->cont = cont;
-  q->cont_cls = cont_cls;
-  GNUNET_CONTAINER_DLL_insert (fc->q_head, fc->q_tail, q);
   GCC_check_connections ();
   return q;
 }
