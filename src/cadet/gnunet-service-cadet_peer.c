@@ -73,6 +73,11 @@ struct CadetPeerQueue {
     void *cont_cls;
 
     /**
+     * Task to asynchronously run the drop continuation.
+     */
+    struct GNUNET_SCHEDULER_Task *drop_task;
+  
+    /**
      * Time when message was queued for sending.
      */
     struct GNUNET_TIME_Absolute queue_timestamp;
@@ -1132,6 +1137,22 @@ mq_sent (void *cls)
 
 
 /**
+ * Finish the drop operation.
+ *
+ * @param cls queue entry to finish drop for
+ */
+static void
+drop_cb (void *cls)
+{
+  struct CadetPeerQueue *q = cls;
+  
+  GNUNET_MQ_discard (q->env);
+  call_peer_cont (q, GNUNET_YES);
+  GNUNET_free (q);
+}
+
+
+/**
  * @brief Send a message to another peer (using CORE).
  *
  * @param peer Peer towards which to queue the message.
@@ -1206,10 +1227,9 @@ GCP_send (struct CadetPeer *peer,
             LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
                  GC_m2s (q->type), GC_m2s (q->payload_type),
                  q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
-            GNUNET_MQ_discard (q->env);
-            call_peer_cont (q, GNUNET_YES);
-            GNUNET_free (q);
-            return NULL;
+	    q->drop_task = GNUNET_SCHEDULER_add_now (&drop_cb,
+						     q);
+	    return q;
         }
         GNUNET_MQ_send (peer->core_mq, q->env);
         peer->queue_n++;
@@ -1232,9 +1252,18 @@ GCP_send (struct CadetPeer *peer,
 void
 GCP_send_cancel (struct CadetPeerQueue *q)
 {
-    call_peer_cont (q, GNUNET_NO);
+  if (NULL != q->drop_task)
+  {
+    GNUNET_SCHEDULER_cancel (q->drop_task);
+    q->drop_task = NULL;
+    GNUNET_MQ_discard (q->env);
+  }
+  else
+  {
     GNUNET_MQ_send_cancel (q->env);
-    GNUNET_free (q);
+  }
+  call_peer_cont (q, GNUNET_NO);
+  GNUNET_free (q);
 }
 
 
