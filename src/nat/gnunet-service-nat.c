@@ -1053,7 +1053,7 @@ run_scan (void *cls)
 	const struct sockaddr_in *s4
 	  = (const struct sockaddr_in *) &pos->addr;
 	
-	GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Found NATed local address %s, starting NAT server\n",
 		    GNUNET_a2s ((void *) &pos->addr, sizeof (*s4)));
 	pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
