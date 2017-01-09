@@ -299,6 +299,12 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   int cork;
   enum GNUNET_CORE_Priority priority;
 
+  if (NULL == h->mq)
+  {
+    /* We're currently reconnecting, pretend this worked */
+    GNUNET_MQ_impl_send_continue (mq);
+    return;
+  }
   GNUNET_assert (NULL == pr->env);
   /* extract options from envelope */
   env = GNUNET_MQ_get_current_envelope (mq);
