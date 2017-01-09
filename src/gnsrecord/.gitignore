@@ -1,3 +1,4 @@
 test_gnsrecord_block_expiration
 test_gnsrecord_crypto
 test_gnsrecord_serialization
+zonefiles
