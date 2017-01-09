@@ -1418,11 +1418,11 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq = existing_q;
     tq->tqd = NULL;
   }
+  tq->cont = cont;
+  tq->cont_cls = cont_cls;
   tq->cq = GCC_send_prebuilt_message (msg, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
   GNUNET_assert (NULL != tq->cq);
-  tq->cont = cont;
-  tq->cont_cls = cont_cls;
 
   return tq;
 }

@@ -2495,17 +2495,18 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         }
       }
 
+      chq->rel->uniq = chq;
       chq->tq = GCT_send_prebuilt_message (message, ch->t, NULL, GNUNET_YES,
                                            &ch_message_sent, chq);
       if (NULL == chq->tq)
       {
         GNUNET_break (0);
+	chq->rel->uniq = NULL;
         GCT_debug (ch->t, GNUNET_ERROR_TYPE_ERROR);
         GNUNET_free (chq);
         chq = NULL;
         return;
       }
-      chq->rel->uniq = chq;
       break;
 
 
