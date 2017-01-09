@@ -2422,6 +2422,7 @@ check_message (const struct GNUNET_MessageHeader *message,
          "%s on unknown connection %s\n",
          GC_m2s (ntohs (message->type)),
          GNUNET_h2s (GC_h2hc (cid)));
+    GNUNET_break_op (0);
     send_broken_unknown (cid,
                          &my_full_id,
                          NULL,
@@ -2460,10 +2461,13 @@ check_message (const struct GNUNET_MessageHeader *message,
          pid, fc->last_pid_recv + 1, fc->last_ack_sent);
     if (GC_is_pid_bigger (pid, fc->last_ack_sent))
     {
-      GNUNET_break_op (0);
-      GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
-          pid, fc->last_pid_recv, fc->last_ack_sent);
+      GNUNET_STATISTICS_update (stats,
+				"# unsolicited message",
+				1,
+				GNUNET_NO);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   "Received PID %u, (prev %u), ACK %u\n",
+	   pid, fc->last_pid_recv, fc->last_ack_sent);
       return GNUNET_SYSERR;
     }
     if (GC_is_pid_bigger (pid, fc->last_pid_recv))
@@ -2477,10 +2481,16 @@ check_message (const struct GNUNET_MessageHeader *message,
     }
     else
     {
-      GNUNET_STATISTICS_update (stats, "# out of order PID", 1, GNUNET_NO);
-      if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
+      GNUNET_STATISTICS_update (stats,
+				"# out of order PID",
+				1,
+				GNUNET_NO);
+      if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv,
+				  pid,
+				  fc->recv_bitmap))
       {
-        LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u unexpected (%u+), dropping!\n",
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+	     "PID %u unexpected (%u+), dropping!\n",
              pid, fc->last_pid_recv - 31);
         return GNUNET_SYSERR;
       }
@@ -2489,7 +2499,8 @@ check_message (const struct GNUNET_MessageHeader *message,
   }
 
   /* Count as connection confirmation. */
-  if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
+  if ( (CADET_CONNECTION_SENT == c->state) ||
+       (CADET_CONNECTION_ACK == c->state) )
   {
     connection_change_state (c, CADET_CONNECTION_READY);
     if (NULL != c->t)
@@ -2591,7 +2602,6 @@ GCC_handle_encrypted (struct CadetPeer *peer,
   /* If something went wrong, discard message. */
   if (GNUNET_SYSERR == fwd)
   {
-    GNUNET_break_op (0);
     GCC_check_connections ();
     return;
   }
