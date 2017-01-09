@@ -22,8 +22,7 @@ lib_LTLIBRARIES = \
   libgnunetcore.la
 
 libgnunetcore_la_SOURCES = \
-  core_api.c core.h \
-  core_api_2.c \
+  core_api_2.c core.h \
   core_api_monitor_peers.c
 libgnunetcore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
