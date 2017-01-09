@@ -10,7 +10,7 @@ UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
 # Enable UPNP by default?
-ENABLE_UPNP = NO
+ENABLE_UPNP = YES
 
 # Disable IPv6 support
 # FIXME: move entirely to transport plugins!
