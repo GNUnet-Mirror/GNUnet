@@ -2393,7 +2393,8 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       struct GNUNET_CADET_DataACK *ack_msg;
       ack_msg = (struct GNUNET_CADET_DataACK *) message;
       data_id = ntohl (ack_msg->mid);
-      SPRINTF (info, "0x%010lX", ack_msg->futures);
+      SPRINTF (info, "0x%010lX",
+	       (unsigned long int) ack_msg->futures);
       break;
     }
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
