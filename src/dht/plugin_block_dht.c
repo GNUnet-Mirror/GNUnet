@@ -70,7 +70,7 @@ block_plugin_dht_evaluate (void *cls,
 
   if (type != GNUNET_BLOCK_TYPE_DHT_HELLO)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  if (xquery_size != 0)
+  if (0 != xquery_size)
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
@@ -121,14 +121,16 @@ block_plugin_dht_evaluate (void *cls,
  * @param type block type
  * @param block block to get the key for
  * @param block_size number of bytes @a block
- * @param key set to the key (query) for the given block
+ * @param[out] key set to the key (query) for the given block
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dht_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                          const void *block, size_t block_size,
-                          struct GNUNET_HashCode * key)
+block_plugin_dht_get_key (void *cls,
+			  enum GNUNET_BLOCK_Type type,
+                          const void *block,
+			  size_t block_size,
+                          struct GNUNET_HashCode *key)
 {
   const struct GNUNET_MessageHeader *msg;
   const struct GNUNET_HELLO_Message *hello;

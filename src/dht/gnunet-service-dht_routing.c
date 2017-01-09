@@ -183,15 +183,17 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
     gpl = 0;
     ppl = 0;
   }
-  if ((0 != (rr->options & GNUNET_DHT_RO_FIND_PEER)) &&
-      (pc->type == GNUNET_BLOCK_TYPE_DHT_HELLO))
+  if ( (0 != (rr->options & GNUNET_DHT_RO_FIND_PEER)) &&
+       (pc->type == GNUNET_BLOCK_TYPE_DHT_HELLO) )
   {
     /* key may not match HELLO, which is OK since
      * the search is approximate.  Still, the evaluation
      * would fail since the match is not exact.  So
      * we fake it by changing the key to the actual PID ... */
-    GNUNET_BLOCK_get_key (GDS_block_context, GNUNET_BLOCK_TYPE_DHT_HELLO,
-                          pc->data, pc->data_size, &hc);
+    GNUNET_BLOCK_get_key (GDS_block_context,
+			  GNUNET_BLOCK_TYPE_DHT_HELLO,
+                          pc->data, pc->data_size,
+			  &hc);
     eval_key = &hc;
   }
   else
