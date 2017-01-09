@@ -1208,7 +1208,6 @@ GCP_send (struct CadetPeer *peer,
                  q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
             GNUNET_MQ_discard (q->env);
             call_peer_cont (q, GNUNET_YES);
-	    GNUNET_CONTAINER_DLL_remove (peer->q_head, peer->q_tail, q);
             GNUNET_free (q);
             return NULL;
         }
