@@ -67,10 +67,16 @@ extern "C"
 #define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000
 #define GNUNET_CADET_LOCAL_CHANNEL_ID_SERV       0xB0000000
 
-#define HIGH_PID                                0xFFFF0000
-#define LOW_PID                                 0x0000FFFF
+#define HIGH_PID                                0xFF000000
+#define LOW_PID                                 0x00FFFFFF
 
-#define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
+/**
+ * Test if the two PIDs (of type `uint32_t`) are in the range where we
+ * have to worry about overflows.  This is the case when @a pid is
+ * large and @a max is small, useful when comparing @a pid smaller
+ * than @a max.
+ */
+#define PID_OVERFLOW(pid, max) (((pid) > HIGH_PID) && ((max) < LOW_PID))
 
 /******************************************************************************/
 /**************************        MESSAGES      ******************************/

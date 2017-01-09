@@ -51,11 +51,20 @@ GC_f2s (int fwd)
   }
 }
 
+
+/**
+ * Test if @a bigger is larger than @a smaller.
+ * Considers the case that @a bigger just overflowed
+ * and is thus tiny while @a smaller is still below
+ * `UINT32_MAX`.
+ */
 int
-GC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
+GC_is_pid_bigger (uint32_t bigger,
+		  uint32_t smaller)
 {
-    return (GNUNET_YES == PID_OVERFLOW (smaller, bigger) ||
-            (bigger > smaller && GNUNET_NO == PID_OVERFLOW (bigger, smaller)));
+    return (PID_OVERFLOW (smaller, bigger) ||
+            ( (bigger > smaller) &&
+	      (! PID_OVERFLOW (bigger, smaller))) );
 }
 
 
