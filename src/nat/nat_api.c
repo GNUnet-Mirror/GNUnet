@@ -714,6 +714,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh)
     GNUNET_MQ_destroy (nh->mq);
     nh->mq = NULL;
   }
+  if (NULL != nh->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (nh->reconnect_task);
+    nh->reconnect_task = NULL;
+  }
   GNUNET_free (nh->reg);
   GNUNET_free (nh);
 }
