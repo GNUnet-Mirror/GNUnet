@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file core/core_api_2.c
+ * @file core/core_api.c
  * @brief core service; this is the main API for encrypted P2P
  *        communications
  * @author Christian Grothoff
@@ -810,7 +810,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
   reconnect (h);
   if (NULL == h->mq)
   {
-    GNUNET_CORE_disconnect (h);
+    GNUNET_CORE_disconnecT (h);
     return NULL;
   }
   return h;
