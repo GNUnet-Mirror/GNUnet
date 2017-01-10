@@ -375,6 +375,26 @@ check_call_audio (void *cls,
 
 
 /**
+ * TODO
+ */
+static int
+is_gns_address (const char *str)
+{
+  size_t length = strlen(str);
+  size_t suffix_length = sizeof(".gnu") - 1;
+  if (length <= suffix_length)
+  {
+    return GNUNET_NO;
+  }
+
+  if (0 == strcmp(str + length - 1 - suffix_length, ".gnu"))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
+
+
+/**
  * We received a `struct ClientAudioMessage`
  *
  * @param cls the `struct GNUNET_CONVERSATION_Call`
@@ -418,6 +438,28 @@ handle_call_audio (void *cls,
 
 
 /**
+ * TODO
+ */
+static void
+start_call (struct GNUNET_CONVERSATION_Call *call)
+{
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientCallMessage *ccm;
+
+  e = GNUNET_MQ_msg (ccm,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
+  ccm->line_port = call->phone_record.line_port;
+  ccm->target = call->phone_record.peer;
+  ccm->caller_id = *GNUNET_IDENTITY_ego_get_private_key (call->caller_id);
+  GNUNET_MQ_send (call->mq,
+                  e);
+  call->state = CS_RINGING;
+  call->event_handler (call->event_handler_cls,
+                       GNUNET_CONVERSATION_EC_CALL_RINGING);
+}
+
+
+/**
  * Iterator called on obtained result for a GNS lookup.
  *
  * @param cls closure with the `struct GNUNET_CONVERSATION_Call`
@@ -431,8 +473,8 @@ handle_gns_response (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
   uint32_t i;
-  struct GNUNET_MQ_Envelope *e;
-  struct ClientCallMessage *ccm;
+  //struct GNUNET_MQ_Envelope *e;
+  //struct ClientCallMessage *ccm;
 
   GNUNET_break (NULL != call->gns_lookup);
   GNUNET_break (CS_LOOKUP == call->state);
@@ -449,16 +491,17 @@ handle_gns_response (void *cls,
       GNUNET_memcpy (&call->phone_record,
                      rd[i].data,
                      rd[i].data_size);
-      e = GNUNET_MQ_msg (ccm,
-                         GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
-      ccm->line_port = call->phone_record.line_port;
-      ccm->target = call->phone_record.peer;
-      ccm->caller_id = *GNUNET_IDENTITY_ego_get_private_key (call->caller_id);
-      GNUNET_MQ_send (call->mq,
-                      e);
-      call->state = CS_RINGING;
-      call->event_handler (call->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_CALL_RINGING);
+      start_call (call);
+      //e = GNUNET_MQ_msg (ccm,
+      //                   GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
+      //ccm->line_port = call->phone_record.line_port;
+      //ccm->target = call->phone_record.peer;
+      //ccm->caller_id = *GNUNET_IDENTITY_ego_get_private_key (call->caller_id);
+      //GNUNET_MQ_send (call->mq,
+      //                e);
+      //call->state = CS_RINGING;
+      //call->event_handler (call->event_handler_cls,
+      //                     GNUNET_CONVERSATION_EC_CALL_RINGING);
       return;
     }
   }
@@ -598,14 +641,31 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   call->state = CS_LOOKUP;
   GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
-  call->gns_lookup = GNUNET_GNS_lookup (call->gns,
-                                        call->callee,
-                                        &my_zone,
-                                        GNUNET_GNSRECORD_TYPE_PHONE,
-                                        GNUNET_NO,
-                                        NULL /* FIXME: add shortening support */,
-                                        &handle_gns_response, call);
-  GNUNET_assert (NULL != call->gns_lookup);
+  if (is_gns_address(call->callee) == GNUNET_YES)
+  {
+    call->gns_lookup = GNUNET_GNS_lookup (call->gns,
+                                          call->callee,
+                                          &my_zone,
+                                          GNUNET_GNSRECORD_TYPE_PHONE,
+                                          GNUNET_NO,
+                                          NULL /* FIXME: add shortening support */,
+                                          &handle_gns_response, call);
+    GNUNET_assert (NULL != call->gns_lookup);
+  }
+  else 
+  {
+    size_t record_size = 0;
+    int parse_result =
+    GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_PHONE,
+                                      call->callee,
+                                      (void**)&call->phone_record,
+                                      &record_size);
+    if (parse_result != GNUNET_OK)
+    {
+      return NULL; 
+    }
+    start_call (call);
+  }
   return call;
 }
 

@@ -571,6 +571,12 @@ do_call (const char *arg)
                                          speaker,
                                          mic,
                                          &call_event_handler, NULL);
+  if (NULL == call)
+  {
+    FPRINTF (stderr,
+             _("invalid address.\n"));
+    do_help ("/call");
+  }
 }
 
 
@@ -951,7 +957,7 @@ static struct VoipCommand commands[] = {
   {"/address", &do_address,
    gettext_noop ("Use `/address' to find out which address this phone should have in GNS")},
   {"/call", &do_call,
-   gettext_noop ("Use `/call USER.gnu' to call USER")},
+   gettext_noop ("Use `/call USER.gnu' to call USER or /call address (see /address)")},
   {"/accept", &do_accept,
    gettext_noop ("Use `/accept #NUM' to accept incoming call #NUM")},
   {"/suspend", &do_suspend,
