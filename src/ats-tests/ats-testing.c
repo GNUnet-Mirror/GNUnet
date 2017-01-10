@@ -90,7 +90,6 @@ do_shutdown (void *cls)
     {
       if (NULL != p->partners[c_op].cth)
       {
-        GNUNET_CORE_notify_transmit_ready_cancel (p->partners[c_op].cth);
         p->partners[c_op].cth = NULL;
       }
       if ( (NULL != p->core_connect_ops) &&
@@ -133,7 +132,6 @@ do_shutdown (void *cls)
     {
       if (NULL != p->partners[c_op].cth)
       {
-        GNUNET_CORE_notify_transmit_ready_cancel (p->partners[c_op].cth);
         p->partners[c_op].cth = NULL;
       }
     }
@@ -316,7 +314,6 @@ comm_disconnect_cb (void *cls,
 		GNUNET_i2s (peer));
     if (NULL != p->cth)
     {
-      GNUNET_CORE_notify_transmit_ready_cancel (p->cth);
       p->cth = NULL;
     }
   }
