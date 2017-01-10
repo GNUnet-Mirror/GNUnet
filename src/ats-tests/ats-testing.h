@@ -285,11 +285,6 @@ struct BenchmarkPartner
   struct BenchmarkPeer *dest;
 
   /**
-   * Core transmit handles
-   */
-  struct GNUNET_CORE_TransmitHandle *cth;
-
-  /**
    * Message queue handle.
    */
   struct GNUNET_MQ_Handle *mq;
@@ -335,27 +330,27 @@ struct BenchmarkPartner
   unsigned int bytes_received;
 
   /**
-   * Current ATS properties 
+   * Current ATS properties
    */
   struct GNUNET_ATS_Properties props;
 
   /**
-   * Bandwidth assigned inbound 
+   * Bandwidth assigned inbound
    */
   uint32_t bandwidth_in;
 
   /**
-   * Bandwidth assigned outbound 
+   * Bandwidth assigned outbound
    */
   uint32_t bandwidth_out;
 
   /**
-   * Current preference values for bandwidth 
+   * Current preference values for bandwidth
    */
   double pref_bandwidth;
 
   /**
-   * Current preference values for delay 
+   * Current preference values for delay
    */
   double pref_delay;
 

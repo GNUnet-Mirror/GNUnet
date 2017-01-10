@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2010-2013, 2016 GNUnet e.V.
+ Copyright (C) 2010-2013, 2016, 2017 GNUnet e.V.
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -88,10 +88,6 @@ do_shutdown (void *cls)
 
     for (c_op = 0; c_op < p->num_partners; c_op++)
     {
-      if (NULL != p->partners[c_op].cth)
-      {
-        p->partners[c_op].cth = NULL;
-      }
       if ( (NULL != p->core_connect_ops) &&
            (NULL != p->core_connect_ops[c_op].connect_op) )
       {
@@ -126,14 +122,6 @@ do_shutdown (void *cls)
     {
       GNUNET_TESTBED_operation_done (p->peer_id_op);
       p->peer_id_op = NULL;
-    }
-
-    for (c_op = 0; c_op < p->num_partners; c_op++)
-    {
-      if (NULL != p->partners[c_op].cth)
-      {
-        p->partners[c_op].cth = NULL;
-      }
     }
     if (NULL != p->ats_perf_op)
     {
@@ -312,10 +300,6 @@ comm_disconnect_cb (void *cls,
 		"%s disconnected from %s while benchmarking\n",
 		id,
 		GNUNET_i2s (peer));
-    if (NULL != p->cth)
-    {
-      p->cth = NULL;
-    }
   }
   GNUNET_free(id);
 }
