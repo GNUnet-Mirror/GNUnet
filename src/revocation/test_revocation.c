@@ -337,7 +337,7 @@ core_connect_adapter (void *cls,
   struct TestPeer *me = cls;
 
   me->cfg = cfg;
-  me->ch = GNUNET_CORE_connecT (cfg,
+  me->ch = GNUNET_CORE_connect (cfg,
 				me,
 				NULL,
                                 &connect_cb,
@@ -356,7 +356,7 @@ core_disconnect_adapter (void *cls,
 {
   struct TestPeer *me = cls;
 
-  GNUNET_CORE_disconnecT (me->ch);
+  GNUNET_CORE_disconnect (me->ch);
   me->ch = NULL;
 }
 

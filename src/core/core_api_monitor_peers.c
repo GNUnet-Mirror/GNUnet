@@ -127,7 +127,7 @@ reconnect (struct GNUNET_CORE_MonitorHandle *mh)
   if (NULL != mh->mq)
     GNUNET_MQ_destroy (mh->mq);
   /* FIXME: use backoff? */
-  mh->mq = GNUNET_CLIENT_connecT (mh->cfg,
+  mh->mq = GNUNET_CLIENT_connect (mh->cfg,
                                   "core",
                                   handlers,
                                   &handle_mq_error,

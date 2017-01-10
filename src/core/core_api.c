@@ -97,12 +97,12 @@ struct GNUNET_CORE_Handle
   /**
    * Function to call whenever we're notified about a peer connecting.
    */
-  GNUNET_CORE_ConnecTEventHandler connects;
+  GNUNET_CORE_ConnectEventHandler connects;
 
   /**
    * Function to call whenever we're notified about a peer disconnecting.
    */
-  GNUNET_CORE_DisconnecTEventHandler disconnects;
+  GNUNET_CORE_DisconnectEventHandler disconnects;
 
   /**
    * Function handlers for messages of particular type.
@@ -734,7 +734,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
   uint16_t *ts;
 
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "core",
                                  handlers,
                                  &handle_mq_error,
@@ -773,11 +773,11 @@ reconnect (struct GNUNET_CORE_Handle *h)
  *                NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
-GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnecTEventHandler connects,
-                     GNUNET_CORE_DisconnecTEventHandler disconnects,
+                     GNUNET_CORE_ConnectEventHandler connects,
+                     GNUNET_CORE_DisconnectEventHandler disconnects,
                      const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CORE_Handle *h;
@@ -810,7 +810,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
   reconnect (h);
   if (NULL == h->mq)
   {
-    GNUNET_CORE_disconnecT (h);
+    GNUNET_CORE_disconnect (h);
     return NULL;
   }
   return h;
@@ -823,7 +823,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to core to disconnect
  */
 void
-GNUNET_CORE_disconnecT (struct GNUNET_CORE_Handle *handle)
+GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting from CORE service\n");

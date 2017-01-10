@@ -215,7 +215,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   h->name = GNUNET_strdup (name);
   h->cb = cb;
   h->cb_cls = cb_cls;
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "testbed-barrier",
                                  handlers,
                                  &mq_error_handler,

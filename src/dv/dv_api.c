@@ -346,7 +346,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
 					 sh);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to DV service\n");
-  sh->mq = GNUNET_CLIENT_connecT (sh->cfg,
+  sh->mq = GNUNET_CLIENT_connect (sh->cfg,
                                   "dv",
                                   handlers,
                                   &mq_error_handler,

@@ -644,7 +644,7 @@ int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
                               struct GNUNET_CORE_Handle *co,
-                              GNUNET_CORE_ConnecTEventHandler *server_ch,
+                              GNUNET_CORE_ConnectEventHandler *server_ch,
                               int advertise)
 {
   unsigned long long port;

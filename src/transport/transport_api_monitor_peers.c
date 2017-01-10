@@ -360,7 +360,7 @@ do_peer_connect (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   pal_ctx->reconnect_task = NULL;
-  pal_ctx->mq = GNUNET_CLIENT_connecT (pal_ctx->cfg,
+  pal_ctx->mq = GNUNET_CLIENT_connect (pal_ctx->cfg,
                                        "transport",
                                        handlers,
                                        &mq_error_handler,

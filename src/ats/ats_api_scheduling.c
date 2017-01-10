@@ -532,7 +532,7 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   struct GNUNET_ATS_AddressRecord *ar;
 
   GNUNET_assert (NULL == sh->mq);
-  sh->mq = GNUNET_CLIENT_connecT (sh->cfg,
+  sh->mq = GNUNET_CLIENT_connect (sh->cfg,
                                   "ats",
                                   handlers,
                                   &error_handler,

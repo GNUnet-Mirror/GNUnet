@@ -1195,7 +1195,7 @@ host_connect (struct GNUNET_SOCIAL_Host *hst)
     GNUNET_MQ_handler_end ()
   };
 
-  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+  plc->mq = GNUNET_CLIENT_connect (plc->cfg, "social",
                                    handlers, host_disconnected, hst);
   GNUNET_assert (NULL != plc->mq);
   plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
@@ -1697,7 +1697,7 @@ guest_connect (struct GNUNET_SOCIAL_Guest *gst)
     GNUNET_MQ_handler_end ()
   };
 
-  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+  plc->mq = GNUNET_CLIENT_connect (plc->cfg, "social",
                                    handlers, guest_disconnected, gst);
   GNUNET_assert (NULL != plc->mq);
   plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
@@ -2597,7 +2597,7 @@ app_connect (struct GNUNET_SOCIAL_App *app)
     GNUNET_MQ_handler_end ()
   };
 
-  app->mq = GNUNET_CLIENT_connecT (app->cfg, "social",
+  app->mq = GNUNET_CLIENT_connect (app->cfg, "social",
                                    handlers, app_disconnected, app);
   GNUNET_assert (NULL != app->mq);
   GNUNET_MQ_send_copy (app->mq, app->connect_env);

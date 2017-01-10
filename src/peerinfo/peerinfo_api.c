@@ -462,7 +462,7 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "peerinfo",
                                  handlers,
                                  &mq_error_handler,

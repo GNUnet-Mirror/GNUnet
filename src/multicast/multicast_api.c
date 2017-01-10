@@ -786,7 +786,7 @@ origin_connect (struct GNUNET_MULTICAST_Origin *orig)
     GNUNET_MQ_handler_end ()
   };
 
-  grp->mq = GNUNET_CLIENT_connecT (grp->cfg, "multicast",
+  grp->mq = GNUNET_CLIENT_connect (grp->cfg, "multicast",
                                    handlers, origin_disconnected, orig);
   GNUNET_assert (NULL != grp->mq);
   GNUNET_MQ_send_copy (grp->mq, grp->connect_env);
@@ -1076,7 +1076,7 @@ member_connect (struct GNUNET_MULTICAST_Member *mem)
     GNUNET_MQ_handler_end ()
   };
 
-  grp->mq = GNUNET_CLIENT_connecT (grp->cfg, "multicast",
+  grp->mq = GNUNET_CLIENT_connect (grp->cfg, "multicast",
                                    handlers, member_disconnected, mem);
   GNUNET_assert (NULL != grp->mq);
   GNUNET_MQ_send_copy (grp->mq, grp->connect_env);

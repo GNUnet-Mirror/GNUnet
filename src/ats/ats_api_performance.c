@@ -585,7 +585,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
   struct ClientStartMessage *init;
 
   GNUNET_assert (NULL == ph->mq);
-  ph->mq = GNUNET_CLIENT_connecT (ph->cfg,
+  ph->mq = GNUNET_CLIENT_connect (ph->cfg,
                                   "ats",
                                   handlers,
                                   &mq_error_handler,

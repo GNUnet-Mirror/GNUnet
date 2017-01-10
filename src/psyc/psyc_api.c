@@ -694,7 +694,7 @@ master_connect (struct GNUNET_PSYC_Master *mst)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connecT (chn->cfg, "psyc",
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
                                    handlers, master_disconnected, mst);
   GNUNET_assert (NULL != chn->mq);
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);
@@ -993,7 +993,7 @@ slave_connect (struct GNUNET_PSYC_Slave *slv)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connecT (chn->cfg, "psyc",
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
                                    handlers, slave_disconnected, slv);
   GNUNET_assert (NULL != chn->mq);
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);

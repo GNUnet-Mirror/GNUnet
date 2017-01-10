@@ -98,12 +98,12 @@ task (void *cls,
 
   /* test that ill-configured client fails instantly */
   GNUNET_assert (NULL ==
-		 GNUNET_CLIENT_connecT (cfg,
+		 GNUNET_CLIENT_connect (cfg,
 					"invalid-service",
 					NULL,
 					&mq_error_handler,
 					NULL));
-  client_mq = GNUNET_CLIENT_connecT (cfg,
+  client_mq = GNUNET_CLIENT_connect (cfg,
 				     "test_client",
 				     chandlers,
 				     &mq_error_handler,

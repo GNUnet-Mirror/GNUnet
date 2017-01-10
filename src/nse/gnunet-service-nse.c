@@ -1346,7 +1346,7 @@ shutdown_task (void *cls)
   }
   if (NULL != core_api)
   {
-    GNUNET_CORE_disconnecT (core_api);
+    GNUNET_CORE_disconnect (core_api);
     core_api = NULL;
   }
   if (NULL != stats)
@@ -1607,7 +1607,7 @@ run (void *cls,
 						GNUNET_YES);
   nc = GNUNET_notification_context_create (1);
   /* Connect to core service and register core handlers */
-  core_api = GNUNET_CORE_connecT (cfg,   /* Main configuration */
+  core_api = GNUNET_CORE_connect (cfg,   /* Main configuration */
 				  NULL,       /* Closure passed to functions */
 				  &core_init,    /* Call core_init once connected */
 				  &handle_core_connect,  /* Handle connects */

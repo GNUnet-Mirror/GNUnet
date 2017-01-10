@@ -210,7 +210,7 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   }
   alc->cb = aluc;
   alc->cb_cls = aluc_cls;
-  alc->mq = GNUNET_CLIENT_connecT (cfg,
+  alc->mq = GNUNET_CLIENT_connect (cfg,
                                    "transport",
                                    handlers,
                                    &mq_error_handler,

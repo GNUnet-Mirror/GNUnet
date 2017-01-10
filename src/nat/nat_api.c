@@ -343,7 +343,7 @@ do_connect (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   nh->reconnect_task = NULL;
-  nh->mq = GNUNET_CLIENT_connecT (nh->cfg,
+  nh->mq = GNUNET_CLIENT_connect (nh->cfg,
 				  "nat",
 				  handlers,
 				  &mq_error_handler,

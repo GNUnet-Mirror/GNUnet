@@ -394,7 +394,7 @@ reconnect (struct GNUNET_GNS_Handle *handle)
   GNUNET_assert (NULL == handle->mq);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to GNS\n");
-  handle->mq = GNUNET_CLIENT_connecT (handle->cfg,
+  handle->mq = GNUNET_CLIENT_connect (handle->cfg,
                                       "gns",
                                       handlers,
                                       &mq_error_handler,

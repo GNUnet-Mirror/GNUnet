@@ -678,7 +678,7 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
     return GNUNET_NO;
   if (NULL != h->mq)
     return GNUNET_YES;
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "statistics",
                                  handlers,
                                  &mq_error_handler,

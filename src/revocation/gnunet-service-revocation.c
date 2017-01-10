@@ -670,7 +670,7 @@ shutdown_task (void *cls)
   }
   if (NULL != core_api)
   {
-    GNUNET_CORE_disconnecT (core_api);
+    GNUNET_CORE_disconnect (core_api);
     core_api = NULL;
   }
   if (NULL != stats)
@@ -894,7 +894,7 @@ run (void *cls,
   peers = GNUNET_CONTAINER_multipeermap_create (128,
                                                 GNUNET_YES);
   /* Connect to core service and register core handlers */
-  core_api = GNUNET_CORE_connecT (cfg,   /* Main configuration */
+  core_api = GNUNET_CORE_connect (cfg,   /* Main configuration */
 				  NULL,       /* Closure passed to functions */
 				  &core_init,    /* Call core_init once connected */
 				  &handle_core_connect,  /* Handle connects */

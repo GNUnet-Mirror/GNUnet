@@ -224,7 +224,7 @@ GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_TESTBED_LOGGER_Handle *h;
 
   h = GNUNET_new (struct GNUNET_TESTBED_LOGGER_Handle);
-  h->mq = GNUNET_CLIENT_connecT (cfg,
+  h->mq = GNUNET_CLIENT_connect (cfg,
                                  "testbed-logger",
                                  NULL,
                                  &mq_error_handler,

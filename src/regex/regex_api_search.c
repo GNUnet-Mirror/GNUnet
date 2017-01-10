@@ -167,7 +167,7 @@ search_reconnect (struct GNUNET_REGEX_Search *s)
   struct RegexSearchMessage *rsm;
 
   GNUNET_assert (NULL == s->mq);
-  s->mq = GNUNET_CLIENT_connecT (s->cfg,
+  s->mq = GNUNET_CLIENT_connect (s->cfg,
                                  "regex",
                                  handlers,
                                  &mq_error_handler,

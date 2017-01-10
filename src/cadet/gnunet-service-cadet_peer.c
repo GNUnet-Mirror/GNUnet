@@ -655,7 +655,7 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
                                NULL),
         GNUNET_MQ_handler_end ()
     };
-    core_handle = GNUNET_CORE_connecT (c, NULL,
+    core_handle = GNUNET_CORE_connect (c, NULL,
                                        &core_init_notify,
                                        &core_connect_handler,
                                        &core_disconnect_handler,
@@ -686,7 +686,7 @@ core_init_notify (void *cls,
         LOG (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
         LOG (GNUNET_ERROR_TYPE_ERROR, " core id %s\n", GNUNET_i2s (core_identity));
         LOG (GNUNET_ERROR_TYPE_ERROR, " my id %s\n", GNUNET_i2s (&my_full_id));
-        GNUNET_CORE_disconnecT (core_handle);
+        GNUNET_CORE_disconnect (core_handle);
         connect_to_core (c);
         return;
     }
@@ -1325,12 +1325,12 @@ GCP_shutdown (void)
     in_shutdown = GNUNET_YES;
     if (NULL != core_handle)
     {
-        GNUNET_CORE_disconnecT (core_handle);
+        GNUNET_CORE_disconnect (core_handle);
         core_handle = NULL;
     }
     GNUNET_PEER_change_rc (myid, -1);
     /* With MQ API, CORE calls the disconnect handler for every peer
-     * after calling GNUNET_CORE_disconnecT, shutdown must occur *after* that.
+     * after calling GNUNET_CORE_disconnect, shutdown must occur *after* that.
      */
     GNUNET_CONTAINER_multipeermap_iterate (peers,
                                            &shutdown_peer,

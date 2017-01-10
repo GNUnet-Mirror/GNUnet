@@ -286,7 +286,7 @@ reconnect (struct GNUNET_RPS_Handle *h)
 
   if (NULL != h->mq)
     GNUNET_MQ_destroy (h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "rps",
                                  mq_handlers,
                                  &mq_error_handler,

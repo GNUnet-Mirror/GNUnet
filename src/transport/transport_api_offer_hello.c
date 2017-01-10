@@ -104,7 +104,7 @@ GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (ohh);
     return NULL;
   }
-  ohh->mq = GNUNET_CLIENT_connecT (cfg,
+  ohh->mq = GNUNET_CLIENT_connect (cfg,
                                    "transport",
                                    NULL,
                                    NULL,

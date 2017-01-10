@@ -74,9 +74,9 @@ static struct GNUNET_MQ_MessageHandler handlers[] = {
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_CORE_disconnecT (p1.ch);
+  GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
-  GNUNET_CORE_disconnecT (p2.ch);
+  GNUNET_CORE_disconnect (p2.ch);
   p2.ch = NULL;
   ok = 0;
 }
@@ -91,7 +91,7 @@ init_notify (void *cls,
   if (p == &p1)
   {
     /* connect p2 */
-    p2.ch = GNUNET_CORE_connecT (p2.cfg,
+    p2.ch = GNUNET_CORE_connect (p2.cfg,
 				 &p2,
 				 &init_notify,
 				 &connect_notify,
@@ -140,12 +140,12 @@ timeout_task (void *cls)
 	   "Timeout.\n");
   if (NULL != p1.ch)
   {
-    GNUNET_CORE_disconnecT (p1.ch);
+    GNUNET_CORE_disconnect (p1.ch);
     p1.ch = NULL;
   }
   if (NULL != p2.ch)
   {
-    GNUNET_CORE_disconnecT (p2.ch);
+    GNUNET_CORE_disconnect (p2.ch);
     p2.ch = NULL;
   }
   ok = 42;
@@ -168,7 +168,7 @@ run (void *cls,
 				     TIMEOUT),
                                     &timeout_task,
 				    NULL);
-  p1.ch = GNUNET_CORE_connecT (p1.cfg,
+  p1.ch = GNUNET_CORE_connect (p1.cfg,
 			       &p1,
 			       &init_notify,
 			       &connect_notify,

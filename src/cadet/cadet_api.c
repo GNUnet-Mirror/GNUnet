@@ -1282,7 +1282,7 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CADET\n");
 
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "cadet",
                                  handlers,
                                  &handle_mq_error,

@@ -391,7 +391,7 @@ addr_cb (void *cls,
 
   ca = GNUNET_new (struct ClientActivity);
   ca->h = h;
-  ca->mq = GNUNET_CLIENT_connecT (h->cfg,
+  ca->mq = GNUNET_CLIENT_connect (h->cfg,
                                   "gnunet-nat-server",
                                   NULL,
                                   &mq_error_handler,

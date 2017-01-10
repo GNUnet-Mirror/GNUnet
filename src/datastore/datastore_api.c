@@ -443,7 +443,7 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Re-connecting to issue DROP!\n");
     GNUNET_assert (NULL == h->mq);
-    h->mq = GNUNET_CLIENT_connecT (h->cfg,
+    h->mq = GNUNET_CLIENT_connect (h->cfg,
                                    "datastore",
                                    NULL,
                                    &disconnect_on_mq_error,
@@ -868,7 +868,7 @@ try_reconnect (void *cls)
   h->retry_time = GNUNET_TIME_STD_BACKOFF (h->retry_time);
   h->reconnect_task = NULL;
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "datastore",
                                  handlers,
                                  &mq_error_handler,

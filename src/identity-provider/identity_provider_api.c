@@ -380,7 +380,7 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to identity provider service.\n");
 
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "identity-provider",
                                  handlers,
                                  &mq_error_handler,

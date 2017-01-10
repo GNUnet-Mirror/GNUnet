@@ -384,7 +384,7 @@ core_connect_adapter (void *cls,
     GNUNET_MQ_handler_end ()
   };
 
-  me->ch = GNUNET_CORE_connecT (cfg,
+  me->ch = GNUNET_CORE_connect (cfg,
 				me,
 				NULL,
 				&comm_connect_cb,
@@ -403,7 +403,7 @@ core_disconnect_adapter (void *cls,
 {
   struct BenchmarkPeer *me = cls;
 
-  GNUNET_CORE_disconnecT (me->ch);
+  GNUNET_CORE_disconnect (me->ch);
   me->ch = NULL;
 }
 

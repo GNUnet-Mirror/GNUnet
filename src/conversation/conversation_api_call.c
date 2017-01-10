@@ -570,7 +570,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   };
   struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
 
-  call->mq = GNUNET_CLIENT_connecT (cfg,
+  call->mq = GNUNET_CLIENT_connect (cfg,
                                     "conversation",
                                     handlers,
                                     &call_error_handler,

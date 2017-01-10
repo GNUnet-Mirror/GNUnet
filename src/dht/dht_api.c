@@ -867,7 +867,7 @@ try_connect (struct GNUNET_DHT_Handle *h)
   };
   if (NULL != h->mq)
     return GNUNET_OK;
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "dht",
                                  handlers,
                                  &mq_error_handler,

@@ -829,7 +829,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "peerstore",
                                  mq_handlers,
                                  &handle_client_error,

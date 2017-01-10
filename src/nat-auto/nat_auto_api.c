@@ -233,7 +233,7 @@ GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   ah->arc = cb;
   ah->arc_cls = cb_cls;
-  ah->mq = GNUNET_CLIENT_connecT (cfg,
+  ah->mq = GNUNET_CLIENT_connect (cfg,
 				  "nat",
 				  handlers,
 				  &ah_error_handler,

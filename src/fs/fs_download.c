@@ -1335,7 +1335,7 @@ do_reconnect (void *cls)
   };
 
   dc->task = NULL;
-  dc->mq = GNUNET_CLIENT_connecT (dc->h->cfg,
+  dc->mq = GNUNET_CLIENT_connect (dc->h->cfg,
                                   "fs",
                                   handlers,
                                   &download_mq_error_handler,

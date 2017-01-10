@@ -114,7 +114,7 @@ typedef void
  * @param peer peer identity this notification is about
  */
 typedef void *
-(*GNUNET_CORE_ConnecTEventHandler) (void *cls,
+(*GNUNET_CORE_ConnectEventHandler) (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_MQ_Handle *mq);
 
@@ -126,7 +126,7 @@ typedef void *
  * @param peer peer identity this notification is about
  */
 typedef void
-(*GNUNET_CORE_DisconnecTEventHandler) (void *cls,
+(*GNUNET_CORE_DisconnectEventHandler) (void *cls,
                                        const struct GNUNET_PeerIdentity *peer,
 				       void *peer_cls);
 
@@ -283,11 +283,11 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
  *           NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
-GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnecTEventHandler connects,
-                     GNUNET_CORE_DisconnecTEventHandler disconnects,
+                     GNUNET_CORE_ConnectEventHandler connects,
+                     GNUNET_CORE_DisconnectEventHandler disconnects,
                      const struct GNUNET_MQ_MessageHandler *handlers);
 
 
@@ -297,7 +297,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to core to disconnect
  */
 void
-GNUNET_CORE_disconnecT (struct GNUNET_CORE_Handle *handle);
+GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
 /**

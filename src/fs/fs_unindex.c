@@ -316,7 +316,7 @@ unindex_finish (struct GNUNET_FS_UnindexContext *uc)
   uc->seen_dh = NULL;
   uc->state = UNINDEX_STATE_FS_NOTIFY;
   GNUNET_FS_unindex_sync_ (uc);
-  uc->mq = GNUNET_CLIENT_connecT (uc->h->cfg,
+  uc->mq = GNUNET_CLIENT_connect (uc->h->cfg,
                                   "fs",
                                   handlers,
                                   &unindex_mq_error_handler,

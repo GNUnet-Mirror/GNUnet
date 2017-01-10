@@ -2381,7 +2381,7 @@ GDS_NEIGHBOURS_init ()
   log_route_details_stderr =
     (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
   ats_ch = GNUNET_ATS_connectivity_init (GDS_cfg);
-  core_api = GNUNET_CORE_connecT (GDS_cfg,
+  core_api = GNUNET_CORE_connect (GDS_cfg,
 				  NULL,
 				  &core_init,
 				  &handle_core_connect,
@@ -2405,7 +2405,7 @@ GDS_NEIGHBOURS_done ()
 {
   if (NULL == core_api)
     return;
-  GNUNET_CORE_disconnecT (core_api);
+  GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
   GNUNET_assert (0 ==
 		 GNUNET_CONTAINER_multipeermap_size (all_connected_peers));

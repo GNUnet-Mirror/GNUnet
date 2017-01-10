@@ -261,7 +261,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_CreateMessage *msg;
 
-  s->mq = GNUNET_CLIENT_connecT (cfg,
+  s->mq = GNUNET_CLIENT_connect (cfg,
                                  "secretsharing",
                                  mq_handlers,
                                  &handle_session_client_error,
@@ -348,7 +348,7 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   s->decrypt_cb = decrypt_cb;
   s->decrypt_cls = decrypt_cb_cls;
-  s->mq = GNUNET_CLIENT_connecT (cfg,
+  s->mq = GNUNET_CLIENT_connect (cfg,
                                  "secretsharing",
                                  mq_handlers,
                                  &handle_decrypt_client_error,

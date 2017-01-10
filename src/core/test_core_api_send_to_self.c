@@ -65,7 +65,7 @@ cleanup (void *cls)
   }
   if (NULL != core)
   {
-    GNUNET_CORE_disconnecT (core);
+    GNUNET_CORE_disconnect (core);
     core = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -159,7 +159,7 @@ run (void *cls,
   };
 
   core =
-    GNUNET_CORE_connecT (cfg,
+    GNUNET_CORE_connect (cfg,
 			 NULL,
 			 &init,
                          &connect_cb,

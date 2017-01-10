@@ -212,7 +212,7 @@ reconnect (void *cls)
   struct NotifyMessage *nm;
 
   nc->task = NULL;
-  nc->mq = GNUNET_CLIENT_connecT (nc->cfg,
+  nc->mq = GNUNET_CLIENT_connect (nc->cfg,
                                   "peerinfo",
                                   handlers,
                                   &mq_error_handler,

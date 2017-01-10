@@ -1181,7 +1181,7 @@ shutdown_task (void *cls)
   GSF_cadet_stop_server ();
   if (NULL != GSF_core)
   {
-    GNUNET_CORE_disconnecT (GSF_core);
+    GNUNET_CORE_disconnect (GSF_core);
     GSF_core = NULL;
   }
   if (NULL != GSF_ats)
@@ -1219,7 +1219,7 @@ shutdown_task (void *cls)
 
 
 /**
- * Function called after GNUNET_CORE_connecT has succeeded
+ * Function called after GNUNET_CORE_connect has succeeded
  * (or failed for good).  Note that the private key of the
  * peer is intentionally not exposed here; if you need it,
  * your process should try to read the private key file
@@ -1299,7 +1299,7 @@ main_init (const struct GNUNET_CONFIGURATION_Handle *c)
               "I am peer %s\n",
               GNUNET_i2s (&GSF_my_id));
   GSF_core
-    = GNUNET_CORE_connecT (GSF_cfg,
+    = GNUNET_CORE_connect (GSF_cfg,
 			   NULL,
                            &peer_init_handler,
                            &GSF_peer_connect_handler,

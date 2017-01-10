@@ -324,7 +324,7 @@ connect_task (void *cls)
   struct GNUNET_VPN_RedirectionRequest *rr;
 
   vh->rt = NULL;
-  vh->mq = GNUNET_CLIENT_connecT (vh->cfg,
+  vh->mq = GNUNET_CLIENT_connect (vh->cfg,
                                   "vpn",
                                   handlers,
                                   &mq_error_handler,

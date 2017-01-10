@@ -262,7 +262,7 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
     GNUNET_MQ_destroy (zm->mq);
     zm->error_cb (zm->error_cb_cls);
   }
-  zm->mq = GNUNET_CLIENT_connecT (zm->cfg,
+  zm->mq = GNUNET_CLIENT_connect (zm->cfg,
                                   "namestore",
                                   handlers,
                                   &mq_error_handler,
