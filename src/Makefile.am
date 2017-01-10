@@ -8,6 +8,7 @@ if HAVE_TESTING
  TESTBED = testbed-logger testbed
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
+ ATS_TESTS = ats-tests
 endif
 
 if HAVE_EXPERIMENTAL
@@ -92,7 +93,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   $(TESTBED) \
-  ats-tests \
+  $(ATS_TESTS) \
   nse \
   dht \
   hostlist \
