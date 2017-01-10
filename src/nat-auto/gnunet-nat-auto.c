@@ -47,7 +47,7 @@ static int write_cfg;
 
 /**
  * Configuration filename.
- */ 
+ */
 static const char *cfg_file;
 
 /**
@@ -56,16 +56,9 @@ static const char *cfg_file;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Address we are bound to (in test), or should bind to
- * (if #do_stun is set).
+ * Adapter we are supposed to test.
  */
-static char *bind_addr;
-
-/**
- * External IP address and port to use for the test.
- * If not set, use #bind_addr.
- */
-static char *extern_addr;
+static char *section_name;
 
 /**
  * Should we run autoconfiguration?
@@ -122,7 +115,7 @@ auto_conf_iter (void *cls,
                 const char *value)
 {
   struct GNUNET_CONFIGURATION_Handle *new_cfg = cls;
-  
+
   PRINTF ("%s: %s\n",
 	  option,
 	  value);
@@ -192,7 +185,7 @@ auto_config_cb (void *cls,
   /* Apply diff to original configuration and show changes
      to the user */
   new_cfg = write_cfg ? GNUNET_CONFIGURATION_dup (cfg) : NULL;
-  
+
   if (NULL != diff)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -296,12 +289,9 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct sockaddr_in bind_sa;
-  struct sockaddr_in extern_sa;
-
   cfg_file = cfgfile;
   cfg = c;
-  
+
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
 
@@ -327,45 +317,11 @@ run (void *cls,
   if (use_udp)
     proto = IPPROTO_UDP;
 
-  if (NULL != bind_addr)
+  if (NULL != section_name)
   {
-    if (GNUNET_OK !=
-	GNUNET_STRINGS_to_address_ipv4 (bind_addr,
-					strlen (bind_addr),
-					&bind_sa))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Invalid socket address `%s'\n",
-		  bind_addr);
-      global_ret = 1;
-      return;
-    }
-  }
-  if (NULL != extern_addr)
-  {
-    if (GNUNET_OK !=
-	GNUNET_STRINGS_to_address_ipv4 (extern_addr,
-					strlen (extern_addr),
-					&extern_sa))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Invalid socket address `%s'\n",
-		  extern_addr);
-      global_ret = 1;
-      return;
-    }
-  }
-
-  if (NULL != bind_addr)
-  {
-    if (NULL == extern_addr)
-      extern_sa = bind_sa;
     nt = GNUNET_NAT_AUTO_test_start (c,
 				     proto,
-				     bind_sa.sin_addr,
-				     ntohs (bind_sa.sin_port),
-				     extern_sa.sin_addr,
-				     ntohs (extern_sa.sin_port),
+				     section_name,
 				     &test_report_cb,
 				     NULL);
   }
@@ -374,7 +330,7 @@ run (void *cls,
 
 
 /**
- * Main function of gnunet-nat
+ * Main function of gnunet-nat-auto
  *
  * @param argc number of command-line arguments
  * @param argv command line
@@ -388,12 +344,9 @@ main (int argc,
     {'a', "auto", NULL,
      gettext_noop ("run autoconfiguration"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &do_auto },
-    {'b', "bind", "ADDRESS",
-     gettext_noop ("which IP and port are we bound to"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &bind_addr },
-    {'e', "external", "ADDRESS",
-     gettext_noop ("which external IP and port should be used to test"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &extern_addr },
+    {'S', "section", "NAME",
+     gettext_noop ("section name providing the configuration for the adapter"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &section_name },
     {'t', "tcp", NULL,
      gettext_noop ("use TCP"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },

@@ -45,16 +45,12 @@ struct GNUNET_NAT_AUTO_Test;
 
 
 /**
- * Start testing if NAT traversal works using the given configuration
- * (IPv4-only).  The transport adapters should be down while using
- * this function.
+ * Start testing if NAT traversal works using the given configuration.
+ *  The transport adapters should be down while using this function.
  *
  * @param cfg configuration for the NAT traversal
  * @param proto protocol to test, i.e. IPPROTO_TCP or IPPROTO_UDP
- * @param bind_ip IPv4 address to bind to
- * @param bnd_port port to bind to, 0 to test connection reversal
- * @param extern_ip IPv4 address to externally advertise
- * @param extern_port externally advertised port to use
+ * @param section_name configuration section to use for configuration
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test
@@ -62,10 +58,7 @@ struct GNUNET_NAT_AUTO_Test;
 struct GNUNET_NAT_AUTO_Test *
 GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			    uint8_t proto,
-			    struct in_addr bind_ip,
-			    uint16_t bnd_port,
-			    struct in_addr extern_ip,
-			    uint16_t extern_port,
+			    const char *section_name,
 			    GNUNET_NAT_TestCallback report,
 			    void *report_cls);
 

@@ -19,16 +19,12 @@ as attempting auto\-configuration.
 Attempt auto\-configuration for NAT traversal.
 
 .B
-.IP "\-b ADDRESS,  \-\-bind=ADDRESS"
-Assume that the service is (locally) bound to ADDRESS.
-
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
 
 .B
-.IP "\-e ADDRESS,  \-\-external=ADDRESS"
-Assume that ADDRESS is the globally visible address of the peer.
+.IP "\-S NAME,  \-\-section=NAME"
+Name of the configuration section with details about the configuration to test. For example "transport-tcp".
 
 .IP "\-t,  \-\-tcp"
 Use TCP.
@@ -49,11 +45,25 @@ Write configuration to configuration file, useful in combination with autoconfig
 Probe and write result to configuration:
 
   # gnunet\-nat\-auto \-aw
-  
+
+
+\fBTest configuration:\fR
+
+Test TCP configuration:
+
+  # gnunet\-nat\-auto -t \-S transport-tcp
+
+Test HTTP configuration:
+
+  # gnunet\-nat\-auto -t \-S transport-http
+
+Test UDP configuration:
+
+  # gnunet\-nat\-auto -u \-S transport-udp
+
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 
 .SH SEE ALSO
 gnunet\-transport(1) gnunet\-nat(1)
-

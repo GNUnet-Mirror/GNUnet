@@ -24,7 +24,8 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
+#include "gnunet_nat_auto_service.h"
 #include "nat-auto.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
@@ -153,19 +154,19 @@ struct GNUNET_NAT_AUTO_Test
   struct GNUNET_SCHEDULER_Task *ttask;
 
   /**
-   * #GNUNET_YES if we're testing TCP
+   * Section name of plugin to test.
    */
-  int is_tcp;
+  char *section_name;
+
+  /**
+   * IPPROTO_TCP or IPPROTO_UDP.
+   */
+  int proto;
 
   /**
    * Data that should be transmitted or source-port.
    */
   uint16_t data;
-
-  /**
-   * Advertised port to the other peer.
-   */
-  uint16_t adv_port;
 
   /**
    * Status code to be reported to the timeout/status call
@@ -358,12 +359,14 @@ mq_error_handler (void *cls,
  * @param cls closure
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
+ * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
  */
 static void
 addr_cb (void *cls,
          int add_remove,
+         enum GNUNET_NAT_AddressClass ac,
          const struct sockaddr *addr,
          socklen_t addrlen)
 {
@@ -411,58 +414,50 @@ addr_cb (void *cls,
   msg->dst_ipv4 = sa->sin_addr.s_addr;
   msg->dport = sa->sin_port;
   msg->data = h->data;
-  msg->is_tcp = htonl ((uint32_t) h->is_tcp);
+  msg->is_tcp = htonl ((uint32_t) (h->proto == IPPROTO_TCP));
   GNUNET_MQ_send (ca->mq,
                   env);
 }
 
 
 /**
- * Timeout task for a nat test.
- * Calls the report-callback with a timeout return value
+ * Calls the report-callback reporting failure.
  *
  * Destroys the nat handle after the callback has been processed.
  *
  * @param cls handle to the timed out NAT test
  */
 static void
-do_timeout (void *cls)
+do_fail (void *cls)
 {
   struct GNUNET_NAT_AUTO_Test *nh = cls;
 
   nh->ttask = NULL;
   nh->report (nh->report_cls,
-              (GNUNET_NAT_ERROR_SUCCESS == nh->status)
-              ? GNUNET_NAT_ERROR_TIMEOUT
-              : nh->status);
+              nh->status);
 }
 
 
 /**
- * Start testing if NAT traversal works using the
- * given configuration (IPv4-only).
- *
- * ALL failures are reported directly to the report callback
+ * Start testing if NAT traversal works using the given configuration.
+ *  The transport adapters should be down while using this function.
  *
  * @param cfg configuration for the NAT traversal
- * @param is_tcp #GNUNET_YES to test TCP, #GNUNET_NO to test UDP
- * @param bnd_port port to bind to, 0 for connection reversal
- * @param adv_port externally advertised port to use
- * @param timeout delay after which the test should be aborted
+ * @param proto protocol to test, i.e. IPPROTO_TCP or IPPROTO_UDP
+ * @param section_name configuration section to use for configuration
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
- * @return handle to cancel NAT test or NULL. The error is always indicated via the report callback
+ * @return handle to cancel NAT test
  */
 struct GNUNET_NAT_AUTO_Test *
 GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       int is_tcp,
-                       uint16_t bnd_port,
-                       uint16_t adv_port,
-                       struct GNUNET_TIME_Relative timeout,
-                       GNUNET_NAT_TestCallback report,
-                       void *report_cls)
+			    uint8_t proto,
+			    const char *section_name,
+			    GNUNET_NAT_TestCallback report,
+			    void *report_cls)
 {
   struct GNUNET_NAT_AUTO_Test *nh;
+  unsigned long long bnd_port;
   struct sockaddr_in sa;
   const struct sockaddr *addrs[] = {
     (const struct sockaddr *) &sa
@@ -471,18 +466,30 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     sizeof (sa)
   };
 
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg,
+                                               section_name,
+                                               "PORT",
+                                               &bnd_port)) ||
+       (bnd_port > 65535) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to find valid PORT in section `%s'\n"),
+                section_name);
+    return NULL;
+  }
+
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
-  sa.sin_port = htons (bnd_port);
+  sa.sin_port = htons ((uint16_t) bnd_port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
 
   nh = GNUNET_new (struct GNUNET_NAT_AUTO_Test);
   nh->cfg = cfg;
-  nh->is_tcp = is_tcp;
-  nh->data = bnd_port;
-  nh->adv_port = adv_port;
+  nh->proto = proto;
+  nh->section_name = GNUNET_strdup (section_name);
   nh->report = report;
   nh->report_cls = report_cls;
   nh->status = GNUNET_NAT_ERROR_SUCCESS;
@@ -490,28 +497,24 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     nh->nat
       = GNUNET_NAT_register (cfg,
-                             is_tcp,
-                             0,
-                             0,
-			     NULL,
-                             NULL,
+                             section_name,
+                             proto,
+                             0, NULL, NULL,
 			     &addr_cb,
                              &reversal_cb,
-                             nh,
-                             NULL);
+                             nh);
   }
   else
   {
-    nh->lsock =
-        GNUNET_NETWORK_socket_create (AF_INET,
-                                      (is_tcp ==
-                                       GNUNET_YES) ? SOCK_STREAM : SOCK_DGRAM,
+    nh->lsock
+      = GNUNET_NETWORK_socket_create (AF_INET,
+                                      proto,
                                       0);
-    if ((nh->lsock == NULL) ||
-        (GNUNET_OK !=
-         GNUNET_NETWORK_socket_bind (nh->lsock,
-                                     (const struct sockaddr *) &sa,
-                                     sizeof (sa))))
+    if ( (NULL == nh->lsock) ||
+         (GNUNET_OK !=
+          GNUNET_NETWORK_socket_bind (nh->lsock,
+                                      (const struct sockaddr *) &sa,
+                                      sizeof (sa))))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
@@ -524,11 +527,11 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         nh->lsock = NULL;
       }
       nh->status = GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR;
-      nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout,
+      nh->ttask = GNUNET_SCHEDULER_add_now (&do_fail,
                                             nh);
       return nh;
     }
-    if (GNUNET_YES == is_tcp)
+    if (IPPROTO_TCP == proto)
     {
       GNUNET_break (GNUNET_OK ==
                     GNUNET_NETWORK_socket_listen (nh->lsock,
@@ -550,17 +553,16 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     LOG (GNUNET_ERROR_TYPE_INFO,
 	 "NAT test listens on port %u (%s)\n",
 	 bnd_port,
-	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
+	 (IPPROTO_TCP == proto) ? "tcp" : "udp");
     nh->nat = GNUNET_NAT_register (cfg,
-                                   is_tcp,
-                                   adv_port,
+                                   section_name,
+                                   proto,
                                    1,
                                    addrs,
                                    addrlens,
                                    &addr_cb,
                                    NULL,
-                                   nh,
-                                   NULL);
+                                   nh);
     if (NULL == nh->nat)
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
@@ -576,14 +578,11 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         nh->lsock = NULL;
       }
       nh->status = GNUNET_NAT_ERROR_NAT_REGISTER_FAILED;
-      nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout,
+      nh->ttask = GNUNET_SCHEDULER_add_now (&do_fail,
                                             nh);
       return nh;
     }
   }
-  nh->ttask = GNUNET_SCHEDULER_add_delayed (timeout,
-					    &do_timeout,
-					    nh);
   return nh;
 }
 
@@ -638,6 +637,7 @@ GNUNET_NAT_AUTO_test_stop (struct GNUNET_NAT_AUTO_Test *tst)
     GNUNET_NAT_unregister (tst->nat);
     tst->nat = NULL;
   }
+  GNUNET_free (tst->section_name);
   GNUNET_free (tst);
 }
 
