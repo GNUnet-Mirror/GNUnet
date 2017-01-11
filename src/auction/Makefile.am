@@ -16,18 +16,29 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-# Note: In a real installation,
-# bin_PROGRAMS should be used for gnunet-auction
-# libexec_PROGRAMS should be used for gnunet-service-auction
+# use bin_PROGRAMS for gnunet-auction wrapper script
 
-noinst_PROGRAMS = \
- gnunet-auction \
+libexec_PROGRAMS = \
+ gnunet-auction-create \
+ gnunet-auction-info \
+ gnunet-auction-join \
  gnunet-service-auction
 
+gnunet_auction_create_SOURCES = \
+ gnunet-auction-create.c
+gnunet_auction_create_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
-gnunet_auction_SOURCES = \
- gnunet-auction.c
-gnunet_auction_LDADD = \
+gnunet_auction_info_SOURCES = \
+ gnunet-auction-info.c
+gnunet_auction_info_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_auction_join_SOURCES = \
+ gnunet-auction-join.c
+gnunet_auction_join_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
