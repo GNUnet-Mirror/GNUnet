@@ -382,15 +382,11 @@ is_gns_address (const char *str)
 {
   size_t length = strlen(str);
   size_t suffix_length = sizeof(".gnu") - 1;
-  if (length <= suffix_length)
+  if (length > suffix_length && 0 == strcmp(str + length - suffix_length, ".gnu"))
   {
-    return GNUNET_NO;
-  }
-
-  if (0 == strcmp(str + length - 1 - suffix_length, ".gnu"))
     return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  }
+  return GNUNET_NO;
 }
 
 
