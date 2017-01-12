@@ -55,7 +55,35 @@ run (void *cls,
 	 const char *cfgfile,
 	 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-	/* main code here */
+	/* cmdline parsing */
+	if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dstart.rel_value_us)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "required argument --regtime missing or invalid (zero)\n");
+		goto fail;
+	}
+	if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dround.rel_value_us)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "required argument --roundtime missing or invalid (zero)\n");
+		goto fail;
+	}
+	if (!fndesc)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "required argument --description missing\n");
+		goto fail;
+	}
+	if (!fnprices)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "required argument --pricemap missing\n");
+		goto fail;
+	}
+
+fail:
+	ret = 1;
+	return;
 }
 
 
