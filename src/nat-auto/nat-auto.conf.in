@@ -1,4 +1,4 @@
-[nat]
+[nat-auto]
 AUTOSTART = @AUTOSTART@
 @UNIXONLY@ PORT = 2124
 HOSTNAME = localhost
