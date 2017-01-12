@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_json_lib.h"
 /* #include "gnunet_auction_service.h" */
 
 #define FIRST_PRICE 0

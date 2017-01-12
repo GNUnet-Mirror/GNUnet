@@ -60,6 +60,10 @@ if HAVE_JSON
 endif
 endif
 
+if HAVE_JSON
+  AUCTION_DIR = auction
+endif
+
 if TALER_ONLY
 SUBDIRS = \
  include \
@@ -122,7 +126,7 @@ SUBDIRS = \
   psycstore \
   psyc \
   social \
-  auction \
+  $(AUCTION_DIR) \
   $(EXP_DIR) \
   $(PROVIDER_DIR)
 

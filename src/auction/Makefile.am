@@ -28,24 +28,28 @@ gnunet_auction_create_SOURCES = \
  gnunet-auction-create.c
 gnunet_auction_create_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -ljansson \
   $(GN_LIBINTL)
 
 gnunet_auction_info_SOURCES = \
  gnunet-auction-info.c
 gnunet_auction_info_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -ljansson \
   $(GN_LIBINTL)
 
 gnunet_auction_join_SOURCES = \
  gnunet-auction-join.c
 gnunet_auction_join_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -ljansson \
   $(GN_LIBINTL)
 
 gnunet_service_auction_SOURCES = \
  gnunet-service-auction.c
 gnunet_service_auction_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -ljansson \
   $(GN_LIBINTL)
 
 
