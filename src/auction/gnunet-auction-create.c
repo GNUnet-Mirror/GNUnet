@@ -27,13 +27,18 @@
 #include "gnunet_util_lib.h"
 /* #include "gnunet_auction_service.h" */
 
+#define FIRST_PRICE 0
+#define OUTCOME_PRIVATE 0
+#define OUTCOME_PUBLIC 1
+
 static int ret; /** Final status code. */
 static char *fndesc; /** filename of the item description */
 static char *fnprices; /** filename of the price map */
 static struct GNUNET_TIME_Relative dround; /** max round duration */
 static struct GNUNET_TIME_Relative dstart; /** time until auction starts */
-static unsigned int m = 0; /** auction parameter m */
-static int public = 0; /** public outcome */
+static unsigned int m = FIRST_PRICE; /** auction parameter m */
+static int outcome = OUTCOME_PRIVATE; /** outcome */
+static int interactive; /** keep running in foreground */
 
 
 /**
@@ -68,21 +73,26 @@ main (int argc, char *const *argv)
 		{'d', "description", "FILE",
 			gettext_noop ("description of the item to be sold"),
 			1, &GNUNET_GETOPT_set_filename, &fndesc},
-		{'c', "costmap", "FILE",
+		{'p', "pricemap", "FILE",
 			gettext_noop ("mapping of possible prices"),
 			1, &GNUNET_GETOPT_set_filename, &fnprices},
 		{'r', "roundtime", "DURATION",
 			gettext_noop ("max duration per round"),
 			1, &GNUNET_GETOPT_set_relative_time, &dround},
-		{'s', "starttime", "DURATION",
+		{'s', "regtime", "DURATION",
 			gettext_noop ("duration until auction starts"),
 			1, &GNUNET_GETOPT_set_relative_time, &dstart},
 		{'m', "m", "NUMBER",
-			gettext_noop ("number of items to sell, 0 for first price auction"),
-			0, &GNUNET_GETOPT_set_uint, &m},
-		{'p', "public", NULL,
+			gettext_noop ("number of items to sell\n"
+			              "0 for first price auction\n"
+			              ">0 for vickrey/M+1st price auction"),
+			1, &GNUNET_GETOPT_set_uint, &m},
+		{'u', "public", NULL,
 			gettext_noop ("public auction outcome"),
-			0, &GNUNET_GETOPT_set_one, &public},
+			0, &GNUNET_GETOPT_set_one, &outcome},
+		{'i', "interactive", NULL,
+			gettext_noop ("keep running in foreground until auction completes"),
+			0, &GNUNET_GETOPT_set_one, &interactive},
 		GNUNET_GETOPT_OPTION_END
 	};
 	if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
@@ -91,7 +101,8 @@ main (int argc, char *const *argv)
 	ret = (GNUNET_OK ==
 		   GNUNET_PROGRAM_run (argc, argv,
 							   "gnunet-auction-create",
-							   gettext_noop ("help text"),
+							   gettext_noop ("create a new auction and "
+							                 "start listening for bidders"),
 							   options,
 							   &run,
 							   NULL)) ? ret : 1;
