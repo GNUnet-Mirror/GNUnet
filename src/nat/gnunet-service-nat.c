@@ -1103,6 +1103,10 @@ upnp_addr_change_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"external-ip binary not found\n");
     return;
+  case GNUNET_NAT_ERROR_UPNPC_NOT_FOUND:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"upnpc binary not found\n");
+    return;
   case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		"external-ip binary could not be run\n");
