@@ -58,7 +58,7 @@ struct ClientHandle
    * Kept in a DLL.
    */
   struct ClientHandle *next;
-  
+
   /**
    * Kept in a DLL.
    */
@@ -66,7 +66,7 @@ struct ClientHandle
 
   /**
    * Underlying handle for this client with the service.
-   */ 
+   */
   struct GNUNET_SERVICE_Client *client;
 
   /**
@@ -98,12 +98,12 @@ struct AutoconfigContext
 
   /**
    * Configuration we are creating.
-   */ 
+   */
   struct GNUNET_CONFIGURATION_Handle *c;
 
   /**
    * Original configuration (for diffing).
-   */ 
+   */
   struct GNUNET_CONFIGURATION_Handle *orig;
 
   /**
@@ -134,7 +134,7 @@ struct AutoconfigContext
  * Head of client DLL.
  */
 static struct ClientHandle *ch_head;
-  
+
 /**
  * Tail of client DLL.
  */
@@ -209,7 +209,7 @@ conclude_autoconfig_request (void *cls)
   size_t c_size;
   char *buf;
   struct GNUNET_CONFIGURATION_Handle *diff;
-  
+
   ac->timeout_task = NULL;
   terminate_ac_activities (ac);
 
@@ -331,7 +331,7 @@ handle_autoconfig_request (void *cls,
 				    &conclude_autoconfig_request,
 				    ac);
   ac->enable_upnpc = GNUNET_SYSERR; /* undecided */
-  
+
   /* Probe for upnpc */
   if (GNUNET_SYSERR ==
       GNUNET_OS_check_helper_binary ("upnpc",
@@ -349,7 +349,7 @@ handle_autoconfig_request (void *cls,
   }
   update_enable_upnpc_option (ac);
 
-  /* Finally, check if we are already done */  
+  /* Finally, check if we are already done */
   check_autoconfig_finished (ac);
 }
 
