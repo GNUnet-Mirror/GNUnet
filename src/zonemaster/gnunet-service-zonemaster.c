@@ -695,7 +695,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  unsigned long long max_parallel_bg_queries = 0;
+  unsigned long long max_parallel_bg_queries = 128;
 
   min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
@@ -731,7 +731,8 @@ run (void *cls,
                 "Number of allowed parallel background queries: %llu\n",
                 max_parallel_bg_queries);
   }
-
+  if (0 == max_parallel_bg_queries)
+    max_parallel_bg_queries = 1;	  
   dht_handle = GNUNET_DHT_connect (c,
                                    (unsigned int) max_parallel_bg_queries);
   if (NULL == dht_handle)
