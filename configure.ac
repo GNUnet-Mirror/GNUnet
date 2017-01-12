@@ -1730,6 +1730,12 @@ then
   AC_MSG_NOTICE([NOTICE: bluetooth library not found.  bluetooth support will not be compiled.])
 fi
 
+# jansson
+if test "x$jansson" = "x0"
+then
+  AC_MSG_NOTICE([NOTICE: jansson library not found.  json support will not be compiled.])
+fi
+
 #gnutls
 if test x$gnutls != xtrue
 then

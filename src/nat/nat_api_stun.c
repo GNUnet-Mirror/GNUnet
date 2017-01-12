@@ -38,7 +38,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
 
 
 #include "nat_stun.h"
@@ -74,7 +74,7 @@ struct GNUNET_NAT_STUN_Handle
   /**
    * Function to call when a error occours
    */
-  GNUNET_NAT_STUN_ErrorCallback cb;
+  GNUNET_NAT_TestCallback cb;
 
   /**
    * Closure for @e cb.
@@ -199,7 +199,7 @@ stun_dns_callback (void *cls,
 
 /**
  * Make Generic STUN request. Sends a generic stun request to the
- * server specified using the specified socket.  
+ * server specified using the specified socket.
  *
  * @param server the address of the stun server
  * @param port port of the stun server, in host byte order
@@ -212,7 +212,7 @@ struct GNUNET_NAT_STUN_Handle *
 GNUNET_NAT_stun_make_request (const char *server,
                               uint16_t port,
                               struct GNUNET_NETWORK_Handle *sock,
-                              GNUNET_NAT_STUN_ErrorCallback cb,
+                              GNUNET_NAT_TestCallback cb,
                               void *cb_cls)
 {
   struct GNUNET_NAT_STUN_Handle *rh;
