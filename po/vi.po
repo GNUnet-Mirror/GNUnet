@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2016-11-27 09:18+0100\n"
+"POT-Creation-Date: 2017-01-12 17:19+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -257,21 +257,20 @@ msgstr ""
 #: src/arm/gnunet-service-arm.c:393 src/arm/gnunet-service-arm.c:399
 #: src/transport/plugin_transport_tcp.c:652
 #: src/transport/plugin_transport_tcp.c:658
-#: src/transport/plugin_transport_tcp.c:3299 src/util/service.c:584
-#: src/util/service.c:590 src/util/service_new.c:637
-#: src/util/service_new.c:643
+#: src/transport/plugin_transport_tcp.c:3309 src/util/service.c:584
+#: src/util/service.c:590 src/util/service_new.c:637 src/util/service_new.c:643
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:430 src/transport/plugin_transport_tcp.c:689
-#: src/util/client_new.c:464 src/util/service.c:621 src/util/service_new.c:682
+#: src/util/client.c:464 src/util/service.c:621 src/util/service_new.c:682
 #, c-format
 msgid "UNIXPATH `%s' too long, maximum length is %llu\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:434 src/transport/plugin_transport_tcp.c:693
-#: src/util/client_new.c:469 src/util/service.c:625 src/util/service_new.c:687
+#: src/util/client.c:469 src/util/service.c:625 src/util/service_new.c:687
 #, fuzzy, c-format
 msgid "Using `%s' instead\n"
 msgstr "%s: tùy chọn « %s » là mơ hồ\n"
@@ -291,7 +290,7 @@ msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:513
-#: src/transport/plugin_transport_http_server.c:2617
+#: src/transport/plugin_transport_http_server.c:2620
 #: src/transport/plugin_transport_tcp.c:772 src/util/service.c:704
 #: src/util/service_new.c:782
 #, fuzzy, c-format
@@ -299,7 +298,7 @@ msgid "Failed to resolve `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
 #: src/arm/gnunet-service-arm.c:532
-#: src/transport/plugin_transport_http_server.c:2635
+#: src/transport/plugin_transport_http_server.c:2638
 #: src/transport/plugin_transport_tcp.c:791 src/util/service.c:723
 #: src/util/service_new.c:802
 #, fuzzy, c-format
@@ -394,13 +393,11 @@ msgid ""
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-ats-solver-eval.c:3293
-#: src/ats-tests/gnunet-solver-eval.c:935
+#: src/ats/gnunet-ats-solver-eval.c:3293 src/ats-tests/gnunet-solver-eval.c:935
 msgid "solver to use"
 msgstr ""
 
-#: src/ats/gnunet-ats-solver-eval.c:3296
-#: src/ats-tests/gnunet-solver-eval.c:938
+#: src/ats/gnunet-ats-solver-eval.c:3296 src/ats-tests/gnunet-solver-eval.c:938
 #: src/ats-tests/gnunet-solver-eval.c:941
 msgid "experiment to use"
 msgstr ""
@@ -506,12 +503,12 @@ msgstr ""
 msgid "Invalid %s configuration %f\n"
 msgstr "Không thể lưu tập tin cấu hình « %s »:"
 
-#: src/ats-tests/ats-testing.c:441
+#: src/ats-tests/ats-testing.c:422
 #, c-format
 msgid "Connected master [%u] with slave [%u]\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing.c:448
+#: src/ats-tests/ats-testing.c:429
 #, fuzzy, c-format
 msgid "Failed to connect master peer [%u] with slave [%u]\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
@@ -569,7 +566,7 @@ msgid "Quota for network `%11s' (in/out): %10s / %10s\n"
 msgstr ""
 
 #: src/ats-tool/gnunet-ats.c:748 src/ats-tool/gnunet-ats.c:761
-#: src/transport/gnunet-transport.c:1476
+#: src/transport/gnunet-transport.c:1255
 #, fuzzy, c-format
 msgid "Failed to parse peer identity `%s'\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
@@ -656,6 +653,38 @@ msgstr ""
 msgid "Print information about ATS state"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
+#: src/auction/gnunet-auction-create.c:69
+msgid "description of the item to be sold"
+msgstr ""
+
+#: src/auction/gnunet-auction-create.c:72
+msgid "mapping of possible prices"
+msgstr ""
+
+#: src/auction/gnunet-auction-create.c:75
+msgid "max duration per round"
+msgstr ""
+
+#: src/auction/gnunet-auction-create.c:78
+msgid "duration until auction starts"
+msgstr ""
+
+#: src/auction/gnunet-auction-create.c:81
+msgid "number of items to sell, 0 for first price auction"
+msgstr ""
+
+#: src/auction/gnunet-auction-create.c:84
+#, fuzzy
+msgid "public auction outcome"
+msgstr "Ứng dụng bị hủy bỏ."
+
+#: src/auction/gnunet-auction-create.c:94 src/auction/gnunet-auction-info.c:76
+#: src/auction/gnunet-auction-join.c:76
+#: src/conversation/gnunet-conversation-test.c:243
+#: src/revocation/gnunet-revocation.c:550 src/template/gnunet-template.c:76
+msgid "help text"
+msgstr ""
+
 #: src/cadet/gnunet-cadet.c:511
 #, fuzzy, c-format
 msgid "Invalid target `%s'\n"
@@ -712,7 +741,7 @@ msgstr "In ra thông tin về các đồng đẳng GNUnet."
 msgid "provide information about all tunnels"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
-#: src/cadet/gnunet-service-cadet_peer.c:681
+#: src/cadet/gnunet-service-cadet_peer.c:686
 msgid "Wrong CORE service\n"
 msgstr ""
 
@@ -1037,11 +1066,6 @@ msgid ""
 "played back to you..."
 msgstr ""
 
-#: src/conversation/gnunet-conversation-test.c:243
-#: src/revocation/gnunet-revocation.c:550 src/template/gnunet-template.c:76
-msgid "help text"
-msgstr ""
-
 #: src/conversation/gnunet_gst.c:630
 #: src/conversation/gnunet-helper-audio-playback-gst.c:357
 #, c-format
@@ -1246,7 +1270,7 @@ msgstr "Đối số không hợp lệ cho « %s ».\n"
 msgid "Failed to connect to CORE service!\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/core/gnunet-core.c:176 src/transport/gnunet-transport.c:1677
+#: src/core/gnunet-core.c:176 src/transport/gnunet-transport.c:1456
 #, fuzzy
 msgid "provide information about all current connections (continuously)"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
@@ -1531,7 +1555,7 @@ msgstr "kho dữ liệu sqlite"
 #: src/testbed/gnunet-daemon-testbed-underlay.c:56
 #: src/testbed/testbed_api_hosts.c:69 src/util/crypto_ecc.c:52
 #: src/util/crypto_ecc_setup.c:41 src/util/crypto_mpi.c:39
-#: src/include/gnunet_common.h:681 src/include/gnunet_common.h:690
+#: src/include/gnunet_common.h:691 src/include/gnunet_common.h:700
 #: src/scalarproduct/scalarproduct.h:35
 #, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
@@ -1943,8 +1967,7 @@ msgstr ""
 msgid "Prints all packets that go through the DHT."
 msgstr ""
 
-#: src/dht/gnunet_dht_profiler.c:1161
-#: src/testbed/gnunet-testbed-profiler.c:255
+#: src/dht/gnunet_dht_profiler.c:1161 src/testbed/gnunet-testbed-profiler.c:255
 #, fuzzy, c-format
 msgid "Exiting as the number of peers is %u\n"
 msgstr "tăng sổ tối đa các kết nối TCP/IP"
@@ -2128,8 +2151,7 @@ msgstr ""
 msgid "# GET requests given to datacache"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_hello.c:84
-#: src/dht/gnunet-service-xdht_hello.c:82
+#: src/dht/gnunet-service-dht_hello.c:84 src/dht/gnunet-service-xdht_hello.c:82
 #, fuzzy
 msgid "# HELLOs obtained from peerinfo"
 msgstr "Nhận được thông báo « %s » sai từ đồng đẳng « %s ».\n"
@@ -2206,41 +2228,41 @@ msgstr "# các yêu cầu get (lấy) dht được nhận"
 msgid "# P2P PUT bytes received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1854
+#: src/dht/gnunet-service-dht_neighbours.c:1858
 #, fuzzy
 msgid "# FIND PEER requests ignored due to Bloomfilter"
 msgstr "# các yêu cầu được lọc theo bộ lọc bloom"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1862
+#: src/dht/gnunet-service-dht_neighbours.c:1866
 msgid "# FIND PEER requests ignored due to lack of HELLO"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_neighbours.c:2018
+#: src/dht/gnunet-service-dht_neighbours.c:2022
 #, fuzzy
 msgid "# P2P GET requests received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2022
+#: src/dht/gnunet-service-dht_neighbours.c:2026
 #, fuzzy
 msgid "# P2P GET bytes received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2097
+#: src/dht/gnunet-service-dht_neighbours.c:2101
 #, fuzzy
 msgid "# P2P FIND PEER requests processed"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2120
+#: src/dht/gnunet-service-dht_neighbours.c:2124
 #, fuzzy
 msgid "# P2P GET requests ONLY routed"
 msgstr "# các yêu cầu dht được định tuyến"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2222
+#: src/dht/gnunet-service-dht_neighbours.c:2226
 #, fuzzy
 msgid "# P2P RESULTS received"
 msgstr "# Tín hiệu HTTP PUT được nhận"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2226
+#: src/dht/gnunet-service-dht_neighbours.c:2230
 #, fuzzy
 msgid "# P2P RESULT bytes received"
 msgstr "# Tín hiệu HTTP PUT được nhận"
@@ -2250,35 +2272,35 @@ msgstr "# Tín hiệu HTTP PUT được nhận"
 msgid "# Network size estimates received"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
 
-#: src/dht/gnunet-service-dht_routing.c:218
+#: src/dht/gnunet-service-dht_routing.c:220
 msgid "# Good REPLIES matched against routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:227
+#: src/dht/gnunet-service-dht_routing.c:229
 msgid "# Duplicate REPLIES matched against routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:233
+#: src/dht/gnunet-service-dht_routing.c:235
 msgid "# Invalid REPLIES matched against routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:239
+#: src/dht/gnunet-service-dht_routing.c:241
 msgid "# Irrelevant REPLIES matched against routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:251
+#: src/dht/gnunet-service-dht_routing.c:253
 msgid "# Unsupported REPLIES matched against routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:327
+#: src/dht/gnunet-service-dht_routing.c:329
 msgid "# Entries removed from routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:409
+#: src/dht/gnunet-service-dht_routing.c:411
 msgid "# Entries added to routing table"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_routing.c:427
+#: src/dht/gnunet-service-dht_routing.c:429
 #, fuzzy
 msgid "# DHT requests combined"
 msgstr "# các yêu cầu get (lấy) dht được nhận"
@@ -2391,16 +2413,16 @@ msgid ""
 "SUPU %s, %s, %d, trail->prev_hop = %s"
 msgstr ""
 
-#: src/dht/plugin_block_dht.c:142
+#: src/dht/plugin_block_dht.c:144
 #, fuzzy, c-format
 msgid "Block not of type %u\n"
 msgstr "Không biết truyền tải nào kiểu %d.\n"
 
-#: src/dht/plugin_block_dht.c:149
+#: src/dht/plugin_block_dht.c:151
 msgid "Size mismatch for block\n"
 msgstr ""
 
-#: src/dht/plugin_block_dht.c:159
+#: src/dht/plugin_block_dht.c:161
 #, c-format
 msgid "Block of type %u is malformed\n"
 msgstr ""
@@ -3534,7 +3556,7 @@ msgid "Option `%s' is required when using option `%s'.\n"
 msgstr "Tùy chọn « %s » cần thiết khi dùng tùy chọn « %s ».\n"
 
 #: src/fs/gnunet-publish.c:849 src/fs/gnunet-publish.c:857
-#: src/transport/gnunet-transport.c:1517 src/transport/gnunet-transport.c:1542
+#: src/transport/gnunet-transport.c:1296 src/transport/gnunet-transport.c:1321
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr "Tùy chọn « %s » không có nghĩa khi không có tùy chọn « %s ».\n"
@@ -4077,41 +4099,41 @@ msgstr "Nhận yêu cầu định tuyến\n"
 msgid "Received unsupported DNS request from %s\n"
 msgstr "Nhận yêu cầu định tuyến\n"
 
-#: src/gns/gnunet-dns2gns.c:709
+#: src/gns/gnunet-dns2gns.c:712
 msgid "No ego configured for `dns2gns` subsystem\n"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:737
+#: src/gns/gnunet-dns2gns.c:740
 #, fuzzy
 msgid "No DNS server specified!\n"
 msgstr "Chưa ghi rõ từ khoá.\n"
 
-#: src/gns/gnunet-dns2gns.c:758
+#: src/gns/gnunet-dns2gns.c:761
 #, fuzzy
 msgid "No valid GNS zone specified!\n"
 msgstr "Chưa ghi rõ từ khoá.\n"
 
-#: src/gns/gnunet-dns2gns.c:779
+#: src/gns/gnunet-dns2gns.c:782
 msgid "IP of recursive DNS resolver to use (required)"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:782
+#: src/gns/gnunet-dns2gns.c:785
 msgid "Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:785
+#: src/gns/gnunet-dns2gns.c:788
 msgid "Authoritative DNS suffix to use (optional); default: zkey.eu"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:788
+#: src/gns/gnunet-dns2gns.c:791
 msgid "UDP port to listen on for inbound DNS requests; default: 2853"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:791
+#: src/gns/gnunet-dns2gns.c:794
 msgid "Public key of the GNS zone to use (overrides default)"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:804
+#: src/gns/gnunet-dns2gns.c:807
 msgid "GNUnet DNS-to-GNS proxy (a DNS server)"
 msgstr ""
 
@@ -4276,83 +4298,85 @@ msgstr ""
 msgid "Unsupported HTTP method `%s'\n"
 msgstr "Lệnh không được hỗ trợ « %s ». Đang hủy bỏ.\n"
 
-#: src/gns/gnunet-gns-proxy.c:2167
+#: src/gns/gnunet-gns-proxy.c:2168
 #, fuzzy, c-format
 msgid "Unable to import private key from file `%s'\n"
 msgstr "Không thể tạo tài khoản người dùng:"
 
-#: src/gns/gnunet-gns-proxy.c:2197
+#: src/gns/gnunet-gns-proxy.c:2198
 #, fuzzy, c-format
 msgid "Unable to import certificate %s\n"
 msgstr "Không thể lưu tập tin cấu hình « %s »:"
 
-#: src/gns/gnunet-gns-proxy.c:2370
+#: src/gns/gnunet-gns-proxy.c:2371
 #, fuzzy, c-format
 msgid "Failed to start HTTPS server for `%s'\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
 
-#: src/gns/gnunet-gns-proxy.c:2389 src/rest/gnunet-rest-server.c:533
+#: src/gns/gnunet-gns-proxy.c:2390 src/rest/gnunet-rest-server.c:533
 #, fuzzy
 msgid "Failed to pass client to MHD\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/gns/gnunet-gns-proxy.c:2709
+#: src/gns/gnunet-gns-proxy.c:2710
 #, fuzzy, c-format
 msgid "Unsupported socks version %d\n"
 msgstr "Lệnh không được hỗ trợ « %s ». Đang hủy bỏ.\n"
 
-#: src/gns/gnunet-gns-proxy.c:2738
+#: src/gns/gnunet-gns-proxy.c:2739
 #, fuzzy, c-format
 msgid "Unsupported socks command %d\n"
 msgstr "Lệnh không được hỗ trợ « %s ». Đang hủy bỏ.\n"
 
-#: src/gns/gnunet-gns-proxy.c:2756 src/gns/gnunet-gns-proxy.c:2785
+#: src/gns/gnunet-gns-proxy.c:2757 src/gns/gnunet-gns-proxy.c:2786
 msgid "SSL connection to plain IPv4 address requested\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2836
+#: src/gns/gnunet-gns-proxy.c:2837
 #, fuzzy, c-format
 msgid "Unsupported socks address type %d\n"
 msgstr "Lệnh không được hỗ trợ « %s ». Đang hủy bỏ.\n"
 
-#: src/gns/gnunet-gns-proxy.c:3171
+#: src/gns/gnunet-gns-proxy.c:3172
 msgid "No ego configured for `shorten-zone`\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3211 src/gns/gnunet-service-gns.c:1093
-#: src/gns/gnunet-service-gns.c:1149
+#: src/gns/gnunet-gns-proxy.c:3212 src/gns/gnunet-service-gns.c:493
+#: src/gns/gnunet-service-gns.c:548
 #, c-format
 msgid "No ego configured for `%s`\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3273
+#: src/gns/gnunet-gns-proxy.c:3274
 #, fuzzy, c-format
 msgid "Failed to load SSL/TLS key and certificate from `%s'\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
 
-#: src/gns/gnunet-gns-proxy.c:3313
+#: src/gns/gnunet-gns-proxy.c:3314
 msgid "listen on specified port (default: 7777)"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3316
+#: src/gns/gnunet-gns-proxy.c:3317
 msgid "pem file to use as CA"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3335
+#: src/gns/gnunet-gns-proxy.c:3336
 msgid "GNUnet GNS proxy"
 msgstr ""
 
-#: src/gns/gnunet-service-gns.c:1187
+#: src/gns/gnunet-service-gns.c:585
+#: src/zonemaster/gnunet-service-zonemaster.c:705
 #, fuzzy
 msgid "Failed to connect to the namestore!\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
-#: src/gns/gnunet-service-gns.c:1195
+#: src/gns/gnunet-service-gns.c:593
 #, fuzzy
 msgid "Failed to connect to the namecache!\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
-#: src/gns/gnunet-service-gns.c:1228
+#: src/gns/gnunet-service-gns.c:612
+#: src/zonemaster/gnunet-service-zonemaster.c:740
 #, fuzzy
 msgid "Could not connect to DHT!\n"
 msgstr "Không thể kết nối tới %s:%u: %s\n"
@@ -5207,8 +5231,7 @@ msgstr ""
 msgid "Invalid public key for reverse lookup `%s'\n"
 msgstr "Đối số không hợp lệ cho « %s ».\n"
 
-#: src/namestore/gnunet-namestore.c:979
-#: src/peerinfo-tool/gnunet-peerinfo.c:775
+#: src/namestore/gnunet-namestore.c:979 src/peerinfo-tool/gnunet-peerinfo.c:775
 #, fuzzy, c-format
 msgid "Invalid URI `%s'\n"
 msgstr "Dữ liệu nhập không hợp lệ.\n"
@@ -5367,216 +5390,292 @@ msgstr "kho dữ liệu sqlite"
 msgid "Namestore REST API initialized\n"
 msgstr "Lỗi sơ khởi lõi.\n"
 
-#: src/nat/gnunet-nat.c:159
-msgid "GNUnet NAT traversal autoconfigure daemon"
-msgstr ""
-
-#: src/nat/gnunet-nat-server.c:321
-#, c-format
-msgid "Please pass valid port number as the first argument! (got `%s')\n"
-msgstr ""
-
-#: src/nat/gnunet-nat-server.c:363
-msgid "GNUnet NAT traversal test helper daemon"
-msgstr ""
-
-#: src/nat/nat_api.c:880 src/nat/nat.c:2010
-msgid "Operation Successful"
-msgstr ""
-
-#: src/nat/nat_api.c:882 src/nat/nat.c:2012
-msgid "Internal Failure (IPC, ...)"
-msgstr ""
-
-#: src/nat/nat_api.c:884 src/nat/nat.c:2014
-msgid "Failure in network subsystem, check permissions."
-msgstr ""
-
-#: src/nat/nat_api.c:886 src/nat/nat.c:2016
-msgid "Encountered timeout while performing operation"
-msgstr ""
-
-#: src/nat/nat_api.c:888 src/nat/nat.c:2018
-msgid "detected that we are offline"
-msgstr ""
-
-#: src/nat/nat_api.c:890 src/nat/nat.c:2020
-msgid "`upnpc` command not found"
-msgstr ""
-
-#: src/nat/nat_api.c:892 src/nat/nat.c:2022
+#: src/nat-auto/gnunet-nat-auto.c:192
 #, fuzzy
-msgid "Failed to run `upnpc` command"
-msgstr "Lỗi bắt đầu thu thập.\n"
-
-#: src/nat/nat_api.c:894 src/nat/nat.c:2024
-msgid "`upnpc' command took too long, process killed"
+msgid "Suggested configuration changes:\n"
 msgstr ""
+"\n"
+"CHƯA lưu các thay đổi trong cấu hình.\n"
 
-#: src/nat/nat_api.c:896 src/nat/nat.c:2026
-msgid "`upnpc' command failed to establish port mapping"
-msgstr ""
-
-#: src/nat/nat_api.c:898 src/nat/nat.c:2028
-msgid "`external-ip' command not found"
-msgstr ""
-
-#: src/nat/nat_api.c:900 src/nat/nat.c:2030
-#, fuzzy
-msgid "Failed to run `external-ip` command"
-msgstr "Lỗi bắt đầu thu thập.\n"
-
-#: src/nat/nat_api.c:902 src/nat/nat.c:2032
-msgid "`external-ip' command output invalid"
-msgstr ""
-
-#: src/nat/nat_api.c:904 src/nat/nat.c:2034
-msgid "no valid address was returned by `external-ip'"
-msgstr ""
-
-#: src/nat/nat_api.c:906 src/nat/nat.c:2036
-#, fuzzy
-msgid "Could not determine interface with internal/local network address"
-msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
-
-#: src/nat/nat_api.c:908 src/nat/nat.c:2038
-msgid "No functioning gnunet-helper-nat-server installation found"
-msgstr ""
-
-#: src/nat/nat_api.c:910 src/nat/nat.c:2040
-msgid "NAT test could not be initialized"
-msgstr ""
-
-#: src/nat/nat_api.c:912 src/nat/nat.c:2042
-msgid "NAT test timeout reached"
-msgstr ""
-
-#: src/nat/nat_api.c:914 src/nat/nat.c:2044
-msgid "could not register NAT"
-msgstr ""
-
-#: src/nat/nat_api.c:916 src/nat/nat.c:2046
-msgid "No working gnunet-helper-nat-client installation found"
-msgstr ""
-
-#: src/nat/nat_auto.c:385
-msgid "NAT traversal with ICMP Server succeeded.\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:386
-msgid "NAT traversal with ICMP Server failed.\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:405
-#, fuzzy
-msgid "Testing connection reversal with ICMP server.\n"
-msgstr "Cổng để liên lạc với giao diện người dùng GNUnet"
-
-#: src/nat/nat_auto.c:437
-#, c-format
-msgid "Detected external IP `%s'\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:572
-msgid "This system has a global IPv6 address, setting IPv6 to supported.\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:590
+#: src/nat-auto/gnunet-nat-auto.c:220
 #, fuzzy, c-format
-msgid "Detected internal network address `%s'.\n"
-msgstr "GNUnet bây giờ sử dụng địa chỉ IP %s.\n"
+msgid "Failed to write configuration to `%s'\n"
+msgstr "Lỗi lưu cấu hình."
 
-#: src/nat/nat_auto.c:681 src/nat/nat_test.c:403
+#: src/nat-auto/gnunet-nat-auto.c:227
+#, fuzzy, c-format
+msgid "Wrote updated configuration to `%s'\n"
+msgstr "Không thể truy cập đến tập tin gnunet-directory « %s »\n"
+
+#: src/nat-auto/gnunet-nat-auto.c:345
+#, fuzzy
+msgid "run autoconfiguration"
+msgstr "Cấu hình hạn ngạch"
+
+#: src/nat-auto/gnunet-nat-auto.c:348
+msgid "section name providing the configuration for the adapter"
+msgstr ""
+
+#: src/nat-auto/gnunet-nat-auto.c:351 src/nat/gnunet-nat.c:436
+msgid "use TCP"
+msgstr ""
+
+#: src/nat-auto/gnunet-nat-auto.c:354 src/nat/gnunet-nat.c:439
+msgid "use UDP"
+msgstr ""
+
+#: src/nat-auto/gnunet-nat-auto.c:357
+msgid "write configuration file (for autoconfiguration)"
+msgstr ""
+
+#: src/nat-auto/gnunet-nat-auto.c:369
+#, fuzzy
+msgid "GNUnet NAT traversal autoconfiguration"
+msgstr "Cấu hình GNUnet"
+
+#: src/nat-auto/gnunet-nat-auto_legacy.c:403
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:681
+#: src/nat-auto/nat_auto_api_test.c:405
 #, fuzzy
 msgid "Failed to connect to `gnunet-nat-server'\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/nat/nat_auto.c:724
-msgid "upnpc found, enabling its use\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:725
-msgid "upnpc not found\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:762
-msgid "test_icmp_server not possible, as we have no public IPv4 address\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:774 src/nat/nat_auto.c:834
-msgid "test_icmp_server not possible, as we are not behind NAT\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:786 src/nat/nat_auto.c:846
-msgid "No working gnunet-helper-nat-server found\n"
-msgstr ""
-
-#: src/nat/nat_auto.c:823
-msgid "test_icmp_client not possible, as we have no internal IPv4 address\n"
-msgstr ""
-
-#: src/nat/nat.c:1019
-#, c-format
-msgid "gnunet-helper-nat-server generated malformed address `%s'\n"
-msgstr ""
-
-#: src/nat/nat.c:1070
-#, fuzzy, c-format
-msgid "Failed to start %s\n"
-msgstr "Lỗi bắt đầu thu thập.\n"
-
-#: src/nat/nat.c:1327
-msgid "Error while running upnp client:\n"
-msgstr ""
-
-#: src/nat/nat.c:1402
-#, fuzzy, c-format
-msgid "Failed to run upnp client for port %u\n"
-msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
-
-#: src/nat/nat.c:1546
-msgid "malformed"
-msgstr ""
-
-#: src/nat/nat.c:1600
-msgid ""
-"UPnP enabled in configuration, but UPnP client `upnpc` command not found, "
-"disabling UPnP \n"
-msgstr ""
-
-#: src/nat/nat.c:1726 src/nat/nat.c:1739
-#, c-format
-msgid ""
-"Configuration requires `%s', but binary is not installed properly (SUID bit "
-"not set).  Option disabled.\n"
-msgstr ""
-
-#: src/nat/nat.c:1903
-msgid "Internal IP address not known, cannot use ICMP NAT traversal method\n"
-msgstr ""
-
-#: src/nat/nat.c:1919
-#, c-format
-msgid "Running gnunet-helper-nat-client %s %s %u\n"
-msgstr ""
-
-#: src/nat/nat_mini.c:205
-msgid "`external-ip' command not found\n"
-msgstr ""
-
-#: src/nat/nat_mini.c:611
-msgid "`upnpc' command not found\n"
-msgstr ""
-
-#: src/nat/nat_test.c:518
+#: src/nat-auto/gnunet-nat-auto_legacy.c:518
+#: src/nat-auto/nat_auto_api_test.c:520
 #, c-format
 msgid "Failed to create listen socket bound to `%s' for NAT test: %s\n"
 msgstr ""
 
-#: src/nat/nat_test.c:568
+#: src/nat-auto/gnunet-nat-auto_legacy.c:568
+#: src/nat-auto/nat_auto_api_test.c:569
 #, fuzzy
 msgid "NAT test failed to start NAT library\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
+
+#: src/nat-auto/gnunet-nat-server.c:336
+#, c-format
+msgid "Please pass valid port number as the first argument! (got `%s')\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-nat-server.c:386
+msgid "GNUnet NAT traversal test helper daemon"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto.c:342
+msgid "UPnP client `upnpc` command not found, disabling UPnP\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:385
+msgid "NAT traversal with ICMP Server succeeded.\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:386
+msgid "NAT traversal with ICMP Server failed.\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:405
+#, fuzzy
+msgid "Testing connection reversal with ICMP server.\n"
+msgstr "Cổng để liên lạc với giao diện người dùng GNUnet"
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:437
+#, c-format
+msgid "Detected external IP `%s'\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:572
+msgid "This system has a global IPv6 address, setting IPv6 to supported.\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:590
+#, fuzzy, c-format
+msgid "Detected internal network address `%s'.\n"
+msgstr "GNUnet bây giờ sử dụng địa chỉ IP %s.\n"
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:724
+msgid "upnpc found, enabling its use\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:725
+msgid "upnpc not found\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:762
+msgid "test_icmp_server not possible, as we have no public IPv4 address\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:774
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:834
+msgid "test_icmp_server not possible, as we are not behind NAT\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:786
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:846
+msgid "No working gnunet-helper-nat-server found\n"
+msgstr ""
+
+#: src/nat-auto/gnunet-service-nat-auto_legacy.c:823
+msgid "test_icmp_client not possible, as we have no internal IPv4 address\n"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:76
+msgid "Operation Successful"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:78
+msgid "IPC failure"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:80
+msgid "Failure in network subsystem, check permissions."
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:82
+msgid "Encountered timeout while performing operation"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:84
+msgid "detected that we are offline"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:86
+msgid "`upnpc` command not found"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:88
+#, fuzzy
+msgid "Failed to run `upnpc` command"
+msgstr "Lỗi bắt đầu thu thập.\n"
+
+#: src/nat-auto/nat_auto_api.c:90
+msgid "`upnpc' command took too long, process killed"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:92
+msgid "`upnpc' command failed to establish port mapping"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:94
+msgid "`external-ip' command not found"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:96
+#, fuzzy
+msgid "Failed to run `external-ip` command"
+msgstr "Lỗi bắt đầu thu thập.\n"
+
+#: src/nat-auto/nat_auto_api.c:98
+msgid "`external-ip' command output invalid"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:100
+msgid "no valid address was returned by `external-ip'"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:102
+#, fuzzy
+msgid "Could not determine interface with internal/local network address"
+msgstr "Không thể truy cập đến thông tin về không gian tên.\n"
+
+#: src/nat-auto/nat_auto_api.c:104
+msgid "No functioning gnunet-helper-nat-server installation found"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:106
+msgid "NAT test could not be initialized"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:108
+msgid "NAT test timeout reached"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:110
+msgid "could not register NAT"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api.c:112
+msgid "No working gnunet-helper-nat-client installation found"
+msgstr ""
+
+#: src/nat-auto/nat_auto_api_test.c:477
+#, fuzzy, c-format
+msgid "Failed to find valid PORT in section `%s'\n"
+msgstr "Lỗi đóng kết đến cổng %s %d.\n"
+
+#: src/nat/gnunet-nat.c:424
+msgid "which IP and port are we locally using to bind/listen to"
+msgstr ""
+
+#: src/nat/gnunet-nat.c:427
+msgid "which remote IP and port should be asked for connection reversal"
+msgstr ""
+
+#: src/nat/gnunet-nat.c:430
+msgid ""
+"name of configuration section to find additional options, such as manual "
+"host punching data"
+msgstr ""
+
+#: src/nat/gnunet-nat.c:433
+msgid "enable STUN processing"
+msgstr ""
+
+#: src/nat/gnunet-nat.c:442
+msgid "watch for connection reversal requests"
+msgstr ""
+
+#: src/nat/gnunet-nat.c:454
+msgid "GNUnet NAT traversal autoconfigure daemon"
+msgstr ""
+
+#: src/nat/gnunet-service-nat.c:1313
+#, c-format
+msgid "Malformed punched hole specification `%s' (lacks port)\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat.c:1323
+#, c-format
+msgid "Invalid port number in punched hole specification `%s' (lacks port)\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat.c:1339
+#, c-format
+msgid "Malformed punched hole specification `%s' (lacks `]')\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat.c:1350
+#, c-format
+msgid "Malformed punched hole specification `%s' (IPv6 address invalid)"
+msgstr ""
+
+#: src/nat/gnunet-service-nat.c:1803
+#, fuzzy
+msgid "Connection reversal request failed\n"
+msgstr "Thu thập bị dừng.\n"
+
+#: src/nat/gnunet-service-nat.c:1876
+msgid ""
+"UPnP enabled in configuration, but UPnP client `upnpc` command not found, "
+"disabling UPnP\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat_helper.c:186
+#, c-format
+msgid "gnunet-helper-nat-server generated malformed address `%s'\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat_helper.c:260
+#, fuzzy, c-format
+msgid "Failed to start %s\n"
+msgstr "Lỗi bắt đầu thu thập.\n"
+
+#: src/nat/gnunet-service-nat_mini.c:196
+msgid "`external-ip' command not found\n"
+msgstr ""
+
+#: src/nat/gnunet-service-nat_mini.c:654
+msgid "`upnpc' command not found\n"
+msgstr ""
 
 #: src/nse/gnunet-nse.c:122
 #, fuzzy
@@ -7390,182 +7489,159 @@ msgstr ""
 msgid "# validations succeeded"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:486
+#: src/transport/gnunet-transport.c:418
 #, fuzzy, c-format
 msgid "Transmitted %llu bytes/s (%llu bytes in %s)\n"
 msgstr "Đang thử tải danh sách các máy xuống « %s »\n"
 
-#: src/transport/gnunet-transport.c:496
+#: src/transport/gnunet-transport.c:428
 #, fuzzy, c-format
 msgid "Received %llu bytes/s (%llu bytes in %s)\n"
 msgstr "Nhận yêu cầu định tuyến\n"
 
-#: src/transport/gnunet-transport.c:540
+#: src/transport/gnunet-transport.c:472
 #, fuzzy, c-format
 msgid "Failed to connect to `%s'\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:553
+#: src/transport/gnunet-transport.c:485
 #, fuzzy, c-format
 msgid "Failed to resolve address for peer `%s'\n"
 msgstr "Lỗi đóng kết đến cổng %s %d.\n"
 
-#: src/transport/gnunet-transport.c:565
+#: src/transport/gnunet-transport.c:499
 #, fuzzy
 msgid "Failed to list connections, timeout occured\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
-#: src/transport/gnunet-transport.c:588
-#, fuzzy, c-format
-msgid "NAT plugin `%s' reports: %s\n"
-msgstr "Đang nạp các truyền tải « %s »\n"
-
-#: src/transport/gnunet-transport.c:675
-msgid "No transport plugins configured, peer will never communicate\n"
-msgstr ""
-
-#: src/transport/gnunet-transport.c:689
-#, c-format
-msgid "No port configured for plugin `%s', cannot test it\n"
-msgstr ""
-
-#: src/transport/gnunet-transport.c:714
-#, fuzzy
-msgid "Failed to start resolver!\n"
-msgstr "Lỗi bắt đầu thu thập.\n"
-
-#: src/transport/gnunet-transport.c:750
+#: src/transport/gnunet-transport.c:532
 #, fuzzy, c-format
 msgid "Transmitting %u bytes\n"
 msgstr "Đang thử tải danh sách các máy xuống « %s »\n"
 
-#: src/transport/gnunet-transport.c:784
+#: src/transport/gnunet-transport.c:566
 #, c-format
 msgid ""
 "Successfully connected to `%s', starting to send benchmark data in %u Kb "
 "blocks\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:815
+#: src/transport/gnunet-transport.c:597
 #, fuzzy, c-format
 msgid "Disconnected from peer `%s' while benchmarking\n"
 msgstr "« %.*s » được kết nối tới « %.*s ».\n"
 
-#: src/transport/gnunet-transport.c:839 src/transport/gnunet-transport.c:868
+#: src/transport/gnunet-transport.c:621 src/transport/gnunet-transport.c:650
 #, c-format
 msgid "%24s: %-17s %4s   (%u connections in total)\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:841
+#: src/transport/gnunet-transport.c:623
 #, fuzzy
 msgid "Connected to"
 msgstr "« %s » được kết nối tới « %s ».\n"
 
-#: src/transport/gnunet-transport.c:870
+#: src/transport/gnunet-transport.c:652
 #, fuzzy
 msgid "Disconnected from"
 msgstr "« %.*s » được kết nối tới « %.*s ».\n"
 
-#: src/transport/gnunet-transport.c:905
+#: src/transport/gnunet-transport.c:687
 #, fuzzy, c-format
 msgid "Received %u bytes\n"
 msgstr "Nhận yêu cầu định tuyến\n"
 
-#: src/transport/gnunet-transport.c:942
+#: src/transport/gnunet-transport.c:724
 #, c-format
 msgid "Peer `%s': %s %s in state `%s' until %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:954
+#: src/transport/gnunet-transport.c:736
 #, fuzzy, c-format
 msgid "Peer `%s': %s %s\n"
 msgstr "Tôi là đồng đẳng « %s ».\n"
 
-#: src/transport/gnunet-transport.c:1366
+#: src/transport/gnunet-transport.c:1150
 #, fuzzy
 msgid "Monitor disconnected from transport service. Reconnecting.\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:1488
+#: src/transport/gnunet-transport.c:1267
 #, c-format
 msgid ""
 "Multiple operations given. Please choose only one operation: %s, %s, %s, %s, "
 "%s, %s %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1501
+#: src/transport/gnunet-transport.c:1280
 #, c-format
 msgid ""
 "No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1529
+#: src/transport/gnunet-transport.c:1308
 #, fuzzy
 msgid "Failed to connect to transport service for disconnection\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:1535
+#: src/transport/gnunet-transport.c:1314
 msgid "Blacklisting request in place, stop with CTRL-C\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1558 src/transport/gnunet-transport.c:1588
-#: src/transport/gnunet-transport.c:1641
+#: src/transport/gnunet-transport.c:1337 src/transport/gnunet-transport.c:1367
+#: src/transport/gnunet-transport.c:1420
 #, fuzzy
 msgid "Failed to connect to transport service\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:1595
+#: src/transport/gnunet-transport.c:1374
 msgid "Starting to receive benchmark data\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1665
+#: src/transport/gnunet-transport.c:1444
 #, fuzzy
 msgid "print information for all peers (instead of only connected peers)"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
-#: src/transport/gnunet-transport.c:1668
+#: src/transport/gnunet-transport.c:1447
 msgid "measure how fast we are receiving data from all peers (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1671
+#: src/transport/gnunet-transport.c:1450
 #, fuzzy
 msgid "disconnect from a peer"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-transport.c:1674
+#: src/transport/gnunet-transport.c:1453
 #, fuzzy
 msgid "provide information about all current connections (once)"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
-#: src/transport/gnunet-transport.c:1680
+#: src/transport/gnunet-transport.c:1459
 #, fuzzy
 msgid ""
 "provide information about all connects and disconnect events (continuously)"
 msgstr "In ra thông tin về các đồng đẳng GNUnet."
 
-#: src/transport/gnunet-transport.c:1683
+#: src/transport/gnunet-transport.c:1462
 #, fuzzy
 msgid "do not resolve hostnames"
 msgstr "không quyết định các tên máy"
 
-#: src/transport/gnunet-transport.c:1686
+#: src/transport/gnunet-transport.c:1465
 #: src/transport/gnunet-transport-profiler.c:631
 msgid "peer identity"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1689
+#: src/transport/gnunet-transport.c:1468
 msgid "monitor plugin sessions"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1692
+#: src/transport/gnunet-transport.c:1471
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1695
-msgid "test transport configuration (involves external server)"
-msgstr ""
-
-#: src/transport/gnunet-transport.c:1706
+#: src/transport/gnunet-transport.c:1482
 #: src/transport/gnunet-transport-profiler.c:642
 #, fuzzy
 msgid "Direct access to transport service."
@@ -7602,9 +7678,9 @@ msgstr "kích cỡ tin nhắn"
 
 #: src/transport/plugin_transport_http_client.c:1477
 #: src/transport/plugin_transport_http_server.c:2248
-#: src/transport/plugin_transport_http_server.c:3457
-#: src/transport/plugin_transport_tcp.c:3365
-#: src/transport/plugin_transport_tcp.c:3372
+#: src/transport/plugin_transport_http_server.c:3462
+#: src/transport/plugin_transport_tcp.c:3375
+#: src/transport/plugin_transport_tcp.c:3382
 msgid "TCP_STEALTH not supported on this platform.\n"
 msgstr ""
 
@@ -7614,13 +7690,13 @@ msgid "Could not initialize curl multi handle, failed to start %s plugin!\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_client.c:2167
-#: src/transport/plugin_transport_http_server.c:3172
+#: src/transport/plugin_transport_http_server.c:3177
 #, fuzzy, c-format
 msgid "Shutting down plugin `%s'\n"
 msgstr "Đang nạp các truyền tải « %s »\n"
 
 #: src/transport/plugin_transport_http_client.c:2184
-#: src/transport/plugin_transport_http_server.c:3242
+#: src/transport/plugin_transport_http_server.c:3247
 #, fuzzy, c-format
 msgid "Shutdown for plugin `%s' complete\n"
 msgstr "Tải lên « %s » hoàn thành, địa chỉ URI là « %s ».\n"
@@ -7663,73 +7739,73 @@ msgstr ""
 msgid "Could not load or create server certificate! Loading plugin failed!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2583
+#: src/transport/plugin_transport_http_server.c:2586
 #, fuzzy
 msgid "Require valid port number for service in configuration!\n"
 msgstr "Lỗi lưu cấu hình."
 
-#: src/transport/plugin_transport_http_server.c:2748
+#: src/transport/plugin_transport_http_server.c:2751
 #, c-format
 msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2832
-#: src/transport/plugin_transport_udp.c:3600
+#: src/transport/plugin_transport_http_server.c:2837
+#: src/transport/plugin_transport_udp.c:3623
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2938
+#: src/transport/plugin_transport_http_server.c:2943
 #, c-format
 msgid "IPv4 support is %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2953
+#: src/transport/plugin_transport_http_server.c:2958
 #, c-format
 msgid "IPv6 support is %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2959
+#: src/transport/plugin_transport_http_server.c:2964
 msgid "Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2970
+#: src/transport/plugin_transport_http_server.c:2975
 #, fuzzy
 msgid "Port is required! Fix in configuration\n"
 msgstr ""
 "\n"
 "Kết thúc cấu hình.\n"
 
-#: src/transport/plugin_transport_http_server.c:2976
+#: src/transport/plugin_transport_http_server.c:2981
 #, fuzzy, c-format
 msgid "Using port %u\n"
 msgstr "Đang thử nghiệm (các) truyền tải %s\n"
 
-#: src/transport/plugin_transport_http_server.c:2995
+#: src/transport/plugin_transport_http_server.c:3000
 #, fuzzy, c-format
 msgid "Specific IPv4 address `%s' in configuration file is invalid!\n"
 msgstr "Đang thử dùng tập tin « %s » cho cấu hình MySQL.\n"
 
-#: src/transport/plugin_transport_http_server.c:3030
+#: src/transport/plugin_transport_http_server.c:3035
 #, fuzzy, c-format
 msgid "Specific IPv6 address `%s' in configuration file is invalid!\n"
 msgstr "Đang thử dùng tập tin « %s » cho cấu hình MySQL.\n"
 
-#: src/transport/plugin_transport_http_server.c:3105
+#: src/transport/plugin_transport_http_server.c:3110
 #, fuzzy, c-format
 msgid "Using external hostname `%s'\n"
 msgstr "Đang bắt đầu tài về « %s »\n"
 
-#: src/transport/plugin_transport_http_server.c:3126
+#: src/transport/plugin_transport_http_server.c:3131
 #, fuzzy, c-format
 msgid "Notifying transport only about hostname `%s'\n"
 msgstr "không quyết định các tên máy"
 
-#: src/transport/plugin_transport_http_server.c:3143
+#: src/transport/plugin_transport_http_server.c:3148
 #, fuzzy, c-format
 msgid "Maximum number of connections is %u\n"
 msgstr "tăng sổ tối đa các kết nối TCP/IP"
 
-#: src/transport/plugin_transport_http_server.c:3469
+#: src/transport/plugin_transport_http_server.c:3474
 #, fuzzy
 msgid "Unable to compile URL regex\n"
 msgstr "Không thể sơ khởi SQLite: %s.\n"
@@ -7776,167 +7852,167 @@ msgstr "# các byte đã gửi qua SMTP"
 msgid "# bytes dropped by SMTP (outgoing)"
 msgstr "# các byte loại đi bởi SMTP (đi ra)"
 
-#: src/transport/plugin_transport_tcp.c:1051
-#: src/transport/plugin_transport_tcp.c:2362
+#: src/transport/plugin_transport_tcp.c:1060
+#: src/transport/plugin_transport_tcp.c:2379
 #, fuzzy, c-format
 msgid "Unexpected address length: %u bytes\n"
 msgstr "Gặp sự kiện bất thường: %d\n"
 
-#: src/transport/plugin_transport_tcp.c:1234
-#: src/transport/plugin_transport_tcp.c:1458
-#: src/transport/plugin_transport_tcp.c:2633
-#: src/transport/plugin_transport_tcp.c:3490
+#: src/transport/plugin_transport_tcp.c:1243
+#: src/transport/plugin_transport_tcp.c:1467
+#: src/transport/plugin_transport_tcp.c:2643
+#: src/transport/plugin_transport_tcp.c:3498
 #, fuzzy
 msgid "# TCP sessions active"
 msgstr "# các khoá phiên chạy được chấp nhận"
 
-#: src/transport/plugin_transport_tcp.c:1276
-#: src/transport/plugin_transport_tcp.c:1440
-#: src/transport/plugin_transport_tcp.c:1564
-#: src/transport/plugin_transport_tcp.c:1637
-#: src/transport/plugin_transport_tcp.c:1737
-#: src/transport/plugin_transport_tcp.c:1762
+#: src/transport/plugin_transport_tcp.c:1285
+#: src/transport/plugin_transport_tcp.c:1449
+#: src/transport/plugin_transport_tcp.c:1573
+#: src/transport/plugin_transport_tcp.c:1646
+#: src/transport/plugin_transport_tcp.c:1746
+#: src/transport/plugin_transport_tcp.c:1771
 #, fuzzy
 msgid "# bytes currently in TCP buffers"
 msgstr "# các byte đã gừi qua TCP"
 
-#: src/transport/plugin_transport_tcp.c:1279
+#: src/transport/plugin_transport_tcp.c:1288
 #, fuzzy
 msgid "# bytes discarded by TCP (disconnect)"
 msgstr "# các byte loại đi bởi TCP (đi ra)"
 
-#: src/transport/plugin_transport_tcp.c:1567
+#: src/transport/plugin_transport_tcp.c:1576
 #, fuzzy
 msgid "# bytes discarded by TCP (timeout)"
 msgstr "# các byte loại đi bởi TCP (đi ra)"
 
-#: src/transport/plugin_transport_tcp.c:1641
+#: src/transport/plugin_transport_tcp.c:1650
 #, fuzzy
 msgid "# bytes transmitted via TCP"
 msgstr "# các byte được gửi"
 
-#: src/transport/plugin_transport_tcp.c:2032
+#: src/transport/plugin_transport_tcp.c:2041
 msgid "# requests to create session with invalid address"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2200
+#: src/transport/plugin_transport_tcp.c:2217
 msgid "# transport-service disconnect requests for TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2692
+#: src/transport/plugin_transport_tcp.c:2702
 #, fuzzy
 msgid "# TCP WELCOME messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/plugin_transport_tcp.c:2883
+#: src/transport/plugin_transport_tcp.c:2893
 msgid "# bytes received via TCP"
 msgstr "# các byte đã nhận qua TCP"
 
-#: src/transport/plugin_transport_tcp.c:2934
-#: src/transport/plugin_transport_tcp.c:2992
+#: src/transport/plugin_transport_tcp.c:2944
+#: src/transport/plugin_transport_tcp.c:3002
 #, fuzzy
 msgid "# TCP server connections active"
 msgstr "# các kết nối dht"
 
-#: src/transport/plugin_transport_tcp.c:2938
+#: src/transport/plugin_transport_tcp.c:2948
 #, fuzzy
 msgid "# TCP server connect events"
 msgstr "# của các đồng đẳng đã kết nối"
 
-#: src/transport/plugin_transport_tcp.c:2944
+#: src/transport/plugin_transport_tcp.c:2954
 msgid "TCP connection limit reached, suspending server\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2946
+#: src/transport/plugin_transport_tcp.c:2956
 msgid "# TCP service suspended"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2986
+#: src/transport/plugin_transport_tcp.c:2996
 msgid "# TCP service resumed"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2996
+#: src/transport/plugin_transport_tcp.c:3006
 msgid "# network-level TCP disconnect events"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:3315
+#: src/transport/plugin_transport_tcp.c:3325
 #, fuzzy
 msgid "Failed to start service.\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
 
-#: src/transport/plugin_transport_tcp.c:3478
+#: src/transport/plugin_transport_tcp.c:3486
 #, c-format
 msgid "TCP transport listening on port %llu\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:3482
+#: src/transport/plugin_transport_tcp.c:3490
 msgid "TCP transport not listening on any port (client only)\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:3486
+#: src/transport/plugin_transport_tcp.c:3494
 #, c-format
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp_broadcasting.c:170
+#: src/transport/plugin_transport_udp_broadcasting.c:169
 #, fuzzy
 msgid "# Multicast HELLO beacons received via UDP"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/plugin_transport_udp_broadcasting.c:546
+#: src/transport/plugin_transport_udp_broadcasting.c:545
 msgid ""
 "Disabling HELLO broadcasting due to friend-to-friend only configuration!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp_broadcasting.c:567
+#: src/transport/plugin_transport_udp_broadcasting.c:566
 #, c-format
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3344
+#: src/transport/plugin_transport_udp.c:3367
 #, c-format
 msgid ""
 "UDP could not transmit message to `%s': Network seems down, please check "
 "your network configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3358
+#: src/transport/plugin_transport_udp.c:3381
 msgid ""
 "UDP could not transmit IPv6 message! Please check your network configuration "
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3676
-#: src/transport/plugin_transport_udp.c:3775
+#: src/transport/plugin_transport_udp.c:3699
+#: src/transport/plugin_transport_udp.c:3798
 #, fuzzy, c-format
 msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/plugin_transport_udp.c:3694
+#: src/transport/plugin_transport_udp.c:3717
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3785
+#: src/transport/plugin_transport_udp.c:3808
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/plugin_transport_udp.c:3857
-#: src/transport/plugin_transport_udp.c:3871
+#: src/transport/plugin_transport_udp.c:3879
+#: src/transport/plugin_transport_udp.c:3893
 msgid "must be in [0,65535]"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3903
+#: src/transport/plugin_transport_udp.c:3925
 #, fuzzy
 msgid "must be valid IPv4 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/transport/plugin_transport_udp.c:3930
+#: src/transport/plugin_transport_udp.c:3952
 #, fuzzy
 msgid "must be valid IPv6 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/transport/plugin_transport_udp.c:3996
+#: src/transport/plugin_transport_udp.c:4018
 #, fuzzy
 msgid "Failed to create UDP network sockets\n"
 msgstr "Không thể tạo miền tên.\n"
@@ -8057,7 +8133,7 @@ msgstr ""
 msgid "Metadata `%s' failed to deserialize"
 msgstr ""
 
-#: src/util/client_new.c:864
+#: src/util/client.c:864
 #, c-format
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr ""
@@ -8833,42 +8909,42 @@ msgstr ""
 msgid "Invalid IPv6 address `%s': %s\n"
 msgstr "Mức ưu tiên tiến trình không hợp lê « %s ».\n"
 
-#: src/util/strings.c:1475 src/util/strings.c:1491
+#: src/util/strings.c:1541 src/util/strings.c:1557
 msgid "Port not in range\n"
 msgstr ""
 
-#: src/util/strings.c:1500
+#: src/util/strings.c:1566
 #, fuzzy, c-format
 msgid "Malformed port policy `%s'\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
 
-#: src/util/strings.c:1583 src/util/strings.c:1614 src/util/strings.c:1662
-#: src/util/strings.c:1683
+#: src/util/strings.c:1649 src/util/strings.c:1680 src/util/strings.c:1728
+#: src/util/strings.c:1749
 #, c-format
 msgid "Invalid format for IP: `%s'\n"
 msgstr "Địa chỉ IP định dạng sai: %s\n"
 
-#: src/util/strings.c:1640
+#: src/util/strings.c:1706
 #, c-format
 msgid "Invalid network notation ('/%d' is not legal in IPv4 CIDR)."
 msgstr "Ký hiệu mạng sai (« /%d » không hợp lệ trong CIDR IPv4)."
 
-#: src/util/strings.c:1692
+#: src/util/strings.c:1758
 #, fuzzy, c-format
 msgid "Invalid format: `%s'\n"
 msgstr "Địa chỉ IP định dạng sai: %s\n"
 
-#: src/util/strings.c:1744
+#: src/util/strings.c:1810
 #, c-format
 msgid "Invalid network notation (does not end with ';': `%s')\n"
 msgstr "Ký hiệu mạng sai (không kết thúc với « ; »: « %s »)\n"
 
-#: src/util/strings.c:1794
+#: src/util/strings.c:1860
 #, fuzzy, c-format
 msgid "Wrong format `%s' for netmask\n"
 msgstr "Mặt nạ mạng có định dạng sai « %s »: %s\n"
 
-#: src/util/strings.c:1825
+#: src/util/strings.c:1891
 #, fuzzy, c-format
 msgid "Wrong format `%s' for network\n"
 msgstr "Mạng có định dạng sai « %s »: %s\n"
@@ -9057,20 +9133,32 @@ msgid "Setup tunnels via VPN."
 msgstr ""
 
 #: src/include/gnunet_common.h:645 src/include/gnunet_common.h:652
-#: src/include/gnunet_common.h:660
+#: src/include/gnunet_common.h:662 src/include/gnunet_common.h:670
 #, fuzzy, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr "Lỗi nội bộ : khẳng định không thành công tại %s:%d.\n"
 
-#: src/include/gnunet_common.h:672
+#: src/include/gnunet_common.h:682
 #, fuzzy, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr "Lỗi nội bộ : khẳng định không thành công tại %s:%d.\n"
 
-#: src/include/gnunet_common.h:699 src/include/gnunet_common.h:708
+#: src/include/gnunet_common.h:709 src/include/gnunet_common.h:718
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s\n"
+
+#, fuzzy
+#~ msgid "Failed to run upnp client for port %u\n"
+#~ msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
+
+#, fuzzy
+#~ msgid "NAT plugin `%s' reports: %s\n"
+#~ msgstr "Đang nạp các truyền tải « %s »\n"
+
+#, fuzzy
+#~ msgid "Failed to start resolver!\n"
+#~ msgstr "Lỗi bắt đầu thu thập.\n"
 
 #, fuzzy
 #~ msgid "Unable to initialize Postgres: %s\n"
@@ -10482,10 +10570,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #~ msgstr "Đang bắt đầu tài lên « %s ».\n"
 
 #, fuzzy
-#~ msgid "Failed to write new configuration to disk."
-#~ msgstr "Lỗi lưu cấu hình."
-
-#, fuzzy
 #~ msgid "Could not start `%s' process to copy configuration file.\n"
 #~ msgstr "Không tìm thấy phương pháp « %s%s » trong thư viện « %s ».\n"
 
@@ -10531,10 +10615,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #, fuzzy
 #~ msgid "Option `%s' in section `%s' not specified!\n"
 #~ msgstr "Bị từ chối đặt tùy chọn « %s » trong phần « %s » thành « %s ».\n"
-
-#, fuzzy
-#~ msgid "Failed to find option %s in section %s!\n"
-#~ msgstr "Lỗi đóng kết đến cổng %s %d.\n"
 
 #, fuzzy
 #~ msgid "Invalid configuration option `%s' in section `%s'\n"
@@ -10948,9 +11028,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #~ "thì có thể đặt thành tốc độ kết nối Internet lớn nhất. Không nên đặt giá "
 #~ "trị lớn hơn số được gán cho kết nối Internet của bạn."
 
-#~ msgid "Quota configuration"
-#~ msgstr "Cấu hình hạn ngạch"
-
 #~ msgid "What is the maximum size of the datastore in MB?"
 #~ msgstr "Kho dữ liệu có kích cỡ tối đa (theo MB)?"
 
@@ -11031,9 +11108,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #~ msgid "Save configuration?"
 #~ msgstr "Lưu cấu hình không?"
 
-#~ msgid "GNUnet Configuration"
-#~ msgstr "Cấu hình GNUnet"
-
 #~ msgid "Back"
 #~ msgstr "Lùi"
 
@@ -11057,13 +11131,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 
 #~ msgid "Do you wish to save your new configuration?"
 #~ msgstr "Bạn có muốn lưu cấu hình mới không?"
-
-#~ msgid ""
-#~ "\n"
-#~ "Your configuration changes were NOT saved.\n"
-#~ msgstr ""
-#~ "\n"
-#~ "CHƯA lưu các thay đổi trong cấu hình.\n"
 
 #~ msgid "install GNUnet as Windows service"
 #~ msgstr "cài đặt GNUnet như là một dịch vụ Windows"
@@ -12023,9 +12090,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 
 #~ msgid "Revision %u"
 #~ msgstr "Bản sửa đổi %u"
-
-#~ msgid "Application aborted."
-#~ msgstr "Ứng dụng bị hủy bỏ."
 
 #~ msgid "FSUI state file `%s' had syntax error at offset %u.\n"
 #~ msgstr "Tập tin tình trạng FSUI « %s » có lỗi cú pháp tại khoảng bù %u.\n"

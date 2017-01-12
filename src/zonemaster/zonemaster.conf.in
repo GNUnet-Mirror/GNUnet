@@ -1,4 +1,4 @@
-[gns]
+[zonemaster]
 AUTOSTART = @AUTOSTART@
 FORCESTART = YES
 HOSTNAME = localhost
