@@ -24,6 +24,9 @@
  * @author Markus Teich
  */
 #include "platform.h"
+
+#include <float.h>
+
 #include "gnunet_util_lib.h"
 #include "gnunet_json_lib.h"
 /* #include "gnunet_auction_service.h" */
@@ -56,6 +59,13 @@ run (void *cls,
 	 const char *cfgfile,
 	 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+	unsigned int i;
+	double cur, prev = DBL_MAX;
+	json_t *pmap;
+	json_t *parray;
+	json_t *pnode;
+	json_error_t jerr;
+
 	/* cmdline parsing */
 	if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dstart.rel_value_us)
 	{
@@ -81,6 +91,48 @@ run (void *cls,
 		            "required argument --pricemap missing\n");
 		goto fail;
 	}
+
+	/* parse and check pricemap validity */
+	if (!(pmap = json_load_file (fnprices, JSON_DECODE_INT_AS_REAL, &jerr)))
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "parsing pricemap json at %d:%d: %s\n",
+		            jerr.line, jerr.column, jerr.text);
+		goto fail;
+	}
+	if (-1 == json_unpack_ex (pmap, &jerr, JSON_VALIDATE_ONLY,
+	                          "{s:s, s:[]}", "currency", "prices"))
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "validating pricemap: %s\n", jerr.text);
+		goto fail;
+	}
+	if (!(parray = json_object_get (pmap, "prices")) || !json_is_array (parray))
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		            "could not get `prices` array node from pricemap\n");
+		goto fail;
+	}
+	json_array_foreach (parray, i, pnode)
+	{
+		if (-1 == json_unpack_ex (pnode, &jerr, 0, "F", &cur))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			            "validating pricearray index %d: %s\n", i, jerr.text);
+			goto fail;
+		}
+		if (prev <= cur)
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			            "validating pricearray index %d: "
+			            "prices must be strictly monotonically decreasing\n",
+			            i);
+			goto fail;
+		}
+		prev = cur;
+	}
+
+	return;
 
 fail:
 	ret = 1;
