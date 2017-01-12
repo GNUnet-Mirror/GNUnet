@@ -113,6 +113,11 @@ run (void *cls,
 		            "could not get `prices` array node from pricemap\n");
 		goto fail;
 	}
+	if (0 == json_array_size (parray))
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "empty pricemap array\n");
+		goto fail;
+	}
 	json_array_foreach (parray, i, pnode)
 	{
 		if (-1 == json_unpack_ex (pnode, &jerr, 0, "F", &cur))
