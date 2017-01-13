@@ -110,9 +110,13 @@ static unsigned int phase;
 
 /**
  * User defined timestamp for completing operations.
- * FIXME: to be implemented!
  */
 static struct GNUNET_TIME_Relative timeout;
+
+/**
+ * Task to be run on timeout.
+ */
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Do we want to give our stdout to gnunet-service-arm?
@@ -190,6 +194,11 @@ shutdown_task (void *cls)
   {
     GNUNET_ARM_monitor_stop (m);
     m = NULL;
+  }
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
   }
   if ((GNUNET_YES == end) && (GNUNET_YES == delete))
     delete_files ();
@@ -683,6 +692,18 @@ srv_status (void *cls,
 
 
 /**
+ * Task run on timeout (if -T is given).
+ */
+static void
+timeout_task_cb (void *cls)
+{
+  timeout_task = NULL;
+  ret = 2;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -739,6 +760,10 @@ run (void *cls,
                                       NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
+  if (0 != timeout.rel_value_us)
+    timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                 &timeout_task_cb,
+                                                 NULL);
 }
 
 
@@ -747,7 +772,7 @@ run (void *cls,
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @return 0 ok, 1 on error, 2 on timeout
  */
 int
 main (int argc, char *const *argv)
@@ -793,10 +818,10 @@ main (int argc, char *const *argv)
 			  gettext_noop
 			  ("Control services and the Automated Restart Manager (ARM)"),
 			  options, &run, NULL))
-    {
-      GNUNET_free ((void *) argv);
-      return ret;
-    }
+  {
+    GNUNET_free ((void *) argv);
+    return ret;
+  }
   GNUNET_free ((void*) argv);
   return 1;
 }
