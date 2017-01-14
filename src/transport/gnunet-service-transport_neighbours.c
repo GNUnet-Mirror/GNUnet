@@ -2236,6 +2236,14 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
   scm = (const struct TransportSynMessage *) message;
   GNUNET_break_op (0 == ntohl (scm->reserved));
   ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
+  if (0 ==
+      memcmp (&GST_my_identity,
+              peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+  {
+    /* loopback connection-to-self, ignore */
+    return GNUNET_SYSERR;
+  }
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
