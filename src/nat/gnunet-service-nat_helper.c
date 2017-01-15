@@ -49,7 +49,7 @@ struct HelperContext
    * Closure for @e cb.
    */
   void *cb_cls;
-  
+
   /**
    * How long do we wait for restarting a crashed gnunet-helper-nat-server?
    */
@@ -126,7 +126,7 @@ nat_server_read (void *cls)
   memset (mybuf,
 	  0,
 	  sizeof (mybuf));
-  bytes 
+  bytes
     = GNUNET_DISK_file_read (h->server_stdout_handle,
 			     mybuf,
 			     sizeof (mybuf));
@@ -134,7 +134,7 @@ nat_server_read (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Finished reading from server stdout with code: %d\n",
-		bytes);
+		(int) bytes);
     if (0 != GNUNET_OS_process_kill (h->server_proc,
 				     GNUNET_TERM_SIG))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
@@ -185,7 +185,7 @@ nat_server_read (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("gnunet-helper-nat-server generated malformed address `%s'\n"),
 		mybuf);
-    h->server_read_task 
+    h->server_read_task
       = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                         h->server_stdout_handle,
                                         &nat_server_read,
@@ -199,7 +199,7 @@ nat_server_read (void *cls)
 	      port);
   h->cb (h->cb_cls,
 	 &sin_addr);
-  h->server_read_task 
+  h->server_read_task
     = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                       h->server_stdout_handle,
 				      &nat_server_read,
@@ -219,9 +219,9 @@ restart_nat_server (void *cls)
   struct HelperContext *h = cls;
   char *binary;
   char ia[INET_ADDRSTRLEN];
-  
+
   h->server_read_task = NULL;
-  h->server_stdout 
+  h->server_stdout
     = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES,
 			GNUNET_NO, GNUNET_YES);
   if (NULL == h->server_stdout)
@@ -243,7 +243,7 @@ restart_nat_server (void *cls)
   /* Start the server process */
   binary
     = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
-  h->server_proc 
+  h->server_proc
     = GNUNET_OS_start_process (GNUNET_NO,
 			       0,
 			       NULL,
@@ -267,10 +267,10 @@ restart_nat_server (void *cls)
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end (h->server_stdout,
 			      GNUNET_DISK_PIPE_END_WRITE);
-  h->server_stdout_handle 
+  h->server_stdout_handle
     = GNUNET_DISK_pipe_handle (h->server_stdout,
 			       GNUNET_DISK_PIPE_END_READ);
-  h->server_read_task 
+  h->server_read_task
     = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				      h->server_stdout_handle,
 				      &nat_server_read,
@@ -316,7 +316,7 @@ GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
  */
 void
 GN_stop_gnunet_nat_server_ (struct HelperContext *h)
-{  
+{
   if (NULL != h->server_read_task)
   {
     GNUNET_SCHEDULER_cancel (h->server_read_task);
@@ -384,7 +384,7 @@ GN_request_connection_reversal (const struct in_addr *internal_address,
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
 			 "inet_ntop");
     return GNUNET_SYSERR;
-  }  
+  }
   GNUNET_snprintf (port_as_string,
                    sizeof (port_as_string),
                    "%d",
