@@ -42,16 +42,24 @@
  */
 struct GCD_search_handle
 {
-  /** DHT_GET handle. */
+  /**
+   * DHT_GET handle.
+   */
   struct GNUNET_DHT_GetHandle *dhtget;
 
-  /** Provided callback to call when a path is found. */
+  /**
+   * Provided callback to call when a path is found.
+   */
   GCD_search_callback callback;
 
-  /** Provided closure. */
+  /**
+   * Provided closure.
+   */
   void *cls;
 
-  /** Peer ID searched for */
+  /**
+   * Peer ID searched for
+   */
   GNUNET_PEER_Id peer_id;
 };
 

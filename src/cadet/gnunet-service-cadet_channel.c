@@ -58,7 +58,7 @@ enum CadetChannelState
   /**
    * Connection confirmed, ready to carry traffic.
    */
-  CADET_CHANNEL_READY,
+  CADET_CHANNEL_READY
 };
 
 
@@ -216,19 +216,19 @@ struct CadetChannel
   /**
    * Global channel number ( < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
    */
-  CADET_ChannelNumber gid;
+  struct GNUNET_CADET_ChannelNumber gid;
 
   /**
    * Local tunnel number for root (owner) client.
    * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
    */
-  CADET_ChannelNumber lid_root;
-  
+  struct GNUNET_CADET_ClientChannelNumber lid_root;
+
   /**
    * Local tunnel number for local destination clients (incoming number)
    * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV or 0).
    */
-  CADET_ChannelNumber lid_dest;
+  struct GNUNET_CADET_ClientChannelNumber lid_dest;
 
   /**
    * Channel state.
@@ -517,7 +517,7 @@ send_destroy (struct CadetChannel *ch, int local_only)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
-  msg.chid = htonl (ch->gid);
+  msg.chid = ch->gid;
 
   /* If root is not NULL, notify.
    * If it's NULL, check lid_root. When a local destroy comes in, root
@@ -526,12 +526,12 @@ send_destroy (struct CadetChannel *ch, int local_only)
    */
   if (NULL != ch->root)
     GML_send_channel_destroy (ch->root, ch->lid_root);
-  else if (0 == ch->lid_root && GNUNET_NO == local_only)
+  else if (0 == ch->lid_root.channel_of_client && GNUNET_NO == local_only)
     GCCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
 
   if (NULL != ch->dest)
     GML_send_channel_destroy (ch->dest, ch->lid_dest);
-  else if (0 == ch->lid_dest && GNUNET_NO == local_only)
+  else if (0 == ch->lid_dest.channel_of_client && GNUNET_NO == local_only)
     GCCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, NULL);
 }
 
@@ -552,7 +552,10 @@ send_client_create (struct CadetChannel *ch)
   opt = 0;
   opt |= GNUNET_YES == ch->reliable ? GNUNET_CADET_OPTION_RELIABLE : 0;
   opt |= GNUNET_YES == ch->nobuffer ? GNUNET_CADET_OPTION_NOBUFFER : 0;
-  GML_send_channel_create (ch->dest, ch->lid_dest, &ch->port, opt,
+  GML_send_channel_create (ch->dest,
+                           ch->lid_dest,
+                           &ch->port,
+                           opt,
                            GCT_get_destination (ch->t));
 
 }
@@ -883,7 +886,7 @@ send_create (struct CadetChannel *ch)
 
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
-  msgcc.chid = htonl (ch->gid);
+  msgcc.chid = ch->gid;
   msgcc.port = ch->port;
   msgcc.opt = htonl (channel_get_options (ch));
 
@@ -904,10 +907,11 @@ send_ack (struct CadetChannel *ch, int fwd)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending channel %s ack for channel %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  sending channel %s ack for channel %s\n",
        GC_f2s (fwd), GCCH_2s (ch));
 
-  msg.chid = htonl (ch->gid);
+  msg.chid =ch->gid;
   GCCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
 }
 
@@ -925,8 +929,9 @@ fire_and_forget (const struct GNUNET_MessageHeader *msg,
                  struct CadetChannel *ch,
                  int force)
 {
-  GNUNET_break (NULL == GCT_send_prebuilt_message (msg, ch->t, NULL,
-                                                   force, NULL, NULL));
+  GNUNET_break (NULL ==
+                GCT_send_prebuilt_message (msg, ch->t, NULL,
+                                           force, NULL, NULL));
 }
 
 
@@ -946,7 +951,7 @@ send_nack (struct CadetChannel *ch)
        "  sending channel NACK for channel %s\n",
        GCCH_2s (ch));
 
-  msg.chid = htonl (ch->gid);
+  msg.chid = ch->gid;
   GCCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
 }
 
@@ -1252,7 +1257,7 @@ channel_save_copy (struct CadetChannel *ch,
 static struct CadetChannel *
 channel_new (struct CadetTunnel *t,
              struct CadetClient *owner,
-             CADET_ChannelNumber lid_root)
+             struct GNUNET_CADET_ClientChannelNumber lid_root)
 {
   struct CadetChannel *ch;
 
@@ -1393,7 +1398,7 @@ GCCH_destroy (struct CadetChannel *ch)
  *
  * @return ID used to identify the channel with the remote peer.
  */
-CADET_ChannelNumber
+struct GNUNET_CADET_ChannelNumber
 GCCH_get_id (const struct CadetChannel *ch)
 {
   return ch->gid;
@@ -1533,7 +1538,7 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.chid = htonl (ch->gid);
+  msg.chid = ch->gid;
   msg.mid = htonl (ack);
 
   msg.futures = 0LL;
@@ -1657,7 +1662,7 @@ GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level)
   {
     LOG2 (level, "CHN   cli %s\n", GML_2s (ch->root));
     LOG2 (level, "CHN   ready %s\n", ch->root_rel->client_ready ? "YES" : "NO");
-    LOG2 (level, "CHN   id %X\n", ch->lid_root);
+    LOG2 (level, "CHN   id %X\n", ch->lid_root.channel_of_client);
     LOG2 (level, "CHN   recv %d\n", ch->root_rel->n_recv);
     LOG2 (level, "CHN   MID r: %d, s: %d\n",
           ch->root_rel->mid_recv, ch->root_rel->mid_send);
@@ -1733,11 +1738,12 @@ GCCH_handle_local_ack (struct CadetChannel *ch, int fwd)
  * @param message Data message.
  * @param size Size of data.
  *
- * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
+ * @return #GNUNET_OK if everything goes well, #GNUNET_SYSERR in case of en error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        struct CadetClient *c, int fwd,
+                        struct CadetClient *c,
+                        int fwd,
                         const struct GNUNET_MessageHeader *message,
                         size_t size)
 {
@@ -1775,7 +1781,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   GNUNET_memcpy (&payload[1], message, size);
   payload->header.size = htons (p2p_size);
   payload->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA);
-  payload->chid = htonl (ch->gid);
+  payload->chid = ch->gid;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
   GCCH_send_prebuilt_message (&payload->header, ch, fwd, NULL);
 
@@ -1845,11 +1851,11 @@ GCCH_handle_local_create (struct CadetClient *c,
   struct CadetChannel *ch;
   struct CadetTunnel *t;
   struct CadetPeer *peer;
-  CADET_ChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
        GNUNET_i2s (&msg->peer), GNUNET_h2s (&msg->port));
-  chid = ntohl (msg->channel_id);
+  chid = msg->channel_id;
 
   /* Sanity check for duplicate channel IDs */
   if (NULL != GML_channel_get (c, chid))
@@ -2147,20 +2153,21 @@ struct CadetChannel *
 GCCH_handle_create (struct CadetTunnel *t,
                     const struct GNUNET_CADET_ChannelCreate *msg)
 {
-  CADET_ChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber chid;
+  struct GNUNET_CADET_ChannelNumber gid;
   struct CadetChannel *ch;
   struct CadetClient *c;
   int new_channel;
   const struct GNUNET_HashCode *port;
 
-  chid = ntohl (msg->chid);
-
-  ch = GCT_get_channel (t, chid);
+  gid = msg->chid;
+  ch = GCT_get_channel (t, gid);
   if (NULL == ch)
   {
     /* Create channel */
-    ch = channel_new (t, NULL, 0);
-    ch->gid = chid;
+    chid.channel_of_client = htonl (0);
+    ch = channel_new (t, NULL, chid);
+    ch->gid = gid;
     channel_set_options (ch, ntohl (msg->opt));
     new_channel = GNUNET_YES;
   }
@@ -2403,7 +2410,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     {
       struct GNUNET_CADET_ChannelCreate *cc_msg;
       cc_msg = (struct GNUNET_CADET_ChannelCreate *) message;
-      SPRINTF (info, "  0x%08X", ntohl (cc_msg->chid));
+      SPRINTF (info, "  0x%08X", ntohl (cc_msg->chid.cn));
       break;
     }
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
@@ -2412,7 +2419,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     {
       struct GNUNET_CADET_ChannelManage *m_msg;
       m_msg = (struct GNUNET_CADET_ChannelManage *) message;
-      SPRINTF (info, "  0x%08X", ntohl (m_msg->chid));
+      SPRINTF (info, "  0x%08X", ntohl (m_msg->chid.cn));
       break;
     }
     default:
@@ -2542,9 +2549,13 @@ GCCH_2s (const struct CadetChannel *ch)
   if (NULL == ch)
     return "(NULL Channel)";
 
-  SPRINTF (buf, "%s:%s gid:%X (%X / %X)",
-           GCT_2s (ch->t), GNUNET_h2s (&ch->port),
-           ch->gid, ch->lid_root, ch->lid_dest);
+  SPRINTF (buf,
+           "%s:%s gid:%X (%X / %X)",
+           GCT_2s (ch->t),
+           GNUNET_h2s (&ch->port),
+           ntohl (ch->gid.cn),
+           ntohl (ch->lid_root.channel_of_client),
+           ntohl (ch->lid_dest.channel_of_client));
 
   return buf;
 }

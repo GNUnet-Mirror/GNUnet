@@ -2464,7 +2464,7 @@ check_message (const struct GNUNET_MessageHeader *message,
   if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
   {
     fc = fwd ? &c->bck_fc : &c->fwd_fc;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected in interval [%u,%u])\n",
          pid,
 	 fc->last_pid_recv + 1,
 	 fc->last_ack_sent);

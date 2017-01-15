@@ -22,7 +22,9 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-cadet $(EXP_LIBEXEC)
+ gnunet-service-cadet \
+ gnunet-service-cadet-new \
+ $(EXP_LIBEXEC)
 
 bin_PROGRAMS = \
  gnunet-cadet
@@ -45,6 +47,26 @@ gnunet_cadet_SOURCES = \
 gnunet_cadet_LDADD = \
   libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_service_cadet_new_SOURCES = \
+ gnunet-service-cadet-new.c gnunet-service-cadet-new.h \
+ gnunet-service-cadet-new_channel.c gnunet-service-cadet-new_channel.h \
+ gnunet-service-cadet-new_connection.c gnunet-service-cadet-new_connection.h \
+ gnunet-service-cadet-new_dht.c gnunet-service-cadet-new_dht.h \
+ gnunet-service-cadet-new_hello.c gnunet-service-cadet-new_hello.h \
+ gnunet-service-cadet-new_tunnels.c gnunet-service-cadet-new_tunnels.h \
+ gnunet-service-cadet-new_paths.c gnunet-service-cadet-new_paths.h \
+ gnunet-service-cadet-new_peer.c gnunet-service-cadet-new_peer.h
+gnunet_service_cadet_new_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/block/libgnunetblock.la
 
 gnunet_service_cadet_SOURCES = \
  gnunet-service-cadet_tunnel.c gnunet-service-cadet_tunnel.h \
@@ -87,6 +109,11 @@ libgnunetcadettest_a_LIBADD = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
+  test_cadet_2_speed_reliable_backwards \
+  test_cadet_5_speed \
+  test_cadet_5_speed_ack \
+  test_cadet_5_speed_reliable \
+  test_cadet_5_speed_reliable_backwards \
   test_cadet_single \
   test_cadet_local \
   test_cadet_2_forward \
@@ -96,15 +123,10 @@ check_PROGRAMS = \
   test_cadet_2_speed_ack \
   test_cadet_2_speed_backwards \
   test_cadet_2_speed_reliable \
-  test_cadet_2_speed_reliable_backwards \
   test_cadet_5_forward \
   test_cadet_5_signal \
   test_cadet_5_keepalive \
-  test_cadet_5_speed \
-  test_cadet_5_speed_ack \
-  test_cadet_5_speed_backwards \
-  test_cadet_5_speed_reliable \
-  test_cadet_5_speed_reliable_backwards
+  test_cadet_5_speed_backwards
 endif
 
 ld_cadet_test_lib = \

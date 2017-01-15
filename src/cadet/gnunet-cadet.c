@@ -727,8 +727,8 @@ tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
                  unsigned int n_channels,
                  unsigned int n_connections,
-                 uint32_t *channels,
-                 struct GNUNET_CADET_Hash *connections,
+                 const struct GNUNET_CADET_ChannelNumber *channels,
+                 const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
                  unsigned int estate,
                  unsigned int cstate)
 {
@@ -739,10 +739,10 @@ tunnel_callback (void *cls,
     FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
     FPRINTF (stdout, "\t%u channels\n", n_channels);
     for (i = 0; i < n_channels; i++)
-      FPRINTF (stdout, "\t\t%X\n", ntohl (channels[i]));
+      FPRINTF (stdout, "\t\t%X\n", ntohl (channels[i].cn));
     FPRINTF (stdout, "\t%u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "\t\t%s\n", GC_h2s (&connections[i]));
+      FPRINTF (stdout, "\t\t%s\n", GC_h2s (&connections[i].connection_of_tunnel));
     FPRINTF (stdout, "\tencryption state: %s\n", enc_2s (estate));
     FPRINTF (stdout, "\tconnection state: %s\n", conn_2s (cstate));
   }
@@ -827,7 +827,10 @@ show_tunnel (void *cls)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_get_tunnel (mh, &pid, tunnel_callback, NULL);
+  GNUNET_CADET_get_tunnel (mh,
+                           &pid,
+                           &tunnel_callback,
+                           NULL);
 }
 
 

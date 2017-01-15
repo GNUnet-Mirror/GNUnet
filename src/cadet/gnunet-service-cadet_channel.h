@@ -69,7 +69,7 @@ GCCH_destroy (struct CadetChannel *ch);
  *
  * @return ID used to identify the channel with the remote peer.
  */
-CADET_ChannelNumber
+struct GNUNET_CADET_ChannelNumber
 GCCH_get_id (const struct CadetChannel *ch);
 
 /**
@@ -345,6 +345,8 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  */
 const char *
 GCCH_2s (const struct CadetChannel *ch);
+
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

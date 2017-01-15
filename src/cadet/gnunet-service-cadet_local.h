@@ -80,7 +80,8 @@ GML_shutdown (void);
  * @return non-NULL if channel exists in the clients lists
  */
 struct CadetChannel *
-GML_channel_get (struct CadetClient *c, uint32_t chid);
+GML_channel_get (struct CadetClient *c,
+                 struct GNUNET_CADET_ClientChannelNumber chid);
 
 /**
  * Add a channel to a client
@@ -91,7 +92,7 @@ GML_channel_get (struct CadetClient *c, uint32_t chid);
  */
 void
 GML_channel_add (struct CadetClient *client,
-                 uint32_t chid,
+                 struct GNUNET_CADET_ClientChannelNumber chid,
                  struct CadetChannel *ch);
 
 /**
@@ -103,7 +104,7 @@ GML_channel_add (struct CadetClient *client,
  */
 void
 GML_channel_remove (struct CadetClient *client,
-                    uint32_t chid,
+                    struct GNUNET_CADET_ClientChannelNumber chid,
                     struct CadetChannel *ch);
 
 /**
@@ -113,7 +114,7 @@ GML_channel_remove (struct CadetClient *client,
  *
  * @return LID of a channel free to use.
  */
-CADET_ChannelNumber
+struct GNUNET_CADET_ClientChannelNumber
 GML_get_next_chid (struct CadetClient *c);
 
 /**
@@ -146,7 +147,7 @@ GML_client_get_by_port (const struct GNUNET_HashCode *port);
 void
 GML_client_delete_channel (struct CadetClient *c,
                            struct CadetChannel *ch,
-                           CADET_ChannelNumber id);
+                           struct GNUNET_CADET_ClientChannelNumber id);
 
 /**
  * Build a local ACK message and send it to a local client, if needed.
@@ -157,7 +158,8 @@ GML_client_delete_channel (struct CadetClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_ack (struct CadetClient *c, CADET_ChannelNumber id);
+GML_send_ack (struct CadetClient *c,
+              struct GNUNET_CADET_ClientChannelNumber id);
 
 /**
  * Notify the appropriate client that a new incoming channel was created.
@@ -170,8 +172,10 @@ GML_send_ack (struct CadetClient *c, CADET_ChannelNumber id);
  */
 void
 GML_send_channel_create (struct CadetClient *c,
-                         uint32_t id, struct GNUNET_HashCode *port,
-                         uint32_t opt, const struct GNUNET_PeerIdentity *peer);
+                         struct GNUNET_CADET_ClientChannelNumber id,
+                         const struct GNUNET_HashCode *port,
+                         uint32_t opt,
+                         const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Build a local channel NACK message and send it to a local client.
@@ -180,7 +184,9 @@ GML_send_channel_create (struct CadetClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_channel_nack (struct CadetClient *c, CADET_ChannelNumber id);
+GML_send_channel_nack (struct CadetClient *c,
+                       struct GNUNET_CADET_ClientChannelNumber id);
+
 
 /**
  * Notify a client that a channel is no longer valid.
@@ -189,7 +195,9 @@ GML_send_channel_nack (struct CadetClient *c, CADET_ChannelNumber id);
  * @param id ID of the channel that is destroyed.
  */
 void
-GML_send_channel_destroy (struct CadetClient *c, uint32_t id);
+GML_send_channel_destroy (struct CadetClient *c,
+                          struct GNUNET_CADET_ClientChannelNumber id);
+
 
 /**
  * Modify the cadet message ID from global to local and send to client.
@@ -201,7 +209,7 @@ GML_send_channel_destroy (struct CadetClient *c, uint32_t id);
 void
 GML_send_data (struct CadetClient *c,
                const struct GNUNET_CADET_Data *msg,
-               CADET_ChannelNumber id);
+               struct GNUNET_CADET_ClientChannelNumber id);
 
 /**
  * Get the static string to represent a client.

@@ -76,7 +76,7 @@ struct CadetPeerQueue {
      * Task to asynchronously run the drop continuation.
      */
     struct GNUNET_SCHEDULER_Task *drop_task;
-  
+
     /**
      * Time when message was queued for sending.
      */
@@ -1145,7 +1145,7 @@ static void
 drop_cb (void *cls)
 {
   struct CadetPeerQueue *q = cls;
-  
+
   GNUNET_MQ_discard (q->env);
   call_peer_cont (q, GNUNET_YES);
   GNUNET_free (q);

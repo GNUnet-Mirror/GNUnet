@@ -102,9 +102,9 @@ enum GNUNET_CADET_ChannelOption
 
   /**
    * Enable out of order delivery of messages.
-   * Yes/No.
+   * Set bit for out-of-order delivery.
    */
-  GNUNET_CADET_OPTION_OOORDER    = 0x4,
+  GNUNET_CADET_OPTION_OUT_OF_ORDER = 0x4,
 
   /**
    * Who is the peer at the other end of the channel.
@@ -332,7 +332,8 @@ union GNUNET_CADET_ChannelInfo
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                              enum GNUNET_CADET_ChannelOption option, ...);
+                              enum GNUNET_CADET_ChannelOption option,
+                               ...);
 
 
 /**
@@ -491,6 +492,24 @@ typedef void
 
 
 /**
+ * Hash uniquely identifying a connection below a tunnel.
+ */
+struct GNUNET_CADET_ConnectionTunnelIdentifier
+{
+  struct GNUNET_CADET_Hash connection_of_tunnel;
+};
+
+
+/**
+ * Number identifying a CADET channel.
+ */
+struct GNUNET_CADET_ChannelNumber
+{
+  uint32_t cn GNUNET_PACKED;
+};
+
+
+/**
  * Method called to retrieve information about a specific tunnel the cadet peer
  * has established, o`r is trying to establish.
  *
@@ -508,8 +527,8 @@ typedef void
                           const struct GNUNET_PeerIdentity *peer,
                           unsigned int n_channels,
                           unsigned int n_connections,
-                          uint32_t *channels,
-                          struct GNUNET_CADET_Hash *connections,
+                          const struct GNUNET_CADET_ChannelNumber *channels,
+                          const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
                           unsigned int estate,
                           unsigned int cstate);
 

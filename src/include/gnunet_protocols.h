@@ -2776,6 +2776,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP 1038
 
+/**
+ * End of local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER_END 1039
+
 /********************************  Application  *******************************/
 
 /**

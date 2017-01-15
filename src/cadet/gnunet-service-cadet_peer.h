@@ -122,6 +122,7 @@ GCP_shutdown (void);
 struct CadetPeer *
 GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
 
+
 /**
  * Retrieve the CadetPeer stucture associated with the peer. Optionally create
  * one and insert it in the appropriate structures if the peer is not known yet.
@@ -135,6 +136,7 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
  */
 struct CadetPeer *
 GCP_get_short (const GNUNET_PEER_Id peer, int create);
+
 
 /**
  * Try to establish a new connection to this peer (in its tunnel).
@@ -440,7 +442,8 @@ GCP_iterate_paths (struct CadetPeer *peer,
  * @param cls Closure for @c iter.
  */
 void
-GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
+                 void *cls);
 
 
 /**

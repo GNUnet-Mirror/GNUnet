@@ -70,7 +70,7 @@ struct GNUNET_CADET_ConnectionCreate
    * For alignment.
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * ID of the connection
    */
@@ -322,6 +322,7 @@ struct GNUNET_CADET_Encrypted
 /*******************************   CHANNEL  ***********************************/
 /******************************************************************************/
 
+
 /**
  * Message to create a Channel.
  */
@@ -345,7 +346,7 @@ struct GNUNET_CADET_ChannelCreate
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelNumber chid;
 };
 
 
@@ -362,7 +363,7 @@ struct GNUNET_CADET_ChannelManage
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelNumber chid;
 };
 
 
@@ -385,7 +386,7 @@ struct GNUNET_CADET_Data
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelNumber chid;
 
   /**
    * Payload follows
@@ -406,7 +407,7 @@ struct GNUNET_CADET_DataACK
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelNumber chid;
 
   /**
    * Bitfield of already-received newer messages
