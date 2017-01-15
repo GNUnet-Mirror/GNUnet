@@ -160,7 +160,9 @@ struct ProcessContext
  *         #GNUNET_SYSERR if the result is malformed or type unsupported
  */
 static int
-process (void *cls, const struct GNUNET_HashCode * key, void *value)
+process (void *cls,
+         const struct GNUNET_HashCode *key,
+         void *value)
 {
   struct ProcessContext *pc = cls;
   struct RecentRequest *rr = value;
@@ -170,7 +172,8 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_HashCode hc;
   const struct GNUNET_HashCode *eval_key;
 
-  if ((rr->type != GNUNET_BLOCK_TYPE_ANY) && (rr->type != pc->type))
+  if ( (rr->type != GNUNET_BLOCK_TYPE_ANY) &&
+       (rr->type != pc->type) )
     return GNUNET_OK;           /* type missmatch */
 
   if (0 != (rr->options & GNUNET_DHT_RO_RECORD_ROUTE))
@@ -192,7 +195,8 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
      * we fake it by changing the key to the actual PID ... */
     GNUNET_BLOCK_get_key (GDS_block_context,
 			  GNUNET_BLOCK_TYPE_DHT_HELLO,
-                          pc->data, pc->data_size,
+                          pc->data,
+                          pc->data_size,
 			  &hc);
     eval_key = &hc;
   }
@@ -200,8 +204,8 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
   {
     eval_key = key;
   }
-  eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context,
+  eval
+    = GNUNET_BLOCK_evaluate (GDS_block_context,
                              pc->type,
                              GNUNET_BLOCK_EO_NONE,
                              eval_key,
@@ -310,7 +314,10 @@ GDS_ROUTING_process (void *cls,
     pc.data_size = 0;
     pc.data = ""; /* something not null */
   }
-  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key, &process, &pc);
+  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map,
+                                              key,
+                                              &process,
+                                              &pc);
 }
 
 
@@ -347,11 +354,13 @@ expire_oldest_entry ()
  * @param cls the new 'struct RecentRequest' (to discard upon successful combination)
  * @param key the query
  * @param value the existing 'struct RecentRequest' (to update upon successful combination)
- * @return GNUNET_OK (continue to iterate),
- *         GNUNET_SYSERR if the request was successfully combined
+ * @return #GNUNET_OK (continue to iterate),
+ *         #GNUNET_SYSERR if the request was successfully combined
  */
 static int
-try_combine_recent (void *cls, const struct GNUNET_HashCode * key, void *value)
+try_combine_recent (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
 {
   struct RecentRequest *in = cls;
   struct RecentRequest *rr = value;
@@ -398,7 +407,8 @@ void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,
                  enum GNUNET_DHT_RouteOption options,
-                 const struct GNUNET_HashCode * key, const void *xquery,
+                 const struct GNUNET_HashCode *key,
+                 const void *xquery,
                  size_t xquery_size,
                  const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
                  uint32_t reply_bf_mutator)
@@ -421,8 +431,10 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
   recent_req->xquery_size = xquery_size;
   recent_req->reply_bf_mutator = reply_bf_mutator;
   if (GNUNET_SYSERR ==
-      GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key,
-						  &try_combine_recent, recent_req))
+      GNUNET_CONTAINER_multihashmap_get_multiple (recent_map,
+                                                  key,
+						  &try_combine_recent,
+                                                  recent_req))
   {
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop

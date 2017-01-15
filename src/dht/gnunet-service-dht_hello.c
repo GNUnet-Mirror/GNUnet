@@ -69,13 +69,15 @@ GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer)
  * FIXME this is called once per address. Merge instead of replacing?
  */
 static void
-process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+process_hello (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_HELLO_Message *hello,
+               const char *err_msg)
 {
   struct GNUNET_TIME_Absolute ex;
   struct GNUNET_HELLO_Message *hm;
 
-  if (hello == NULL)
+  if (NULL == hello)
     return;
   ex = GNUNET_HELLO_get_last_expiration (hello);
   if (0 == GNUNET_TIME_absolute_get_remaining (ex).rel_value_us)
@@ -100,8 +102,12 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 void
 GDS_HELLO_init ()
 {
-  pnc = GNUNET_PEERINFO_notify (GDS_cfg, GNUNET_NO, &process_hello, NULL);
-  peer_to_hello = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+  pnc = GNUNET_PEERINFO_notify (GDS_cfg,
+                                GNUNET_NO,
+                                &process_hello,
+                                NULL);
+  peer_to_hello = GNUNET_CONTAINER_multipeermap_create (256,
+                                                        GNUNET_NO);
 }
 
 
@@ -131,7 +137,9 @@ GDS_HELLO_done ()
   }
   if (NULL != peer_to_hello)
   {
-    GNUNET_CONTAINER_multipeermap_iterate (peer_to_hello, &free_hello, NULL);
+    GNUNET_CONTAINER_multipeermap_iterate (peer_to_hello,
+                                           &free_hello,
+                                           NULL);
     GNUNET_CONTAINER_multipeermap_destroy (peer_to_hello);
   }
 }
