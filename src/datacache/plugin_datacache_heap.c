@@ -180,8 +180,7 @@ put_cb (void *cls,
     GNUNET_memcpy (val->path_info,
 	    put_ctx->path_info,
 	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
-				       val->hn,
+    GNUNET_CONTAINER_heap_update_cost (val->hn,
 				       val->discard_time.abs_value_us);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Got same value for key %s and type %d (size %u vs %u)\n",

@@ -1129,8 +1129,7 @@ route_packet (struct DestinationEntry *destination,
   }
   else
   {
-    GNUNET_CONTAINER_heap_update_cost (channel_heap,
-				       ts->heap_node,
+    GNUNET_CONTAINER_heap_update_cost (ts->heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value_us);
   }
   if (NULL == ts->channel)
@@ -2062,8 +2061,7 @@ receive_icmp_back (void *cls,
   default:
     GNUNET_assert (0);
   }
-  GNUNET_CONTAINER_heap_update_cost (channel_heap,
-				     ts->heap_node,
+  GNUNET_CONTAINER_heap_update_cost (ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
@@ -2218,8 +2216,7 @@ receive_udp_back (void *cls,
   default:
     GNUNET_assert (0);
   }
-  GNUNET_CONTAINER_heap_update_cost (channel_heap,
-				     ts->heap_node,
+  GNUNET_CONTAINER_heap_update_cost (ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
@@ -2361,8 +2358,7 @@ receive_tcp_back (void *cls,
     }
     break;
   }
-  GNUNET_CONTAINER_heap_update_cost (channel_heap,
-				     ts->heap_node,
+  GNUNET_CONTAINER_heap_update_cost (ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;

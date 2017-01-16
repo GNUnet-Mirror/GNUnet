@@ -1246,7 +1246,7 @@ udp_plugin_check_address (void *cls,
   if (sizeof(struct IPv4UdpAddress) == addrlen)
   {
     struct sockaddr_in s4;
-    
+
     v4 = (const struct IPv4UdpAddress *) addr;
     if (GNUNET_OK != check_port (plugin,
                                  ntohs (v4->u4_port)))
@@ -1258,7 +1258,7 @@ udp_plugin_check_address (void *cls,
 #endif
     s4.sin_port = v4->u4_port;
     s4.sin_addr.s_addr = v4->ipv4_addr;
-    
+
     if (GNUNET_OK !=
 	GNUNET_NAT_test_address (plugin->nat,
 				 &s4,
@@ -3052,8 +3052,7 @@ read_process_fragment (struct Plugin *plugin,
                                           msg))
   {
     /* keep this 'rc' from expiring */
-    GNUNET_CONTAINER_heap_update_cost (plugin->defrag_ctxs,
-                                       d_ctx->hnode,
+    GNUNET_CONTAINER_heap_update_cost (d_ctx->hnode,
                                        (GNUNET_CONTAINER_HeapCostType) now.abs_value_us);
   }
   if (GNUNET_CONTAINER_heap_get_size (plugin->defrag_ctxs) >
@@ -3539,7 +3538,7 @@ udp_plugin_select_v4 (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-  
+
   plugin->select_task_v4 = NULL;
   if (NULL == plugin->sockv4)
     return;

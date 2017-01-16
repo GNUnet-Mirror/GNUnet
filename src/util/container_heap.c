@@ -541,36 +541,23 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node)
 /**
  * Updates the cost of any node in the tree
  *
- * @param heap heap to modify
  * @param node node for which the cost is to be changed
  * @param new_cost new cost for the node
  */
 void
-GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
-                                   struct GNUNET_CONTAINER_HeapNode *node,
+GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_HeapNode *node,
                                    GNUNET_CONTAINER_HeapCostType new_cost)
 {
-#if EXTRA_CHECKS
-  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
-                 (heap->size == heap->root->tree_size + 1));
-  CHECK (heap->root);
-#endif
+  struct GNUNET_CONTAINER_Heap *heap = node->heap;
+
   remove_node (node);
-#if EXTRA_CHECKS
-  CHECK (heap->root);
-  GNUNET_assert (((heap->size == 1) && (heap->root == NULL)) ||
-                 (heap->size == heap->root->tree_size + 2));
-#endif
   node->cost = new_cost;
-  if (heap->root == NULL)
+  if (NULL == heap->root)
     heap->root = node;
   else
-    insert_node (heap, heap->root, node);
-#if EXTRA_CHECKS
-  CHECK (heap->root);
-  GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
-                 (heap->size == heap->root->tree_size + 1));
-#endif
+    insert_node (heap,
+                 heap->root,
+                 node);
 }
 
 

@@ -1915,8 +1915,8 @@ GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
  * @return cost of the node
  */
 GNUNET_CONTAINER_HeapCostType
-GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode
-                                     *node);
+GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *node);
+
 
 /**
  * @ingroup heap
@@ -2006,13 +2006,11 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
  * @ingroup heap
  * Updates the cost of any node in the tree
  *
- * @param heap heap to modify
  * @param node node for which the cost is to be changed
  * @param new_cost new cost for the node
  */
 void
-GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
-                                   struct GNUNET_CONTAINER_HeapNode *node,
+GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_HeapNode *node,
                                    GNUNET_CONTAINER_HeapCostType new_cost);
 
 
