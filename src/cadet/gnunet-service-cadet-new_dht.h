@@ -51,11 +51,11 @@ struct GCD_search_handle;
  *
  * @param cls Closure.
  * @param path An unchecked, unoptimized path to the target node.
- *             After callback will no longer be valid!
+ *             After callback will no longer be valid, unless #GCPP_acquire() is called!
  */
 typedef void
 (*GCD_search_callback) (void *cls,
-                        const struct CadetPeerPath *path);
+                        struct CadetPeerPath *path);
 
 
 /**

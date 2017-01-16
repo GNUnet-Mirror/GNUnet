@@ -37,12 +37,19 @@
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_dht.h"
 #include "gnunet-service-cadet-new_peer.h"
+#include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 
 /**
  * How long do we wait until tearing down an idle peer?
  */
 #define IDLE_PEER_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
+/**
+ * How long do we keep paths around if we no longer care about the peer?
+ */
+#define IDLE_PATH_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
+
 
 /**
  * Struct containing all information regarding a given peer
@@ -72,7 +79,8 @@ struct CadetPeer
   struct CadetPeerPathEntry **path_tails;
 
   /**
-   * MIN-heap of paths ending at this peer.  Ordered by desirability.
+   * MIN-heap of paths owned by this peer (they also end at this
+   * peer).  Ordered by desirability.
    */
   struct GNUNET_CONTAINER_Heap *path_heap;
 
@@ -186,8 +194,6 @@ destroy_peer (void *cls)
   }
   /* FIXME: clean up search_delayedXXX! */
 
-  GNUNET_CONTAINER_multihashmap_destroy (cp->connections);
-  GNUNET_free_non_null (cp->hello);
   if (NULL != cp->hello_offer)
   {
     GNUNET_TRANSPORT_offer_hello_cancel (cp->hello_offer);
@@ -198,6 +204,9 @@ destroy_peer (void *cls)
     GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
     cp->connectivity_suggestion = NULL;
   }
+  GNUNET_CONTAINER_multihashmap_destroy (cp->connections);
+  GNUNET_CONTAINER_heap_destroy (cp->path_heap);
+  GNUNET_free_non_null (cp->hello);
   GNUNET_free (cp);
 }
 
@@ -247,6 +256,34 @@ GCP_destroy_all_peers ()
  * @param cp peer to clean up
  */
 static void
+consider_peer_destroy (struct CadetPeer *cp);
+
+
+/**
+ * We really no longere care about a peer, stop hogging memory with paths to it.
+ * Afterwards, see if there is more to be cleaned up about this peer.
+ *
+ * @param cls a `struct CadetPeer`.
+ */
+static void
+drop_paths (void *cls)
+{
+  struct CadetPeer *cp = cls;
+  struct CadetPeerPath *path;
+
+  cp->destroy_task = NULL;
+  while (NULL != (path = GNUNET_CONTAINER_heap_remove_root (cp->path_heap)))
+    GCPP_release (path);
+  consider_peer_destroy (cp);
+}
+
+
+/**
+ * This peer may no longer be needed, consider cleaning it up.
+ *
+ * @param cp peer to clean up
+ */
+static void
 consider_peer_destroy (struct CadetPeer *cp)
 {
   struct GNUNET_TIME_Relative exp;
@@ -260,17 +297,24 @@ consider_peer_destroy (struct CadetPeer *cp)
     return; /* still relevant! */
   if (NULL != cp->core_mq)
     return; /* still relevant! */
-  if (0 != cp->path_dll_length)
-    return; /* still relevant! */
   if (0 != GNUNET_CONTAINER_multihashmap_size (cp->connections))
+    return; /* still relevant! */
+  if (0 < GNUNET_CONTAINER_heap_get_size (cp->path_heap))
+  {
+    cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PATH_TIMEOUT,
+                                                     &drop_paths,
+                                                     cp);
+    return;
+  }
+  if (0 < cp->path_dll_length)
     return; /* still relevant! */
   if (NULL != cp->hello)
   {
     /* relevant only until HELLO expires */
     exp = GNUNET_TIME_absolute_get_remaining (GNUNET_HELLO_get_last_expiration (cp->hello));
     cp->destroy_task = GNUNET_SCHEDULER_add_delayed (exp,
-                                                       &destroy_peer,
-                                                       cp);
+                                                     &destroy_peer,
+                                                     cp);
     return;
   }
   cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PEER_TIMEOUT,
@@ -337,7 +381,7 @@ GCP_path_entry_remove (struct CadetPeer *cp,
  */
 static void
 dht_result_cb (void *cls,
-               const struct CadetPeerPath *path)
+               struct CadetPeerPath *path)
 {
   struct CadetPeer *cp = cls;
   GNUNET_CONTAINER_HeapCostType desirability;
@@ -368,8 +412,7 @@ dht_result_cb (void *cls,
   {
     /* Now we have way too many, drop least desirable */
     root = GNUNET_CONTAINER_heap_remove_root (cp->path_heap);
-    GCPP_release (path,
-                  cp);
+    GCPP_release (path);
   }
 }
 
@@ -464,6 +507,7 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
   cp->pid = *peer_id;
   cp->connections = GNUNET_CONTAINER_multihashmap_create (32,
                                                           GNUNET_YES);
+  cp->path_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   cp->search_h = NULL; // FIXME: start search immediately!?
   cp->connectivity_suggestion = NULL; // FIXME: request with ATS!?
 

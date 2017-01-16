@@ -28,6 +28,8 @@
 #ifndef GNUNET_SERVICE_CADET_H
 #define GNUNET_SERVICE_CADET_H
 
+#include "gnunet_util_lib.h"
+
 /**
  * A client to the CADET service.
  */
@@ -77,6 +79,16 @@ struct CadetPeerPathEntry
    * Path this entry belongs to.
    */
   struct CadetPeerPath *path;
+
+  /**
+   * Path's historic score up to this point.  Basically, how often did
+   * we succeed or fail to use the path up to this entry in a
+   * connection.  Positive values indicate good experiences, negative
+   * values bad experiences.  Code updating the score must guard
+   * against overflows.
+   */
+  int score;
+
 };
 
 

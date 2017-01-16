@@ -81,7 +81,7 @@ GCPP_get_length (struct CadetPeerPath *path);
  * @return desirability of the path, larger is more desirable
  */
 GNUNET_CONTAINER_HeapCostType
-GCPP_get_desirability (struct CadetPeerPath *path);
+GCPP_get_desirability (const struct CadetPeerPath *path);
 
 
 /**
@@ -108,11 +108,9 @@ GCPP_acquire (struct CadetPeerPath *path,
  * the path desirable).
  *
  * @param path the path that is being released
- * @param cp original final destination of @a path
  */
 void
-GCPP_release (struct CadetPeerPath *path,
-              struct CadetPeer *cp);
+GCPP_release (struct CadetPeerPath *path);
 
 
 /**

@@ -26,7 +26,47 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
+
+
+/**
+ * Information regarding a possible path to reach a peer.
+ */
+struct CadetPeerPath
+{
+
+  /**
+   * Array of all the peers on the path.  If @e hn is non-NULL, the
+   * last one is our owner.
+   */
+  struct CadetPeerPathEntry *entries;
+
+  /**
+   * Node of this path in the owner's heap.  Used to update our position
+   * in the heap whenever our @e desirability changes.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Connections using this path, by destination peer
+   * (each hop of the path could correspond to an
+   * active connection).
+   */
+  struct GNUNET_CONTAINER_MultiPeerMap *connections;
+
+  /**
+   * Desirability of the path. How unique is it for the various peers
+   * on it?
+   */
+  GNUNET_CONTAINER_HeapCostType desirability;
+
+  /**
+   * Length of the @e entries array.
+   */
+  unsigned int entries_length;
+
+};
 
 
 
@@ -44,7 +84,7 @@
  * @return desirability of the path, larger is more desirable
  */
 GNUNET_CONTAINER_HeapCostType
-GCPP_get_desirability (struct CadetPeerPath *path)
+GCPP_get_desirability (const struct CadetPeerPath *path)
 {
   GNUNET_assert (0);
   return 0;
@@ -72,19 +112,54 @@ GCPP_acquire (struct CadetPeerPath *path,
 
 
 /**
- * The given peer @a cp used to own this @a path.  However, it is no
- * longer interested in maintaining it, so the path should be
- * discarded or shortened (in case a previous peer on the path finds
- * the path desirable).
+ * The owning peer of this path is no longer interested in maintaining
+ * it, so the path should be discarded or shortened (in case a
+ * previous peer on the path finds the path desirable).
  *
  * @param path the path that is being released
- * @param cp original final destination of @a path
  */
 void
-GCPP_release (struct CadetPeerPath *path,
-              struct CadetPeer *cp)
+GCPP_release (struct CadetPeerPath *path)
 {
   GNUNET_assert (0);
+}
+
+
+/**
+ * Updates the score for an entry on the path based
+ * on our experiences with using @a path.
+ *
+ * @param path the path to update
+ * @param off offset of the entry to update
+ * @param delta change in the score to apply
+ */
+void
+GCPP_update_score (struct CadetPeerPath *path,
+                   unsigned int off,
+                   int delta)
+{
+  struct CadetPeerPathEntry *entry;
+
+  GNUNET_assert (off < path->entries_length);
+  entry = &path->entries[off];
+
+  /* Add delta, with checks for overflows */
+  if (delta >= 0)
+  {
+    if (delta + entry->score < entry->score)
+      entry->score = INT_MAX;
+    else
+      entry->score += delta;
+  }
+  else
+  {
+    if (delta + entry->score > entry->score)
+      entry->score = INT_MIN;
+    else
+      entry->score += delta;
+  }
+
+  /* FIXME: update path desirability! */
 }
 
 
@@ -103,6 +178,25 @@ GCPP_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                     const struct GNUNET_PeerIdentity *put_path,
                     unsigned int put_path_length)
 {
+  struct CadetPeerPath *path;
+
+  path = GNUNET_new (struct CadetPeerPath);
+  path->entries_length = get_path_length + put_path_length;
+  path->entries = GNUNET_new_array (path->entries_length,
+                                    struct CadetPeerPathEntry);
+  for (unsigned int i=0;i<get_path_length + put_path_length;i++)
+  {
+    struct CadetPeerPathEntry *entry = &path->entries[i];
+    const struct GNUNET_PeerIdentity *pid;
+
+    pid = (i < get_path_length) ? &get_path[get_path_length - i] : &put_path[path->entries_length - i];
+    entry->peer = GCP_get (pid,
+                           GNUNET_YES);
+    entry->path = path;
+    GCP_path_entry_add (entry->peer,
+                        entry,
+                        i);
+  }
   GNUNET_break (0);
   return NULL;
 }
