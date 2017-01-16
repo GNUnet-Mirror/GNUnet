@@ -402,7 +402,7 @@ struct GNUNET_MQ_MessageHandler
  * @param ctx context for the callbacks
  */
 #define GNUNET_MQ_hd_var_size(name,code,str,ctx)             \
-  ({                                                         \
+  __extension__ ({                                           \
     int (*_mv)(void *cls, const str *msg) = &check_##name;   \
     void (*_cb)(void *cls, const str *msg) = &handle_##name; \
     ((struct GNUNET_MQ_MessageHandler)                       \
