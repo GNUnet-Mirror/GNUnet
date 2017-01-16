@@ -28,6 +28,7 @@
 #ifndef GNUNET_SERVICE_CADET_TUNNELS_H
 #define GNUNET_SERVICE_CADET_TUNNELS_H
 
+#include "gnunet-service-cadet-new.h"
 
 /**
  * How many connections would we like to have per tunnel?
@@ -153,6 +154,20 @@ GCT_create_tunnel (struct CadetPeer *destination);
  */
 struct CadetPeer *
 GCT_get_destination (struct CadetTunnel *t);
+
+
+/**
+ * Consider using the path @a p for the tunnel @a t.
+ * The tunnel destination is at offset @a off in path @a p.
+ *
+ * @param cls our tunnel
+ * @param path a path to our destination
+ * @param off offset of the destination on path @a path
+ */
+void
+GCT_consider_path (struct CadetTunnel *t,
+                   struct CadetPeerPath *p,
+                   unsigned int off);
 
 
 /**

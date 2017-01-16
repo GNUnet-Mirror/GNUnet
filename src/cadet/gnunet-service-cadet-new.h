@@ -31,27 +31,32 @@
 #include "gnunet_util_lib.h"
 
 /**
- * A client to the CADET service.
+ * A client to the CADET service.  Each client gets a unique handle.
  */
 struct CadetClient;
 
 /**
- * A peer in the GNUnet network.
+ * A peer in the GNUnet network.  Each peer we care about must have one globally
+ * unique such handle within this process.
  */
 struct CadetPeer;
 
 /**
- * Tunnel from us to another peer.
+ * Tunnel from us to another peer.  There can only be at most one
+ * tunnel per peer.
  */
 struct CadetTunnel;
 
 /**
- * Entry in the message queue of a `struct CadetTunnel`
+ * Entry in the message queue of a `struct CadetTunnel`.
  */
 struct CadetTunnelQueueEntry;
 
 /**
- * A path of peer in the GNUnet network.
+ * A path of peer in the GNUnet network.  There must only be at most
+ * once such path.  Paths may share disjoint prefixes, but must all
+ * end at a unique suffix.  Paths must also not be proper subsets of
+ * other existing paths.
  */
 struct CadetPeerPath;
 
@@ -81,6 +86,11 @@ struct CadetPeerPathEntry
   struct CadetPeerPath *path;
 
   /**
+   * Connection using this path, or NULL for none.
+   */
+  struct CadetConnection *cc;
+
+  /**
    * Path's historic score up to this point.  Basically, how often did
    * we succeed or fail to use the path up to this entry in a
    * connection.  Positive values indicate good experiences, negative
@@ -93,12 +103,14 @@ struct CadetPeerPathEntry
 
 
 /**
- * Active path through the network (used by a tunnel).
+ * Active path through the network (used by a tunnel).  There may
+ * be at most one connection per path.
  */
 struct CadetConnection;
 
 /**
- * Logical end-to-end conenction between clients.
+ * Logical end-to-end conenction between clients.  There can be
+ * any number of channels between clients.
  */
 struct CadetChannel;
 

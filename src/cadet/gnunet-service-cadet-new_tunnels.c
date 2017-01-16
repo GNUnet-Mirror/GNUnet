@@ -24,6 +24,11 @@
  * @brief Information we track per tunnel.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
+ *
+ * FIXME:
+ * - when managing connections, distinguish those that
+ *   have (recently) had traffic from those that were
+ *   never ready (or not recently)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -35,6 +40,7 @@
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet-service-cadet-new_peer.h"
+#include "gnunet-service-cadet-new_paths.h"
 
 
 /**
@@ -212,7 +218,12 @@ struct CadetTConnection
   /**
    * Connection handle.
    */
-  struct CadetConnection *c;
+  struct CadetConnection *cc;
+
+  /**
+   * Tunnel this connection belongs to.
+   */
+  struct CadetTunnel *t;
 
   /**
    * Creation time, to keep oldest connection alive.
@@ -269,9 +280,9 @@ struct CadetTunnelQueueEntry
 struct CadetTunnel
 {
   /**
-   * Endpoint of the tunnel.
+   * Destination of the tunnel.
    */
-  struct CadetPeer *peer;
+  struct CadetPeer *destination;
 
   /**
    * Peer's ephemeral key, to recreate @c e_key and @c d_key when own
@@ -348,7 +359,7 @@ struct CadetTunnel
   /**
    * Task to trim connections if too many are present.
    */
-  struct GNUNET_SCHEDULER_Task *trim_connections_task;
+  struct GNUNET_SCHEDULER_Task *maintain_connections_task;
 
   /**
    * Ephemeral message in the queue (to avoid queueing more than one).
@@ -390,7 +401,7 @@ GCT_2s (const struct CadetTunnel *t)
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "T(%s)",
-                   GCP_2s (t->peer));
+                   GCP_2s (t->destination));
   return buf;
 }
 
@@ -404,7 +415,7 @@ GCT_2s (const struct CadetTunnel *t)
 struct CadetPeer *
 GCT_get_destination (struct CadetTunnel *t)
 {
-  return t->peer;
+  return t->destination;
 }
 
 
@@ -503,13 +514,215 @@ static void
 destroy_tunnel (void *cls)
 {
   struct CadetTunnel *t = cls;
+  struct CadetTConnection *ct;
+  struct CadetTunnelQueueEntry *tqe;
 
   t->destroy_task = NULL;
-
-  // FIXME: implement!
-  GCP_drop_tunnel (t->peer,
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (t->channels));
+  while (NULL != (ct = t->connection_head))
+  {
+    GNUNET_assert (ct->t == t);
+    GNUNET_CONTAINER_DLL_remove (t->connection_head,
+                                 t->connection_tail,
+                                 ct);
+    GCC_destroy (ct->cc);
+    GNUNET_free (ct);
+  }
+  while (NULL != (tqe = t->tq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (t->tq_head,
+                                 t->tq_tail,
+                                 tqe);
+    // FIXME: implement!
+    GNUNET_free (tqe);
+  }
+  GCP_drop_tunnel (t->destination,
                    t);
+  GNUNET_CONTAINER_multihashmap32_destroy (t->channels);
+  if (NULL != t->maintain_connections_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->maintain_connections_task);
+    t->maintain_connections_task = NULL;
+  }
   GNUNET_free (t);
+}
+
+
+/**
+ * A connection is ready for transmission.  Looks at our message queue
+ * and if there is a message, sends it out via the connection.
+ *
+ * @param cls the `struct CadetTConnection` that is ready
+ */
+static void
+connection_ready_cb (void *cls)
+{
+  struct CadetTConnection *ct = cls;
+  struct CadetTunnel *t = ct->t;
+  struct CadetTunnelQueueEntry *tq = t->tq_head;
+
+  if (NULL == tq)
+    return; /* no messages pending right now */
+
+  /* ready to send message 'tq' on tunnel 'ct' */
+  GNUNET_assert (t == tq->t);
+  GNUNET_CONTAINER_DLL_remove (t->tq_head,
+                               t->tq_tail,
+                               tq);
+  GCC_transmit (ct->cc,
+                (const struct GNUNET_MessageHeader *) &tq[1]);
+  tq->cont (tq->cont_cls);
+  GNUNET_free (tq);
+}
+
+
+/**
+ * Called when either we have a new connection, or a new message in the
+ * queue, or some existing connection has transmission capacity.  Looks
+ * at our message queue and if there is a message, picks a connection
+ * to send it on.
+ *
+ * @param t tunnel to process messages on
+ */
+static void
+trigger_transmissions (struct CadetTunnel *t)
+{
+  struct CadetTConnection *ct;
+
+  if (NULL == t->tq_head)
+    return; /* no messages pending right now */
+  for (ct = t->connection_head;
+       NULL != ct;
+       ct = ct->next)
+    if (GNUNET_YES == GCC_is_ready (ct->cc))
+      break;
+  if (NULL == ct)
+    return; /* no connections ready */
+  connection_ready_cb (ct);
+}
+
+
+/**
+ * Function called to maintain the connections underlying our tunnel.
+ * Tries to maintain (incl. tear down) connections for the tunnel, and
+ * if there is a significant change, may trigger transmissions.
+ *
+ * Basically, needs to check if there are connections that perform
+ * badly, and if so eventually kill them and trigger a replacement.
+ * The strategy is to open one more connection than
+ * #DESIRED_CONNECTIONS_PER_TUNNEL, and then periodically kick out the
+ * least-performing one, and then inquire for new ones.
+ *
+ * @param cls the `struct CadetTunnel`
+ */
+static void
+maintain_connections_cb (void *cls)
+{
+  struct CadetTunnel *t = cls;
+
+  GNUNET_break (0); // FIXME: implement!
+}
+
+
+/**
+ * Consider using the path @a p for the tunnel @a t.
+ * The tunnel destination is at offset @a off in path @a p.
+ *
+ * @param cls our tunnel
+ * @param path a path to our destination
+ * @param off offset of the destination on path @a path
+ * @return #GNUNET_YES (should keep iterating)
+ */
+static int
+consider_path_cb (void *cls,
+                  struct CadetPeerPath *path,
+                  unsigned int off)
+{
+  struct CadetTunnel *t = cls;
+  unsigned int min_length = UINT_MAX;
+  GNUNET_CONTAINER_HeapCostType max_desire = 0;
+  struct CadetTConnection *ct;
+
+  /* Check if we care about the new path. */
+  for (ct = t->connection_head;
+       NULL != ct;
+       ct = ct->next)
+  {
+    struct CadetPeerPath *ps;
+
+    ps = GCC_get_path (ct->cc);
+    if (ps == path)
+      return GNUNET_YES; /* duplicate */
+    min_length = GNUNET_MIN (min_length,
+                             GCPP_get_length (ps));
+    max_desire = GNUNET_MAX (max_desire,
+                             GCPP_get_desirability (ps));
+  }
+
+  /* FIXME: not sure we should really just count
+     'num_connections' here, as they may all have
+     consistently failed to connect. */
+
+  /* We iterate by increasing path length; if we have enough paths and
+     this one is more than twice as long than what we are currently
+     using, then ignore all of these super-long ones! */
+  if ( (t->num_connections > DESIRED_CONNECTIONS_PER_TUNNEL) &&
+       (min_length * 2 < off) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Ignoring paths of length %u, they are way too long.\n",
+                min_length * 2);
+    return GNUNET_NO;
+  }
+  /* If we have enough paths and this one looks no better, ignore it. */
+  if ( (t->num_connections >= DESIRED_CONNECTIONS_PER_TUNNEL) &&
+       (min_length < GCPP_get_length (path)) &&
+       (max_desire > GCPP_get_desirability (path)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Ignoring path (%u/%llu) to %s, got something better already.\n",
+                GCPP_get_length (path),
+                (unsigned long long) GCPP_get_desirability (path),
+                GCP_2s (t->destination));
+    return GNUNET_YES;
+  }
+
+  /* Path is interesting (better by some metric, or we don't have
+     enough paths yet). */
+  ct = GNUNET_new (struct CadetTConnection);
+  ct->created = GNUNET_TIME_absolute_get ();
+  ct->t = t;
+  ct->cc = GCC_create (t->destination,
+                      path,
+                      &connection_ready_cb,
+                      t);
+  /* FIXME: schedule job to kill connection (and path?)  if it takes
+     too long to get ready! (And track performance data on how long
+     other connections took with the tunnel!) */
+  GNUNET_CONTAINER_DLL_insert (t->connection_head,
+                               t->connection_tail,
+                               ct);
+  t->num_connections++;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Consider using the path @a p for the tunnel @a t.
+ * The tunnel destination is at offset @a off in path @a p.
+ *
+ * @param cls our tunnel
+ * @param path a path to our destination
+ * @param off offset of the destination on path @a path
+ */
+void
+GCT_consider_path (struct CadetTunnel *t,
+                   struct CadetPeerPath *p,
+                   unsigned int off)
+{
+  (void) consider_path_cb (t,
+                           p,
+                           off);
 }
 
 
@@ -526,9 +739,14 @@ GCT_create_tunnel (struct CadetPeer *destination)
   struct CadetTunnel *t;
 
   t = GNUNET_new (struct CadetTunnel);
-  t->peer = destination;
+  t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
-
+  (void) GCP_iterate_paths (destination,
+                            &consider_path_cb,
+                            t);
+  t->maintain_connections_task
+    = GNUNET_SCHEDULER_add_now (&maintain_connections_cb,
+                                t);
   return t;
 }
 
@@ -589,7 +807,8 @@ GCT_send (struct CadetTunnel *t,
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head,
                                     t->tq_tail,
                                     q);
-  /* FIXME: initiate transmission process! */
+  /* FIXME: what about KX being ready? */
+  trigger_transmissions (t);
   return q;
 }
 
@@ -631,7 +850,7 @@ GCT_iterate_connections (struct CadetTunnel *t,
        NULL != ct;
        ct = ct->next)
     iter (iter_cls,
-          ct->c);
+          ct->cc);
 }
 
 
@@ -820,7 +1039,8 @@ GCT_debug (const struct CadetTunnel *t,
   LOG2 (level,
         "TTT connections:\n");
   for (iter_c = t->connection_head; NULL != iter_c; iter_c = iter_c->next)
-    GCC_debug (iter_c->c, level);
+    GCC_debug (iter_c->cc,
+               level);
 
   LOG2 (level,
         "TTT TUNNEL END\n");

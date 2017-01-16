@@ -63,11 +63,10 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
  * Obtain the peer identity for a `struct CadetPeer`.
  *
  * @param cp our peer handle
- * @param[out] peer_id where to write the peer identity
+ * @return the peer identity
  */
-void
-GCP_id (struct CadetPeer *cp,
-        struct GNUNET_PeerIdentity *peer_id);
+const struct GNUNET_PeerIdentity *
+GCP_get_id (struct CadetPeer *cp);
 
 
 /**
@@ -84,40 +83,38 @@ GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
 /**
  * Count the number of known paths toward the peer.
  *
- * @param peer Peer to get path info.
+ * @param cp Peer to get path info.
  * @return Number of known paths.
  */
 unsigned int
-GCP_count_paths (const struct CadetPeer *peer);
+GCP_count_paths (const struct CadetPeer *cp);
 
 
 /**
  * Peer path iterator.
  *
  * @param cls Closure.
- * @param peer Peer this path is towards.
  * @param path Path itself
+ * @param off offset of the target peer in @a path
  * @return #GNUNET_YES if should keep iterating.
  *         #GNUNET_NO otherwise.
- *
- * FIXME: peer argument should be redundant; remove!
  */
 typedef int
 (*GCP_PathIterator) (void *cls,
-                     struct CadetPeer *peer,
-                     struct CadetPeerPath *path);
+                     struct CadetPeerPath *path,
+                     unsigned int off);
 
 
 /**
  * Iterate over the paths to a peer.
  *
- * @param peer Peer to get path info.
+ * @param cp Peer to get path info.
  * @param callback Function to call for every path.
  * @param callback_cls Closure for @a callback.
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths (struct CadetPeer *peer,
+GCP_iterate_paths (struct CadetPeer *cp,
                    GCP_PathIterator callback,
                    void *callback_cls);
 
@@ -151,12 +148,12 @@ GCP_path_entry_add (struct CadetPeer *cp,
 /**
  * Get the tunnel towards a peer.
  *
- * @param peer Peer to get from.
+ * @param cp Peer to get from.
  * @param create #GNUNET_YES to create a tunnel if we do not have one
  * @return Tunnel towards peer.
  */
 struct CadetTunnel *
-GCP_get_tunnel (struct CadetPeer *peer,
+GCP_get_tunnel (struct CadetPeer *cp,
                 int create);
 
 
@@ -164,23 +161,37 @@ GCP_get_tunnel (struct CadetPeer *peer,
  * The tunnel to the given peer no longer exists, remove it from our
  * data structures, and possibly clean up the peer itself.
  *
- * @param peer the peer affected
+ * @param cp the peer affected
  * @param t the dead tunnel
  */
 void
-GCP_drop_tunnel (struct CadetPeer *peer,
+GCP_drop_tunnel (struct CadetPeer *cp,
                  struct CadetTunnel *t);
 
 
 /**
- * We got a HELLO for a @a peer, remember it, and possibly
+ * Try adding a @a path to this @a cp.  If the peer already
+ * has plenty of paths, return NULL.
+ *
+ * @param cp peer to which the @a path leads to
+ * @param path a path looking for an owner
+ * @return NULL if this peer does not care to become a new owner,
+ *         otherwise the node in the peer's path heap for the @a path.
+ */
+struct GNUNET_CONTAINER_HeapNode *
+GCP_attach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path);
+
+
+/**
+ * We got a HELLO for a @a cp, remember it, and possibly
  * trigger adequate actions (like trying to connect).
  *
- * @param peer the peer we got a HELLO for
+ * @param cp the peer we got a HELLO for
  * @param hello the HELLO to remember
  */
 void
-GCP_set_hello (struct CadetPeer *peer,
+GCP_set_hello (struct CadetPeer *cp,
                const struct GNUNET_HELLO_Message *hello);
 
 

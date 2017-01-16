@@ -86,7 +86,7 @@ struct CadetPeerPath
 GNUNET_CONTAINER_HeapCostType
 GCPP_get_desirability (const struct CadetPeerPath *path)
 {
-  GNUNET_assert (0);
+  GNUNET_break (0);
   return 0;
 }
 
@@ -98,16 +98,100 @@ GCPP_get_desirability (const struct CadetPeerPath *path)
  * the path desirable).
  *
  * @param path the path that is being released
- * @param cp original final destination of @a path
  * @param node entry in the heap of @a cp where this path is anchored
  *             should be used for updates to the desirability of this path
  */
 void
 GCPP_acquire (struct CadetPeerPath *path,
-              struct CadetPeer *cp,
               struct GNUNET_CONTAINER_HeapNode *node)
 {
-  GNUNET_assert (0);
+  GNUNET_assert (NULL == path->hn);
+  path->hn = node;
+}
+
+
+/**
+ * Return connection to @a destination using @a path, or return
+ * NULL if no such connection exists.
+ *
+ * @param path path to traverse
+ * @param destination destination node to get to, must be on path
+ * @param off offset of @a destination on @a path
+ * @return NULL if @a create is NO and we have no existing connection
+ *         otherwise connection from us to @a destination via @a path
+ */
+struct CadetConnection *
+GCPP_get_connection (struct CadetPeerPath *path,
+                     struct CadetPeer *destination,
+                     unsigned int off)
+{
+  struct CadetPeerPathEntry *entry;
+
+  GNUNET_assert (off < path->entries_length);
+  entry = &path->entries[off];
+  GNUNET_assert (entry->peer == destination);
+  return entry->cc;
+}
+
+
+/**
+ * Notify @a path that it is used for connection @a cc
+ * which ends at the path's offset @a off.
+ *
+ * @param path the path to remember the @a cc
+ * @param off the offset where the @a cc ends
+ * @param cc the connection to remember
+ */
+void
+GCPP_add_connection (struct CadetPeerPath *path,
+                     unsigned int off,
+                     struct CadetConnection *cc)
+{
+  struct CadetPeerPathEntry *entry;
+
+  GNUNET_assert (off < path->entries_length);
+  entry = &path->entries[off];
+  GNUNET_assert (NULL == entry->cc);
+  entry->cc = cc;
+}
+
+
+
+/**
+ * Notify @a path that it is no longer used for connection @a cc which
+ * ended at the path's offset @a off.
+ *
+ * @param path the path to forget the @a cc
+ * @param off the offset where the @a cc ended
+ * @param cc the connection to forget
+ */
+void
+GCPP_del_connection (struct CadetPeerPath *path,
+                     unsigned int off,
+                     struct CadetConnection *cc)
+{
+  struct CadetPeerPathEntry *entry;
+
+  GNUNET_assert (off < path->entries_length);
+  entry = &path->entries[off];
+  GNUNET_assert (cc == entry->cc);
+  entry->cc = NULL;
+}
+
+
+/**
+ * This path is no longer needed, free resources.
+ *
+ * @param path path resources to free
+ */
+static void
+path_destroy (struct CadetPeerPath *path)
+{
+  GNUNET_assert (0 ==
+                 GNUNET_CONTAINER_multipeermap_size (path->connections));
+  GNUNET_CONTAINER_multipeermap_destroy (path->connections);
+  GNUNET_free (path->entries);
+  GNUNET_free (path);
 }
 
 
@@ -121,7 +205,34 @@ GCPP_acquire (struct CadetPeerPath *path,
 void
 GCPP_release (struct CadetPeerPath *path)
 {
-  GNUNET_assert (0);
+  struct CadetPeerPathEntry *entry;
+
+  path->hn = NULL;
+  entry = &path->entries[path->entries_length - 1];
+  while (1)
+  {
+    /* cut 'off' end of path, verifying it is not in use */
+    GNUNET_assert (NULL ==
+                   GNUNET_CONTAINER_multipeermap_get (path->connections,
+                                                      GCP_get_id (entry->peer)));
+    GCP_path_entry_remove (entry->peer,
+                           entry,
+                           path->entries_length - 1);
+    path->entries_length--; /* We don't bother shrinking the 'entries' array,
+                               as it's probably not worth it. */
+    if (0 == path->entries_length)
+      break; /* the end */
+
+    /* see if new peer at the end likes this path any better */
+    entry = &path->entries[path->entries_length - 1];
+    path->hn = GCP_attach_path (entry->peer,
+                                path);
+    if (NULL != path->hn)
+      return; /* yep, got attached, we are done. */
+  }
+
+  /* nobody wants us, discard the path */
+  path_destroy (path);
 }
 
 
@@ -165,6 +276,16 @@ GCPP_update_score (struct CadetPeerPath *path,
 
 /**
  * Create a peer path based on the result of a DHT lookup.
+ * If we already know this path, or one that is longer,
+ * simply return NULL.
+ *
+ * FIXME: change API completely!
+ * Should in here create path transiently, then call
+ * callback, and then do path destroy (if applicable)
+ * without returning in the middle.
+ *
+ * FIXME: also need to nicely handle case that this path
+ * extends (lengthens!) an existing path.
  *
  * @param get_path path of the get request
  * @param get_path_length lenght of @a get_path
@@ -208,9 +329,11 @@ GCPP_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
  * @param p path to destroy.
  */
 void
-GCPP_path_destroy (struct CadetPeerPath *p)
+GCPP_path_destroy (struct CadetPeerPath *path)
 {
-  GNUNET_assert (0);
+  if (NULL != path->hn)
+    return; /* path was attached, to be kept! */
+  path_destroy (path);
 }
 
 
@@ -224,24 +347,43 @@ GCPP_path_destroy (struct CadetPeerPath *p)
 unsigned int
 GCPP_get_length (struct CadetPeerPath *path)
 {
-  GNUNET_assert (0);
-  return -1;
+  return path->entries_length;
 }
 
 
 /**
- * Obtain the identity of the peer at offset @a off in @a path.
+ * Find peer's offset on path.
+ *
+ * @param path path to search
+ * @param cp peer to look for
+ * @return offset of @a cp on @a path, or UINT_MAX if not found
+ */
+unsigned int
+GCPP_find_peer (struct CadetPeerPath *path,
+                struct CadetPeer *cp)
+{
+  for (unsigned int off = 0;
+       off < path->entries_length;
+       off++)
+    if (cp == GCPP_get_peer_at_offset (path,
+                                       off))
+      return off;
+  return UINT_MAX;
+}
+
+
+/**
+ * Obtain the peer at offset @a off in @a path.
  *
  * @param path peer path to inspect
  * @param off offset to return, must be smaller than path length
- * @param[out] pid where to write the pid, must not be NULL
+ * @return the peer at offset @a off
  */
-void
-GCPP_get_pid_at_offset (struct CadetPeerPath *path,
-                        unsigned int off,
-                        struct GNUNET_PeerIdentity *pid)
+struct CadetPeer *
+GCPP_get_peer_at_offset (struct CadetPeerPath *path,
+                         unsigned int off)
 {
-  GNUNET_assert (0);
+  return path->entries[off].peer;
 }
 
 

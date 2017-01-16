@@ -350,6 +350,13 @@ GCP_path_entry_add (struct CadetPeer *cp,
                                cp->path_tails[off],
                                entry);
   cp->num_paths++;
+
+  /* If we have a tunnel to this peer, tell the tunnel that there is a
+     new path available. */
+  if (NULL != cp->t)
+    GCT_consider_path (cp->t,
+                       entry->path,
+                       off);
 }
 
 
@@ -374,19 +381,22 @@ GCP_path_entry_remove (struct CadetPeer *cp,
 
 
 /**
- * Function called when the DHT finds a @a path to the peer (@a cls).
+ * Try adding a @a path to this @a peer.  If the peer already
+ * has plenty of paths, return NULL.
  *
- * @param cls the `struct CadetPeer`
- * @param path the path that was found
+ * @param cp peer to which the @a path leads to
+ * @param path a path looking for an owner
+ * @return NULL if this peer does not care to become a new owner,
+ *         otherwise the node in the peer's path heap for the @a path.
  */
-static void
-dht_result_cb (void *cls,
-               struct CadetPeerPath *path)
+struct GNUNET_CONTAINER_HeapNode *
+GCP_attach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path)
 {
-  struct CadetPeer *cp = cls;
   GNUNET_CONTAINER_HeapCostType desirability;
   struct CadetPeerPath *root;
   GNUNET_CONTAINER_HeapCostType root_desirability;
+  struct GNUNET_CONTAINER_HeapNode *hn;
 
   desirability = GCPP_get_desirability (path);
   if (GNUNET_NO ==
@@ -397,23 +407,60 @@ dht_result_cb (void *cls,
     root = NULL;
     root_desirability = 0;
   }
-  if ( (DESIRED_CONNECTIONS_PER_TUNNEL <= cp->num_paths) ||
-       (desirability >= root_desirability) )
-  {
-    /* Yes, we'd like to add this path, add to our heap */
-    GCPP_acquire (path,
-                  cp,
-                  GNUNET_CONTAINER_heap_insert (cp->path_heap,
-                                                (void *) path,
-                                                desirability));
-  }
+
+  if ( (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) &&
+       (desirability < root_desirability) )
+    return NULL;
+
+  /* Yes, we'd like to add this path, add to our heap */
+  hn = GNUNET_CONTAINER_heap_insert (cp->path_heap,
+                                     (void *) cp,
+                                     desirability);
+
+  /* Consider maybe dropping other paths because of the new one */
   if (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
       2 * DESIRED_CONNECTIONS_PER_TUNNEL)
   {
-    /* Now we have way too many, drop least desirable */
-    root = GNUNET_CONTAINER_heap_remove_root (cp->path_heap);
-    GCPP_release (path);
+    /* Now we have way too many, drop least desirable UNLESS it is in use!
+       (Note that this intentionally keeps highly desireable, but currently
+       unused paths around in the hope that we might be able to switch, even
+       if the number of paths exceeds the threshold.) */
+    root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
+    if (NULL ==
+        GCPP_get_connection (root,
+                             cp,
+                             GCPP_get_length (root) - 1))
+    {
+      /* Got plenty of paths to this destination, and this is a low-quality
+         one that we don't care, allow it to die. */
+      GNUNET_assert (root ==
+                     GNUNET_CONTAINER_heap_remove_root (cp->path_heap));
+      GCPP_release (root);
+    }
   }
+  return hn;
+}
+
+
+/**
+ * Function called when the DHT finds a @a path to the peer (@a cls).
+ *
+ * @param cls the `struct CadetPeer`
+ * @param path the path that was found
+ */
+static void
+dht_result_cb (void *cls,
+               struct CadetPeerPath *path)
+{
+  struct CadetPeer *cp = cls;
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
+  hn = GCP_attach_path (cp,
+                        path);
+  if (NULL == hn)
+    return;
+  GCPP_acquire (path,
+                hn);
 }
 
 
@@ -508,9 +555,6 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
   cp->connections = GNUNET_CONTAINER_multihashmap_create (32,
                                                           GNUNET_YES);
   cp->path_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  cp->search_h = NULL; // FIXME: start search immediately!?
-  cp->connectivity_suggestion = NULL; // FIXME: request with ATS!?
-
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_put (peers,
                                                     &cp->pid,
@@ -524,13 +568,12 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
  * Obtain the peer identity for a `struct CadetPeer`.
  *
  * @param cp our peer handle
- * @param[out] peer_id where to write the peer identity
+ * @return the peer identity
  */
-void
-GCP_id (struct CadetPeer *cp,
-        struct GNUNET_PeerIdentity *peer_id)
+const struct GNUNET_PeerIdentity *
+GCP_get_id (struct CadetPeer *cp)
 {
-  *peer_id = cp->pid;
+  return &cp->pid;
 }
 
 
@@ -586,8 +629,8 @@ GCP_iterate_paths (struct CadetPeer *peer,
     {
       if (GNUNET_NO ==
           callback (callback_cls,
-                    peer,
-                    pe->path))
+                    pe->path,
+                    i))
         return ret;
       ret++;
     }
@@ -629,7 +672,7 @@ void
 GCP_set_hello (struct CadetPeer *peer,
                const struct GNUNET_HELLO_Message *hello)
 {
-  /* FIXME! */
+  /* FIXME: keep HELLO, possibly offer to TRANSPORT... */
 
   consider_peer_destroy (peer);
 }

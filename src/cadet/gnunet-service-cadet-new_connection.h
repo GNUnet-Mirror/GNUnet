@@ -33,6 +33,64 @@
 #include "gnunet-service-cadet-new_peer.h"
 
 
+/**
+ * Is the given connection currently ready for transmission?
+ *
+ * @param cc connection to transmit on
+ * @return #GNUNET_YES if we could transmit
+ */
+int
+GCC_is_ready (struct CadetConnection *cc);
+
+
+/**
+ * Destroy a connection.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy (struct CadetConnection *cc);
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ */
+struct CadetConnection *
+GCC_create (struct CadetPeer *destination,
+            struct CadetPeerPath *path,
+            GNUNET_SCHEDULER_TaskCallback ready_cb,
+            void *ready_cb_cls);
+
+
+/**
+ * Transmit message @a msg via connection @a cc.  Must only be called
+ * (once) after the connection has signalled that it is ready via the
+ * `ready_cb`.  Clients can also use #GCC_is_ready() to check if the
+ * connection is right now ready for transmission.
+ *
+ * @param cc connection identification
+ * @param msg message to transmit
+ */
+void
+GCC_transmit (struct CadetConnection *cc,
+              const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Obtain the path used by this connection.
+ *
+ * @param cc connection
+ * @return path to @a cc
+ */
+struct CadetPeerPath *
+GCC_get_path (struct CadetConnection *cc);
+
 
 /**
  * Obtain unique ID for the connection.

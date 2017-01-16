@@ -271,8 +271,7 @@ GSC_bind (struct CadetClient *c,
   msg->channel_id = lid;
   msg->port = *port;
   msg->opt = htonl (options);
-  GCP_id (dest,
-          &msg->peer);
+  msg->peer = *GCP_get_id (dest);
   GSC_send_to_client (c,
                       env);
   return lid;
@@ -732,15 +731,15 @@ handle_get_peers (void *cls,
  * Message contains blocks of peers, first not included.
  *
  * @param cls message queue for transmission
- * @param peer Peer this path is towards.
  * @param path Path itself
+ * @param off offset of the peer on @a path
  * @return #GNUNET_YES if should keep iterating.
  *         #GNUNET_NO otherwise.
  */
 static int
 path_info_iterator (void *cls,
-                    struct CadetPeer *peer,
-                    struct CadetPeerPath *path)
+                    struct CadetPeerPath *path,
+                    unsigned int off)
 {
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -767,10 +766,9 @@ path_info_iterator (void *cls,
   /* Don't copy first peer.  First peer is always the local one.  Last
    * peer is always the destination (leave as 0, EOL).
    */
-  for (i = 0; i < path_length - 1; i++)
-    GCPP_get_pid_at_offset (path,
-                            i + 1,
-                            &id[i]);
+  for (i = 0; i < off; i++)
+    id[i] = *GCP_get_id (GCPP_get_peer_at_offset (path,
+                                                  i + 1));
   GNUNET_MQ_send (mq,
                   env);
   return GNUNET_YES;
