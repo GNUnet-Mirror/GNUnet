@@ -1019,6 +1019,7 @@ handle_client_member_join (void *cls,
   if (NULL == mem)
   {
     mem = GNUNET_new (struct Member);
+    mem->origin = msg->origin;
     mem->priv_key = msg->member_key;
     mem->pub_key = mem_pub_key;
     mem->pub_key_hash = mem_pub_key_hash;
@@ -1083,9 +1084,10 @@ handle_client_member_join (void *cls,
       join_msg_size = ntohs (join_msg->size);
     }
 
+    uint16_t req_msg_size = sizeof (struct MulticastJoinRequestMessage) + join_msg_size;
     struct MulticastJoinRequestMessage *
-      req = GNUNET_malloc (sizeof (*req) + join_msg_size);
-    req->header.size = htons (sizeof (*req) + join_msg_size);
+      req = GNUNET_malloc (req_msg_size);
+    req->header.size = htons (req_msg_size);
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_pub_key = grp->pub_key;
     req->peer = this_peer;
@@ -1094,7 +1096,7 @@ handle_client_member_join (void *cls,
       GNUNET_memcpy (&req[1], join_msg, join_msg_size);
 
     req->member_pub_key = mem->pub_key;
-    req->purpose.size = htonl (msg_size
+    req->purpose.size = htonl (req_msg_size
                                - sizeof (req->header)
                                - sizeof (req->reserved)
                                - sizeof (req->signature));
@@ -1624,9 +1626,9 @@ cadet_recv_join_decision (void *cls,
   }
 
   struct MulticastJoinDecisionMessageHeader *
-    hdcsn = GNUNET_malloc (sizeof (*hdcsn) + size);
+    hdcsn = GNUNET_malloc (size);
+  GNUNET_memcpy (hdcsn, dcsn, size);
   hdcsn->peer = chn->peer;
-  GNUNET_memcpy (&hdcsn[1], dcsn, sizeof (*hdcsn) + size);
 
   struct Member *mem = (struct Member *) chn->group;
   client_send_join_decision (mem, hdcsn);
@@ -1881,6 +1883,9 @@ client_notify_disconnect (void *cls,
 static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
   { cadet_recv_join_request,
     GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST, 0 },
+
+  { cadet_recv_join_decision,
+    GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION, 0 },
 
   { cadet_recv_message,
     GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },
