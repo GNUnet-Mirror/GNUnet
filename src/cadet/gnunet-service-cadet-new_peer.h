@@ -100,7 +100,7 @@ GCP_count_paths (const struct CadetPeer *peer);
  * @return #GNUNET_YES if should keep iterating.
  *         #GNUNET_NO otherwise.
  *
- * FIXME: path argument should be redundant; remove!
+ * FIXME: peer argument should be redundant; remove!
  */
 typedef int
 (*GCP_PathIterator) (void *cls,
@@ -120,6 +120,32 @@ unsigned int
 GCP_iterate_paths (struct CadetPeer *peer,
                    GCP_PathIterator callback,
                    void *callback_cls);
+
+
+/**
+ * Remove an entry from the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_remove (struct CadetPeer *cp,
+                       struct CadetPeerPathEntry *entry,
+                       unsigned int off);
+
+
+/**
+ * Add an entry to the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_add (struct CadetPeer *cp,
+                    struct CadetPeerPathEntry *entry,
+                    unsigned int off);
 
 
 /**

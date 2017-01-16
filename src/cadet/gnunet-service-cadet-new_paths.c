@@ -28,6 +28,66 @@
 #include "platform.h"
 #include "gnunet-service-cadet-new_paths.h"
 
+
+
+/**
+ * Return how much we like keeping the path.  This is an aggregate
+ * score based on various factors, including the age of the path
+ * (older == better), and the value of this path to all of its ajacent
+ * peers.  For example, long paths that end at a peer that we have no
+ * shorter way to reach are very desirable, while long paths that end
+ * at a peer for which we have a shorter way as well are much less
+ * desirable.  Higher values indicate more valuable paths.  The
+ * returned value should be used to decide which paths to remember.
+ *
+ * @param path path to return the length for
+ * @return desirability of the path, larger is more desirable
+ */
+GNUNET_CONTAINER_HeapCostType
+GCPP_get_desirability (struct CadetPeerPath *path)
+{
+  GNUNET_assert (0);
+  return 0;
+}
+
+
+/**
+ * The given peer @a cp used to own this @a path.  However, it is no
+ * longer interested in maintaining it, so the path should be
+ * discarded or shortened (in case a previous peer on the path finds
+ * the path desirable).
+ *
+ * @param path the path that is being released
+ * @param cp original final destination of @a path
+ * @param node entry in the heap of @a cp where this path is anchored
+ *             should be used for updates to the desirability of this path
+ */
+void
+GCPP_acquire (struct CadetPeerPath *path,
+              struct CadetPeer *cp,
+              struct GNUNET_CONTAINER_HeapNode *node)
+{
+  GNUNET_assert (0);
+}
+
+
+/**
+ * The given peer @a cp used to own this @a path.  However, it is no
+ * longer interested in maintaining it, so the path should be
+ * discarded or shortened (in case a previous peer on the path finds
+ * the path desirable).
+ *
+ * @param path the path that is being released
+ * @param cp original final destination of @a path
+ */
+void
+GCPP_release (struct CadetPeerPath *path,
+              struct CadetPeer *cp)
+{
+  GNUNET_assert (0);
+}
+
+
 /**
  * Create a peer path based on the result of a DHT lookup.
  *

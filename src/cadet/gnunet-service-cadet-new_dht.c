@@ -123,7 +123,8 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                           get_path_length,
                           put_path,
                           put_path_length);
-  h->callback (h->cls, p);
+  h->callback (h->cls,
+               p);
   GCPP_path_destroy (p);
 
   if ( (size >= sizeof (struct GNUNET_HELLO_Message)) &&

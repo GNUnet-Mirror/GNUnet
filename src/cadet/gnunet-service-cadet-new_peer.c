@@ -44,7 +44,6 @@
  */
 #define IDLE_PEER_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
-
 /**
  * Struct containing all information regarding a given peer
  */
@@ -61,14 +60,21 @@ struct CadetPeer
   struct GNUNET_TIME_Absolute last_contact;
 
   /**
-   * Paths to reach the peer, ordered by ascending hop count
+   * Array of DLLs of paths traversing the peer, organized by the
+   * offset of the peer on the larger path.
    */
-  struct CadetPeerPath *path_head;
+  struct CadetPeerPathEntry **path_heads;
 
   /**
-   * Paths to reach the peer, ordered by ascending hop count
+   * Array of DLL of paths traversing the peer, organized by the
+   * offset of the peer on the larger path.
    */
-  struct CadetPeerPath *path_tail;
+  struct CadetPeerPathEntry **path_tails;
+
+  /**
+   * MIN-heap of paths ending at this peer.  Ordered by desirability.
+   */
+  struct GNUNET_CONTAINER_Heap *path_heap;
 
   /**
    * Handle to stop the DHT search for paths to this peer
@@ -78,7 +84,7 @@ struct CadetPeer
   /**
    * Task to stop the DHT search for paths to this peer
    */
-  struct GNUNET_SCHEDULER_Task *search_delayed;
+  struct GNUNET_SCHEDULER_Task *search_delayedXXX;
 
   /**
    * Task to destroy this entry.
@@ -122,9 +128,15 @@ struct CadetPeer
   unsigned int queue_n;
 
   /**
-   * How many paths do we have to this peer (in the @e path_head DLL).
+   * How many paths do we have to this peer (in all @e path_heads DLLs combined).
    */
   unsigned int num_paths;
+
+  /**
+   * Current length of the @e path_heads and @path_tails arrays.
+   * The arrays should be grown as needed.
+   */
+  unsigned int path_dll_length;
 
 };
 
@@ -158,14 +170,21 @@ destroy_peer (void *cls)
   cp->destroy_task = NULL;
   GNUNET_assert (NULL == cp->t);
   GNUNET_assert (NULL == cp->core_mq);
+  GNUNET_assert (0 == cp->path_dll_length);
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (cp->connections));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (peers,
                                                        &cp->pid,
                                                        cp));
-  /* FIXME: clean up paths! */
-  /* FIXME: clean up search_h! */
-  /* FIXME: clean up search_delayed! */
+  GNUNET_free_non_null (cp->path_heads);
+  GNUNET_free_non_null (cp->path_tails);
+  cp->path_dll_length = 0;
+  if (NULL != cp->search_h)
+  {
+    GCD_search_stop (cp->search_h);
+    cp->search_h = NULL;
+  }
+  /* FIXME: clean up search_delayedXXX! */
 
   GNUNET_CONTAINER_multihashmap_destroy (cp->connections);
   GNUNET_free_non_null (cp->hello);
@@ -199,7 +218,10 @@ destroy_iterator_cb (void *cls,
   struct CadetPeer *cp = value;
 
   if (NULL != cp->destroy_task)
+  {
     GNUNET_SCHEDULER_cancel (cp->destroy_task);
+    cp->destroy_task = NULL;
+  }
   destroy_peer (cp);
   return GNUNET_OK;
 }
@@ -222,36 +244,88 @@ GCP_destroy_all_peers ()
 /**
  * This peer may no longer be needed, consider cleaning it up.
  *
- * @param peer peer to clean up
+ * @param cp peer to clean up
  */
 static void
-consider_peer_destroy (struct CadetPeer *peer)
+consider_peer_destroy (struct CadetPeer *cp)
 {
   struct GNUNET_TIME_Relative exp;
 
-  if (NULL != peer->destroy_task)
+  if (NULL != cp->destroy_task)
   {
-    GNUNET_SCHEDULER_cancel (peer->destroy_task);
-    peer->destroy_task = NULL;
+    GNUNET_SCHEDULER_cancel (cp->destroy_task);
+    cp->destroy_task = NULL;
   }
-  if (NULL != peer->t)
+  if (NULL != cp->t)
     return; /* still relevant! */
-  if (NULL != peer->core_mq)
+  if (NULL != cp->core_mq)
     return; /* still relevant! */
-  if (0 != GNUNET_CONTAINER_multihashmap_size (peer->connections))
+  if (0 != cp->path_dll_length)
     return; /* still relevant! */
-  if (NULL != peer->hello)
+  if (0 != GNUNET_CONTAINER_multihashmap_size (cp->connections))
+    return; /* still relevant! */
+  if (NULL != cp->hello)
   {
     /* relevant only until HELLO expires */
-    exp = GNUNET_TIME_absolute_get_remaining (GNUNET_HELLO_get_last_expiration (peer->hello));
-    peer->destroy_task = GNUNET_SCHEDULER_add_delayed (exp,
+    exp = GNUNET_TIME_absolute_get_remaining (GNUNET_HELLO_get_last_expiration (cp->hello));
+    cp->destroy_task = GNUNET_SCHEDULER_add_delayed (exp,
                                                        &destroy_peer,
-                                                       peer);
+                                                       cp);
     return;
   }
-  peer->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PEER_TIMEOUT,
-                                                     &destroy_peer,
-                                                     peer);
+  cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PEER_TIMEOUT,
+                                                   &destroy_peer,
+                                                   cp);
+}
+
+
+/**
+ * Add an entry to the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_add (struct CadetPeer *cp,
+                    struct CadetPeerPathEntry *entry,
+                    unsigned int off)
+{
+  if (off >= cp->path_dll_length)
+  {
+    unsigned int len = cp->path_dll_length;
+
+    GNUNET_array_grow (cp->path_heads,
+                       len,
+                       off + 4);
+    GNUNET_array_grow (cp->path_tails,
+                       cp->path_dll_length,
+                       off + 4);
+  }
+  GNUNET_CONTAINER_DLL_insert (cp->path_heads[off],
+                               cp->path_tails[off],
+                               entry);
+  cp->num_paths++;
+}
+
+
+/**
+ * Remove an entry from the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_remove (struct CadetPeer *cp,
+                       struct CadetPeerPathEntry *entry,
+                       unsigned int off)
+{
+  GNUNET_CONTAINER_DLL_remove (cp->path_heads[off],
+                               cp->path_tails[off],
+                               entry);
+  GNUNET_assert (0 < cp->num_paths);
+  cp->num_paths--;
 }
 
 
@@ -265,55 +339,100 @@ static void
 dht_result_cb (void *cls,
                const struct CadetPeerPath *path)
 {
-  struct CadetPeer *peer = cls;
+  struct CadetPeer *cp = cls;
+  GNUNET_CONTAINER_HeapCostType desirability;
+  struct CadetPeerPath *root;
+  GNUNET_CONTAINER_HeapCostType root_desirability;
 
-  // FIXME: handle path!
+  desirability = GCPP_get_desirability (path);
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_heap_peek2 (cp->path_heap,
+                                   (void **) &root,
+                                   &root_desirability))
+  {
+    root = NULL;
+    root_desirability = 0;
+  }
+  if ( (DESIRED_CONNECTIONS_PER_TUNNEL <= cp->num_paths) ||
+       (desirability >= root_desirability) )
+  {
+    /* Yes, we'd like to add this path, add to our heap */
+    GCPP_acquire (path,
+                  cp,
+                  GNUNET_CONTAINER_heap_insert (cp->path_heap,
+                                                (void *) path,
+                                                desirability));
+  }
+  if (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
+      2 * DESIRED_CONNECTIONS_PER_TUNNEL)
+  {
+    /* Now we have way too many, drop least desirable */
+    root = GNUNET_CONTAINER_heap_remove_root (cp->path_heap);
+    GCPP_release (path,
+                  cp);
+  }
 }
 
 
 /**
  * This peer is now on more "active" duty, activate processes related to it.
  *
- * @param peer the more-active peer
+ * @param cp the more-active peer
  */
 static void
-consider_peer_activate (struct CadetPeer *peer)
+consider_peer_activate (struct CadetPeer *cp)
 {
   uint32_t strength;
 
-  if (NULL != peer->destroy_task)
+  if (NULL != cp->destroy_task)
   {
     /* It's active, do not destory! */
-    GNUNET_SCHEDULER_cancel (peer->destroy_task);
-    peer->destroy_task = NULL;
+    GNUNET_SCHEDULER_cancel (cp->destroy_task);
+    cp->destroy_task = NULL;
   }
-  if (NULL == peer->core_mq)
+  if ( (0 == GNUNET_CONTAINER_multihashmap_size (cp->connections)) &&
+       (NULL == cp->t) )
+  {
+    /* We're just on a path or directly connected; don't bother too much */
+    if (NULL != cp->connectivity_suggestion)
+    {
+      GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
+      cp->connectivity_suggestion = NULL;
+    }
+    if (NULL != cp->search_h)
+    {
+      GCD_search_stop (cp->search_h);
+      cp->search_h = NULL;
+    }
+    return;
+  }
+  if (NULL == cp->core_mq)
   {
     /* Lacks direct connection, try to create one by querying the DHT */
-    if ( (NULL == peer->search_h) &&
-         (DESIRED_CONNECTIONS_PER_TUNNEL < peer->num_paths) )
-      peer->search_h
-        = GCD_search (&peer->pid,
+    if ( (NULL == cp->search_h) &&
+         (DESIRED_CONNECTIONS_PER_TUNNEL < cp->num_paths) )
+      cp->search_h
+        = GCD_search (&cp->pid,
                       &dht_result_cb,
-                      peer);
+                      cp);
   }
   else
   {
     /* Have direct connection, stop DHT search if active */
-    if (NULL != peer->search_h)
+    if (NULL != cp->search_h)
     {
-      GCD_search_stop (peer->search_h);
-      peer->search_h = NULL;
+      GCD_search_stop (cp->search_h);
+      cp->search_h = NULL;
     }
   }
 
   /* If we have a tunnel, our urge for connections is much bigger */
-  strength = (NULL != peer->t) ? 32 : 1;
-  if (NULL != peer->connectivity_suggestion)
-    GNUNET_ATS_connectivity_suggest_cancel (peer->connectivity_suggestion);
-  peer->connectivity_suggestion
+  strength = (NULL != cp->t) ? 32 : 1;
+  if (NULL != cp->connectivity_suggestion)
+    GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
+  cp->connectivity_suggestion
     = GNUNET_ATS_connectivity_suggest (ats_ch,
-                                       &peer->pid,
+                                       &cp->pid,
                                        strength);
 }
 
@@ -372,26 +491,6 @@ GCP_id (struct CadetPeer *cp,
 
 
 /**
- * Create a peer path based on the result of a DHT lookup.
- *
- * @param get_path path of the get request
- * @param get_path_length lenght of @a get_path
- * @param put_path path of the put request
- * @param put_path_length length of the @a put_path
- * @return a path through the network
- */
-struct CadetPeerPath *
-GCP_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
-                   unsigned int get_path_length,
-                   const struct GNUNET_PeerIdentity *put_path,
-                   unsigned int put_path_length)
-{
-  GNUNET_assert (0); // FIXME: implement!
-  return NULL;
-}
-
-
-/**
  * Iterate over all known peers.
  *
  * @param iter Iterator.
@@ -435,16 +534,19 @@ GCP_iterate_paths (struct CadetPeer *peer,
 {
   unsigned int ret = 0;
 
-  for (struct CadetPeerPath *path = peer->path_head;
-       NULL != path;
-       path = path->next)
+  for (unsigned int i=0;i<peer->path_dll_length;i++)
   {
-    if (GNUNET_NO ==
-        callback (callback_cls,
-                  peer,
-                  path))
-      return ret;
-    ret++;
+    for (struct CadetPeerPathEntry *pe = peer->path_heads[i];
+         NULL != pe;
+         pe = pe->next)
+    {
+      if (GNUNET_NO ==
+          callback (callback_cls,
+                    peer,
+                    pe->path))
+        return ret;
+      ret++;
+    }
   }
   return ret;
 }

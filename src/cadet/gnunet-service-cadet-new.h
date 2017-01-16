@@ -54,6 +54,33 @@ struct CadetTunnelQueueEntry;
 struct CadetPeerPath;
 
 /**
+ * Entry in a peer path.
+ */
+struct CadetPeerPathEntry
+{
+  /**
+   * DLL of paths where the same @e peer is at the same offset.
+   */
+  struct CadetPeerPathEntry *next;
+
+  /**
+   * DLL of paths where the same @e peer is at the same offset.
+   */
+  struct CadetPeerPathEntry *prev;
+
+  /**
+   * The peer at this offset of the path.
+   */
+  struct CadetPeer *peer;
+
+  /**
+   * Path this entry belongs to.
+   */
+  struct CadetPeerPath *path;
+};
+
+
+/**
  * Active path through the network (used by a tunnel).
  */
 struct CadetConnection;
