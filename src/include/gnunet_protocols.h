@@ -2835,8 +2835,29 @@ extern "C"
 
 /* 1080-1109 reserved for TMCG (Heiko Stamer, see gnunet-developers, January 2017) */
 
+
+/******************************************************************************/
+/***********************************  AUCTION  ********************************/
+/******************************************************************************/
+
 /**
- * Next available: 1110
+ * Client wants to create a new auction.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE 1110
+
+/**
+ * Client wants to join an existing auction.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_JOIN 1111
+
+/**
+ * Service reports the auction outcome to the client.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_OUTCOME 1112
+
+
+/**
+ * Next available: 1130
  */
 
 
