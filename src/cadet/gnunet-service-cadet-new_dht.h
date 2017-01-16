@@ -47,24 +47,13 @@ struct GCD_search_handle;
 
 
 /**
- * Callback called on each path found over the DHT.
- *
- * @param cls Closure.
- * @param path An unchecked, unoptimized path to the target node.
- *             After callback will no longer be valid, unless #GCPP_acquire() is called!
- */
-typedef void
-(*GCD_search_callback) (void *cls,
-                        struct CadetPeerPath *path);
-
-
-/**
  * Initialize the DHT subsystem.
  *
  * @param c Configuration.
  */
 void
 GCD_init (const struct GNUNET_CONFIGURATION_Handle *c);
+
 
 /**
  * Shut down the DHT subsystem.
@@ -77,14 +66,10 @@ GCD_shutdown (void);
  * Search DHT for paths to @a peeR_id
  *
  * @param peer_id peer to search for
- * @param callback function to call with results
- * @param callback_cls closure for @a callback
  * @return handle to abort search
  */
 struct GCD_search_handle *
-GCD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GCD_search_callback callback,
-            void *callback_cls);
+GCD_search (const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**

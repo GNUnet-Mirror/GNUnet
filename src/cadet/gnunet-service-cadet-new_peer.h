@@ -120,6 +120,23 @@ GCP_iterate_paths (struct CadetPeer *cp,
 
 
 /**
+ * Iterate over the paths to @a peer where
+ * @a peer is at distance @a dist from us.
+ *
+ * @param peer Peer to get path info.
+ * @param dist desired distance of @a peer to us on the path
+ * @param callback Function to call for every path.
+ * @param callback_cls Closure for @a callback.
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths_at (struct CadetPeer *peer,
+                      unsigned int dist,
+                      GCP_PathIterator callback,
+                      void *callback_cls);
+
+
+/**
  * Remove an entry from the DLL of all of the paths that this peer is on.
  *
  * @param cp peer to modify
@@ -174,13 +191,30 @@ GCP_drop_tunnel (struct CadetPeer *cp,
  * has plenty of paths, return NULL.
  *
  * @param cp peer to which the @a path leads to
- * @param path a path looking for an owner
+ * @param path a path looking for an owner; may not be fully initialized yet!
+ * @param off offset of @a cp in @a path
  * @return NULL if this peer does not care to become a new owner,
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
 GCP_attach_path (struct CadetPeer *cp,
-                 struct CadetPeerPath *path);
+                 struct CadetPeerPath *path,
+                 unsigned int off);
+
+
+/**
+ * This peer can no longer own @a path as the path
+ * has been extended and a peer further down the line
+ * is now the new owner.
+ *
+ * @param cp old owner of the @a path
+ * @param path path where the ownership is lost
+ * @param hn note in @a cp's path heap that must be deleted
+ */
+void
+GCP_detach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 struct GNUNET_CONTAINER_HeapNode *hn);
 
 
 /**

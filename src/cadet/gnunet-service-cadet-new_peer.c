@@ -385,19 +385,22 @@ GCP_path_entry_remove (struct CadetPeer *cp,
  * has plenty of paths, return NULL.
  *
  * @param cp peer to which the @a path leads to
- * @param path a path looking for an owner
+ * @param path a path looking for an owner; may not be fully initialized yet!
+ * @param off offset of @a cp in @a path
  * @return NULL if this peer does not care to become a new owner,
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
 GCP_attach_path (struct CadetPeer *cp,
-                 struct CadetPeerPath *path)
+                 struct CadetPeerPath *path,
+                 unsigned int off)
 {
   GNUNET_CONTAINER_HeapCostType desirability;
   struct CadetPeerPath *root;
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
+  /* FIXME: desirability is not yet initialized; tricky! */
   desirability = GCPP_get_desirability (path);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_heap_peek2 (cp->path_heap,
@@ -443,24 +446,21 @@ GCP_attach_path (struct CadetPeer *cp,
 
 
 /**
- * Function called when the DHT finds a @a path to the peer (@a cls).
+ * This peer can no longer own @a path as the path
+ * has been extended and a peer further down the line
+ * is now the new owner.
  *
- * @param cls the `struct CadetPeer`
- * @param path the path that was found
+ * @param cp old owner of the @a path
+ * @param path path where the ownership is lost
+ * @param hn note in @a cp's path heap that must be deleted
  */
-static void
-dht_result_cb (void *cls,
-               struct CadetPeerPath *path)
+void
+GCP_detach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 struct GNUNET_CONTAINER_HeapNode *hn)
 {
-  struct CadetPeer *cp = cls;
-  struct GNUNET_CONTAINER_HeapNode *hn;
-
-  hn = GCP_attach_path (cp,
-                        path);
-  if (NULL == hn)
-    return;
-  GCPP_acquire (path,
-                hn);
+  GNUNET_assert (path ==
+                 GNUNET_CONTAINER_heap_remove_node (hn));
 }
 
 
@@ -502,9 +502,7 @@ consider_peer_activate (struct CadetPeer *cp)
     if ( (NULL == cp->search_h) &&
          (DESIRED_CONNECTIONS_PER_TUNNEL < cp->num_paths) )
       cp->search_h
-        = GCD_search (&cp->pid,
-                      &dht_result_cb,
-                      cp);
+        = GCD_search (&cp->pid);
   }
   else
   {
@@ -634,6 +632,41 @@ GCP_iterate_paths (struct CadetPeer *peer,
         return ret;
       ret++;
     }
+  }
+  return ret;
+}
+
+
+/**
+ * Iterate over the paths to @a peer where
+ * @a peer is at distance @a dist from us.
+ *
+ * @param peer Peer to get path info.
+ * @param dist desired distance of @a peer to us on the path
+ * @param callback Function to call for every path.
+ * @param callback_cls Closure for @a callback.
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths_at (struct CadetPeer *peer,
+                      unsigned int dist,
+                      GCP_PathIterator callback,
+                      void *callback_cls)
+{
+  unsigned int ret = 0;
+
+  if (dist<peer->path_dll_length)
+    return 0;
+  for (struct CadetPeerPathEntry *pe = peer->path_heads[dist];
+       NULL != pe;
+       pe = pe->next)
+  {
+    if (GNUNET_NO ==
+        callback (callback_cls,
+                  pe->path,
+                  dist))
+      return ret;
+    ret++;
   }
   return ret;
 }

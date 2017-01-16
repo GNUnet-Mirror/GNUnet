@@ -32,30 +32,21 @@
 #include "gnunet-service-cadet-new.h"
 
 /**
- * Create a peer path based on the result of a DHT lookup.
- * If we already know this path, or one that is longer,
- * simply return NULL.
+ * Create a peer path based on the result of a DHT lookup.  If we
+ * already know this path, or one that is longer, simply return NULL.
+ * Otherwise, we try to extend an existing path, or create a new one
+ * if applicable.
  *
  * @param get_path path of the get request
  * @param get_path_length lenght of @a get_path
  * @param put_path path of the put request
  * @param put_path_length length of the @a put_path
- * @return a path through the network
- */
-struct CadetPeerPath *
-GCPP_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length);
-
-
-/**
- * Destroy a path, we no longer need it.
- *
- * @param path path to destroy.
  */
 void
-GCPP_path_destroy (struct CadetPeerPath *path);
+GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length);
 
 
 /**
@@ -140,21 +131,6 @@ GCPP_find_peer (struct CadetPeerPath *path,
  */
 GNUNET_CONTAINER_HeapCostType
 GCPP_get_desirability (const struct CadetPeerPath *path);
-
-
-/**
- * The given peer @a cp used to own this @a path.  However, it is no
- * longer interested in maintaining it, so the path should be
- * discarded or shortened (in case a previous peer on the path finds
- * the path desirable).
- *
- * @param path the path that is being released
- * @param node entry in the heap of @a cp where this path is anchored
- *             should be used for updates to the desirability of this path
- */
-void
-GCPP_acquire (struct CadetPeerPath *path,
-              struct GNUNET_CONTAINER_HeapNode *node);
 
 
 /**

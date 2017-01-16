@@ -47,16 +47,6 @@ struct GCD_search_handle
    */
   struct GNUNET_DHT_GetHandle *dhtget;
 
-  /**
-   * Provided callback to call when a path is found.
-   */
-  GCD_search_callback callback;
-
-  /**
-   * Provided closure.
-   */
-  void *cls;
-
 };
 
 
@@ -86,7 +76,6 @@ static struct GNUNET_SCHEDULER_Task *announce_id_task;
 static struct GNUNET_TIME_Relative announce_delay;
 
 
-
 /**
  * Function to process paths received for a new peer addition. The recorded
  * paths form the initial tunnel, which can be optimized later.
@@ -114,19 +103,13 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     size_t size,
                     const void *data)
 {
-  struct GCD_search_handle *h = cls;
   const struct GNUNET_HELLO_Message *hello = data;
-  struct CadetPeerPath *p;
   struct CadetPeer *peer;
 
-  p = GCPP_path_from_dht (get_path,
+  GCPP_try_path_from_dht (get_path,
                           get_path_length,
                           put_path,
                           put_path_length);
-  h->callback (h->cls,
-               p);
-  GCPP_path_destroy (p);
-
   if ( (size >= sizeof (struct GNUNET_HELLO_Message)) &&
        (ntohs (hello->header.size) == size) &&
        (size == GNUNET_HELLO_size (hello)) )
@@ -280,14 +263,10 @@ GCD_shutdown (void)
  * Search DHT for paths to @a peeR_id
  *
  * @param peer_id peer to search for
- * @param callback function to call with results
- * @param callback_cls closure for @a callback
  * @return handle to abort search
  */
 struct GCD_search_handle *
-GCD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GCD_search_callback callback,
-            void *callback_cls)
+GCD_search (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct GNUNET_HashCode phash;
   struct GCD_search_handle *h;
@@ -307,8 +286,6 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
                  sizeof (*peer_id));
 
   h = GNUNET_new (struct GCD_search_handle);
-  h->callback = callback;
-  h->cls = callback_cls;
   h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                     GNUNET_BLOCK_TYPE_DHT_HELLO, /* type */
                                     &phash,     /* key to search */
