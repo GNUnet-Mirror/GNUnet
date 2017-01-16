@@ -83,7 +83,7 @@ actual GNUnet compilation and installation process with:
 
 $ export GNUNET_PREFIX=/usr/local/lib # or other directory of your choice
 # addgroup gnunetdns
-# adduser gnunet gnunet
+# adduser --system --home "/var/lib/gnunet" --group gnunet
 # ./configure --prefix=$GNUNET_PREFIX/.. --with-extractor=$LE_PREFIX
 $ make
 # make install
