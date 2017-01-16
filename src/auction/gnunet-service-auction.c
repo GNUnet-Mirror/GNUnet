@@ -20,11 +20,57 @@
 
 /**
  * @file auction/gnunet-service-auction.c
- * @brief program that does auction
- * @author Christian Grothoff
+ * @brief service for executing auctions
+ * @author Markus Teich
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+
+#include "auction.h"
+
+/**
+ * Check AUCTION CREATE messages from the client.
+ *
+ * @param cls the client we received this message from
+ * @param msg the actual message received
+ * @return #GNUNET_OK (always)
+ */
+static int
+check_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
+{
+	/* always well-formed due to arbitrary length description */
+	return GNUNET_OK;
+}
+
+
+/**
+ * Handler for CREATE messages.
+ *
+ * @param cls the client we received this message from
+ * @param msg the actual message received
+ */
+static void
+handle_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
+{
+	struct GNUNET_SERVICE_Client *client = cls;
+//	struct GNUNET_MQ_Handle *mq;
+//	struct GNUNET_MQ_Envelope *env;
+//	struct GNUNET_AUCTION_blabla em;
+	uint16_t size;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	            "Received CREATE message from client\n");
+
+	size = ntohs (msg->header.size);
+
+	/**TODO: create auction and return auction object */
+//	mq = GNUNET_SERVICE_client_get_mq (client);
+//	setup_info_message (&em);
+//	env = GNUNET_MQ_msg_copy (&em.header);
+//	GNUNET_MQ_send (mq, env);
+
+	GNUNET_SERVICE_client_continue (client);
+}
 
 
 /**
@@ -49,8 +95,8 @@ cleanup_task (void *cls)
  */
 static void *
 client_connect_cb (void *cls,
-				   struct GNUNET_SERVICE_Client *c,
-				   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *c,
+                   struct GNUNET_MQ_Handle *mq)
 {
 	return c;
 }
@@ -65,8 +111,8 @@ client_connect_cb (void *cls,
  */
 static void
 client_disconnect_cb (void *cls,
-					  struct GNUNET_SERVICE_Client *c,
-					  void *internal_cls)
+                      struct GNUNET_SERVICE_Client *c,
+                      void *internal_cls)
 {
 	GNUNET_assert (c == internal_cls);
 }
@@ -81,12 +127,11 @@ client_disconnect_cb (void *cls,
  */
 static void
 run (void *cls,
-	 const struct GNUNET_CONFIGURATION_Handle *cfg,
-	 struct GNUNET_SERVICE_Handle *service)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
 	/* FIXME: do setup here */
-	GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
-								   NULL);
+	GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
 }
 
 
@@ -100,6 +145,10 @@ GNUNET_SERVICE_MAIN
  &client_connect_cb,
  &client_disconnect_cb,
  NULL,
+ GNUNET_MQ_hd_var_size (create,
+                        GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE,
+                        struct GNUNET_AUCTION_ClientCreateMessage,
+                        NULL),
  GNUNET_MQ_handler_end ())
 
 

@@ -6,7 +6,7 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 
-dist_pkgcfg_DATA = \
+pkgcfg_DATA = \
   auction.conf
 
 if MINGW
