@@ -39,7 +39,6 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-#include "gnunet_core_service.h"
 
 
 /**
