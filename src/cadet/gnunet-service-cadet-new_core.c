@@ -28,14 +28,434 @@
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_core.h"
+#include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet_core_service.h"
+#include "cadet_protocol.h"
+
+
+/**
+ * Description of a segment of a `struct CadetConnection` at the
+ * intermediate peers.  Routes are basically entries in a peer's
+ * routing table for forwarding traffic.  At both endpoints, the
+ * routes are terminated by a `struct CadetConnection`, which knows
+ * the complete `struct CadetPath` that is formed by the individual
+ * routes.
+ */
+struct CadetRoute
+{
+
+  /**
+   * Previous hop on this route.
+   */
+  struct CadetPeer *prev_hop;
+
+  /**
+   * Next hop on this route.
+   */
+  struct CadetPeer *next_hop;
+
+  /**
+   * Unique identifier for the connection that uses this route.
+   */
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
+
+  /**
+   * When was this route last in use?
+   */
+  struct GNUNET_TIME_Absolute last_use;
+
+};
+
 
 /**
  * Handle to the CORE service.
  */
 static struct GNUNET_CORE_Handle *core;
+
+/**
+ * Routes on which this peer is an intermediate.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *routes;
+
+
+/**
+ * Get the route corresponding to a hash.
+ *
+ * @param cid hash generated from the connection identifier
+ */
+static struct CadetRoute *
+get_route (const struct GNUNET_HashCode *cid)
+{
+  return GNUNET_CONTAINER_multihashmap_get (routes,
+                                            cid);
+}
+
+
+/**
+ * We message @a msg from @a prev.  Find its route by @a cid and
+ * forward to the next hop.  Drop and signal broken route if we do not
+ * have a route.
+ *
+ * @param prev previous hop (sender)
+ * @param cid connection identifier, tells us which route to use
+ * @param msg the message to forward
+ */
+static void
+route_message (struct CadetPeer *prev,
+               const struct GNUNET_HashCode *cid, /* FIXME: bad type... */
+               const struct GNUNET_MessageHeader *msg)
+{
+  struct CadetRoute *route;
+
+  route = get_route (cid);
+  if (NULL == route)
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_CADET_ConnectionBroken *bm;
+
+    env = GNUNET_MQ_msg (bm,
+                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
+    /* FIXME: ugly */
+    memcpy (&bm->cid,
+            cid,
+            sizeof (bm->cid));
+    bm->peer1 = my_full_id;
+    GCP_send (prev,
+              env);
+    return;
+  }
+  GNUNET_assert (0); /* FIXME: determine next hop from route and prev! */
+
+}
+
+
+/**
+ * Check if the create_connection message has the appropriate size.
+ *
+ * @param cls Closure (unused).
+ * @param msg Message to check.
+ *
+ * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
+ */
+static int
+check_create (void *cls,
+              const struct GNUNET_CADET_ConnectionCreate *msg)
+{
+  uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
+
+  if (0 != (size % sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Destroy our state for @a route.
+ *
+ * @param route route to destroy
+ */
+static void
+destroy_route (struct CadetRoute *route)
+{
+  GNUNET_break (0); // fIXME: implement!
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_create (void *cls,
+               const struct GNUNET_CADET_ConnectionCreate *msg)
+{
+  struct CadetPeer *peer = cls;
+  uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
+  unsigned int path_length;
+
+  path_length = size / sizeof (struct GNUNET_PeerIdentity);
+#if FIXME
+  GCC_handle_create (peer,
+                     &msg->cid,
+                     path_length,
+                     (const struct GNUNET_PeerIdentity *) &msg[1]);
+#endif
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_connection_ack (void *cls,
+                       const struct GNUNET_CADET_ConnectionACK *msg)
+{
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
+  struct CadetConnection *cc;
+
+  /* First, check if ACK belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multihashmap_get (connections,
+                                          cid);
+  if (NULL != cc)
+  {
+    /* verify ACK came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received ACK from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_handle_connection_ack (cc);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 cid,
+                 &msg->header);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ * @deprecated duplicate logic with #handle_destroy(); dedup!
+ */
+static void
+handle_broken (void *cls,
+               const struct GNUNET_CADET_ConnectionBroken *msg)
+{
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
+  struct CadetConnection *cc;
+  struct CadetRoute *route;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multihashmap_get (connections,
+                                          cid);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_destroy (cc);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route = get_route (cid);
+  route_message (peer,
+                 cid,
+                 &msg->header);
+  destroy_route (route);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_destroy (void *cls,
+                const struct GNUNET_CADET_ConnectionDestroy *msg)
+{
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
+  struct CadetConnection *cc;
+  struct CadetRoute *route;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multihashmap_get (connections,
+                                          cid);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_destroy (cc);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route = get_route (cid);
+  route_message (peer,
+                 cid,
+                 &msg->header);
+  destroy_route (route);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_ACK
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_ack (void *cls,
+            const struct GNUNET_CADET_ACK *msg)
+{
+  struct CadetPeer *peer = cls;
+
+#if FIXME
+  GCC_handle_ack (peer,
+                  msg);
+#endif
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_POLL
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_poll (void *cls,
+             const struct GNUNET_CADET_Poll *msg)
+{
+  struct CadetPeer *peer = cls;
+
+#if FIXME
+  GCC_handle_poll (peer,
+                   msg);
+#endif
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_KX
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_kx (void *cls,
+           const struct GNUNET_CADET_KX *msg)
+{
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
+  struct CadetConnection *cc;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multihashmap_get (connections,
+                                          cid);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_handle_kx (cc,
+                   msg);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 cid,
+                 &msg->header);
+}
+
+
+/**
+ * Check if the encrypted message has the appropriate size.
+ *
+ * @param cls Closure (unused).
+ * @param msg Message to check.
+ *
+ * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
+ */
+static int
+check_encrypted (void *cls,
+                 const struct GNUNET_CADET_Encrypted *msg)
+{
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED.
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_encrypted (void *cls,
+                  const struct GNUNET_CADET_Encrypted *msg)
+{
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
+  struct CadetConnection *cc;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multihashmap_get (connections,
+                                          cid);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_handle_encrypted (cc,
+                          msg);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 cid,
+                 &msg->header);
+}
 
 
 /**
@@ -100,6 +520,9 @@ core_disconnect_cb (void *cls,
 {
   struct CadetPeer *cp = peer_cls;
 
+  /* FIXME: also check all routes going via peer and
+     send broken messages to the other direction! */
+  GNUNET_break (0);
   GCP_set_mq (cp,
               NULL);
 }
@@ -114,8 +537,43 @@ void
 GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (create,
+                           GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
+                           struct GNUNET_CADET_ConnectionCreate,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (connection_ack,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
+                             struct GNUNET_CADET_ConnectionACK,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (broken,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+                             struct GNUNET_CADET_ConnectionBroken,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (destroy,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
+                             struct GNUNET_CADET_ConnectionDestroy,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (ack,
+                             GNUNET_MESSAGE_TYPE_CADET_ACK,
+                             struct GNUNET_CADET_ACK,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (poll,
+                             GNUNET_MESSAGE_TYPE_CADET_POLL,
+                             struct GNUNET_CADET_Poll,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (kx,
+                             GNUNET_MESSAGE_TYPE_CADET_KX,
+                             struct GNUNET_CADET_KX,
+                             NULL),
+    GNUNET_MQ_hd_var_size (encrypted,
+                           GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED,
+                           struct GNUNET_CADET_Encrypted,
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
+
+  routes = GNUNET_CONTAINER_multihashmap_create (1024,
+                                                GNUNET_NO);
   core = GNUNET_CORE_connect (c,
                               NULL,
                               &core_init_cb,
@@ -136,6 +594,8 @@ GCO_shutdown ()
     GNUNET_CORE_disconnect (core);
     core = NULL;
   }
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (routes));
+  GNUNET_CONTAINER_multihashmap_destroy (routes);
 }
 
 /* end of gnunet-cadet-service_core.c */

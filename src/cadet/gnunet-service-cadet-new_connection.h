@@ -28,10 +28,12 @@
 #ifndef GNUNET_SERVICE_CADET_CONNECTION_H
 #define GNUNET_SERVICE_CADET_CONNECTION_H
 
+#define NEW_CADET
+
 #include "gnunet_util_lib.h"
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_peer.h"
-
+#include "cadet_protocol.h"
 
 /**
  * Is the given connection currently ready for transmission?
@@ -89,6 +91,37 @@ GCC_transmit (struct CadetConnection *cc,
 
 
 /**
+ * An ACK was received for this connection, process it.
+ *
+ * @param cc the connection that got the ACK.
+ */
+void
+GCC_handle_connection_ack (struct CadetConnection *cc);
+
+
+/**
+ * Handle KX message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx (struct CadetConnection *cc,
+               const struct GNUNET_CADET_KX *msg);
+
+
+/**
+ * Handle encrypted message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the encrypted message to decrypt
+ */
+void
+GCC_handle_encrypted (struct CadetConnection *cc,
+                      const struct GNUNET_CADET_Encrypted *msg);
+
+
+/**
  * Return the tunnel associated with this connection.
  *
  * @param cc connection to query
@@ -127,6 +160,17 @@ GCC_get_id (struct CadetConnection *cc);
  */
 const struct GNUNET_HashCode *
 GCC_get_h (const struct CadetConnection *cc);
+
+
+/**
+ * Expand the shorter CADET hash to a full GNUnet hash.
+ *
+ * @param id hash to expand
+ * @return expanded hash
+ * @param deprecated
+ */
+const struct GNUNET_HashCode *
+GCC_h2hc (const struct GNUNET_CADET_Hash *id);
 
 
 /**

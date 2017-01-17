@@ -284,6 +284,22 @@ GCP_set_mq (struct CadetPeer *cp,
 
 
 /**
+ * Send the message in @a env to @a cp.
+ *
+ * @param cp the peer
+ * @param env envelope with the message to send
+ */
+void
+GCP_send (struct CadetPeer *cp,
+          struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_assert (NULL != cp->core_mq);
+  GNUNET_MQ_send (cp->core_mq,
+                  env);
+}
+
+
+/**
  * Function called to destroy a peer now.
  *
  * @param cls NULL

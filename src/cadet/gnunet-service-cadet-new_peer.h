@@ -312,4 +312,15 @@ GCP_set_mq (struct CadetPeer *cp,
             struct GNUNET_MQ_Handle *mq);
 
 
+/**
+ * Send the message in @a env to @a cp.
+ *
+ * @param cp the peer
+ * @param env envelope with the message to send
+ */
+void
+GCP_send (struct CadetPeer *cp,
+          struct GNUNET_MQ_Envelope *env);
+
+
 #endif

@@ -322,6 +322,7 @@ struct GNUNET_CADET_Encrypted
 /*******************************   CHANNEL  ***********************************/
 /******************************************************************************/
 
+#ifndef NEW_CADET
 
 /**
  * Message to create a Channel.
@@ -349,6 +350,7 @@ struct GNUNET_CADET_ChannelCreate
   struct GNUNET_CADET_ChannelNumber chid;
 };
 
+#endif
 
 /**
  * Message to manage a Channel (ACK, NACK, Destroy).
@@ -366,6 +368,8 @@ struct GNUNET_CADET_ChannelManage
   struct GNUNET_CADET_ChannelNumber chid;
 };
 
+
+#ifndef NEW_CADET
 
 /**
  * Message for cadet data traffic.
@@ -422,7 +426,7 @@ struct GNUNET_CADET_DataACK
   uint32_t mid GNUNET_PACKED;
 };
 
-
+#endif
 
 GNUNET_NETWORK_STRUCT_END
 

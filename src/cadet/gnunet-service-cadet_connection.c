@@ -473,9 +473,9 @@ fc_init (struct CadetFlowControl *fc)
  * @return conntection with the given ID @cid or NULL if not found.
  */
 static struct CadetConnection *
-connection_get (const struct GNUNET_CADET_Hash *cid)
+connection_get (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
-  return GNUNET_CONTAINER_multihashmap_get (connections, GC_h2hc (cid));
+  return GNUNET_CONTAINER_multihashmap_get (connections, GC_h2hc (&cid->connection_of_tunnel));
 }
 
 
@@ -1109,7 +1109,7 @@ send_broken_unknown (const struct GNUNET_CADET_ConnectionTunnelIdentifier *conne
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_INFO, "--> BROKEN on unknown connection %s\n",
-       GNUNET_h2s (GC_h2hc (connection_id)));
+       GNUNET_h2s (GC_h2hc (&connection_id->connection_of_tunnel)));
 
   msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
@@ -1856,7 +1856,7 @@ log_message (const struct GNUNET_MessageHeader *message,
       arrow = "--";
   }
   LOG (GNUNET_ERROR_TYPE_INFO, "<%s %s on conn %s from %s, %6u bytes\n",
-       arrow, GC_m2s (type), GNUNET_h2s (GC_h2hc (conn_id)),
+       arrow, GC_m2s (type), GNUNET_h2s (GC_h2hc (&conn_id->connection_of_tunnel)),
        GCP_2s(peer), (unsigned int) size);
 }
 
@@ -2354,7 +2354,7 @@ GCC_handle_poll (struct CadetPeer *peer,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "POLL message on unknown connection %s!\n",
-         GNUNET_h2s (GC_h2hc (&msg->cid)));
+         GNUNET_h2s (GC_h2hc (&msg->cid.connection_of_tunnel)));
     send_broken_unknown (&msg->cid,
                          &my_full_id,
                          NULL,
@@ -2428,7 +2428,7 @@ check_message (const struct GNUNET_MessageHeader *message,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s on unknown connection %s\n",
          GC_m2s (ntohs (message->type)),
-         GNUNET_h2s (GC_h2hc (cid)));
+         GNUNET_h2s (GC_h2hc (&cid->connection_of_tunnel)));
     GNUNET_break_op (0);
     send_broken_unknown (cid,
                          &my_full_id,
@@ -2888,7 +2888,7 @@ GCC_get_id (const struct CadetConnection *c)
 const struct GNUNET_HashCode *
 GCC_get_h (const struct CadetConnection *c)
 {
-  return GC_h2hc (&c->id);
+  return GC_h2hc (&c->id.connection_of_tunnel);
 }
 
 
@@ -3559,10 +3559,10 @@ GCC_2s (const struct CadetConnection *c)
     static char buf[128];
 
     SPRINTF (buf, "%s (->%s)",
-             GNUNET_h2s (GC_h2hc (GCC_get_id (c))), GCT_2s (c->t));
+             GNUNET_h2s (GC_h2hc (&GCC_get_id (c)->connection_of_tunnel)), GCT_2s (c->t));
     return buf;
   }
-  return GNUNET_h2s (GC_h2hc (&c->id));
+  return GNUNET_h2s (GC_h2hc (&c->id.connection_of_tunnel));
 }
 
 

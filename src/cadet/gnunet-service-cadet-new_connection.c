@@ -205,9 +205,10 @@ GCC_destroy (struct CadetConnection *cc)
  *
  * @param id hash to expand
  * @return expanded hash
+ * @param deprecated
  */
-static const struct GNUNET_HashCode *
-h2hc (const struct GNUNET_CADET_Hash *id)
+const struct GNUNET_HashCode *
+GCC_h2hc (const struct GNUNET_CADET_Hash *id)
 {
   static struct GNUNET_HashCode hc;
   char *ptr = (char *) &hc;
@@ -232,7 +233,7 @@ h2hc (const struct GNUNET_CADET_Hash *id)
 const struct GNUNET_HashCode *
 GCC_get_h (const struct CadetConnection *cc)
 {
-  return h2hc (&cc->cid.connection_of_tunnel);
+  return GCC_h2hc (&cc->cid.connection_of_tunnel);
 }
 
 
@@ -250,12 +251,13 @@ GCC_get_ct (struct CadetConnection *cc)
 
 
 /**
- * An ACK was received for this connection, process it.
+ * A connection ACK was received for this connection, implying
+ * that the end-to-end connection is up.  Process it.
  *
  * @param cc the connection that got the ACK.
  */
 void
-GCC_handle_ack (struct CadetConnection *cc)
+GCC_handle_connection_ack (struct CadetConnection *cc)
 {
   GNUNET_SCHEDULER_cancel (cc->task);
 #if FIXME
@@ -265,6 +267,34 @@ GCC_handle_ack (struct CadetConnection *cc)
 #endif
   cc->state = CADET_CONNECTION_READY;
   cc->ready_cb (cc->ready_cb_cls);
+}
+
+
+/**
+ * Handle KX message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx (struct CadetConnection *cc,
+               const struct GNUNET_CADET_KX *msg)
+{
+  GNUNET_assert (0); // FIXME: not implemented
+}
+
+
+/**
+ * Handle encrypted message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the encrypted message to decrypt
+ */
+void
+GCC_handle_encrypted (struct CadetConnection *cc,
+                      const struct GNUNET_CADET_Encrypted *msg)
+{
+  GNUNET_assert (0); // FIXME: not implemented
 }
 
 
