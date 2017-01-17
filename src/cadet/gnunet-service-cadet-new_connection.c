@@ -196,44 +196,11 @@ GCC_destroy (struct CadetConnection *cc)
   GCPP_del_connection (cc->path,
                        cc->off,
                        cc);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multishortmap_remove (connections,
+                                                        &GCC_get_id (cc)->connection_of_tunnel,
+                                                        cc));
   GNUNET_free (cc);
-}
-
-
-/**
- * Expand the shorter CADET hash to a full GNUnet hash.
- *
- * @param id hash to expand
- * @return expanded hash
- * @param deprecated
- */
-const struct GNUNET_HashCode *
-GCC_h2hc (const struct GNUNET_CADET_Hash *id)
-{
-  static struct GNUNET_HashCode hc;
-  char *ptr = (char *) &hc;
-
-  GNUNET_assert (sizeof (hc) == 2 * sizeof (*id));
-  GNUNET_memcpy (ptr,
-                 id,
-                 sizeof (*id));
-  GNUNET_memcpy (&ptr[sizeof (*id)],
-                 id,
-                 sizeof (*id));
-  return &hc;
-}
-
-
-/**
- * Get the connection ID as a full hash.
- *
- * @param cc Connection to get the ID from.
- * @return full hash ID of the connection.
- */
-const struct GNUNET_HashCode *
-GCC_get_h (const struct CadetConnection *cc)
-{
-  return GCC_h2hc (&cc->cid.connection_of_tunnel);
 }
 
 
@@ -429,10 +396,10 @@ GCC_create (struct CadetPeer *destination,
                               &cc->cid,
                               sizeof (cc->cid));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (connections,
-                                                    GCC_get_h (cc),
-                                                    cc,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                 GNUNET_CONTAINER_multishortmap_put (connections,
+                                                     &GCC_get_id (cc)->connection_of_tunnel,
+                                                     cc,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   cc->ready_cb = ready_cb;
   cc->ready_cb_cls = ready_cb_cls;
   cc->path = path;

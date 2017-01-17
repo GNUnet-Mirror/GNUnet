@@ -86,28 +86,6 @@ GC_min_pid (uint32_t a, uint32_t b)
 }
 
 
-const struct GNUNET_HashCode *
-GC_h2hc (const struct GNUNET_CADET_Hash *id)
-{
-  static struct GNUNET_HashCode hc;
-  GNUNET_memcpy (&hc, id, sizeof (*id));
-
-  return &hc;
-}
-
-
-const char *
-GC_h2s (const struct GNUNET_CADET_Hash *id)
-{
-  static char s[53];
-
-  GNUNET_memcpy (s, GNUNET_h2s_full (GC_h2hc (id)), 52);
-  s[52] = '\0';
-
-  return s;
-}
-
-
 /**
  * Allocate a string with a hexdump of any binary data.
  *

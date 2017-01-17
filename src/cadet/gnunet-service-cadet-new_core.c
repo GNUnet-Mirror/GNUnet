@@ -77,7 +77,7 @@ static struct GNUNET_CORE_Handle *core;
 /**
  * Routes on which this peer is an intermediate.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *routes;
+static struct GNUNET_CONTAINER_MultiShortmap *routes;
 
 
 /**
@@ -86,10 +86,10 @@ static struct GNUNET_CONTAINER_MultiHashMap *routes;
  * @param cid hash generated from the connection identifier
  */
 static struct CadetRoute *
-get_route (const struct GNUNET_HashCode *cid)
+get_route (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
-  return GNUNET_CONTAINER_multihashmap_get (routes,
-                                            cid);
+  return GNUNET_CONTAINER_multishortmap_get (routes,
+                                             &cid->connection_of_tunnel);
 }
 
 
@@ -104,7 +104,7 @@ get_route (const struct GNUNET_HashCode *cid)
  */
 static void
 route_message (struct CadetPeer *prev,
-               const struct GNUNET_HashCode *cid, /* FIXME: bad type... */
+               const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                const struct GNUNET_MessageHeader *msg)
 {
   struct CadetRoute *route;
@@ -117,10 +117,7 @@ route_message (struct CadetPeer *prev,
 
     env = GNUNET_MQ_msg (bm,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
-    /* FIXME: ugly */
-    memcpy (&bm->cid,
-            cid,
-            sizeof (bm->cid));
+    bm->cid = *cid;
     bm->peer1 = my_full_id;
     GCP_send (prev,
               env);
@@ -201,12 +198,11 @@ handle_connection_ack (void *cls,
                        const struct GNUNET_CADET_ConnectionACK *msg)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
   struct CadetConnection *cc;
 
   /* First, check if ACK belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multihashmap_get (connections,
-                                          cid);
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
   if (NULL != cc)
   {
     /* verify ACK came from the right direction */
@@ -226,7 +222,7 @@ handle_connection_ack (void *cls,
 
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
-                 cid,
+                 &msg->cid,
                  &msg->header);
 }
 
@@ -243,13 +239,12 @@ handle_broken (void *cls,
                const struct GNUNET_CADET_ConnectionBroken *msg)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
   struct CadetConnection *cc;
   struct CadetRoute *route;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multihashmap_get (connections,
-                                          cid);
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -268,9 +263,9 @@ handle_broken (void *cls,
   }
 
   /* We're just an intermediary peer, route the message along its path */
-  route = get_route (cid);
+  route = get_route (&msg->cid);
   route_message (peer,
-                 cid,
+                 &msg->cid,
                  &msg->header);
   destroy_route (route);
 }
@@ -287,13 +282,12 @@ handle_destroy (void *cls,
                 const struct GNUNET_CADET_ConnectionDestroy *msg)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
   struct CadetConnection *cc;
   struct CadetRoute *route;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multihashmap_get (connections,
-                                          cid);
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -312,9 +306,9 @@ handle_destroy (void *cls,
   }
 
   /* We're just an intermediary peer, route the message along its path */
-  route = get_route (cid);
+  route = get_route (&msg->cid);
   route_message (peer,
-                 cid,
+                 &msg->cid,
                  &msg->header);
   destroy_route (route);
 }
@@ -369,12 +363,11 @@ handle_kx (void *cls,
            const struct GNUNET_CADET_KX *msg)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multihashmap_get (connections,
-                                          cid);
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -395,7 +388,7 @@ handle_kx (void *cls,
 
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
-                 cid,
+                 &msg->cid,
                  &msg->header);
 }
 
@@ -427,12 +420,11 @@ handle_encrypted (void *cls,
                   const struct GNUNET_CADET_Encrypted *msg)
 {
   struct CadetPeer *peer = cls;
-  const struct GNUNET_HashCode *cid = GCC_h2hc (&msg->cid.connection_of_tunnel);
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multihashmap_get (connections,
-                                          cid);
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -453,7 +445,7 @@ handle_encrypted (void *cls,
 
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
-                 cid,
+                 &msg->cid,
                  &msg->header);
 }
 
@@ -572,8 +564,8 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_MQ_handler_end ()
   };
 
-  routes = GNUNET_CONTAINER_multihashmap_create (1024,
-                                                GNUNET_NO);
+  routes = GNUNET_CONTAINER_multishortmap_create (1024,
+                                                  GNUNET_NO);
   core = GNUNET_CORE_connect (c,
                               NULL,
                               &core_init_cb,
@@ -594,8 +586,8 @@ GCO_shutdown ()
     GNUNET_CORE_disconnect (core);
     core = NULL;
   }
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (routes));
-  GNUNET_CONTAINER_multihashmap_destroy (routes);
+  GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (routes));
+  GNUNET_CONTAINER_multishortmap_destroy (routes);
 }
 
 /* end of gnunet-cadet-service_core.c */

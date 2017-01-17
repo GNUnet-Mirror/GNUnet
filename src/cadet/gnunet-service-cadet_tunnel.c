@@ -649,7 +649,7 @@ new_ephemeral (struct CadetTunnel *t)
 static void
 t_hmac (const void *plaintext, size_t size,
         uint32_t iv, const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
-        struct GNUNET_CADET_Hash *hmac)
+        struct GNUNET_ShortHashCode *hmac)
 {
   static const char ctx[] = "cadet authentication key";
   struct GNUNET_CRYPTO_AuthKey auth_key;
@@ -916,7 +916,7 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
                  const struct GNUNET_CADET_Encrypted *src, size_t size)
 {
   struct CadetTunnelSkippedKey *key;
-  struct GNUNET_CADET_Hash *hmac;
+  struct GNUNET_ShortHashCode *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CADET_Encrypted plaintext_header;
   struct GNUNET_CRYPTO_SymmetricSessionKey *valid_HK;
@@ -1096,7 +1096,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
                            size_t size)
 {
   struct CadetTunnelAxolotl *ax;
-  struct GNUNET_CADET_Hash msg_hmac;
+  struct GNUNET_ShortHashCode msg_hmac;
   struct GNUNET_HashCode hmac;
   struct GNUNET_CADET_Encrypted plaintext_header;
   uint32_t Np;
@@ -1406,7 +1406,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        "Sending message of type %s with PID %u and CID %s\n",
        GC_m2s (type),
        htonl (ax_msg->pid),
-       GC_h2s (&ax_msg->cid.connection_of_tunnel));
+       GNUNET_sh2s (&ax_msg->cid.connection_of_tunnel));
 
   if (NULL == cont)
   {

@@ -742,7 +742,7 @@ tunnel_callback (void *cls,
       FPRINTF (stdout, "\t\t%X\n", ntohl (channels[i].cn));
     FPRINTF (stdout, "\t%u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "\t\t%s\n", GC_h2s (&connections[i].connection_of_tunnel));
+      FPRINTF (stdout, "\t\t%s\n", GNUNET_sh2s (&connections[i].connection_of_tunnel));
     FPRINTF (stdout, "\tencryption state: %s\n", enc_2s (estate));
     FPRINTF (stdout, "\tconnection state: %s\n", conn_2s (cstate));
   }

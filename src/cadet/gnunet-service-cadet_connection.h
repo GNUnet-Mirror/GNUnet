@@ -305,17 +305,6 @@ GCC_get_id (const struct CadetConnection *c);
 
 
 /**
- * Get a hash for the connection ID.
- *
- * @param c Connection to get the hash.
- *
- * @return Hash expanded from the ID of the connection.
- */
-const struct GNUNET_HashCode *
-GCC_get_h (const struct CadetConnection *c);
-
-
-/**
  * Get the connection path.
  *
  * @param c Connection to get the path from.

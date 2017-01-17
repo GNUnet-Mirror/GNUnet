@@ -534,7 +534,7 @@ t_hmac (const void *plaintext,
         size_t size,
         uint32_t iv,
         const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
-        struct GNUNET_CADET_Hash *hmac)
+        struct GNUNET_ShortHashCode *hmac)
 {
   static const char ctx[] = "cadet authentication key";
   struct GNUNET_CRYPTO_AuthKey auth_key;
@@ -834,7 +834,7 @@ try_old_ax_keys (struct CadetTunnel *t,
                  size_t size)
 {
   struct CadetTunnelSkippedKey *key;
-  struct GNUNET_CADET_Hash *hmac;
+  struct GNUNET_ShortHashCode *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CADET_Encrypted plaintext_header;
   struct GNUNET_CRYPTO_SymmetricSessionKey *valid_HK;
@@ -1012,7 +1012,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
                            size_t size)
 {
   struct CadetTunnelAxolotl *ax;
-  struct GNUNET_CADET_Hash msg_hmac;
+  struct GNUNET_ShortHashCode msg_hmac;
   struct GNUNET_HashCode hmac;
   struct GNUNET_CADET_Encrypted plaintext_header;
   uint32_t Np;

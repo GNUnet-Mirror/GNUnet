@@ -322,7 +322,7 @@ extern struct GNUNET_PeerIdentity my_full_id;
 /**
  * Connections known, indexed by cid (CadetConnection).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *connections;
+static struct GNUNET_CONTAINER_MultiShortmap *connections;
 
 /**
  * How many connections are we willing to maintain.
@@ -475,7 +475,8 @@ fc_init (struct CadetFlowControl *fc)
 static struct CadetConnection *
 connection_get (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
-  return GNUNET_CONTAINER_multihashmap_get (connections, GC_h2hc (&cid->connection_of_tunnel));
+  return GNUNET_CONTAINER_multishortmap_get (connections,
+                                             &cid->connection_of_tunnel);
 }
 
 
@@ -912,7 +913,7 @@ check_neighbours (const struct CadetConnection *c)
  */
 static int
 check_connection (void *cls,
-                  const struct GNUNET_HashCode *key,
+                  const struct GNUNET_ShortHashCode *key,
                   void *value)
 {
   struct CadetConnection *c = value;
@@ -932,9 +933,9 @@ GCC_check_connections ()
     return;
   if (NULL == connections)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (connections,
-                                         &check_connection,
-                                         NULL);
+  GNUNET_CONTAINER_multishortmap_iterate (connections,
+                                          &check_connection,
+                                          NULL);
 }
 
 
@@ -1109,7 +1110,7 @@ send_broken_unknown (const struct GNUNET_CADET_ConnectionTunnelIdentifier *conne
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_INFO, "--> BROKEN on unknown connection %s\n",
-       GNUNET_h2s (GC_h2hc (&connection_id->connection_of_tunnel)));
+       GNUNET_sh2s (&connection_id->connection_of_tunnel));
 
   msg.header.size = htons (sizeof (struct GNUNET_CADET_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
@@ -1855,9 +1856,13 @@ log_message (const struct GNUNET_MessageHeader *message,
     default:
       arrow = "--";
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "<%s %s on conn %s from %s, %6u bytes\n",
-       arrow, GC_m2s (type), GNUNET_h2s (GC_h2hc (&conn_id->connection_of_tunnel)),
-       GCP_2s(peer), (unsigned int) size);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "<%s %s on conn %s from %s, %6u bytes\n",
+       arrow,
+       GC_m2s (type),
+       GNUNET_sh2s (&conn_id->connection_of_tunnel),
+       GCP_2s(peer),
+       (unsigned int) size);
 }
 
 /******************************************************************************/
@@ -2354,7 +2359,7 @@ GCC_handle_poll (struct CadetPeer *peer,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "POLL message on unknown connection %s!\n",
-         GNUNET_h2s (GC_h2hc (&msg->cid.connection_of_tunnel)));
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     send_broken_unknown (&msg->cid,
                          &my_full_id,
                          NULL,
@@ -2428,7 +2433,7 @@ check_message (const struct GNUNET_MessageHeader *message,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s on unknown connection %s\n",
          GC_m2s (ntohs (message->type)),
-         GNUNET_h2s (GC_h2hc (&cid->connection_of_tunnel)));
+         GNUNET_sh2s (&cid->connection_of_tunnel));
     GNUNET_break_op (0);
     send_broken_unknown (cid,
                          &my_full_id,
@@ -2680,7 +2685,8 @@ GCC_init (const struct GNUNET_CONFIGURATION_Handle *c)
   }
   create_connection_time = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
                                                      refresh_connection_time);
-  connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
+  connections = GNUNET_CONTAINER_multishortmap_create (1024,
+                                                       GNUNET_YES);
 }
 
 
@@ -2695,7 +2701,7 @@ GCC_init (const struct GNUNET_CONFIGURATION_Handle *c)
  */
 static int
 shutdown_iterator (void *cls,
-                   const struct GNUNET_HashCode *key,
+                   const struct GNUNET_ShortHashCode *key,
                    void *value)
 {
   struct CadetConnection *c = value;
@@ -2714,10 +2720,10 @@ GCC_shutdown (void)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connections\n");
   GCC_check_connections ();
-  GNUNET_CONTAINER_multihashmap_iterate (connections,
-                                         &shutdown_iterator,
-                                         NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (connections);
+  GNUNET_CONTAINER_multishortmap_iterate (connections,
+                                          &shutdown_iterator,
+                                          NULL);
+  GNUNET_CONTAINER_multishortmap_destroy (connections);
   connections = NULL;
 }
 
@@ -2748,9 +2754,10 @@ GCC_new (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
   c = GNUNET_new (struct CadetConnection);
   c->id = *cid;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (connections,
-                                                    GCC_get_h (c), c,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                 GNUNET_CONTAINER_multishortmap_put (connections,
+                                                     &c->id.connection_of_tunnel,
+                                                     c,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
   c->fwd_fc.c = c;
@@ -2851,9 +2858,9 @@ GCC_destroy (struct CadetConnection *c)
   if (GNUNET_NO == c->was_removed)
   {
     GNUNET_break (GNUNET_YES ==
-                  GNUNET_CONTAINER_multihashmap_remove (connections,
-                                                        GCC_get_h (c),
-                                                        c));
+                  GNUNET_CONTAINER_multishortmap_remove (connections,
+                                                         &c->id.connection_of_tunnel,
+                                                         c));
   }
   GNUNET_STATISTICS_update (stats,
                             "# connections",
@@ -2875,20 +2882,6 @@ const struct GNUNET_CADET_ConnectionTunnelIdentifier *
 GCC_get_id (const struct CadetConnection *c)
 {
   return &c->id;
-}
-
-
-/**
- * Get the connection ID.
- *
- * @param c Connection to get the ID from.
- *
- * @return ID of the connection.
- */
-const struct GNUNET_HashCode *
-GCC_get_h (const struct CadetConnection *c)
-{
-  return GC_h2hc (&c->id.connection_of_tunnel);
 }
 
 
@@ -3092,9 +3085,9 @@ GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
   GNUNET_assert (GNUNET_NO == c->was_removed);
   c->was_removed = GNUNET_YES;
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (connections,
-                                                      GCC_get_h (c),
-                                                      c));
+                GNUNET_CONTAINER_multishortmap_remove (connections,
+                                                       &c->id.connection_of_tunnel,
+                                                       c));
   /* Cancel queue in the direction that just died. */
   connection_cancel_queues (c, ! fwd);
   GCC_stop_poll (c, ! fwd);
@@ -3559,10 +3552,11 @@ GCC_2s (const struct CadetConnection *c)
     static char buf[128];
 
     SPRINTF (buf, "%s (->%s)",
-             GNUNET_h2s (GC_h2hc (&GCC_get_id (c)->connection_of_tunnel)), GCT_2s (c->t));
+             GNUNET_sh2s (&GCC_get_id (c)->connection_of_tunnel),
+             GCT_2s (c->t));
     return buf;
   }
-  return GNUNET_h2s (GC_h2hc (&c->id.connection_of_tunnel));
+  return GNUNET_sh2s (&c->id.connection_of_tunnel);
 }
 
 

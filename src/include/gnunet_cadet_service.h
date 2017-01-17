@@ -67,15 +67,6 @@ struct GNUNET_CADET_Channel;
  */
 struct GNUNET_CADET_Port;
 
-/**
- * Hash to be used in Cadet communication. Only 256 bits needed,
- * instead of the 512 from `struct GNUNET_HashCode`.
- */
-struct GNUNET_CADET_Hash
-{
-  unsigned char bits[256 / 8];
-};
-
 
 /**
  * Channel options.  Second line indicates filed in the
@@ -255,8 +246,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
 struct GNUNET_CADET_Port *
 GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
 			const struct GNUNET_HashCode *port,
-			GNUNET_CADET_InboundChannelNotificationHandler
-			    new_channel,
+			GNUNET_CADET_InboundChannelNotificationHandler new_channel,
 			void *new_channel_cls);
 
 /**
@@ -496,7 +486,7 @@ typedef void
  */
 struct GNUNET_CADET_ConnectionTunnelIdentifier
 {
-  struct GNUNET_CADET_Hash connection_of_tunnel;
+  struct GNUNET_ShortHashCode connection_of_tunnel;
 };
 
 

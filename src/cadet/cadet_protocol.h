@@ -290,7 +290,7 @@ struct GNUNET_CADET_Encrypted
    * Everything after this value  will be encrypted with the header key
    * and authenticated.
    */
-  struct GNUNET_CADET_Hash hmac;
+  struct GNUNET_ShortHashCode hmac;
 
   /**************** AX_HEADER start ****************/
 

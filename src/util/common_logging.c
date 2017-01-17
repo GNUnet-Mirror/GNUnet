@@ -1153,6 +1153,29 @@ GNUNET_h2s (const struct GNUNET_HashCode * hc)
 
 
 /**
+ * @ingroup logging
+ * Convert a short hash value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param shc the hash code
+ * @return string
+ */
+const char *
+GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc)
+{
+  static char buf[32];
+
+  GNUNET_STRINGS_data_to_string (shc,
+                                 sizeof (*shc),
+                                 buf,
+                                 sizeof (buf));
+  buf[6] = '\0';
+  return (const char *) buf;
+}
+
+
+/**
  * Convert a hash to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!

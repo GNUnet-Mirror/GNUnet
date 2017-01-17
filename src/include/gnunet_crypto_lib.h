@@ -52,20 +52,6 @@ extern "C"
 #endif
 
 /**
- * @brief A 512-bit hashcode
- */
-struct GNUNET_HashCode;
-
-/**
- * The identity of the host (wraps the signing key of the peer).
- */
-struct GNUNET_PeerIdentity;
-
-#include "gnunet_common.h"
-#include <gcrypt.h>
-
-
-/**
  * @brief A 512-bit hashcode.  These are the default length for GNUnet, using SHA-512.
  */
 struct GNUNET_HashCode
@@ -83,6 +69,15 @@ struct GNUNET_ShortHashCode
 {
   uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */
 };
+
+
+/**
+ * The identity of the host (wraps the signing key of the peer).
+ */
+struct GNUNET_PeerIdentity;
+
+#include "gnunet_common.h"
+#include <gcrypt.h>
 
 
 /**

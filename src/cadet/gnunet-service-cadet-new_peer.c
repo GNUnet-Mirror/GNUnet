@@ -155,7 +155,7 @@ struct CadetPeer
   /**
    * Connections that go through this peer; indexed by tid.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *connections;
+  struct GNUNET_CONTAINER_MultiShortmap *connections;
 
   /**
    * Handle for core transmissions.
@@ -227,7 +227,7 @@ destroy_peer (void *cls)
   GNUNET_assert (NULL == cp->t);
   GNUNET_assert (NULL == cp->core_mq);
   GNUNET_assert (0 == cp->path_dll_length);
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (cp->connections));
+  GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (peers,
                                                        &cp->pid,
@@ -252,7 +252,7 @@ destroy_peer (void *cls)
     GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
     cp->connectivity_suggestion = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_destroy (cp->connections);
+  GNUNET_CONTAINER_multishortmap_destroy (cp->connections);
   GNUNET_CONTAINER_heap_destroy (cp->path_heap);
   GNUNET_free_non_null (cp->hello);
   /* Peer should not be freed if paths exist; if there are no paths,
@@ -385,7 +385,7 @@ consider_peer_destroy (struct CadetPeer *cp)
     return; /* still relevant! */
   if (NULL != cp->core_mq)
     return; /* still relevant! */
-  if (0 != GNUNET_CONTAINER_multihashmap_size (cp->connections))
+  if (0 != GNUNET_CONTAINER_multishortmap_size (cp->connections))
     return; /* still relevant! */
   if (0 < GNUNET_CONTAINER_heap_get_size (cp->path_heap))
   {
@@ -563,10 +563,10 @@ GCP_add_connection (struct CadetPeer *cp,
                     struct CadetConnection *cc)
 {
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (cp->connections,
-                                                    GCC_get_h (cc),
-                                                    cc,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                 GNUNET_CONTAINER_multishortmap_put (cp->connections,
+                                                     &GCC_get_id (cc)->connection_of_tunnel,
+                                                     cc,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
@@ -581,9 +581,9 @@ GCP_remove_connection (struct CadetPeer *cp,
                        struct CadetConnection *cc)
 {
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (cp->connections,
-                                                       GCC_get_h (cc),
-                                                       cc));
+                 GNUNET_CONTAINER_multishortmap_remove (cp->connections,
+                                                        &GCC_get_id (cc)->connection_of_tunnel,
+                                                        cc));
 }
 
 
@@ -603,7 +603,7 @@ consider_peer_activate (struct CadetPeer *cp)
     GNUNET_SCHEDULER_cancel (cp->destroy_task);
     cp->destroy_task = NULL;
   }
-  if ( (0 == GNUNET_CONTAINER_multihashmap_size (cp->connections)) &&
+  if ( (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections)) &&
        (NULL == cp->t) )
   {
     /* We're just on a path or directly connected; don't bother too much */
@@ -673,8 +673,8 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
     return NULL;
   cp = GNUNET_new (struct CadetPeer);
   cp->pid = *peer_id;
-  cp->connections = GNUNET_CONTAINER_multihashmap_create (32,
-                                                          GNUNET_YES);
+  cp->connections = GNUNET_CONTAINER_multishortmap_create (32,
+                                                           GNUNET_YES);
   cp->path_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_put (peers,

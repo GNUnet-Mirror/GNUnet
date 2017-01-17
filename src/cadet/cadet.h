@@ -376,26 +376,6 @@ GC_min_pid (uint32_t a, uint32_t b);
 
 
 /**
- * Convert a 256 bit CadetHash into a 512 HashCode to use in GNUNET_h2s,
- * multihashmap, and other HashCode-based functions.
- *
- * @param id A 256 bit hash to expand.
- *
- * @return A HashCode containing the original 256 bit hash right-padded with 0.
- */
-const struct GNUNET_HashCode *
-GC_h2hc (const struct GNUNET_CADET_Hash *id);
-
-
-/**
- * Get a string from a Cadet Hash (256 bits).
- * WARNING: Not reentrant (based on GNUNET_h2s).
- */
-const char *
-GC_h2s (const struct GNUNET_CADET_Hash *id);
-
-
-/**
  * Allocate a string with a hexdump of any binary data.
  *
  * @param bin Arbitrary binary data.
@@ -405,7 +385,10 @@ GC_h2s (const struct GNUNET_CADET_Hash *id);
  * @return The size of the output.
  */
 size_t
-GC_bin2s (void *bin, unsigned int len, char **output);
+GC_bin2s (void *bin,
+          unsigned int len,
+          char **output);
+
 
 /**
  * Convert a message type into a string to help debug

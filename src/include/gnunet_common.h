@@ -558,6 +558,19 @@ GNUNET_logger_remove (GNUNET_Logger logger,
 
 /**
  * @ingroup logging
+ * Convert a short hash value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param shc the hash code
+ * @return string
+ */
+const char *
+GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc);
+
+
+/**
+ * @ingroup logging
  * Convert a hash value to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
@@ -655,7 +668,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 /**
  * @ingroup logging
  * Use this for fatal errors that cannot be handled
- * 
+ *
  * @param cond Condition to evaluate
  * @param comp Component string to use for logging
  */

@@ -172,9 +172,10 @@ struct GNUNET_CONTAINER_MultiHashMap *loose_channels;
 struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 /**
- * Map from expanded connection hash codes to `struct CadetConnection` objects.
+ * Map from `struct GNUNET_CADET_ConnectionTunnelIdentifier`
+ * hash codes to `struct CadetConnection` objects.
  */
-struct GNUNET_CONTAINER_MultiHashMap *connections;
+struct GNUNET_CONTAINER_MultiShortmap *connections;
 
 /**
  * How many messages are needed to trigger an AXOLOTL ratchet advance.
@@ -335,7 +336,7 @@ shutdown_task (void *cls)
   }
   if (NULL != connections)
   {
-    GNUNET_CONTAINER_multihashmap_destroy (connections);
+    GNUNET_CONTAINER_multishortmap_destroy (connections);
     connections = NULL;
   }
   if (NULL != ats_ch)
@@ -909,7 +910,7 @@ iter_channel (void *cls,
               struct CadetChannel *ch)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
-  struct GNUNET_CADET_Hash *h = (struct GNUNET_CADET_Hash *) &msg[1];
+  struct GNUNET_CADET_ConnectionTunnelIdentifier *h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
   struct GCT_ChannelTunnelNumber *chn
     = (struct GCT_ChannelTunnelNumber *) &h[msg->connections];
 
@@ -961,7 +962,7 @@ handle_show_tunnel (void *cls,
   ch_n = GCT_count_channels (t);
   c_n = GCT_count_any_connections (t);
   env = GNUNET_MQ_msg_extra (resp,
-                             c_n * sizeof (struct GNUNET_CADET_Hash) +
+                             c_n * sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier) +
                              ch_n * sizeof (struct GCT_ChannelTunnelNumber),
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
   resp->destination = msg->peer;
@@ -1278,8 +1279,8 @@ run (void *cls,
                                                          GNUNET_NO);
   peers = GNUNET_CONTAINER_multipeermap_create (16,
                                                 GNUNET_YES);
-  connections = GNUNET_CONTAINER_multihashmap_create (256,
-                                                      GNUNET_YES);
+  connections = GNUNET_CONTAINER_multishortmap_create (256,
+                                                       GNUNET_YES);
   GCH_init (c);
   GCD_init (c);
   GCO_init (c);

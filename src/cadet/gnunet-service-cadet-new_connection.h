@@ -152,28 +152,6 @@ GCC_get_id (struct CadetConnection *cc);
 
 
 /**
- * Get the connection ID as a full hash.
- *
- * @param cc Connection to get the ID from.
- * @return full hash ID of the connection.
- * @deprecated try to replace use of full hash codes eventually...
- */
-const struct GNUNET_HashCode *
-GCC_get_h (const struct CadetConnection *cc);
-
-
-/**
- * Expand the shorter CADET hash to a full GNUnet hash.
- *
- * @param id hash to expand
- * @return expanded hash
- * @param deprecated
- */
-const struct GNUNET_HashCode *
-GCC_h2hc (const struct GNUNET_CADET_Hash *id);
-
-
-/**
  * Log connection info.
  *
  * @param cc connection
