@@ -40,6 +40,7 @@
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_channel.h"
 #include "gnunet-service-cadet-new_connection.h"
+#include "gnunet-service-cadet-new_core.h"
 #include "gnunet-service-cadet-new_dht.h"
 #include "gnunet-service-cadet-new_hello.h"
 #include "gnunet-service-cadet-new_tunnels.h"
@@ -308,7 +309,7 @@ shutdown_task (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "shutting down\n");
   shutting_down = GNUNET_YES;
-
+  GCO_shutdown ();
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats,
@@ -1281,6 +1282,7 @@ run (void *cls,
                                                       GNUNET_YES);
   GCH_init (c);
   GCD_init (c);
+  GCO_init (c);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "CADET starting at peer %s\n",
               GNUNET_i2s (&my_full_id));

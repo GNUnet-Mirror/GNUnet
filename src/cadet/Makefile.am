@@ -52,6 +52,7 @@ gnunet_service_cadet_new_SOURCES = \
  gnunet-service-cadet-new.c gnunet-service-cadet-new.h \
  gnunet-service-cadet-new_channel.c gnunet-service-cadet-new_channel.h \
  gnunet-service-cadet-new_connection.c gnunet-service-cadet-new_connection.h \
+ gnunet-service-cadet-new_core.c gnunet-service-cadet-new_core.h \
  gnunet-service-cadet-new_dht.c gnunet-service-cadet-new_dht.h \
  gnunet-service-cadet-new_hello.c gnunet-service-cadet-new_hello.h \
  gnunet-service-cadet-new_tunnels.c gnunet-service-cadet-new_tunnels.h \
