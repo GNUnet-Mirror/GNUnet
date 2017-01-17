@@ -29,6 +29,8 @@
  * - when managing connections, distinguish those that
  *   have (recently) had traffic from those that were
  *   never ready (or not recently)
+ * - implement sending and receiving KX messages
+ * - implement processing of incoming decrypted plaintext messages
  * - clean up KX logic!
  */
 #include "platform.h"
@@ -349,6 +351,16 @@ struct CadetTunnel
    * Task to start the rekey process.
    */
   struct GNUNET_SCHEDULER_Task *rekey_task;
+
+  /**
+   * Tokenizer for decrypted messages.
+   */
+  struct GNUNET_MessageStreamTokenizer *mst;
+
+  /**
+   * Dispatcher for decrypted messages only (do NOT use for sending!).
+   */
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * DLL of connections that are actively used to reach the destination peer.
@@ -1187,6 +1199,8 @@ destroy_tunnel (void *cls)
     GNUNET_SCHEDULER_cancel (t->maintain_connections_task);
     t->maintain_connections_task = NULL;
   }
+  GNUNET_MST_destroy (t->mst);
+  GNUNET_MQ_destroy (t->mq);
   GNUNET_free (t);
 }
 
@@ -1374,6 +1388,161 @@ GCT_consider_path (struct CadetTunnel *t,
 
 
 /**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param msg  the message we received on the tunnel
+ */
+static void
+handle_plaintext_keepalive (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME
+}
+
+
+/**
+ * Check that @a msg is well-formed.
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param msg  the message we received on the tunnel
+ * @return #GNUNET_OK (any variable-size payload goes)
+ */
+static int
+check_plaintext_data (void *cls,
+                      const struct GNUNET_CADET_Data *msg)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param msg the message we received on the tunnel
+ */
+static void
+handle_plaintext_data (void *cls,
+                       const struct GNUNET_CADET_Data *msg)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param ack the message we received on the tunnel
+ */
+static void
+handle_plaintext_data_ack (void *cls,
+                           const struct GNUNET_CADET_DataACK *ack)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param cc the message we received on the tunnel
+ */
+static void
+handle_plaintext_channel_create (void *cls,
+                                 const struct GNUNET_CADET_ChannelCreate *cc)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param cm the message we received on the tunnel
+ */
+static void
+handle_plaintext_channel_nack (void *cls,
+                               const struct GNUNET_CADET_ChannelManage *cm)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param cm the message we received on the tunnel
+ */
+static void
+handle_plaintext_channel_ack (void *cls,
+                              const struct GNUNET_CADET_ChannelManage *cm)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ *
+ *
+ * @param cls the `struct CadetTunnel` for which we decrypted the message
+ * @param cm the message we received on the tunnel
+ */
+static void
+handle_plaintext_channel_destroy (void *cls,
+                                  const struct GNUNET_CADET_ChannelManage *cm)
+{
+  struct CadetTunnel *t = cls;
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ * Handles a message we decrypted, by injecting it into
+ * our message queue (which will do the dispatching).
+ *
+ * @param cls the `struct CadetTunnel` that got the message
+ * @param msg the message
+ * @return #GNUNET_OK (continue to process)
+ */
+static int
+handle_decrypted (void *cls,
+                  const struct GNUNET_MessageHeader *msg)
+{
+  struct CadetTunnel *t = cls;
+
+  GNUNET_MQ_inject_message (t->mq,
+                            msg);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called if we had an error processing
+ * an incoming decrypted message.
+ *
+ * @param cls the `struct CadetTunnel`
+ * @param error error code
+ */
+static void
+decrypted_error_cb (void *cls,
+                    enum GNUNET_MQ_Error error)
+{
+  GNUNET_break_op (0);
+}
+
+
+/**
  * Create a tunnel to @a destionation.  Must only be called
  * from within #GCP_get_tunnel().
  *
@@ -1383,6 +1552,37 @@ GCT_consider_path (struct CadetTunnel *t,
 struct CadetTunnel *
 GCT_create_tunnel (struct CadetPeer *destination)
 {
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_fixed_size (plaintext_keepalive,
+                             GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_var_size (plaintext_data,
+                           GNUNET_MESSAGE_TYPE_CADET_DATA,
+                           struct GNUNET_CADET_Data,
+                           NULL),
+    GNUNET_MQ_hd_fixed_size (plaintext_data_ack,
+                             GNUNET_MESSAGE_TYPE_CADET_DATA_ACK,
+                             struct GNUNET_CADET_DataACK,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_create,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
+                             struct GNUNET_CADET_ChannelCreate,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_nack,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK,
+                             struct GNUNET_CADET_ChannelManage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_ack,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK,
+                             struct GNUNET_CADET_ChannelManage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_destroy,
+                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
+                             struct GNUNET_CADET_ChannelManage,
+                             NULL),
+    GNUNET_MQ_handler_end ()
+  };
   struct CadetTunnel *t;
 
   t = GNUNET_new (struct CadetTunnel);
@@ -1394,6 +1594,15 @@ GCT_create_tunnel (struct CadetPeer *destination)
   t->maintain_connections_task
     = GNUNET_SCHEDULER_add_now (&maintain_connections_cb,
                                 t);
+  t->mq = GNUNET_MQ_queue_for_callbacks (NULL,
+                                         NULL,
+                                         NULL,
+                                         NULL,
+                                         handlers,
+                                         &decrypted_error_cb,
+                                         t);
+  t->mst = GNUNET_MST_create (&handle_decrypted,
+                              t);
   return t;
 }
 
@@ -1489,8 +1698,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   uint16_t size = ntohs (msg->header.size);
   char cbuf [size] GNUNET_ALIGN;
   ssize_t decrypted_size;
-  const struct GNUNET_MessageHeader *msgh;
-  unsigned int off;
 
   GNUNET_STATISTICS_update (stats,
                             "# received encrypted",
@@ -1522,34 +1729,13 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
 
   GCT_change_estate (t,
                      CADET_TUNNEL_KEY_OK);
-
-#if 0
-  /* FIXME: this is bad, as the structs returned from
-     this loop may be unaligned, see util's MST for
-     how to do this right.
-     => Change MST API to use new MQ-style handlers! */
-  off = 0;
-  while (off + sizeof (struct GNUNET_MessageHeader) <= decrypted_size)
-  {
-    uint16_t msize;
-
-    msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
-    msize = ntohs (msgh->size);
-    if (msize < sizeof (struct GNUNET_MessageHeader))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    if (off + msize < decrypted_size)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    handle_decrypted (t,
-                      msgh);
-    off += msize;
-  }
-#endif
+  /* The MST will ultimately call #handle_decrypted() on each message. */
+  GNUNET_break_op (GNUNET_OK ==
+                   GNUNET_MST_from_buffer (t->mst,
+                                           cbuf,
+                                           decrypted_size,
+                                           GNUNET_YES,
+                                           GNUNET_NO));
 }
 
 
