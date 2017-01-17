@@ -70,6 +70,7 @@ libgnunetutil_la_SOURCES = \
   container_heap.c \
   container_meta_data.c \
   container_multihashmap.c \
+  container_multishortmap.c \
   container_multipeermap.c \
   container_multihashmap32.c \
   crypto_symmetric.c \
