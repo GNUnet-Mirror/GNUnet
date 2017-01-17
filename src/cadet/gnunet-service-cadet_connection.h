@@ -277,7 +277,7 @@ GCC_shutdown (void);
  *         NULL in case of error: own id not in path, wrong neighbors, ...
  */
 struct CadetConnection *
-GCC_new (const struct GNUNET_CADET_Hash *cid,
+GCC_new (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
          struct CadetTunnel *t,
          struct CadetPeerPath *path,
          unsigned int own_pos);
@@ -300,7 +300,7 @@ GCC_destroy (struct CadetConnection *c);
  *
  * @return ID of the connection.
  */
-const struct GNUNET_CADET_Hash *
+const struct GNUNET_CADET_ConnectionTunnelIdentifier *
 GCC_get_id (const struct CadetConnection *c);
 
 

@@ -35,6 +35,7 @@
 #include "cadet_protocol.h"
 #include "cadet_path.h"
 #include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_dht.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
@@ -49,6 +50,43 @@
  * How long do we keep paths around if we no longer care about the peer?
  */
 #define IDLE_PATH_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
+
+
+
+
+/**
+ * Data structure used to track whom we have to notify about changes
+ * to our message queue.
+ */
+struct GCP_MessageQueueManager
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GCP_MessageQueueManager *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GCP_MessageQueueManager *prev;
+
+  /**
+   * Function to call with updated message queue object.
+   */
+  GCP_MessageQueueNotificationCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
+
+  /**
+   * The peer this is for.
+   */
+  struct CadetPeer *cp;
+
+};
 
 
 /**
@@ -77,6 +115,16 @@ struct CadetPeer
    * offset of the peer on the larger path.
    */
   struct CadetPeerPathEntry **path_tails;
+
+  /**
+   * Notifications to call when @e core_mq changes.
+   */
+  struct GCP_MessageQueueManager *mqm_head;
+
+  /**
+   * Notifications to call when @e core_mq changes.
+   */
+  struct GCP_MessageQueueManager *mqm_tail;
 
   /**
    * MIN-heap of paths owned by this peer (they also end at this
@@ -207,7 +255,31 @@ destroy_peer (void *cls)
   GNUNET_CONTAINER_multihashmap_destroy (cp->connections);
   GNUNET_CONTAINER_heap_destroy (cp->path_heap);
   GNUNET_free_non_null (cp->hello);
+  /* Peer should not be freed if paths exist; if there are no paths,
+     there ought to be no connections, and without connections, no
+     notifications. Thus we can assert that mqm_head is empty at this
+     point. */
+  GNUNET_assert (NULL == cp->mqm_head);
   GNUNET_free (cp);
+}
+
+
+/**
+ * Set the message queue to @a mq for peer @a cp and notify watchers.
+ *
+ * @param cp peer to modify
+ * @param mq message queue to set (can be NULL)
+ */
+void
+GCP_set_mq (struct CadetPeer *cp,
+            struct GNUNET_MQ_Handle *mq)
+{
+  cp->core_mq = mq;
+  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
+       NULL != mqm;
+       mqm = mqm->next)
+    mqm->cb (mqm->cb_cls,
+             mq);
 }
 
 
@@ -461,6 +533,41 @@ GCP_detach_path (struct CadetPeer *cp,
 {
   GNUNET_assert (path ==
                  GNUNET_CONTAINER_heap_remove_node (hn));
+}
+
+
+/**
+ * Add a @a connection to this @a cp.
+ *
+ * @param cp peer via which the @a connection goes
+ * @param cc the connection to add
+ */
+void
+GCP_add_connection (struct CadetPeer *cp,
+                    struct CadetConnection *cc)
+{
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_put (cp->connections,
+                                                    GCC_get_h (cc),
+                                                    cc,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+}
+
+
+/**
+ * Remove a @a connection that went via this @a cp.
+ *
+ * @param cp peer via which the @a connection went
+ * @param cc the connection to remove
+ */
+void
+GCP_remove_connection (struct CadetPeer *cp,
+                       struct CadetConnection *cc)
+{
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (cp->connections,
+                                                       GCC_get_h (cc),
+                                                       cc));
 }
 
 
@@ -726,6 +833,53 @@ GCP_drop_tunnel (struct CadetPeer *peer,
   peer->t = NULL;
   consider_peer_destroy (peer);
 }
+
+
+/**
+ * Start message queue change notifications.
+ *
+ * @param cp peer to notify for
+ * @param cb function to call if mq becomes available or unavailable
+ * @param cb_cls closure for @a cb
+ * @return handle to cancel request
+ */
+struct GCP_MessageQueueManager *
+GCP_request_mq (struct CadetPeer *cp,
+                GCP_MessageQueueNotificationCallback cb,
+                void *cb_cls)
+{
+  struct GCP_MessageQueueManager *mqm;
+
+  mqm = GNUNET_new (struct GCP_MessageQueueManager);
+  mqm->cb = cb;
+  mqm->cb_cls = cb_cls;
+  mqm->cp = cp;
+  GNUNET_CONTAINER_DLL_insert (cp->mqm_head,
+                               cp->mqm_tail,
+                               mqm);
+  if (NULL != cp->core_mq)
+    cb (cb_cls,
+        cp->core_mq);
+  return mqm;
+}
+
+
+/**
+ * Stops message queue change notifications.
+ *
+ * @param mqm handle matching request to cancel
+ */
+void
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm)
+{
+  struct CadetPeer *cp = mqm->cp;
+
+  GNUNET_CONTAINER_DLL_remove (cp->mqm_head,
+                               cp->mqm_tail,
+                               mqm);
+  GNUNET_free (mqm);
+}
+
 
 
 /* end of gnunet-service-cadet-new_peer.c */

@@ -965,8 +965,9 @@ static void
 iter_connection (void *cls, struct CadetConnection *c)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
-  struct GNUNET_CADET_Hash *h = (struct GNUNET_CADET_Hash *) &msg[1];
+  struct GNUNET_CADET_ConnectionTunnelIdentifier *h;
 
+  h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
   h[msg->connections] = *(GCC_get_id (c));
   msg->connections++;
 }

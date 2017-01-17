@@ -218,6 +218,28 @@ GCP_detach_path (struct CadetPeer *cp,
 
 
 /**
+ * Add a @a connection to this @a cp.
+ *
+ * @param cp peer via which the @a connection goes
+ * @param cc the connection to add
+ */
+void
+GCP_add_connection (struct CadetPeer *cp,
+                    struct CadetConnection *cc);
+
+
+/**
+ * Remove a @a connection that went via this @a cp.
+ *
+ * @param cp peer via which the @a connection went
+ * @param cc the connection to remove
+ */
+void
+GCP_remove_connection (struct CadetPeer *cp,
+                       struct CadetConnection *cc);
+
+
+/**
  * We got a HELLO for a @a cp, remember it, and possibly
  * trigger adequate actions (like trying to connect).
  *
@@ -236,6 +258,58 @@ GCP_set_hello (struct CadetPeer *cp,
  */
 void
 GCP_destroy_all_peers (void);
+
+
+/**
+ * Data structure used to track whom we have to notify about changes
+ * to our message queue.
+ */
+struct GCP_MessageQueueManager;
+
+
+/**
+ * Function to call with updated message queue object.
+ *
+ * @param cls closure
+ * @param mq NULL if MQ is gone, otherwise an active message queue
+ */
+typedef void
+(*GCP_MessageQueueNotificationCallback)(void *cls,
+                                        struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ * Start message queue change notifications.
+ *
+ * @param cp peer to notify for
+ * @param cb function to call if mq becomes available or unavailable
+ * @param cb_cls closure for @a cb
+ * @return handle to cancel request
+ */
+struct GCP_MessageQueueManager *
+GCP_request_mq (struct CadetPeer *cp,
+                GCP_MessageQueueNotificationCallback cb,
+                void *cb_cls);
+
+
+/**
+ * Stops message queue change notifications.
+ *
+ * @param mqm handle matching request to cancel
+ */
+void
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm);
+
+
+/**
+ * Set the message queue to @a mq for peer @a cp and notify watchers.
+ *
+ * @param cp peer to modify
+ * @param mq message queue to set (can be NULL)
+ */
+void
+GCP_set_mq (struct CadetPeer *cp,
+            struct GNUNET_MQ_Handle *mq);
 
 
 #endif

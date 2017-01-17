@@ -74,7 +74,7 @@ struct GNUNET_CADET_ConnectionCreate
   /**
    * ID of the connection
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * path_length structs defining the *whole* path from the origin [0] to the
@@ -102,7 +102,7 @@ struct GNUNET_CADET_ConnectionACK
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
 };
 
@@ -125,7 +125,7 @@ struct GNUNET_CADET_ConnectionBroken
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * ID of the endpoint
@@ -157,7 +157,7 @@ struct GNUNET_CADET_ConnectionDestroy
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 };
 
 
@@ -179,7 +179,7 @@ struct GNUNET_CADET_ACK
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 };
 
 
@@ -201,7 +201,7 @@ struct GNUNET_CADET_Poll
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
 };
 
@@ -247,7 +247,7 @@ struct GNUNET_CADET_KX
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * Sender's ephemeral public ECC key encoded in a
@@ -283,7 +283,7 @@ struct GNUNET_CADET_Encrypted
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * MAC of the encrypted message, used to verify message integrity.

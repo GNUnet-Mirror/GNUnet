@@ -268,9 +268,9 @@ struct CadetTunnelQueueEntry
   void *cont_cls;
 
   /**
-   * (Encrypted) message to send follows.
+   * Envelope of message to send follows.
    */
-  /* struct GNUNET_MessageHeader *msg; */
+  struct GNUNET_MQ_Envelope *env;
 };
 
 
@@ -533,7 +533,7 @@ destroy_tunnel (void *cls)
     GNUNET_CONTAINER_DLL_remove (t->tq_head,
                                  t->tq_tail,
                                  tqe);
-    // FIXME: implement!
+    GNUNET_MQ_discard (tqe->env);
     GNUNET_free (tqe);
   }
   GCP_drop_tunnel (t->destination,
@@ -570,7 +570,7 @@ connection_ready_cb (void *cls)
                                t->tq_tail,
                                tq);
   GCC_transmit (ct->cc,
-                (const struct GNUNET_MessageHeader *) &tq[1]);
+                tq->env);
   tq->cont (tq->cont_cls);
   GNUNET_free (tq);
 }
@@ -693,12 +693,13 @@ consider_path_cb (void *cls,
   ct->created = GNUNET_TIME_absolute_get ();
   ct->t = t;
   ct->cc = GCC_create (t->destination,
-                      path,
-                      &connection_ready_cb,
-                      t);
+                       path,
+                       &connection_ready_cb,
+                       t);
   /* FIXME: schedule job to kill connection (and path?)  if it takes
      too long to get ready! (And track performance data on how long
-     other connections took with the tunnel!) */
+     other connections took with the tunnel!)
+     => Note: to be done within 'connection'-logic! */
   GNUNET_CONTAINER_DLL_insert (t->connection_head,
                                t->connection_tail,
                                ct);

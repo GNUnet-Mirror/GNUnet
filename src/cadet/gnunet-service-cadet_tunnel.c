@@ -1406,7 +1406,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        "Sending message of type %s with PID %u and CID %s\n",
        GC_m2s (type),
        htonl (ax_msg->pid),
-       GC_h2s (&ax_msg->cid));
+       GC_h2s (&ax_msg->cid.connection_of_tunnel));
 
   if (NULL == cont)
   {
@@ -2744,7 +2744,7 @@ struct CadetConnection *
 GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *path)
 {
   struct CadetConnection *c;
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
   unsigned int own_pos;
 
   if (NULL == t || NULL == path)

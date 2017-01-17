@@ -170,6 +170,11 @@ struct GNUNET_CONTAINER_MultiHashMap *loose_channels;
  */
 struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
+/**
+ * Map from expanded connection hash codes to `struct CadetConnection` objects.
+ */
+struct GNUNET_CONTAINER_MultiHashMap *connections;
+
 
 
 /**
@@ -316,6 +321,11 @@ shutdown_task (void *cls)
   {
     GNUNET_CONTAINER_multipeermap_destroy (peers);
     peers = NULL;
+  }
+  if (NULL != connections)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy (connections);
+    connections = NULL;
   }
   if (NULL != ats_ch)
   {
@@ -1232,6 +1242,8 @@ run (void *cls,
                                                          GNUNET_NO);
   peers = GNUNET_CONTAINER_multipeermap_create (16,
                                                 GNUNET_YES);
+  connections = GNUNET_CONTAINER_multihashmap_create (256,
+                                                      GNUNET_YES);
   GCH_init (c);
   GCD_init (c);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

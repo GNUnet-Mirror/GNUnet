@@ -60,6 +60,7 @@ GCC_destroy (struct CadetConnection *cc);
  * @param path which path to take (may not be the full path)
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection
  */
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
@@ -75,11 +76,14 @@ GCC_create (struct CadetPeer *destination,
  * connection is right now ready for transmission.
  *
  * @param cc connection identification
- * @param msg message to transmit
+ * @param env envelope with message to transmit;
+ *            the #GNUNET_MQ_notify_send() must not have yet been used
+ *            for the envelope.  Also, the message better match the
+ *            connection identifier of this connection...
  */
 void
 GCC_transmit (struct CadetConnection *cc,
-              const struct GNUNET_MessageHeader *msg);
+              struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -100,6 +104,17 @@ GCC_get_path (struct CadetConnection *cc);
  */
 const struct GNUNET_CADET_ConnectionTunnelIdentifier *
 GCC_get_id (struct CadetConnection *cc);
+
+
+/**
+ * Get the connection ID as a full hash.
+ *
+ * @param cc Connection to get the ID from.
+ * @return full hash ID of the connection.
+ * @deprecated try to replace use of full hash codes eventually...
+ */
+const struct GNUNET_HashCode *
+GCC_get_h (const struct CadetConnection *cc);
 
 
 /**

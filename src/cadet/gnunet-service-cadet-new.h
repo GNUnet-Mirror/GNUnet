@@ -140,6 +140,11 @@ extern struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 extern struct GNUNET_CONTAINER_MultiHashMap *open_ports;
 
 /**
+ * Map from expanded connection hash codes to `struct CadetConnection` objects.
+ */
+extern struct GNUNET_CONTAINER_MultiHashMap *connections;
+
+/**
  * Map from ports to channels where the ports were closed at the
  * time we got the inbound connection.
  * Indexed by port, contains `struct CadetChannel`.

@@ -218,7 +218,7 @@ struct CadetConnection
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash id;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier id;
 
   /**
    * Path being used for the tunnel. At the origin of the connection
@@ -1100,7 +1100,7 @@ send_broken (struct CadetConnection *c,
  * @param neighbor Peer to notify (neighbor who sent the connection).
  */
 static void
-send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
+send_broken_unknown (const struct GNUNET_CADET_ConnectionTunnelIdentifier *connection_id,
                      const struct GNUNET_PeerIdentity *id1,
                      const struct GNUNET_PeerIdentity *id2,
                      struct CadetPeer *neighbor)
@@ -1836,7 +1836,7 @@ add_to_peer (struct CadetConnection *c,
 static void
 log_message (const struct GNUNET_MessageHeader *message,
              const struct CadetPeer *peer,
-             const struct GNUNET_CADET_Hash *conn_id)
+             const struct GNUNET_CADET_ConnectionTunnelIdentifier *conn_id)
 {
   uint16_t size;
   uint16_t type;
@@ -1874,7 +1874,7 @@ void
 GCC_handle_create (struct CadetPeer *peer,
                    const struct GNUNET_CADET_ConnectionCreate *msg)
 {
-  const struct GNUNET_CADET_Hash *cid;
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid;
   struct GNUNET_PeerIdentity *id;
   struct CadetPeerPath *path;
   struct CadetPeer *dest_peer;
@@ -2409,7 +2409,7 @@ GCC_handle_poll (struct CadetPeer *peer,
  */
 static int
 check_message (const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_CADET_Hash* cid,
+               const struct GNUNET_CADET_ConnectionTunnelIdentifier* cid,
                struct CadetConnection *c,
                struct CadetPeer *sender,
                uint32_t pid)
@@ -2534,7 +2534,7 @@ void
 GCC_handle_kx (struct CadetPeer *peer,
                const struct GNUNET_CADET_KX *msg)
 {
-  const struct GNUNET_CADET_Hash* cid;
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier* cid;
   struct CadetConnection *c;
   int fwd;
 
@@ -2591,7 +2591,7 @@ void
 GCC_handle_encrypted (struct CadetPeer *peer,
                       const struct GNUNET_CADET_Encrypted *msg)
 {
-  const struct GNUNET_CADET_Hash* cid;
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier* cid;
   struct CadetConnection *c;
   uint32_t pid;
   int fwd;
@@ -2734,7 +2734,7 @@ GCC_shutdown (void)
  *         NULL in case of error: own id not in path, wrong neighbors, ...
 */
 struct CadetConnection *
-GCC_new (const struct GNUNET_CADET_Hash *cid,
+GCC_new (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
          struct CadetTunnel *t,
          struct CadetPeerPath *path,
          unsigned int own_pos)
@@ -2871,7 +2871,7 @@ GCC_destroy (struct CadetConnection *c)
  *
  * @return ID of the connection.
  */
-const struct GNUNET_CADET_Hash *
+const struct GNUNET_CADET_ConnectionTunnelIdentifier *
 GCC_get_id (const struct CadetConnection *c)
 {
   return &c->id;
