@@ -29,6 +29,8 @@
 #define GNUNET_SERVICE_CADET_TUNNELS_H
 
 #include "gnunet-service-cadet-new.h"
+#include "cadet_protocol.h"
+
 
 /**
  * How many connections would we like to have per tunnel?
@@ -313,6 +315,28 @@ GCT_get_cstate (struct CadetTunnel *t);
  */
 enum CadetTunnelEState
 GCT_get_estate (struct CadetTunnel *t);
+
+
+/**
+ * Handle KX message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCT_handle_kx (struct CadetTConnection *ct,
+               const struct GNUNET_CADET_KX *msg);
+
+
+/**
+ * Handle encrypted message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the encrypted message to decrypt
+ */
+void
+GCT_handle_encrypted (struct CadetTConnection *ct,
+                      const struct GNUNET_CADET_Encrypted *msg);
 
 
 /**

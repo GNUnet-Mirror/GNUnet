@@ -259,6 +259,8 @@ handle_broken (void *cls,
       return;
     }
     GCC_destroy (cc);
+
+    /* FIXME: also destroy the path up to the specified link! */
     return;
   }
 
@@ -268,6 +270,7 @@ handle_broken (void *cls,
                  &msg->cid,
                  &msg->header);
   destroy_route (route);
+  /* FIXME: also destroy paths we MAY have up to the specified link! */
 }
 
 

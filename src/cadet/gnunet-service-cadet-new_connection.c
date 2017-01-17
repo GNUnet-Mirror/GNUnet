@@ -25,12 +25,20 @@
  *        end-to-end routes and transmits messages along the route
  * @author Bartlomiej Polot
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - congestion control
+ * - GCC_debug()
+ * - keepalive messages
+ * - performance metrics
+ * - back-off reset
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_channel.h"
+#include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_connection.h"
+#include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_cadet_service.h"
 #include "cadet_protocol.h"
 
@@ -247,7 +255,8 @@ void
 GCC_handle_kx (struct CadetConnection *cc,
                const struct GNUNET_CADET_KX *msg)
 {
-  GNUNET_assert (0); // FIXME: not implemented
+  GCT_handle_kx (cc->ct,
+                 msg);
 }
 
 
@@ -261,7 +270,8 @@ void
 GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_Encrypted *msg)
 {
-  GNUNET_assert (0); // FIXME: not implemented
+  GCT_handle_encrypted (cc->ct,
+                        msg);
 }
 
 

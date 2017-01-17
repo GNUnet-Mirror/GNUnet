@@ -33,6 +33,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_signatures.h"
 #include "cadet_protocol.h"
 #include "cadet_path.h"
@@ -1420,6 +1421,135 @@ GCT_remove_channel (struct CadetTunnel *t,
                                                     &destroy_tunnel,
                                                     t);
   }
+}
+
+
+/**
+ * Change the tunnel encryption state.
+ * If the encryption state changes to OK, stop the rekey task.
+ *
+ * @param t Tunnel whose encryption state to change, or NULL.
+ * @param state New encryption state.
+ */
+void
+GCT_change_estate (struct CadetTunnel *t,
+                   enum CadetTunnelEState state)
+{
+  enum CadetTunnelEState old = t->estate;
+
+  t->estate = state;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s estate changed from %d to %d\n",
+       GCT_2s (t),
+       old,
+       state);
+
+  if ( (CADET_TUNNEL_KEY_OK != old) &&
+       (CADET_TUNNEL_KEY_OK == t->estate) )
+  {
+    if (NULL != t->rekey_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->rekey_task);
+      t->rekey_task = NULL;
+    }
+#if FIXME
+    /* Send queued data if tunnel is not loopback */
+    if (myid != GCP_get_short_id (t->peer))
+      send_queued_data (t);
+#endif
+  }
+}
+
+
+/**
+ * Handle KX message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCT_handle_kx (struct CadetTConnection *ct,
+               const struct GNUNET_CADET_KX *msg)
+{
+  GNUNET_break (0); // not implemented
+}
+
+
+/**
+ * Handle encrypted message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the encrypted message to decrypt
+ */
+void
+GCT_handle_encrypted (struct CadetTConnection *ct,
+                      const struct GNUNET_CADET_Encrypted *msg)
+{
+  struct CadetTunnel *t = ct->t;
+  uint16_t size = ntohs (msg->header.size);
+  char cbuf [size] GNUNET_ALIGN;
+  ssize_t decrypted_size;
+  const struct GNUNET_MessageHeader *msgh;
+  unsigned int off;
+
+  GNUNET_STATISTICS_update (stats,
+                            "# received encrypted",
+                            1,
+                            GNUNET_NO);
+
+  decrypted_size = t_ax_decrypt_and_validate (t,
+                                              cbuf,
+                                              msg,
+                                              size);
+
+  if (-1 == decrypted_size)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# unable to decrypt",
+                              1,
+                              GNUNET_NO);
+    if (CADET_TUNNEL_KEY_PING <= t->estate)
+    {
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Wrong crypto, tunnel %s\n",
+           GCT_2s (t));
+      GCT_debug (t,
+                 GNUNET_ERROR_TYPE_WARNING);
+    }
+    return;
+  }
+
+  GCT_change_estate (t,
+                     CADET_TUNNEL_KEY_OK);
+
+#if 0
+  /* FIXME: this is bad, as the structs returned from
+     this loop may be unaligned, see util's MST for
+     how to do this right.
+     => Change MST API to use new MQ-style handlers! */
+  off = 0;
+  while (off + sizeof (struct GNUNET_MessageHeader) <= decrypted_size)
+  {
+    uint16_t msize;
+
+    msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
+    msize = ntohs (msgh->size);
+    if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    if (off + msize < decrypted_size)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    handle_decrypted (t,
+                      msgh);
+    off += msize;
+  }
+#endif
 }
 
 
