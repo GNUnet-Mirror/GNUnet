@@ -893,7 +893,7 @@ handle_guest_enter_decision (void *cls,
   struct GNUNET_SOCIAL_Guest *gst = cls;
 
   struct GNUNET_PSYC_Message *pmsg = NULL;
-  if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*pmsg))
+  if (ntohs (dcsn->header.size) > sizeof (*dcsn))
     pmsg = (struct GNUNET_PSYC_Message *) GNUNET_MQ_extract_nested_mh (dcsn);
 
   if (NULL != gst->entry_dcsn_cb)

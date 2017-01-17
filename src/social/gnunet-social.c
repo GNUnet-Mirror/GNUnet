@@ -360,7 +360,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 
   if (0 == tmit->size)
   {
-    if (op_host_announce || op_host_assign || op_guest_talk)
+    if ((op_host_announce || op_host_assign || op_guest_talk) && !opt_follow)
     {
       exit_success ();
     }
