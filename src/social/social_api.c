@@ -1087,7 +1087,7 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) place_cleanup, plc);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_cleanup, plc);
     }
     else
     {
@@ -2701,7 +2701,7 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (app->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) app_cleanup, app);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) app_cleanup, app);
     }
     else
     {

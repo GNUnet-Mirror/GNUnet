@@ -557,7 +557,7 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
 struct GNUNET_MQ_Envelope *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
                           const struct GNUNET_HELLO_Message *hello,
-			  GNUNET_MQ_NotifyCallback cont,
+			  GNUNET_SCHEDULER_TaskCallback cont,
 			  void *cont_cls)
 {
   struct GNUNET_MQ_Envelope *env;

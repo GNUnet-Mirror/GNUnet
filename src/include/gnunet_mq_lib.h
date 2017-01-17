@@ -255,15 +255,6 @@ typedef void
 
 
 /**
- * Callback used for notifications
- *
- * @param cls closure
- */
-typedef void
-(*GNUNET_MQ_NotifyCallback) (void *cls);
-
-
-/**
  * Generic error handler, called with the appropriate
  * error code and the same closure specified at the creation of
  * the message queue.
@@ -634,7 +625,7 @@ GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
  */
 void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
-                       GNUNET_MQ_NotifyCallback cb,
+                       GNUNET_SCHEDULER_TaskCallback cb,
                        void *cb_cls);
 
 

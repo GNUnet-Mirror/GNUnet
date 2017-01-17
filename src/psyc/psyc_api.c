@@ -598,7 +598,7 @@ channel_disconnect (struct GNUNET_PSYC_Channel *chn,
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (chn->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) channel_cleanup, chn);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) channel_cleanup, chn);
     }
     else
     {

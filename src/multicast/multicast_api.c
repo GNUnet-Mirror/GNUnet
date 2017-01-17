@@ -556,7 +556,7 @@ group_disconnect (struct GNUNET_MULTICAST_Group *grp,
     if (NULL != last)
     {
       GNUNET_MQ_notify_sent (last,
-                             (GNUNET_MQ_NotifyCallback) group_cleanup, grp);
+                             (GNUNET_SCHEDULER_TaskCallback) group_cleanup, grp);
     }
     else
     {

@@ -58,7 +58,7 @@ struct GNUNET_MQ_Envelope
   /**
    * Called after the message was sent irrevocably.
    */
-  GNUNET_MQ_NotifyCallback sent_cb;
+  GNUNET_SCHEDULER_TaskCallback sent_cb;
 
   /**
    * Closure for @e send_cb
@@ -128,10 +128,10 @@ struct GNUNET_MQ_Handle
   void *error_handler_cls;
 
   /**
-   * Task to asynchronously run #impl_send_continue(). 
+   * Task to asynchronously run #impl_send_continue().
    */
   struct GNUNET_SCHEDULER_Task *send_task;
-  
+
   /**
    * Linked list of messages pending to be sent
    */
@@ -414,7 +414,7 @@ static void
 impl_send_continue (void *cls)
 {
   struct GNUNET_MQ_Handle *mq = cls;
-  
+
   mq->send_task = NULL;
   /* call is only valid if we're actually currently sending
    * a message */
@@ -441,8 +441,8 @@ void
 GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_MQ_Envelope *current_envelope;
-  GNUNET_MQ_NotifyCallback cb;
-  
+  GNUNET_SCHEDULER_TaskCallback cb;
+
   GNUNET_assert (0 < mq->queue_length);
   mq->queue_length--;
   mq->in_flight = GNUNET_NO;
@@ -456,7 +456,7 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
   {
     current_envelope->sent_cb = NULL;
     cb (current_envelope->sent_cls);
-  }  
+  }
   GNUNET_free (current_envelope);
 }
 
@@ -475,8 +475,8 @@ void
 GNUNET_MQ_impl_send_in_flight (struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_MQ_Envelope *current_envelope;
-  GNUNET_MQ_NotifyCallback cb;
-  
+  GNUNET_SCHEDULER_TaskCallback cb;
+
   mq->in_flight = GNUNET_YES;
   /* call is only valid if we're actually currently sending
    * a message */
@@ -812,7 +812,7 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
  */
 void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *mqm,
-                       GNUNET_MQ_NotifyCallback cb,
+                       GNUNET_SCHEDULER_TaskCallback cb,
                        void *cb_cls)
 {
   mqm->sent_cb = cb;
@@ -953,7 +953,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
 
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL != mq->cancel_impl);
-  
+
   mq->evacuate_called = GNUNET_NO;
 
   if (mq->current_envelope == ev)
