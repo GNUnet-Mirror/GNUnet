@@ -21,7 +21,8 @@
 
 /**
  * @file cadet/gnunet-service-cadet-new_connection.c
- * @brief
+ * @brief management of CORE-level end-to-end connections; establishes
+ *        end-to-end routes and transmits messages along the route
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
@@ -86,6 +87,11 @@ struct CadetConnection
    * To which peer does this connection go?
    */
   struct CadetPeer *destination;
+
+  /**
+   * Which tunnel is using this connection?
+   */
+  struct CadetTConnection *ct;
 
   /**
    * Path we are using to our destination.
@@ -231,6 +237,19 @@ GCC_get_h (const struct CadetConnection *cc)
 
 
 /**
+ * Return the tunnel associated with this connection.
+ *
+ * @param cc connection to query
+ * @return corresponding entry in the tunnel's connection list
+ */
+struct CadetTConnection *
+GCC_get_ct (struct CadetConnection *cc)
+{
+  return cc->ct;
+}
+
+
+/**
  * An ACK was received for this connection, process it.
  *
  * @param cc the connection that got the ACK.
@@ -355,6 +374,7 @@ manage_first_hop_mq (void *cls,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param ct tunnel that uses the connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
  * @return handle to the connection
@@ -362,6 +382,7 @@ manage_first_hop_mq (void *cls,
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            struct CadetTConnection *ct,
             GNUNET_SCHEDULER_TaskCallback ready_cb,
             void *ready_cb_cls)
 {
@@ -373,6 +394,7 @@ GCC_create (struct CadetPeer *destination,
                         destination);
   GNUNET_assert (UINT_MAX > off);
   cc = GNUNET_new (struct CadetConnection);
+  cc->ct = ct;
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &cc->cid,
                               sizeof (cc->cid));

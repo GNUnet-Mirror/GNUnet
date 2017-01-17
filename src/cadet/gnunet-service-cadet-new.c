@@ -175,6 +175,16 @@ struct GNUNET_CONTAINER_MultiPeerMap *peers;
  */
 struct GNUNET_CONTAINER_MultiHashMap *connections;
 
+/**
+ * How many messages are needed to trigger an AXOLOTL ratchet advance.
+ */
+unsigned long long ratchet_messages;
+
+/**
+ * How long until we trigger a ratched advance due to time.
+ */
+struct GNUNET_TIME_Relative ratchet_time;
+
 
 
 /**
@@ -1221,6 +1231,31 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "RATCHET_MESSAGES",
+                                             &ratchet_messages))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET",
+                               "RATCHET_MESSAGES",
+                               "needs to be a number");
+    ratchet_messages = 64;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c,
+                                           "CADET",
+                                           "RATCHET_TIME",
+                                           &ratchet_time))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET",
+                               "RATCHET_TIME",
+                               "need delay value");
+    ratchet_time = GNUNET_TIME_UNIT_HOURS;
+  }
+
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   if (NULL == my_private_key)
   {

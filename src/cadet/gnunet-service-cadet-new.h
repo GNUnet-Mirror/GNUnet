@@ -101,6 +101,10 @@ struct CadetPeerPathEntry
 
 };
 
+/**
+ * Entry in list of connections used by tunnel, with metadata.
+ */
+struct CadetTConnection;
 
 /**
  * Active path through the network (used by a tunnel).  There may
@@ -155,6 +159,17 @@ extern struct GNUNET_CONTAINER_MultiHashMap *loose_channels;
  * Map from PIDs to `struct CadetPeer` entries.
  */
 extern struct GNUNET_CONTAINER_MultiPeerMap *peers;
+
+/**
+ * How many messages are needed to trigger an AXOLOTL ratchet advance.
+ */
+extern unsigned long long ratchet_messages;
+
+/**
+ * How long until we trigger a ratched advance due to time.
+ */
+extern struct GNUNET_TIME_Relative ratchet_time;
+
 
 
 /**

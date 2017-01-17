@@ -58,6 +58,7 @@ GCC_destroy (struct CadetConnection *cc);
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
  * @return handle to the connection
@@ -65,6 +66,7 @@ GCC_destroy (struct CadetConnection *cc);
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            struct CadetTConnection *ct,
             GNUNET_SCHEDULER_TaskCallback ready_cb,
             void *ready_cb_cls);
 
@@ -84,6 +86,16 @@ GCC_create (struct CadetPeer *destination,
 void
 GCC_transmit (struct CadetConnection *cc,
               struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Return the tunnel associated with this connection.
+ *
+ * @param cc connection to query
+ * @return corresponding entry in the tunnel's connection list
+ */
+struct CadetTConnection *
+GCC_get_ct (struct CadetConnection *cc);
 
 
 /**
