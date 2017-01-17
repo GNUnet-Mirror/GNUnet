@@ -110,49 +110,6 @@ typedef void
 
 
 /**
- * Functions with this signature are called whenever a message is
- * received or transmitted.
- *
- * @param cls closure (set from #GNUNET_CORE_connect)
- * @param peer the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close connection to the peer (signal serious error)
- */
-typedef int
-(*GNUNET_CORE_MessageCallback) (void *cls,
-                                const struct GNUNET_PeerIdentity *other,
-                                const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Message handler.  Each struct specifies how to handle on particular
- * type of message received.
- */
-struct GNUNET_CORE_MessageHandler
-{
-  /**
-   * Function to call for messages of @e type.
-   */
-  GNUNET_CORE_MessageCallback callback;
-
-  /**
-   * Type of the message this handler covers.
-   */
-  uint16_t type;
-
-  /**
-   * Expected size of messages of this type.  Use 0 for variable-size.
-   * If non-zero, messages of the given type will be discarded if they
-   * do not have the right size.
-   */
-  uint16_t expected_size;
-
-};
-
-
-/**
  * Function called after #GNUNET_CORE_connect has succeeded (or failed
  * for good).  Note that the private key of the peer is intentionally
  * not exposed here; if you need it, your process should try to read
