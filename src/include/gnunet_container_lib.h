@@ -1300,7 +1300,7 @@ GNUNET_CONTAINER_multipeermap_get_random (const struct GNUNET_CONTAINER_MultiPee
  */
 typedef int
 (*GNUNET_CONTAINER_ShortmapIterator) (void *cls,
-                                     const struct GNUNET_PeerIdentity *key,
+                                     const struct GNUNET_ShortHashCode *key,
                                      void *value);
 
 
@@ -1355,7 +1355,7 @@ GNUNET_CONTAINER_multishortmap_destroy (struct GNUNET_CONTAINER_MultiShortmap *m
  */
 void *
 GNUNET_CONTAINER_multishortmap_get (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                    const struct GNUNET_PeerIdentity *key);
+                                    const struct GNUNET_ShortHashCode *key);
 
 
 /**
@@ -1372,7 +1372,7 @@ GNUNET_CONTAINER_multishortmap_get (const struct GNUNET_CONTAINER_MultiShortmap 
  */
 int
 GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                       const struct GNUNET_PeerIdentity * key,
+                                       const struct GNUNET_ShortHashCode * key,
                                        const void *value);
 
 /**
@@ -1386,7 +1386,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
  */
 int
 GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                           const struct GNUNET_PeerIdentity *key);
+                                           const struct GNUNET_ShortHashCode *key);
 
 
 /**
@@ -1401,7 +1401,7 @@ GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap
  */
 int
 GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                         const struct GNUNET_PeerIdentity *key);
+                                         const struct GNUNET_ShortHashCode *key);
 
 
 /**
@@ -1417,7 +1417,7 @@ GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShor
  */
 int
 GNUNET_CONTAINER_multishortmap_contains_value (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                               const struct GNUNET_PeerIdentity * key,
+                                               const struct GNUNET_ShortHashCode * key,
                                                const void *value);
 
 
@@ -1436,7 +1436,7 @@ GNUNET_CONTAINER_multishortmap_contains_value (const struct GNUNET_CONTAINER_Mul
  */
 int
 GNUNET_CONTAINER_multishortmap_put (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                    const struct GNUNET_PeerIdentity *key,
+                                    const struct GNUNET_ShortHashCode *key,
                                     void *value,
                                     enum GNUNET_CONTAINER_MultiHashMapOption opt);
 
@@ -1505,7 +1505,7 @@ GNUNET_CONTAINER_multishortmap_iterator_create (const struct GNUNET_CONTAINER_Mu
  */
 int
 GNUNET_CONTAINER_multishortmap_iterator_next (struct GNUNET_CONTAINER_MultiShortmapIterator *iter,
-                                              struct GNUNET_PeerIdentity *key,
+                                              struct GNUNET_ShortHashCode *key,
                                               const void **value);
 
 
@@ -1532,7 +1532,7 @@ GNUNET_CONTAINER_multishortmap_iterator_destroy (struct GNUNET_CONTAINER_MultiSh
  */
 int
 GNUNET_CONTAINER_multishortmap_get_multiple (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                             const struct GNUNET_PeerIdentity *key,
+                                             const struct GNUNET_ShortHashCode *key,
                                              GNUNET_CONTAINER_ShortmapIterator it,
                                              void *it_cls);
 

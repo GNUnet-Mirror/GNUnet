@@ -47,7 +47,7 @@ struct BigMapEntry
   /**
    * Key for the entry.
    */
-  struct GNUNET_PeerIdentity key;
+  struct GNUNET_ShortHashCode key;
 
 };
 
@@ -71,7 +71,7 @@ struct SmallMapEntry
   /**
    * Key for the entry.
    */
-  const struct GNUNET_PeerIdentity *key;
+  const struct GNUNET_ShortHashCode *key;
 
 };
 
@@ -243,7 +243,7 @@ GNUNET_CONTAINER_multishortmap_destroy (struct GNUNET_CONTAINER_MultiShortmap
  */
 static unsigned int
 idx_of (const struct GNUNET_CONTAINER_MultiShortmap *map,
-        const struct GNUNET_PeerIdentity *key)
+        const struct GNUNET_ShortHashCode *key)
 {
   unsigned int kx;
 
@@ -278,7 +278,7 @@ GNUNET_CONTAINER_multishortmap_size (const struct GNUNET_CONTAINER_MultiShortmap
  */
 void *
 GNUNET_CONTAINER_multishortmap_get (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                    const struct GNUNET_PeerIdentity *key)
+                                    const struct GNUNET_ShortHashCode *key)
 {
   union MapEntry me;
 
@@ -288,7 +288,7 @@ GNUNET_CONTAINER_multishortmap_get (const struct GNUNET_CONTAINER_MultiShortmap 
     struct SmallMapEntry *sme;
 
     for (sme = me.sme; NULL != sme; sme = sme->next)
-      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode)))
 	return sme->value;
   }
   else
@@ -296,7 +296,7 @@ GNUNET_CONTAINER_multishortmap_get (const struct GNUNET_CONTAINER_MultiShortmap 
     struct BigMapEntry *bme;
 
     for (bme = me.bme; NULL != bme; bme = bme->next)
-      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode)))
 	return bme->value;
   }
   return NULL;
@@ -320,7 +320,7 @@ GNUNET_CONTAINER_multishortmap_iterate (const struct GNUNET_CONTAINER_MultiShort
   int count;
   unsigned int i;
   union MapEntry me;
-  struct GNUNET_PeerIdentity kc;
+  struct GNUNET_ShortHashCode kc;
 
   count = 0;
   GNUNET_assert (NULL != map);
@@ -380,7 +380,7 @@ GNUNET_CONTAINER_multishortmap_iterate (const struct GNUNET_CONTAINER_MultiShort
  */
 int
 GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                       const struct GNUNET_PeerIdentity *key,
+                                       const struct GNUNET_ShortHashCode *key,
                                        const void *value)
 {
   union MapEntry me;
@@ -398,7 +398,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
     p = NULL;
     for (sme = me.sme; NULL != sme; sme = sme->next)
     {
-      if ((0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity))) &&
+      if ((0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode))) &&
 	  (value == sme->value))
       {
 	if (NULL == p)
@@ -420,7 +420,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
     p = NULL;
     for (bme = me.bme; NULL != bme; bme = bme->next)
     {
-      if ((0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity))) &&
+      if ((0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode))) &&
 	  (value == bme->value))
       {
 	if (NULL == p)
@@ -448,7 +448,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
  */
 int
 GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                           const struct GNUNET_PeerIdentity *key)
+                                           const struct GNUNET_ShortHashCode *key)
 {
   union MapEntry me;
   unsigned int i;
@@ -468,7 +468,7 @@ GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap
     sme = me.sme;
     while (NULL != sme)
     {
-      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode)))
       {
 	if (NULL == p)
 	  map->map[i].sme = sme->next;
@@ -498,7 +498,7 @@ GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap
     bme = me.bme;
     while (NULL != bme)
     {
-      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode)))
       {
 	if (NULL == p)
 	  map->map[i].bme = bme->next;
@@ -534,7 +534,7 @@ GNUNET_CONTAINER_multishortmap_remove_all (struct GNUNET_CONTAINER_MultiShortmap
  */
 int
 GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                         const struct GNUNET_PeerIdentity *key)
+                                         const struct GNUNET_ShortHashCode *key)
 {
   union MapEntry me;
 
@@ -544,7 +544,7 @@ GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShor
     struct SmallMapEntry *sme;
 
     for (sme = me.sme; NULL != sme; sme = sme->next)
-      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode)))
 	return GNUNET_YES;
   }
   else
@@ -552,7 +552,7 @@ GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShor
     struct BigMapEntry *bme;
 
     for (bme = me.bme; NULL != bme; bme = bme->next)
-      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode)))
 	return GNUNET_YES;
   }
   return GNUNET_NO;
@@ -571,7 +571,7 @@ GNUNET_CONTAINER_multishortmap_contains (const struct GNUNET_CONTAINER_MultiShor
  */
 int
 GNUNET_CONTAINER_multishortmap_contains_value (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                               const struct GNUNET_PeerIdentity *key,
+                                               const struct GNUNET_ShortHashCode *key,
                                                const void *value)
 {
   union MapEntry me;
@@ -582,7 +582,7 @@ GNUNET_CONTAINER_multishortmap_contains_value (const struct GNUNET_CONTAINER_Mul
     struct SmallMapEntry *sme;
 
     for (sme = me.sme; NULL != sme; sme = sme->next)
-      if ( (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity))) &&
+      if ( (0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode))) &&
 	   (sme->value == value) )
 	return GNUNET_YES;
   }
@@ -591,7 +591,7 @@ GNUNET_CONTAINER_multishortmap_contains_value (const struct GNUNET_CONTAINER_Mul
     struct BigMapEntry *bme;
 
     for (bme = me.bme; NULL != bme; bme = bme->next)
-      if ( (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity))) &&
+      if ( (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode))) &&
 	   (bme->value == value) )
 	return GNUNET_YES;
   }
@@ -667,7 +667,7 @@ grow (struct GNUNET_CONTAINER_MultiShortmap *map)
  */
 int
 GNUNET_CONTAINER_multishortmap_put (struct GNUNET_CONTAINER_MultiShortmap *map,
-                                    const struct GNUNET_PeerIdentity *key,
+                                    const struct GNUNET_ShortHashCode *key,
                                     void *value,
                                     enum GNUNET_CONTAINER_MultiHashMapOption opt)
 {
@@ -684,7 +684,7 @@ GNUNET_CONTAINER_multishortmap_put (struct GNUNET_CONTAINER_MultiShortmap *map,
       struct SmallMapEntry *sme;
 
       for (sme = me.sme; NULL != sme; sme = sme->next)
-	if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
+	if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode)))
 	{
 	  if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
 	    return GNUNET_SYSERR;
@@ -697,7 +697,7 @@ GNUNET_CONTAINER_multishortmap_put (struct GNUNET_CONTAINER_MultiShortmap *map,
       struct BigMapEntry *bme;
 
       for (bme = me.bme; NULL != bme; bme = bme->next)
-	if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
+	if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode)))
 	{
 	  if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
 	    return GNUNET_SYSERR;
@@ -748,7 +748,7 @@ GNUNET_CONTAINER_multishortmap_put (struct GNUNET_CONTAINER_MultiShortmap *map,
  */
 int
 GNUNET_CONTAINER_multishortmap_get_multiple (const struct GNUNET_CONTAINER_MultiShortmap *map,
-                                             const struct GNUNET_PeerIdentity *key,
+                                             const struct GNUNET_ShortHashCode *key,
                                              GNUNET_CONTAINER_ShortmapIterator it,
                                              void *it_cls)
 {
@@ -766,7 +766,7 @@ GNUNET_CONTAINER_multishortmap_get_multiple (const struct GNUNET_CONTAINER_Multi
     while (NULL != (sme = nxt))
     {
       nxt = sme->next;
-      if (0 != memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 != memcmp (key, sme->key, sizeof (struct GNUNET_ShortHashCode)))
 	continue;
       if ((it != NULL) && (GNUNET_OK != it (it_cls, key, sme->value)))
 	return GNUNET_SYSERR;
@@ -782,7 +782,7 @@ GNUNET_CONTAINER_multishortmap_get_multiple (const struct GNUNET_CONTAINER_Multi
     while (NULL != (bme = nxt))
     {
       nxt = bme->next;
-      if (0 != memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 != memcmp (key, &bme->key, sizeof (struct GNUNET_ShortHashCode)))
 	continue;
       if ((it != NULL) && (GNUNET_OK != it (it_cls, key, bme->value)))
 	return GNUNET_SYSERR;
@@ -908,7 +908,8 @@ GNUNET_CONTAINER_multishortmap_iterator_create (const struct GNUNET_CONTAINER_Mu
  */
 int
 GNUNET_CONTAINER_multishortmap_iterator_next (struct GNUNET_CONTAINER_MultiShortmapIterator *iter,
-                                             struct GNUNET_PeerIdentity *key, const void **value)
+                                              struct GNUNET_ShortHashCode *key,
+                                              const void **value)
 {
   /* make sure the map has not been modified */
   GNUNET_assert (iter->modification_counter == iter->map->modification_counter);
