@@ -372,10 +372,9 @@ GCC_get_qn (struct CadetConnection *c, int fwd);
  *
  * @param c Connection.
  * @param fwd Is query about FWD traffic?
- *
  * @return Next PID to use.
  */
-uint32_t
+struct CadetEncryptedMessageIdentifier
 GCC_get_pid (struct CadetConnection *c, int fwd);
 
 /**
@@ -497,7 +496,8 @@ GCC_cancel (struct CadetConnectionQueue *q);
  */
 struct CadetConnectionQueue *
 GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           uint16_t payload_type, uint32_t payload_id,
+                           uint16_t payload_type,
+                           struct CadetEncryptedMessageIdentifier payload_id,
                            struct CadetConnection *c, int fwd, int force,
                            GCC_sent cont, void *cont_cls);
 

@@ -103,9 +103,9 @@ struct CadetPeerQueue {
     uint16_t payload_type;
 
     /**
-     *ID of the payload (PID, ACK #, ...).
+     * ID of the payload (PID, ACK #, ...).
      */
-    uint16_t payload_id;
+    struct CadetEncryptedMessageIdentifier payload_id;
 
     /**
      * Connection this message was sent on.
@@ -1110,7 +1110,9 @@ call_peer_cont (struct CadetPeerQueue *q, int sent)
              GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
         q->cont (q->cont_cls,
                  q->c, q->c_fwd, sent,
-                 q->type, q->payload_type, q->payload_id,
+                 q->type,
+                 q->payload_type,
+                 q->payload_id,
                  q->size, wait_time);
 	q->cont = NULL;
     }
@@ -1173,7 +1175,7 @@ struct CadetPeerQueue *
 GCP_send (struct CadetPeer *peer,
           const struct GNUNET_MessageHeader *message,
           uint16_t payload_type,
-          uint32_t payload_id,
+          struct CadetEncryptedMessageIdentifier payload_id,
           struct CadetConnection *c,
           int fwd,
           GCP_sent cont,
@@ -1188,7 +1190,8 @@ GCP_send (struct CadetPeer *peer,
     size = ntohs (message->size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "que %s (%s %4u) on conn %s (%p) %s towards %s (size %u)\n",
-         GC_m2s (type), GC_m2s (payload_type), payload_id,
+         GC_m2s (type), GC_m2s (payload_type),
+         ntohl (payload_id.pid),
          GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
     if (NULL == peer->connections)
@@ -1227,8 +1230,11 @@ GCP_send (struct CadetPeer *peer,
         {
             LOG (GNUNET_ERROR_TYPE_WARNING,
 		 "DD %s (%s %u) on conn %s %s (random drop for testing)\n",
-                 GC_m2s (q->type), GC_m2s (q->payload_type),
-                 q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
+                 GC_m2s (q->type),
+                 GC_m2s (q->payload_type),
+                 ntohl (q->payload_id.pid),
+                 GCC_2s (c),
+                 GC_f2s (q->c_fwd));
 	    q->drop_task = GNUNET_SCHEDULER_add_now (&drop_cb,
 						     q);
 	    return q;

@@ -162,6 +162,23 @@ struct GNUNET_CADET_ConnectionDestroyMessage
 
 
 /**
+ * Unique identifier (counter) for an encrypted message in a channel.
+ * Used to match #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK
+ * and  #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL messages
+ * against the respective  #GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED
+ * messages.
+ */
+struct CadetEncryptedMessageIdentifier
+{
+  /**
+   * This number is incremented by one per message. It may wrap around.
+   * In network byte order.
+   */
+  uint32_t pid GNUNET_PACKED;
+};
+
+
+/**
  * Message to acknowledge cadet encrypted traffic.
  */
 struct GNUNET_CADET_ConnectionEncryptedAckMessage
@@ -174,7 +191,7 @@ struct GNUNET_CADET_ConnectionEncryptedAckMessage
   /**
    * Maximum packet ID authorized.
    */
-  uint32_t ack GNUNET_PACKED;
+  struct CadetEncryptedMessageIdentifier cemi;
 
   /**
    * ID of the connection.
@@ -196,7 +213,7 @@ struct GNUNET_CADET_ConnectionHopByHopPollMessage
   /**
    * Last packet sent.
    */
-  uint32_t pid GNUNET_PACKED;
+  struct CadetEncryptedMessageIdentifier cemi;
 
   /**
    * ID of the connection.
@@ -278,7 +295,7 @@ struct GNUNET_CADET_ConnectionEncryptedMessage
   /**
    * ID of the packet (hop by hop).
    */
-  uint32_t pid GNUNET_PACKED;
+  struct CadetEncryptedMessageIdentifier cemi;
 
   /**
    * ID of the connection.
@@ -404,7 +421,7 @@ struct GNUNET_CADET_ChannelDataMessage
 struct GNUNET_CADET_ChannelDataAckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK
    */
   struct GNUNET_MessageHeader header;
 

@@ -1327,7 +1327,6 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   size_t size = ntohs (message->size);
   char cbuf[sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage) + size] GNUNET_ALIGN;
   size_t esize;
-  uint32_t mid;
   uint16_t type;
   int fwd;
 
@@ -1379,38 +1378,22 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   fwd = GCC_is_origin (c, GNUNET_YES);
   ax_msg->cid = *GCC_get_id (c);
-  ax_msg->pid = htonl (GCC_get_pid (c, fwd));
+  ax_msg->cemi = GCC_get_pid (c, fwd);
 
-  mid = 0;
-  type = ntohs (message->type);
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
-      if (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA == type)
-        mid = ntohl (((struct GNUNET_CADET_ChannelDataMessage *) message)->mid);
-      else
-        mid = ntohl (((struct GNUNET_CADET_ChannelDataAckMessage *) message)->mid);
-      /* Fall thru */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
-      break;
-    default:
-      GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_ERROR, "type %s not valid\n", GC_m2s (type));
-  }
+  type = htons (message->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message of type %s with PID %u and CID %s\n",
+       "Sending message of type %s with CEMI %u and CID %s\n",
        GC_m2s (type),
-       htonl (ax_msg->pid),
+       htonl (ax_msg->cemi.pid),
        GNUNET_sh2s (&ax_msg->cid.connection_of_tunnel));
 
   if (NULL == cont)
   {
-    (void) GCC_send_prebuilt_message (msg, type, mid, c, fwd,
+    (void) GCC_send_prebuilt_message (msg,
+                                      type,
+                                      ax_msg->cemi,
+                                      c,
+                                      fwd,
                                       force, NULL, NULL);
     return NULL;
   }
@@ -1425,7 +1408,12 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   tq->cont = cont;
   tq->cont_cls = cont_cls;
-  tq->cq = GCC_send_prebuilt_message (msg, type, mid, c, fwd, force,
+  tq->cq = GCC_send_prebuilt_message (msg,
+                                      type,
+                                      ax_msg->cemi,
+                                      c,
+                                      fwd,
+                                      force,
                                       &tun_message_sent, tq);
   GNUNET_assert (NULL != tq->cq);
 
@@ -3204,7 +3192,8 @@ GCT_has_queued_traffic (struct CadetTunnel *t)
  */
 struct CadetTunnelQueue *
 GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct CadetTunnel *t, struct CadetConnection *c,
+                           struct CadetTunnel *t,
+                           struct CadetConnection *c,
                            int force, GCT_sent cont, void *cont_cls)
 {
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
@@ -3220,6 +3209,7 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 void
 GCT_send_kx (struct CadetTunnel *t, int force_reply)
 {
+  static struct CadetEncryptedMessageIdentifier zero;
   struct CadetConnection *c;
   struct GNUNET_CADET_TunnelKeyExchangeMessage msg;
   enum GNUNET_CADET_KX_Flags flags;
@@ -3253,8 +3243,11 @@ GCT_send_kx (struct CadetTunnel *t, int force_reply)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
-  t->ephm_h = GCC_send_prebuilt_message (&msg.header, UINT16_MAX, 0,
-                                         c, GCC_is_origin (c, GNUNET_YES),
+  t->ephm_h = GCC_send_prebuilt_message (&msg.header,
+                                         UINT16_MAX,
+                                         zero,
+                                         c,
+                                         GCC_is_origin (c, GNUNET_YES),
                                          GNUNET_YES, &ephm_sent, t);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);

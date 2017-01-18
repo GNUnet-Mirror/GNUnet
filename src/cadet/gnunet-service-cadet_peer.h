@@ -69,8 +69,12 @@ struct CadetPeerQueue;
  */
 typedef void
 (*GCP_sent) (void *cls,
-             struct CadetConnection *c, int fwd, int sent,
-             uint16_t type, uint16_t payload_type, uint32_t pid,
+             struct CadetConnection *c,
+             int fwd,
+             int sent,
+             uint16_t type,
+             uint16_t payload_type,
+             struct CadetEncryptedMessageIdentifier pid,
              size_t size,
              struct GNUNET_TIME_Relative wait);
 
@@ -166,7 +170,7 @@ struct CadetPeerQueue *
 GCP_send (struct CadetPeer *peer,
           const struct GNUNET_MessageHeader *message,
           uint16_t payload_type,
-          uint32_t payload_id,
+          struct CadetEncryptedMessageIdentifier payload_id,
           struct CadetConnection *c,
           int fwd,
           GCP_sent cont,
