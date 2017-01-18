@@ -224,7 +224,7 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
  */
 int
 GCCH_handle_local_create (struct CadetClient *c,
-                          struct GNUNET_CADET_ChannelCreateMessageMessage *msg);
+                          struct GNUNET_CADET_ChannelOpenMessageMessage *msg);
 
 /**
  * Handler for cadet network payload traffic.
@@ -238,7 +238,7 @@ GCCH_handle_local_create (struct CadetClient *c,
  */
 void
 GCCH_handle_data (struct CadetChannel *ch,
-                  const struct GNUNET_CADET_ChannelDataMessage *msg,
+                  const struct GNUNET_CADET_ChannelAppDataMessage *msg,
                   int fwd);
 
 
@@ -268,7 +268,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
  */
 struct CadetChannel *
 GCCH_handle_create (struct CadetTunnel *t,
-                    const struct GNUNET_CADET_ChannelCreateMessage *msg);
+                    const struct GNUNET_CADET_ChannelOpenMessage *msg);
 
 
 /**

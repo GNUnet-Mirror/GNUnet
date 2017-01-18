@@ -68,10 +68,10 @@ struct ChannelMessageIdentifier
 /**
  * Message to create a Channel.
  */
-struct GNUNET_CADET_ChannelCreateMessage
+struct GNUNET_CADET_ChannelOpenMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN
    */
   struct GNUNET_MessageHeader header;
 
@@ -96,7 +96,7 @@ struct GNUNET_CADET_ChannelCreateMessage
 /**
  * Message for cadet data traffic.
  */
-struct GNUNET_CADET_ChannelDataMessage
+struct GNUNET_CADET_ChannelAppDataMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
@@ -126,7 +126,7 @@ struct GNUNET_CADET_ChannelDataMessage
 struct GNUNET_CADET_ChannelDataAckMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK
    */
   struct GNUNET_MessageHeader header;
 
@@ -219,7 +219,7 @@ struct CadetReliableMessage
   /**
    * Data message we are trying to send.
    */
-  struct GNUNET_CADET_ChannelDataMessage data_message;
+  struct GNUNET_CADET_ChannelAppDataMessage data_message;
 
   /* followed by variable-size payload */
 };
@@ -265,8 +265,8 @@ struct CadetChannel
 
   /**
    * Last entry in the tunnel's queue relating to control messages
-   * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE or
-   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK).  Used to cancel
+   * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN or
+   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK).  Used to cancel
    * transmission in case we receive updated information.
    */
   struct CadetTunnelQueueEntry *last_control_qe;
@@ -531,7 +531,7 @@ static void
 send_create (void *cls)
 {
   struct CadetChannel *ch = cls;
-  struct GNUNET_CADET_ChannelCreateMessage msgcc;
+  struct GNUNET_CADET_ChannelOpenMessage msgcc;
   uint32_t options;
 
   options = 0;
@@ -542,7 +542,7 @@ send_create (void *cls)
   if (ch->out_of_order)
     options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   msgcc.header.size = htons (sizeof (msgcc));
-  msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
+  msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
   msgcc.opt = htonl (options);
   msgcc.port = ch->port;
   msgcc.gid = ch->gid;
@@ -698,7 +698,7 @@ send_channel_ack (struct CadetChannel *ch)
 {
   struct GNUNET_CADET_ChannelDataAckMessage msg;
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.gid = ch->gid;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid) - 1);
@@ -1003,8 +1003,8 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   /* Everything is correct, send the message. */
   crm = GNUNET_malloc (sizeof (*crm) + payload_size);
   crm->ch = ch;
-  crm->data_message.header.size = htons (sizeof (struct GNUNET_CADET_ChannelDataMessage) + payload_size);
-  crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA);
+  crm->data_message.header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + payload_size);
+  crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message.mid = ch->mid_send;
   crm->data_message.gid = ch->gid;

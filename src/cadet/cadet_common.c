@@ -167,14 +167,14 @@ GC_m2s (uint16_t m)
       /**
        * Transport payload data.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA:
       s = "DATA";
       break;
 
     /**
      * Confirm receipt of payload data.
      */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK:
       s = "DATA_ACK";
       break;
 
@@ -188,7 +188,7 @@ GC_m2s (uint16_t m)
       /**
        * Encrypted.
        */
-    case GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED:
       s = "ENCRYPTED";
       break;
 
@@ -202,14 +202,14 @@ GC_m2s (uint16_t m)
       /**
        * ACK for a data packet.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK:
       s = "ACK";
       break;
 
       /**
        * POLL for ACK.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL:
       s = "POLL";
       break;
 
@@ -237,7 +237,7 @@ GC_m2s (uint16_t m)
       /**
        * Ask the cadet service to create a new tunnel
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN:
       s = "CHAN_CREAT";
       break;
 
@@ -251,14 +251,14 @@ GC_m2s (uint16_t m)
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK:
       s = "CHAN_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED:
       s = "CHAN_NACK";
       break;
 

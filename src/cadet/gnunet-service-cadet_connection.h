@@ -197,7 +197,7 @@ GCC_handle_kx (struct CadetPeer *peer,
  */
 void
 GCC_handle_encrypted (struct CadetPeer *peer,
-                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg);
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 /**
  * Core handler for axolotl key exchange traffic.

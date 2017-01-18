@@ -304,7 +304,7 @@ GCT_get_channel (struct CadetTunnel *t, struct GNUNET_CADET_ChannelNumber chid);
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg);
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 
 /**

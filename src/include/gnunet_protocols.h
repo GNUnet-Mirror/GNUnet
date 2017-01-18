@@ -2652,34 +2652,38 @@ extern "C"
 /**
  * Hop-by-hop, connection dependent ACK.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK 1005
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK 1005
 
 /**
- * Poll for a hop-by-hop ACK.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL 1006
-
-/**
- * Key exchange encapsulation.
+ * Axolotl key exchange.
  */
 #define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX 1007
 
 /**
  * Axolotl encrypted data.
  */
-#define GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED 1008
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED 1008
+
+/**
+ * We do not bother with ACKs for
+ * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
+ * poll for one if we got nothing for a while and start to be worried.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
+
+
 
 /**********************************  Channel  *********************************/
 
 /**
  * Payload data (inside an encrypted tunnel).
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA 1010
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA 1010
 
 /**
  * Confirm payload data end-to-end.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK 1011
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK 1011
 
 /**
  * Announce connection is still alive (direction sensitive).
@@ -2689,7 +2693,7 @@ extern "C"
 /**
  * Ask the cadet service to create a new channel.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE 1013
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN 1013
 
 /**
  * Ask the cadet service to destroy a channel.
@@ -2699,12 +2703,12 @@ extern "C"
 /**
  * Confirm the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK 1015
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK 1015
 
 /**
  * Reject the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED 1016
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED 1016
 
 /***********************************  Local  **********************************/
 

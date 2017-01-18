@@ -137,8 +137,8 @@ route_message (struct CadetPeer *prev,
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_create (void *cls,
-              const struct GNUNET_CADET_ConnectionCreateMessage *msg)
+check_connection_create (void *cls,
+                         const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
 
@@ -170,8 +170,8 @@ destroy_route (struct CadetRoute *route)
  * @param msg Message itself.
  */
 static void
-handle_create (void *cls,
-               const struct GNUNET_CADET_ConnectionCreateMessage *msg)
+handle_connection_create (void *cls,
+                          const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
   struct CadetPeer *peer = cls;
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
@@ -235,8 +235,8 @@ handle_connection_ack (void *cls,
  * @deprecated duplicate logic with #handle_destroy(); dedup!
  */
 static void
-handle_broken (void *cls,
-               const struct GNUNET_CADET_ConnectionBrokenMessage *msg)
+handle_connection_broken (void *cls,
+                          const struct GNUNET_CADET_ConnectionBrokenMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -281,8 +281,8 @@ handle_broken (void *cls,
  * @param msg Message itself.
  */
 static void
-handle_destroy (void *cls,
-                const struct GNUNET_CADET_ConnectionDestroyMessage *msg)
+handle_connection_destroy (void *cls,
+                           const struct GNUNET_CADET_ConnectionDestroyMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -318,26 +318,26 @@ handle_destroy (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_HOP_BY_HOP_ENCRYPTED_ACK.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_ack (void *cls,
-            const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
+handle_hop_by_hop_encrypted_ack (void *cls,
+                                 const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
 
 #if FIXME
-  GCC_handle_ack (peer,
-                  msg);
+  GCC_handle_poll (peer,
+                   msg);
 #endif
 }
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
@@ -362,8 +362,8 @@ handle_poll (void *cls,
  * @param msg Message itself.
  */
 static void
-handle_kx (void *cls,
-           const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
+handle_tunnel_kx (void *cls,
+                  const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -405,22 +405,22 @@ handle_kx (void *cls,
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_encrypted (void *cls,
-                 const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
+check_tunnel_encrypted (void *cls,
+                        const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
   return GNUNET_YES;
 }
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED.
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_encrypted (void *cls,
-                  const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
+handle_tunnel_encrypted (void *cls,
+                         const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -532,7 +532,7 @@ void
 GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (create,
+    GNUNET_MQ_hd_var_size (connection_create,
                            GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
                            struct GNUNET_CADET_ConnectionCreateMessage,
                            NULL),
@@ -540,29 +540,29 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
                              struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (broken,
+    GNUNET_MQ_hd_fixed_size (connection_broken,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
                              struct GNUNET_CADET_ConnectionBrokenMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (destroy,
+    GNUNET_MQ_hd_fixed_size (connection_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
                              struct GNUNET_CADET_ConnectionDestroyMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (ack,
-                             GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK,
+    GNUNET_MQ_hd_fixed_size (hop_by_hop_encrypted_ack,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK,
                              struct GNUNET_CADET_ConnectionEncryptedAckMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (poll,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL,
+                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL,
                              struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (kx,
+    GNUNET_MQ_hd_fixed_size (tunnel_kx,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,
                              struct GNUNET_CADET_TunnelKeyExchangeMessage,
                              NULL),
-    GNUNET_MQ_hd_var_size (encrypted,
-                           GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED,
-                           struct GNUNET_CADET_ConnectionEncryptedMessage,
+    GNUNET_MQ_hd_var_size (tunnel_encrypted,
+                           GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED,
+                           struct GNUNET_CADET_TunnelEncryptedMessage,
                            NULL),
     GNUNET_MQ_handler_end ()
   };

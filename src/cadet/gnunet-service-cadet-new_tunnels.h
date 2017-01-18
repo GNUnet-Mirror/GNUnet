@@ -336,7 +336,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
  */
 void
 GCT_handle_encrypted (struct CadetTConnection *ct,
-                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg);
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 
 /**

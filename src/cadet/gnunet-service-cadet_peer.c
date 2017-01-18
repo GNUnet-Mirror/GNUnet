@@ -526,7 +526,7 @@ handle_destroy (void *cls, const struct GNUNET_CADET_ConnectionDestroyMessage *m
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
@@ -540,7 +540,7 @@ handle_ack (void *cls, const struct GNUNET_CADET_ConnectionEncryptedAckMessage *
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
@@ -576,13 +576,13 @@ handle_kx (void *cls, const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_encrypted (void *cls, const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
+check_encrypted (void *cls, const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
     uint16_t size;
     uint16_t minimum_size;
 
     size = ntohs (msg->header.size);
-    minimum_size = sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage)
+    minimum_size = sizeof (struct GNUNET_CADET_TunnelEncryptedMessage)
                    + sizeof (struct GNUNET_MessageHeader);
 
     if (size < minimum_size)
@@ -594,13 +594,13 @@ check_encrypted (void *cls, const struct GNUNET_CADET_ConnectionEncryptedMessage
 }
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED.
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_encrypted (void *cls, const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
+handle_encrypted (void *cls, const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_encrypted (peer, msg);
@@ -639,11 +639,11 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
                                  struct GNUNET_CADET_ConnectionDestroyMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (ack,
-                                 GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK,
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK,
                                  struct GNUNET_CADET_ConnectionEncryptedAckMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (poll,
-                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL,
+                                 GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL,
                                  struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (kx,
@@ -651,8 +651,8 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
                                  struct GNUNET_CADET_TunnelKeyExchangeMessage,
                                  NULL),
         GNUNET_MQ_hd_var_size (encrypted,
-                               GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED,
-                               struct GNUNET_CADET_ConnectionEncryptedMessage,
+                               GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED,
+                               struct GNUNET_CADET_TunnelEncryptedMessage,
                                NULL),
         GNUNET_MQ_handler_end ()
     };
@@ -735,7 +735,7 @@ get_priority (struct CadetPeerQueue *q)
     }
 
     /* Bulky payload has lower priority, control traffic has higher. */
-    if (GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED == q->type)
+    if (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED == q->type)
         return low;
     return high;
 }
@@ -1059,8 +1059,8 @@ search_handler (void *cls, const struct CadetPeerPath *path)
 static int
 is_connection_management (uint16_t type)
 {
-    return type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK ||
-           type == GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL;
+    return type == GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK ||
+           type == GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL;
 }
 
 

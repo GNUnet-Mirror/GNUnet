@@ -616,7 +616,7 @@ send_ack (struct CadetConnection *c,
 
   /* Build ACK message and send on conn */
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK);
   msg.cemi = ack_cemi;
   msg.cid = c->id;
 
@@ -747,7 +747,7 @@ conn_message_sent (void *cls,
   }
   else /* CONN_CREATE or CONN_ACK */
   {
-    GNUNET_assert (GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED != type);
+    GNUNET_assert (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED != type);
     forced = GNUNET_YES;
   }
 
@@ -774,7 +774,7 @@ conn_message_sent (void *cls,
         schedule_next_keepalive (c, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED:
       if (GNUNET_YES == sent)
       {
         fc->last_pid_sent = pid;
@@ -806,7 +806,7 @@ conn_message_sent (void *cls,
         connection_reset_timeout (c, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL:
       fc->poll_msg = NULL;
       if (2 == c->destroy)
       {
@@ -827,7 +827,7 @@ conn_message_sent (void *cls,
       LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK:
       fc->ack_msg = NULL;
       break;
 
@@ -1469,7 +1469,7 @@ send_poll (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Polling connection %s %s\n",
        GCC_2s (c),  GC_f2s (fwd));
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.cid = c->id;
   msg.cemi = fc->last_pid_sent;
@@ -2531,7 +2531,7 @@ check_message (const struct GNUNET_MessageHeader *message,
 
   /* Check PID for payload messages */
   type = ntohs (message->type);
-  if (GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED == type)
+  if (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED == type)
   {
     fc = fwd ? &c->bck_fc : &c->fwd_fc;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected in interval [%u,%u])\n",
@@ -2665,7 +2665,7 @@ GCC_handle_kx (struct CadetPeer *peer,
  */
 void
 GCC_handle_encrypted (struct CadetPeer *peer,
-                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
   static struct CadetEncryptedMessageIdentifier zero;
   const struct GNUNET_CADET_ConnectionTunnelIdentifier* cid;
@@ -3302,7 +3302,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        GC_f2s(fwd), size);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u, PIDsnt: %u, ACKrcv: %u\n",
            fc,
            fc->queue_n,
@@ -3324,8 +3324,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0 == payload_type);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       GNUNET_assert (GNUNET_YES == force);
@@ -3343,7 +3343,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
          fc->queue_n, fc->queue_max);
-    if (GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED == type)
+    if (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED == type)
     {
       fc->queue_n--;
     }
