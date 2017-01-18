@@ -402,6 +402,7 @@ struct GNUNET_CADET_ChannelDataMessage
   /**
    * Unique ID of the payload message
    */
+  /* NEW: struct ChannelMessageIdentifier */
   uint32_t mid GNUNET_PACKED;
 
   /**
@@ -440,6 +441,7 @@ struct GNUNET_CADET_ChannelDataAckMessage
   /**
    * Last message ID received.
    */
+  /* NEW: struct ChannelMessageIdentifier */
   uint32_t mid GNUNET_PACKED;
 };
 
