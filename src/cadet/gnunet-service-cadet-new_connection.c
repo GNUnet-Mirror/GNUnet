@@ -376,22 +376,24 @@ manage_first_hop_mq (void *cls,
 
 
 /**
- * Create a connection to @a destination via @a path and
- * notify @a cb whenever we are ready for more data.
+ * Create a connection to @a destination via @a path and notify @a cb
+ * whenever we are ready for more data.  Shared logic independent of
+ * who is initiating the connection.
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
- * @param ct tunnel that uses the connection
+ * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
  * @return handle to the connection
  */
-struct CadetConnection *
-GCC_create (struct CadetPeer *destination,
-            struct CadetPeerPath *path,
-            struct CadetTConnection *ct,
-            GNUNET_SCHEDULER_TaskCallback ready_cb,
-            void *ready_cb_cls)
+static struct CadetConnection *
+connection_create (struct CadetPeer *destination,
+                   struct CadetPeerPath *path,
+                   struct CadetTConnection *ct,
+                   const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                   GNUNET_SCHEDULER_TaskCallback ready_cb,
+                   void *ready_cb_cls)
 {
   struct CadetConnection *cc;
   struct CadetPeer *first_hop;
@@ -402,9 +404,7 @@ GCC_create (struct CadetPeer *destination,
   GNUNET_assert (UINT_MAX > off);
   cc = GNUNET_new (struct CadetConnection);
   cc->ct = ct;
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
-                              &cc->cid,
-                              sizeof (cc->cid));
+  cc->cid = *cid;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multishortmap_put (connections,
                                                      &GCC_get_id (cc)->connection_of_tunnel,
@@ -427,6 +427,74 @@ GCC_create (struct CadetPeer *destination,
   cc->mq_man = GCP_request_mq (first_hop,
                                &manage_first_hop_mq,
                                cc);
+  return cc;
+}
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.  This
+ * is an inbound tunnel, so we must use the existing @a cid
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param ct which tunnel uses this connection
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection
+ */
+struct CadetConnection *
+GCC_create_inbound (struct CadetPeer *destination,
+                    struct CadetPeerPath *path,
+                    struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                    GNUNET_SCHEDULER_TaskCallback ready_cb,
+                    void *ready_cb_cls)
+{
+  struct CadetConnection *cc;
+
+  cc = connection_create (destination,
+                          path,
+                          ct,
+                          cid,
+                          ready_cb,
+                          ready_cb_cls);
+  /* FIXME: send CREATE_ACK? */
+  return cc;
+}
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param ct tunnel that uses the connection
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection
+ */
+struct CadetConnection *
+GCC_create (struct CadetPeer *destination,
+            struct CadetPeerPath *path,
+            struct CadetTConnection *ct,
+            GNUNET_SCHEDULER_TaskCallback ready_cb,
+            void *ready_cb_cls)
+{
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
+  struct CadetConnection *cc;
+
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              &cid,
+                              sizeof (cid));
+  cc = connection_create (destination,
+                          path,
+                          ct,
+                          &cid,
+                          ready_cb,
+                          ready_cb_cls);
+  /* FIXME: send CREATE? */
   return cc;
 }
 

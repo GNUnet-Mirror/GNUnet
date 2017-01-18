@@ -118,15 +118,6 @@ enum CadetTunnelEState
 
 
 /**
- * Number uniquely identifying a channel within a tunnel.
- */
-struct GCT_ChannelTunnelNumber
-{
-  uint32_t channel_in_tunnel GNUNET_PACKED;
-};
-
-
-/**
  * Get the static string for the peer this tunnel is directed.
  *
  * @param t Tunnel.
@@ -146,6 +137,19 @@ GCT_2s (const struct CadetTunnel *t);
  */
 struct CadetTunnel *
 GCT_create_tunnel (struct CadetPeer *destination);
+
+
+/**
+ * Add a @a connection to the @a tunnel.
+ *
+ * @param t a tunnel
+ * @param cid connection identifer to use for the connection
+ * @param path path to use for the connection
+ */
+void
+GCT_add_inbound_connection (struct CadetTunnel *t,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                            struct CadetPeerPath *path);
 
 
 /**
@@ -179,7 +183,7 @@ GCT_consider_path (struct CadetTunnel *t,
  * @param ch Channel
  * @return unique number identifying @a ch within @a t
  */
-struct GCT_ChannelTunnelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCT_add_channel (struct CadetTunnel *t,
                  struct CadetChannel *ch);
 
@@ -194,7 +198,7 @@ GCT_add_channel (struct CadetTunnel *t,
 void
 GCT_remove_channel (struct CadetTunnel *t,
                     struct CadetChannel *ch,
-                    struct GCT_ChannelTunnelNumber gid);
+                    struct GNUNET_CADET_ChannelTunnelNumber gid);
 
 
 /**

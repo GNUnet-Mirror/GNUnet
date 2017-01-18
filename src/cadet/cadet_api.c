@@ -1209,7 +1209,7 @@ check_get_tunnel (void *cls,
   }
   ch_n = ntohl (msg->channels);
   c_n = ntohl (msg->connections);
-  esize += ch_n * sizeof (struct GNUNET_CADET_ChannelNumber);
+  esize += ch_n * sizeof (struct GNUNET_CADET_ChannelTunnelNumber);
   esize += c_n * sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier);
   if (msize != esize)
   {
@@ -1248,14 +1248,14 @@ handle_get_tunnel (void *cls,
   unsigned int ch_n;
   unsigned int c_n;
   const struct GNUNET_CADET_ConnectionTunnelIdentifier *conns;
-  const struct GNUNET_CADET_ChannelNumber *chns;
+  const struct GNUNET_CADET_ChannelTunnelNumber *chns;
 
   ch_n = ntohl (msg->channels);
   c_n = ntohl (msg->connections);
 
   /* Call Callback with tunnel info. */
   conns = (const struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  chns = (const struct GNUNET_CADET_ChannelNumber *) &conns[c_n];
+  chns = (const struct GNUNET_CADET_ChannelTunnelNumber *) &conns[c_n];
   h->info_cb.tunnel_cb (h->info_cls,
                         &msg->destination,
                         ch_n,

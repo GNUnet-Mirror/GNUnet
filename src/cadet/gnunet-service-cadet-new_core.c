@@ -31,6 +31,7 @@
 #include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_connection.h"
+#include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_core_service.h"
 #include "cadet_protocol.h"
 
@@ -75,6 +76,12 @@ struct CadetRoute
    * When was this route last in use?
    */
   struct GNUNET_TIME_Absolute last_use;
+
+  /**
+   * Counter, used to verify that both MQs are up when the route is
+   * initialized.
+   */
+  unsigned int up;
 
 };
 
@@ -177,6 +184,91 @@ destroy_route (struct CadetRoute *route)
 
 
 /**
+ * Send message that a route is broken between @a peer1 and @a peer2.
+ *
+ * @param target where to send the message
+ * @param cid connection identifier to use
+ * @param peer1 one of the peers where a link is broken
+ * @param peer2 another one of the peers where a link is broken
+ */
+static void
+send_broken (struct CadetPeer *target,
+             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+             const struct GNUNET_PeerIdentity *peer1,
+             const struct GNUNET_PeerIdentity *peer2)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_ConnectionBrokenMessage *bm;
+
+  env = GNUNET_MQ_msg (bm,
+                       GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
+  bm->cid = *cid;
+  if (NULL != peer1)
+    bm->peer1 = *peer1;
+  if (NULL != peer2)
+    bm->peer2 = *peer2;
+  GCP_send (target,
+            env);
+}
+
+
+/**
+ * Function called when the message queue to the previous hop
+ * becomes available/unavailable.  We expect this function to
+ * be called immediately when we register, and then again
+ * later if the connection ever goes down.
+ *
+ * @param cls the `struct CadetRoute`
+ * @param mq the message queue, NULL if connection went down
+ */
+static void
+mqm_cr_destroy_prev (void *cls,
+                     struct GNUNET_MQ_Handle *mq)
+{
+  struct CadetRoute *route = cls;
+
+  if (NULL != mq)
+  {
+    route->up |= 1;
+    return;
+  }
+  send_broken (route->next_hop,
+               &route->cid,
+               GCP_get_id (route->prev_hop),
+               &my_full_id);
+  destroy_route (route);
+}
+
+
+/**
+ * Function called when the message queue to the previous hop
+ * becomes available/unavailable.  We expect this function to
+ * be called immediately when we register, and then again
+ * later if the connection ever goes down.
+ *
+ * @param cls the `struct CadetRoute`
+ * @param mq the message queue, NULL if connection went down
+ */
+static void
+mqm_cr_destroy_next (void *cls,
+                     struct GNUNET_MQ_Handle *mq)
+{
+  struct CadetRoute *route = cls;
+
+  if (NULL != mq)
+  {
+    route->up |= 2;
+    return;
+  }
+  send_broken (route->prev_hop,
+               &route->cid,
+               GCP_get_id (route->next_hop),
+               &my_full_id);
+  destroy_route (route);
+}
+
+
+/**
  * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
@@ -215,29 +307,60 @@ handle_connection_create (void *cls,
     GNUNET_break_op (0);
     return;
   }
+  if (NULL !=
+      get_route (&msg->cid))
+  {
+    /* CID not chosen at random, collides */
+    GNUNET_break_op (0);
+    return;
+  }
   if (off == path_length - 1)
   {
     /* We are the destination, create connection */
+    struct CadetPeerPath *path;
+    struct CadetPeer *origin;
+
+    path = GCPP_get_path_from_route (path_length,
+                                     pids);
+    origin = GCP_get (&pids[0],
+                      GNUNET_YES);
+    GCT_add_inbound_connection (GCT_create_tunnel (origin),
+                                &msg->cid,
+                                path);
+
     return;
   }
   /* We are merely a hop on the way, check if we can support the route */
   next = GCP_get (&pids[off + 1],
                   GNUNET_NO);
-  if (NULL == next)
+  if ( (NULL == next) ||
+       (NULL == GCP_get_mq (next)) )
   {
-    /* unworkable, send back BROKEN */
-    GNUNET_break (0); // FIXME...
+    /* unworkable, send back BROKEN notification */
+    send_broken (sender,
+                 &msg->cid,
+                 &pids[off + 1],
+                 &my_full_id);
     return;
   }
 
+  /* Workable route, create routing entry */
   route = GNUNET_new (struct CadetRoute);
-
-#if FIXME
-  GCC_handle_create (peer,
-                     &msg->cid,
-                     path_length,
-                     route);
-#endif
+  route->cid = msg->cid;
+  route->prev_mqm = GCP_request_mq (sender,
+                                    &mqm_cr_destroy_prev,
+                                    route);
+  route->next_mqm = GCP_request_mq (next,
+                                    &mqm_cr_destroy_next,
+                                    route);
+  route->prev_hop = sender;
+  route->next_hop = next;
+  GNUNET_assert ((1|2) == route->up);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multishortmap_put (routes,
+                                                     &route->cid.connection_of_tunnel,
+                                                     route,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
@@ -382,11 +505,35 @@ handle_hop_by_hop_encrypted_ack (void *cls,
                                  const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
+  struct CadetConnection *cc;
 
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->cid.connection_of_tunnel);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
 #if FIXME
-  GCC_handle_poll (peer,
-                   msg);
+    GCC_handle_ack (peer,
+                    msg);
 #endif
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 &msg->cid,
+                 &msg->header);
 }
 
 
@@ -569,9 +716,6 @@ core_disconnect_cb (void *cls,
 {
   struct CadetPeer *cp = peer_cls;
 
-  /* FIXME: also check all routes going via peer and
-     send broken messages to the other direction! */
-  GNUNET_break (0);
   GCP_set_mq (cp,
               NULL);
 }

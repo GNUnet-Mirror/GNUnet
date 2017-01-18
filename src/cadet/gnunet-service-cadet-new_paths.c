@@ -100,7 +100,7 @@ GCPP_get_desirability (const struct CadetPeerPath *path)
  * @param path path to traverse
  * @param destination destination node to get to, must be on path
  * @param off offset of @a destination on @a path
- * @return NULL if @a create is NO and we have no existing connection
+ * @return NULL if we have no existing connection
  *         otherwise connection from us to @a destination via @a path
  */
 struct CadetConnection *
@@ -456,6 +456,22 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                         entry,
                         i);
   }
+}
+
+
+/**
+ * We got an incoming connection, obtain the corresponding path.
+ *
+ * @param path_length number of segments on the @a path
+ * @param path through the network, in reverse order (we are at the end!)
+ * @return corresponding path object
+ */
+struct CadetPeerPath *
+GCPP_get_path_from_route (unsigned int path_length,
+                          const struct GNUNET_PeerIdentity *pids)
+{
+  GNUNET_assert (0); // FIXME!
+  return NULL;
 }
 
 

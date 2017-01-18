@@ -51,108 +51,6 @@
 #define TIMEOUT_CLOSED_PORT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * Number used to uniquely identify messages in a CADET Channel.
- */
-struct ChannelMessageIdentifier
-{
-  /**
-   * Unique ID of the message, cycles around, in NBO.
-   */
-  uint32_t mid GNUNET_PACKED;
-};
-
-
-/**
- * Message to create a Channel.
- */
-struct GNUNET_CADET_ChannelOpenMessage
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Channel options.
-   */
-  uint32_t opt GNUNET_PACKED;
-
-  /**
-   * Destination port.
-   */
-  struct GNUNET_HashCode port;
-
-  /**
-   * ID of the channel
-   */
-  struct GCT_ChannelTunnelNumber gid;
-};
-
-
-
-/**
- * Message for cadet data traffic.
- */
-struct GNUNET_CADET_ChannelAppDataMessage
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
-   *       #GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique ID of the payload message.
-   */
-  struct ChannelMessageIdentifier mid;
-
-  /**
-   * ID of the channel
-   */
-  struct GCT_ChannelTunnelNumber gid;
-
-  /**
-   * Payload follows
-   */
-};
-
-
-/**
- * Message to acknowledge end-to-end data.
- */
-struct GNUNET_CADET_ChannelDataAckMessage
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * ID of the channel
-   */
-  struct GCT_ChannelTunnelNumber gid;
-
-  /**
-   * Bitfield of already-received messages past @e mid.
-   * pid +  1 @ LSB
-   * pid + 64 @ MSB
-   */
-  uint64_t futures GNUNET_PACKED;
-
-  /**
-   * Last message ID received.
-   */
-  struct ChannelMessageIdentifier mid;
-};
-
-
-
-GNUNET_NETWORK_STRUCT_END
-
-
 /**
  * All the states a connection can be in.
  */
@@ -357,7 +255,7 @@ struct CadetChannel
   /**
    * Number identifying this channel in its tunnel.
    */
-  struct GCT_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber gid;
 
   /**
    * Local tunnel number for local client owning the channel.
@@ -438,7 +336,7 @@ GCCH_2s (const struct CadetChannel *ch)
  *
  * @return ID used to identify the channel with the remote peer.
  */
-struct GCT_ChannelTunnelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch)
 {
   return ch->gid;
@@ -545,7 +443,7 @@ send_create (void *cls)
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
   msgcc.opt = htonl (options);
   msgcc.port = ch->port;
-  msgcc.gid = ch->gid;
+  msgcc.chid = ch->gid;
   ch->state = CADET_CHANNEL_CREATE_SENT;
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
@@ -624,7 +522,7 @@ timeout_closed_cb (void *cls)
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
-                           struct GCT_ChannelTunnelNumber gid,
+                           struct GNUNET_CADET_ChannelTunnelNumber gid,
                            const struct GNUNET_HashCode *port,
                            uint32_t options)
 {

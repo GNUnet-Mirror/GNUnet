@@ -374,14 +374,14 @@ struct CadetTunnel
 
   /**
    * Channels inside this tunnel. Maps
-   * `struct GCT_ChannelTunnelNumber` to a `struct CadetChannel`.
+   * `struct GNUNET_CADET_ChannelTunnelNumber` to a `struct CadetChannel`.
    */
   struct GNUNET_CONTAINER_MultiHashMap32 *channels;
 
   /**
    * Channel ID for the next created channel in this tunnel.
    */
-  struct GCT_ChannelTunnelNumber next_chid;
+  struct GNUNET_CADET_ChannelTunnelNumber next_chid;
 
   /**
    * Queued messages, to transmit once tunnel gets connected.
@@ -1137,14 +1137,14 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
  * @param ch Channel
  * @return unique number identifying @a ch within @a t
  */
-struct GCT_ChannelTunnelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCT_add_channel (struct CadetTunnel *t,
                  struct CadetChannel *ch)
 {
-  struct GCT_ChannelTunnelNumber ret;
+  struct GNUNET_CADET_ChannelTunnelNumber ret;
   uint32_t chid;
 
-  chid = ntohl (t->next_chid.channel_in_tunnel);
+  chid = ntohl (t->next_chid.cn);
   while (NULL !=
          GNUNET_CONTAINER_multihashmap32_get (t->channels,
                                               chid))
@@ -1154,8 +1154,8 @@ GCT_add_channel (struct CadetTunnel *t,
                                                       chid,
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  t->next_chid.channel_in_tunnel = htonl (chid + 1);
-  ret.channel_in_tunnel = htonl (chid);
+  t->next_chid.cn = htonl (chid + 1);
+  ret.cn = htonl (chid);
   return ret;
 }
 
@@ -1617,11 +1617,11 @@ GCT_create_tunnel (struct CadetPeer *destination)
 void
 GCT_remove_channel (struct CadetTunnel *t,
                     struct CadetChannel *ch,
-                    struct GCT_ChannelTunnelNumber gid)
+                    struct GNUNET_CADET_ChannelTunnelNumber gid)
 {
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (t->channels,
-                                                         ntohl (gid.channel_in_tunnel),
+                                                         ntohl (gid.cn),
                                                          ch));
   if (0 ==
       GNUNET_CONTAINER_multihashmap32_size (t->channels))
@@ -1667,6 +1667,41 @@ GCT_change_estate (struct CadetTunnel *t,
       send_queued_data (t);
 #endif
   }
+}
+
+
+/**
+ * Add a @a connection to the @a tunnel.
+ *
+ * @param t a tunnel
+ * @param cid connection identifer to use for the connection
+ * @param path path to use for the connection
+ */
+void
+GCT_add_inbound_connection (struct CadetTunnel *t,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                            struct CadetPeerPath *path)
+{
+  struct CadetConnection *cc;
+  struct CadetTConnection *ct;
+
+  ct = GNUNET_new (struct CadetTConnection);
+  ct->created = GNUNET_TIME_absolute_get ();
+  ct->t = t;
+  ct->cc = GCC_create_inbound (t->destination,
+                               path,
+                               ct,
+                               cid,
+                               &connection_ready_cb,
+                               t);
+  /* FIXME: schedule job to kill connection (and path?)  if it takes
+     too long to get ready! (And track performance data on how long
+     other connections took with the tunnel!)
+     => Note: to be done within 'connection'-logic! */
+  GNUNET_CONTAINER_DLL_insert (t->connection_head,
+                               t->connection_tail,
+                               ct);
+  t->num_connections++;
 }
 
 

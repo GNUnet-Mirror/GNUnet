@@ -28,8 +28,6 @@
 #ifndef GNUNET_SERVICE_CADET_CONNECTION_H
 #define GNUNET_SERVICE_CADET_CONNECTION_H
 
-#define NEW_CADET
-
 #include "gnunet_util_lib.h"
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_peer.h"
@@ -71,6 +69,27 @@ GCC_create (struct CadetPeer *destination,
             struct CadetTConnection *ct,
             GNUNET_SCHEDULER_TaskCallback ready_cb,
             void *ready_cb_cls);
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.  This
+ * is an inbound tunnel, so we must use the existing @a cid
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param ct which tunnel uses this connection
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection
+ */
+struct CadetConnection *
+GCC_create_inbound (struct CadetPeer *destination,
+                    struct CadetPeerPath *path,
+                    struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                    GNUNET_SCHEDULER_TaskCallback ready_cb,
+                    void *ready_cb_cls);
 
 
 /**

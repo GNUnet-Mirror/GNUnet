@@ -310,7 +310,7 @@ struct CadetTunnel
   /**
    * Channel ID for the next created channel.
    */
-  struct GNUNET_CADET_ChannelNumber next_chid;
+  struct GNUNET_CADET_ChannelTunnelNumber next_chid;
 
   /**
    * Destroy flag: if true, destroy on last message.
@@ -1556,7 +1556,7 @@ destroy_iterator (void *cls,
  */
 static void
 send_channel_destroy (struct CadetTunnel *t,
-                      struct GNUNET_CADET_ChannelNumber gid)
+                      struct GNUNET_CADET_ChannelTunnelNumber gid)
 {
   struct GNUNET_CADET_ChannelManageMessage msg;
 
@@ -2515,7 +2515,7 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch)
  */
 struct CadetChannel *
 GCT_get_channel (struct CadetTunnel *t,
-                 struct GNUNET_CADET_ChannelNumber chid)
+                 struct GNUNET_CADET_ChannelTunnelNumber chid)
 {
   struct CadetTChannel *iter;
 
@@ -2971,11 +2971,11 @@ GCT_get_destination (struct CadetTunnel *t)
  *
  * @return GID of a channel free to use.
  */
-struct GNUNET_CADET_ChannelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCT_get_next_chid (struct CadetTunnel *t)
 {
-  struct GNUNET_CADET_ChannelNumber chid;
-  struct GNUNET_CADET_ChannelNumber mask;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber mask;
   int result;
 
   /* Set bit 30 depending on the ID relationship. Bit 31 is always 0 for GID.

@@ -727,7 +727,7 @@ tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
                  unsigned int n_channels,
                  unsigned int n_connections,
-                 const struct GNUNET_CADET_ChannelNumber *channels,
+                 const struct GNUNET_CADET_ChannelTunnelNumber *channels,
                  const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
                  unsigned int estate,
                  unsigned int cstate)

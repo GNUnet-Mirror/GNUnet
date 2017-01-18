@@ -313,6 +313,16 @@ GCP_set_mq (struct CadetPeer *cp,
 
 
 /**
+ * Get the message queue for peer @a cp.
+ *
+ * @param cp peer to modify
+ * @return message queue (can be NULL)
+ */
+struct GNUNET_MQ_Handle *
+GCP_get_mq (struct CadetPeer *cp);
+
+
+/**
  * Send the message in @a env to @a cp.
  *
  * @param cp the peer

@@ -69,7 +69,7 @@ GCCH_destroy (struct CadetChannel *ch);
  *
  * @return ID used to identify the channel with the remote peer.
  */
-struct GNUNET_CADET_ChannelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch);
 
 /**

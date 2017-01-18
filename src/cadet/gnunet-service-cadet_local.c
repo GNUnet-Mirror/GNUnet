@@ -977,7 +977,7 @@ iter_channel (void *cls, struct CadetChannel *ch)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
   struct GNUNET_CADET_ConnectionTunnelIdentifier *h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  struct GNUNET_CADET_ChannelNumber *chn = (struct GNUNET_CADET_ChannelNumber *) &h[msg->connections];
+  struct GNUNET_CADET_ChannelTunnelNumber *chn = (struct GNUNET_CADET_ChannelTunnelNumber *) &h[msg->connections];
 
   chn[msg->channels] = GCCH_get_id (ch);
   msg->channels++;
@@ -1045,7 +1045,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 
   size = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
   size += c_n * sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier);
-  size += ch_n * sizeof (struct GNUNET_CADET_ChannelNumber);
+  size += ch_n * sizeof (struct GNUNET_CADET_ChannelTunnelNumber);
 
   resp = GNUNET_malloc (size);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);

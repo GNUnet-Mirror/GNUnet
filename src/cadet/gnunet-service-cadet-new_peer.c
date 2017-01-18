@@ -265,6 +265,19 @@ destroy_peer (void *cls)
 
 
 /**
+ * Get the message queue for peer @a cp.
+ *
+ * @param cp peer to modify
+ * @return message queue (can be NULL)
+ */
+struct GNUNET_MQ_Handle *
+GCP_get_mq (struct CadetPeer *cp)
+{
+  return cp->core_mq;
+}
+
+
+/**
  * Set the message queue to @a mq for peer @a cp and notify watchers.
  *
  * @param cp peer to modify

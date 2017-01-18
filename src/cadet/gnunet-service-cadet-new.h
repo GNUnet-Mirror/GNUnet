@@ -29,6 +29,7 @@
 #define GNUNET_SERVICE_CADET_H
 
 #include "gnunet_util_lib.h"
+#define NEW_CADET 1
 
 /**
  * A client to the CADET service.  Each client gets a unique handle.
@@ -111,6 +112,16 @@ struct CadetTConnection;
  * be at most one connection per path.
  */
 struct CadetConnection;
+
+/**
+ * Description of a segment of a `struct CadetConnection` at the
+ * intermediate peers.  Routes are basically entries in a peer's
+ * routing table for forwarding traffic.  At both endpoints, the
+ * routes are terminated by a `struct CadetConnection`, which knows
+ * the complete `struct CadetPath` that is formed by the individual
+ * routes.
+ */
+struct CadetRoute;
 
 /**
  * Logical end-to-end conenction between clients.  There can be

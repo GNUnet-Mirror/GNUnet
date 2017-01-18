@@ -911,8 +911,8 @@ iter_channel (void *cls,
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
   struct GNUNET_CADET_ConnectionTunnelIdentifier *h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  struct GCT_ChannelTunnelNumber *chn
-    = (struct GCT_ChannelTunnelNumber *) &h[msg->connections];
+  struct GNUNET_CADET_ChannelTunnelNumber *chn
+    = (struct GNUNET_CADET_ChannelTunnelNumber *) &h[msg->connections];
 
   chn[msg->channels++] = GCCH_get_id (ch);
 }
@@ -963,7 +963,7 @@ handle_show_tunnel (void *cls,
   c_n = GCT_count_any_connections (t);
   env = GNUNET_MQ_msg_extra (resp,
                              c_n * sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier) +
-                             ch_n * sizeof (struct GCT_ChannelTunnelNumber),
+                             ch_n * sizeof (struct GNUNET_CADET_ChannelTunnelNumber),
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
   resp->destination = msg->peer;
   /* Do not reorder! #iter_channel needs counters in HBO! */

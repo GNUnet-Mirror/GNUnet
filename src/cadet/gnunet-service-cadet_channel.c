@@ -216,7 +216,7 @@ struct CadetChannel
   /**
    * Global channel number ( < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
    */
-  struct GNUNET_CADET_ChannelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber gid;
 
   /**
    * Local tunnel number for root (owner) client.
@@ -1398,7 +1398,7 @@ GCCH_destroy (struct CadetChannel *ch)
  *
  * @return ID used to identify the channel with the remote peer.
  */
-struct GNUNET_CADET_ChannelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch)
 {
   return ch->gid;
@@ -2154,7 +2154,7 @@ GCCH_handle_create (struct CadetTunnel *t,
                     const struct GNUNET_CADET_ChannelOpenMessage *msg)
 {
   struct GNUNET_CADET_ClientChannelNumber chid;
-  struct GNUNET_CADET_ChannelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber gid;
   struct CadetChannel *ch;
   struct CadetClient *c;
   int new_channel;

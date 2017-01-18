@@ -412,10 +412,10 @@ typedef void
 (*GNUNET_CADET_ChannelCB) (void *cls,
                            const struct GNUNET_PeerIdentity *root,
                            const struct GNUNET_PeerIdentity *dest,
-                           uint32_t port,
-                           uint32_t root_channel_number,
-                           uint32_t dest_channel_number,
-                           uint32_t public_channel_number);
+                           uint32_t /* UGH */ port,
+                           uint32_t /* ugh */ root_channel_number,
+                           uint32_t /* ugh */ dest_channel_number,
+                           uint32_t /* ugh */ public_channel_number);
 
 /**
  * Method called to retrieve information about all peers in CADET, called
@@ -491,10 +491,14 @@ struct GNUNET_CADET_ConnectionTunnelIdentifier
 
 
 /**
- * Number identifying a CADET channel.
+ * Number identifying a CADET channel within a tunnel.
  */
-struct GNUNET_CADET_ChannelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 {
+  /**
+   * Which number does this channel have that uniquely identfies
+   * it within its tunnel?
+   */
   uint32_t cn GNUNET_PACKED;
 };
 
@@ -517,7 +521,7 @@ typedef void
                           const struct GNUNET_PeerIdentity *peer,
                           unsigned int n_channels,
                           unsigned int n_connections,
-                          const struct GNUNET_CADET_ChannelNumber *channels,
+                          const struct GNUNET_CADET_ChannelTunnelNumber *channels,
                           const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
                           unsigned int estate,
                           unsigned int cstate);
@@ -537,7 +541,7 @@ typedef void
 void
 GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
                           struct GNUNET_PeerIdentity *peer,
-                          uint32_t channel_number,
+                          uint32_t /* UGH */ channel_number,
                           GNUNET_CADET_ChannelCB callback,
                           void *callback_cls);
 
