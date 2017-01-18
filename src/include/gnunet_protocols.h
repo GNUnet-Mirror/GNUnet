@@ -2632,7 +2632,7 @@ extern "C"
 /**
  * Send origin an ACK that the connection is complete
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK 1001
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK 1001
 
 /**
  * Notify that a connection is no longer valid
@@ -2647,44 +2647,44 @@ extern "C"
 /**
  * At some point, the route will spontaneously change TODO
  */
-#define GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED 1004
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_PATH_CHANGED_UNIMPLEMENTED 1004
 
 /**
  * Hop-by-hop, connection dependent ACK.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_ACK 1005
+#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK 1005
 
 /**
  * Poll for a hop-by-hop ACK.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_POLL 1006
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL 1006
 
 /**
  * Key exchange encapsulation.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_KX 1007
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX 1007
 
 /**
  * Axolotl encrypted data.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED 1008
+#define GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED 1008
 
 /**********************************  Channel  *********************************/
 
 /**
  * Payload data (inside an encrypted tunnel).
  */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA 1010
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA 1010
 
 /**
  * Confirm payload data end-to-end.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA_ACK 1011
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK 1011
 
 /**
  * Announce connection is still alive (direction sensitive).
  */
-#define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE 1012
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE 1012
 
 /**
  * Ask the cadet service to create a new channel.
@@ -2699,12 +2699,12 @@ extern "C"
 /**
  * Confirm the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK 1015
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK 1015
 
 /**
  * Reject the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK 1016
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED 1016
 
 /***********************************  Local  **********************************/
 

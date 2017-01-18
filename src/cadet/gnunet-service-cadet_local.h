@@ -208,7 +208,7 @@ GML_send_channel_destroy (struct CadetClient *c,
  */
 void
 GML_send_data (struct CadetClient *c,
-               const struct GNUNET_CADET_Data *msg,
+               const struct GNUNET_CADET_ChannelDataMessage *msg,
                struct GNUNET_CADET_ClientChannelNumber id);
 
 /**

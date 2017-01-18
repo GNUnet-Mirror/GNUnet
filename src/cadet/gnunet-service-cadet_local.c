@@ -440,7 +440,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message size sanity check */
-  if (sizeof (struct GNUNET_CADET_ChannelCreateMessage)
+  if (sizeof (struct GNUNET_CADET_ChannelCreateMessageMessage)
       != ntohs (message->size))
   {
     GNUNET_break (0);
@@ -450,7 +450,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (GNUNET_OK !=
       GCCH_handle_local_create (c,
-                                (struct GNUNET_CADET_ChannelCreateMessage *)
+                                (struct GNUNET_CADET_ChannelCreateMessageMessage *)
                                 message))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1129,7 +1129,7 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_port_close, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
     sizeof (struct GNUNET_CADET_PortMessage)},
   {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
-   sizeof (struct GNUNET_CADET_ChannelCreateMessage)},
+   sizeof (struct GNUNET_CADET_ChannelCreateMessageMessage)},
   {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
    sizeof (struct GNUNET_CADET_ChannelDestroyMessage)},
   {&handle_data, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA, 0},
@@ -1434,7 +1434,7 @@ GML_send_channel_create (struct CadetClient *c,
                          uint32_t opt,
                          const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_CADET_ChannelCreateMessage msg;
+  struct GNUNET_CADET_ChannelCreateMessageMessage msg;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
@@ -1465,7 +1465,7 @@ GML_send_channel_nack (struct CadetClient *c,
        c);
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED);
   msg.channel_id = id;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
@@ -1510,11 +1510,11 @@ GML_send_channel_destroy (struct CadetClient *c,
  */
 void
 GML_send_data (struct CadetClient *c,
-               const struct GNUNET_CADET_Data *msg,
+               const struct GNUNET_CADET_ChannelDataMessage *msg,
                struct GNUNET_CADET_ClientChannelNumber id)
 {
   struct GNUNET_CADET_LocalData *copy;
-  uint16_t size = ntohs (msg->header.size) - sizeof (struct GNUNET_CADET_Data);
+  uint16_t size = ntohs (msg->header.size) - sizeof (struct GNUNET_CADET_ChannelDataMessage);
   char cbuf[size + sizeof (struct GNUNET_CADET_LocalData)];
 
   if (size < sizeof (struct GNUNET_MessageHeader))

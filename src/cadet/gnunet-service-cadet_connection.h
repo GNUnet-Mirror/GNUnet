@@ -125,7 +125,7 @@ typedef void
  */
 void
 GCC_handle_create (struct CadetPeer *peer,
-                   const struct GNUNET_CADET_ConnectionCreate *msg);
+                   const struct GNUNET_CADET_ConnectionCreateMessage *msg);
 
 
 /**
@@ -136,7 +136,7 @@ GCC_handle_create (struct CadetPeer *peer,
  */
 void
 GCC_handle_confirm (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionACK *msg);
+                    const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg);
 
 
 /**
@@ -147,7 +147,7 @@ GCC_handle_confirm (struct CadetPeer *peer,
  */
 void
 GCC_handle_broken (struct CadetPeer *peer,
-                   const struct GNUNET_CADET_ConnectionBroken *msg);
+                   const struct GNUNET_CADET_ConnectionBrokenMessage *msg);
 
 /**
  * Handler for notifications of destroyed connections.
@@ -157,7 +157,7 @@ GCC_handle_broken (struct CadetPeer *peer,
  */
 void
 GCC_handle_destroy (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionDestroy *msg);
+                    const struct GNUNET_CADET_ConnectionDestroyMessage *msg);
 
 /**
  * Handler for cadet network traffic hop-by-hop acks.
@@ -167,7 +167,7 @@ GCC_handle_destroy (struct CadetPeer *peer,
  */
 void
 GCC_handle_ack (struct CadetPeer *peer,
-                const struct GNUNET_CADET_ACK *msg);
+                const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg);
 
 /**
  * Handler for cadet network traffic hop-by-hop data counter polls.
@@ -177,7 +177,7 @@ GCC_handle_ack (struct CadetPeer *peer,
  */
 void
 GCC_handle_poll (struct CadetPeer *peer,
-                 const struct GNUNET_CADET_Poll *msg);
+                 const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg);
 
 /**
  * Handler for key exchange traffic (Axolotl KX).
@@ -187,7 +187,7 @@ GCC_handle_poll (struct CadetPeer *peer,
  */
 void
 GCC_handle_kx (struct CadetPeer *peer,
-               const struct GNUNET_CADET_KX *msg);
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
 
 /**
  * Handler for encrypted cadet network traffic (channel mgmt, data).
@@ -197,7 +197,7 @@ GCC_handle_kx (struct CadetPeer *peer,
  */
 void
 GCC_handle_encrypted (struct CadetPeer *peer,
-                      const struct GNUNET_CADET_Encrypted *msg);
+                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg);
 
 /**
  * Core handler for axolotl key exchange traffic.

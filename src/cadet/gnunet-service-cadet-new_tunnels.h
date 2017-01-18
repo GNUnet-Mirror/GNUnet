@@ -325,7 +325,7 @@ GCT_get_estate (struct CadetTunnel *t);
  */
 void
 GCT_handle_kx (struct CadetTConnection *ct,
-               const struct GNUNET_CADET_KX *msg);
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
 
 
 /**
@@ -336,7 +336,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
  */
 void
 GCT_handle_encrypted (struct CadetTConnection *ct,
-                      const struct GNUNET_CADET_Encrypted *msg);
+                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg);
 
 
 /**

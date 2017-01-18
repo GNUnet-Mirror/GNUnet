@@ -127,9 +127,9 @@ extern "C"
 
 /**
  * Size of the CADET message overhead:
- * = sizeof (struct GNUNET_CADET_Encrypted)
- * + sizeof (struct GNUNET_CADET_Data)
- * + sizeof (struct GNUNET_CADET_ACK))
+ * = sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage)
+ * + sizeof (struct GNUNET_CADET_ChannelDataMessage)
+ * + sizeof (struct GNUNET_CADET_ConnectionEncryptedAckMessage))
  *
  * Checked for correcteness in gnunet-service-cadet_tunnel.c: GCT_init().
  */

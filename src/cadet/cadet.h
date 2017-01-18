@@ -135,12 +135,12 @@ struct GNUNET_CADET_PortMessage
 /**
  * Message for a client to create channels.
  */
-struct GNUNET_CADET_ChannelCreateMessage
+struct GNUNET_CADET_ChannelCreateMessageMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
    *
-   * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessage)
+   * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessageMessage)
    */
   struct GNUNET_MessageHeader header;
 

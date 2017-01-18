@@ -190,7 +190,7 @@ GCC_destroy (struct CadetConnection *cc)
   {
     /* Need to notify next hop that we are down. */
     struct GNUNET_MQ_Envelope *env;
-    struct GNUNET_CADET_ConnectionDestroy *destroy_msg;
+    struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
 
     env = GNUNET_MQ_msg (destroy_msg,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
@@ -253,7 +253,7 @@ GCC_handle_connection_ack (struct CadetConnection *cc)
  */
 void
 GCC_handle_kx (struct CadetConnection *cc,
-               const struct GNUNET_CADET_KX *msg)
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   GCT_handle_kx (cc->ct,
                  msg);
@@ -268,7 +268,7 @@ GCC_handle_kx (struct CadetConnection *cc,
  */
 void
 GCC_handle_encrypted (struct CadetConnection *cc,
-                      const struct GNUNET_CADET_Encrypted *msg)
+                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
 {
   GCT_handle_encrypted (cc->ct,
                         msg);
@@ -314,7 +314,7 @@ static void
 send_create (void *cls)
 {
   struct CadetConnection *cc = cls;
-  struct GNUNET_CADET_ConnectionCreate *create_msg;
+  struct GNUNET_CADET_ConnectionCreateMessage *create_msg;
   struct GNUNET_PeerIdentity *pids;
   struct GNUNET_MQ_Envelope *env;
   unsigned int path_length;

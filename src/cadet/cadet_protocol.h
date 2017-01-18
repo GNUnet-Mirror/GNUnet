@@ -56,12 +56,12 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message for cadet connection creation.
  */
-struct GNUNET_CADET_ConnectionCreate
+struct GNUNET_CADET_ConnectionCreateMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
    *
-   * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
+   * Size: sizeof (struct GNUNET_CADET_ConnectionCreateMessage) +
    *       path_length * sizeof (struct GNUNET_PeerIdentity)
    */
   struct GNUNET_MessageHeader header;
@@ -87,10 +87,10 @@ struct GNUNET_CADET_ConnectionCreate
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_CADET_ConnectionACK
+struct GNUNET_CADET_ConnectionCreateMessageAckMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
    */
   struct GNUNET_MessageHeader header;
 
@@ -110,7 +110,7 @@ struct GNUNET_CADET_ConnectionACK
 /**
  * Message for notifying a disconnection in a path
  */
-struct GNUNET_CADET_ConnectionBroken
+struct GNUNET_CADET_ConnectionBrokenMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
@@ -142,7 +142,7 @@ struct GNUNET_CADET_ConnectionBroken
 /**
  * Message to destroy a connection.
  */
-struct GNUNET_CADET_ConnectionDestroy
+struct GNUNET_CADET_ConnectionDestroyMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
@@ -164,10 +164,10 @@ struct GNUNET_CADET_ConnectionDestroy
 /**
  * Message to acknowledge cadet encrypted traffic.
  */
-struct GNUNET_CADET_ACK
+struct GNUNET_CADET_ConnectionEncryptedAckMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK
    */
   struct GNUNET_MessageHeader header;
 
@@ -186,10 +186,10 @@ struct GNUNET_CADET_ACK
 /**
  * Message to query a peer about its Flow Control status regarding a tunnel.
  */
-struct GNUNET_CADET_Poll
+struct GNUNET_CADET_ConnectionHopByHopPollMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_POLL
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL
    */
   struct GNUNET_MessageHeader header;
 
@@ -231,10 +231,10 @@ enum GNUNET_CADET_KX_Flags {
 /**
  * Message for a Key eXchange for a tunnel.
  */
-struct GNUNET_CADET_KX
+struct GNUNET_CADET_TunnelKeyExchangeMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_KX.
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX.
    */
   struct GNUNET_MessageHeader header;
 
@@ -268,10 +268,10 @@ struct GNUNET_CADET_KX
 /**
  * Axolotl tunnel message.
  */
-struct GNUNET_CADET_Encrypted
+struct GNUNET_CADET_ConnectionEncryptedMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
+   * Type: #GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED
    */
   struct GNUNET_MessageHeader header;
 
@@ -327,7 +327,7 @@ struct GNUNET_CADET_Encrypted
 /**
  * Message to create a Channel.
  */
-struct GNUNET_CADET_ChannelCreate
+struct GNUNET_CADET_ChannelCreateMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
@@ -355,7 +355,7 @@ struct GNUNET_CADET_ChannelCreate
 /**
  * Message to manage a Channel (ACK, NACK, Destroy).
  */
-struct GNUNET_CADET_ChannelManage
+struct GNUNET_CADET_ChannelManageMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
@@ -374,7 +374,7 @@ struct GNUNET_CADET_ChannelManage
 /**
  * Message for cadet data traffic.
  */
-struct GNUNET_CADET_Data
+struct GNUNET_CADET_ChannelDataMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
@@ -401,10 +401,10 @@ struct GNUNET_CADET_Data
 /**
  * Message to acknowledge end-to-end data.
  */
-struct GNUNET_CADET_DataACK
+struct GNUNET_CADET_ChannelDataAckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_DATA_ACK
+   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK
    */
   struct GNUNET_MessageHeader header;
 

@@ -588,7 +588,7 @@ request_data (void *cls)
  */
 static void
 handle_channel_created (void *cls,
-                        const struct GNUNET_CADET_ChannelCreateMessage *msg)
+                        const struct GNUNET_CADET_ChannelCreateMessageMessage *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
@@ -1282,7 +1282,7 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (channel_created,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
-                             struct GNUNET_CADET_ChannelCreateMessage,
+                             struct GNUNET_CADET_ChannelCreateMessageMessage,
                              h),
     GNUNET_MQ_hd_fixed_size (channel_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
@@ -1314,7 +1314,7 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
                            h),
   // FIXME
 //   GNUNET_MQ_hd_fixed_Y       size (channel_destroyed,
-//                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK,
+//                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED,
 //                            struct GNUNET_CADET_ChannelDestroyMessage);
     GNUNET_MQ_handler_end ()
   };
@@ -1575,7 +1575,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                             const struct GNUNET_HashCode *port,
                             enum GNUNET_CADET_ChannelOption options)
 {
-  struct GNUNET_CADET_ChannelCreateMessage *msg;
+  struct GNUNET_CADET_ChannelCreateMessageMessage *msg;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber chid;

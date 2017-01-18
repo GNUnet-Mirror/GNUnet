@@ -113,7 +113,7 @@ route_message (struct CadetPeer *prev,
   if (NULL == route)
   {
     struct GNUNET_MQ_Envelope *env;
-    struct GNUNET_CADET_ConnectionBroken *bm;
+    struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
     env = GNUNET_MQ_msg (bm,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
@@ -138,7 +138,7 @@ route_message (struct CadetPeer *prev,
  */
 static int
 check_create (void *cls,
-              const struct GNUNET_CADET_ConnectionCreate *msg)
+              const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
 
@@ -171,7 +171,7 @@ destroy_route (struct CadetRoute *route)
  */
 static void
 handle_create (void *cls,
-               const struct GNUNET_CADET_ConnectionCreate *msg)
+               const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
   struct CadetPeer *peer = cls;
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
@@ -188,14 +188,14 @@ handle_create (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
 handle_connection_ack (void *cls,
-                       const struct GNUNET_CADET_ConnectionACK *msg)
+                       const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -236,7 +236,7 @@ handle_connection_ack (void *cls,
  */
 static void
 handle_broken (void *cls,
-               const struct GNUNET_CADET_ConnectionBroken *msg)
+               const struct GNUNET_CADET_ConnectionBrokenMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -282,7 +282,7 @@ handle_broken (void *cls,
  */
 static void
 handle_destroy (void *cls,
-                const struct GNUNET_CADET_ConnectionDestroy *msg)
+                const struct GNUNET_CADET_ConnectionDestroyMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -318,14 +318,14 @@ handle_destroy (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
 handle_ack (void *cls,
-            const struct GNUNET_CADET_ACK *msg)
+            const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
 
@@ -337,14 +337,14 @@ handle_ack (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_POLL
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
 handle_poll (void *cls,
-             const struct GNUNET_CADET_Poll *msg)
+             const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg)
 {
   struct CadetPeer *peer = cls;
 
@@ -356,14 +356,14 @@ handle_poll (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_KX
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
 handle_kx (void *cls,
-           const struct GNUNET_CADET_KX *msg)
+           const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -406,21 +406,21 @@ handle_kx (void *cls,
  */
 static int
 check_encrypted (void *cls,
-                 const struct GNUNET_CADET_Encrypted *msg)
+                 const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
 {
   return GNUNET_YES;
 }
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED.
+ * Handle for #GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
 handle_encrypted (void *cls,
-                  const struct GNUNET_CADET_Encrypted *msg)
+                  const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -534,35 +534,35 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (create,
                            GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
-                           struct GNUNET_CADET_ConnectionCreate,
+                           struct GNUNET_CADET_ConnectionCreateMessage,
                            NULL),
     GNUNET_MQ_hd_fixed_size (connection_ack,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
-                             struct GNUNET_CADET_ConnectionACK,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
+                             struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (broken,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-                             struct GNUNET_CADET_ConnectionBroken,
+                             struct GNUNET_CADET_ConnectionBrokenMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
-                             struct GNUNET_CADET_ConnectionDestroy,
+                             struct GNUNET_CADET_ConnectionDestroyMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (ack,
-                             GNUNET_MESSAGE_TYPE_CADET_ACK,
-                             struct GNUNET_CADET_ACK,
+                             GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK,
+                             struct GNUNET_CADET_ConnectionEncryptedAckMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (poll,
-                             GNUNET_MESSAGE_TYPE_CADET_POLL,
-                             struct GNUNET_CADET_Poll,
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL,
+                             struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (kx,
-                             GNUNET_MESSAGE_TYPE_CADET_KX,
-                             struct GNUNET_CADET_KX,
+                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,
+                             struct GNUNET_CADET_TunnelKeyExchangeMessage,
                              NULL),
     GNUNET_MQ_hd_var_size (encrypted,
-                           GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED,
-                           struct GNUNET_CADET_Encrypted,
+                           GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED,
+                           struct GNUNET_CADET_ConnectionEncryptedMessage,
                            NULL),
     GNUNET_MQ_handler_end ()
   };

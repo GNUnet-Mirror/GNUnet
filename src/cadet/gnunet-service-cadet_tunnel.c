@@ -843,7 +843,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
  * @param msg Message whose header to encrypt.
  */
 static void
-t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_Encrypted *msg)
+t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
@@ -874,8 +874,8 @@ t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_Encrypted *msg)
  * @param dst Where to decrypt header to.
  */
 static void
-t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_Encrypted *src,
-             struct GNUNET_CADET_Encrypted *dst)
+t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_ConnectionEncryptedMessage *src,
+             struct GNUNET_CADET_ConnectionEncryptedMessage *dst)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct CadetTunnelAxolotl *ax;
@@ -913,12 +913,12 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_Encrypted *src,
  */
 static int
 try_old_ax_keys (struct CadetTunnel *t, void *dst,
-                 const struct GNUNET_CADET_Encrypted *src, size_t size)
+                 const struct GNUNET_CADET_ConnectionEncryptedMessage *src, size_t size)
 {
   struct CadetTunnelSkippedKey *key;
   struct GNUNET_ShortHashCode *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct GNUNET_CADET_Encrypted plaintext_header;
+  struct GNUNET_CADET_ConnectionEncryptedMessage plaintext_header;
   struct GNUNET_CRYPTO_SymmetricSessionKey *valid_HK;
   size_t esize;
   size_t res;
@@ -927,7 +927,7 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying old keys\n");
   hmac = &plaintext_header.hmac;
-  esize = size - sizeof (struct GNUNET_CADET_Encrypted);
+  esize = size - sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage);
 
   /* Find a correct Header Key */
   for (key = t->ax->skipped_head; NULL != key; key = key->next)
@@ -948,8 +948,8 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
     return -1;
 
   /* Should've been checked in -cadet_connection.c handle_cadet_encrypted. */
-  GNUNET_assert (size > sizeof (struct GNUNET_CADET_Encrypted));
-  len = size - sizeof (struct GNUNET_CADET_Encrypted);
+  GNUNET_assert (size > sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage));
+  len = size - sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage);
   GNUNET_assert (len >= sizeof (struct GNUNET_MessageHeader));
 
   /* Decrypt header */
@@ -1092,19 +1092,19 @@ store_ax_keys (struct CadetTunnel *t,
  */
 static int
 t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
-                           const struct GNUNET_CADET_Encrypted *src,
+                           const struct GNUNET_CADET_ConnectionEncryptedMessage *src,
                            size_t size)
 {
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_ShortHashCode msg_hmac;
   struct GNUNET_HashCode hmac;
-  struct GNUNET_CADET_Encrypted plaintext_header;
+  struct GNUNET_CADET_ConnectionEncryptedMessage plaintext_header;
   uint32_t Np;
   uint32_t PNp;
   size_t esize; /* Size of encryped payload */
   size_t osize; /* Size of output (decrypted payload) */
 
-  esize = size - sizeof (struct GNUNET_CADET_Encrypted);
+  esize = size - sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage);
   ax = t->ax;
   if (NULL == ax)
     return -1;
@@ -1322,10 +1322,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        struct CadetTunnelQueue *existing_q)
 {
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_CADET_Encrypted *ax_msg;
+  struct GNUNET_CADET_ConnectionEncryptedMessage *ax_msg;
   struct CadetTunnelQueue *tq;
   size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size] GNUNET_ALIGN;
+  char cbuf[sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage) + size] GNUNET_ALIGN;
   size_t esize;
   uint32_t mid;
   uint16_t type;
@@ -1353,10 +1353,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
-  ax_msg = (struct GNUNET_CADET_Encrypted *) cbuf;
+  ax_msg = (struct GNUNET_CADET_ConnectionEncryptedMessage *) cbuf;
   msg = &ax_msg->header;
-  msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
+  msg->size = htons (sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage) + size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED);
   esize = t_ax_encrypt (t, &ax_msg[1], message, size);
   ax_msg->Ns = htonl (t->ax->Ns++);
   ax_msg->PNs = htonl (t->ax->PNs);
@@ -1385,18 +1385,18 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   type = ntohs (message->type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
-      if (GNUNET_MESSAGE_TYPE_CADET_DATA == type)
-        mid = ntohl (((struct GNUNET_CADET_Data *) message)->mid);
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
+      if (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA == type)
+        mid = ntohl (((struct GNUNET_CADET_ChannelDataMessage *) message)->mid);
       else
-        mid = ntohl (((struct GNUNET_CADET_DataACK *) message)->mid);
+        mid = ntohl (((struct GNUNET_CADET_ChannelDataAckMessage *) message)->mid);
       /* Fall thru */
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
       break;
     default:
       GNUNET_break (0);
@@ -1570,7 +1570,7 @@ static void
 send_channel_destroy (struct CadetTunnel *t,
                       struct GNUNET_CADET_ChannelNumber gid)
 {
-  struct GNUNET_CADET_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManageMessage msg;
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
@@ -1596,7 +1596,7 @@ send_channel_destroy (struct CadetTunnel *t,
  */
 static void
 handle_data (struct CadetTunnel *t,
-             const struct GNUNET_CADET_Data *msg,
+             const struct GNUNET_CADET_ChannelDataMessage *msg,
              int fwd)
 {
   struct CadetChannel *ch;
@@ -1607,7 +1607,7 @@ handle_data (struct CadetTunnel *t,
   /* Check size */
   size = ntohs (msg->header.size);
   if (size <
-      sizeof (struct GNUNET_CADET_Data) +
+      sizeof (struct GNUNET_CADET_ChannelDataMessage) +
       sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
@@ -1650,7 +1650,7 @@ handle_data (struct CadetTunnel *t,
  */
 static void
 handle_data_ack (struct CadetTunnel *t,
-                 const struct GNUNET_CADET_DataACK *msg,
+                 const struct GNUNET_CADET_ChannelDataAckMessage *msg,
                  int fwd)
 {
   struct CadetChannel *ch;
@@ -1658,7 +1658,7 @@ handle_data_ack (struct CadetTunnel *t,
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_CADET_DataACK))
+  if (size != sizeof (struct GNUNET_CADET_ChannelDataAckMessage))
   {
     GNUNET_break (0);
     return;
@@ -1687,14 +1687,14 @@ handle_data_ack (struct CadetTunnel *t,
  */
 static void
 handle_ch_create (struct CadetTunnel *t,
-                  const struct GNUNET_CADET_ChannelCreate *msg)
+                  const struct GNUNET_CADET_ChannelCreateMessage *msg)
 {
   struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_CADET_ChannelCreate))
+  if (size != sizeof (struct GNUNET_CADET_ChannelCreateMessage))
   {
     GNUNET_break_op (0);
     return;
@@ -1722,14 +1722,14 @@ handle_ch_create (struct CadetTunnel *t,
  */
 static void
 handle_ch_nack (struct CadetTunnel *t,
-                const struct GNUNET_CADET_ChannelManage *msg)
+                const struct GNUNET_CADET_ChannelManageMessage *msg)
 {
   struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManageMessage))
   {
     GNUNET_break (0);
     return;
@@ -1763,7 +1763,7 @@ handle_ch_nack (struct CadetTunnel *t,
  */
 static void
 handle_ch_ack (struct CadetTunnel *t,
-               const struct GNUNET_CADET_ChannelManage *msg,
+               const struct GNUNET_CADET_ChannelManageMessage *msg,
                int fwd)
 {
   struct CadetChannel *ch;
@@ -1771,7 +1771,7 @@ handle_ch_ack (struct CadetTunnel *t,
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManageMessage))
   {
     GNUNET_break (0);
     return;
@@ -1807,7 +1807,7 @@ handle_ch_ack (struct CadetTunnel *t,
  */
 static void
 handle_ch_destroy (struct CadetTunnel *t,
-                   const struct GNUNET_CADET_ChannelManage *msg,
+                   const struct GNUNET_CADET_ChannelManageMessage *msg,
                    int fwd)
 {
   struct CadetChannel *ch;
@@ -1815,7 +1815,7 @@ handle_ch_destroy (struct CadetTunnel *t,
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManageMessage))
   {
     GNUNET_break (0);
     return;
@@ -1892,34 +1892,34 @@ handle_decrypted (struct CadetTunnel *t,
 
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE:
       /* Do nothing, connection aleady got updated. */
       GNUNET_STATISTICS_update (stats, "# keepalives received", 1, GNUNET_NO);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
       /* Don't send hop ACK, wait for client to ACK */
-      handle_data (t, (struct GNUNET_CADET_Data *) msgh, fwd);
+      handle_data (t, (struct GNUNET_CADET_ChannelDataMessage *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
-      handle_data_ack (t, (struct GNUNET_CADET_DataACK *) msgh, fwd);
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
+      handle_data_ack (t, (struct GNUNET_CADET_ChannelDataAckMessage *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-      handle_ch_create (t, (struct GNUNET_CADET_ChannelCreate *) msgh);
+      handle_ch_create (t, (struct GNUNET_CADET_ChannelCreateMessage *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      handle_ch_nack (t, (struct GNUNET_CADET_ChannelManage *) msgh);
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
+      handle_ch_nack (t, (struct GNUNET_CADET_ChannelManageMessage *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      handle_ch_ack (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
+      handle_ch_ack (t, (struct GNUNET_CADET_ChannelManageMessage *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      handle_ch_destroy (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
+      handle_ch_destroy (t, (struct GNUNET_CADET_ChannelManageMessage *) msgh, fwd);
       break;
 
     default:
@@ -1946,7 +1946,7 @@ handle_decrypted (struct CadetTunnel *t,
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_CADET_Encrypted *msg)
+                      const struct GNUNET_CADET_ConnectionEncryptedMessage *msg)
 {
   uint16_t size = ntohs (msg->header.size);
   char cbuf [size];
@@ -2005,7 +2005,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
  */
 void
 GCT_handle_kx (struct CadetTunnel *t,
-               const struct GNUNET_CADET_KX *msg)
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
@@ -2158,9 +2158,9 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
 
   expected_overhead = 0;
-  expected_overhead += sizeof (struct GNUNET_CADET_Encrypted);
-  expected_overhead += sizeof (struct GNUNET_CADET_Data);
-  expected_overhead += sizeof (struct GNUNET_CADET_ACK);
+  expected_overhead += sizeof (struct GNUNET_CADET_ConnectionEncryptedMessage);
+  expected_overhead += sizeof (struct GNUNET_CADET_ChannelDataMessage);
+  expected_overhead += sizeof (struct GNUNET_CADET_ConnectionEncryptedAckMessage);
   GNUNET_assert (GNUNET_CONSTANTS_CADET_P2P_OVERHEAD == expected_overhead);
 
   if (GNUNET_OK !=
@@ -2676,7 +2676,7 @@ GCT_destroy (struct CadetTunnel *t)
 
     mh = (struct GNUNET_MessageHeader *) &t->tq_head[1];
     type = ntohs (mh->type);
-    if (0 == keepalives_queued && GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE == type)
+    if (0 == keepalives_queued && GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE == type)
     {
       keepalives_queued = 1;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3221,7 +3221,7 @@ void
 GCT_send_kx (struct CadetTunnel *t, int force_reply)
 {
   struct CadetConnection *c;
-  struct GNUNET_CADET_KX msg;
+  struct GNUNET_CADET_TunnelKeyExchangeMessage msg;
   enum GNUNET_CADET_KX_Flags flags;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "==> {        KX} on %s\n", GCT_2s (t));
@@ -3244,7 +3244,7 @@ GCT_send_kx (struct CadetTunnel *t, int force_reply)
   }
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX);
   flags = GNUNET_CADET_KX_FLAG_NONE;
   if (GNUNET_YES == force_reply)
     flags |= GNUNET_CADET_KX_FLAG_FORCE_REPLY;

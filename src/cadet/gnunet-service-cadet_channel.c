@@ -125,7 +125,7 @@ struct CadetReliableMessage
    */
   struct GNUNET_TIME_Absolute   timestamp;
 
-  /* struct GNUNET_CADET_Data with payload */
+  /* struct GNUNET_CADET_ChannelDataMessage with payload */
 };
 
 
@@ -368,7 +368,7 @@ is_loopback (const struct CadetChannel *ch)
  * @param rel Reliability data for retransmission.
  */
 static struct CadetReliableMessage *
-copy_message (const struct GNUNET_CADET_Data *msg, uint32_t mid,
+copy_message (const struct GNUNET_CADET_ChannelDataMessage *msg, uint32_t mid,
               struct CadetChannelReliability *rel)
 {
   struct CadetReliableMessage *copy;
@@ -378,7 +378,7 @@ copy_message (const struct GNUNET_CADET_Data *msg, uint32_t mid,
   copy = GNUNET_malloc (sizeof (*copy) + size);
   copy->mid = mid;
   copy->rel = rel;
-  copy->type = GNUNET_MESSAGE_TYPE_CADET_DATA;
+  copy->type = GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA;
   GNUNET_memcpy (&copy[1], msg, size);
 
   return copy;
@@ -393,7 +393,7 @@ copy_message (const struct GNUNET_CADET_Data *msg, uint32_t mid,
  * @param rel Reliability data to the corresponding direction.
  */
 static void
-add_buffered_data (const struct GNUNET_CADET_Data *msg,
+add_buffered_data (const struct GNUNET_CADET_ChannelDataMessage *msg,
                    struct CadetChannelReliability *rel)
 {
   struct CadetReliableMessage *copy;
@@ -513,7 +513,7 @@ channel_get_options (struct CadetChannel *ch)
 static void
 send_destroy (struct CadetChannel *ch, int local_only)
 {
-  struct GNUNET_CADET_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManageMessage msg;
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
@@ -573,7 +573,7 @@ send_client_create (struct CadetChannel *ch)
  */
 static void
 send_client_data (struct CadetChannel *ch,
-                  const struct GNUNET_CADET_Data *msg,
+                  const struct GNUNET_CADET_ChannelDataMessage *msg,
                   int fwd)
 {
   if (fwd)
@@ -631,7 +631,7 @@ send_client_buffered_data (struct CadetChannel *ch,
   {
     if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
     {
-      struct GNUNET_CADET_Data *msg = (struct GNUNET_CADET_Data *) &copy[1];
+      struct GNUNET_CADET_ChannelDataMessage *msg = (struct GNUNET_CADET_ChannelDataMessage *) &copy[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, " have %u! now expecting %u\n",
            copy->mid, rel->mid_recv + 1);
@@ -731,7 +731,7 @@ channel_retransmit_message (void *cls)
   struct CadetChannelReliability *rel = cls;
   struct CadetReliableMessage *copy;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_Data *payload;
+  struct GNUNET_CADET_ChannelDataMessage *payload;
   int fwd;
 
   rel->retry_task = NULL;
@@ -743,7 +743,7 @@ channel_retransmit_message (void *cls)
     return;
   }
 
-  payload = (struct GNUNET_CADET_Data *) &copy[1];
+  payload = (struct GNUNET_CADET_ChannelDataMessage *) &copy[1];
   fwd = (rel == ch->root_rel);
 
   /* Message not found in the queue that we are going to use. */
@@ -808,7 +808,7 @@ ch_message_sent (void *cls,
 
   switch (chq->type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "data MID %u sent\n", copy->mid);
       GNUNET_assert (chq == copy->chq);
       copy->timestamp = GNUNET_TIME_absolute_get ();
@@ -844,16 +844,16 @@ ch_message_sent (void *cls,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "sent %s\n", GC_m2s (chq->type));
       rel = chq->rel;
       GNUNET_assert (rel->uniq == chq);
       rel->uniq = NULL;
 
       if (CADET_CHANNEL_READY != rel->ch->state
-          && GNUNET_MESSAGE_TYPE_CADET_DATA_ACK != type
+          && GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK != type
           && GNUNET_NO == rel->ch->destroy)
       {
         GNUNET_assert (NULL == rel->retry_task);
@@ -882,7 +882,7 @@ ch_message_sent (void *cls,
 static void
 send_create (struct CadetChannel *ch)
 {
-  struct GNUNET_CADET_ChannelCreate msgcc;
+  struct GNUNET_CADET_ChannelCreateMessage msgcc;
 
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
@@ -903,10 +903,10 @@ send_create (struct CadetChannel *ch)
 static void
 send_ack (struct CadetChannel *ch, int fwd)
 {
-  struct GNUNET_CADET_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManageMessage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  sending channel %s ack for channel %s\n",
        GC_f2s (fwd), GCCH_2s (ch));
@@ -943,10 +943,10 @@ fire_and_forget (const struct GNUNET_MessageHeader *msg,
 static void
 send_nack (struct CadetChannel *ch)
 {
-  struct GNUNET_CADET_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManageMessage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  sending channel NACK for channel %s\n",
        GCCH_2s (ch));
@@ -1024,7 +1024,7 @@ channel_rel_free_all (struct CadetChannelReliability *rel)
  */
 static unsigned int
 channel_rel_free_sent (struct CadetChannelReliability *rel,
-                       const struct GNUNET_CADET_DataACK *msg)
+                       const struct GNUNET_CADET_ChannelDataAckMessage *msg)
 {
   struct CadetReliableMessage *copy;
   struct CadetReliableMessage *next;
@@ -1300,35 +1300,35 @@ handle_loopback (struct CadetChannel *ch,
 
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
       /* Don't send hop ACK, wait for client to ACK */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "SEND loopback %u (%u)\n",
-           ntohl (((struct GNUNET_CADET_Data *) msgh)->mid), ntohs (msgh->size));
-      GCCH_handle_data (ch, (struct GNUNET_CADET_Data *) msgh, fwd);
+           ntohl (((struct GNUNET_CADET_ChannelDataMessage *) msgh)->mid), ntohs (msgh->size));
+      GCCH_handle_data (ch, (struct GNUNET_CADET_ChannelDataMessage *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
-      GCCH_handle_data_ack (ch, (struct GNUNET_CADET_DataACK *) msgh, fwd);
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
+      GCCH_handle_data_ack (ch, (struct GNUNET_CADET_ChannelDataAckMessage *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
       GCCH_handle_create (ch->t,
-                          (struct GNUNET_CADET_ChannelCreate *) msgh);
+                          (struct GNUNET_CADET_ChannelCreateMessage *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
       GCCH_handle_ack (ch,
-                       (struct GNUNET_CADET_ChannelManage *) msgh,
+                       (struct GNUNET_CADET_ChannelManageMessage *) msgh,
                        fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
       GCCH_handle_nack (ch);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       GCCH_handle_destroy (ch,
-                           (struct GNUNET_CADET_ChannelManage *) msgh,
+                           (struct GNUNET_CADET_ChannelManageMessage *) msgh,
                            fwd);
       break;
 
@@ -1523,7 +1523,7 @@ GCCH_is_terminal (struct CadetChannel *ch, int fwd)
 void
 GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
 {
-  struct GNUNET_CADET_DataACK msg;
+  struct GNUNET_CADET_ChannelDataAckMessage msg;
   struct CadetChannelReliability *rel;
   struct CadetReliableMessage *copy;
   unsigned int delta;
@@ -1536,7 +1536,7 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = ch->gid;
   msg.mid = htonl (ack);
@@ -1544,7 +1544,7 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
   msg.futures = 0LL;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
-    if (copy->type != GNUNET_MESSAGE_TYPE_CADET_DATA)
+    if (copy->type != GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " Type %s, expected DATA\n",
            GC_m2s (copy->type));
@@ -1748,8 +1748,8 @@ GCCH_handle_local_data (struct CadetChannel *ch,
                         size_t size)
 {
   struct CadetChannelReliability *rel;
-  struct GNUNET_CADET_Data *payload;
-  uint16_t p2p_size = sizeof(struct GNUNET_CADET_Data) + size;
+  struct GNUNET_CADET_ChannelDataMessage *payload;
+  uint16_t p2p_size = sizeof(struct GNUNET_CADET_ChannelDataMessage) + size;
   unsigned char cbuf[p2p_size];
   unsigned char buffer;
 
@@ -1775,12 +1775,12 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   rel->client_allowed = GNUNET_NO;
 
   /* Ok, everything is correct, send the message. */
-  payload = (struct GNUNET_CADET_Data *) cbuf;
+  payload = (struct GNUNET_CADET_ChannelDataMessage *) cbuf;
   payload->mid = htonl (rel->mid_send);
   rel->mid_send++;
   GNUNET_memcpy (&payload[1], message, size);
   payload->header.size = htons (p2p_size);
-  payload->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA);
+  payload->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA);
   payload->chid = ch->gid;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
   GCCH_send_prebuilt_message (&payload->header, ch, fwd, NULL);
@@ -1846,7 +1846,7 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
  */
 int
 GCCH_handle_local_create (struct CadetClient *c,
-                          struct GNUNET_CADET_ChannelCreateMessage *msg)
+                          struct GNUNET_CADET_ChannelCreateMessageMessage *msg)
 {
   struct CadetChannel *ch;
   struct CadetTunnel *t;
@@ -1914,7 +1914,7 @@ GCCH_handle_local_create (struct CadetClient *c,
  */
 void
 GCCH_handle_data (struct CadetChannel *ch,
-                  const struct GNUNET_CADET_Data *msg,
+                  const struct GNUNET_CADET_ChannelDataMessage *msg,
                   int fwd)
 {
   struct CadetChannelReliability *rel;
@@ -1972,7 +1972,7 @@ GCCH_handle_data (struct CadetChannel *ch,
 
   mid = ntohl (msg->mid);
   LOG (GNUNET_ERROR_TYPE_INFO, "<== %s (%s %4u) on chan %s (%p) %s [%5u]\n",
-       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_DATA), GC_m2s (payload_type), mid,
+       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA), GC_m2s (payload_type), mid,
        GCCH_2s (ch), ch, GC_f2s (fwd), ntohs (msg->header.size));
 
   if ( (GNUNET_NO == ch->reliable) ||
@@ -2044,7 +2044,7 @@ GCCH_handle_data (struct CadetChannel *ch,
  */
 void
 GCCH_handle_data_ack (struct CadetChannel *ch,
-                      const struct GNUNET_CADET_DataACK *msg,
+                      const struct GNUNET_CADET_ChannelDataAckMessage *msg,
                       int fwd)
 {
   struct CadetChannelReliability *rel;
@@ -2069,7 +2069,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
   ack = ntohl (msg->mid);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "<== %s (0x%010lX %4u) on chan %s (%p) %s [%5u]\n",
-       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK), msg->futures, ack,
+       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK), msg->futures, ack,
        GCCH_2s (ch), ch, GC_f2s (fwd), ntohs (msg->header.size));
 
   if (GNUNET_YES == fwd)
@@ -2151,7 +2151,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
  */
 struct CadetChannel *
 GCCH_handle_create (struct CadetTunnel *t,
-                    const struct GNUNET_CADET_ChannelCreate *msg)
+                    const struct GNUNET_CADET_ChannelCreateMessage *msg)
 {
   struct GNUNET_CADET_ClientChannelNumber chid;
   struct GNUNET_CADET_ChannelNumber gid;
@@ -2252,7 +2252,7 @@ GCCH_handle_nack (struct CadetChannel *ch)
 {
   LOG (GNUNET_ERROR_TYPE_INFO,
        "<== %s (  0x%08X %4u) on chan %s (%p) %s [%5u]\n",
-       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK), ch->gid, 0,
+       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED), ch->gid, 0,
        GCCH_2s (ch), ch, "---", 0);
 
   send_client_nack (ch);
@@ -2272,12 +2272,12 @@ GCCH_handle_nack (struct CadetChannel *ch)
  */
 void
 GCCH_handle_ack (struct CadetChannel *ch,
-                 const struct GNUNET_CADET_ChannelManage *msg,
+                 const struct GNUNET_CADET_ChannelManageMessage *msg,
                  int fwd)
 {
   LOG (GNUNET_ERROR_TYPE_INFO,
        "<== %s (  0x%08X %4u) on chan %s (%p) %s [%5u]\n",
-       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK), ch->gid, 0,
+       GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK), ch->gid, 0,
        GCCH_2s (ch), ch, GC_f2s (fwd), ntohs (msg->header.size));
 
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
@@ -2308,7 +2308,7 @@ GCCH_handle_ack (struct CadetChannel *ch,
  */
 void
 GCCH_handle_destroy (struct CadetChannel *ch,
-                     const struct GNUNET_CADET_ChannelManage *msg,
+                     const struct GNUNET_CADET_ChannelManageMessage *msg,
                      int fwd)
 {
   struct CadetChannelReliability *rel;
@@ -2383,13 +2383,13 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data_id = 0;
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
     {
-      struct GNUNET_CADET_Data *data_msg;
+      struct GNUNET_CADET_ChannelDataMessage *data_msg;
       struct GNUNET_MessageHeader *payload_msg;
       uint16_t payload_type;
 
-      data_msg = (struct GNUNET_CADET_Data *) message;
+      data_msg = (struct GNUNET_CADET_ChannelDataMessage *) message;
       data_id = ntohl (data_msg->mid);
       payload_msg = (struct GNUNET_MessageHeader *) &data_msg[1];
       payload_type = ntohs (payload_msg->type);
@@ -2397,10 +2397,10 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       info[31] = '\0';
       break;
     }
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
     {
-      struct GNUNET_CADET_DataACK *ack_msg;
-      ack_msg = (struct GNUNET_CADET_DataACK *) message;
+      struct GNUNET_CADET_ChannelDataAckMessage *ack_msg;
+      ack_msg = (struct GNUNET_CADET_ChannelDataAckMessage *) message;
       data_id = ntohl (ack_msg->mid);
       SPRINTF (info, "0x%010lX",
 	       (unsigned long int) ack_msg->futures);
@@ -2408,17 +2408,17 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     }
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
     {
-      struct GNUNET_CADET_ChannelCreate *cc_msg;
-      cc_msg = (struct GNUNET_CADET_ChannelCreate *) message;
+      struct GNUNET_CADET_ChannelCreateMessage *cc_msg;
+      cc_msg = (struct GNUNET_CADET_ChannelCreateMessage *) message;
       SPRINTF (info, "  0x%08X", ntohl (cc_msg->chid.cn));
       break;
     }
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
     {
-      struct GNUNET_CADET_ChannelManage *m_msg;
-      m_msg = (struct GNUNET_CADET_ChannelManage *) message;
+      struct GNUNET_CADET_ChannelManageMessage *m_msg;
+      m_msg = (struct GNUNET_CADET_ChannelManageMessage *) message;
       SPRINTF (info, "  0x%08X", ntohl (m_msg->chid.cn));
       break;
     }
@@ -2438,7 +2438,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
       if (GNUNET_YES == ch->reliable)
       {
         chq = GNUNET_new (struct CadetChannelQueue);
@@ -2484,9 +2484,9 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
       chq = GNUNET_new (struct CadetChannelQueue);
       chq->type = type;
       chq->rel = fwd ? ch->root_rel : ch->dest_rel;
@@ -2521,7 +2521,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
       fire_and_forget (message, ch, GNUNET_YES);
       break;
 

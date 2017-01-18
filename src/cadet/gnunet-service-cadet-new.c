@@ -272,7 +272,7 @@ GSC_bind (struct CadetClient *c,
           uint32_t options)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_ChannelCreateMessage *msg;
+  struct GNUNET_CADET_ChannelCreateMessageMessage *msg;
   struct GNUNET_CADET_ClientChannelNumber lid;
 
   lid = client_get_next_lid (c);
@@ -464,7 +464,7 @@ handle_port_close (void *cls,
  */
 static void
 handle_channel_create (void *cls,
-                       const struct GNUNET_CADET_ChannelCreateMessage *ccm)
+                       const struct GNUNET_CADET_ChannelCreateMessageMessage *ccm)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -1311,7 +1311,7 @@ GNUNET_SERVICE_MAIN
                           NULL),
  GNUNET_MQ_hd_fixed_size (channel_create,
                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
-                          struct GNUNET_CADET_ChannelCreateMessage,
+                          struct GNUNET_CADET_ChannelCreateMessageMessage,
                           NULL),
  GNUNET_MQ_hd_fixed_size (channel_destroy,
                           GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,

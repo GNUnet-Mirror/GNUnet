@@ -146,7 +146,7 @@ GC_m2s (uint16_t m)
       /**
        * Request the modification of an existing path
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK:
       s = "CONN_ACK";
       break;
 
@@ -160,35 +160,35 @@ GC_m2s (uint16_t m)
       /**
        * At some point, the route will spontaneously change
        */
-    case GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_PATH_CHANGED_UNIMPLEMENTED:
       s = "PATH_CHNGD";
       break;
 
       /**
        * Transport payload data.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA:
       s = "DATA";
       break;
 
     /**
      * Confirm receipt of payload data.
      */
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DATA_ACK:
       s = "DATA_ACK";
       break;
 
       /**
        * Key exchange message.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX:
       s = "KX";
       break;
 
       /**
        * Encrypted.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CONNECTION_ENCRYPTED:
       s = "ENCRYPTED";
       break;
 
@@ -202,21 +202,21 @@ GC_m2s (uint16_t m)
       /**
        * ACK for a data packet.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED_HOP_BY_HOP_ACK:
       s = "ACK";
       break;
 
       /**
        * POLL for ACK.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_POLL:
       s = "POLL";
       break;
 
       /**
        * Announce origin is still alive.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE:
       s = "KEEPALIVE";
       break;
 
@@ -251,14 +251,14 @@ GC_m2s (uint16_t m)
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK:
       s = "CHAN_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_NACK_DEPRECATED:
       s = "CHAN_NACK";
       break;
 
