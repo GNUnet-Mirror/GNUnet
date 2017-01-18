@@ -57,6 +57,16 @@ struct CadetRoute
   struct CadetPeer *next_hop;
 
   /**
+   * Message queue notifications for @e prev_hop.
+   */
+  struct GCP_MessageQueueManager *prev_mqm;
+
+  /**
+   * Message queue notifications for @e next_hop.
+   */
+  struct GCP_MessageQueueManager *next_mqm;
+
+  /**
    * Unique identifier for the connection that uses this route.
    */
   struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
@@ -123,8 +133,9 @@ route_message (struct CadetPeer *prev,
               env);
     return;
   }
-  GNUNET_assert (0); /* FIXME: determine next hop from route and prev! */
-
+  /* FIXME: support round-robin queue management here somewhere! */
+  GCP_send ((prev == route->prev_hop) ? route->next_hop : route->prev_hop,
+            GNUNET_MQ_msg_copy (msg));
 }
 
 
@@ -159,7 +170,9 @@ check_connection_create (void *cls,
 static void
 destroy_route (struct CadetRoute *route)
 {
-  GNUNET_break (0); // fIXME: implement!
+  GCP_request_mq_cancel (route->next_mqm);
+  GCP_request_mq_cancel (route->prev_mqm);
+  GNUNET_free (route);
 }
 
 
@@ -173,16 +186,57 @@ static void
 handle_connection_create (void *cls,
                           const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
-  struct CadetPeer *peer = cls;
+  struct CadetPeer *sender = cls;
+  struct CadetPeer *next;
+  const struct GNUNET_PeerIdentity *pids = (const struct GNUNET_PeerIdentity *) &msg[1];
+  struct CadetRoute *route;
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
   unsigned int path_length;
+  unsigned int off;
 
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
+  /* Initiator is at offset 0. */
+  for (off=1;off<path_length;off++)
+    if (0 == memcmp (&my_full_id,
+                     &pids[off],
+                     sizeof (struct GNUNET_PeerIdentity)))
+      break;
+  if (off == path_length)
+  {
+    /* We are not on the path, bogus request */
+    GNUNET_break_op (0);
+    return;
+  }
+  /* Check previous hop */
+  if (sender != GCP_get (&pids[off - 1],
+                         GNUNET_NO))
+  {
+    /* sender is not on the path, not allowed */
+    GNUNET_break_op (0);
+    return;
+  }
+  if (off == path_length - 1)
+  {
+    /* We are the destination, create connection */
+    return;
+  }
+  /* We are merely a hop on the way, check if we can support the route */
+  next = GCP_get (&pids[off + 1],
+                  GNUNET_NO);
+  if (NULL == next)
+  {
+    /* unworkable, send back BROKEN */
+    GNUNET_break (0); // FIXME...
+    return;
+  }
+
+  route = GNUNET_new (struct CadetRoute);
+
 #if FIXME
   GCC_handle_create (peer,
                      &msg->cid,
                      path_length,
-                     (const struct GNUNET_PeerIdentity *) &msg[1]);
+                     route);
 #endif
 }
 
