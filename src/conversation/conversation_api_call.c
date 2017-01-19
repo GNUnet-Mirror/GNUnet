@@ -637,7 +637,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   call->state = CS_LOOKUP;
   GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
-  if (is_gns_address(call->callee) == GNUNET_YES)
+  if (GNUNET_YES == is_gns_address (call->callee))
   {
     call->gns_lookup = GNUNET_GNS_lookup (call->gns,
                                           call->callee,
@@ -651,15 +651,18 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else 
   {
     size_t record_size = 0;
+    struct GNUNET_CONVERSATION_PhoneRecord *phone_record;
     int parse_result =
     GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_PHONE,
                                       call->callee,
-                                      (void**)&call->phone_record,
+                                      (void**) &phone_record,
                                       &record_size);
     if (parse_result != GNUNET_OK)
     {
       return NULL; 
     }
+    call->phone_record = *phone_record;
+    GNUNET_free (phone_record);
     start_call (call);
   }
   return call;
