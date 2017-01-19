@@ -169,4 +169,14 @@ GCPP_get_peer_at_offset (struct CadetPeerPath *path,
                          unsigned int off);
 
 
+/**
+ * Convert a path to a human-readable string.
+ *
+ * @param path path to convert
+ * @return string, to be freed by caller (unlike other *_2s APIs!)
+ */
+char *
+GCPP_2s (struct CadetPeerPath *p);
+
+
 #endif

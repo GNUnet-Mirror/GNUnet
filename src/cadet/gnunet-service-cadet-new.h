@@ -105,7 +105,44 @@ struct CadetPeerPathEntry
 /**
  * Entry in list of connections used by tunnel, with metadata.
  */
-struct CadetTConnection;
+struct CadetTConnection
+{
+  /**
+   * Next in DLL.
+   */
+  struct CadetTConnection *next;
+
+  /**
+   * Prev in DLL.
+   */
+  struct CadetTConnection *prev;
+
+  /**
+   * Connection handle.
+   */
+  struct CadetConnection *cc;
+
+  /**
+   * Tunnel this connection belongs to.
+   */
+  struct CadetTunnel *t;
+
+  /**
+   * Creation time, to keep oldest connection alive.
+   */
+  struct GNUNET_TIME_Absolute created;
+
+  /**
+   * Connection throughput, to keep fastest connection alive.
+   */
+  uint32_t throughput;
+
+  /**
+   * Is the connection currently ready for transmission?
+   */
+  int is_ready;
+};
+
 
 /**
  * Active path through the network (used by a tunnel).  There may

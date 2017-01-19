@@ -262,7 +262,12 @@ GCP_destroy_all_peers (void);
 
 /**
  * Data structure used to track whom we have to notify about changes
- * to our message queue.
+ * in our ability to transmit to a given peer.
+ *
+ * All queue managers will be given equal chance for sending messages
+ * to @a cp.  This construct this guarantees fairness for access to @a
+ * cp among the different message queues.  Each connection or route
+ * will have its respective message queue managers for each direction.
  */
 struct GCP_MessageQueueManager;
 
@@ -271,15 +276,19 @@ struct GCP_MessageQueueManager;
  * Function to call with updated message queue object.
  *
  * @param cls closure
- * @param mq NULL if MQ is gone, otherwise an active message queue
+ * @param available #GNUNET_YES if sending is now possible,
+ *                  #GNUNET_NO if sending is no longer possible
+ *                  #GNUNET_SYSERR if sending is no longer possible
+ *                                 and the last envelope was discarded
  */
 typedef void
 (*GCP_MessageQueueNotificationCallback)(void *cls,
-                                        struct GNUNET_MQ_Handle *mq);
+                                        int available);
 
 
 /**
- * Start message queue change notifications.
+ * Start message queue change notifications.  Will create a new slot
+ * to manage the message queue to the given @a cp.
  *
  * @param cp peer to notify for
  * @param cb function to call if mq becomes available or unavailable
@@ -293,12 +302,56 @@ GCP_request_mq (struct CadetPeer *cp,
 
 
 /**
- * Stops message queue change notifications.
+ * Test if @a cp has a core-level connection
  *
- * @param mqm handle matching request to cancel
+ * @param cp peer to test
+ * @return #GNUNET_YES if @a cp has a core-level connection
+ */
+int
+GCP_has_core_connection (struct CadetPeer *cp);
+
+
+/**
+ * Send the message in @a env via a @a mqm.  Must only be called at
+ * most once after the respective
+ * #GCP_MessageQueueNotificationCallback was called with `available`
+ * set to #GNUNET_YES, and not after the callback was called with
+ * `available` set to #GNUNET_NO or #GNUNET_SYSERR.
+ *
+ * @param mqm message queue manager for the transmission
+ * @param env envelope with the message to send; must NOT
+ *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
  */
 void
-GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm);
+GCP_send (struct GCP_MessageQueueManager *mqm,
+          struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Send the message in @a env to @a cp, overriding queueing logic.
+ * This function should only be used to send error messages outside
+ * of flow and congestion control, similar to ICMP.  Note that
+ * the envelope may be silently discarded as well.
+ *
+ * @param cp peer to send the message to
+ * @param env envelope with the message to send
+ */
+void
+GCP_send_ooo (struct CadetPeer *cp,
+              struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Stops message queue change notifications and sends a last message.
+ * In practice, this is implemented by sending that @a last_env
+ * message immediately (if any), ignoring queue order.
+ *
+ * @param mqm handle matching request to cancel
+ * @param last_env final message to transmit, or NULL
+ */
+void
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
+                       struct GNUNET_MQ_Envelope *last_env);
 
 
 /**
@@ -310,27 +363,6 @@ GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm);
 void
 GCP_set_mq (struct CadetPeer *cp,
             struct GNUNET_MQ_Handle *mq);
-
-
-/**
- * Get the message queue for peer @a cp.
- *
- * @param cp peer to modify
- * @return message queue (can be NULL)
- */
-struct GNUNET_MQ_Handle *
-GCP_get_mq (struct CadetPeer *cp);
-
-
-/**
- * Send the message in @a env to @a cp.
- *
- * @param cp the peer
- * @param env envelope with the message to send
- */
-void
-GCP_send (struct CadetPeer *cp,
-          struct GNUNET_MQ_Envelope *env);
 
 
 #endif

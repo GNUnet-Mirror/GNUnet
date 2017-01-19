@@ -525,4 +525,33 @@ GCPP_get_peer_at_offset (struct CadetPeerPath *path,
 }
 
 
+/**
+ * Convert a path to a human-readable string.
+ *
+ * @param path path to convert
+ * @return string, to be freed by caller (unlike other *_2s APIs!)
+ */
+char *
+GCPP_2s (struct CadetPeerPath *path)
+{
+  char *s;
+  char *old;
+
+  old = GNUNET_strdup ("");
+  for (unsigned int i = 0;
+       i < path->entries_length;
+       i++)
+  {
+    GNUNET_asprintf (&s,
+                     "%s %s",
+                     old,
+                     GCP_2s (GCPP_get_peer_at_offset (path,
+                                                      i)));
+    GNUNET_free_non_null (old);
+    old = s;
+  }
+  return old;
+}
+
+
 /* end of gnunet-service-cadet-new_paths.c */

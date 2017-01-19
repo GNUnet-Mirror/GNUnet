@@ -27,11 +27,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - congestion control
- * - GCC_debug()
  * - keepalive messages
- * - performance metrics
- * - back-off reset
+ * - keep performance metrics (?)
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_channel.h"
@@ -64,19 +61,16 @@ enum CadetConnectionState
   CADET_CONNECTION_SENT,
 
   /**
+   * We are an inbound connection, and received a CREATE. Need to
+   * send an CREATE_ACK back.
+   */
+  CADET_CONNECTION_CREATE_RECEIVED,
+
+  /**
    * Connection confirmed, ready to carry traffic.
    */
-  CADET_CONNECTION_READY,
+  CADET_CONNECTION_READY
 
-  /**
-   * Connection to be destroyed, just waiting to empty queues.
-   */
-  CADET_CONNECTION_DESTROYED,
-
-  /**
-   * Connection to be destroyed because of a distant peer, same as DESTROYED.
-   */
-  CADET_CONNECTION_BROKEN
 };
 
 
@@ -112,11 +106,6 @@ struct CadetConnection
   struct GNUNET_MQ_Envelope *env;
 
   /**
-   * Message queue to the first hop, or NULL if we have no connection yet.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
    * Handle for calling #GCP_request_mq_cancel() once we are finished.
    */
   struct GCP_MessageQueueManager *mq_man;
@@ -129,7 +118,7 @@ struct CadetConnection
   /**
    * Function to call once we are ready to transmit.
    */
-  GNUNET_SCHEDULER_TaskCallback ready_cb;
+  GCC_ReadyCallback ready_cb;
 
   /**
    * Closure for @e ready_cb.
@@ -151,22 +140,12 @@ struct CadetConnection
    */
   unsigned int off;
 
+  /**
+   * Are we ready to transmit via @e mq_man right now?
+   */
+  int mqm_ready;
+
 };
-
-
-/**
- * Is the given connection currently ready for transmission?
- *
- * @param cc connection to transmit on
- * @return #GNUNET_YES if we could transmit
- */
-int
-GCC_is_ready (struct CadetConnection *cc)
-{
-  return ( (NULL != cc->mq) &&
-           (CADET_CONNECTION_READY == cc->state) &&
-           (NULL == cc->env) ) ? GNUNET_YES : GNUNET_NO;
-}
 
 
 /**
@@ -177,29 +156,19 @@ GCC_is_ready (struct CadetConnection *cc)
 void
 GCC_destroy (struct CadetConnection *cc)
 {
-  if (NULL != cc->env)
+  struct GNUNET_MQ_Envelope *env = NULL;
+
+  if (CADET_CONNECTION_SENDING_CREATE != cc->state)
   {
-    if (NULL != cc->mq)
-      GNUNET_MQ_send_cancel (cc->env);
-    else
-      GNUNET_MQ_discard (cc->env);
-    cc->env = NULL;
-  }
-  if ( (NULL != cc->mq) &&
-       (CADET_CONNECTION_SENDING_CREATE != cc->state) )
-  {
-    /* Need to notify next hop that we are down. */
-    struct GNUNET_MQ_Envelope *env;
     struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
 
+    /* Need to notify next hop that we are down. */
     env = GNUNET_MQ_msg (destroy_msg,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
     destroy_msg->cid = cc->cid;
-    GNUNET_MQ_send (cc->mq,
-                    env);
   }
-  cc->mq = NULL;
-  GCP_request_mq_cancel (cc->mq_man);
+  GCP_request_mq_cancel (cc->mq_man,
+                         env);
   cc->mq_man = NULL;
   GCPP_del_connection (cc->path,
                        cc->off,
@@ -234,14 +203,20 @@ GCC_get_ct (struct CadetConnection *cc)
 void
 GCC_handle_connection_ack (struct CadetConnection *cc)
 {
-  GNUNET_SCHEDULER_cancel (cc->task);
-#if FIXME
+  if (NULL != cc->task)
+  {
+    GNUNET_SCHEDULER_cancel (cc->task);
+    cc->task = NULL;
+  }
+#if FIXME_KEEPALIVE
   cc->task = GNUNET_SCHEDULER_add_delayed (cc->keepalive_period,
                                            &send_keepalive,
                                            cc);
 #endif
   cc->state = CADET_CONNECTION_READY;
-  cc->ready_cb (cc->ready_cb_cls);
+  if (GNUNET_YES == cc->mqm_ready)
+    cc->ready_cb (cc->ready_cb_cls,
+                  GNUNET_YES);
 }
 
 
@@ -255,6 +230,12 @@ void
 GCC_handle_kx (struct CadetConnection *cc,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
+  if (CADET_CONNECTION_SENT == cc->state)
+  {
+    /* We didn't get the CREATE_ACK, but instead got payload. That's fine,
+       clearly something is working, so pretend we got an ACK. */
+    GCC_handle_connection_ack (cc);
+  }
   GCT_handle_kx (cc->ct,
                  msg);
 }
@@ -270,38 +251,14 @@ void
 GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
+  if (CADET_CONNECTION_SENT == cc->state)
+  {
+    /* We didn't get the CREATE_ACK, but instead got payload. That's fine,
+       clearly something is working, so pretend we got an ACK. */
+    GCC_handle_connection_ack (cc);
+  }
   GCT_handle_encrypted (cc->ct,
                         msg);
-}
-
-
-/**
- * Send a CREATE message to the first hop.
- *
- * @param cls the `struct CadetConnection` to initiate
- */
-static void
-send_create (void *cls);
-
-
-/**
- * We finished transmission of the create message, now wait for
- * ACK or retransmit.
- *
- * @param cls the `struct CadetConnection` that sent the create message
- */
-static void
-transmit_create_done_cb (void *cls)
-{
-  struct CadetConnection *cc = cls;
-
-  cc->state = CADET_CONNECTION_SENT;
-  cc->env = NULL;
-  /* FIXME: at some point, we need to reset the delay back to 0! */
-  cc->retry_delay = GNUNET_TIME_STD_BACKOFF (cc->retry_delay);
-  cc->task = GNUNET_SCHEDULER_add_delayed (cc->retry_delay,
-                                           &send_create,
-                                           cc);
 }
 
 
@@ -320,7 +277,7 @@ send_create (void *cls)
   unsigned int path_length;
 
   cc->task = NULL;
-  GNUNET_assert (NULL != cc->mq);
+  GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   path_length = GCPP_get_length (cc->path);
   env = GNUNET_MQ_msg_extra (create_msg,
                              path_length * sizeof (struct GNUNET_PeerIdentity),
@@ -331,11 +288,75 @@ send_create (void *cls)
     pids[i] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
                                                     i));
   cc->env = env;
-  GNUNET_MQ_notify_sent (env,
-                         &transmit_create_done_cb,
-                         cc);
-  GNUNET_MQ_send (cc->mq,
-                  env);
+  cc->mqm_ready = GNUNET_NO;
+  cc->state = CADET_CONNECTION_SENT;
+  GCP_send (cc->mq_man,
+            env);
+}
+
+
+/**
+ * Send a CREATE_ACK message towards the origin.
+ *
+ * @param cls the `struct CadetConnection` to initiate
+ */
+static void
+send_create_ack (void *cls)
+{
+  struct CadetConnection *cc = cls;
+  struct GNUNET_CADET_ConnectionCreateMessage *create_msg;
+  struct GNUNET_PeerIdentity *pids;
+  struct GNUNET_MQ_Envelope *env;
+  unsigned int path_length;
+
+  cc->task = NULL;
+  GNUNET_assert (GNUNET_YES == cc->mqm_ready);
+  path_length = GCPP_get_length (cc->path);
+  env = GNUNET_MQ_msg_extra (create_msg,
+                             path_length * sizeof (struct GNUNET_PeerIdentity),
+                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
+  create_msg->cid = cc->cid;
+  pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
+  for (unsigned int i=0;i<path_length;i++)
+    pids[i] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
+                                                    i));
+  cc->env = env;
+  cc->mqm_ready = GNUNET_NO;
+  cc->state = CADET_CONNECTION_READY;
+  GCP_send (cc->mq_man,
+            env);
+}
+
+
+/**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE for a
+ * connection that we already have.  Either our ACK got lost
+ * or something is fishy.  Consider retransmitting the ACK.
+ *
+ * @param cc connection that got the duplicate CREATE
+ */
+void
+GCC_handle_duplicate_create (struct CadetConnection *cc)
+{
+  if (GNUNET_YES == cc->mqm_ready)
+  {
+    /* Tell tunnel that we are not ready for transmission anymore
+       (until CREATE_ACK is done) */
+    cc->ready_cb (cc->ready_cb_cls,
+                  GNUNET_NO);
+
+    /* Revert back to the state of having only received the 'CREATE',
+       and immediately proceed to send the CREATE_ACK. */
+    cc->state = CADET_CONNECTION_CREATE_RECEIVED;
+    cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
+                                         cc);
+  }
+  else
+  {
+    /* We are currently sending something else back, which
+       can only be an ACK or payload, either of which would
+       do. So actually no need to do anything. */
+  }
 }
 
 
@@ -344,34 +365,62 @@ send_create (void *cls)
  * peer at the first hop.  Adjust accordingly.
  *
  * @param cls the `struct CadetConnection`
- * @param mq NULL if the CORE connection was lost, non-NULL if
- *           it became available
+ * @param available #GNUNET_YES if sending is now possible,
+ *                  #GNUNET_NO if sending is no longer possible
+ *                  #GNUNET_SYSERR if sending is no longer possible
+ *                                 and the last envelope was discarded
  */
 static void
 manage_first_hop_mq (void *cls,
-                     struct GNUNET_MQ_Handle *mq)
+                     int available)
 {
   struct CadetConnection *cc = cls;
 
-  if (NULL == mq)
+  if (GNUNET_YES != available)
   {
     /* Connection is down, for now... */
-    cc->mq = NULL;
+    cc->mqm_ready = GNUNET_NO;
+    cc->state = CADET_CONNECTION_NEW;
+    cc->retry_delay = GNUNET_TIME_UNIT_ZERO;
     if (NULL != cc->task)
     {
       GNUNET_SCHEDULER_cancel (cc->task);
       cc->task = NULL;
     }
+    cc->ready_cb (cc->ready_cb_cls,
+                  GNUNET_NO);
     return;
   }
 
-  cc->mq = mq;
-  cc->state = CADET_CONNECTION_SENDING_CREATE;
-
-  /* Now repeat sending connection creation messages
-     down the path, until we get an ACK! */
-  cc->task = GNUNET_SCHEDULER_add_now (&send_create,
-                                       cc);
+  cc->mqm_ready = GNUNET_YES;
+  switch (cc->state)
+  {
+  case CADET_CONNECTION_NEW:
+    /* Transmit immediately */
+    cc->task = GNUNET_SCHEDULER_add_now (&send_create,
+                                         cc);
+    break;
+  case CADET_CONNECTION_SENDING_CREATE:
+    /* Should not be possible to be called in this state. */
+    GNUNET_assert (0);
+    break;
+  case CADET_CONNECTION_SENT:
+    /* Retry a bit later... */
+    cc->retry_delay = GNUNET_TIME_STD_BACKOFF (cc->retry_delay);
+    cc->task = GNUNET_SCHEDULER_add_delayed (cc->retry_delay,
+                                             &send_create,
+                                             cc);
+    break;
+  case CADET_CONNECTION_CREATE_RECEIVED:
+    /* We got the 'CREATE' (incoming connection), should send the CREATE_ACK */
+    cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
+                                         cc);
+    break;
+  case CADET_CONNECTION_READY:
+    cc->ready_cb (cc->ready_cb_cls,
+                  GNUNET_YES);
+    break;
+  }
 }
 
 
@@ -383,6 +432,7 @@ manage_first_hop_mq (void *cls,
  * @param destination where to go
  * @param path which path to take (may not be the full path)
  * @param ct which tunnel uses this connection
+ * @param init_state initial state for the connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
  * @return handle to the connection
@@ -392,7 +442,8 @@ connection_create (struct CadetPeer *destination,
                    struct CadetPeerPath *path,
                    struct CadetTConnection *ct,
                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                   GNUNET_SCHEDULER_TaskCallback ready_cb,
+                   enum CadetConnectionState init_state,
+                   GCC_ReadyCallback ready_cb,
                    void *ready_cb_cls)
 {
   struct CadetConnection *cc;
@@ -403,6 +454,7 @@ connection_create (struct CadetPeer *destination,
                         destination);
   GNUNET_assert (UINT_MAX > off);
   cc = GNUNET_new (struct CadetConnection);
+  cc->state = init_state;
   cc->ct = ct;
   cc->cid = *cid;
   GNUNET_assert (GNUNET_OK ==
@@ -448,19 +500,16 @@ GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                    GNUNET_SCHEDULER_TaskCallback ready_cb,
+                    GCC_ReadyCallback ready_cb,
                     void *ready_cb_cls)
 {
-  struct CadetConnection *cc;
-
-  cc = connection_create (destination,
-                          path,
-                          ct,
-                          cid,
-                          ready_cb,
-                          ready_cb_cls);
-  /* FIXME: send CREATE_ACK? */
-  return cc;
+  return connection_create (destination,
+                            path,
+                            ct,
+                            cid,
+                            CADET_CONNECTION_CREATE_RECEIVED,
+                            ready_cb,
+                            ready_cb_cls);
 }
 
 
@@ -479,41 +528,21 @@ struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
             struct CadetTConnection *ct,
-            GNUNET_SCHEDULER_TaskCallback ready_cb,
+            GCC_ReadyCallback ready_cb,
             void *ready_cb_cls)
 {
   struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
-  struct CadetConnection *cc;
 
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &cid,
                               sizeof (cid));
-  cc = connection_create (destination,
-                          path,
-                          ct,
-                          &cid,
-                          ready_cb,
-                          ready_cb_cls);
-  /* FIXME: send CREATE? */
-  return cc;
-}
-
-
-/**
- * We finished transmission of a message, if we are still ready, tell
- * the tunnel!
- *
- * @param cls our `struct CadetConnection`
- */
-static void
-transmit_done_cb (void *cls)
-{
-  struct CadetConnection *cc = cls;
-
-  cc->env = NULL;
-  if ( (NULL != cc->mq) &&
-       (CADET_CONNECTION_READY == cc->state) )
-    cc->ready_cb (cc->ready_cb_cls);
+  return connection_create (destination,
+                            path,
+                            ct,
+                            &cid,
+                            CADET_CONNECTION_NEW,
+                            ready_cb,
+                            ready_cb_cls);
 }
 
 
@@ -524,21 +553,18 @@ transmit_done_cb (void *cls)
  * connection is right now ready for transmission.
  *
  * @param cc connection identification
- * @param env envelope with message to transmit
+ * @param env envelope with message to transmit; must NOT
+ *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
  */
 void
 GCC_transmit (struct CadetConnection *cc,
               struct GNUNET_MQ_Envelope *env)
 {
-  GNUNET_assert (NULL == cc->env);
-  cc->env = env;
-  GNUNET_MQ_notify_sent (env,
-                         &transmit_done_cb,
-                         cc);
-  if ( (NULL != cc->mq) &&
-       (CADET_CONNECTION_READY == cc->state) )
-    GNUNET_MQ_send (cc->mq,
-                    env);
+  GNUNET_assert (GNUNET_YES == cc->mqm_ready);
+  GNUNET_assert (CADET_CONNECTION_READY == cc->state);
+  cc->mqm_ready = GNUNET_NO;
+  GCP_send (cc->mq_man,
+            env);
 }
 
 
@@ -569,6 +595,39 @@ GCC_get_id (struct CadetConnection *cc)
 
 
 /**
+ * Get a (static) string for a connection.
+ *
+ * @param cc Connection.
+ */
+const char *
+GCC_2s (const struct CadetConnection *cc)
+{
+  static char buf[128];
+
+  if (NULL == cc)
+    return "Connection(NULL)";
+
+  if (NULL != cc->ct)
+  {
+    GNUNET_snprintf (buf,
+                     sizeof (buf),
+                     "Connection(%s(Tunnel(%s)))",
+                     GNUNET_sh2s (&cc->cid.connection_of_tunnel),
+                     GCT_2s (cc->ct->t));
+    return buf;
+  }
+  GNUNET_snprintf (buf,
+                   sizeof (buf),
+                   "Connection(%s(Tunnel(NULL)))",
+                   GNUNET_sh2s (&cc->cid.connection_of_tunnel));
+  return buf;
+}
+
+
+#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-con",__VA_ARGS__)
+
+
+/**
  * Log connection info.
  *
  * @param cc connection
@@ -578,7 +637,29 @@ void
 GCC_debug (struct CadetConnection *cc,
            enum GNUNET_ErrorType level)
 {
-  GNUNET_break (0); // FIXME: implement...
+  int do_log;
+  char *s;
+
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-con",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
+  if (NULL == cc)
+  {
+    LOG2 (level,
+          "Connection (NULL)\n");
+    return;
+  }
+  s = GCPP_2s (cc->path);
+  LOG2 (level,
+        "Connection %s to %s via path %s in state %d is %s\n",
+        GCC_2s (cc),
+        GCP_2s (cc->destination),
+        s,
+        cc->state,
+        (GNUNET_YES == cc->mqm_ready) ? "ready" : "busy");
+  GNUNET_free (s);
 }
 
 /* end of gnunet-service-cadet-new_connection.c */

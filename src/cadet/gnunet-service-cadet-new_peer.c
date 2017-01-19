@@ -86,6 +86,11 @@ struct GCP_MessageQueueManager
    */
   struct CadetPeer *cp;
 
+  /**
+   * Envelope this manager would like to transmit once it is its turn.
+   */
+  struct GNUNET_MQ_Envelope *env;
+
 };
 
 
@@ -189,6 +194,11 @@ struct CadetPeer
   unsigned int num_paths;
 
   /**
+   * Number of message queue managers of this peer that have a message in waiting.
+   */
+  unsigned int mqm_ready_counter;
+
+  /**
    * Current length of the @e path_heads and @path_tails arrays.
    * The arrays should be grown as needed.
    */
@@ -265,19 +275,6 @@ destroy_peer (void *cls)
 
 
 /**
- * Get the message queue for peer @a cp.
- *
- * @param cp peer to modify
- * @return message queue (can be NULL)
- */
-struct GNUNET_MQ_Handle *
-GCP_get_mq (struct CadetPeer *cp)
-{
-  return cp->core_mq;
-}
-
-
-/**
  * Set the message queue to @a mq for peer @a cp and notify watchers.
  *
  * @param cp peer to modify
@@ -288,27 +285,111 @@ GCP_set_mq (struct CadetPeer *cp,
             struct GNUNET_MQ_Handle *mq)
 {
   cp->core_mq = mq;
+
   for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
        NULL != mqm;
        mqm = mqm->next)
-    mqm->cb (mqm->cb_cls,
-             mq);
+  {
+    if (NULL == mq)
+    {
+      if (NULL != mqm->env)
+      {
+        GNUNET_MQ_discard (mqm->env);
+        mqm->env = NULL;
+        mqm->cb (mqm->cb_cls,
+                 GNUNET_SYSERR);
+      }
+      else
+      {
+        mqm->cb (mqm->cb_cls,
+                 GNUNET_NO);
+      }
+    }
+    else
+    {
+      GNUNET_assert (NULL == mqm->env);
+      mqm->cb (mqm->cb_cls,
+               GNUNET_YES);
+    }
+  }
+}
+
+
+/**
+ * Transmit current envelope from this @a mqm.
+ *
+ * @param mqm mqm to transmit message for now
+ */
+static void
+mqm_execute (struct GCP_MessageQueueManager *mqm)
+{
+  struct CadetPeer *cp = mqm->cp;
+
+  /* Move entry to the end of the DLL, to be fair. */
+  if (mqm != cp->mqm_tail)
+  {
+    GNUNET_CONTAINER_DLL_remove (cp->mqm_head,
+                                 cp->mqm_tail,
+                                 mqm);
+    GNUNET_CONTAINER_DLL_insert_tail (cp->mqm_head,
+                                      cp->mqm_tail,
+                                      mqm);
+  }
+  GNUNET_MQ_send (cp->core_mq,
+                  mqm->env);
+  mqm->env = NULL;
+  cp->mqm_ready_counter--;
+}
+
+
+/**
+ * Function called when CORE took one of the messages from
+ * a message queue manager and transmitted it.
+ *
+ * @param cls the `struct CadetPeeer` where we made progress
+ */
+static void
+mqm_send_done (void *cls)
+{
+  struct CadetPeer *cp = cls;
+
+  if (0 == cp->mqm_ready_counter)
+    return; /* nothing to do */
+  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
+       NULL != mqm;
+       mqm = mqm->next)
+  {
+    if (NULL == mqm->env)
+      continue;
+    mqm_execute (mqm);
+    return;
+  }
 }
 
 
 /**
  * Send the message in @a env to @a cp.
  *
- * @param cp the peer
- * @param env envelope with the message to send
+ * @param mqm the message queue manager to use for transmission
+ * @param env envelope with the message to send; must NOT
+ *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
  */
 void
-GCP_send (struct CadetPeer *cp,
+GCP_send (struct GCP_MessageQueueManager *mqm,
           struct GNUNET_MQ_Envelope *env)
 {
+  struct CadetPeer *cp = mqm->cp;
+
   GNUNET_assert (NULL != cp->core_mq);
-  GNUNET_MQ_send (cp->core_mq,
-                  env);
+  GNUNET_assert (NULL == mqm->env);
+  GNUNET_MQ_notify_sent (env,
+                         &mqm_send_done,
+                         cp);
+  mqm->env = env;
+  cp->mqm_ready_counter++;
+  if (0 != GNUNET_MQ_get_length (cp->core_mq))
+    return;
+  mqm_execute (mqm);
 }
 
 
@@ -865,6 +946,19 @@ GCP_drop_tunnel (struct CadetPeer *peer,
 
 
 /**
+ * Test if @a cp has a core-level connection
+ *
+ * @param cp peer to test
+ * @return #GNUNET_YES if @a cp has a core-level connection
+ */
+int
+GCP_has_core_connection (struct CadetPeer *cp)
+{
+  return (NULL != cp->core_mq) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
  * Start message queue change notifications.
  *
  * @param cp peer to notify for
@@ -888,7 +982,7 @@ GCP_request_mq (struct CadetPeer *cp,
                                mqm);
   if (NULL != cp->core_mq)
     cb (cb_cls,
-        cp->core_mq);
+        GNUNET_YES);
   return mqm;
 }
 
@@ -897,17 +991,53 @@ GCP_request_mq (struct CadetPeer *cp,
  * Stops message queue change notifications.
  *
  * @param mqm handle matching request to cancel
+ * @param last_env final message to transmit, or NULL
  */
 void
-GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm)
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
+                       struct GNUNET_MQ_Envelope *last_env)
 {
   struct CadetPeer *cp = mqm->cp;
 
+  if (NULL != mqm->env)
+    GNUNET_MQ_discard (mqm->env);
+  if (NULL != last_env)
+  {
+    if (NULL != cp->core_mq)
+      GNUNET_MQ_send (cp->core_mq,
+                      last_env);
+    else
+      GNUNET_MQ_discard (last_env);
+  }
   GNUNET_CONTAINER_DLL_remove (cp->mqm_head,
                                cp->mqm_tail,
                                mqm);
   GNUNET_free (mqm);
 }
+
+
+/**
+ * Send the message in @a env to @a cp, overriding queueing logic.
+ * This function should only be used to send error messages outside
+ * of flow and congestion control, similar to ICMP.  Note that
+ * the envelope may be silently discarded as well.
+ *
+ * @param cp peer to send the message to
+ * @param env envelope with the message to send
+ */
+void
+GCP_send_ooo (struct CadetPeer *cp,
+              struct GNUNET_MQ_Envelope *env)
+{
+  if (NULL == cp->core_mq)
+  {
+    GNUNET_MQ_discard (env);
+    return;
+  }
+  GNUNET_MQ_send (cp->core_mq,
+                  env);
+}
+
 
 
 

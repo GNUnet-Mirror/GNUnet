@@ -33,14 +33,17 @@
 #include "gnunet-service-cadet-new_peer.h"
 #include "cadet_protocol.h"
 
+
 /**
- * Is the given connection currently ready for transmission?
+ * Function called to notify tunnel about change in our readyness.
  *
- * @param cc connection to transmit on
- * @return #GNUNET_YES if we could transmit
+ * @param cls closure
+ * @param is_ready #GNUNET_YES if the connection is now ready for transmission,
+ *                 #GNUNET_NO if the connection is no longer ready for transmission
  */
-int
-GCC_is_ready (struct CadetConnection *cc);
+typedef void
+(*GCC_ReadyCallback)(void *cls,
+                     int is_ready);
 
 
 /**
@@ -67,7 +70,7 @@ struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
             struct CadetTConnection *ct,
-            GNUNET_SCHEDULER_TaskCallback ready_cb,
+            GCC_ReadyCallback ready_cb,
             void *ready_cb_cls);
 
 
@@ -88,7 +91,7 @@ GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                    GNUNET_SCHEDULER_TaskCallback ready_cb,
+                    GCC_ReadyCallback ready_cb,
                     void *ready_cb_cls);
 
 
@@ -168,6 +171,15 @@ GCC_get_path (struct CadetConnection *cc);
  */
 const struct GNUNET_CADET_ConnectionTunnelIdentifier *
 GCC_get_id (struct CadetConnection *cc);
+
+
+/**
+ * Get a (static) string for a connection.
+ *
+ * @param cc Connection.
+ */
+const char *
+GCC_2s (const struct CadetConnection *cc);
 
 
 /**

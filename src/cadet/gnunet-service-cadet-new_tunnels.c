@@ -227,43 +227,6 @@ struct CadetTunnelAxolotl
 
 
 /**
- * Entry in list of connections used by tunnel, with metadata.
- */
-struct CadetTConnection
-{
-  /**
-   * Next in DLL.
-   */
-  struct CadetTConnection *next;
-
-  /**
-   * Prev in DLL.
-   */
-  struct CadetTConnection *prev;
-
-  /**
-   * Connection handle.
-   */
-  struct CadetConnection *cc;
-
-  /**
-   * Tunnel this connection belongs to.
-   */
-  struct CadetTunnel *t;
-
-  /**
-   * Creation time, to keep oldest connection alive.
-   */
-  struct GNUNET_TIME_Absolute created;
-
-  /**
-   * Connection throughput, to keep fastest connection alive.
-   */
-  uint32_t throughput;
-};
-
-
-/**
  * Struct used to save messages in a non-ready tunnel to send once connected.
  */
 struct CadetTunnelQueueEntry
@@ -1418,18 +1381,27 @@ destroy_tunnel (void *cls)
 
 
 /**
- * A connection is ready for transmission.  Looks at our message queue
- * and if there is a message, sends it out via the connection.
+ * A connection is @a is_ready for transmission.  Looks at our message
+ * queue and if there is a message, sends it out via the connection.
  *
- * @param cls the `struct CadetTConnection` that is ready
+ * @param cls the `struct CadetTConnection` that is @a is_ready
+ * @param is_ready #GNUNET_YES if connection are now ready,
+ *                 #GNUNET_NO if connection are no longer ready
  */
 static void
-connection_ready_cb (void *cls)
+connection_ready_cb (void *cls,
+                     int is_ready)
 {
   struct CadetTConnection *ct = cls;
   struct CadetTunnel *t = ct->t;
   struct CadetTunnelQueueEntry *tq = t->tq_head;
 
+  if (GNUNET_NO == ct->is_ready)
+  {
+    ct->is_ready = GNUNET_NO;
+    return;
+  }
+  ct->is_ready = GNUNET_YES;
   if (NULL == tq)
     return; /* no messages pending right now */
 
@@ -1440,6 +1412,7 @@ connection_ready_cb (void *cls)
                                tq);
   if (NULL != tq->cid)
     *tq->cid = *GCC_get_id (ct->cc);
+  ct->is_ready = GNUNET_NO;
   GCC_transmit (ct->cc,
                 tq->env);
   tq->cont (tq->cont_cls);
@@ -1453,6 +1426,8 @@ connection_ready_cb (void *cls)
  * at our message queue and if there is a message, picks a connection
  * to send it on.
  *
+ * FIXME: yuck... Need better selection logic!
+ *
  * @param t tunnel to process messages on
  */
 static void
@@ -1465,11 +1440,14 @@ trigger_transmissions (struct CadetTunnel *t)
   for (ct = t->connection_head;
        NULL != ct;
        ct = ct->next)
-    if (GNUNET_YES == GCC_is_ready (ct->cc))
+    if (GNUNET_YES == ct->is_ready)
       break;
   if (NULL == ct)
     return; /* no connections ready */
-  connection_ready_cb (ct);
+
+  /* FIXME: a bit hackish to do it like this... */
+  connection_ready_cb (ct,
+                       GNUNET_YES);
 }
 
 
@@ -1567,7 +1545,7 @@ consider_path_cb (void *cls,
                        path,
                        ct,
                        &connection_ready_cb,
-                       t);
+                       ct);
   /* FIXME: schedule job to kill connection (and path?)  if it takes
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
