@@ -146,6 +146,24 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch);
 
 
 /**
+ * Destroy channel, based on the other peer closing the
+ * connection.  Also needs to remove this channel from
+ * the tunnel.
+ *
+ * FIXME: need to make it possible to defer destruction until we have
+ * received all messages up to the destroy, and right now the destroy
+ * message (and this API) fails to give is the information we need!
+ *
+ * FIXME: also need to know if the other peer got a destroy from
+ * us before!
+ *
+ * @param ch channel to destroy
+ */
+void
+GCCH_channel_remote_destroy (struct CadetChannel *ch);
+
+
+/**
  * Handle data given by a client.
  *
  * Check whether the client is allowed to send in this tunnel, save if

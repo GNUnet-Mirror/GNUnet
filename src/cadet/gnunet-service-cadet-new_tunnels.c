@@ -476,6 +476,22 @@ GCT_count_channels (struct CadetTunnel *t)
 
 
 /**
+ * Lookup a channel by its @a chid.
+ *
+ * @param t tunnel to look in
+ * @param chid number of channel to find
+ * @return NULL if channel does not exist
+ */
+struct CadetChannel *
+lookup_channel (struct CadetTunnel *t,
+                struct GNUNET_CADET_ChannelTunnelNumber chid)
+{
+  return GNUNET_CONTAINER_multihashmap32_get (t->channels,
+                                              ntohl (chid.cn));
+}
+
+
+/**
  * Count all created connections of a tunnel. Not necessarily ready connections!
  *
  * @param t Tunnel on which to count.
@@ -1127,6 +1143,202 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
 }
 
 
+/**
+ * Send a KX message.
+ *
+ * FIXME: does not take care of sender-authentication yet!
+ *
+ * @param t Tunnel on which to send it.
+ * @param force_reply Force the other peer to reply with a KX message.
+ */
+static void
+send_kx (struct CadetTunnel *t,
+         int force_reply)
+{
+  struct CadetTunnelAxolotl *ax = &t->ax;
+  struct CadetConnection *c;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
+  enum GNUNET_CADET_KX_Flags flags;
+
+#if FIXME
+  if (NULL != t->ephm_h)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "     already queued, nop\n");
+    return;
+  }
+#endif
+  c = NULL; // FIXME: figure out where to transmit...
+
+  // GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX);
+  flags = GNUNET_CADET_KX_FLAG_NONE;
+  if (GNUNET_YES == force_reply)
+    flags |= GNUNET_CADET_KX_FLAG_FORCE_REPLY;
+  msg->flags = htonl (flags);
+  msg->cid = *GCC_get_id (c);
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax->kx_0,
+                                      &msg->ephemeral_key);
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
+                                      &msg->ratchet_key);
+
+  // FIXME: send 'env'.
+#if FIXME
+  t->ephm_h = GCC_send_prebuilt_message (&msg.header,
+                                         UINT16_MAX,
+                                         zero,
+                                         c,
+                                         GCC_is_origin (c, GNUNET_YES),
+                                         GNUNET_YES, &ephm_sent, t);
+  if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
+    GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
+#endif
+}
+
+
+/**
+ * Handle KX message.
+ *
+ * FIXME: sender-authentication in KX is missing!
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCT_handle_kx (struct CadetTConnection *ct,
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
+{
+  struct CadetTunnel *t = ct->t;
+  struct CadetTunnelAxolotl *ax = &t->ax;
+  struct GNUNET_HashCode key_material[3];
+  struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
+  const char salt[] = "CADET Axolotl salt";
+  const struct GNUNET_PeerIdentity *pid;
+  int am_I_alice;
+
+  pid = GCP_get_id (t->destination);
+  if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+                                           pid))
+    am_I_alice = GNUNET_YES;
+  else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+                                                pid))
+    am_I_alice = GNUNET_NO;
+  else
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  if (0 != (GNUNET_CADET_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
+  {
+    if (NULL != t->rekey_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->rekey_task);
+      t->rekey_task = NULL;
+    }
+    send_kx (t,
+             GNUNET_NO);
+  }
+
+  if (0 == memcmp (&ax->DHRr,
+                   &msg->ratchet_key,
+                   sizeof (msg->ratchet_key)))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         " known ratchet key, exit\n");
+    return;
+  }
+
+  ax->DHRr = msg->ratchet_key;
+
+  /* ECDH A B0 */
+  if (GNUNET_YES == am_I_alice)
+  {
+    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
+                              &msg->ephemeral_key, /* B0 */
+                              &key_material[0]);
+  }
+  else
+  {
+    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* B0 */
+                              &pid->public_key,    /* A */
+                              &key_material[0]);
+  }
+
+  /* ECDH A0 B */
+  if (GNUNET_YES == am_I_alice)
+  {
+    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* A0 */
+                              &pid->public_key,    /* B */
+                              &key_material[1]);
+  }
+  else
+  {
+    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
+                              &msg->ephemeral_key, /* B0 */
+                              &key_material[1]);
+
+
+  }
+
+  /* ECDH A0 B0 */
+  /* (This is the triple-DH, we could probably safely skip this,
+     as A0/B0 are already in the key material.) */
+  GNUNET_CRYPTO_ecc_ecdh (ax->kx_0,             /* A0 or B0 */
+                          &msg->ephemeral_key,  /* B0 or A0 */
+                          &key_material[2]);
+
+  /* KDF */
+  GNUNET_CRYPTO_kdf (keys, sizeof (keys),
+                     salt, sizeof (salt),
+                     &key_material, sizeof (key_material),
+                     NULL);
+
+  if (0 == memcmp (&ax->RK,
+                   &keys[0],
+                   sizeof (ax->RK)))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         " known handshake key, exit\n");
+    return;
+  }
+  ax->RK = keys[0];
+  if (GNUNET_YES == am_I_alice)
+  {
+    ax->HKr = keys[1];
+    ax->NHKs = keys[2];
+    ax->NHKr = keys[3];
+    ax->CKr = keys[4];
+    ax->ratchet_flag = GNUNET_YES;
+  }
+  else
+  {
+    ax->HKs = keys[1];
+    ax->NHKr = keys[2];
+    ax->NHKs = keys[3];
+    ax->CKs = keys[4];
+    ax->ratchet_flag = GNUNET_NO;
+    ax->ratchet_allowed = GNUNET_NO;
+    ax->ratchet_counter = 0;
+    ax->ratchet_expiration
+      = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                  ratchet_time);
+  }
+  ax->PNs = 0;
+  ax->Nr = 0;
+  ax->Ns = 0;
+
+#if FIXME
+  /* After KX is done, update state machine and begin transmissions... */
+  GCT_change_estate (t,
+                     CADET_TUNNEL_KEY_PING);
+  send_queued_data (t);
+#endif
+}
+
+
 /* ************************************** end core crypto ***************************** */
 
 
@@ -1493,7 +1705,8 @@ handle_plaintext_channel_ack (void *cls,
 
 
 /**
- *
+ * We received a message saying that a channel should be destroyed.
+ * Pass it on to the correct channel.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param cm the message we received on the tunnel
@@ -1503,7 +1716,10 @@ handle_plaintext_channel_destroy (void *cls,
                                   const struct GNUNET_CADET_ChannelManageMessage *cm)
 {
   struct CadetTunnel *t = cls;
-  GNUNET_break (0); // FIXME!
+  struct CadetChannel *cc = lookup_channel (t,
+                                            cm->chid);
+
+  GCCH_channel_remote_destroy (cc);
 }
 
 
@@ -1702,20 +1918,6 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
                                t->connection_tail,
                                ct);
   t->num_connections++;
-}
-
-
-/**
- * Handle KX message.
- *
- * @param ct connection/tunnel combo that received encrypted message
- * @param msg the key exchange message
- */
-void
-GCT_handle_kx (struct CadetTConnection *ct,
-               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
-{
-  GNUNET_break (0); // not implemented
 }
 
 
