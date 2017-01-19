@@ -24,6 +24,14 @@
  * @brief Information we track per peer.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - implement GCP_set_hello() / do HELLO advertising properly
+ * - optimize stopping/restarting DHT search to situations
+ *   where we actually need it (i.e. not if we have a direct connection,
+ *   or if we already have plenty of good short ones, or maybe even
+ *   to take a break if we have some connections and have searched a lot (?))
+ * - optimize MQM ready scans (O(n) -> O(1))
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -195,6 +203,10 @@ struct CadetPeer
 
   /**
    * Number of message queue managers of this peer that have a message in waiting.
+   *
+   * Used to quickly see if we need to bother scanning the @e msm_head DLL.
+   * TODO: could be replaced by another DLL that would then allow us to avoid
+   * the O(n)-scan of the DLL for ready entries!
    */
   unsigned int mqm_ready_counter;
 

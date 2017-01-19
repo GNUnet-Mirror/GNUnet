@@ -24,6 +24,10 @@
  * @brief logical links between CADET clients
  * @author Bartlomiej Polot
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - estimate max bandwidth using bursts and use to optimize
+ *   transmission rate(s)
  */
 
 #include "platform.h"
