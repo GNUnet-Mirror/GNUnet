@@ -1194,10 +1194,13 @@ identity_cb (void *cls,
     return;
   }
   my_caller_id = ego;
-  GNUNET_CONFIGURATION_set_value_string (cfg,
-                                         "CONVERSATION",
-                                         "LINE",
-                                         line);
+  if (line != NULL)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "CONVERSATION",
+                                           "LINE",
+                                           line);
+  }
   start_phone ();
 }
 
