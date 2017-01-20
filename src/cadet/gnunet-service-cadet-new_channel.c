@@ -18,7 +18,6 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file cadet/gnunet-service-cadet-new_channel.c
  * @brief logical links between CADET clients
@@ -26,10 +25,11 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - estimate max bandwidth using bursts and use to optimize
- *   transmission rate(s)
+ * - estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
+ * - check that '0xFFULL' really is sufficient for flow control!
+ * - what about the 'no buffer' option?
+ * - what about the 'out-of-order' option?
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "cadet.h"
@@ -259,7 +259,7 @@ struct CadetChannel
   /**
    * Number identifying this channel in its tunnel.
    */
-  struct GNUNET_CADET_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
   /**
    * Local tunnel number for local client owning the channel.
@@ -324,10 +324,10 @@ GCCH_2s (const struct CadetChannel *ch)
     return "(NULL Channel)";
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "%s:%s gid:%X (%X)",
+                   "%s:%s chid:%X (%X)",
                    GCT_2s (ch->t),
                    GNUNET_h2s (&ch->port),
-                   ch->gid,
+                   ch->chid,
                    ntohl (ch->lid.channel_of_client));
   return buf;
 }
@@ -343,7 +343,7 @@ GCCH_2s (const struct CadetChannel *ch)
 struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch)
 {
-  return ch->gid;
+  return ch->chid;
 }
 
 
@@ -391,7 +391,7 @@ channel_destroy (struct CadetChannel *ch)
   }
   GCT_remove_channel (ch->t,
                       ch,
-                      ch->gid);
+                      ch->chid);
   GNUNET_free (ch);
 }
 
@@ -447,7 +447,7 @@ send_create (void *cls)
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
   msgcc.opt = htonl (options);
   msgcc.port = ch->port;
-  msgcc.chid = ch->gid;
+  msgcc.chid = ch->chid;
   ch->state = CADET_CHANNEL_CREATE_SENT;
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
@@ -483,8 +483,8 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->port = *port;
   ch->t = GCP_get_tunnel (destination,
                           GNUNET_YES);
-  ch->gid = GCT_add_channel (ch->t,
-                             ch);
+  ch->chid = GCT_add_channel (ch->t,
+                              ch);
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
@@ -516,17 +516,17 @@ timeout_closed_cb (void *cls)
 
 
 /**
- * Create a new channel.
+ * Create a new channel based on a request coming in over the network.
  *
  * @param t tunnel to the remote peer
- * @param gid identifier of this channel in the tunnel
+ * @param chid identifier of this channel in the tunnel
  * @param port desired local port
  * @param options options for the channel
  * @return handle to the new channel
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
-                           struct GNUNET_CADET_ChannelTunnelNumber gid,
+                           struct GNUNET_CADET_ChannelTunnelNumber chid,
                            const struct GNUNET_HashCode *port,
                            uint32_t options)
 {
@@ -538,7 +538,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
                                     or adjust dynamically... */
   ch->port = *port;
   ch->t = t;
-  ch->gid = gid;
+  ch->chid = chid;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
@@ -602,7 +602,7 @@ send_channel_ack (struct CadetChannel *ch)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.gid = ch->gid;
+  msg.gid = ch->chid;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid) - 1);
   msg.futures = GNUNET_htonll (ch->mid_futures);
   if (NULL != ch->last_control_qe)
@@ -694,6 +694,8 @@ GCCH_channel_local_destroy (struct CadetChannel *ch)
     return;
   }
   /* Nothing left to do, just finish destruction */
+  GCT_send_channel_destroy (ch->t,
+                            ch->chid);
   channel_destroy (ch);
 }
 
@@ -721,6 +723,8 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch)
     return;
   }
   /* Nothing left to do, just finish destruction */
+  GCT_send_channel_destroy (ch->t,
+                            ch->chid);
   channel_destroy (ch);
 }
 
@@ -930,7 +934,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message.mid = ch->mid_send;
-  crm->data_message.gid = ch->gid;
+  crm->data_message.gid = ch->chid;
   GNUNET_memcpy (&crm[1],
                  message,
                  payload_size);
@@ -1001,6 +1005,8 @@ send_client_buffered_data (struct CadetChannel *ch)
     return;
   if (GNUNET_NO == ch->destroy)
     return;
+  GCT_send_channel_destroy (ch->t,
+                            ch->chid);
   channel_destroy (ch);
 }
 
@@ -1047,7 +1053,7 @@ GCCH_debug (struct CadetChannel *ch,
   LOG2 (level,
         "CHN Channel %s:%X (%p)\n",
         GCT_2s (ch->t),
-        ch->gid,
+        ch->chid,
         ch);
   if (NULL != ch->owner)
   {

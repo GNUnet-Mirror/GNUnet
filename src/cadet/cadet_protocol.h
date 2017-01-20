@@ -337,7 +337,7 @@ struct GNUNET_CADET_ConnectionEncryptedAckMessage
   /**
    * Maximum packet ID authorized.
    */
-  struct CadetEncryptedMessageIdentifier cemi;
+  struct CadetEncryptedMessageIdentifier cemi_max;
 
   /**
    * ID of the connection.
@@ -379,12 +379,13 @@ struct GNUNET_CADET_ChannelOpenMessage
 
 
 /**
- * Message to manage a Channel (ACK, NACK, Destroy).
+ * Message to manage a Channel (CHANNEL_CREATE_ACK, CHANNEL_DESTROY).
  */
 struct GNUNET_CADET_ChannelManageMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK or
+   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY
    */
   struct GNUNET_MessageHeader header;
 

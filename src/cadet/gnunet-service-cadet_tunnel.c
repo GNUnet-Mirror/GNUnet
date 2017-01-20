@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,16 +17,17 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
+/**
+ * @file cadet/gnunet-service-cadet_tunnel.c
+ * @brief logical links between CADET clients
+ * @author Bartlomiej Polot
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
-
 #include "cadet_protocol.h"
 #include "cadet_path.h"
-
 #include "gnunet-service-cadet_tunnel.h"
 #include "gnunet-service-cadet_connection.h"
 #include "gnunet-service-cadet_channel.h"

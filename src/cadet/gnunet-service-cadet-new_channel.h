@@ -107,7 +107,6 @@ GCCH_bind (struct CadetChannel *ch,
            struct CadetClient *c);
 
 
-
 /**
  * Destroy locally created channel.  Called by the
  * local client, so no need to tell the client.
@@ -119,10 +118,10 @@ GCCH_channel_local_destroy (struct CadetChannel *ch);
 
 
 /**
- * Create a new channel.
+ * Create a new channel based on a request coming in over the network.
  *
  * @param t tunnel to the remote peer
- * @param gid identifier of this channel in the tunnel
+ * @param chid identifier of this channel in the tunnel
  * @param origin peer to who initiated the channel
  * @param port desired local port
  * @param options options for the channel
@@ -130,7 +129,7 @@ GCCH_channel_local_destroy (struct CadetChannel *ch);
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
-                           struct GNUNET_CADET_ChannelTunnelNumber gid,
+                           struct GNUNET_CADET_ChannelTunnelNumber chid,
                            const struct GNUNET_HashCode *port,
                            uint32_t options);
 

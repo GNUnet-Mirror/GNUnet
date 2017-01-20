@@ -202,6 +202,17 @@ GCT_remove_channel (struct CadetTunnel *t,
 
 
 /**
+ * Send a DESTROY message via the tunnel.
+ *
+ * @param t the tunnel to transmit over
+ * @param chid ID of the channel to destroy
+ */
+void
+GCT_send_channel_destroy (struct CadetTunnel *t,
+                          struct GNUNET_CADET_ChannelTunnelNumber chid);
+
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection if not provided.
  *

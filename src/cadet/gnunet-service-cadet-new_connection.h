@@ -122,6 +122,17 @@ GCC_handle_connection_ack (struct CadetConnection *cc);
 
 
 /**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE for a
+ * connection that we already have.  Either our ACK got lost
+ * or something is fishy.  Consider retransmitting the ACK.
+ *
+ * @param cc connection that got the duplicate CREATE
+ */
+void
+GCC_handle_duplicate_create (struct CadetConnection *cc);
+
+
+/**
  * Handle KX message.
  *
  * @param cc connection that received encrypted message

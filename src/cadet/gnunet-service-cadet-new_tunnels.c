@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2013, 2017 GNUnet e.V.
@@ -18,7 +17,6 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file cadet/gnunet-service-cadet-new_tunnels.c
  * @brief Information we track per tunnel.
@@ -26,12 +24,12 @@
  * @author Christian Grothoff
  *
  * FIXME:
+ * - clean up KX logic!
+ * - implement sending and receiving KX messages
+ * - implement processing of incoming decrypted plaintext messages
  * - when managing connections, distinguish those that
  *   have (recently) had traffic from those that were
  *   never ready (or not recently)
- * - implement sending and receiving KX messages
- * - implement processing of incoming decrypted plaintext messages
- * - clean up KX logic!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1306,6 +1304,33 @@ GCT_handle_kx (struct CadetTConnection *ct,
 
 
 /**
+ * Compute the next free channel tunnel number for this tunnel.
+ *
+ * @param t the tunnel
+ * @return unused number that can uniquely identify a channel in the tunnel
+ */
+static struct GNUNET_CADET_ChannelTunnelNumber
+get_next_free_chid (struct CadetTunnel *t)
+{
+  struct GNUNET_CADET_ChannelTunnelNumber ret;
+  uint32_t chid;
+
+  /* FIXME: this logic does NOT prevent both ends of the
+     channel from picking the same CHID!
+     Need to reserve one bit of the CHID for the
+     direction, i.e. which side established the connection! */
+  chid = ntohl (t->next_chid.cn);
+  while (NULL !=
+         GNUNET_CONTAINER_multihashmap32_get (t->channels,
+                                              chid))
+    chid++;
+  t->next_chid.cn = htonl (chid + 1);
+  ret.cn = ntohl (chid);
+  return ret;
+}
+
+
+/**
  * Add a channel to a tunnel.
  *
  * @param t Tunnel.
@@ -1316,22 +1341,15 @@ struct GNUNET_CADET_ChannelTunnelNumber
 GCT_add_channel (struct CadetTunnel *t,
                  struct CadetChannel *ch)
 {
-  struct GNUNET_CADET_ChannelTunnelNumber ret;
-  uint32_t chid;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
-  chid = ntohl (t->next_chid.cn);
-  while (NULL !=
-         GNUNET_CONTAINER_multihashmap32_get (t->channels,
-                                              chid))
-    chid++;
+  chid = get_next_free_chid (t);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
-                                                      chid,
+                                                      ntohl (chid.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  t->next_chid.cn = htonl (chid + 1);
-  ret.cn = htonl (chid);
-  return ret;
+  return chid;
 }
 
 
@@ -1638,7 +1656,8 @@ handle_plaintext_data_ack (void *cls,
 
 
 /**
- *
+ * We have received a request to open a channel to a port from
+ * another peer.  Creates the incoming channel.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param cc the message we received on the tunnel
@@ -1648,27 +1667,40 @@ handle_plaintext_channel_create (void *cls,
                                  const struct GNUNET_CADET_ChannelOpenMessage *cc)
 {
   struct CadetTunnel *t = cls;
-  GNUNET_break (0); // FIXME!
+  struct CadetChannel *ch;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
+
+  chid = get_next_free_chid (t);
+  ch = GCCH_channel_incoming_new (t,
+                                  chid,
+                                  &cc->port,
+                                  ntohl (cc->opt));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap32_put (t->channels,
+                                                      ntohl (chid.cn),
+                                                      ch,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
 /**
+ * Send a DESTROY message via the tunnel.
  *
- *
- * @param cls the `struct CadetTunnel` for which we decrypted the message
- * @param cm the message we received on the tunnel
+ * @param t the tunnel to transmit over
+ * @param chid ID of the channel to destroy
  */
-static void
-handle_plaintext_channel_nack (void *cls,
-                               const struct GNUNET_CADET_ChannelManageMessage *cm)
+void
+GCT_send_channel_destroy (struct CadetTunnel *t,
+                          struct GNUNET_CADET_ChannelTunnelNumber chid)
 {
-  struct CadetTunnel *t = cls;
   GNUNET_break (0); // FIXME!
 }
 
 
 /**
- *
+ * We have received confirmation from the target peer that the
+ * given channel could be established (the port is open).
+ * Tell the client.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param cm the message we received on the tunnel
@@ -1678,6 +1710,18 @@ handle_plaintext_channel_ack (void *cls,
                               const struct GNUNET_CADET_ChannelManageMessage *cm)
 {
   struct CadetTunnel *t = cls;
+  struct CadetChannel *ch;
+
+  ch = lookup_channel (t,
+                       cm->chid);
+  if (NULL == ch)
+  {
+    /* We don't know about such a channel, might have been destroyed on our
+       end in the meantime, or never existed. Send back a DESTROY. */
+    GCT_send_channel_destroy (t,
+                              cm->chid);
+    return;
+  }
   GNUNET_break (0); // FIXME!
 }
 
@@ -1762,10 +1806,6 @@ GCT_create_tunnel (struct CadetPeer *destination)
     GNUNET_MQ_hd_fixed_size (plaintext_channel_create,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN,
                              struct GNUNET_CADET_ChannelOpenMessage,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (plaintext_channel_nack,
-                             GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED,
-                             struct GNUNET_CADET_ChannelManageMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,

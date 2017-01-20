@@ -27,10 +27,7 @@
  * All functions in this file should use the prefix GCO (Gnunet Cadet cOre (bottom))
  *
  * TODO:
- * - pass encrypted ACK to connection (!)
- * - given BROKEN messages, destroy paths (?)
- * -
- * - handle POLL (if needed)
+ * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_core.h"
@@ -422,8 +419,7 @@ handle_connection_create (void *cls,
                                              &msg->cid.connection_of_tunnel);
     if (NULL != cc)
     {
-      /* Duplicate CREATE, likely our ACK got lost, retransmit the ACK! */
-      GNUNET_break (0); // FIXME: not implemented!
+      GCC_handle_duplicate_create (cc);
       return;
     }
 
@@ -604,68 +600,6 @@ handle_connection_destroy (void *cls,
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_HOP_BY_HOP_ENCRYPTED_ACK.
- *
- * @param cls Closure (CadetPeer for neighbor that sent the message).
- * @param msg Message itself.
- */
-static void
-handle_hop_by_hop_encrypted_ack (void *cls,
-                                 const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
-{
-  struct CadetPeer *peer = cls;
-  struct CadetConnection *cc;
-
-  /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
-  if (NULL != cc)
-  {
-    /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
-
-    if (peer !=
-        GCPP_get_peer_at_offset (path,
-                                 0))
-    {
-      /* received message from unexpected direction, ignore! */
-      GNUNET_break_op (0);
-      return;
-    }
-#if FIXME
-    GCC_handle_ack (peer,
-                    msg);
-#endif
-    return;
-  }
-
-  /* We're just an intermediary peer, route the message along its path */
-  route_message (peer,
-                 &msg->cid,
-                 &msg->header);
-}
-
-
-/**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
- *
- * @param cls Closure (CadetPeer for neighbor that sent the message).
- * @param msg Message itself.
- */
-static void
-handle_poll (void *cls,
-             const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg)
-{
-  struct CadetPeer *peer = cls;
-
-#if FIXME
-  GCC_handle_poll (peer,
-                   msg);
-#endif
-}
-
-
-/**
  * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
@@ -755,7 +689,6 @@ handle_tunnel_encrypted (void *cls,
                           msg);
     return;
   }
-
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
@@ -854,14 +787,6 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_MQ_hd_fixed_size (connection_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
                              struct GNUNET_CADET_ConnectionDestroyMessage,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (hop_by_hop_encrypted_ack,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK,
-                             struct GNUNET_CADET_ConnectionEncryptedAckMessage,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (poll,
-                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL,
-                             struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (tunnel_kx,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,

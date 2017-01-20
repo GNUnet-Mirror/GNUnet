@@ -27,8 +27,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - keepalive messages
- * - keep performance metrics (?)
+ * - Optimization: keepalive messages / timeout (timeout to be done @ peer level!)
+ * - Optimization: keep performance metrics (?)
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_channel.h"
