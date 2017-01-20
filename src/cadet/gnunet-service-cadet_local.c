@@ -586,7 +586,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  chid = msg->id;
+  chid = msg->channel_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes (%u payload) by client %u\n",
        payload_size, payload_claimed_size, c->id);
 
@@ -1531,7 +1531,7 @@ GML_send_data (struct CadetClient *c,
   GNUNET_memcpy (&copy[1], &msg[1], size);
   copy->header.size = htons (sizeof (struct GNUNET_CADET_LocalData) + size);
   copy->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-  copy->id = id;
+  copy->channel_id = id;
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &copy->header, GNUNET_NO);
 }

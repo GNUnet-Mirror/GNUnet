@@ -198,7 +198,7 @@ struct GNUNET_CADET_LocalData
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ClientChannelNumber id;
+  struct GNUNET_CADET_ClientChannelNumber channel_id;
 
   /**
    * Payload follows

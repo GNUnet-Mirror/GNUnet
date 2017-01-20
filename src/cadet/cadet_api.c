@@ -569,7 +569,7 @@ request_data (void *cls)
   env = GNUNET_MQ_msg_extra (msg,
                              th->size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-  msg->id = th->channel->chid;
+  msg->channel_id = th->channel->chid;
   osize = th->notify (th->notify_cls,
                       th->size,
                       &msg[1]);
@@ -697,7 +697,7 @@ check_local_data (void *cls,
   }
 
   ch = retrieve_channel (h,
-                         message->id);
+                         message->channel_id);
   if (NULL == ch)
   {
     GNUNET_break_op (0);
@@ -727,7 +727,7 @@ handle_local_data (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a data message!\n");
-  ch = retrieve_channel (h, message->id);
+  ch = retrieve_channel (h, message->channel_id);
   GNUNET_assert (NULL != ch);
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
@@ -735,7 +735,7 @@ handle_local_data (void *cls,
        GC_f2s (ntohl (ch->chid.channel_of_client) >=
                GNUNET_CADET_LOCAL_CHANNEL_ID_CLI),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)),
-       ntohl (message->id.channel_of_client));
+       ntohl (message->channel_id.channel_of_client));
 
   type = ntohs (payload->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GC_m2s (type));

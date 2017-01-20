@@ -628,7 +628,7 @@ handle_data (void *cls,
   struct CadetChannel *ch;
   const struct GNUNET_MessageHeader *payload;
 
-  chid = msg->id;
+  chid = msg->channel_id;
   map = get_map_by_chid (c,
                          chid);
   ch = GNUNET_CONTAINER_multihashmap32_get (map,

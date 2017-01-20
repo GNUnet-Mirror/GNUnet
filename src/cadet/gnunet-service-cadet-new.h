@@ -220,7 +220,6 @@ extern unsigned long long ratchet_messages;
 extern struct GNUNET_TIME_Relative ratchet_time;
 
 
-
 /**
  * Send a message to a client.
  *
