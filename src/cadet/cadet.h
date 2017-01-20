@@ -57,6 +57,7 @@ extern "C"
 #include "gnunet_util_lib.h"
 #include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_protocols.h"
 #include <gnunet_cadet_service.h>
 
@@ -64,19 +65,51 @@ extern "C"
 /**************************       CONSTANTS      ******************************/
 /******************************************************************************/
 
+/**
+ * Minimum value for channel IDs of local clients.
+ */
 #define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000
-#define GNUNET_CADET_LOCAL_CHANNEL_ID_SERV       0xB0000000
 
-#define HIGH_PID                                0xFFFF0000
-#define LOW_PID                                 0x0000FFFF
+/**
+ * FIXME.
+ */
+#define HIGH_PID                                0xFF000000
 
-#define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
+/**
+ * FIXME.
+ */
+#define LOW_PID                                 0x00FFFFFF
+
+
+/**
+ * Test if the two PIDs (of type `uint32_t`) are in the range where we
+ * have to worry about overflows.  This is the case when @a pid is
+ * large and @a max is small, useful when comparing @a pid smaller
+ * than @a max.
+ */
+#define PID_OVERFLOW(pid, max) (((pid) > HIGH_PID) && ((max) < LOW_PID))
 
 /******************************************************************************/
 /**************************        MESSAGES      ******************************/
 /******************************************************************************/
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+
+/**
+ * Number uniquely identifying a channel of a client.
+ */
+struct GNUNET_CADET_ClientChannelNumber
+{
+  /**
+   * Values for channel numbering.
+   * Local channel numbers given by the service (incoming) are
+   * smaller than #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI.
+   * Local channel numbers given by the client (created) are
+   * larger than #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI.
+   */
+  uint32_t channel_of_client GNUNET_PACKED;
+};
 
 
 /**
@@ -98,31 +131,23 @@ struct GNUNET_CADET_PortMessage
   struct GNUNET_HashCode port GNUNET_PACKED;
 };
 
-/**
- * Type for channel numbering.
- * - Local channel numbers given by the service (incoming) are >= 0xB0000000
- * - Local channel numbers given by the client (created) are >= 0x80000000
- * - Global channel numbers are < 0x80000000
- */
-typedef uint32_t CADET_ChannelNumber;
-
 
 /**
  * Message for a client to create channels.
  */
-struct GNUNET_CADET_ChannelCreateMessage
+struct GNUNET_CADET_ChannelOpenMessageMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
    *
-   * Size: sizeof(struct GNUNET_CADET_ChannelCreateMessage)
+   * Size: sizeof(struct GNUNET_CADET_ChannelOpenMessageMessage)
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of a channel controlled by this client.
    */
-  CADET_ChannelNumber channel_id GNUNET_PACKED;
+  struct GNUNET_CADET_ClientChannelNumber channel_id;
 
   /**
    * Channel's peer
@@ -152,11 +177,11 @@ struct GNUNET_CADET_ChannelDestroyMessage
    * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * ID of a channel controlled by this client.
    */
-  CADET_ChannelNumber channel_id GNUNET_PACKED;
+  struct GNUNET_CADET_ClientChannelNumber channel_id;
 };
 
 
@@ -173,7 +198,7 @@ struct GNUNET_CADET_LocalData
   /**
    * ID of the channel
    */
-  uint32_t id GNUNET_PACKED;
+  struct GNUNET_CADET_ClientChannelNumber id;
 
   /**
    * Payload follows
@@ -195,7 +220,7 @@ struct GNUNET_CADET_LocalAck
   /**
    * ID of the channel allowed to send more data.
    */
-  CADET_ChannelNumber channel_id GNUNET_PACKED;
+  struct GNUNET_CADET_ClientChannelNumber channel_id;
 
 };
 
@@ -214,7 +239,7 @@ struct GNUNET_CADET_LocalInfo
   /**
    * ID of the channel allowed to send more data.
    */
-  CADET_ChannelNumber channel_id GNUNET_PACKED;
+  struct GNUNET_CADET_ClientChannelNumber channel_id;
 
   /**
    * ID of the owner of the channel (can be local peer).
@@ -258,6 +283,7 @@ struct GNUNET_CADET_LocalInfoPeer
    * (each path ends in destination) */
 };
 
+
 /**
  * Message to inform the client about one of the tunnels in the service.
  */
@@ -294,7 +320,7 @@ struct GNUNET_CADET_LocalInfoTunnel
    */
   uint16_t cstate GNUNET_PACKED;
 
-  /* If TUNNEL (no 'S'): GNUNET_PeerIdentity connection_ids[connections] */
+  /* If TUNNEL (no 'S'): struct GNUNET_CADET_ConnectionTunnelIdentifier connection_ids[connections] */
   /* If TUNNEL (no 'S'): uint32_t channel_ids[channels] */
 };
 
@@ -350,25 +376,6 @@ GC_min_pid (uint32_t a, uint32_t b);
 
 
 /**
- * Convert a 256 bit CadetHash into a 512 HashCode to use in GNUNET_h2s,
- * multihashmap, and other HashCode-based functions.
- *
- * @param id A 256 bit hash to expand.
- *
- * @return A HashCode containing the original 256 bit hash right-padded with 0.
- */
-const struct GNUNET_HashCode *
-GC_h2hc (const struct GNUNET_CADET_Hash *id);
-
-/**
- * Get a string from a Cadet Hash (256 bits).
- * WARNING: Not reentrant (based on GNUNET_h2s).
- */
-const char *
-GC_h2s (const struct GNUNET_CADET_Hash *id);
-
-
-/**
  * Allocate a string with a hexdump of any binary data.
  *
  * @param bin Arbitrary binary data.
@@ -378,7 +385,10 @@ GC_h2s (const struct GNUNET_CADET_Hash *id);
  * @return The size of the output.
  */
 size_t
-GC_bin2s (void *bin, unsigned int len, char **output);
+GC_bin2s (void *bin,
+          unsigned int len,
+          char **output);
+
 
 /**
  * Convert a message type into a string to help debug

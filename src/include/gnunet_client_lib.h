@@ -57,7 +57,7 @@ extern "C"
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        const char *service_name,
                        const struct GNUNET_MQ_MessageHandler *handlers,
                        GNUNET_MQ_ErrorHandler error_handler,

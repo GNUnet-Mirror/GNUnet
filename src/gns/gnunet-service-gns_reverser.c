@@ -394,6 +394,7 @@ handle_gns_result_iter (void *cls,
   it_task = GNUNET_SCHEDULER_add_now (&next_it, ith);
 }
 
+
 static void
 next_it (void *cls)
 {
@@ -401,6 +402,7 @@ next_it (void *cls)
   GNUNET_assert (NULL != namestore_iter);
   GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
 }
+
 
 static void
 iterator_cb (void *cls,
@@ -487,6 +489,7 @@ store_reverse (void *cls,
   GNUNET_free (ith);
 }
 
+
 static void
 finished_cb (void *cls)
 {
@@ -522,12 +525,14 @@ finished_cb (void *cls)
 
 }
 
+
 static void
 it_error (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Error iterating for REVERSE\n");
 }
+
 
 static void
 check_reverse_records (void *cls)

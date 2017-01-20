@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2007-2016 GNUnet e.V.
+     Copyright (C) 2007-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -343,7 +343,7 @@ do_connect (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   nh->reconnect_task = NULL;
-  nh->mq = GNUNET_CLIENT_connecT (nh->cfg,
+  nh->mq = GNUNET_CLIENT_connect (nh->cfg,
 				  "nat",
 				  handlers,
 				  &mq_error_handler,
@@ -368,8 +368,8 @@ do_connect (void *cls)
  * address_callback for any 'plausible' external address.
  *
  * @param cfg configuration to use
+ * @param config_section name of the configuration section for optionsx
  * @param proto protocol this is about, IPPROTO_TCP or IPPROTO_UDP
- * @param hole_external hostname and port of manually punched hole in NAT, otherwise NULL (or empty string)
  * @param num_addrs number of addresses in @a addrs
  * @param addrs list of local addresses packets should be redirected to
  * @param addrlens actual lengths of the addresses in @a addrs
@@ -381,8 +381,8 @@ do_connect (void *cls)
  */
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const char *config_section,
                      uint8_t proto,
-                     const char *hole_external,
                      unsigned int num_addrs,
                      const struct sockaddr **addrs,
                      const socklen_t *addrlens,
@@ -393,17 +393,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_NAT_Handle *nh;
   struct GNUNET_NAT_RegisterMessage *rm;
   size_t len;
-  size_t hole_external_len;
+  size_t str_len;
   char *off;
   
   len = 0;
   for (unsigned int i=0;i<num_addrs;i++)
     len += addrlens[i];
-  hole_external_len
-    = (NULL == hole_external)
-    ? 0
-    : strlen (hole_external);
-  len += hole_external_len;
+  str_len = strlen (config_section) + 1;
+  len += str_len;
   if ( (len > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
        (num_addrs > UINT16_MAX) )
   {
@@ -419,7 +416,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != reversal_callback)
     rm->flags |= GNUNET_NAT_RF_REVERSAL;
   rm->proto = proto;
-  rm->hole_external_len = htons (hole_external_len);
+  rm->str_len = htons (str_len);
   rm->num_addrs = htons ((uint16_t) num_addrs);
   off = (char *) &rm[1];
   for (unsigned int i=0;i<num_addrs;i++)
@@ -459,8 +456,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     off += addrlens[i];
   }
   GNUNET_memcpy (off,
-		 hole_external,
-		 hole_external_len);
+		 config_section,
+		 str_len);
 
   nh = GNUNET_new (struct GNUNET_NAT_Handle);
   nh->reg = &rm->header;
@@ -681,6 +678,8 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
 
   if (NULL == nh->mq)
     return GNUNET_SYSERR;
+  GNUNET_break (AF_INET == local_sa->sin_family);
+  GNUNET_break (AF_INET == remote_sa->sin_family);
   env = GNUNET_MQ_msg_extra (req,
 			     2 * sizeof (struct sockaddr_in),
 			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL);
@@ -710,249 +709,19 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
 void
 GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh)
 {
-  GNUNET_MQ_destroy (nh->mq);
+  if (NULL != nh->mq)
+  {
+    GNUNET_MQ_destroy (nh->mq);
+    nh->mq = NULL;
+  }
+  if (NULL != nh->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (nh->reconnect_task);
+    nh->reconnect_task = NULL;
+  }
   GNUNET_free (nh->reg);
   GNUNET_free (nh);
 }
 
-
-
-/**
- * Handle to auto-configuration in progress.
- */
-struct GNUNET_NAT_AutoHandle
-{
-
-  /**
-   * Configuration we use.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
-  /**
-   * Message queue for communicating with the NAT service.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
-   * Function called with the result from the autoconfiguration.
-   */
-  GNUNET_NAT_AutoResultCallback arc;
-
-  /**
-   * Closure for @e arc.
-   */
-  void *arc_cls;
-
-};
-
-
-/**
- * Converts `enum GNUNET_NAT_StatusCode` to string
- *
- * @param err error code to resolve to a string
- * @return point to a static string containing the error code
- */
-const char *
-GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
-{
-  switch (err)
-  {
-  case GNUNET_NAT_ERROR_SUCCESS:
-    return _ ("Operation Successful");
-  case GNUNET_NAT_ERROR_IPC_FAILURE:
-    return _ ("IPC failure");
-  case GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR:
-    return _ ("Failure in network subsystem, check permissions.");
-  case GNUNET_NAT_ERROR_TIMEOUT:
-    return _ ("Encountered timeout while performing operation");
-  case GNUNET_NAT_ERROR_NOT_ONLINE:
-    return _ ("detected that we are offline");
-  case GNUNET_NAT_ERROR_UPNPC_NOT_FOUND:
-    return _ ("`upnpc` command not found");
-  case GNUNET_NAT_ERROR_UPNPC_FAILED:
-    return _ ("Failed to run `upnpc` command");
-  case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
-    return _ ("`upnpc' command took too long, process killed");
-  case GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED:
-    return _ ("`upnpc' command failed to establish port mapping");
-  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND:
-    return _ ("`external-ip' command not found");
-  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
-    return _ ("Failed to run `external-ip` command");
-  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
-    return _ ("`external-ip' command output invalid");
-  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
-    return _ ("no valid address was returned by `external-ip'");
-  case GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO:
-    return _ ("Could not determine interface with internal/local network address");
-  case GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND:
-    return _ ("No functioning gnunet-helper-nat-server installation found");
-  case GNUNET_NAT_ERROR_NAT_TEST_START_FAILED:
-    return _ ("NAT test could not be initialized");
-  case GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT:
-    return _ ("NAT test timeout reached");
-  case GNUNET_NAT_ERROR_NAT_REGISTER_FAILED:
-    return _ ("could not register NAT");
-  case GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND:
-    return _ ("No working gnunet-helper-nat-client installation found");
-  default:
-    return "unknown status code";
-  }
-}
-
-
-/**
- * Check result from autoconfiguration attempt.
- *
- * @param cls the `struct GNUNET_NAT_AutoHandle`
- * @param res the result
- * @return #GNUNET_OK if @a res is well-formed (always for now)
- */
-static int
-check_auto_result (void *cls,
-		   const struct GNUNET_NAT_AutoconfigResultMessage *res)
-{
-  return GNUNET_OK;
-}
-
-
-/**
- * Handle result from autoconfiguration attempt.
- *
- * @param cls the `struct GNUNET_NAT_AutoHandle`
- * @param res the result
- */
-static void
-handle_auto_result (void *cls,
-		    const struct GNUNET_NAT_AutoconfigResultMessage *res)
-{
-  struct GNUNET_NAT_AutoHandle *ah = cls;
-  size_t left;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  enum GNUNET_NAT_Type type
-    = (enum GNUNET_NAT_Type) ntohl (res->type);
-  enum GNUNET_NAT_StatusCode status
-    = (enum GNUNET_NAT_StatusCode) ntohl (res->status_code);
-
-  left = ntohs (res->header.size) - sizeof (*res);
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_deserialize (cfg,
-					(const char *) &res[1],
-					left,
-					GNUNET_NO))
-  {
-    GNUNET_break (0);
-    ah->arc (ah->arc_cls,
-	     NULL,
-	     GNUNET_NAT_ERROR_IPC_FAILURE,
-	     type);
-  }
-  else
-  {
-    ah->arc (ah->arc_cls,
-	     cfg,
-	     status,
-	     type);
-  }
-  GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_NAT_autoconfig_cancel (ah);
-}
-
-
-/**
- * Handle queue errors by reporting autoconfiguration failure.
- *
- * @param cls the `struct GNUNET_NAT_AutoHandle *`
- * @param error details about the error
- */
-static void
-ah_error_handler (void *cls,
-		  enum GNUNET_MQ_Error error)
-{
-  struct GNUNET_NAT_AutoHandle *ah = cls;
-
-  ah->arc (ah->arc_cls,
-	   NULL,
-	   GNUNET_NAT_ERROR_IPC_FAILURE,
-	   GNUNET_NAT_TYPE_UNKNOWN);
-  GNUNET_NAT_autoconfig_cancel (ah);
-}
-
-
-/**
- * Start auto-configuration routine.  The transport adapters should
- * be stopped while this function is called.
- *
- * @param cfg initial configuration
- * @param cb function to call with autoconfiguration result
- * @param cb_cls closure for @a cb
- * @return handle to cancel operation
- */
-struct GNUNET_NAT_AutoHandle *
-GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_NAT_AutoResultCallback cb,
-			     void *cb_cls)
-{
-  struct GNUNET_NAT_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (auto_result,
-			   GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT,
-			   struct GNUNET_NAT_AutoconfigResultMessage,
-			   ah),
-    GNUNET_MQ_handler_end ()
-  };
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_NAT_AutoconfigRequestMessage *req;
-  char *buf;
-  size_t size;
-
-  buf = GNUNET_CONFIGURATION_serialize (cfg,
-					&size);
-  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*req))
-  {
-    GNUNET_break (0);
-    GNUNET_free (buf);
-    GNUNET_free (ah);
-    return NULL;
-  }
-  ah->arc = cb;
-  ah->arc_cls = cb_cls;
-  ah->mq = GNUNET_CLIENT_connecT (cfg,
-				  "nat",
-				  handlers,
-				  &ah_error_handler,
-				  ah);
-  if (NULL == ah->mq)
-  {
-    GNUNET_break (0);
-    GNUNET_free (buf);
-    GNUNET_free (ah);
-    return NULL;
-  }
-  env = GNUNET_MQ_msg_extra (req,
-			     size,
-			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG);
-  GNUNET_memcpy (&req[1],
-		 buf,
-		 size);
-  GNUNET_free (buf);
-  GNUNET_MQ_send (ah->mq,
-		  env);
-  return ah;
-}
-
-
-/**
- * Abort autoconfiguration.
- *
- * @param ah handle for operation to abort
- */
-void
-GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
-{
-  GNUNET_MQ_destroy (ah->mq);
-  GNUNET_free (ah);
-}
 
 /* end of nat_api.c */

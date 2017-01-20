@@ -178,7 +178,8 @@ inbound_channel (void *cls,
  *                    with the channel is stored
  */
 static void
-channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
+channel_end (void *cls,
+             const struct GNUNET_CADET_Channel *channel,
              void *channel_ctx)
 {
   long id = (long) cls;
@@ -191,6 +192,8 @@ channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
     GNUNET_CADET_notify_transmit_ready_cancel (mth);
     mth = NULL;
   }
+  if (channel == ch)
+    ch = NULL;
   if (GNUNET_NO == got_data)
   {
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (

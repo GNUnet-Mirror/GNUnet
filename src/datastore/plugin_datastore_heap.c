@@ -331,7 +331,7 @@ struct GetContext
    * The plugin.
    */
   struct Plugin *plugin;
-		
+
   /**
    * Requested value hash.
    */
@@ -608,7 +608,7 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * priority should be added to the existing priority, ignoring the
  * priority in value.
  *
- * @param cls our "struct Plugin*"
+ * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
  *     change?  If priority + delta < 0 the
@@ -628,7 +628,6 @@ heap_plugin_update (void *cls,
 		    PluginUpdateCont cont,
 		    void *cont_cls)
 {
-  struct Plugin *plugin = cls;
   struct Value *value;
 
   value = (struct Value*) (long) uid;
@@ -636,8 +635,7 @@ heap_plugin_update (void *cls,
   if (value->expiration.abs_value_us != expire.abs_value_us)
   {
     value->expiration = expire;
-    GNUNET_CONTAINER_heap_update_cost (plugin->by_expiration,
-				       value->expire_heap,
+    GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
 				       expire.abs_value_us);
   }
   if ( (delta < 0) && (value->priority < - delta) )

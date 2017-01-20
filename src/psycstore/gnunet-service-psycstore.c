@@ -198,8 +198,8 @@ send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
   res->psycstore_flags = htonl (flags);
   GNUNET_memcpy (&res[1], msg, msg_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending fragment %ld to client\n",
-	      GNUNET_ntohll (msg->fragment_id));
+	      "Sending fragment %llu to client\n",
+	      (unsigned long long) GNUNET_ntohll (msg->fragment_id));
   GNUNET_free (msg);
 
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (sc->client), env);

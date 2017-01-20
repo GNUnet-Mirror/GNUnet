@@ -336,7 +336,7 @@ reconnect (struct GNUNET_NAMECACHE_Handle *h)
     GNUNET_MQ_handler_end ()
   };
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "namecache",
                                  handlers,
                                  &mq_error_handler,

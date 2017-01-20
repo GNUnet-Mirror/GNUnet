@@ -92,7 +92,7 @@ terminate_peer (struct PeerContext *p)
 {
   if (NULL != p->ch)
   {
-    GNUNET_CORE_disconnecT (p->ch);
+    GNUNET_CORE_disconnect (p->ch);
     p->ch = NULL;
   }
   if (NULL != p->ghh)
@@ -243,7 +243,7 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    p2.ch = GNUNET_CORE_connecT (p2.cfg,
+    p2.ch = GNUNET_CORE_connect (p2.cfg,
 				 &p2,
 				 &init_notify,
 				 &connect_notify,
@@ -317,7 +317,7 @@ run (void *cls,
                                     (GNUNET_TIME_UNIT_SECONDS, 300),
                                     &terminate_task_error, NULL);
   p1.ch =
-      GNUNET_CORE_connecT (p1.cfg,
+      GNUNET_CORE_connect (p1.cfg,
 			   &p1,
                            &init_notify,
                            &connect_notify,

@@ -1830,10 +1830,16 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   /* first, check about our own HELLO */
   if (NULL != GDS_my_hello)
   {
-    GNUNET_BLOCK_mingle_hash (&my_identity_hash, bf_mutator, &mhash);
+    GNUNET_BLOCK_mingle_hash (&my_identity_hash,
+			      bf_mutator,
+			      &mhash);
     if ((NULL == bf) ||
         (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (bf, &mhash)))
     {
+      size_t hello_size;
+
+      hello_size = GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) GDS_my_hello);
+      GNUNET_break (hello_size >= sizeof (struct GNUNET_MessageHeader));
       GDS_NEIGHBOURS_handle_reply (sender,
 				   GNUNET_BLOCK_TYPE_DHT_HELLO,
                                    GNUNET_TIME_relative_to_absolute
@@ -1844,9 +1850,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 				   0,
 				   NULL,
 				   GDS_my_hello,
-                                   GNUNET_HELLO_size ((const struct
-                                                       GNUNET_HELLO_Message *)
-                                                      GDS_my_hello));
+                                   hello_size);
     }
     else
     {
@@ -2377,7 +2381,7 @@ GDS_NEIGHBOURS_init ()
   log_route_details_stderr =
     (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
   ats_ch = GNUNET_ATS_connectivity_init (GDS_cfg);
-  core_api = GNUNET_CORE_connecT (GDS_cfg,
+  core_api = GNUNET_CORE_connect (GDS_cfg,
 				  NULL,
 				  &core_init,
 				  &handle_core_connect,
@@ -2401,7 +2405,7 @@ GDS_NEIGHBOURS_done ()
 {
   if (NULL == core_api)
     return;
-  GNUNET_CORE_disconnecT (core_api);
+  GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
   GNUNET_assert (0 ==
 		 GNUNET_CONTAINER_multipeermap_size (all_connected_peers));

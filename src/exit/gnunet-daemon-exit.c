@@ -747,9 +747,8 @@ get_redirect_state (int af,
     return NULL;
   /* Mark this connection as freshly used */
   if (NULL == state_key)
-    GNUNET_CONTAINER_heap_update_cost (connections_heap,
-				       state->specifics.tcp_udp.heap_node,
-				       GNUNET_TIME_absolute_get ().abs_value_us);
+    GNUNET_CONTAINER_heap_update_cost (state->specifics.tcp_udp.heap_node,
+                                       GNUNET_TIME_absolute_get ().abs_value_us);
   return state;
 }
 

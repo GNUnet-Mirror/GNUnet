@@ -195,7 +195,7 @@ reconnect (struct GNUNET_ATS_ConnectivityHandle *ch)
   struct ClientStartMessage *init;
 
   GNUNET_assert (NULL == ch->mq);
-  ch->mq = GNUNET_CLIENT_connecT (ch->cfg,
+  ch->mq = GNUNET_CLIENT_connect (ch->cfg,
                                   "ats",
                                   handlers,
                                   &error_handler,

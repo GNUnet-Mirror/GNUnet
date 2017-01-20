@@ -36,7 +36,7 @@ Antti Salonen
 Blake Matheny <bmatheny@mobocracy.net>
 Bertrand Marc <beberking@gmail.com>
 Clytie Siddall <clytie@riverland.net.au>
-Daniel Golle
+Daniel Golle <daniel@makrotopia.org>
 David Brodski
 David Kuehling <dvdkhlng@gmx.de>
 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de>
@@ -110,8 +110,8 @@ new GNU in Net: Nicklas Larsson <whybill@gmail.com>
 Maintainers:
 FreeBSD         : Kirill Ponomarew <ponomarew@oberon.net>
 Debian GNU/Linux: Daniel Baumann <daniel.baumann@panthera-systems.net>
+OpenWrt/LEDE    : Daniel Golle <daniel@makrotopia.org>
 OS X            : Jussi Eloranta <eloranta@cc.jyu.fi>
-Gentoo          : N. 'ng0' Gillmann <ngillmann@runbox.com>
 
 
 If you have contributed and are not listed here, please

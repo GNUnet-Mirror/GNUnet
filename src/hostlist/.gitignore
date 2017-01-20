@@ -1,1 +1,4 @@
 gnunet-daemon-hostlist
+test_gnunet_daemon_hostlist
+test_gnunet_daemon_hostlist_learning
+test_gnunet_daemon_hostlist_reconnect

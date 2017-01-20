@@ -6150,7 +6150,7 @@ GDS_NEIGHBOURS_init (void)
     GNUNET_MQ_handler_end ()
   };
 
-  core_api = GNUNET_CORE_connecT (GDS_cfg,
+  core_api = GNUNET_CORE_connect (GDS_cfg,
 				  NULL,
 				  &core_init,
 				  &handle_core_connect,
@@ -6212,7 +6212,7 @@ GDS_NEIGHBOURS_done (void)
   if (NULL == core_api)
     return;
 
-  GNUNET_CORE_disconnecT (core_api);
+  GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
 
   delete_finger_table_entries();

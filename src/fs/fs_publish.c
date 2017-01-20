@@ -863,7 +863,7 @@ hash_for_index_cb (void *cls,
     GNUNET_free (fn);
     return;
   }
-  pc->mq = GNUNET_CLIENT_connecT (pc->h->cfg,
+  pc->mq = GNUNET_CLIENT_connect (pc->h->cfg,
                                   "fs",
                                   handlers,
                                   &index_mq_error_handler,
@@ -1016,7 +1016,7 @@ create_loc_uri (struct GNUNET_FS_PublishContext *pc)
 
   if (NULL != pc->mq)
     GNUNET_MQ_destroy (pc->mq);
-  pc->mq = GNUNET_CLIENT_connecT (pc->h->cfg,
+  pc->mq = GNUNET_CLIENT_connect (pc->h->cfg,
                                   "fs",
                                   handlers,
                                   &loc_mq_error_handler,

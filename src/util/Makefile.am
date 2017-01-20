@@ -59,7 +59,7 @@ test_common_logging_dummy_LDADD = \
 libgnunetutil_la_SOURCES = \
   bandwidth.c \
   bio.c \
-  client_new.c \
+  client.c \
   common_allocation.c \
   common_endian.c \
   common_logging.c \
@@ -70,6 +70,7 @@ libgnunetutil_la_SOURCES = \
   container_heap.c \
   container_meta_data.c \
   container_multihashmap.c \
+  container_multishortmap.c \
   container_multipeermap.c \
   container_multihashmap32.c \
   crypto_symmetric.c \

@@ -132,7 +132,7 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 
   if (NULL != br->mq)
     GNUNET_MQ_destroy (br->mq);
-  br->mq = GNUNET_CLIENT_connecT (br->cfg,
+  br->mq = GNUNET_CLIENT_connect (br->cfg,
                                   "transport",
                                   handlers,
                                   &mq_error_handler,

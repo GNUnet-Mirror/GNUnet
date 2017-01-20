@@ -47,7 +47,7 @@ static int provide_hostlist;
 /**
  * Handle to hostlist server's connect handler
  */
-static GNUNET_CORE_ConnecTEventHandler server_ch;
+static GNUNET_CORE_ConnectEventHandler server_ch;
 
 #endif
 
@@ -81,12 +81,12 @@ static GNUNET_HOSTLIST_UriHandler client_adv_handler;
 /**
  * Handle to hostlist client's connect handler
  */
-static GNUNET_CORE_ConnecTEventHandler client_ch;
+static GNUNET_CORE_ConnectEventHandler client_ch;
 
 /**
  * Handle to hostlist client's disconnect handler
  */
-static GNUNET_CORE_DisconnecTEventHandler client_dh;
+static GNUNET_CORE_DisconnectEventHandler client_dh;
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -260,7 +260,7 @@ cleaning_task (void *cls)
 	      "Hostlist daemon is shutting down\n");
   if (NULL != core)
   {
-    GNUNET_CORE_disconnecT (core);
+    GNUNET_CORE_disconnect (core);
     core = NULL;
   }
   if (bootstrapping)
@@ -330,7 +330,7 @@ run (void *cls,
                                   &client_adv_handler,
                                   learning);
   core =
-    GNUNET_CORE_connecT (cfg,
+    GNUNET_CORE_connect (cfg,
 			 NULL,
 			 &core_init,
 			 &connect_handler,

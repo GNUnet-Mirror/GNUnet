@@ -222,7 +222,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
   consensus->session_id = *session_id;
-  consensus->mq = GNUNET_CLIENT_connecT (cfg,
+  consensus->mq = GNUNET_CLIENT_connect (cfg,
                                          "consensus",
                                          mq_handlers,
                                          &mq_error_handler,

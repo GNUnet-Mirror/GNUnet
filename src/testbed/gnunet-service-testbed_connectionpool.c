@@ -623,12 +623,12 @@ core_peer_connect_cb (void *cls,
 
 
 /**
- * Function called after #GNUNET_CORE_connecT() has succeeded (or failed
+ * Function called after #GNUNET_CORE_connect() has succeeded (or failed
  * for good).  Note that the private key of the peer is intentionally
  * not exposed here; if you need it, your process should try to read
  * the private key file directly (which should work if you are
  * authorized...).  Implementations of this function must not call
- * #GNUNET_CORE_disconnecT() (other than by scheduling a new task to
+ * #GNUNET_CORE_disconnect() (other than by scheduling a new task to
  * do this later).
  *
  * @param cls the #PooledConnection object
@@ -675,7 +675,7 @@ opstart_get_handle_core (void *cls)
   LOG_DEBUG ("Opening a CORE connection to peer %u\n",
              entry->index);
   entry->handle_core
-    = GNUNET_CORE_connecT (entry->cfg,
+    = GNUNET_CORE_connect (entry->cfg,
                            entry,        /* closure */
                            &core_startup_cb, /* core startup notify */
                            &core_peer_connect_cb,    /* peer connect notify */
@@ -697,7 +697,7 @@ oprelease_get_handle_core (void *cls)
 
   if (NULL == entry->handle_core)
     return;
-  GNUNET_CORE_disconnecT (entry->handle_core);
+  GNUNET_CORE_disconnect (entry->handle_core);
   entry->handle_core = NULL;
   GNUNET_free_non_null (entry->peer_identity);
   entry->peer_identity = NULL;

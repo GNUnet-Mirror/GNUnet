@@ -125,12 +125,12 @@ shutdown_testcase ()
   }
   if (NULL != adv_peer.core)
   {
-    GNUNET_CORE_disconnecT (adv_peer.core);
+    GNUNET_CORE_disconnect (adv_peer.core);
     adv_peer.core = NULL;
   }
   if (NULL != learn_peer.core)
   {
-    GNUNET_CORE_disconnecT (learn_peer.core);
+    GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -432,7 +432,7 @@ setup_learn_peer (struct PeerContext *p,
     }
     GNUNET_free (filename);
   }
-  p->core = GNUNET_CORE_connecT (p->cfg,
+  p->core = GNUNET_CORE_connect (p->cfg,
 				 NULL,
 				 NULL,
 				 NULL,
@@ -567,13 +567,6 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
                     "WARNING",
                     NULL);
-#if !WINDOWS
-  system ("gnunet-peerinfo -s -c test_learning_adv_peer.conf > /dev/null");
-  system ("gnunet-peerinfo -s -c test_learning_learn_peer.conf > /dev/null");
-#else
-  system ("gnunet-peerinfo -s -c test_learning_adv_peer.conf > NUL");
-  system ("gnunet-peerinfo -s -c test_learning_learn_peer.conf > NUL");
-#endif
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");

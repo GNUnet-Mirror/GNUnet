@@ -256,7 +256,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   h->response_proc = &process_status_message;
   h->cfg = cfg;
   h->key = *session_key;
-  h->mq = GNUNET_CLIENT_connecT (cfg,
+  h->mq = GNUNET_CLIENT_connect (cfg,
                                  "scalarproduct-bob",
                                  handlers,
                                  &mq_error_handler,
@@ -408,7 +408,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   if (GNUNET_SYSERR == check_unique (elements,
                                      element_count))
     return NULL;
-  h->mq = GNUNET_CLIENT_connecT (cfg,
+  h->mq = GNUNET_CLIENT_connect (cfg,
                                  "scalarproduct-alice",
                                  handlers,
                                  &mq_error_handler,

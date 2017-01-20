@@ -283,7 +283,7 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
   GNUNET_assert (NULL == handle->mq);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to CREDENTIAL\n");
-  handle->mq = GNUNET_CLIENT_connecT (handle->cfg,
+  handle->mq = GNUNET_CLIENT_connect (handle->cfg,
                                       "credential",
                                       handlers,
                                       &mq_error_handler,

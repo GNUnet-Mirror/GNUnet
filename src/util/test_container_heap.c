@@ -28,7 +28,8 @@
 #include "gnunet_util_lib.h"
 
 static int
-iterator_callback (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
+iterator_callback (void *cls,
+                   struct GNUNET_CONTAINER_HeapNode *node,
                    void *element, GNUNET_CONTAINER_HeapCostType cost)
 {
   return GNUNET_OK;
@@ -93,12 +94,12 @@ check ()
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
 
   n3 = GNUNET_CONTAINER_heap_insert (myHeap, "15", 5);
-  GNUNET_CONTAINER_heap_update_cost (myHeap, n3, 15);
+  GNUNET_CONTAINER_heap_update_cost (n3, 15);
   GNUNET_assert (2 == GNUNET_CONTAINER_heap_get_size (myHeap));
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
 
   n4 = GNUNET_CONTAINER_heap_insert (myHeap, "50", 50);
-  GNUNET_CONTAINER_heap_update_cost (myHeap, n4, 50);
+  GNUNET_CONTAINER_heap_update_cost (n4, 50);
   GNUNET_assert (3 == GNUNET_CONTAINER_heap_get_size (myHeap));
   GNUNET_CONTAINER_heap_iterate (myHeap, &iterator_callback, NULL);
 
@@ -109,7 +110,7 @@ check ()
   r = GNUNET_CONTAINER_heap_remove_root (myHeap);       /* n1 */
   GNUNET_assert (NULL != r);
   GNUNET_assert (0 == strcmp ("11", r));
-  GNUNET_CONTAINER_heap_update_cost (myHeap, n6, 200);
+  GNUNET_CONTAINER_heap_update_cost (n6, 200);
   GNUNET_CONTAINER_heap_remove_node (n3);
   r = GNUNET_CONTAINER_heap_remove_root (myHeap);       /* n4 */
   GNUNET_assert (NULL != r);
@@ -128,7 +129,7 @@ check ()
   myHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
 
   n1 = GNUNET_CONTAINER_heap_insert (myHeap, "10", 10);
-  GNUNET_CONTAINER_heap_update_cost (myHeap, n1, 15);
+  GNUNET_CONTAINER_heap_update_cost (n1, 15);
 
   r = GNUNET_CONTAINER_heap_remove_node (n1);
   GNUNET_assert (NULL != r);
@@ -213,7 +214,7 @@ check ()
   myHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
 
   n1 = GNUNET_CONTAINER_heap_insert (myHeap, "10", 10);
-  GNUNET_CONTAINER_heap_update_cost (myHeap, n1, 15);
+  GNUNET_CONTAINER_heap_update_cost (n1, 15);
 
   GNUNET_assert (0 == nstrcmp ("10", GNUNET_CONTAINER_heap_remove_node (n1)));
 

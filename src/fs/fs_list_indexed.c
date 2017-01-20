@@ -185,7 +185,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
-  gic->mq = GNUNET_CLIENT_connecT (h->cfg,
+  gic->mq = GNUNET_CLIENT_connect (h->cfg,
                                    "fs",
                                    handlers,
                                    &mq_error_handler,

@@ -29,6 +29,7 @@
 #include "gnunet_util_lib.h"
 
 
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -111,10 +112,9 @@ struct GNUNET_NAT_RegisterMessage
 
   /**
    * Number of bytes in the string that follow which
-   * specify the hostname and port of a manually punched
-   * hole for this client.
+   * specifies a section name in the configuration.
    */
-  uint16_t hole_external_len GNUNET_PACKED;
+  uint16_t str_len GNUNET_PACKED;
 
   /**
    * Number of addresses that this service is bound to that follow.
@@ -126,8 +126,7 @@ struct GNUNET_NAT_RegisterMessage
   /* Followed by @e num_addrs addresses of type 'struct
      sockaddr' */
 
-  /* Followed by @e hole_external_len bytes giving a hostname
-     and port */
+  /* Followed by @e str_len section name to use for options */
   
 };
 
@@ -222,45 +221,6 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
   uint32_t addr_class GNUNET_PACKED;
   /* followed by a `struct sockaddr` */
   
-};
-
-
-/**
- * Client requesting automatic configuration.
- */
-struct GNUNET_NAT_AutoconfigRequestMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG
-   */
-  struct GNUNET_MessageHeader header;
-
-  /* Followed by configuration (diff, serialized, compressed) */
-  
-};
-
-
-/**
- * Service responding with proposed configuration.
- */
-struct GNUNET_NAT_AutoconfigResultMessage
-{
-  /**
-   * Header with type #GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-  
-  /**
-   * An `enum GNUNET_NAT_StatusCode` in NBO.
-   */
-  int32_t status_code GNUNET_PACKED;
-
-  /**
-   * An `enum GNUNET_NAT_Type` in NBO.
-   */
-  int32_t type GNUNET_PACKED;
-
-  /* Followed by configuration (diff, serialized, compressed) */
 };
 
 

@@ -8,6 +8,7 @@ if HAVE_TESTING
  TESTBED = testbed-logger testbed
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
+ ATS_TESTS = ats-tests
 endif
 
 if HAVE_EXPERIMENTAL
@@ -59,6 +60,10 @@ if HAVE_JSON
 endif
 endif
 
+if HAVE_JSON
+  AUCTION_DIR = auction
+endif
+
 if TALER_ONLY
 SUBDIRS = \
  include \
@@ -85,13 +90,14 @@ SUBDIRS = \
   template \
   ats \
   nat \
+  nat-auto \
   fragmentation \
   transport \
   ats-tool \
   peerinfo-tool \
   core \
   $(TESTBED) \
-  ats-tests \
+  $(ATS_TESTS) \
   nse \
   dht \
   hostlist \
@@ -110,6 +116,7 @@ SUBDIRS = \
   vpn \
   gns \
 	credential \
+  zonemaster \
   $(CONVERSATION_DIR) \
   fs \
   exit \
@@ -120,6 +127,7 @@ SUBDIRS = \
   psycstore \
   psyc \
   social \
+  $(AUCTION_DIR) \
   $(EXP_DIR) \
   $(PROVIDER_DIR)
 

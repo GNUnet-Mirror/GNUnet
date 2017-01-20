@@ -38,7 +38,17 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 [transport-tcp]
 # Use 0 to ONLY advertise as a peer behind NAT (no port binding)
 PORT = 2086
+
+# Obsolete option, to be replaced by HOLE_EXTERNAL (soon)
 ADVERTISED_PORT = 2086
+
+# If we have a manually punched NAT, what is the external IP and port?
+# Can use DNS names for DynDNS-based detection of external IP.
+# Can use IPv6 addresses ([fefc::]:PORT).
+# Use "AUTO" for the hostname to automatically detect external IP.
+# Do not set if NAT is not manually punched.
+# HOLE_EXTERNAL = AUTO:2086
+
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 # Maximum number of open TCP connections allowed
@@ -55,6 +65,9 @@ MAX_CONNECTIONS = 128
 # Enable TCP stealth?
 TCP_STEALTH = NO
 
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
+
 [transport-udp]
 # Use PORT = 0 to autodetect a port available
 PORT = 2086
@@ -68,6 +81,14 @@ BROADCAST_INTERVAL = 30 s
 # quotas.
 MAX_BPS = 1000000
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+
+# If we have a manually punched NAT, what is the external IP and port?
+# Can use DNS names for DynDNS-based detection of external IP.
+# Can use IPv6 addresses ([fefc::]:PORT).
+# Use "AUTO" for the hostname to automatically detect external IP.
+# Do not set if NAT is not manually punched.
+# HOLE_EXTERNAL = AUTO:2086
+
 
 [transport-http_client]
 MAX_CONNECTIONS = 128
@@ -92,12 +113,26 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 [transport-http_server]
 #EXTERNAL_HOSTNAME = <your hostname/path>
 PORT = 1080
+
+# Obsolete option, to be replaced by HOLE_EXTERNAL (soon)
 ADVERTISED_PORT = 1080
+
+# If we have a manually punched NAT, what is the external IP and port?
+# Can use DNS names for DynDNS-based detection of external IP.
+# Can use IPv6 addresses ([fefc::]:PORT).
+# Use "AUTO" for the hostname to automatically detect external IP.
+# Do not set if NAT is not manually punched.
+# HOLE_EXTERNAL = AUTO:2086
+
+
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 # Enable TCP stealth?
 TCP_STEALTH = NO
+
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
 
 [transport-https_client]
 MAX_CONNECTIONS = 128
@@ -130,7 +165,17 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 # Does the external hostname use the same port?
 # EXTERNAL_HOSTNAME_USE_PORT = YES
 PORT = 4433
+
+# Obsolete option, to be replaced by HOLE_EXTERNAL (soon)
 ADVERTISED_PORT = 4433
+
+# If we have a manually punched NAT, what is the external IP and port?
+# Can use DNS names for DynDNS-based detection of external IP.
+# Can use IPv6 addresses ([fefc::]:PORT).
+# Use "AUTO" for the hostname to automatically detect external IP.
+# Do not set if NAT is not manually punched.
+# HOLE_EXTERNAL = AUTO:2086
+
 CRYPTO_INIT = NORMAL
 KEY_FILE = $GNUNET_DATA_HOME/transport/https.key
 CERT_FILE = $GNUNET_DATA_HOME/transport/https.cert
@@ -139,6 +184,10 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 # Enable TCP stealth?
 TCP_STEALTH = NO
+
+# Configuration for manually punched holes in NAT.
+# HOLE_EXTERNAL = auto:2086
+
 
 [transport-wlan]
 # Name of the interface in monitor mode (typically monX)

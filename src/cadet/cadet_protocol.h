@@ -56,12 +56,12 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message for cadet connection creation.
  */
-struct GNUNET_CADET_ConnectionCreate
+struct GNUNET_CADET_ConnectionCreateMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
    *
-   * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
+   * Size: sizeof (struct GNUNET_CADET_ConnectionCreateMessage) +
    *       path_length * sizeof (struct GNUNET_PeerIdentity)
    */
   struct GNUNET_MessageHeader header;
@@ -70,11 +70,11 @@ struct GNUNET_CADET_ConnectionCreate
    * For alignment.
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * ID of the connection
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * path_length structs defining the *whole* path from the origin [0] to the
@@ -87,10 +87,10 @@ struct GNUNET_CADET_ConnectionCreate
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_CADET_ConnectionACK
+struct GNUNET_CADET_ConnectionCreateMessageAckMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
    */
   struct GNUNET_MessageHeader header;
 
@@ -102,7 +102,7 @@ struct GNUNET_CADET_ConnectionACK
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
 };
 
@@ -110,10 +110,10 @@ struct GNUNET_CADET_ConnectionACK
 /**
  * Message for notifying a disconnection in a path
  */
-struct GNUNET_CADET_ConnectionBroken
+struct GNUNET_CADET_ConnectionBrokenMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN.
    */
   struct GNUNET_MessageHeader header;
 
@@ -125,7 +125,7 @@ struct GNUNET_CADET_ConnectionBroken
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * ID of the endpoint
@@ -142,7 +142,7 @@ struct GNUNET_CADET_ConnectionBroken
 /**
  * Message to destroy a connection.
  */
-struct GNUNET_CADET_ConnectionDestroy
+struct GNUNET_CADET_ConnectionDestroyMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
@@ -157,59 +157,30 @@ struct GNUNET_CADET_ConnectionDestroy
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 };
-
-
-/**
- * Message to acknowledge cadet encrypted traffic.
- */
-struct GNUNET_CADET_ACK
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_ACK
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Maximum packet ID authorized.
-   */
-  uint32_t ack GNUNET_PACKED;
-
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_CADET_Hash cid;
-};
-
-
-/**
- * Message to query a peer about its Flow Control status regarding a tunnel.
- */
-struct GNUNET_CADET_Poll
-{
-  /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_POLL
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Last packet sent.
-   */
-  uint32_t pid GNUNET_PACKED;
-
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_CADET_Hash cid;
-
-};
-
 
 
 /******************************************************************************/
 /*******************************   TUNNEL   ***********************************/
 /******************************************************************************/
+
+/**
+ * Unique identifier (counter) for an encrypted message in a channel.
+ * Used to match #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK
+ * and  #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL messages
+ * against the respective  #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED
+ * messages.
+ */
+struct CadetEncryptedMessageIdentifier
+{
+  /**
+   * This number is incremented by one per message. It may wrap around.
+   * In network byte order.
+   */
+  uint32_t pid GNUNET_PACKED;
+};
+
 
 /**
  * Flags to be used in GNUNET_CADET_KX.
@@ -231,10 +202,10 @@ enum GNUNET_CADET_KX_Flags {
 /**
  * Message for a Key eXchange for a tunnel.
  */
-struct GNUNET_CADET_KX
+struct GNUNET_CADET_TunnelKeyExchangeMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_KX.
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX.
    */
   struct GNUNET_MessageHeader header;
 
@@ -247,7 +218,7 @@ struct GNUNET_CADET_KX
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * Sender's ephemeral public ECC key encoded in a
@@ -262,35 +233,42 @@ struct GNUNET_CADET_KX
    * using 'gcry_sexp_sprint'.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ratchet_key;
+
+#ifdef NEW_CADET
+  /**
+   * Proof that sender could compute the 3-DH, in lieu of a signature.
+   */
+  struct GNUNET_HashCode triple_dh_proof;
+#endif
 };
 
 
 /**
  * Axolotl tunnel message.
  */
-struct GNUNET_CADET_Encrypted
+struct GNUNET_CADET_TunnelEncryptedMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the packet (hop by hop).
    */
-  uint32_t pid GNUNET_PACKED;
+  struct CadetEncryptedMessageIdentifier cemi;
 
   /**
    * ID of the connection.
    */
-  struct GNUNET_CADET_Hash cid;
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 
   /**
    * MAC of the encrypted message, used to verify message integrity.
    * Everything after this value  will be encrypted with the header key
    * and authenticated.
    */
-  struct GNUNET_CADET_Hash hmac;
+  struct GNUNET_ShortHashCode hmac;
 
   /**************** AX_HEADER start ****************/
 
@@ -317,18 +295,69 @@ struct GNUNET_CADET_Encrypted
 };
 
 
+/**
+ * Message to query a peer about its Flow Control status regarding a tunnel.
+ *
+ * It is NOT yet clear if we need this.
+ */
+struct GNUNET_CADET_ConnectionHopByHopPollMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Last packet sent.
+   */
+  struct CadetEncryptedMessageIdentifier cemi;
+
+  /**
+   * ID of the connection.
+   */
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
+
+};
+
+
+/**
+ * Message to acknowledge cadet encrypted traffic, used for
+ * flow-control on a hop-by-hop basis on the connection-level. Note
+ * that we do use the @e cemi from the tunnel layer as the connection
+ * layer's header is included/shared with the tunnel layer messages,
+ * and we only do flow control for the payload.
+ */
+struct GNUNET_CADET_ConnectionEncryptedAckMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Maximum packet ID authorized.
+   */
+  struct CadetEncryptedMessageIdentifier cemi;
+
+  /**
+   * ID of the connection.
+   */
+  struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
+};
+
 
 /******************************************************************************/
 /*******************************   CHANNEL  ***********************************/
 /******************************************************************************/
 
+
 /**
  * Message to create a Channel.
  */
-struct GNUNET_CADET_ChannelCreate
+struct GNUNET_CADET_ChannelOpenMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN
    */
   struct GNUNET_MessageHeader header;
 
@@ -343,33 +372,42 @@ struct GNUNET_CADET_ChannelCreate
   struct GNUNET_HashCode port;
 
   /**
-   * ID of the channel
+   * ID of the channel within the tunnel.
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 };
 
 
 /**
  * Message to manage a Channel (ACK, NACK, Destroy).
  */
-struct GNUNET_CADET_ChannelManage
+struct GNUNET_CADET_ChannelManageMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
    */
   struct GNUNET_MessageHeader header;
 
+#ifdef NEW_CADET
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+#endif
+
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 };
 
+
+#ifndef NEW_CADET
 
 /**
  * Message for cadet data traffic.
  */
-struct GNUNET_CADET_Data
+struct GNUNET_CADET_ChannelAppDataMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
@@ -380,12 +418,13 @@ struct GNUNET_CADET_Data
   /**
    * Unique ID of the payload message
    */
+  /* NEW: struct ChannelMessageIdentifier */
   uint32_t mid GNUNET_PACKED;
 
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
   /**
    * Payload follows
@@ -396,17 +435,17 @@ struct GNUNET_CADET_Data
 /**
  * Message to acknowledge end-to-end data.
  */
-struct GNUNET_CADET_DataACK
+struct GNUNET_CADET_ChannelDataAckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_DATA_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the channel
    */
-  CADET_ChannelNumber chid GNUNET_PACKED;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
   /**
    * Bitfield of already-received newer messages
@@ -418,10 +457,82 @@ struct GNUNET_CADET_DataACK
   /**
    * Last message ID received.
    */
+  /* NEW: struct ChannelMessageIdentifier */
+  uint32_t mid GNUNET_PACKED;
+};
+
+#else
+
+
+/**
+ * Number used to uniquely identify messages in a CADET Channel.
+ */
+struct ChannelMessageIdentifier
+{
+  /**
+   * Unique ID of the message, cycles around, in NBO.
+   */
   uint32_t mid GNUNET_PACKED;
 };
 
 
+/**
+ * Message for cadet data traffic.
+ */
+struct GNUNET_CADET_ChannelAppDataMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
+   *       #GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID of the payload message.
+   */
+  struct ChannelMessageIdentifier mid;
+
+  /**
+   * ID of the channel
+   */
+  struct GNUNET_CADET_ChannelTunnelNumber gid;
+
+  /**
+   * Payload follows
+   */
+};
+
+
+/**
+ * Message to acknowledge end-to-end data.
+ */
+struct GNUNET_CADET_ChannelDataAckMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the channel
+   */
+  struct GNUNET_CADET_ChannelTunnelNumber gid;
+
+  /**
+   * Bitfield of already-received messages past @e mid.
+   * pid +  1 @ LSB
+   * pid + 64 @ MSB
+   */
+  uint64_t futures GNUNET_PACKED;
+
+  /**
+   * Last message ID received.
+   */
+  struct ChannelMessageIdentifier mid;
+};
+
+
+#endif
 
 GNUNET_NETWORK_STRUCT_END
 

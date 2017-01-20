@@ -348,7 +348,7 @@ do_connect (struct GNUNET_PSYCSTORE_Handle *h)
 
   h->op = GNUNET_OP_create ();
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg, "psycstore",
+  h->mq = GNUNET_CLIENT_connect (h->cfg, "psycstore",
                                  handlers, disconnected, h);
   GNUNET_assert (NULL != h->mq);
 }

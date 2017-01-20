@@ -217,7 +217,7 @@ reconnect (void *cls)
   struct GNUNET_DNS_Register *msg;
 
   dh->reconnect_task = NULL;
-  dh->mq = GNUNET_CLIENT_connecT (dh->cfg,
+  dh->mq = GNUNET_CLIENT_connect (dh->cfg,
                                   "dns",
                                   handlers,
                                   &mq_error_handler,

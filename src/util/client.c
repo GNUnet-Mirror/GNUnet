@@ -213,9 +213,6 @@ start_connect (void *cls);
 static void
 connect_fail_continuation (struct ClientState *cstate)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Failed to establish connection to `%s', no further addresses to try.\n",
-       cstate->service_name);
   GNUNET_break (NULL == cstate->ap_head);
   GNUNET_break (NULL == cstate->ap_tail);
   GNUNET_break (NULL == cstate->dns_active);
@@ -225,6 +222,11 @@ connect_fail_continuation (struct ClientState *cstate)
   // GNUNET_assert (NULL == cstate->proxy_handshake);
 
   cstate->back_off = GNUNET_TIME_STD_BACKOFF (cstate->back_off);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Failed to establish connection to `%s', no further addresses to try, will try again in %s.\n",
+       cstate->service_name,
+       GNUNET_STRINGS_relative_time_to_string (cstate->back_off,
+                                               GNUNET_YES));
   cstate->retry_task
     = GNUNET_SCHEDULER_add_delayed (cstate->back_off,
                                     &start_connect,
@@ -271,7 +273,7 @@ transmit_ready (void *cls)
                                         cstate->sock,
                                         &transmit_ready,
                                         cstate);
-    if (notify_in_flight) 
+    if (notify_in_flight)
       GNUNET_MQ_impl_send_in_flight (cstate->mq);
     return;
   }
@@ -583,7 +585,7 @@ try_connect_using_address (void *cls,
 {
   struct ClientState *cstate = cls;
   struct AddressProbe *ap;
-  
+
   if (NULL == addr)
   {
     cstate->dns_active = NULL;
@@ -739,7 +741,7 @@ start_connect (void *cls)
     {
       connect_success_continuation (cstate);
       return;
-    }    
+    }
   }
   if ( (NULL == cstate->hostname) ||
        (0 == cstate->port) )
@@ -821,7 +823,7 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       const char *service_name,
 		       const struct GNUNET_MQ_MessageHandler *handlers,
 		       GNUNET_MQ_ErrorHandler error_handler,

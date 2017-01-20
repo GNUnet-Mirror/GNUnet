@@ -291,7 +291,7 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch);
  * @return channel handler, NULL if doesn't exist
  */
 struct CadetChannel *
-GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
+GCT_get_channel (struct CadetTunnel *t, struct GNUNET_CADET_ChannelTunnelNumber chid);
 
 
 /**
@@ -304,7 +304,7 @@ GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_CADET_Encrypted *msg);
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 
 /**
@@ -315,7 +315,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
  */
 void
 GCT_handle_kx (struct CadetTunnel *t,
-               const struct GNUNET_CADET_KX *msg);
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
 
 
 /**
@@ -427,7 +427,7 @@ GCT_get_destination (struct CadetTunnel *t);
  *
  * @return ID of a channel free to use.
  */
-CADET_ChannelNumber
+struct GNUNET_CADET_ChannelTunnelNumber
 GCT_get_next_chid (struct CadetTunnel *t);
 
 

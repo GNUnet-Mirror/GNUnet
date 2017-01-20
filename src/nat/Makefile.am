@@ -34,19 +34,12 @@ install-exec-hook:
 endif
 
 bin_PROGRAMS = \
- gnunet-nat-server \
  gnunet-nat
 
 libexec_PROGRAMS = \
  $(NATBIN) \
  gnunet-service-nat
 
-
-gnunet_nat_server_SOURCES = \
- gnunet-nat-server.c nat.h
-gnunet_nat_server_LDADD = \
-  libgnunetnat.la \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)
@@ -67,26 +60,11 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libgnunetnat.la \
   libgnunetnatnew.la 
-
-libgnunetnat_la_SOURCES = \
-  nat.c nat.h \
-  nat_auto.c \
-  nat_test.c \
-  nat_mini.c \
-  nat_stun.c
-libgnunetnat_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) @EXT_LIBS@ 
-libgnunetnat_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 1:1:1
 
 libgnunetnatnew_la_SOURCES = \
   nat_api.c \
   nat_api_stun.c nat_stun.h \
-  nat_api_test.c \
   nat.h
 libgnunetnatnew_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -96,7 +74,8 @@ libgnunetnatnew_la_LDFLAGS = \
   -version-info 2:0:0
 
 gnunet_service_nat_SOURCES = \
- gnunet-service-nat.c \
+ gnunet-service-nat.c gnunet-service-nat.h \
+ gnunet-service-nat_externalip.c gnunet-service-nat_externalip.h \
  gnunet-service-nat_stun.c gnunet-service-nat_stun.h \
  gnunet-service-nat_mini.c gnunet-service-nat_mini.h \
  gnunet-service-nat_helper.c gnunet-service-nat_helper.h
@@ -107,40 +86,40 @@ gnunet_service_nat_LDADD = \
   -lgcrypt \
   $(GN_LIBINTL)
 
-check_PROGRAMS = \
-  test_nat \
-  test_nat_mini \
-  test_nat_test \
-  test_stun
+#check_PROGRAMS = \
+#  test_nat \
+#  test_nat_mini \
+#  test_nat_test \
+#  test_stun
 
 if ENABLE_TEST_RUN
  AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
  TESTS = $(check_PROGRAMS)
 endif
 
-test_nat_SOURCES = \
-  test_nat.c
-test_nat_LDADD = \
- libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la 
+#test_nat_SOURCES = \
+#  test_nat.c
+#test_nat_LDADD = \
+# libgnunetnat.la \
+# $(top_builddir)/src/util/libgnunetutil.la 
 
-test_nat_mini_SOURCES = \
-  test_nat_mini.c
-test_nat_mini_LDADD = \
- libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la 
+#test_nat_mini_SOURCES = \
+#  test_nat_mini.c
+#test_nat_mini_LDADD = \
+# libgnunetnat.la \
+# $(top_builddir)/src/util/libgnunetutil.la 
 
-test_nat_test_SOURCES = \
-  test_nat_test.c
-test_nat_test_LDADD = \
- libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la 
+#test_nat_test_SOURCES = \
+#  test_nat_test.c
+#test_nat_test_LDADD = \
+# libgnunetnat.la \
+# $(top_builddir)/src/util/libgnunetutil.la 
 
-test_stun_SOURCES = \
-  test_stun.c
-test_stun_LDADD = \
- libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la 
+#test_stun_SOURCES = \
+#  test_stun.c
+#test_stun_LDADD = \
+# libgnunetnat.la \
+# $(top_builddir)/src/util/libgnunetutil.la 
 
 EXTRA_DIST = \
  test_nat_data.conf \

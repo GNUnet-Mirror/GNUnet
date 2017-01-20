@@ -586,7 +586,7 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
 
   set->cfg = cfg;
-  set->mq = GNUNET_CLIENT_connecT (cfg,
+  set->mq = GNUNET_CLIENT_connect (cfg,
                                    "set",
                                    mq_handlers,
                                    &handle_client_set_error,
@@ -914,7 +914,7 @@ listen_connect (void *cls)
 
   lh->reconnect_task = NULL;
   GNUNET_assert (NULL == lh->mq);
-  lh->mq = GNUNET_CLIENT_connecT (lh->cfg,
+  lh->mq = GNUNET_CLIENT_connect (lh->cfg,
                                   "set",
                                   mq_handlers,
                                   &handle_client_listener_error,

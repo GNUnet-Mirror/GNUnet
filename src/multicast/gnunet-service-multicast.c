@@ -710,15 +710,19 @@ cadet_notify_transmit_ready (void *cls, size_t buf_size, void *buf)
 static void
 cadet_send_channel (struct Channel *chn, const struct GNUNET_MessageHeader *msg)
 {
+  uint16_t msg_size = ntohs (msg->size);
+  struct GNUNET_MessageHeader *msg_copy = GNUNET_malloc (msg_size);
+  GNUNET_memcpy (msg_copy, msg, msg_size);
+
   struct CadetTransmitClosure *tcls = GNUNET_malloc (sizeof (*tcls));
   tcls->chn = chn;
-  tcls->msg = msg;
+  tcls->msg = msg_copy;
 
   chn->msgs_pending++;
   chn->tmit_handle
     = GNUNET_CADET_notify_transmit_ready (chn->channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                          ntohs (msg->size),
+                                          msg_size,
                                           &cadet_notify_transmit_ready,
                                           tcls);
   GNUNET_assert (NULL != chn->tmit_handle);
@@ -783,9 +787,21 @@ cadet_send_join_decision_cb (void *cls,
   const struct MulticastJoinDecisionMessageHeader *hdcsn = cls;
   struct Channel *chn = channel;
 
+  const struct MulticastJoinDecisionMessage *dcsn = 
+    (struct MulticastJoinDecisionMessage *) &hdcsn[1];
+
   if (0 == memcmp (&hdcsn->member_pub_key, &chn->member_pub_key, sizeof (chn->member_pub_key))
       && 0 == memcmp (&hdcsn->peer, &chn->peer, sizeof (chn->peer)))
   {
+    if (GNUNET_YES == ntohl (dcsn->is_admitted))
+    {
+      chn->join_status = JOIN_ADMITTED;
+    }
+    else
+    {
+      chn->join_status = JOIN_REFUSED;
+    }
+
     cadet_send_channel (chn, &hdcsn->header);
     return GNUNET_NO;
   }
@@ -1019,6 +1035,7 @@ handle_client_member_join (void *cls,
   if (NULL == mem)
   {
     mem = GNUNET_new (struct Member);
+    mem->origin = msg->origin;
     mem->priv_key = msg->member_key;
     mem->pub_key = mem_pub_key;
     mem->pub_key_hash = mem_pub_key_hash;
@@ -1083,9 +1100,10 @@ handle_client_member_join (void *cls,
       join_msg_size = ntohs (join_msg->size);
     }
 
+    uint16_t req_msg_size = sizeof (struct MulticastJoinRequestMessage) + join_msg_size;
     struct MulticastJoinRequestMessage *
-      req = GNUNET_malloc (sizeof (*req) + join_msg_size);
-    req->header.size = htons (sizeof (*req) + join_msg_size);
+      req = GNUNET_malloc (req_msg_size);
+    req->header.size = htons (req_msg_size);
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_pub_key = grp->pub_key;
     req->peer = this_peer;
@@ -1094,7 +1112,7 @@ handle_client_member_join (void *cls,
       GNUNET_memcpy (&req[1], join_msg, join_msg_size);
 
     req->member_pub_key = mem->pub_key;
-    req->purpose.size = htonl (msg_size
+    req->purpose.size = htonl (req_msg_size
                                - sizeof (req->header)
                                - sizeof (req->reserved)
                                - sizeof (req->signature));
@@ -1534,6 +1552,7 @@ cadet_recv_join_request (void *cls,
                          void **ctx,
                          const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done(channel);
   const struct MulticastJoinRequestMessage *
     req = (const struct MulticastJoinRequestMessage *) m;
   uint16_t size = ntohs (m->size);
@@ -1576,6 +1595,7 @@ cadet_recv_join_request (void *cls,
   chn->join_status = JOIN_WAITING;
   GNUNET_CONTAINER_multihashmap_put (channels_in, &chn->group_pub_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  *ctx = chn;
 
   client_send_all (&group_pub_hash, m);
   return GNUNET_OK;
@@ -1591,10 +1611,14 @@ cadet_recv_join_decision (void *cls,
                           void **ctx,
                           const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done (channel);
+  const struct MulticastJoinDecisionMessageHeader *
+    hdcsn = (const struct MulticastJoinDecisionMessageHeader *) m;
   const struct MulticastJoinDecisionMessage *
-    dcsn = (const struct MulticastJoinDecisionMessage *) m;
+    dcsn = (const struct MulticastJoinDecisionMessage *) &hdcsn[1];
   uint16_t size = ntohs (m->size);
-  if (size < sizeof (*dcsn))
+  if (size < sizeof (struct MulticastJoinDecisionMessageHeader) +
+             sizeof (struct MulticastJoinDecisionMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1623,15 +1647,10 @@ cadet_recv_join_decision (void *cls,
     break;
   }
 
-  struct MulticastJoinDecisionMessageHeader *
-    hdcsn = GNUNET_malloc (sizeof (*hdcsn) + size);
-  hdcsn->peer = chn->peer;
-  GNUNET_memcpy (&hdcsn[1], dcsn, sizeof (*hdcsn) + size);
-
+  // FIXME: do we need to copy chn->peer or compare it with hdcsn->peer?
   struct Member *mem = (struct Member *) chn->group;
   client_send_join_decision (mem, hdcsn);
-  GNUNET_free (hdcsn);
-  if (GNUNET_YES == ntohs (dcsn->is_admitted))
+  if (GNUNET_YES == ntohl (dcsn->is_admitted))
   {
     chn->join_status = JOIN_ADMITTED;
     return GNUNET_OK;
@@ -1652,6 +1671,7 @@ cadet_recv_message (void *cls,
                     void **ctx,
                     const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done(channel);
   const struct GNUNET_MULTICAST_MessageHeader *
     msg = (const struct GNUNET_MULTICAST_MessageHeader *) m;
   uint16_t size = ntohs (m->size);
@@ -1697,6 +1717,7 @@ cadet_recv_request (void *cls,
                     void **ctx,
                     const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done(channel);
   const struct GNUNET_MULTICAST_RequestHeader *
     req = (const struct GNUNET_MULTICAST_RequestHeader *) m;
   uint16_t size = ntohs (m->size);
@@ -1742,6 +1763,7 @@ cadet_recv_replay_request (void *cls,
                            void **ctx,
                            const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done(channel);
   struct MulticastReplayRequestMessage rep;
   uint16_t size = ntohs (m->size);
   if (size < sizeof (rep))
@@ -1784,6 +1806,7 @@ cadet_recv_replay_response (void *cls,
                             void **ctx,
                             const struct GNUNET_MessageHeader *m)
 {
+  GNUNET_CADET_receive_done(channel);
   //struct Channel *chn = *ctx;
 
   /* @todo FIXME: got replay error response, send request to other members */
@@ -1881,6 +1904,9 @@ client_notify_disconnect (void *cls,
 static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
   { cadet_recv_join_request,
     GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST, 0 },
+
+  { cadet_recv_join_decision,
+    GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION, 0 },
 
   { cadet_recv_message,
     GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },

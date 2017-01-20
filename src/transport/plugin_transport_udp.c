@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet
- Copyright (C) 2010-2015 GNUnet e.V.
+ Copyright (C) 2010-2017 GNUnet e.V.
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -30,7 +30,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fragmentation_lib.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_signatures.h"
@@ -1245,31 +1245,48 @@ udp_plugin_check_address (void *cls,
 
   if (sizeof(struct IPv4UdpAddress) == addrlen)
   {
+    struct sockaddr_in s4;
+
     v4 = (const struct IPv4UdpAddress *) addr;
     if (GNUNET_OK != check_port (plugin,
                                  ntohs (v4->u4_port)))
       return GNUNET_SYSERR;
+    memset (&s4, 0, sizeof (s4));
+    s4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (s4);
+#endif
+    s4.sin_port = v4->u4_port;
+    s4.sin_addr.s_addr = v4->ipv4_addr;
+
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v4->ipv4_addr,
-                                 sizeof (struct in_addr)))
+	GNUNET_NAT_test_address (plugin->nat,
+				 &s4,
+				 sizeof (struct sockaddr_in)))
       return GNUNET_SYSERR;
   }
   else if (sizeof(struct IPv6UdpAddress) == addrlen)
   {
+    struct sockaddr_in6 s6;
+
     v6 = (const struct IPv6UdpAddress *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-    if (GNUNET_OK != check_port (plugin,
-                                 ntohs (v6->u6_port)))
-      return GNUNET_SYSERR;
+    memset (&s6, 0, sizeof (s6));
+    s6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (s6);
+#endif
+    s6.sin6_port = v6->u6_port;
+    s6.sin6_addr = v6->ipv6_addr;
+
     if (GNUNET_OK !=
-        GNUNET_NAT_test_address (plugin->nat,
-                                 &v6->ipv6_addr,
-                                 sizeof (struct in6_addr)))
+	GNUNET_NAT_test_address (plugin->nat,
+				 &s6,
+				 sizeof(struct sockaddr_in6)))
       return GNUNET_SYSERR;
   }
   else
@@ -1287,12 +1304,14 @@ udp_plugin_check_address (void *cls,
  * @param cls closure, the `struct Plugin`
  * @param add_remove #GNUNET_YES to mean the new public IP address,
  *                   #GNUNET_NO to mean the previous (now invalid) one
+ * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
  */
 static void
 udp_nat_port_map_callback (void *cls,
                            int add_remove,
+			   enum GNUNET_NAT_AddressClass ac,
                            const struct sockaddr *addr,
                            socklen_t addrlen)
 {
@@ -1359,6 +1378,7 @@ udp_nat_port_map_callback (void *cls,
     return;
   }
   /* modify our published address list */
+  /* TODO: use 'ac' here in the future... */
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
                                            PLUGIN_NAME,
                                            arg,
@@ -3032,8 +3052,7 @@ read_process_fragment (struct Plugin *plugin,
                                           msg))
   {
     /* keep this 'rc' from expiring */
-    GNUNET_CONTAINER_heap_update_cost (plugin->defrag_ctxs,
-                                       d_ctx->hnode,
+    GNUNET_CONTAINER_heap_update_cost (d_ctx->hnode,
                                        (GNUNET_CONTAINER_HeapCostType) now.abs_value_us);
   }
   if (GNUNET_CONTAINER_heap_get_size (plugin->defrag_ctxs) >
@@ -3082,7 +3101,7 @@ udp_select_read (struct Plugin *plugin,
           sizeof(addr));
   size = GNUNET_NETWORK_socket_recvfrom (rsock,
                                          buf,
-                                         sizeof(buf),
+                                         sizeof (buf),
                                          (struct sockaddr *) &addr,
                                          &fromlen);
   sa = (const struct sockaddr *) &addr;
@@ -3111,9 +3130,12 @@ udp_select_read (struct Plugin *plugin,
   }
 
   /* Check if this is a STUN packet */
-  if (GNUNET_NAT_is_valid_stun_packet (plugin->nat,
-                                       (uint8_t *)buf,
-                                       size))
+  if (GNUNET_NO !=
+      GNUNET_NAT_stun_handle_packet (plugin->nat,
+				     (const struct sockaddr *) &addr,
+				     fromlen,
+				     buf,
+				     size))
     return; /* was STUN, do not process further */
 
   if (size < sizeof(struct GNUNET_MessageHeader))
@@ -3516,7 +3538,7 @@ udp_plugin_select_v4 (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-  
+
   plugin->select_task_v4 = NULL;
   if (NULL == plugin->sockv4)
     return;
@@ -3572,13 +3594,13 @@ udp_plugin_select_v6 (void *cls)
  * @param bind_v4 IPv4 address to bind to (can be NULL, for 'any')
  * @return number of sockets that were successfully bound
  */
-static int
+static unsigned int
 setup_sockets (struct Plugin *plugin,
                const struct sockaddr_in6 *bind_v6,
                const struct sockaddr_in *bind_v4)
 {
   int tries;
-  int sockets_created = 0;
+  unsigned int sockets_created = 0;
   struct sockaddr_in6 server_addrv6;
   struct sockaddr_in server_addrv4;
   const struct sockaddr *server_addr;
@@ -3788,15 +3810,14 @@ setup_sockets (struct Plugin *plugin,
   schedule_select_v4 (plugin);
   schedule_select_v6 (plugin);
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
-                                     GNUNET_NO,
-                                     plugin->port,
+				     "transport-udp",
+				     IPPROTO_UDP,
                                      sockets_created,
                                      addrs,
                                      addrlens,
                                      &udp_nat_port_map_callback,
                                      NULL,
-                                     plugin,
-                                     plugin->sockv4);
+                                     plugin);
   return sockets_created;
 }
 
@@ -3825,7 +3846,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct GNUNET_TIME_Relative interval;
   struct sockaddr_in server_addrv4;
   struct sockaddr_in6 server_addrv6;
-  int res;
+  unsigned int res;
   int have_bind4;
   int have_bind6;
 

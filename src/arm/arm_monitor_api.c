@@ -209,7 +209,7 @@ reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
   struct GNUNET_MQ_Envelope *env;
 
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "arm",
                                  handlers,
                                  &mq_error_handler,

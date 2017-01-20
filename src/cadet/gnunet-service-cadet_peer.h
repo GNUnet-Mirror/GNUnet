@@ -69,8 +69,12 @@ struct CadetPeerQueue;
  */
 typedef void
 (*GCP_sent) (void *cls,
-             struct CadetConnection *c, int fwd, int sent,
-             uint16_t type, uint16_t payload_type, uint32_t pid,
+             struct CadetConnection *c,
+             int fwd,
+             int sent,
+             uint16_t type,
+             uint16_t payload_type,
+             struct CadetEncryptedMessageIdentifier pid,
              size_t size,
              struct GNUNET_TIME_Relative wait);
 
@@ -122,6 +126,7 @@ GCP_shutdown (void);
 struct CadetPeer *
 GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
 
+
 /**
  * Retrieve the CadetPeer stucture associated with the peer. Optionally create
  * one and insert it in the appropriate structures if the peer is not known yet.
@@ -135,6 +140,7 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
  */
 struct CadetPeer *
 GCP_get_short (const GNUNET_PEER_Id peer, int create);
+
 
 /**
  * Try to establish a new connection to this peer (in its tunnel).
@@ -164,7 +170,7 @@ struct CadetPeerQueue *
 GCP_send (struct CadetPeer *peer,
           const struct GNUNET_MessageHeader *message,
           uint16_t payload_type,
-          uint32_t payload_id,
+          struct CadetEncryptedMessageIdentifier payload_id,
           struct CadetConnection *c,
           int fwd,
           GCP_sent cont,
@@ -440,7 +446,8 @@ GCP_iterate_paths (struct CadetPeer *peer,
  * @param cls Closure for @c iter.
  */
 void
-GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
+                 void *cls);
 
 
 /**

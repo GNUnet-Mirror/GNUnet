@@ -78,7 +78,7 @@ gnunetinclude_HEADERS = \
   gnunet_namecache_service.h \
   gnunet_namestore_plugin.h \
   gnunet_namestore_service.h \
-  gnunet_nat_lib.h \
+  gnunet_nat_auto_service.h \
   gnunet_nat_service.h \
   gnunet_nc_lib.h \
   gnunet_network_lib.h \

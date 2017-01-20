@@ -5,7 +5,6 @@ HOSTNAME = localhost
 BINARY = gnunet-service-gns
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-gns.sock
 @JAVAPORT@PORT = 2102
-USER_SERVICE = YES
 
 # Do we require users that want to access GNS to run this process
 # (usually not a good idea)
@@ -16,9 +15,6 @@ UNIX_MATCH_GID = YES
 
 # How many queries is GNS allowed to perform in the background at the same time?
 MAX_PARALLEL_BACKGROUND_QUERIES = 1000
-
-# How frequently do we try to publish our full zone?
-ZONE_PUBLISH_TIME_WINDOW = 4 h
 
 # Using caching or always ask DHT
 # USE_CACHE = YES

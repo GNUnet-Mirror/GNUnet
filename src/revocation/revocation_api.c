@@ -125,7 +125,7 @@ GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct QueryMessage *qm;
   struct GNUNET_MQ_Envelope *env;
 
-  q->mq = GNUNET_CLIENT_connecT (cfg,
+  q->mq = GNUNET_CLIENT_connect (cfg,
                                  "revocation",
                                  handlers,
                                  &query_mq_error_handler,
@@ -283,7 +283,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
 
-  h->mq = GNUNET_CLIENT_connecT (cfg,
+  h->mq = GNUNET_CLIENT_connect (cfg,
                                  "revocation",
                                  handlers,
                                  &revocation_mq_error_handler,

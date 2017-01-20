@@ -584,7 +584,7 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
     phone->mq = NULL;
   }
   phone->state = PS_REGISTER;
-  phone->mq = GNUNET_CLIENT_connecT (phone->cfg,
+  phone->mq = GNUNET_CLIENT_connect (phone->cfg,
                                      "conversation",
                                      handlers,
                                      &phone_error_handler,

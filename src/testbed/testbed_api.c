@@ -1646,7 +1646,7 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
   controller->cc_cls = cc_cls;
   controller->event_mask = event_mask;
   controller->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  controller->mq = GNUNET_CLIENT_connecT (controller->cfg,
+  controller->mq = GNUNET_CLIENT_connect (controller->cfg,
                                           "testbed",
                                           handlers,
                                           &mq_error_handler,

@@ -50,11 +50,13 @@ extern "C"
 void
 GCH_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
+
 /**
  * Shut down the hello subsystem.
  */
 void
-GCH_shutdown ();
+GCH_shutdown (void);
+
 
 /**
  * Get own hello message.
@@ -63,6 +65,7 @@ GCH_shutdown ();
  */
 const struct GNUNET_HELLO_Message *
 GCH_get_mine (void);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

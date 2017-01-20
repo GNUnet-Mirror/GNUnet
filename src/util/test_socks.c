@@ -160,7 +160,7 @@ task (void *cls)
   handlers[0].callback_cls = cls;
   handlers[1].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
-  mq = GNUNET_CLIENT_connecT (cfg,
+  mq = GNUNET_CLIENT_connect (cfg,
                               MYNAME,
                               chandlers,
                               &mq_error_handler,

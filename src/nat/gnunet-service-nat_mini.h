@@ -55,7 +55,7 @@ struct GNUNET_NAT_ExternalHandle;
  */
 struct GNUNET_NAT_ExternalHandle *
 GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
-                                   void *cb_cls);
+                                    void *cb_cls);
 
 
 /**

@@ -73,6 +73,11 @@ struct CadetPeerQueue {
     void *cont_cls;
 
     /**
+     * Task to asynchronously run the drop continuation.
+     */
+    struct GNUNET_SCHEDULER_Task *drop_task;
+
+    /**
      * Time when message was queued for sending.
      */
     struct GNUNET_TIME_Absolute queue_timestamp;
@@ -98,9 +103,9 @@ struct CadetPeerQueue {
     uint16_t payload_type;
 
     /**
-     *ID of the payload (PID, ACK #, ...).
+     * ID of the payload (PID, ACK #, ...).
      */
-    uint16_t payload_id;
+    struct CadetEncryptedMessageIdentifier payload_id;
 
     /**
      * Connection this message was sent on.
@@ -160,7 +165,7 @@ struct CadetPeer
     /**
      * Connections that go through this peer; indexed by tid.
      */
-    struct GNUNET_CONTAINER_MultiHashMap *connections;
+    struct GNUNET_CONTAINER_MultiShortmap  *connections;
 
     /**
      * Handle for core transmissions.
@@ -263,7 +268,7 @@ static int in_shutdown;
  */
 static int
 notify_broken (void *cls,
-               const struct GNUNET_HashCode *key,
+               const struct GNUNET_ShortHashCode *key,
                void *value)
 {
     struct CadetPeer *peer = cls;
@@ -368,7 +373,8 @@ core_connect_handler (void *cls,
 
     /* Create the connections hashmap */
     GNUNET_assert (NULL == neighbor->connections);
-    neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
+    neighbor->connections = GNUNET_CONTAINER_multishortmap_create (16,
+                                                                   GNUNET_YES);
     GNUNET_STATISTICS_update (stats,
                               "# peers",
                               1,
@@ -420,11 +426,11 @@ core_disconnect_handler (void *cls,
     direct_path = pop_direct_path (p);
     if (NULL != p->connections)
     {
-        GNUNET_CONTAINER_multihashmap_iterate (p->connections,
-                                               &notify_broken,
-                                               p);
-        GNUNET_CONTAINER_multihashmap_destroy (p->connections);
-        p->connections = NULL;
+      GNUNET_CONTAINER_multishortmap_iterate (p->connections,
+                                              &notify_broken,
+                                              p);
+      GNUNET_CONTAINER_multishortmap_destroy (p->connections);
+      p->connections = NULL;
     }
     GNUNET_STATISTICS_update (stats,
                               "# peers",
@@ -450,7 +456,7 @@ core_disconnect_handler (void *cls,
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
+check_create (void *cls, const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
     uint16_t size;
 
@@ -470,7 +476,7 @@ check_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
  * @param msg Message itself.
  */
 static void
-handle_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
+handle_create (void *cls, const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_create (peer, msg);
@@ -478,13 +484,13 @@ handle_create (void *cls, const struct GNUNET_CADET_ConnectionCreate *msg)
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionACK *msg)
+handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_confirm (peer, msg);
@@ -498,7 +504,7 @@ handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionACK *msg)
  * @param msg Message itself.
  */
 static void
-handle_broken (void *cls, const struct GNUNET_CADET_ConnectionBroken *msg)
+handle_broken (void *cls, const struct GNUNET_CADET_ConnectionBrokenMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_broken (peer, msg);
@@ -512,7 +518,7 @@ handle_broken (void *cls, const struct GNUNET_CADET_ConnectionBroken *msg)
  * @param msg Message itself.
  */
 static void
-handle_destroy (void *cls, const struct GNUNET_CADET_ConnectionDestroy *msg)
+handle_destroy (void *cls, const struct GNUNET_CADET_ConnectionDestroyMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_destroy (peer, msg);
@@ -520,13 +526,13 @@ handle_destroy (void *cls, const struct GNUNET_CADET_ConnectionDestroy *msg)
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ACK
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_ack (void *cls, const struct GNUNET_CADET_ACK *msg)
+handle_ack (void *cls, const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_ack (peer, msg);
@@ -534,13 +540,13 @@ handle_ack (void *cls, const struct GNUNET_CADET_ACK *msg)
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_POLL
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_poll (void *cls, const struct GNUNET_CADET_Poll *msg)
+handle_poll (void *cls, const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_poll (peer, msg);
@@ -548,13 +554,13 @@ handle_poll (void *cls, const struct GNUNET_CADET_Poll *msg)
 
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_KX
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_kx (void *cls, const struct GNUNET_CADET_KX *msg)
+handle_kx (void *cls, const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_kx (peer, msg);
@@ -570,13 +576,13 @@ handle_kx (void *cls, const struct GNUNET_CADET_KX *msg)
  * @return #GNUNET_YES if size is correct, #GNUNET_NO otherwise.
  */
 static int
-check_encrypted (void *cls, const struct GNUNET_CADET_Encrypted *msg)
+check_encrypted (void *cls, const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
     uint16_t size;
     uint16_t minimum_size;
 
     size = ntohs (msg->header.size);
-    minimum_size = sizeof (struct GNUNET_CADET_Encrypted)
+    minimum_size = sizeof (struct GNUNET_CADET_TunnelEncryptedMessage)
                    + sizeof (struct GNUNET_MessageHeader);
 
     if (size < minimum_size)
@@ -588,13 +594,13 @@ check_encrypted (void *cls, const struct GNUNET_CADET_Encrypted *msg)
 }
 
 /**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED.
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED.
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
  * @param msg Message itself.
  */
 static void
-handle_encrypted (void *cls, const struct GNUNET_CADET_Encrypted *msg)
+handle_encrypted (void *cls, const struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_encrypted (peer, msg);
@@ -618,39 +624,39 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
     struct GNUNET_MQ_MessageHandler core_handlers[] = {
         GNUNET_MQ_hd_var_size (create,
                                GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
-                               struct GNUNET_CADET_ConnectionCreate,
+                               struct GNUNET_CADET_ConnectionCreateMessage,
                                NULL),
         GNUNET_MQ_hd_fixed_size (confirm,
-                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
-                                 struct GNUNET_CADET_ConnectionACK,
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
+                                 struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (broken,
                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-                                struct GNUNET_CADET_ConnectionBroken,
+                                struct GNUNET_CADET_ConnectionBrokenMessage,
                                 NULL),
         GNUNET_MQ_hd_fixed_size (destroy,
                                  GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
-                                 struct GNUNET_CADET_ConnectionDestroy,
+                                 struct GNUNET_CADET_ConnectionDestroyMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (ack,
-                                 GNUNET_MESSAGE_TYPE_CADET_ACK,
-                                 struct GNUNET_CADET_ACK,
+                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK,
+                                 struct GNUNET_CADET_ConnectionEncryptedAckMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (poll,
-                                 GNUNET_MESSAGE_TYPE_CADET_POLL,
-                                 struct GNUNET_CADET_Poll,
+                                 GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL,
+                                 struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (kx,
-                                 GNUNET_MESSAGE_TYPE_CADET_KX,
-                                 struct GNUNET_CADET_KX,
+                                 GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,
+                                 struct GNUNET_CADET_TunnelKeyExchangeMessage,
                                  NULL),
         GNUNET_MQ_hd_var_size (encrypted,
-                               GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED,
-                               struct GNUNET_CADET_Encrypted,
+                               GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED,
+                               struct GNUNET_CADET_TunnelEncryptedMessage,
                                NULL),
         GNUNET_MQ_handler_end ()
     };
-    core_handle = GNUNET_CORE_connecT (c, NULL,
+    core_handle = GNUNET_CORE_connect (c, NULL,
                                        &core_init_notify,
                                        &core_connect_handler,
                                        &core_disconnect_handler,
@@ -681,7 +687,7 @@ core_init_notify (void *cls,
         LOG (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
         LOG (GNUNET_ERROR_TYPE_ERROR, " core id %s\n", GNUNET_i2s (core_identity));
         LOG (GNUNET_ERROR_TYPE_ERROR, " my id %s\n", GNUNET_i2s (&my_full_id));
-        GNUNET_CORE_disconnecT (core_handle);
+        GNUNET_CORE_disconnect (core_handle);
         connect_to_core (c);
         return;
     }
@@ -729,7 +735,7 @@ get_priority (struct CadetPeerQueue *q)
     }
 
     /* Bulky payload has lower priority, control traffic has higher. */
-    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type)
+    if (GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED == q->type)
         return low;
     return high;
 }
@@ -795,8 +801,8 @@ peer_destroy (struct CadetPeer *peer)
         GCT_destroy_empty (peer->tunnel);
     if (NULL != peer->connections)
     {
-        GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (peer->connections));
-        GNUNET_CONTAINER_multihashmap_destroy (peer->connections);
+        GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (peer->connections));
+        GNUNET_CONTAINER_multishortmap_destroy (peer->connections);
         peer->connections = NULL;
     }
     if (NULL != peer->hello_offer)
@@ -1053,8 +1059,8 @@ search_handler (void *cls, const struct CadetPeerPath *path)
 static int
 is_connection_management (uint16_t type)
 {
-    return type == GNUNET_MESSAGE_TYPE_CADET_ACK ||
-           type == GNUNET_MESSAGE_TYPE_CADET_POLL;
+    return type == GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK ||
+           type == GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL;
 }
 
 
@@ -1104,8 +1110,11 @@ call_peer_cont (struct CadetPeerQueue *q, int sent)
              GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
         q->cont (q->cont_cls,
                  q->c, q->c_fwd, sent,
-                 q->type, q->payload_type, q->payload_id,
+                 q->type,
+                 q->payload_type,
+                 q->payload_id,
                  q->size, wait_time);
+	q->cont = NULL;
     }
     GNUNET_CONTAINER_DLL_remove (q->peer->q_head, q->peer->q_tail, q);
 }
@@ -1131,6 +1140,22 @@ mq_sent (void *cls)
 
 
 /**
+ * Finish the drop operation.
+ *
+ * @param cls queue entry to finish drop for
+ */
+static void
+drop_cb (void *cls)
+{
+  struct CadetPeerQueue *q = cls;
+
+  GNUNET_MQ_discard (q->env);
+  call_peer_cont (q, GNUNET_YES);
+  GNUNET_free (q);
+}
+
+
+/**
  * @brief Send a message to another peer (using CORE).
  *
  * @param peer Peer towards which to queue the message.
@@ -1150,7 +1175,7 @@ struct CadetPeerQueue *
 GCP_send (struct CadetPeer *peer,
           const struct GNUNET_MessageHeader *message,
           uint16_t payload_type,
-          uint32_t payload_id,
+          struct CadetEncryptedMessageIdentifier payload_id,
           struct CadetConnection *c,
           int fwd,
           GCP_sent cont,
@@ -1165,7 +1190,8 @@ GCP_send (struct CadetPeer *peer,
     size = ntohs (message->size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "que %s (%s %4u) on conn %s (%p) %s towards %s (size %u)\n",
-         GC_m2s (type), GC_m2s (payload_type), payload_id,
+         GC_m2s (type), GC_m2s (payload_type),
+         ntohl (payload_id.pid),
          GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
     if (NULL == peer->connections)
@@ -1191,7 +1217,8 @@ GCP_send (struct CadetPeer *peer,
     q->payload_id = payload_id;
     q->c = c;
     q->c_fwd = fwd;
-    GNUNET_MQ_notify_sent (q->env, mq_sent, q);
+    GNUNET_MQ_notify_sent (q->env, &mq_sent, q);
+    GNUNET_CONTAINER_DLL_insert (peer->q_head, peer->q_tail, q);
 
     if (GNUNET_YES == q->management_traffic)
     {
@@ -1201,19 +1228,21 @@ GCP_send (struct CadetPeer *peer,
     {
         if (GNUNET_YES == should_I_drop ())
         {
-            LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
-                 GC_m2s (q->type), GC_m2s (q->payload_type),
-                 q->payload_id, GCC_2s (c), GC_f2s (q->c_fwd));
-            GNUNET_MQ_discard (q->env);
-            call_peer_cont (q, GNUNET_YES);
-            GNUNET_free (q);
-            return NULL;
+            LOG (GNUNET_ERROR_TYPE_WARNING,
+		 "DD %s (%s %u) on conn %s %s (random drop for testing)\n",
+                 GC_m2s (q->type),
+                 GC_m2s (q->payload_type),
+                 ntohl (q->payload_id.pid),
+                 GCC_2s (c),
+                 GC_f2s (q->c_fwd));
+	    q->drop_task = GNUNET_SCHEDULER_add_now (&drop_cb,
+						     q);
+	    return q;
         }
         GNUNET_MQ_send (peer->core_mq, q->env);
         peer->queue_n++;
     }
 
-    GNUNET_CONTAINER_DLL_insert (peer->q_head, peer->q_tail, q);
     GCC_check_connections ();
     return q;
 }
@@ -1231,9 +1260,18 @@ GCP_send (struct CadetPeer *peer,
 void
 GCP_send_cancel (struct CadetPeerQueue *q)
 {
-    call_peer_cont (q, GNUNET_NO);
+  if (NULL != q->drop_task)
+  {
+    GNUNET_SCHEDULER_cancel (q->drop_task);
+    q->drop_task = NULL;
+    GNUNET_MQ_discard (q->env);
+  }
+  else
+  {
     GNUNET_MQ_send_cancel (q->env);
-    GNUNET_free (q);
+  }
+  call_peer_cont (q, GNUNET_NO);
+  GNUNET_free (q);
 }
 
 
@@ -1294,12 +1332,12 @@ GCP_shutdown (void)
     in_shutdown = GNUNET_YES;
     if (NULL != core_handle)
     {
-        GNUNET_CORE_disconnecT (core_handle);
+        GNUNET_CORE_disconnect (core_handle);
         core_handle = NULL;
     }
     GNUNET_PEER_change_rc (myid, -1);
     /* With MQ API, CORE calls the disconnect handler for every peer
-     * after calling GNUNET_CORE_disconnecT, shutdown must occur *after* that.
+     * after calling GNUNET_CORE_disconnect, shutdown must occur *after* that.
      */
     GNUNET_CONTAINER_multipeermap_iterate (peers,
                                            &shutdown_peer,
@@ -1543,14 +1581,14 @@ GCP_add_connection (struct CadetPeer *peer,
          GCP_2s (peer));
     GNUNET_assert (NULL != peer->connections);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (peer->connections,
-                           GCC_get_h (c),
-                           c,
-                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                   GNUNET_CONTAINER_multishortmap_put (peer->connections,
+                                                       &GCC_get_id (c)->connection_of_tunnel,
+                                                       c,
+                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer %s has now %u connections.\n",
          GCP_2s (peer),
-         GNUNET_CONTAINER_multihashmap_size (peer->connections));
+         GNUNET_CONTAINER_multishortmap_size (peer->connections));
 }
 
 
@@ -1761,13 +1799,13 @@ void
 GCP_check_connection (const struct CadetPeer *peer,
                       const struct CadetConnection *c)
 {
-    GNUNET_assert (NULL != peer);
-    GNUNET_assert (NULL != peer->connections);
-    return;
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_contains_value (peer->connections,
-                           GCC_get_h (c),
-                           c));
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != peer->connections);
+  return; // ????
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multishortmap_contains_value (peer->connections,
+                                                                &GCC_get_id (c)->connection_of_tunnel,
+                                                                c));
 }
 
 
@@ -1791,13 +1829,13 @@ GCP_remove_connection (struct CadetPeer *peer,
             (NULL == peer->connections) )
         return;
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (peer->connections,
-                           GCC_get_h (c),
-                           c));
+                   GNUNET_CONTAINER_multishortmap_remove (peer->connections,
+                                                          &GCC_get_id (c)->connection_of_tunnel,
+                                                          c));
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer %s remains with %u connections.\n",
          GCP_2s (peer),
-         GNUNET_CONTAINER_multihashmap_size (peer->connections));
+         GNUNET_CONTAINER_multishortmap_size (peer->connections));
 }
 
 

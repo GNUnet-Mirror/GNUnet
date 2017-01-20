@@ -182,7 +182,7 @@ reconnect (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting to transport service.\n");
   GNUNET_assert (NULL == ghh->mq);
-  ghh->mq = GNUNET_CLIENT_connecT (ghh->cfg,
+  ghh->mq = GNUNET_CLIENT_connect (ghh->cfg,
                                    "transport",
                                    handlers,
                                    &mq_error_handler,

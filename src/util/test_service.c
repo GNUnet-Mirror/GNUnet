@@ -107,7 +107,7 @@ service_init (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
   
-  mq = GNUNET_CLIENT_connecT (cfg,
+  mq = GNUNET_CLIENT_connect (cfg,
                               service_name,
                               NULL,
                               NULL,

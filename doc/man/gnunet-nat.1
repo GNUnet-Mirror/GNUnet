@@ -14,9 +14,6 @@ This tool allows testing various NAT traversal functions, as well
 as attempting auto\-configuration.
 
 .SH OPTIONS
-.B
-.IP "\-a,  \-\-auto"
-Attempt auto\-configuration for NAT traversal.
 
 .B
 .IP "\-b ADDRESS,  \-\-bind=ADDRESS"
@@ -39,8 +36,8 @@ Assuming we are listening at ADDRESS for connection reversal requests.
 Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
 
 .B
-.IP "\-p ADDRESS,  \-\-punch=ADDRESS"
-A hole was punched manually through the NAT. We should use ADDRESS as our external hostname and port for advertising for incoming requests. The special hostname 'AUTO' can be used to indicate that GNUnet should determine the external IP address by other means (such as upnpc), and just take the port number from ADDRESS.
+.IP "\-S NAME,  \-\-section=NAME"
+Name of section in configuration file to use for additional options.
 
 .B
 .IP "\-s,  \-\-stun"
@@ -53,10 +50,6 @@ Use TCP.
 .B
 .IP "\-u,  \-\-udp"
 Use UDP.
-
-.B
-.IP "\-w,  \-\-write"
-Write configuration to configuration file, useful in combination with autoconfiguration (\-a).
 
 .B
 .IP "\-W,  \-\-watch"
@@ -81,13 +74,17 @@ We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP add
 
 \fBICMP-based NAT traversal:\fR
 
-Watch for connection reversal request:
+Watch for connection reversal request (you must be bound to NAT range or to wildcard, 0.0.0.0), only works for IPv4:
 
-  # gnunet-nat FIXME
+  # gnunet-nat -Wt -i 192.168.178.12:8080
 
-Initiate connection reversal request:
+Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, while we are running ourselves at 2.3.4.5:8080 (must use IPv4 addresses):
 
-  # gnunet-nat FIXME
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
+
+Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, and let the kernel fill in whatever IPv4 address we happen to have:
+
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080 
 
 \fBManual hole punching:\fR
 
@@ -101,12 +98,6 @@ XXX:
 
   # gnunet-nat FIXME -s
 
-\fBAutomatic configuration:\fR
-
-Probe and write result to configuration:
-
-  # gnunet-nat -aw
-  
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

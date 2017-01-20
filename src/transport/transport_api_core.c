@@ -805,7 +805,7 @@ reconnect (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to transport service.\n");
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "transport",
                                  handlers,
                                  &mq_error_handler,

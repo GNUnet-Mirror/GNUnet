@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2002-2014 GNUnet e.V.
+     Copyright (C) 2002-2014, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,7 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_plugin.h"
-#include "gnunet_nat_lib.h"
+#include "gnunet_nat_service.h"
 #include "plugin_transport_http_common.h"
 #include <microhttpd.h>
 #include <regex.h>
@@ -2473,12 +2473,14 @@ server_remove_address (void *cls,
  * @param cls closure, the 'struct LocalAddrList'
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
+ * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
 static void
 server_nat_port_map_callback (void *cls,
                               int add_remove,
+			      enum GNUNET_NAT_AddressClass ac,
                               const struct sockaddr *addr,
                               socklen_t addrlen)
 {
@@ -2498,7 +2500,8 @@ server_nat_port_map_callback (void *cls,
 
     if ((NULL != plugin->server_addr_v4) &&
         (0 != memcmp (&plugin->server_addr_v4->sin_addr,
-                      &s4->sin_addr, sizeof (struct in_addr))))
+                      &s4->sin_addr,
+		      sizeof (struct in_addr))))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Skipping address `%s' (not bindto address)\n",
@@ -2754,14 +2757,16 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
     return;
   }
 
-  plugin->nat =
-      GNUNET_NAT_register (plugin->env->cfg,
-                           GNUNET_YES,
-                           plugin->port,
+  plugin->nat 
+    = GNUNET_NAT_register (plugin->env->cfg,
+			   "transport-http_server",
+			   IPPROTO_TCP,
                            (unsigned int) res,
-                           (const struct sockaddr **) addrs, addrlens,
-                           &server_nat_port_map_callback, NULL,
-			   plugin, NULL);
+                           (const struct sockaddr **) addrs,
+			   addrlens,
+                           &server_nat_port_map_callback,
+			   NULL,
+			   plugin);
   while (res > 0)
   {
     res--;

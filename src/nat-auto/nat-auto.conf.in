@@ -1,0 +1,15 @@
+[nat-auto]
+AUTOSTART = @AUTOSTART@
+@UNIXONLY@ PORT = 2124
+HOSTNAME = localhost
+BINARY = gnunet-service-nat-auto
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-nat-auto.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
+
+[gnunet-nat-server]
+HOSTNAME = gnunet.org
+PORT = 5724
+NOARMBIND = YES

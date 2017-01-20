@@ -1551,6 +1551,7 @@ src/ats/Makefile
 src/ats/ats.conf
 src/ats-tool/Makefile
 src/ats-tests/Makefile
+src/auction/Makefile
 src/block/Makefile
 src/cadet/Makefile
 src/cadet/cadet.conf
@@ -1598,6 +1599,8 @@ src/namestore/Makefile
 src/namestore/namestore.conf
 src/nat/Makefile
 src/nat/nat.conf
+src/nat-auto/Makefile
+src/nat-auto/nat-auto.conf
 src/nse/Makefile
 src/nse/nse.conf
 src/peerinfo/Makefile
@@ -1643,6 +1646,8 @@ src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
+src/zonemaster/Makefile
+src/zonemaster/zonemaster.conf
 src/rest/Makefile
 src/identity-provider/Makefile
 pkgconfig/Makefile
@@ -1725,6 +1730,12 @@ fi
 if test "x$bluetooth" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: bluetooth library not found.  bluetooth support will not be compiled.])
+fi
+
+# jansson
+if test "x$jansson" = "x0"
+then
+  AC_MSG_NOTICE([NOTICE: jansson library not found.  json support will not be compiled.])
 fi
 
 #gnutls

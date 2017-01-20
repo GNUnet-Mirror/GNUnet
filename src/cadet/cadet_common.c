@@ -51,11 +51,20 @@ GC_f2s (int fwd)
   }
 }
 
+
+/**
+ * Test if @a bigger is larger than @a smaller.
+ * Considers the case that @a bigger just overflowed
+ * and is thus tiny while @a smaller is still below
+ * `UINT32_MAX`.
+ */
 int
-GC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
+GC_is_pid_bigger (uint32_t bigger,
+		  uint32_t smaller)
 {
-    return (GNUNET_YES == PID_OVERFLOW (smaller, bigger) ||
-            (bigger > smaller && GNUNET_NO == PID_OVERFLOW (bigger, smaller)));
+    return (PID_OVERFLOW (smaller, bigger) ||
+            ( (bigger > smaller) &&
+	      (! PID_OVERFLOW (bigger, smaller))) );
 }
 
 
@@ -74,28 +83,6 @@ GC_min_pid (uint32_t a, uint32_t b)
   if (GC_is_pid_bigger(a, b))
     return b;
   return a;
-}
-
-
-const struct GNUNET_HashCode *
-GC_h2hc (const struct GNUNET_CADET_Hash *id)
-{
-  static struct GNUNET_HashCode hc;
-  GNUNET_memcpy (&hc, id, sizeof (*id));
-
-  return &hc;
-}
-
-
-const char *
-GC_h2s (const struct GNUNET_CADET_Hash *id)
-{
-  static char s[53];
-
-  GNUNET_memcpy (s, GNUNET_h2s_full (GC_h2hc (id)), 52);
-  s[52] = '\0';
-
-  return s;
 }
 
 
@@ -159,7 +146,7 @@ GC_m2s (uint16_t m)
       /**
        * Request the modification of an existing path
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK:
       s = "CONN_ACK";
       break;
 
@@ -173,35 +160,35 @@ GC_m2s (uint16_t m)
       /**
        * At some point, the route will spontaneously change
        */
-    case GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_PATH_CHANGED_UNIMPLEMENTED:
       s = "PATH_CHNGD";
       break;
 
       /**
        * Transport payload data.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA:
       s = "DATA";
       break;
 
     /**
      * Confirm receipt of payload data.
      */
-    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK:
       s = "DATA_ACK";
       break;
 
       /**
        * Key exchange message.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX:
       s = "KX";
       break;
 
       /**
        * Encrypted.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED:
       s = "ENCRYPTED";
       break;
 
@@ -215,21 +202,21 @@ GC_m2s (uint16_t m)
       /**
        * ACK for a data packet.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK:
       s = "ACK";
       break;
 
       /**
        * POLL for ACK.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL:
       s = "POLL";
       break;
 
       /**
        * Announce origin is still alive.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE:
       s = "KEEPALIVE";
       break;
 
@@ -250,7 +237,7 @@ GC_m2s (uint16_t m)
       /**
        * Ask the cadet service to create a new tunnel
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN:
       s = "CHAN_CREAT";
       break;
 
@@ -264,14 +251,14 @@ GC_m2s (uint16_t m)
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK:
       s = "CHAN_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED:
       s = "CHAN_NACK";
       break;
 

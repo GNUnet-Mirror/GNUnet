@@ -5,3 +5,10 @@ gnunet-dht-profiler
 gnunet-dht-put
 gnunet-service-dht
 gnunet-service-dht-whanau
+test_dht_2dtorus
+test_dht_api
+test_dht_line
+test_dht_monitor
+test_dht_multipeer
+test_dht_tools.py
+test_dht_twopeer

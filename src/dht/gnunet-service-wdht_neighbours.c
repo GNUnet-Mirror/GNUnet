@@ -1712,7 +1712,7 @@ GDS_NEIGHBOURS_init (void)
     GNUNET_MQ_handler_end ()
   };
 
-  core_api = GNUNET_CORE_connecT (GDS_cfg, NULL,
+  core_api = GNUNET_CORE_connect (GDS_cfg, NULL,
 				  &core_init,
 				  &handle_core_connect,
 				  &handle_core_disconnect,
@@ -1736,7 +1736,7 @@ GDS_NEIGHBOURS_done (void)
 {
   if (NULL == core_api)
     return;
-  GNUNET_CORE_disconnecT (core_api);
+  GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friends_peermap));
   GNUNET_CONTAINER_multipeermap_destroy (friends_peermap);

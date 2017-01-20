@@ -902,7 +902,7 @@ process_peer (void *cls,
 
 
 /**
- * Function called after #GNUNET_CORE_connecT has succeeded
+ * Function called after #GNUNET_CORE_connect has succeeded
  * (or failed for good).
  *
  * @param cls closure
@@ -1101,7 +1101,7 @@ cleaning_task (void *cls)
   }
   if (NULL != handle)
   {
-    GNUNET_CORE_disconnecT (handle);
+    GNUNET_CORE_disconnect (handle);
     handle = NULL;
   }
   whitelist_peers ();
@@ -1189,7 +1189,7 @@ run (void *cls,
                                             &blacklist_check,
                                             NULL);
   ats = GNUNET_ATS_connectivity_init (cfg);
-  handle = GNUNET_CORE_connecT (cfg,
+  handle = GNUNET_CORE_connect (cfg,
 				NULL,
 				&core_init,
 				&connect_notify,

@@ -1,2 +1,8 @@
 gnunet-service-peerstore
 gnunet-peerstore
+perf_peerstore_store
+test_peerstore_api_iterate
+test_peerstore_api_store
+test_peerstore_api_sync
+test_peerstore_api_watch
+test_plugin_peerstore_sqlite

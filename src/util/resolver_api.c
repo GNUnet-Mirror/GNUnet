@@ -735,7 +735,7 @@ reconnect_task (void *cls)
     return;                     /* no work pending */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to DNS service\n");
-  mq = GNUNET_CLIENT_connecT (resolver_cfg,
+  mq = GNUNET_CLIENT_connect (resolver_cfg,
                               "resolver",
                               handlers,
                               &mq_error_handler,

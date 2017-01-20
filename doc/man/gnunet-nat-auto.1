@@ -1,0 +1,69 @@
+.TH GNUNET\-NAT\-AUTO 1 "6 Jan 2017" "GNUnet"
+
+.SH NAME
+gnunet\-nat\-auto \- autoconfigure and test NAT traversal
+
+.SH SYNOPSIS
+.B gnunet\-nat\-auto
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+
+This tool allows testing various NAT traversal functions, as well
+as attempting auto\-configuration.
+
+.SH OPTIONS
+.B
+.IP "\-a,  \-\-auto"
+Attempt auto\-configuration for NAT traversal.
+
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+
+.B
+.IP "\-S NAME,  \-\-section=NAME"
+Name of the configuration section with details about the configuration to test. For example "transport-tcp".
+
+.IP "\-t,  \-\-tcp"
+Use TCP.
+
+.B
+.IP "\-u,  \-\-udp"
+Use UDP.
+
+.B
+.IP "\-w,  \-\-write"
+Write configuration to configuration file, useful in combination with autoconfiguration (\-a).
+
+.SH EXAMPLES
+.PP
+
+\fBAutomatic configuration:\fR
+
+Probe and write result to configuration:
+
+  # gnunet\-nat\-auto \-aw
+
+
+\fBTest configuration:\fR
+
+Test TCP configuration:
+
+  # gnunet\-nat\-auto -t \-S transport-tcp
+
+Test HTTP configuration:
+
+  # gnunet\-nat\-auto -t \-S transport-http
+
+Test UDP configuration:
+
+  # gnunet\-nat\-auto -u \-S transport-udp
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-transport(1) gnunet\-nat(1)

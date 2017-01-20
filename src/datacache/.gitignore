@@ -1,0 +1,6 @@
+test_datacache_heap
+test_datacache_postgres
+test_datacache_quota_heap
+test_datacache_quota_postgres
+test_datacache_quota_sqlite
+test_datacache_sqlite

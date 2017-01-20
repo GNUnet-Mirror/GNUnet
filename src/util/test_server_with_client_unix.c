@@ -144,7 +144,7 @@ task (void *cls)
   GNUNET_CONFIGURATION_set_value_string (cfg, "test", "UNIXPATH", unixpath);
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-  mq = GNUNET_CLIENT_connecT (cfg,
+  mq = GNUNET_CLIENT_connect (cfg,
                               "test",
                               NULL,
                               NULL,

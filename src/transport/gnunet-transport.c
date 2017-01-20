@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2011-2014, 2016 GNUnet e.V.
+ Copyright (C) 2011-2014, 2016, 2017 GNUnet e.V.
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -23,9 +23,6 @@
  * @brief Tool to help configure, measure and control the transport subsystem.
  * @author Christian Grothoff
  * @author Nathan Evans
- *
- * This utility can be used to test if a transport mechanism for
- * GNUnet is properly configured.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -33,13 +30,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_core_service.h"
-#include "gnunet_nat_lib.h"
-
-/**
- * How long do we wait for the NAT test to report success?
- * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
- */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * Timeout for a name resolution
@@ -172,49 +162,6 @@ struct PeerResolutionContext
 
 
 /**
- * Context for a plugin test.
- */
-struct TestContext
-{
-  /**
-   * Previous in DLL
-   */
-  struct TestContext *prev;
-
-  /**
-   * Next in DLL
-   */
-  struct TestContext *next;
-
-  /**
-   * Handle to the active NAT test.
-   */
-  struct GNUNET_NAT_Test *tst;
-
-  /**
-   * Task identifier for the timeout.
-   */
-  struct GNUNET_SCHEDULER_Task * tsk;
-
-  /**
-   * Name of plugin under test.
-   */
-  char *name;
-
-  /**
-   * Bound port
-   */
-  unsigned long long bnd_port;
-
-  /**
-   * Advertised ports
-   */
-  unsigned long long adv_port;
-
-};
-
-
-/**
  * Benchmarking block size in KB
  */
 #define BLOCKSIZE 4
@@ -263,11 +210,6 @@ static int iterate_connections;
  * Option -a.
  */
 static int iterate_all;
-
-/**
- * Option -t.
- */
-static int test_configuration;
 
 /**
  * Option -c.
@@ -364,16 +306,6 @@ struct GNUNET_OS_Process *resolver;
  * Number of address resolutions pending
  */
 static unsigned int address_resolutions;
-
-/**
- * DLL for NAT Test Contexts: head
- */
-static struct TestContext *head;
-
-/**
- * DLL for NAT Test Contexts: tail
- */
-static struct TestContext *tail;
 
 /**
  * DLL: head of validation resolution entries
@@ -553,11 +485,13 @@ operation_timeout (void *cls)
                _("Failed to resolve address for peer `%s'\n"),
                GNUNET_i2s (&cur->addrcp->peer));
 
-      GNUNET_CONTAINER_DLL_remove(rc_head, rc_tail, cur);
+      GNUNET_CONTAINER_DLL_remove(rc_head, 
+				  rc_tail,
+				  cur);
       GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
-      GNUNET_free(cur->transport);
-      GNUNET_free(cur->addrcp);
-      GNUNET_free(cur);
+      GNUNET_free (cur->transport);
+      GNUNET_free (cur->addrcp);
+      GNUNET_free (cur);
 
     }
     FPRINTF (stdout,
@@ -566,158 +500,6 @@ operation_timeout (void *cls)
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
-  }
-}
-
-
-static void
-run_nat_test (void);
-
-
-/**
- * Display the result of the test.
- *
- * @param tc test context
- * @param result #GNUNET_YES on success
- */
-static void
-display_test_result (struct TestContext *tc,
-                     enum GNUNET_NAT_StatusCode result)
-{
-  FPRINTF (stderr,
-           _("NAT plugin `%s' reports: %s\n"),
-           tc->name,
-           GNUNET_NAT_status2string (result));
-  if (NULL != tc->tsk)
-  {
-    GNUNET_SCHEDULER_cancel (tc->tsk);
-    tc->tsk = NULL;
-  }
-  if (NULL != tc->tst)
-  {
-    GNUNET_NAT_test_stop (tc->tst);
-    tc->tst = NULL;
-  }
-
-  GNUNET_CONTAINER_DLL_remove (head, tail, tc);
-  GNUNET_free (tc->name);
-  GNUNET_free (tc);
-
-  if ((NULL == head) && (NULL != resolver))
-  {
-    GNUNET_break (0 == GNUNET_OS_process_kill (resolver,
-                                               GNUNET_TERM_SIG));
-    GNUNET_OS_process_destroy (resolver);
-    resolver = NULL;
-  }
-  if (NULL != head)
-    run_nat_test ();
-}
-
-
-/**
- * Function called by NAT to report the outcome of the nat-test.
- * Clean up and update GUI.
- *
- * @param cls test context
- * @param result status code
- */
-static void
-result_callback (void *cls,
-                 enum GNUNET_NAT_StatusCode result)
-{
-  struct TestContext *tc = cls;
-
-  display_test_result (tc,
-		       result);
-}
-
-
-static void
-run_nat_test ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Running test for plugin `%s' using bind port %u and advertised port %u \n",
-              head->name,
-              (uint16_t) head->bnd_port,
-              (uint16_t) head->adv_port);
-
-  head->tst = GNUNET_NAT_test_start (cfg,
-				     (0 == strcasecmp (head->name, "udp"))
-				     ? GNUNET_NO : GNUNET_YES,
-				     (uint16_t) head->bnd_port,
-				     (uint16_t) head->adv_port,
-				     TIMEOUT,
-				     &result_callback, head);
-}
-
-
-/**
- * Test our plugin's configuration (NAT traversal, etc.).
- *
- * @param cfg configuration to test
- */
-static void
-do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *plugins;
-  char *tok;
-  unsigned long long bnd_port;
-  unsigned long long adv_port;
-  struct TestContext *tc;
-  char *binary;
-
-  if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_string (cfg, "transport", "plugins",
-          &plugins))
-  {
-    FPRINTF (stderr, "%s", _
-    ("No transport plugins configured, peer will never communicate\n"));
-    ret = 4;
-    return;
-  }
-
-  for (tok = strtok (plugins, " "); tok != NULL ; tok = strtok (NULL, " "))
-  {
-    char section[12 + strlen (tok)];
-    GNUNET_snprintf (section, sizeof(section), "transport-%s", tok);
-    if (GNUNET_OK
-        != GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT",
-            &bnd_port))
-    {
-      FPRINTF (stderr,
-          _("No port configured for plugin `%s', cannot test it\n"), tok);
-      continue;
-    }
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, section,
-            "ADVERTISED_PORT", &adv_port))
-      adv_port = bnd_port;
-
-    tc = GNUNET_new (struct TestContext);
-    tc->name = GNUNET_strdup (tok);
-    tc->adv_port = adv_port;
-    tc->bnd_port = bnd_port;
-    GNUNET_CONTAINER_DLL_insert_tail (head, tail, tc);
-  }
-  GNUNET_free(plugins);
-
-  if ((NULL != head) && (NULL == resolver))
-  {
-    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
-    resolver = GNUNET_OS_start_process (GNUNET_YES,
-                                        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                        NULL, NULL, NULL,
-                                        binary,
-                                        "gnunet-service-resolver", NULL);
-    if (NULL == resolver)
-    {
-      FPRINTF (stderr, _("Failed to start resolver!\n"));
-      return;
-    }
-
-    GNUNET_free(binary);
-    GNUNET_RESOLVER_connect (cfg);
-    run_nat_test ();
   }
 }
 
@@ -1041,7 +823,9 @@ process_peer_string (void *cls,
   }
   GNUNET_free (rc->transport);
   GNUNET_free (rc->addrcp);
-  GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
+  GNUNET_CONTAINER_DLL_remove (rc_head,
+			       rc_tail,
+			       rc);
   GNUNET_free (rc);
   if ((0 == address_resolutions) && (iterate_connections))
   {
@@ -1461,11 +1245,6 @@ run (void *cls,
   ret = 1;
 
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
-  if (test_configuration)
-  {
-    do_test_configuration (cfg);
-    return;
-  }
   if ( (NULL != cpid) &&
        (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_public_key_from_string (cpid,
@@ -1691,9 +1470,6 @@ main (int argc,
     { 's', "send", NULL, gettext_noop
       ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
       &GNUNET_GETOPT_set_one, &benchmark_send },
-    { 't', "test", NULL,
-      gettext_noop ("test transport configuration (involves external server)"),
-      0, &GNUNET_GETOPT_set_one, &test_configuration },
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
@@ -1706,7 +1482,7 @@ main (int argc,
                             gettext_noop ("Direct access to transport service."),
                             options,
                             &run, NULL);
-  GNUNET_free((void *) argv);
+  GNUNET_free ((void *) argv);
   if (GNUNET_OK == res)
     return ret;
   return 1;

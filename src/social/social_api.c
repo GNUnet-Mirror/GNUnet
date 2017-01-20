@@ -893,7 +893,7 @@ handle_guest_enter_decision (void *cls,
   struct GNUNET_SOCIAL_Guest *gst = cls;
 
   struct GNUNET_PSYC_Message *pmsg = NULL;
-  if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*pmsg))
+  if (ntohs (dcsn->header.size) > sizeof (*dcsn))
     pmsg = (struct GNUNET_PSYC_Message *) GNUNET_MQ_extract_nested_mh (dcsn);
 
   if (NULL != gst->entry_dcsn_cb)
@@ -1087,7 +1087,7 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) place_cleanup, plc);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_cleanup, plc);
     }
     else
     {
@@ -1195,7 +1195,7 @@ host_connect (struct GNUNET_SOCIAL_Host *hst)
     GNUNET_MQ_handler_end ()
   };
 
-  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+  plc->mq = GNUNET_CLIENT_connect (plc->cfg, "social",
                                    handlers, host_disconnected, hst);
   GNUNET_assert (NULL != plc->mq);
   plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
@@ -1697,7 +1697,7 @@ guest_connect (struct GNUNET_SOCIAL_Guest *gst)
     GNUNET_MQ_handler_end ()
   };
 
-  plc->mq = GNUNET_CLIENT_connecT (plc->cfg, "social",
+  plc->mq = GNUNET_CLIENT_connect (plc->cfg, "social",
                                    handlers, guest_disconnected, gst);
   GNUNET_assert (NULL != plc->mq);
   plc->tmit = GNUNET_PSYC_transmit_create (plc->mq);
@@ -2597,7 +2597,7 @@ app_connect (struct GNUNET_SOCIAL_App *app)
     GNUNET_MQ_handler_end ()
   };
 
-  app->mq = GNUNET_CLIENT_connecT (app->cfg, "social",
+  app->mq = GNUNET_CLIENT_connect (app->cfg, "social",
                                    handlers, app_disconnected, app);
   GNUNET_assert (NULL != app->mq);
   GNUNET_MQ_send_copy (app->mq, app->connect_env);
@@ -2701,7 +2701,7 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (app->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_MQ_NotifyCallback) app_cleanup, app);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) app_cleanup, app);
     }
     else
     {

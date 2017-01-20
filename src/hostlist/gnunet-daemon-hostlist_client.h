@@ -53,8 +53,8 @@ typedef void
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
-                              GNUNET_CORE_ConnecTEventHandler *ch,
-                              GNUNET_CORE_DisconnecTEventHandler *dh,
+                              GNUNET_CORE_ConnectEventHandler *ch,
+                              GNUNET_CORE_DisconnectEventHandler *dh,
                               GNUNET_HOSTLIST_UriHandler *msgh,
                               int learn);
 

@@ -670,7 +670,7 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Asking gnunet-nat-server to connect to `%s'\n",
        ah->stun_ip);
-  ah->mq = GNUNET_CLIENT_connecT (ah->cfg,
+  ah->mq = GNUNET_CLIENT_connect (ah->cfg,
                                   "gnunet-nat-server",
                                   NULL,
                                   &mq_error_handler,

@@ -151,11 +151,6 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING 20
 
 /**
- * Key exchange in CADET
- */
-#define GNUNET_SIGNATURE_PURPOSE_CADET_KX 21
-
-/**
  * Signature for the first round of distributed key generation.
  */
 #define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 22

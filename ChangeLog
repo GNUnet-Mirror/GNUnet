@@ -1,0 +1,3 @@
+Sat Jan  7 16:41:34 CET 2017
+	Converting NAT library to new NAT service (and
+	splitting of nat-auto service for auto-configuration). -CG

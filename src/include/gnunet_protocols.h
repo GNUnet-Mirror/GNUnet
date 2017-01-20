@@ -2645,7 +2645,7 @@ extern "C"
 /**
  * Send origin an ACK that the connection is complete
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK 1001
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK 1001
 
 /**
  * Notify that a connection is no longer valid
@@ -2660,49 +2660,53 @@ extern "C"
 /**
  * At some point, the route will spontaneously change TODO
  */
-#define GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED 1004
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_PATH_CHANGED_UNIMPLEMENTED 1004
 
 /**
  * Hop-by-hop, connection dependent ACK.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_ACK 1005
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK 1005
 
 /**
- * Poll for a hop-by-hop ACK.
+ * Axolotl key exchange.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_POLL 1006
-
-/**
- * Key exchange encapsulation.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KX 1007
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX 1007
 
 /**
  * Axolotl encrypted data.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED 1008
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED 1008
+
+/**
+ * We do not bother with ACKs for
+ * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
+ * poll for one if we got nothing for a while and start to be worried.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
+
+
 
 /**********************************  Channel  *********************************/
 
 /**
  * Payload data (inside an encrypted tunnel).
  */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA 1010
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA 1010
 
 /**
  * Confirm payload data end-to-end.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_DATA_ACK 1011
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK 1011
 
 /**
  * Announce connection is still alive (direction sensitive).
  */
-#define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE 1012
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE 1012
 
 /**
  * Ask the cadet service to create a new channel.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE 1013
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN 1013
 
 /**
  * Ask the cadet service to destroy a channel.
@@ -2712,12 +2716,12 @@ extern "C"
 /**
  * Confirm the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK 1015
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK 1015
 
 /**
  * Reject the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK 1016
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED 1016
 
 /***********************************  Local  **********************************/
 
@@ -2789,6 +2793,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP 1038
 
+/**
+ * End of local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER_END 1039
+
 /********************************  Application  *******************************/
 
 /**
@@ -2833,7 +2842,7 @@ extern "C"
 /**
  * Message to ask NAT service to request autoconfiguration.
  */
-#define GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG 1067
+#define GNUNET_MESSAGE_TYPE_NAT_AUTO_REQUEST_CFG 1067
 
 /**
  * Message from NAT service with the autoconfiguration result.
@@ -2841,8 +2850,31 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT 1068
 
 
+/* 1080-1109 reserved for TMCG (Heiko Stamer, see gnunet-developers, January 2017) */
+
+
+/******************************************************************************/
+/***********************************  AUCTION  ********************************/
+/******************************************************************************/
+
 /**
- * Next available: 1080
+ * Client wants to create a new auction.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE 1110
+
+/**
+ * Client wants to join an existing auction.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_JOIN 1111
+
+/**
+ * Service reports the auction outcome to the client.
+ */
+#define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_OUTCOME 1112
+
+
+/**
+ * Next available: 1130
  */
 
 

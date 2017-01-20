@@ -462,7 +462,7 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
     GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "peerinfo",
                                  handlers,
                                  &mq_error_handler,
@@ -557,7 +557,7 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
 struct GNUNET_MQ_Envelope *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
                           const struct GNUNET_HELLO_Message *hello,
-			  GNUNET_MQ_NotifyCallback cont,
+			  GNUNET_SCHEDULER_TaskCallback cont,
 			  void *cont_cls)
 {
   struct GNUNET_MQ_Envelope *env;

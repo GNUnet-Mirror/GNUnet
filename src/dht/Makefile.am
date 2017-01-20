@@ -58,8 +58,12 @@ endif
 noinst_PROGRAMS = \
  gnunet-dht-monitor \
  gnunet-dht-get \
- gnunet-dht-put \
+ gnunet-dht-put
+
+if HAVE_TESTING
+noinst_PROGRAMS += \
  gnunet-dht-profiler
+endif
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c gnunet-service-dht.h \

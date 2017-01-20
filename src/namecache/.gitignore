@@ -1,2 +1,6 @@
 gnunet-service-namecache
 gnunet-namecache
+test_namecache_api_cache_block
+test_plugin_namecache_postgres
+test_plugin_namecache_sqlite
+zonefiles

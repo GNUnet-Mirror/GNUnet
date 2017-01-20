@@ -151,7 +151,7 @@ kill_task (void *cbData)
     GNUNET_free (shutdown_ctx);
     return;
   }
-  shutdown_ctx->mq = GNUNET_CLIENT_connecT (cfg,
+  shutdown_ctx->mq = GNUNET_CLIENT_connect (cfg,
                                             SERVICE,
                                             handlers,
                                             &mq_error_handler,

@@ -1936,7 +1936,7 @@ shutdown_task (void *cls)
 
   in_shutdown = GNUNET_YES;
   GNUNET_assert (NULL != core_api);
-  GNUNET_CORE_disconnecT (core_api);
+  GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
   GNUNET_ATS_performance_done (ats);
   ats = NULL;
@@ -2059,7 +2059,7 @@ run (void *cls,
 							   GNUNET_NO);
   all_routes = GNUNET_CONTAINER_multipeermap_create (65536,
 						     GNUNET_NO);
-  core_api = GNUNET_CORE_connecT (cfg,
+  core_api = GNUNET_CORE_connect (cfg,
 				  NULL,
 				  &core_init,
 				  &handle_core_connect,
@@ -2073,7 +2073,7 @@ run (void *cls,
 				     NULL);
   if (NULL == ats)
   {
-    GNUNET_CORE_disconnecT (core_api);
+    GNUNET_CORE_disconnect (core_api);
     core_api = NULL;
     return;
   }

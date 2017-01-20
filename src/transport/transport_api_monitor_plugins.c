@@ -388,7 +388,7 @@ do_plugin_connect (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   pm->reconnect_task = NULL;
-  pm->mq = GNUNET_CLIENT_connecT (pm->cfg,
+  pm->mq = GNUNET_CLIENT_connect (pm->cfg,
                                   "transport",
                                   handlers,
                                   &mq_error_handler,

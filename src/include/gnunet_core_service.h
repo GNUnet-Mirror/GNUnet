@@ -91,30 +91,8 @@ struct GNUNET_CORE_Handle;
  * @param cls closure
  * @param peer peer identity this notification is about
  */
-typedef void
-(*GNUNET_CORE_ConnectEventHandler) (void *cls,
-                                    const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Method called whenever a peer disconnects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-typedef void
-(*GNUNET_CORE_DisconnectEventHandler) (void *cls,
-                                       const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Method called whenever a given peer connects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
 typedef void *
-(*GNUNET_CORE_ConnecTEventHandler) (void *cls,
+(*GNUNET_CORE_ConnectEventHandler) (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_MQ_Handle *mq);
 
@@ -126,52 +104,9 @@ typedef void *
  * @param peer peer identity this notification is about
  */
 typedef void
-(*GNUNET_CORE_DisconnecTEventHandler) (void *cls,
+(*GNUNET_CORE_DisconnectEventHandler) (void *cls,
                                        const struct GNUNET_PeerIdentity *peer,
 				       void *peer_cls);
-
-
-/**
- * Functions with this signature are called whenever a message is
- * received or transmitted.
- *
- * @param cls closure (set from #GNUNET_CORE_connect)
- * @param peer the other peer involved (sender or receiver, NULL
- *        for loopback messages where we are both sender and receiver)
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close connection to the peer (signal serious error)
- */
-typedef int
-(*GNUNET_CORE_MessageCallback) (void *cls,
-                                const struct GNUNET_PeerIdentity *other,
-                                const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Message handler.  Each struct specifies how to handle on particular
- * type of message received.
- */
-struct GNUNET_CORE_MessageHandler
-{
-  /**
-   * Function to call for messages of @e type.
-   */
-  GNUNET_CORE_MessageCallback callback;
-
-  /**
-   * Type of the message this handler covers.
-   */
-  uint16_t type;
-
-  /**
-   * Expected size of messages of this type.  Use 0 for variable-size.
-   * If non-zero, messages of the given type will be discarded if they
-   * do not have the right size.
-   */
-  uint16_t expected_size;
-
-};
 
 
 /**
@@ -208,26 +143,6 @@ typedef void
  *        connected to the core service
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
- * @param inbound_notify function to call for all inbound messages, can be NULL
- *                note that the core is allowed to drop notifications about inbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
- * @param inbound_hdr_only set to #GNUNET_YES if @a inbound_notify will only read the
- *                `struct GNUNET_MessageHeader` and hence we do not need to give it the full message;
- *                can be used to improve efficiency, ignored if inbound_notify is NULL
- *                note that the core is allowed to drop notifications about inbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
- * @param outbound_notify function to call for all outbound messages, can be NULL;
- *                note that the core is allowed to drop notifications about outbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
- * @param outbound_hdr_only set to #GNUNET_YES if @a outbound_notify will only read the
- *                `struct GNUNET_MessageHeader` and hence we do not need to give it the full message
- *                can be used to improve efficiency, ignored if outbound_notify is NULL
- *                note that the core is allowed to drop notifications about outbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
  * @param handlers callbacks for messages we care about, NULL-terminated
  *                note that the core is allowed to drop notifications about inbound
  *                messages if the client does not process them fast enough (for this
@@ -241,53 +156,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
-                     GNUNET_CORE_MessageCallback inbound_notify,
-                     int inbound_hdr_only,
-                     GNUNET_CORE_MessageCallback outbound_notify,
-                     int outbound_hdr_only,
-                     const struct GNUNET_CORE_MessageHandler *handlers);
-
-/**
- * Disconnect from the core service.    This function can only
- * be called *after* all pending #GNUNET_CORE_notify_transmit_ready
- * requests have been explicitly cancelled.
- *
- * @param handle connection to core to disconnect
- */
-void
-GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
-
-
-/**
- * Connect to the core service.  Note that the connection may complete
- * (or fail) asynchronously.  This function primarily causes the given
- * callback notification functions to be invoked whenever the
- * specified event happens.  The maximum number of queued
- * notifications (queue length) is per client; the queue is shared
- * across all types of notifications.  So a slow client that registers
- * for @a outbound_notify also risks missing @a inbound_notify messages.
- * Certain events (such as connect/disconnect notifications) are not
- * subject to queue size limitations.
- *
- * @param cfg configuration to use
- * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
- * @param init callback to call once we have successfully
- *        connected to the core service
- * @param connects function to call on peer connect, can be NULL
- * @param disconnects function to call on peer disconnect / timeout, can be NULL
- * @param handlers callbacks for messages we care about, NULL-terminated
- *                note that the core is allowed to drop notifications about inbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
- * @return handle to the core service (only useful for disconnect until @a init is called),
- *           NULL on error (in this case, init is never called)
- */
-struct GNUNET_CORE_Handle *
-GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     void *cls,
-                     GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnecTEventHandler connects,
-                     GNUNET_CORE_DisconnecTEventHandler disconnects,
                      const struct GNUNET_MQ_MessageHandler *handlers);
 
 
@@ -297,7 +165,7 @@ GNUNET_CORE_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to core to disconnect
  */
 void
-GNUNET_CORE_disconnecT (struct GNUNET_CORE_Handle *handle);
+GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
 /**
@@ -305,7 +173,7 @@ GNUNET_CORE_disconnecT (struct GNUNET_CORE_Handle *handle);
  * so that it is transmitted with the given @a priority and
  * the given @a cork value.
  *
- * @param cork desired corking 
+ * @param cork desired corking
  * @param priority desired message priority
  * @param[out] flags set to `flags` value for #GNUNET_MQ_set_options()
  * @return `extra` argument to give to #GNUNET_MQ_set_options()
@@ -320,7 +188,7 @@ GNUNET_CORE_get_mq_options (int cork,
  * Obtain the message queue for a connected peer.
  *
  * @param h the core handle
- * @param pid the identity of the peer 
+ * @param pid the identity of the peer
  * @return NULL if @a pid is not connected
  */
 struct GNUNET_MQ_Handle *

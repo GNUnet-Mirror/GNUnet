@@ -806,7 +806,7 @@ reconnect (struct GNUNET_NAMESTORE_Handle *h)
   struct GNUNET_NAMESTORE_QueueEntry *qe;
 
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connecT (h->cfg,
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "namestore",
                                  handlers,
                                  &mq_error_handler,

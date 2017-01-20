@@ -1244,7 +1244,7 @@ do_reconnect (void *cls)
   };
 
   sc->task = NULL;
-  sc->mq = GNUNET_CLIENT_connecT (sc->h->cfg,
+  sc->mq = GNUNET_CLIENT_connect (sc->h->cfg,
                                   "fs",
                                   handlers,
                                   &search_mq_error_handler,

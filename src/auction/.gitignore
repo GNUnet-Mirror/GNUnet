@@ -1,0 +1,5 @@
+gnunet-auction-create
+gnunet-auction-info
+gnunet-auction-join
+gnunet-service-auction
+test_auction_api

@@ -104,7 +104,7 @@ announce_reconnect (struct GNUNET_REGEX_Announcement *a)
   struct AnnounceMessage *am;
   size_t slen;
 
-  a->mq = GNUNET_CLIENT_connecT (a->cfg,
+  a->mq = GNUNET_CLIENT_connect (a->cfg,
                                  "regex",
                                  NULL,
                                  &announce_mq_error_handler,

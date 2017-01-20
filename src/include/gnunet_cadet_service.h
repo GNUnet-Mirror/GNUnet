@@ -67,15 +67,6 @@ struct GNUNET_CADET_Channel;
  */
 struct GNUNET_CADET_Port;
 
-/**
- * Hash to be used in Cadet communication. Only 256 bits needed,
- * instead of the 512 from `struct GNUNET_HashCode`.
- */
-struct GNUNET_CADET_Hash
-{
-  unsigned char bits[256 / 8];
-};
-
 
 /**
  * Channel options.  Second line indicates filed in the
@@ -102,9 +93,9 @@ enum GNUNET_CADET_ChannelOption
 
   /**
    * Enable out of order delivery of messages.
-   * Yes/No.
+   * Set bit for out-of-order delivery.
    */
-  GNUNET_CADET_OPTION_OOORDER    = 0x4,
+  GNUNET_CADET_OPTION_OUT_OF_ORDER = 0x4,
 
   /**
    * Who is the peer at the other end of the channel.
@@ -255,8 +246,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
 struct GNUNET_CADET_Port *
 GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
 			const struct GNUNET_HashCode *port,
-			GNUNET_CADET_InboundChannelNotificationHandler
-			    new_channel,
+			GNUNET_CADET_InboundChannelNotificationHandler new_channel,
 			void *new_channel_cls);
 
 /**
@@ -332,7 +322,8 @@ union GNUNET_CADET_ChannelInfo
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                              enum GNUNET_CADET_ChannelOption option, ...);
+                              enum GNUNET_CADET_ChannelOption option,
+                               ...);
 
 
 /**
@@ -421,10 +412,10 @@ typedef void
 (*GNUNET_CADET_ChannelCB) (void *cls,
                            const struct GNUNET_PeerIdentity *root,
                            const struct GNUNET_PeerIdentity *dest,
-                           uint32_t port,
-                           uint32_t root_channel_number,
-                           uint32_t dest_channel_number,
-                           uint32_t public_channel_number);
+                           uint32_t /* UGH */ port,
+                           uint32_t /* ugh */ root_channel_number,
+                           uint32_t /* ugh */ dest_channel_number,
+                           uint32_t /* ugh */ public_channel_number);
 
 /**
  * Method called to retrieve information about all peers in CADET, called
@@ -491,6 +482,28 @@ typedef void
 
 
 /**
+ * Hash uniquely identifying a connection below a tunnel.
+ */
+struct GNUNET_CADET_ConnectionTunnelIdentifier
+{
+  struct GNUNET_ShortHashCode connection_of_tunnel;
+};
+
+
+/**
+ * Number identifying a CADET channel within a tunnel.
+ */
+struct GNUNET_CADET_ChannelTunnelNumber
+{
+  /**
+   * Which number does this channel have that uniquely identfies
+   * it within its tunnel?
+   */
+  uint32_t cn GNUNET_PACKED;
+};
+
+
+/**
  * Method called to retrieve information about a specific tunnel the cadet peer
  * has established, o`r is trying to establish.
  *
@@ -508,8 +521,8 @@ typedef void
                           const struct GNUNET_PeerIdentity *peer,
                           unsigned int n_channels,
                           unsigned int n_connections,
-                          uint32_t *channels,
-                          struct GNUNET_CADET_Hash *connections,
+                          const struct GNUNET_CADET_ChannelTunnelNumber *channels,
+                          const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
                           unsigned int estate,
                           unsigned int cstate);
 
@@ -528,7 +541,7 @@ typedef void
 void
 GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
                           struct GNUNET_PeerIdentity *peer,
-                          uint32_t channel_number,
+                          uint32_t /* UGH */ channel_number,
                           GNUNET_CADET_ChannelCB callback,
                           void *callback_cls);
 
