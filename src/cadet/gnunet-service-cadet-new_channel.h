@@ -30,6 +30,7 @@
 
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_peer.h"
+#include "cadet_protocol.h"
 
 
 /**
@@ -145,6 +146,38 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch);
 
 
 /**
+ * We got payload data for a channel.  Pass it on to the client.
+ *
+ * @param ch channel that got data
+ */
+void
+GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
+                                    const struct GNUNET_CADET_ChannelAppDataMessage *msg);
+
+
+/**
+ * We got an acknowledgement for payload data for a channel.
+ * Possibly resume transmissions.
+ *
+ * @param ch channel that got the ack
+ * @param ack details about what was received
+ */
+void
+GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
+                                        const struct GNUNET_CADET_ChannelDataAckMessage *ack);
+
+
+/**
+ * We got an acknowledgement for the creation of the channel
+ * (the port is open on the other side). Begin transmissions.
+ *
+ * @param ch channel to destroy
+ */
+void
+GCCH_handle_channel_create_ack (struct CadetChannel *ch);
+
+
+/**
  * Destroy channel, based on the other peer closing the
  * connection.  Also needs to remove this channel from
  * the tunnel.
@@ -159,7 +192,7 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch);
  * @param ch channel to destroy
  */
 void
-GCCH_channel_remote_destroy (struct CadetChannel *ch);
+GCCH_handle_remote_destroy (struct CadetChannel *ch);
 
 
 /**

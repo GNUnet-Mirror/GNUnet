@@ -35,9 +35,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_signatures.h"
-#include "cadet_protocol.h"
-#include "cadet_path.h"
 #include "gnunet-service-cadet-new.h"
+#include "cadet_protocol.h"
 #include "gnunet-service-cadet-new_channel.h"
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_tunnels.h"
@@ -1433,7 +1432,8 @@ connection_ready_cb (void *cls,
   ct->is_ready = GNUNET_NO;
   GCC_transmit (ct->cc,
                 tq->env);
-  tq->cont (tq->cont_cls);
+  if (NULL != tq->cont)
+    tq->cont (tq->cont_cls);
   GNUNET_free (tq);
 }
 
@@ -1626,7 +1626,8 @@ check_plaintext_data (void *cls,
 
 
 /**
- *
+ * We received payload data for a channel.  Locate the channel
+ * and process the data, or return an error if the channel is unknown.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param msg the message we received on the tunnel
@@ -1636,12 +1637,27 @@ handle_plaintext_data (void *cls,
                        const struct GNUNET_CADET_ChannelAppDataMessage *msg)
 {
   struct CadetTunnel *t = cls;
-  GNUNET_break (0); // FIXME!
+  struct CadetChannel *ch;
+
+  ch = lookup_channel (t,
+                       msg->chid);
+  if (NULL == ch)
+  {
+    /* We don't know about such a channel, might have been destroyed on our
+       end in the meantime, or never existed. Send back a DESTROY. */
+    GCT_send_channel_destroy (t,
+                              msg->chid);
+    return;
+  }
+  GCCH_handle_channel_plaintext_data (ch,
+                                      msg);
 }
 
 
 /**
- *
+ * We received an acknowledgement for data we sent on a channel.
+ * Locate the channel and process it, or return an error if the
+ * channel is unknown.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param ack the message we received on the tunnel
@@ -1651,7 +1667,20 @@ handle_plaintext_data_ack (void *cls,
                            const struct GNUNET_CADET_ChannelDataAckMessage *ack)
 {
   struct CadetTunnel *t = cls;
-  GNUNET_break (0); // FIXME!
+  struct CadetChannel *ch;
+
+  ch = lookup_channel (t,
+                       ack->chid);
+  if (NULL == ch)
+  {
+    /* We don't know about such a channel, might have been destroyed on our
+       end in the meantime, or never existed. Send back a DESTROY. */
+    GCT_send_channel_destroy (t,
+                              ack->chid);
+    return;
+  }
+  GCCH_handle_channel_plaintext_data_ack (ch,
+                                          ack);
 }
 
 
@@ -1693,7 +1722,16 @@ void
 GCT_send_channel_destroy (struct CadetTunnel *t,
                           struct GNUNET_CADET_ChannelTunnelNumber chid)
 {
-  GNUNET_break (0); // FIXME!
+  struct GNUNET_CADET_ChannelManageMessage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
+  msg.reserved = htonl (0);
+  msg.chid = chid;
+  GCT_send (t,
+            &msg.header,
+            NULL,
+            NULL);
 }
 
 
@@ -1722,7 +1760,7 @@ handle_plaintext_channel_ack (void *cls,
                               cm->chid);
     return;
   }
-  GNUNET_break (0); // FIXME!
+  GCCH_handle_channel_create_ack (ch);
 }
 
 
@@ -1741,7 +1779,7 @@ handle_plaintext_channel_destroy (void *cls,
   struct CadetChannel *cc = lookup_channel (t,
                                             cm->chid);
 
-  GCCH_channel_remote_destroy (cc);
+  GCCH_handle_remote_destroy (cc);
 }
 
 

@@ -602,7 +602,7 @@ send_channel_ack (struct CadetChannel *ch)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.gid = ch->chid;
+  msg.chid = ch->chid;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid) - 1);
   msg.futures = GNUNET_htonll (ch->mid_futures);
   if (NULL != ch->last_control_qe)
@@ -730,6 +730,47 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch)
 
 
 /**
+ * We got an acknowledgement for the creation of the channel
+ * (the port is open on the other side). Begin transmissions.
+ *
+ * @param ch channel to destroy
+ */
+void
+GCCH_handle_channel_create_ack (struct CadetChannel *ch)
+{
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ * We got payload data for a channel.  Pass it on to the client.
+ *
+ * @param ch channel that got data
+ */
+void
+GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
+                                    const struct GNUNET_CADET_ChannelAppDataMessage *msg)
+{
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
+ * We got an acknowledgement for payload data for a channel.
+ * Possibly resume transmissions.
+ *
+ * @param ch channel that got the ack
+ * @param ack details about what was received
+ */
+void
+GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
+                                        const struct GNUNET_CADET_ChannelDataAckMessage *ack)
+{
+  GNUNET_break (0); // FIXME!
+}
+
+
+/**
  * Destroy channel, based on the other peer closing the
  * connection.  Also needs to remove this channel from
  * the tunnel.
@@ -744,7 +785,7 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch)
  * @param ch channel to destroy
  */
 void
-GCCH_channel_remote_destroy (struct CadetChannel *ch)
+GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
   GNUNET_break (0); // FIXME!
 }
@@ -934,7 +975,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message.mid = ch->mid_send;
-  crm->data_message.gid = ch->chid;
+  crm->data_message.chid = ch->chid;
   GNUNET_memcpy (&crm[1],
                  message,
                  payload_size);

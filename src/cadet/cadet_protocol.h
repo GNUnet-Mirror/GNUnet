@@ -496,7 +496,7 @@ struct GNUNET_CADET_ChannelAppDataMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
   /**
    * Payload follows
@@ -517,7 +517,7 @@ struct GNUNET_CADET_ChannelDataAckMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber chid;
 
   /**
    * Bitfield of already-received messages past @e mid.
