@@ -253,10 +253,17 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    */
   struct GNUNET_MessageHeader header;
 
+#if NEW_CADET
   /**
-   * ID of the packet (hop by hop).
+   * Reserved, for alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+#else
+  /**
+   * Maximum packet ID authorized.
    */
   struct CadetEncryptedMessageIdentifier cemi;
+#endif
 
   /**
    * ID of the connection.
@@ -294,6 +301,8 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    */
 };
 
+
+#ifndef NEW_CADET
 
 /**
  * Message to query a peer about its Flow Control status regarding a tunnel.
@@ -344,6 +353,8 @@ struct GNUNET_CADET_ConnectionEncryptedAckMessage
    */
   struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 };
+
+#endif
 
 
 /******************************************************************************/
@@ -483,8 +494,7 @@ struct ChannelMessageIdentifier
 struct GNUNET_CADET_ChannelAppDataMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
-   *       #GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA.
    */
   struct GNUNET_MessageHeader header;
 

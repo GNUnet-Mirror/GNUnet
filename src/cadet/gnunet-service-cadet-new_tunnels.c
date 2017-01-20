@@ -24,9 +24,10 @@
  * @author Christian Grothoff
  *
  * FIXME:
- * - clean up KX logic!
- * - implement sending and receiving KX messages
- * - implement processing of incoming decrypted plaintext messages
+ * - check KX estate machine -- make sure it is never stuck!
+ * - clean up KX logic, including adding sender authentication
+ * - implement connection management (evaluate, kill old ones,
+ *   search for new ones)
  * - when managing connections, distinguish those that
  *   have (recently) had traffic from those that were
  *   never ready (or not recently)
@@ -298,19 +299,19 @@ struct CadetTunnel
   struct CadetTunnelAxolotl ax;
 
   /**
-   * State of the tunnel connectivity.
+   * Task scheduled if there are no more channels using the tunnel.
    */
-  enum CadetTunnelCState cstate;
+  struct GNUNET_SCHEDULER_Task *destroy_task;
 
   /**
-   * State of the tunnel encryption.
+   * Task to trim connections if too many are present.
    */
-  enum CadetTunnelEState estate;
+  struct GNUNET_SCHEDULER_Task *maintain_connections_task;
 
   /**
-   * Task to start the rekey process.
+   * Task to trigger KX.
    */
-  struct GNUNET_SCHEDULER_Task *rekey_task;
+  struct GNUNET_SCHEDULER_Task *kx_task;
 
   /**
    * Tokenizer for decrypted messages.
@@ -353,15 +354,6 @@ struct CadetTunnel
    */
   struct CadetTunnelQueueEntry *tq_tail;
 
-  /**
-   * Task scheduled if there are no more channels using the tunnel.
-   */
-  struct GNUNET_SCHEDULER_Task *destroy_task;
-
-  /**
-   * Task to trim connections if too many are present.
-   */
-  struct GNUNET_SCHEDULER_Task *maintain_connections_task;
 
   /**
    * Ephemeral message in the queue (to avoid queueing more than one).
@@ -374,6 +366,16 @@ struct CadetTunnel
   struct CadetConnectionQueue *pong_hKILL;
 
   /**
+   * How long do we wait until we retry the KX?
+   */
+  struct GNUNET_TIME_Relative kx_retry_delay;
+
+  /**
+   * When do we try the next KX?
+   */
+  struct GNUNET_TIME_Absolute next_kx_attempt;
+
+  /**
    * Number of connections in the @e connection_head DLL.
    */
   unsigned int num_connections;
@@ -382,6 +384,12 @@ struct CadetTunnel
    * Number of entries in the @e tq_head DLL.
    */
   unsigned int tq_len;
+
+  /**
+   * State of the tunnel encryption.
+   */
+  enum CadetTunnelEState estate;
+
 };
 
 
@@ -466,16 +474,34 @@ GCT_count_any_connections (struct CadetTunnel *t)
 
 
 /**
- * Get the connectivity state of a tunnel.
+ * Find first connection that is ready in the list of
+ * our connections.  Picks ready connections round-robin.
  *
- * @param t Tunnel.
- *
- * @return Tunnel's connectivity state.
+ * @param t tunnel to search
+ * @return NULL if we have no connection that is ready
  */
-enum CadetTunnelCState
-GCT_get_cstate (struct CadetTunnel *t)
+static struct CadetTConnection *
+get_ready_connection (struct CadetTunnel *t)
 {
-  return t->cstate;
+  for (struct CadetTConnection *pos = t->connection_head;
+       NULL != pos;
+       pos = pos->next)
+    if (GNUNET_YES == pos->is_ready)
+    {
+      if (pos != t->connection_tail)
+      {
+        /* move 'pos' to the end, so we try other ready connections
+           first next time (round-robin, modulo availability) */
+        GNUNET_CONTAINER_DLL_remove (t->connection_head,
+                                     t->connection_tail,
+                                     pos);
+        GNUNET_CONTAINER_DLL_insert_tail (t->connection_head,
+                                          t->connection_tail,
+                                          pos);
+      }
+      return pos;
+    }
+  return NULL;
 }
 
 
@@ -504,6 +530,19 @@ new_ephemeral (struct CadetTunnel *t)
   GNUNET_free_non_null (t->ax.DHRs);
   t->ax.DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
 }
+
+
+
+/**
+ * Called when either we have a new connection, or a new message in the
+ * queue, or some existing connection has transmission capacity.  Looks
+ * at our message queue and if there is a message, picks a connection
+ * to send it on.
+ *
+ * @param t tunnel to process messages on
+ */
+static void
+trigger_transmissions (struct CadetTunnel *t);
 
 
 /* ************************************** start core crypto ***************************** */
@@ -1104,6 +1143,39 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
 
 
 /**
+ * Change the tunnel encryption state.
+ * If the encryption state changes to OK, stop the rekey task.
+ *
+ * @param t Tunnel whose encryption state to change, or NULL.
+ * @param state New encryption state.
+ */
+void
+GCT_change_estate (struct CadetTunnel *t,
+                   enum CadetTunnelEState state)
+{
+  enum CadetTunnelEState old = t->estate;
+
+  t->estate = state;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s estate changed from %d to %d\n",
+       GCT_2s (t),
+       old,
+       state);
+
+  if ( (CADET_TUNNEL_KEY_OK != old) &&
+       (CADET_TUNNEL_KEY_OK == t->estate) )
+  {
+    if (NULL != t->kx_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_task);
+      t->kx_task = NULL;
+    }
+    /* FIXME: schedule rekey task! */
+  }
+}
+
+
+/**
  * Send a KX message.
  *
  * FIXME: does not take care of sender-authentication yet!
@@ -1116,20 +1188,16 @@ send_kx (struct CadetTunnel *t,
          int force_reply)
 {
   struct CadetTunnelAxolotl *ax = &t->ax;
-  struct CadetConnection *c;
+  struct CadetTConnection *ct;
+  struct CadetConnection *cc;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-#if FIXME
-  if (NULL != t->ephm_h)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "     already queued, nop\n");
+  ct = get_ready_connection (t);
+  if (NULL == ct)
     return;
-  }
-#endif
-  c = NULL; // FIXME: figure out where to transmit...
+  cc = ct->cc;
 
   // GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
   env = GNUNET_MQ_msg (msg,
@@ -1138,23 +1206,18 @@ send_kx (struct CadetTunnel *t,
   if (GNUNET_YES == force_reply)
     flags |= GNUNET_CADET_KX_FLAG_FORCE_REPLY;
   msg->flags = htonl (flags);
-  msg->cid = *GCC_get_id (c);
+  msg->cid = *GCC_get_id (cc);
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->kx_0,
                                       &msg->ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
                                       &msg->ratchet_key);
-
-  // FIXME: send 'env'.
-#if FIXME
-  t->ephm_h = GCC_send_prebuilt_message (&msg.header,
-                                         UINT16_MAX,
-                                         zero,
-                                         c,
-                                         GCC_is_origin (c, GNUNET_YES),
-                                         GNUNET_YES, &ephm_sent, t);
+  GCC_transmit (cc,
+                env);
+  t->kx_retry_delay = GNUNET_TIME_STD_BACKOFF (t->kx_retry_delay);
+  t->next_kx_attempt = GNUNET_TIME_relative_to_absolute (t->kx_retry_delay);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
-    GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
-#endif
+    GCT_change_estate (t,
+                       CADET_TUNNEL_KEY_SENT);
 }
 
 
@@ -1193,10 +1256,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
 
   if (0 != (GNUNET_CADET_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
   {
-    if (NULL != t->rekey_task)
+    if (NULL != t->kx_task)
     {
-      GNUNET_SCHEDULER_cancel (t->rekey_task);
-      t->rekey_task = NULL;
+      GNUNET_SCHEDULER_cancel (t->kx_task);
+      t->kx_task = NULL;
     }
     send_kx (t,
              GNUNET_NO);
@@ -1206,7 +1269,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                    &msg->ratchet_key,
                    sizeof (msg->ratchet_key)))
   {
-    LOG (GNUNET_ERROR_TYPE_INFO,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          " known ratchet key, exit\n");
     return;
   }
@@ -1290,12 +1353,29 @@ GCT_handle_kx (struct CadetTConnection *ct,
   ax->Nr = 0;
   ax->Ns = 0;
 
-#if FIXME
-  /* After KX is done, update state machine and begin transmissions... */
-  GCT_change_estate (t,
-                     CADET_TUNNEL_KEY_PING);
-  send_queued_data (t);
-#endif
+  switch (t->estate)
+  {
+  case CADET_TUNNEL_KEY_UNINITIALIZED:
+    GCT_change_estate (t,
+                       CADET_TUNNEL_KEY_PING);
+    break;
+  case CADET_TUNNEL_KEY_SENT:
+    /* Got a response to us sending our key; now
+       we can start transmitting! */
+    GCT_change_estate (t,
+                       CADET_TUNNEL_KEY_OK);
+    trigger_transmissions (t);
+    break;
+  case CADET_TUNNEL_KEY_PING:
+    /* Got a key yet again; need encrypted payload to advance */
+    break;
+  case CADET_TUNNEL_KEY_OK:
+    /* Did not expect a key, but so what. */
+    break;
+  case CADET_TUNNEL_KEY_REKEY:
+    /* Got a key yet again; need encrypted payload to advance */
+    break;
+  }
 }
 
 
@@ -1398,6 +1478,25 @@ destroy_tunnel (void *cls)
 
 
 /**
+ * It's been a while, we should try to redo the KX, if we can.
+ *
+ * @param cls the `struct CadetTunnel` to do KX for.
+ */
+static void
+retry_kx (void *cls)
+{
+  struct CadetTunnel *t = cls;
+
+  t->kx_task = NULL;
+  send_kx (t,
+           ( (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate) ||
+             (CADET_TUNNEL_KEY_SENT == t->estate) )
+           ? GNUNET_YES
+           : GNUNET_NO);
+}
+
+
+/**
  * A connection is @a is_ready for transmission.  Looks at our message
  * queue and if there is a message, sends it out via the connection.
  *
@@ -1419,22 +1518,47 @@ connection_ready_cb (void *cls,
     return;
   }
   ct->is_ready = GNUNET_YES;
-  if (NULL == tq)
-    return; /* no messages pending right now */
-
-  /* ready to send message 'tq' on tunnel 'ct' */
-  GNUNET_assert (t == tq->t);
-  GNUNET_CONTAINER_DLL_remove (t->tq_head,
-                               t->tq_tail,
-                               tq);
-  if (NULL != tq->cid)
-    *tq->cid = *GCC_get_id (ct->cc);
-  ct->is_ready = GNUNET_NO;
-  GCC_transmit (ct->cc,
-                tq->env);
-  if (NULL != tq->cont)
-    tq->cont (tq->cont_cls);
-  GNUNET_free (tq);
+  switch (t->estate)
+  {
+  case CADET_TUNNEL_KEY_UNINITIALIZED:
+    send_kx (t,
+             GNUNET_YES);
+    break;
+  case CADET_TUNNEL_KEY_SENT:
+  case CADET_TUNNEL_KEY_PING:
+    /* opportunity to #retry_kx() starts now, schedule job */
+    if (NULL == t->kx_task)
+    {
+      t->kx_task
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt),
+                                        &retry_kx,
+                                        t);
+    }
+    break;
+  case CADET_TUNNEL_KEY_OK:
+    /* send normal payload */
+    if (NULL == tq)
+      return; /* no messages pending right now */
+    /* ready to send message 'tq' on tunnel 'ct' */
+    GNUNET_assert (t == tq->t);
+    GNUNET_CONTAINER_DLL_remove (t->tq_head,
+                                 t->tq_tail,
+                                 tq);
+    if (NULL != tq->cid)
+      *tq->cid = *GCC_get_id (ct->cc);
+    ct->is_ready = GNUNET_NO;
+    GCC_transmit (ct->cc,
+                  tq->env);
+    if (NULL != tq->cont)
+      tq->cont (tq->cont_cls);
+    GNUNET_free (tq);
+    break;
+  case CADET_TUNNEL_KEY_REKEY:
+    send_kx (t,
+             GNUNET_NO);
+    t->estate = CADET_TUNNEL_KEY_OK;
+    break;
+  }
 }
 
 
@@ -1443,8 +1567,6 @@ connection_ready_cb (void *cls,
  * queue, or some existing connection has transmission capacity.  Looks
  * at our message queue and if there is a message, picks a connection
  * to send it on.
- *
- * FIXME: yuck... Need better selection logic!
  *
  * @param t tunnel to process messages on
  */
@@ -1455,11 +1577,7 @@ trigger_transmissions (struct CadetTunnel *t)
 
   if (NULL == t->tq_head)
     return; /* no messages pending right now */
-  for (ct = t->connection_head;
-       NULL != ct;
-       ct = ct->next)
-    if (GNUNET_YES == ct->is_ready)
-      break;
+  ct = get_ready_connection (t);
   if (NULL == ct)
     return; /* no connections ready */
 
@@ -1906,43 +2024,6 @@ GCT_remove_channel (struct CadetTunnel *t,
 
 
 /**
- * Change the tunnel encryption state.
- * If the encryption state changes to OK, stop the rekey task.
- *
- * @param t Tunnel whose encryption state to change, or NULL.
- * @param state New encryption state.
- */
-void
-GCT_change_estate (struct CadetTunnel *t,
-                   enum CadetTunnelEState state)
-{
-  enum CadetTunnelEState old = t->estate;
-
-  t->estate = state;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tunnel %s estate changed from %d to %d\n",
-       GCT_2s (t),
-       old,
-       state);
-
-  if ( (CADET_TUNNEL_KEY_OK != old) &&
-       (CADET_TUNNEL_KEY_OK == t->estate) )
-  {
-    if (NULL != t->rekey_task)
-    {
-      GNUNET_SCHEDULER_cancel (t->rekey_task);
-      t->rekey_task = NULL;
-    }
-#if FIXME
-    /* Send queued data if tunnel is not loopback */
-    if (myid != GCP_get_short_id (t->peer))
-      send_queued_data (t);
-#endif
-  }
-}
-
-
-/**
  * Add a @a connection to the @a tunnel.
  *
  * @param t a tunnel
@@ -1954,7 +2035,6 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                             struct CadetPeerPath *path)
 {
-  struct CadetConnection *cc;
   struct CadetTConnection *ct;
 
   ct = GNUNET_new (struct CadetTConnection);
@@ -1992,11 +2072,36 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   char cbuf [size] GNUNET_ALIGN;
   ssize_t decrypted_size;
 
+  switch (t->estate)
+  {
+  case CADET_TUNNEL_KEY_UNINITIALIZED:
+    /* We did not even SEND our KX, how can the other peer
+       send us encrypted data? */
+    GNUNET_break_op (0);
+    return;
+  case CADET_TUNNEL_KEY_SENT:
+    /* We did not get the KX of the other peer, but that
+       might have been lost.  Ask for KX again. */
+    GNUNET_STATISTICS_update (stats,
+                              "# received encrypted without KX",
+                              1,
+                              GNUNET_NO);
+    if (NULL != t->kx_task)
+      GNUNET_SCHEDULER_cancel (t->kx_task);
+    t->kx_task = GNUNET_SCHEDULER_add_now (&retry_kx,
+                                           t);
+    return;
+  case CADET_TUNNEL_KEY_PING:
+    /* Great, first payload, we might graduate to OK */
+  case CADET_TUNNEL_KEY_OK:
+  case CADET_TUNNEL_KEY_REKEY:
+    break;
+  }
+
   GNUNET_STATISTICS_update (stats,
                             "# received encrypted",
                             1,
                             GNUNET_NO);
-
   decrypted_size = t_ax_decrypt_and_validate (t,
                                               cbuf,
                                               msg,
@@ -2012,16 +2117,17 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     {
       GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Wrong crypto, tunnel %s\n",
+           "Failed to decrypt message on tunnel %s\n",
            GCT_2s (t));
-      GCT_debug (t,
-                 GNUNET_ERROR_TYPE_WARNING);
     }
     return;
   }
-
-  GCT_change_estate (t,
-                     CADET_TUNNEL_KEY_OK);
+  if (CADET_TUNNEL_KEY_PING == t->estate)
+  {
+    GCT_change_estate (t,
+                       CADET_TUNNEL_KEY_OK);
+    trigger_transmissions (t);
+  }
   /* The MST will ultimately call #handle_decrypted() on each message. */
   GNUNET_break_op (GNUNET_OK ==
                    GNUNET_MST_from_buffer (t->mst,
@@ -2053,8 +2159,6 @@ GCT_send (struct CadetTunnel *t,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelEncryptedMessage *ax_msg;
 
-  /* FIXME: what about KX not yet being ready? (see "is_ready()" check in old code!) */
-
   payload_size = ntohs (message->size);
   env = GNUNET_MQ_msg_extra (ax_msg,
                              payload_size,
@@ -2074,12 +2178,11 @@ GCT_send (struct CadetTunnel *t,
           0,
           &t->ax.HKs,
           &ax_msg->hmac);
-  // ax_msg->pid = htonl (GCC_get_pid (c, fwd));  // FIXME: connection flow-control not (re)implemented yet!
 
   tq = GNUNET_malloc (sizeof (*tq));
   tq->t = t;
   tq->env = env;
-  tq->cid = &ax_msg->cid;
+  tq->cid = &ax_msg->cid; /* will initialize 'ax_msg->cid' once we know the connection */
   tq->cont = cont;
   tq->cont_cls = cont_cls;
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head,
@@ -2215,37 +2318,6 @@ debug_channel (void *cls,
 
 
 /**
- * Get string description for tunnel connectivity state.
- *
- * @param cs Tunnel state.
- *
- * @return String representation.
- */
-static const char *
-cstate2s (enum CadetTunnelCState cs)
-{
-  static char buf[32];
-
-  switch (cs)
-  {
-    case CADET_TUNNEL_NEW:
-      return "CADET_TUNNEL_NEW";
-    case CADET_TUNNEL_SEARCHING:
-      return "CADET_TUNNEL_SEARCHING";
-    case CADET_TUNNEL_WAITING:
-      return "CADET_TUNNEL_WAITING";
-    case CADET_TUNNEL_READY:
-      return "CADET_TUNNEL_READY";
-    case CADET_TUNNEL_SHUTDOWN:
-      return "CADET_TUNNEL_SHUTDOWN";
-    default:
-      SPRINTF (buf, "%u (UNKNOWN STATE)", cs);
-      return buf;
-  }
-}
-
-
-/**
  * Get string description for tunnel encryption state.
  *
  * @param es Tunnel state.
@@ -2299,9 +2371,8 @@ GCT_debug (const struct CadetTunnel *t,
     return;
 
   LOG2 (level,
-        "TTT TUNNEL TOWARDS %s in cstate %s, estate %s tq_len: %u #cons: %u\n",
+        "TTT TUNNEL TOWARDS %s in estate %s tq_len: %u #cons: %u\n",
         GCT_2s (t),
-        cstate2s (t->cstate),
         estate2s (t->estate),
         t->tq_len,
         t->num_connections);

@@ -39,45 +39,13 @@
 
 
 /**
- * All the connectivity states a tunnel can be in.
- */
-enum CadetTunnelCState
-{
-  /**
-   * Uninitialized status, should never appear in operation.
-   */
-  CADET_TUNNEL_NEW,
-
-  /**
-   * No path to the peer known yet.
-   */
-  CADET_TUNNEL_SEARCHING,
-
-  /**
-   * Request sent, not yet answered.
-   */
-  CADET_TUNNEL_WAITING,
-
-  /**
-   * Peer connected and ready to accept data.
-   */
-  CADET_TUNNEL_READY,
-
-  /**
-   * Tunnel being shut down, don't try to keep it alive.
-   */
-  CADET_TUNNEL_SHUTDOWN
-};
-
-
-
-/**
  * All the encryption states a tunnel can be in.
  */
 enum CadetTunnelEState
 {
   /**
-   * Uninitialized status, should never appear in operation.
+   * Uninitialized status, we need to send KX.  We will stay
+   * in this state until the first connection is up.
    */
   CADET_TUNNEL_KEY_UNINITIALIZED,
 
@@ -87,19 +55,10 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_SENT,
 
   /**
-   * In OTR: New ephemeral key and ping sent, waiting for pong.
-   *
-   * This means that we DO have the peer's ephemeral key, otherwise the
-   * state would be KEY_SENT. We DO NOT have a valid session key (either no
-   * previous key or previous key expired).
-   *
-   *
-   * In Axolotl: Key sent and received but no deciphered traffic yet.
-   *
-   * This means that we can send traffic (otherwise we would never complete
-   * the handshake), but we don't have complete confirmation. Since the first
-   * traffic MUST be a complete channel creation 3-way handshake, no payload
-   * will be sent before confirmation.
+   * Key received and we sent ours back, but we got no traffic yet.
+   * We will not yet send traffic, as this might have been a replay.
+   * The other (initiating) peer should send a CHANNEL_OPEN next
+   * anyway.
    */
   CADET_TUNNEL_KEY_PING,
 
@@ -308,17 +267,6 @@ void
 GCT_iterate_channels (struct CadetTunnel *t,
                       GCT_ChannelIterator iter,
                       void *iter_cls);
-
-
-/**
- * Get the connectivity state of a tunnel.
- *
- * @param t Tunnel.
- *
- * @return Tunnel's connectivity state.
- */
-enum CadetTunnelCState
-GCT_get_cstate (struct CadetTunnel *t);
 
 
 /**

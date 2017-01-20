@@ -855,7 +855,7 @@ get_all_tunnels_iterator (void *cls,
   msg->destination = *peer;
   msg->channels = htonl (GCT_count_channels (t));
   msg->connections = htonl (GCT_count_any_connections (t));
-  msg->cstate = htons ((uint16_t) GCT_get_cstate (t));
+  msg->cstate = htons (0);
   msg->estate = htons ((uint16_t) GCT_get_estate (t));
   GNUNET_MQ_send (c->mq,
                   env);
@@ -975,7 +975,7 @@ handle_show_tunnel (void *cls,
                         resp);
   resp->connections = htonl (resp->connections);
   resp->channels = htonl (resp->channels);
-  resp->cstate = htons (GCT_get_cstate (t));
+  resp->cstate = htons (0);
   resp->estate = htons (GCT_get_estate (t));
   GNUNET_MQ_send (c->mq,
                   env);

@@ -25,6 +25,10 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - handle CREATE_ACK
+ * - handle plaintext data
+ * - handle plaintext ACK
+ * - handle destroy
  * - estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
  * - check that '0xFFULL' really is sufficient for flow control!
  * - what about the 'no buffer' option?
