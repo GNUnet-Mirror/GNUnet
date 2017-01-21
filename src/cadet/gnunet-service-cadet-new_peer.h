@@ -193,13 +193,15 @@ GCP_drop_tunnel (struct CadetPeer *cp,
  * @param cp peer to which the @a path leads to
  * @param path a path looking for an owner; may not be fully initialized yet!
  * @param off offset of @a cp in @a path
+ * @param force for attaching the path
  * @return NULL if this peer does not care to become a new owner,
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
 GCP_attach_path (struct CadetPeer *cp,
                  struct CadetPeerPath *path,
-                 unsigned int off);
+                 unsigned int off,
+                 int force);
 
 
 /**

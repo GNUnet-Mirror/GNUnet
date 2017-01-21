@@ -584,33 +584,38 @@ GCP_path_entry_remove (struct CadetPeer *cp,
  * @param cp peer to which the @a path leads to
  * @param path a path looking for an owner; may not be fully initialized yet!
  * @param off offset of @a cp in @a path
+ * @param force force attaching the path
  * @return NULL if this peer does not care to become a new owner,
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
 GCP_attach_path (struct CadetPeer *cp,
                  struct CadetPeerPath *path,
-                 unsigned int off)
+                 unsigned int off,
+                 int force)
 {
   GNUNET_CONTAINER_HeapCostType desirability;
   struct CadetPeerPath *root;
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
-  /* FIXME: desirability is not yet initialized; tricky! */
-  desirability = GCPP_get_desirability (path);
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_heap_peek2 (cp->path_heap,
-                                   (void **) &root,
-                                   &root_desirability))
+  if (GNUNET_NO == force)
   {
-    root = NULL;
-    root_desirability = 0;
-  }
+    /* FIXME: desirability is not yet initialized; tricky! */
+    desirability = GCPP_get_desirability (path);
+    if (GNUNET_NO ==
+        GNUNET_CONTAINER_heap_peek2 (cp->path_heap,
+                                     (void **) &root,
+                                     &root_desirability))
+    {
+      root = NULL;
+      root_desirability = 0;
+    }
 
-  if ( (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) &&
-       (desirability < root_desirability) )
-    return NULL;
+    if ( (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) &&
+         (desirability < root_desirability) )
+      return NULL;
+  }
 
   /* Yes, we'd like to add this path, add to our heap */
   hn = GNUNET_CONTAINER_heap_insert (cp->path_heap,
@@ -626,10 +631,11 @@ GCP_attach_path (struct CadetPeer *cp,
        unused paths around in the hope that we might be able to switch, even
        if the number of paths exceeds the threshold.) */
     root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
-    if (NULL ==
-        GCPP_get_connection (root,
-                             cp,
-                             GCPP_get_length (root) - 1))
+    if ( (path != root) &&
+         (NULL ==
+          GCPP_get_connection (root,
+                               cp,
+                               GCPP_get_length (root) - 1)) )
     {
       /* Got plenty of paths to this destination, and this is a low-quality
          one that we don't care, allow it to die. */

@@ -294,15 +294,16 @@ send_create (void *cls)
 
   cc->task = NULL;
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
-  path_length = GCPP_get_length (cc->path);
+  path_length = GCPP_get_length (cc->path) + 1;
   env = GNUNET_MQ_msg_extra (create_msg,
                              path_length * sizeof (struct GNUNET_PeerIdentity),
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
   create_msg->cid = cc->cid;
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
-  for (unsigned int i=0;i<path_length;i++)
+  pids[0] = my_full_id;
+  for (unsigned int i=1;i<=path_length;i++)
     pids[i] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
-                                                    i));
+                                                    i - 1));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CONNECTION_CREATE message for connection %s\n",
        GCC_2s (cc));

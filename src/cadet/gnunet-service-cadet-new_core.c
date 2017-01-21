@@ -427,7 +427,7 @@ handle_connection_create (void *cls,
       return;
     }
 
-    path = GCPP_get_path_from_route (path_length,
+    path = GCPP_get_path_from_route (path_length - 1,
                                      pids);
     origin = GCP_get (&pids[0],
                       GNUNET_YES);

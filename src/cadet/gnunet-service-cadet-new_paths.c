@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -18,7 +17,6 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file cadet/gnunet-service-cadet-new_paths.c
  * @brief Information we track per path.
@@ -213,7 +211,8 @@ GCPP_release (struct CadetPeerPath *path)
     entry = &path->entries[path->entries_length - 1];
     path->hn = GCP_attach_path (entry->peer,
                                 path,
-                                path->entries_length);
+                                path->entries_length,
+                                GNUNET_NO);
     if (NULL != path->hn)
       return; /* yep, got attached, we are done. */
   }
@@ -316,11 +315,14 @@ check_match (void *cls,
  * @param path path to extend
  * @param peers list of peers beyond the end of @a path
  * @param num_peers length of the @a peers array
+ * @param force force attachment, even if we have other
+ *        paths already
  */
 static void
 extend_path (struct CadetPeerPath *path,
              struct CadetPeer **peers,
-             unsigned int num_peers)
+             unsigned int num_peers,
+             int force)
 {
   unsigned int old_len = path->entries_length;
   struct GNUNET_CONTAINER_HeapNode *hn;
@@ -334,7 +336,8 @@ extend_path (struct CadetPeerPath *path,
     /* FIXME: note that path->desirability is used, but not yet updated here! */
     hn = GCP_attach_path (peers[i],
                           path,
-                          old_len + (unsigned int) i);
+                          old_len + (unsigned int) i,
+                          GNUNET_YES);
     if (NULL != hn)
       break;
   }
@@ -378,8 +381,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                         const struct GNUNET_PeerIdentity *put_path,
                         unsigned int put_path_length)
 {
-  struct CheckMatchContext cm_ctx;
   struct CadetPeer *cpath[get_path_length + put_path_length];
+  struct CheckMatchContext cm_ctx;
   struct CadetPeerPath *path;
   struct GNUNET_CONTAINER_HeapNode *hn;
   int i;
@@ -418,7 +421,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
         /* Existing path ends in the middle of new path, extend it! */
         extend_path (cm_ctx.match,
                      &cpath[i],
-                     get_path_length + put_path_length - i);
+                     get_path_length + put_path_length - i,
+                     GNUNET_NO);
         return;
       }
     }
@@ -435,7 +439,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     /* FIXME: note that path->desirability is used, but not yet initialized here! */
     hn = GCP_attach_path (cpath[i],
                           path,
-                          (unsigned int) i);
+                          (unsigned int) i,
+                          GNUNET_NO);
     if (NULL != hn)
       break;
   }
@@ -466,15 +471,74 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
  * We got an incoming connection, obtain the corresponding path.
  *
  * @param path_length number of segments on the @a path
- * @param path through the network, in reverse order (we are at the end!)
+ * @param pids path through the network, in reverse order (we are at the end at index @a path_length)
  * @return corresponding path object
  */
 struct CadetPeerPath *
 GCPP_get_path_from_route (unsigned int path_length,
                           const struct GNUNET_PeerIdentity *pids)
 {
-  GNUNET_assert (0); // FIXME!
-  return NULL;
+  struct CheckMatchContext cm_ctx;
+  struct CadetPeer *cpath[path_length];
+  struct CadetPeerPath *path;
+
+  /* precompute inverted 'cpath' so we can avoid doing the lookups and
+     have the correct order */
+  for (unsigned int off=0;off<path_length;off++)
+    cpath[off] = GCP_get (&pids[path_length - 1 - off],
+                          GNUNET_YES);
+
+  /* First figure out if this path is a subset of an existing path, an
+     extension of an existing path, or a new path. */
+  cm_ctx.cpath = cpath;
+  cm_ctx.match = NULL;
+  for (int i=path_length-1;i>=0;i--)
+  {
+    GCP_iterate_paths_at (cpath[i],
+                          (unsigned int) i,
+                          &check_match,
+                          &cm_ctx);
+    if (NULL != cm_ctx.match)
+    {
+      if (i == path_length - 1)
+      {
+        /* Existing path includes this one, return the match! */
+        return cm_ctx.match;
+      }
+      if (cm_ctx.match->entries_length == i + 1)
+      {
+        /* Existing path ends in the middle of new path, extend it! */
+        extend_path (cm_ctx.match,
+                     &cpath[i],
+                     path_length - i,
+                     GNUNET_YES);
+        /* Check that extension was successful */
+        GNUNET_assert (cm_ctx.match->entries_length == path_length);
+        return cm_ctx.match;
+      }
+    }
+  }
+
+  /* No match at all, create completely new path */
+  path = GNUNET_new (struct CadetPeerPath);
+  path->entries_length = path_length;
+  path->entries = GNUNET_new_array (path->entries_length,
+                                    struct CadetPeerPathEntry);
+  for (int i=path_length-1;i>=0;i--)
+  {
+    struct CadetPeerPathEntry *entry = &path->entries[i];
+
+    entry->peer = cpath[i];
+    entry->path = path;
+    GCP_path_entry_add (entry->peer,
+                        entry,
+                        i);
+  }
+  path->hn = GCP_attach_path (cpath[path_length - 1],
+                              path,
+                              path_length - 1,
+                              GNUNET_YES);
+  return path;
 }
 
 
