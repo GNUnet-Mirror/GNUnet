@@ -64,16 +64,12 @@ do_connect (void *cls);
 static void
 do_shutdown (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutdown\n");
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = NULL;
-  }
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
   }
   if (NULL != ch)
   {
@@ -93,6 +89,11 @@ do_shutdown (void *cls)
   {
     GNUNET_CADET_disconnect (cadet_peer_2);
     cadet_peer_2 = NULL;
+  }
+  if (NULL != connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
   }
 }
 
@@ -117,12 +118,12 @@ do_abort (void *cls)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
+data_callback (void *cls,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -292,7 +293,8 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   me = peer;
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 15),
@@ -320,11 +322,12 @@ run (void *cls,
                           GC_u2h (1),
                           &inbound_channel,
                           (void *) 2L);
-  connect_task
-    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                                   2),
-                                    &do_connect,
-                                    NULL);
+  if (NULL == connect_task)
+    connect_task
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                     2),
+                                      &do_connect,
+                                      NULL);
 }
 
 
