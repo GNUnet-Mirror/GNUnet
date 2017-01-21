@@ -373,8 +373,9 @@ GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc)
   fc->proc_busy = GNUNET_NO;
   GNUNET_assert (fc->task == NULL);
   fc->task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (fc->delay_until), &transmit_next, fc);
+    GNUNET_SCHEDULER_add_at (fc->delay_until,
+                             &transmit_next,
+                             fc);
 }
 
 

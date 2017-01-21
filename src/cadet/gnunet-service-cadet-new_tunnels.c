@@ -1673,9 +1673,9 @@ connection_ready_cb (void *cls,
     if (NULL == t->kx_task)
     {
       t->kx_task
-        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt),
-                                        &retry_kx,
-                                        t);
+        = GNUNET_SCHEDULER_add_at (t->next_kx_attempt,
+                                   &retry_kx,
+                                   t);
     }
     break;
   case CADET_TUNNEL_KEY_OK:
