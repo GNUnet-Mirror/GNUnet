@@ -439,6 +439,7 @@ send_channel_open (void *cls)
   struct GNUNET_CADET_ChannelOpenMessage msgcc;
   uint32_t options;
 
+  ch->retry_task = NULL;
   options = 0;
   if (ch->nobuffer)
     options |= GNUNET_CADET_OPTION_NOBUFFER;
@@ -1045,6 +1046,7 @@ retry_transmission (void *cls)
   struct CadetChannel *ch = cls;
   struct CadetReliableMessage *crm = ch->head_sent;
 
+  ch->retry_task = NULL;
   GNUNET_assert (NULL == crm->qe);
   crm->qe = GCT_send (ch->t,
                       &crm->data_message.header,
