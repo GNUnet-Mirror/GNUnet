@@ -417,6 +417,37 @@ GCT_2s (const struct CadetTunnel *t)
 
 
 /**
+ * Get string description for tunnel encryption state.
+ *
+ * @param es Tunnel state.
+ *
+ * @return String representation.
+ */
+static const char *
+estate2s (enum CadetTunnelEState es)
+{
+  static char buf[32];
+
+  switch (es)
+  {
+    case CADET_TUNNEL_KEY_UNINITIALIZED:
+      return "CADET_TUNNEL_KEY_UNINITIALIZED";
+    case CADET_TUNNEL_KEY_SENT:
+      return "CADET_TUNNEL_KEY_SENT";
+    case CADET_TUNNEL_KEY_PING:
+      return "CADET_TUNNEL_KEY_PING";
+    case CADET_TUNNEL_KEY_OK:
+      return "CADET_TUNNEL_KEY_OK";
+    case CADET_TUNNEL_KEY_REKEY:
+      return "CADET_TUNNEL_KEY_REKEY";
+    default:
+      SPRINTF (buf, "%u (UNKNOWN STATE)", es);
+      return buf;
+  }
+}
+
+
+/**
  * Return the peer to which this tunnel goes.
  *
  * @param t a tunnel
@@ -1196,8 +1227,17 @@ send_kx (struct CadetTunnel *t,
 
   ct = get_ready_connection (t);
   if (NULL == ct)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Wanted to send KX on tunnel %s, but no connection is ready, deferring\n",
+                GCT_2s (t));
     return;
+  }
   cc = ct->cc;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending KX on tunnel %s using connection %s\n",
+              GCT_2s (t),
+              GCC_2s (ct->cc));
 
   // GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
   env = GNUNET_MQ_msg (msg,
@@ -1327,6 +1367,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
          " known handshake key, exit\n");
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Handling KX message for tunnel %s\n",
+              GCT_2s (t));
+
   ax->RK = keys[0];
   if (GNUNET_YES == am_I_alice)
   {
@@ -1428,6 +1472,10 @@ GCT_add_channel (struct CadetTunnel *t,
                                                       ntohl (ctn.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding channel %s to tunnel %s\n",
+              GCCH_2s (ch),
+              GCT_2s (t));
   return ctn;
 }
 
@@ -1445,6 +1493,9 @@ destroy_tunnel (void *cls)
   struct CadetTunnelQueueEntry *tqe;
 
   t->destroy_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Destroying idle tunnel %s\n",
+              GCT_2s (t));
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (t->channels));
   while (NULL != (ct = t->connection_head))
   {
@@ -1478,6 +1529,36 @@ destroy_tunnel (void *cls)
 
 
 /**
+ * Remove a channel from a tunnel.
+ *
+ * @param t Tunnel.
+ * @param ch Channel
+ * @param ctn unique number identifying @a ch within @a t
+ */
+void
+GCT_remove_channel (struct CadetTunnel *t,
+                    struct CadetChannel *ch,
+                    struct GNUNET_CADET_ChannelTunnelNumber ctn)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removing channel %s from tunnel %s\n",
+              GCCH_2s (ch),
+              GCT_2s (t));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (t->channels,
+                                                         ntohl (ctn.cn),
+                                                         ch));
+  if (0 ==
+      GNUNET_CONTAINER_multihashmap32_size (t->channels))
+  {
+    t->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
+                                                    &destroy_tunnel,
+                                                    t);
+  }
+}
+
+
+/**
  * It's been a while, we should try to redo the KX, if we can.
  *
  * @param cls the `struct CadetTunnel` to do KX for.
@@ -1497,6 +1578,50 @@ retry_kx (void *cls)
 
 
 /**
+ * Send normal payload from queue in @a t via connection @a ct.
+ * Does nothing if our payload queue is empty.
+ *
+ * @param t tunnel to send data from
+ * @param ct connection to use for transmission (is ready)
+ */
+static void
+try_send_normal_payload (struct CadetTunnel *t,
+                         struct CadetTConnection *ct)
+{
+  struct CadetTunnelQueueEntry *tq;
+
+  GNUNET_assert (GNUNET_YES == ct->is_ready);
+  tq = t->tq_head;
+  if (NULL == tq)
+  {
+    /* no messages pending right now */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not sending payload of tunnel %s on ready connection %s (nothing pending)\n",
+                GCT_2s (t),
+                GCC_2s (ct->cc));
+    return;
+  }
+  /* ready to send message 'tq' on tunnel 'ct' */
+  GNUNET_assert (t == tq->t);
+  GNUNET_CONTAINER_DLL_remove (t->tq_head,
+                               t->tq_tail,
+                               tq);
+  if (NULL != tq->cid)
+    *tq->cid = *GCC_get_id (ct->cc);
+  ct->is_ready = GNUNET_NO;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending payload of tunnel %s on connection %s\n",
+              GCT_2s (t),
+              GCC_2s (ct->cc));
+  GCC_transmit (ct->cc,
+                tq->env);
+  if (NULL != tq->cont)
+    tq->cont (tq->cont_cls);
+  GNUNET_free (tq);
+}
+
+
+/**
  * A connection is @a is_ready for transmission.  Looks at our message
  * queue and if there is a message, sends it out via the connection.
  *
@@ -1510,14 +1635,22 @@ connection_ready_cb (void *cls,
 {
   struct CadetTConnection *ct = cls;
   struct CadetTunnel *t = ct->t;
-  struct CadetTunnelQueueEntry *tq = t->tq_head;
 
-  if (GNUNET_NO == ct->is_ready)
+  if (GNUNET_NO == is_ready)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Connection %s no longer ready for tunnel %s\n",
+                GCC_2s (ct->cc),
+                GCT_2s (t));
     ct->is_ready = GNUNET_NO;
     return;
   }
   ct->is_ready = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %s now ready for tunnel %s in state %s\n",
+              GCC_2s (ct->cc),
+              GCT_2s (t),
+              estate2s (t->estate));
   switch (t->estate)
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
@@ -1536,22 +1669,8 @@ connection_ready_cb (void *cls,
     }
     break;
   case CADET_TUNNEL_KEY_OK:
-    /* send normal payload */
-    if (NULL == tq)
-      return; /* no messages pending right now */
-    /* ready to send message 'tq' on tunnel 'ct' */
-    GNUNET_assert (t == tq->t);
-    GNUNET_CONTAINER_DLL_remove (t->tq_head,
-                                 t->tq_tail,
-                                 tq);
-    if (NULL != tq->cid)
-      *tq->cid = *GCC_get_id (ct->cc);
-    ct->is_ready = GNUNET_NO;
-    GCC_transmit (ct->cc,
-                  tq->env);
-    if (NULL != tq->cont)
-      tq->cont (tq->cont_cls);
-    GNUNET_free (tq);
+    try_send_normal_payload (t,
+                             ct);
     break;
   case CADET_TUNNEL_KEY_REKEY:
     send_kx (t,
@@ -1580,10 +1699,8 @@ trigger_transmissions (struct CadetTunnel *t)
   ct = get_ready_connection (t);
   if (NULL == ct)
     return; /* no connections ready */
-
-  /* FIXME: a bit hackish to do it like this... */
-  connection_ready_cb (ct,
-                       GNUNET_YES);
+  try_send_normal_payload (t,
+                           ct);
 }
 
 
@@ -1690,6 +1807,11 @@ consider_path_cb (void *cls,
                                t->connection_tail,
                                ct);
   t->num_connections++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Found interesting path %s for tunnel %s, created connection %s\n",
+              GCPP_2s (path),
+              GCT_2s (t),
+              GCC_2s (ct->cc));
   return GNUNET_YES;
 }
 
@@ -1714,7 +1836,7 @@ GCT_consider_path (struct CadetTunnel *t,
 
 
 /**
- *
+ * NOT IMPLEMENTED.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param msg  the message we received on the tunnel
@@ -1764,6 +1886,10 @@ handle_plaintext_data (void *cls,
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Receicved %u bytes of application data for unknown channel %u, sending DESTROY\n",
+         (unsigned int) (ntohs (msg->header.size) - sizeof (*msg)),
+         ntohl (msg->ctn.cn));
     GCT_send_channel_destroy (t,
                               msg->ctn);
     return;
@@ -1794,6 +1920,9 @@ handle_plaintext_data_ack (void *cls,
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Receicved DATA_ACK for unknown channel %u, sending DESTROY\n",
+         ntohl (ack->ctn.cn));
     GCT_send_channel_destroy (t,
                               ack->ctn);
     return;
@@ -1811,13 +1940,17 @@ handle_plaintext_data_ack (void *cls,
  * @param cc the message we received on the tunnel
  */
 static void
-handle_plaintext_channel_create (void *cls,
-                                 const struct GNUNET_CADET_ChannelOpenMessage *cc)
+handle_plaintext_channel_open (void *cls,
+                               const struct GNUNET_CADET_ChannelOpenMessage *cc)
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Receicved channel OPEN on port %s from peer %s\n",
+       GNUNET_h2s (&cc->port),
+       GCP_2s (GCT_get_destination (t)));
   ctn = get_next_free_ctn (t);
   ch = GCCH_channel_incoming_new (t,
                                   ctn,
@@ -1843,6 +1976,9 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
 {
   struct GNUNET_CADET_ChannelManageMessage msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending DESTORY message for channel ID %u\n",
+       ntohl (ctn.cn));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.reserved = htonl (0);
@@ -1863,8 +1999,8 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
  * @param cm the message we received on the tunnel
  */
 static void
-handle_plaintext_channel_ack (void *cls,
-                              const struct GNUNET_CADET_ChannelManageMessage *cm)
+handle_plaintext_channel_open_ack (void *cls,
+                                   const struct GNUNET_CADET_ChannelManageMessage *cm)
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
@@ -1875,11 +2011,14 @@ handle_plaintext_channel_ack (void *cls,
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received channel OPEN_ACK for unknown channel, sending DESTROY\n",
+         GCCH_2s (ch));
     GCT_send_channel_destroy (t,
                               cm->ctn);
     return;
   }
-  GCCH_handle_channel_create_ack (ch);
+  GCCH_handle_channel_open_ack (ch);
 }
 
 
@@ -1895,10 +2034,20 @@ handle_plaintext_channel_destroy (void *cls,
                                   const struct GNUNET_CADET_ChannelManageMessage *cm)
 {
   struct CadetTunnel *t = cls;
-  struct CadetChannel *cc = lookup_channel (t,
-                                            cm->ctn);
+  struct CadetChannel *ch;
 
-  GCCH_handle_remote_destroy (cc);
+  ch = lookup_channel (t,
+                       cm->ctn);
+  if (NULL == ch)
+  {
+    /* We don't know about such a channel, might have been destroyed on our
+       end in the meantime, or never existed. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received channel DESTORY for unknown channel. Ignoring.\n",
+         GCCH_2s (ch));
+    return;
+  }
+  GCCH_handle_remote_destroy (ch);
 }
 
 
@@ -1960,11 +2109,11 @@ GCT_create_tunnel (struct CadetPeer *destination)
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK,
                              struct GNUNET_CADET_ChannelDataAckMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (plaintext_channel_create,
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_open,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN,
                              struct GNUNET_CADET_ChannelOpenMessage,
                              NULL),
-    GNUNET_MQ_hd_fixed_size (plaintext_channel_ack,
+    GNUNET_MQ_hd_fixed_size (plaintext_channel_open_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
                              struct GNUNET_CADET_ChannelManageMessage,
                              NULL),
@@ -1999,32 +2148,6 @@ GCT_create_tunnel (struct CadetPeer *destination)
 
 
 /**
- * Remove a channel from a tunnel.
- *
- * @param t Tunnel.
- * @param ch Channel
- * @param gid unique number identifying @a ch within @a t
- */
-void
-GCT_remove_channel (struct CadetTunnel *t,
-                    struct CadetChannel *ch,
-                    struct GNUNET_CADET_ChannelTunnelNumber gid)
-{
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (t->channels,
-                                                         ntohl (gid.cn),
-                                                         ch));
-  if (0 ==
-      GNUNET_CONTAINER_multihashmap32_size (t->channels))
-  {
-    t->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
-                                                    &destroy_tunnel,
-                                                    t);
-  }
-}
-
-
-/**
  * Add a @a connection to the @a tunnel.
  *
  * @param t a tunnel
@@ -2055,6 +2178,10 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
                                t->connection_tail,
                                ct);
   t->num_connections++;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s has new connection %s\n",
+       GCT_2s (t),
+       GCC_2s (ct->cc));
 }
 
 
@@ -2072,6 +2199,12 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   uint16_t size = ntohs (msg->header.size);
   char cbuf [size] GNUNET_ALIGN;
   ssize_t decrypted_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s received %u bytes of encrypted data in state %d\n",
+       GCT_2s (t),
+       (unsigned int) size,
+       t->estate);
 
   switch (t->estate)
   {
@@ -2110,17 +2243,14 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
 
   if (-1 == decrypted_size)
   {
+    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Tunnel %s failed to decrypt and validate encrypted data\n",
+         GCT_2s (t));
     GNUNET_STATISTICS_update (stats,
                               "# unable to decrypt",
                               1,
                               GNUNET_NO);
-    if (CADET_TUNNEL_KEY_PING <= t->estate)
-    {
-      GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Failed to decrypt message on tunnel %s\n",
-           GCT_2s (t));
-    }
     return;
   }
   if (CADET_TUNNEL_KEY_PING == t->estate)
@@ -2161,6 +2291,10 @@ GCT_send (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelEncryptedMessage *ax_msg;
 
   payload_size = ntohs (message->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Encrypting %u bytes of for tunnel %s\n",
+       (unsigned int) payload_size,
+       GCT_2s (t));
   env = GNUNET_MQ_msg_extra (ax_msg,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED);
@@ -2315,37 +2449,6 @@ debug_channel (void *cls,
 
   GCCH_debug (ch, *level);
   return GNUNET_OK;
-}
-
-
-/**
- * Get string description for tunnel encryption state.
- *
- * @param es Tunnel state.
- *
- * @return String representation.
- */
-static const char *
-estate2s (enum CadetTunnelEState es)
-{
-  static char buf[32];
-
-  switch (es)
-  {
-    case CADET_TUNNEL_KEY_UNINITIALIZED:
-      return "CADET_TUNNEL_KEY_UNINITIALIZED";
-    case CADET_TUNNEL_KEY_SENT:
-      return "CADET_TUNNEL_KEY_SENT";
-    case CADET_TUNNEL_KEY_PING:
-      return "CADET_TUNNEL_KEY_PING";
-    case CADET_TUNNEL_KEY_OK:
-      return "CADET_TUNNEL_KEY_OK";
-    case CADET_TUNNEL_KEY_REKEY:
-      return "CADET_TUNNEL_KEY_REKEY";
-    default:
-      SPRINTF (buf, "%u (UNKNOWN STATE)", es);
-      return buf;
-  }
 }
 
 

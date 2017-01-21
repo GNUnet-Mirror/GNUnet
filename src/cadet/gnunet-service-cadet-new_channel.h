@@ -174,7 +174,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  * @param ch channel to destroy
  */
 void
-GCCH_handle_channel_create_ack (struct CadetChannel *ch);
+GCCH_handle_channel_open_ack (struct CadetChannel *ch);
 
 
 /**

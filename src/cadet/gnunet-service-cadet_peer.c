@@ -490,7 +490,7 @@ handle_create (void *cls, const struct GNUNET_CADET_ConnectionCreateMessage *msg
  * @param msg Message itself.
  */
 static void
-handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
+handle_confirm (void *cls, const struct GNUNET_CADET_ConnectionCreateAckMessage *msg)
 {
     struct CadetPeer *peer = cls;
     GCC_handle_confirm (peer, msg);
@@ -628,7 +628,7 @@ connect_to_core (const struct GNUNET_CONFIGURATION_Handle *c)
                                NULL),
         GNUNET_MQ_hd_fixed_size (confirm,
                                  GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
-                                 struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
+                                 struct GNUNET_CADET_ConnectionCreateAckMessage,
                                  NULL),
         GNUNET_MQ_hd_fixed_size (broken,
                                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,

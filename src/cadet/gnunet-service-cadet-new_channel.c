@@ -44,7 +44,7 @@
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
-#define LOG(level,...) GNUNET_log_from (level,"cadet-channel",__VA_ARGS__)
+#define LOG(level,...) GNUNET_log_from (level,"cadet-chn",__VA_ARGS__)
 
 /**
  * How long do we initially wait before retransmitting?
@@ -405,7 +405,7 @@ channel_destroy (struct CadetChannel *ch)
  * @param cls Channel for which to send.
  */
 static void
-send_create (void *cls);
+send_channel_open (void *cls);
 
 
 /**
@@ -415,25 +415,25 @@ send_create (void *cls);
  * @param cls our `struct CadetChannel`.
  */
 static void
-create_sent_cb (void *cls)
+channel_open_sent_cb (void *cls)
 {
   struct CadetChannel *ch = cls;
 
   ch->last_control_qe = NULL;
   ch->retry_time = GNUNET_TIME_STD_BACKOFF (ch->retry_time);
   ch->retry_task = GNUNET_SCHEDULER_add_delayed (ch->retry_time,
-                                                 &send_create,
+                                                 &send_channel_open,
                                                  ch);
 }
 
 
 /**
- * Send a channel create message.
+ * Send a channel open message.
  *
  * @param cls Channel for which to send.
  */
 static void
-send_create (void *cls)
+send_channel_open (void *cls)
 {
   struct CadetChannel *ch = cls;
   struct GNUNET_CADET_ChannelOpenMessage msgcc;
@@ -454,8 +454,11 @@ send_create (void *cls)
   ch->state = CADET_CHANNEL_CREATE_SENT;
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
-                                  &create_sent_cb,
+                                  &channel_open_sent_cb,
                                   ch);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending CHANNEL_OPEN message for channel %s\n",
+       GCCH_2s (ch));
 }
 
 
@@ -491,7 +494,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->ctn = GCT_add_channel (ch->t,
                               ch);
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_create,
+  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_channel_open,
                                              ch);
   GNUNET_STATISTICS_update (stats,
                             "# channels",
@@ -611,7 +614,7 @@ send_ack_cb (void *cls)
  * @param ch channel to send the ACK for
  */
 static void
-send_channel_ack (struct CadetChannel *ch)
+send_channel_data_ack (struct CadetChannel *ch)
 {
   struct GNUNET_CADET_ChannelDataAckMessage msg;
 
@@ -641,7 +644,7 @@ send_connect_ack (void *cls)
   struct CadetChannel *ch = cls;
 
   ch->retry_task = NULL;
-  send_channel_ack (ch);
+  send_channel_data_ack (ch);
 }
 
 
@@ -792,7 +795,7 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch)
  * @param ch channel to destroy
  */
 void
-GCCH_handle_channel_create_ack (struct CadetChannel *ch)
+GCCH_handle_channel_open_ack (struct CadetChannel *ch)
 {
   switch (ch->state)
   {
@@ -807,6 +810,9 @@ GCCH_handle_channel_create_ack (struct CadetChannel *ch)
       GNUNET_break_op (0);
       return;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received channel OPEN_ACK for waiting channel %s, entering READY state\n",
+         GCCH_2s (ch));
     ch->state = CADET_CHANNEL_READY;
     /* On first connect, send client as many ACKs as we allow messages
        to be buffered! */
@@ -816,6 +822,9 @@ GCCH_handle_channel_create_ack (struct CadetChannel *ch)
     break;
   case CADET_CHANNEL_READY:
     /* duplicate ACK, maybe we retried the CREATE. Ignore. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received duplicate channel OPEN_ACK for channel %s\n",
+         GCCH_2s (ch));
     GNUNET_STATISTICS_update (stats,
                               "# duplicate CREATE_ACKs",
                               1,
@@ -876,6 +885,10 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   size_t payload_size;
 
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Receicved %u bytes of application data on channel %s\n",
+       (unsigned int) payload_size,
+       GCCH_2s (ch));
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
@@ -966,7 +979,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
     /* ACK for message we already dropped, might have been a
        duplicate ACK? Ignore. */
     GNUNET_STATISTICS_update (stats,
-                              "# duplicate CHANNEL_DATA_ACKs",
+                              "# duplicate DATA_ACKs",
                               1,
                               GNUNET_NO);
     return;
@@ -995,6 +1008,9 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch)
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalChannelDestroyMessage *tdm;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received remote channel DESTROY for channel %s\n",
+       GCCH_2s (ch));
   ch->destroy = GNUNET_YES;
   env = GNUNET_MQ_msg (tdm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
@@ -1255,7 +1271,7 @@ send_client_buffered_data (struct CadetChannel *ch)
                 "Sender on channel %s likely blocked on flow-control, sending ACK now.\n",
                 GCCH_2s (ch));
     if (GNUNET_YES == ch->reliable)
-      send_channel_ack (ch);
+      send_channel_data_ack (ch);
   }
 
   if (NULL != ch->head_recv)

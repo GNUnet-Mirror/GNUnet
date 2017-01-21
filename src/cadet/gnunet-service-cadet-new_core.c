@@ -477,7 +477,7 @@ handle_connection_create (void *cls,
  */
 static void
 handle_connection_create_ack (void *cls,
-                              const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
+                              const struct GNUNET_CADET_ConnectionCreateAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -498,7 +498,7 @@ handle_connection_create_ack (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    GCC_handle_connection_ack (cc);
+    GCC_handle_connection_create_ack (cc);
     return;
   }
 
@@ -778,7 +778,7 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                            NULL),
     GNUNET_MQ_hd_fixed_size (connection_create_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
-                             struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
+                             struct GNUNET_CADET_ConnectionCreateAckMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (connection_broken,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,

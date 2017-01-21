@@ -152,23 +152,23 @@ GCT_add_channel (struct CadetTunnel *t,
  *
  * @param t Tunnel.
  * @param ch Channel
- * @param gid unique number identifying @a ch within @a t
+ * @param ctn unique number identifying @a ch within @a t
  */
 void
 GCT_remove_channel (struct CadetTunnel *t,
                     struct CadetChannel *ch,
-                    struct GNUNET_CADET_ChannelTunnelNumber gid);
+                    struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**
  * Send a DESTROY message via the tunnel.
  *
  * @param t the tunnel to transmit over
- * @param chid ID of the channel to destroy
+ * @param ctn ID of the channel to destroy
  */
 void
 GCT_send_channel_destroy (struct CadetTunnel *t,
-                          struct GNUNET_CADET_ChannelTunnelNumber chid);
+                          struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**

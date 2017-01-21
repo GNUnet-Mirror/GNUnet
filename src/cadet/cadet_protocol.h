@@ -87,7 +87,7 @@ struct GNUNET_CADET_ConnectionCreateMessage
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_CADET_ConnectionCreateMessageAckMessage
+struct GNUNET_CADET_ConnectionCreateAckMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
