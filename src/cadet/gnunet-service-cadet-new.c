@@ -115,6 +115,11 @@ struct CadetClient
 /****************************** Global variables ******************************/
 
 /**
+ * Handle to our configuration.
+ */
+const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Handle to the statistics service.
  */
 struct GNUNET_STATISTICS_Handle *stats;
@@ -272,7 +277,7 @@ GSC_bind (struct CadetClient *c,
           uint32_t options)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_ChannelOpenMessageMessage *msg;
+  struct GNUNET_CADET_TunnelCreateMessage *msg;
   struct GNUNET_CADET_ClientChannelNumber lid;
 
   lid = client_get_next_lid (c);
@@ -284,7 +289,7 @@ GSC_bind (struct CadetClient *c,
 
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
   msg->channel_id = lid;
   msg->port = *port;
   msg->opt = htonl (options);
@@ -396,7 +401,7 @@ handle_port_open (void *cls,
        c->id);
   if (NULL == c->ports)
     c->ports = GNUNET_CONTAINER_multihashmap_create (4,
-                                                     GNUNET_NO);
+                                                      GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (c->ports,
                                          &pmsg->port,
@@ -460,18 +465,18 @@ handle_port_close (void *cls,
  * Handler for requests of new channels.
  *
  * @param cls Identification of the client.
- * @param ccm The actual message.
+ * @param tcm The actual message.
  */
 static void
-handle_channel_create (void *cls,
-                       const struct GNUNET_CADET_ChannelOpenMessageMessage *ccm)
+handle_tunnel_create (void *cls,
+                      const struct GNUNET_CADET_TunnelCreateMessage *tcm)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
   struct GNUNET_CADET_ClientChannelNumber chid;
   struct CadetPeer *dst;
 
-  chid = ccm->channel_id;
+  chid = tcm->channel_id;
   if (ntohl (chid.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
   {
     /* Channel ID not in allowed range. */
@@ -489,15 +494,15 @@ handle_channel_create (void *cls,
     return;
   }
 
-  dst = GCP_get (&ccm->peer,
+  dst = GCP_get (&tcm->peer,
                  GNUNET_YES);
 
   /* Create channel */
   ch = GCCH_channel_local_new (c,
                                chid,
                                dst,
-                               &ccm->port,
-                               ntohl (ccm->opt));
+                               &tcm->port,
+                               ntohl (tcm->opt));
   if (NULL == ch)
   {
     GNUNET_break (0);
@@ -513,8 +518,8 @@ handle_channel_create (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New channel %s to %s at port %s requested by client %u\n",
        GCCH_2s (ch),
-       GNUNET_i2s (&ccm->peer),
-       GNUNET_h2s (&ccm->port),
+       GNUNET_i2s (&tcm->peer),
+       GNUNET_h2s (&tcm->port),
        c->id);
   GNUNET_SERVICE_client_continue (c->client);
 }
@@ -544,8 +549,8 @@ get_map_by_chid (struct CadetClient *c,
  * @param msg the actual message
  */
 static void
-handle_channel_destroy (void *cls,
-                        const struct GNUNET_CADET_ChannelDestroyMessage *msg)
+handle_tunnel_destroy (void *cls,
+                       const struct GNUNET_CADET_TunnelDestroyMessage *msg)
 {
   struct CadetClient *c = cls;
   struct GNUNET_CADET_ClientChannelNumber chid;
@@ -1233,6 +1238,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
+  cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c,
                                              "CADET",
@@ -1309,13 +1315,13 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
                           struct GNUNET_CADET_PortMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (channel_create,
-                          GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN,
-                          struct GNUNET_CADET_ChannelOpenMessageMessage,
+ GNUNET_MQ_hd_fixed_size (tunnel_create,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE,
+                          struct GNUNET_CADET_TunnelCreateMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (channel_destroy,
-                          GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
-                          struct GNUNET_CADET_ChannelDestroyMessage,
+ GNUNET_MQ_hd_fixed_size (tunnel_destroy,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY,
+                          struct GNUNET_CADET_TunnelDestroyMessage,
                           NULL),
  GNUNET_MQ_hd_var_size (data,
                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,

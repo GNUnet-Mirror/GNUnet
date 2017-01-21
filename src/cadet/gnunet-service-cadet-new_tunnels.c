@@ -1724,6 +1724,7 @@ handle_plaintext_keepalive (void *cls,
                             const struct GNUNET_MessageHeader *msg)
 {
   struct CadetTunnel *t = cls;
+
   GNUNET_break (0); // FIXME
 }
 

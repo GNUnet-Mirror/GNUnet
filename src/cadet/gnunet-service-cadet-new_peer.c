@@ -26,7 +26,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - implement GCP_set_hello() / do HELLO advertising properly
  * - optimize stopping/restarting DHT search to situations
  *   where we actually need it (i.e. not if we have a direct connection,
  *   or if we already have plenty of good short ones, or maybe even
@@ -904,22 +903,37 @@ GCP_iterate_paths_at (struct CadetPeer *peer,
 /**
  * Get the tunnel towards a peer.
  *
- * @param peer Peer to get from.
+ * @param cp Peer to get from.
  * @param create #GNUNET_YES to create a tunnel if we do not have one
  * @return Tunnel towards peer.
  */
 struct CadetTunnel *
-GCP_get_tunnel (struct CadetPeer *peer,
+GCP_get_tunnel (struct CadetPeer *cp,
                 int create)
 {
-  if (NULL == peer)
+  if (NULL == cp)
     return NULL;
-  if ( (NULL != peer->t) ||
+  if ( (NULL != cp->t) ||
        (GNUNET_NO == create) )
-    return peer->t;
-  peer->t = GCT_create_tunnel (peer);
-  consider_peer_activate (peer);
-  return peer->t;
+    return cp->t;
+  cp->t = GCT_create_tunnel (cp);
+  consider_peer_activate (cp);
+  return cp->t;
+}
+
+
+/**
+ * Hello offer was passed to the transport service. Mark it
+ * as done.
+ *
+ * @param cls the `struct CadetPeer` where the offer completed
+ */
+static void
+hello_offer_done (void *cls)
+{
+  struct CadetPeer *cp = cls;
+
+  cp->hello_offer = NULL;
 }
 
 
@@ -927,16 +941,39 @@ GCP_get_tunnel (struct CadetPeer *peer,
  * We got a HELLO for a @a peer, remember it, and possibly
  * trigger adequate actions (like trying to connect).
  *
- * @param peer the peer we got a HELLO for
+ * @param cp the peer we got a HELLO for
  * @param hello the HELLO to remember
  */
 void
-GCP_set_hello (struct CadetPeer *peer,
+GCP_set_hello (struct CadetPeer *cp,
                const struct GNUNET_HELLO_Message *hello)
 {
-  /* FIXME: keep HELLO, possibly offer to TRANSPORT... */
+  struct GNUNET_HELLO_Message *mrg;
 
-  consider_peer_destroy (peer);
+  if (NULL != cp->hello_offer)
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (cp->hello_offer);
+    cp->hello_offer = NULL;
+  }
+  if (NULL != cp->hello)
+  {
+    mrg = GNUNET_HELLO_merge (hello,
+                              cp->hello);
+    GNUNET_free (cp->hello);
+    cp->hello = mrg;
+  }
+  else
+  {
+    cp->hello = GNUNET_memdup (hello,
+                               GNUNET_HELLO_size (hello));
+  }
+  cp->hello_offer
+    = GNUNET_TRANSPORT_offer_hello (cfg,
+                                    GNUNET_HELLO_get_header (cp->hello) ,
+                                    &hello_offer_done,
+                                    cp);
+  /* New HELLO means cp's destruction time may change... */
+  consider_peer_destroy (cp);
 }
 
 
@@ -944,16 +981,16 @@ GCP_set_hello (struct CadetPeer *peer,
  * The tunnel to the given peer no longer exists, remove it from our
  * data structures, and possibly clean up the peer itself.
  *
- * @param peer the peer affected
+ * @param cp the peer affected
  * @param t the dead tunnel
  */
 void
-GCP_drop_tunnel (struct CadetPeer *peer,
+GCP_drop_tunnel (struct CadetPeer *cp,
                  struct CadetTunnel *t)
 {
-  GNUNET_assert (peer->t == t);
-  peer->t = NULL;
-  consider_peer_destroy (peer);
+  GNUNET_assert (cp->t == t);
+  cp->t = NULL;
+  consider_peer_destroy (cp);
 }
 
 

@@ -440,7 +440,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message size sanity check */
-  if (sizeof (struct GNUNET_CADET_ChannelOpenMessageMessage)
+  if (sizeof (struct GNUNET_CADET_TunnelCreateMessage)
       != ntohs (message->size))
   {
     GNUNET_break (0);
@@ -450,7 +450,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (GNUNET_OK !=
       GCCH_handle_local_create (c,
-                                (struct GNUNET_CADET_ChannelOpenMessageMessage *)
+                                (struct GNUNET_CADET_TunnelCreateMessage *)
                                 message))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -472,7 +472,7 @@ static void
 handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_CADET_ChannelDestroyMessage *msg;
+  const struct GNUNET_CADET_TunnelDestroyMessage *msg;
   struct CadetClient *c;
   struct CadetChannel *ch;
   struct GNUNET_CADET_ClientChannelNumber chid;
@@ -489,7 +489,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message sanity check */
-  if (sizeof (struct GNUNET_CADET_ChannelDestroyMessage)
+  if (sizeof (struct GNUNET_CADET_TunnelDestroyMessage)
       != ntohs (message->size))
   {
     GNUNET_break (0);
@@ -497,7 +497,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  msg = (struct GNUNET_CADET_ChannelDestroyMessage *) message;
+  msg = (const struct GNUNET_CADET_TunnelDestroyMessage *) message;
 
   /* Retrieve tunnel */
   chid = msg->channel_id;
@@ -521,7 +521,6 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                              ntohl (chid.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  return;
 }
 
 
@@ -1128,10 +1127,10 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
     sizeof (struct GNUNET_CADET_PortMessage)},
   {&handle_port_close, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
     sizeof (struct GNUNET_CADET_PortMessage)},
-  {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN,
-   sizeof (struct GNUNET_CADET_ChannelOpenMessageMessage)},
-  {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
-   sizeof (struct GNUNET_CADET_ChannelDestroyMessage)},
+  {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE,
+   sizeof (struct GNUNET_CADET_TunnelCreateMessage)},
+  {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY,
+   sizeof (struct GNUNET_CADET_TunnelDestroyMessage)},
   {&handle_data, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA, 0},
   {&handle_ack, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
    sizeof (struct GNUNET_CADET_LocalAck)},
@@ -1434,10 +1433,10 @@ GML_send_channel_create (struct CadetClient *c,
                          uint32_t opt,
                          const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_CADET_ChannelOpenMessageMessage msg;
+  struct GNUNET_CADET_TunnelCreateMessage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
   msg.channel_id = id;
   msg.port = *port;
   msg.opt = htonl (opt);
@@ -1484,7 +1483,7 @@ void
 GML_send_channel_destroy (struct CadetClient *c,
                           struct GNUNET_CADET_ClientChannelNumber id)
 {
-  struct GNUNET_CADET_ChannelDestroyMessage msg;
+  struct GNUNET_CADET_TunnelDestroyMessage msg;
 
   if (NULL == c)
   {
@@ -1494,7 +1493,7 @@ GML_send_channel_destroy (struct CadetClient *c,
   if (GNUNET_YES == c->shutting_down)
     return;
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY);
   msg.channel_id = id;
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &msg.header, GNUNET_NO);

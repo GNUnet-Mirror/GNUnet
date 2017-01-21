@@ -17,7 +17,16 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
+/**
+ * @file cadet/gnunet-service-cadet-new_hello.c
+ * @brief spread knowledge about how to contact other peers from PEERINFO
+ * @author Bartlomiej Polot
+ * @author Christian Grothoff
+ *
+ * TODO:
+ * - is most of this necessary/helpful?
+ * - should we not simply restrict this to OUR hello?
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
@@ -83,7 +92,6 @@ got_hello (void *cls,
                   GNUNET_YES);
   GCP_set_hello (peer,
                  hello);
-
 }
 
 

@@ -2732,6 +2732,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE 1023
 
+/**
+ * Ask the cadet service to create a new channel.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE 1024
+
+/**
+ * Tell client that a channel was destroyed.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY 1025
+
 /**********************************  Monitor  *********************************/
 
 

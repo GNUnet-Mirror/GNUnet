@@ -1308,17 +1308,18 @@ handle_loopback (struct CadetChannel *ch,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK:
-      GCCH_handle_data_ack (ch, (struct GNUNET_CADET_ChannelDataAckMessage *) msgh, fwd);
+      GCCH_handle_data_ack (ch,
+                            (const struct GNUNET_CADET_ChannelDataAckMessage *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN:
       GCCH_handle_create (ch->t,
-                          (struct GNUNET_CADET_ChannelOpenMessage *) msgh);
+                          (const struct GNUNET_CADET_ChannelOpenMessage *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK:
       GCCH_handle_ack (ch,
-                       (struct GNUNET_CADET_ChannelManageMessage *) msgh,
+                       (const struct GNUNET_CADET_ChannelManageMessage *) msgh,
                        fwd);
       break;
 
@@ -1328,7 +1329,7 @@ handle_loopback (struct CadetChannel *ch,
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       GCCH_handle_destroy (ch,
-                           (struct GNUNET_CADET_ChannelManageMessage *) msgh,
+                           (const struct GNUNET_CADET_ChannelManageMessage *) msgh,
                            fwd);
       break;
 
@@ -1842,11 +1843,11 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
  * @param c Client that requested the creation (will be the root).
  * @param msg Create Channel message.
  *
- * @return GNUNET_OK if everything went fine, GNUNET_SYSERR otherwise.
+ * @return #GNUNET_OK if everything went fine, #GNUNET_SYSERR otherwise.
  */
 int
 GCCH_handle_local_create (struct CadetClient *c,
-                          struct GNUNET_CADET_ChannelOpenMessageMessage *msg)
+                          struct GNUNET_CADET_TunnelCreateMessage *msg)
 {
   struct CadetChannel *ch;
   struct CadetTunnel *t;

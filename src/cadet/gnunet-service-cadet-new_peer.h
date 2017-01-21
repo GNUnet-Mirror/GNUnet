@@ -123,14 +123,14 @@ GCP_iterate_paths (struct CadetPeer *cp,
  * Iterate over the paths to @a peer where
  * @a peer is at distance @a dist from us.
  *
- * @param peer Peer to get path info.
+ * @param cp Peer to get path info.
  * @param dist desired distance of @a peer to us on the path
  * @param callback Function to call for every path.
  * @param callback_cls Closure for @a callback.
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths_at (struct CadetPeer *peer,
+GCP_iterate_paths_at (struct CadetPeer *cp,
                       unsigned int dist,
                       GCP_PathIterator callback,
                       void *callback_cls);

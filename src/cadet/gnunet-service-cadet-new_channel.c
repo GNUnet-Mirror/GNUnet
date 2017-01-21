@@ -25,7 +25,8 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - handle destroy
+ * - introduce shutdown so we can have half-closed channels, modify
+ *   destroy to include MID to have FIN-ACK equivalents, etc.
  * - estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
  * - check that '0xFFULL' really is sufficient for flow control!
  * - revisit handling of 'unreliable' traffic!
@@ -663,6 +664,8 @@ void
 GCCH_bind (struct CadetChannel *ch,
            struct CadetClient *c)
 {
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_TunnelCreateMessage *tcm;
   uint32_t options;
 
   if (NULL != ch->retry_task)
@@ -690,6 +693,14 @@ GCCH_bind (struct CadetChannel *ch,
   ch->retry_task = GNUNET_SCHEDULER_add_now (&send_connect_ack,
                                              ch);
   /* give client it's initial supply of ACKs */
+  env = GNUNET_MQ_msg (tcm,
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
+  tcm->channel_id = ch->lid;
+  tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
+  tcm->port = ch->port;
+  tcm->opt = htonl (options);
+  GSC_send_to_client (ch->dest,
+                      env);
   for (unsigned int i=0;i<ch->max_pending_messages;i++)
     send_ack_to_client (ch,
                         ch->owner);
@@ -956,19 +967,21 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  * connection.  Also needs to remove this channel from
  * the tunnel.
  *
- * FIXME: need to make it possible to defer destruction until we have
- * received all messages up to the destroy, and right now the destroy
- * message (and this API) fails to give is the information we need!
- *
- * FIXME: also need to know if the other peer got a destroy from
- * us before!
- *
  * @param ch channel to destroy
  */
 void
 GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
-  GNUNET_break (0); // FIXME!
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_TunnelDestroyMessage *tdm;
+
+  ch->destroy = GNUNET_YES;
+  env = GNUNET_MQ_msg (tdm,
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY);
+  tdm->channel_id = ch->lid;
+  GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
+                      env);
+  channel_destroy (ch);
 }
 
 

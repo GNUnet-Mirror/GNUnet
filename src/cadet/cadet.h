@@ -135,7 +135,7 @@ struct GNUNET_CADET_PortMessage
 /**
  * Message for a client to create channels.
  */
-struct GNUNET_CADET_ChannelOpenMessageMessage
+struct GNUNET_CADET_TunnelCreateMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
@@ -167,14 +167,12 @@ struct GNUNET_CADET_ChannelOpenMessageMessage
 
 
 /**
- * Message for a client to destroy channels.
+ * Message for or to a client to destroy tunnel.
  */
-struct GNUNET_CADET_ChannelDestroyMessage
+struct GNUNET_CADET_TunnelDestroyMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY
-   *
-   * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
    */
   struct GNUNET_MessageHeader header;
 

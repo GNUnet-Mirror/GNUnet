@@ -167,6 +167,11 @@ struct CadetRoute;
 struct CadetChannel;
 
 /**
+ * Handle to our configuration.
+ */
+extern const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Handle to the statistics service.
  */
 extern struct GNUNET_STATISTICS_Handle *stats;
