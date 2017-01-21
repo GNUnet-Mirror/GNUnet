@@ -34,6 +34,9 @@
 #include "gnunet-service-cadet-new_paths.h"
 
 
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-pat",__VA_ARGS__)
+
+
 /**
  * Information regarding a possible path to reach a peer.
  */

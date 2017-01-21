@@ -38,6 +38,10 @@
 #include "gnunet_core_service.h"
 #include "cadet_protocol.h"
 
+
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-cor",__VA_ARGS__)
+
+
 /**
  * Number of messages we are willing to buffer per route.
  */

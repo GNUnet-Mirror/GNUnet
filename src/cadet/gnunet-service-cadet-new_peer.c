@@ -48,6 +48,10 @@
 #include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 
+
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-per",__VA_ARGS__)
+
+
 /**
  * How long do we wait until tearing down an idle peer?
  */

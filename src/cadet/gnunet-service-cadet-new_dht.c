@@ -271,9 +271,6 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id)
   struct GNUNET_HashCode phash;
   struct GCD_search_handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting DHT GET for peer %s\n",
-       GNUNET_i2s (peer_id));
   GNUNET_STATISTICS_update (stats,
                             "# DHT search",
                             1,
@@ -296,6 +293,10 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id)
                                     0,     /* xquery bits */
                                     &dht_get_id_handler,
 				    h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting DHT GET for peer %s (%p)\n",
+       GNUNET_i2s (peer_id),
+       h);
   return h;
 }
 
@@ -308,6 +309,9 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id)
 void
 GCD_search_stop (struct GCD_search_handle *h)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Stopping DHT GET %p\n",
+       h);
   GNUNET_DHT_get_stop (h->dhtget);
   GNUNET_free (h);
 }

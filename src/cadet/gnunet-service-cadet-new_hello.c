@@ -52,7 +52,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo;
 /**
  * Iterator context.
  */
-static struct GNUNET_PEERINFO_NotifyContext* nc;
+static struct GNUNET_PEERINFO_NotifyContext *nc;
 
 
 /**
