@@ -2126,6 +2126,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
   struct CadetTunnel *t;
 
   t = GNUNET_new (struct CadetTunnel);
+  new_ephemeral (t);
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
   (void) GCP_iterate_paths (destination,
