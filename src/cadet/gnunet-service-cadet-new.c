@@ -311,6 +311,30 @@ GSC_bind (struct CadetClient *c,
 
 
 /**
+ * Callback invoked on all peers to destroy all tunnels
+ * that may still exist.
+ *
+ * @param cls NULL
+ * @param pid identify of a peer
+ * @param value a `struct CadetPeer` that may still have a tunnel
+ * @return #GNUNET_OK (iterate over all entries)
+ */
+static int
+destroy_tunnels_now (void *cls,
+                     const struct GNUNET_PeerIdentity *pid,
+                     void *value)
+{
+  struct CadetPeer *cp = value;
+  struct CadetTunnel *t = GCP_get_tunnel (cp,
+                                          GNUNET_NO);
+
+  if (NULL != t)
+    GCT_destroy_tunnel_now (t);
+  return GNUNET_OK;
+}
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -338,7 +362,10 @@ shutdown_task (void *cls)
     GNUNET_CONTAINER_multihashmap_destroy (loose_channels);
     loose_channels = NULL;
   }
-  /* All channels, connections and CORE must be down before this point. */
+  /* Destroy tunnels.  Note that all channels must be destroyed first! */
+  GCP_iterate_all (&destroy_tunnels_now,
+                   NULL);
+  /* All tunnels, channels, connections and CORE must be down before this point. */
   GCP_destroy_all_peers ();
   if (NULL != peers)
   {

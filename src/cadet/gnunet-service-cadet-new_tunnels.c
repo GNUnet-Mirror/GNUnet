@@ -1559,6 +1559,21 @@ GCT_remove_channel (struct CadetTunnel *t,
 
 
 /**
+ * Destroys the tunnel @a t now, without delay. Used during shutdown.
+ *
+ * @param t tunnel to destroy
+ */
+void
+GCT_destroy_tunnel_now (struct CadetTunnel *t)
+{
+  GNUNET_assert (0 ==
+                 GNUNET_CONTAINER_multihashmap32_size (t->channels));
+  GNUNET_SCHEDULER_cancel (t->destroy_task);
+  destroy_tunnel (t);
+}
+
+
+/**
  * It's been a while, we should try to redo the KX, if we can.
  *
  * @param cls the `struct CadetTunnel` to do KX for.

@@ -99,6 +99,15 @@ GCT_create_tunnel (struct CadetPeer *destination);
 
 
 /**
+ * Destroys the tunnel @a t now, without delay. Used during shutdown.
+ *
+ * @param t tunnel to destroy
+ */
+void
+GCT_destroy_tunnel_now (struct CadetTunnel *t);
+
+
+/**
  * Add a @a connection to the @a tunnel.
  *
  * @param t a tunnel
