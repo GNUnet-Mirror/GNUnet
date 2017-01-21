@@ -80,13 +80,15 @@ do_shutdown (void *cls)
     GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 1\n");
   if (NULL != cadet_peer_1)
   {
     GNUNET_CADET_disconnect (cadet_peer_1);
     cadet_peer_1 = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 2\n");
   if (NULL != cadet_peer_2)
   {
     GNUNET_CADET_disconnect (cadet_peer_2);
@@ -196,10 +198,12 @@ channel_end (void *cls,
     ch = NULL;
   if (GNUNET_NO == got_data)
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  2),
-                                  &do_connect, NULL);
+    if (NULL == connect_task)
+      connect_task
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                       2),
+                                        &do_connect,
+                                        NULL);
   }
 }
 
@@ -298,13 +302,13 @@ run (void *cls,
                                      (void *) 1L,       /* cls */
                                      &channel_end,      /* channel end hndlr */
                                      handlers1); /* traffic handlers */
-
   cadet_peer_2 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
                                      &channel_end,      /* channel end hndlr */
                                      handlers2); /* traffic handlers */
 
-  if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
+  if ( (NULL == cadet_peer_1) ||
+       (NULL == cadet_peer_2) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Couldn't connect to cadet :(\n");
