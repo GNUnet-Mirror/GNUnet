@@ -1490,7 +1490,7 @@ destroy_tunnel (void *cls)
 {
   struct CadetTunnel *t = cls;
   struct CadetTConnection *ct;
-  struct CadetTunnelQueueEntry *tqe;
+  struct CadetTunnelQueueEntry *tq;
 
   t->destroy_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1506,14 +1506,8 @@ destroy_tunnel (void *cls)
     GCC_destroy (ct->cc);
     GNUNET_free (ct);
   }
-  while (NULL != (tqe = t->tq_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (t->tq_head,
-                                 t->tq_tail,
-                                 tqe);
-    GNUNET_MQ_discard (tqe->env);
-    GNUNET_free (tqe);
-  }
+  while (NULL != (tq = t->tq_head))
+    GCT_send_cancel (tq);
   GCP_drop_tunnel (t->destination,
                    t);
   GNUNET_CONTAINER_multihashmap32_destroy (t->channels);
@@ -1524,6 +1518,7 @@ destroy_tunnel (void *cls)
   }
   GNUNET_MST_destroy (t->mst);
   GNUNET_MQ_destroy (t->mq);
+  GNUNET_free_non_null (t->ax.DHRs);
   GNUNET_free (t);
 }
 
@@ -2352,17 +2347,18 @@ GCT_send (struct CadetTunnel *t,
  * function is called. Once the continuation is called, the message is
  * no longer in the queue!
  *
- * @param q Handle to the queue entry to cancel.
+ * @param tq Handle to the queue entry to cancel.
  */
 void
-GCT_send_cancel (struct CadetTunnelQueueEntry *q)
+GCT_send_cancel (struct CadetTunnelQueueEntry *tq)
 {
-  struct CadetTunnel *t = q->t;
+  struct CadetTunnel *t = tq->t;
 
   GNUNET_CONTAINER_DLL_remove (t->tq_head,
                                t->tq_tail,
-                               q);
-  GNUNET_free (q);
+                               tq);
+  GNUNET_MQ_discard (tq->env);
+  GNUNET_free (tq);
 }
 
 
