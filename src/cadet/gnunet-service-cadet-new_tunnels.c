@@ -342,7 +342,7 @@ struct CadetTunnel
   /**
    * Channel ID for the next created channel in this tunnel.
    */
-  struct GNUNET_CADET_ChannelTunnelNumber next_chid;
+  struct GNUNET_CADET_ChannelTunnelNumber next_ctn;
 
   /**
    * Queued messages, to transmit once tunnel gets connected.
@@ -444,18 +444,18 @@ GCT_count_channels (struct CadetTunnel *t)
 
 
 /**
- * Lookup a channel by its @a chid.
+ * Lookup a channel by its @a ctn.
  *
  * @param t tunnel to look in
- * @param chid number of channel to find
+ * @param ctn number of channel to find
  * @return NULL if channel does not exist
  */
 struct CadetChannel *
 lookup_channel (struct CadetTunnel *t,
-                struct GNUNET_CADET_ChannelTunnelNumber chid)
+                struct GNUNET_CADET_ChannelTunnelNumber ctn)
 {
   return GNUNET_CONTAINER_multihashmap32_get (t->channels,
-                                              ntohl (chid.cn));
+                                              ntohl (ctn.cn));
 }
 
 
@@ -1389,22 +1389,22 @@ GCT_handle_kx (struct CadetTConnection *ct,
  * @return unused number that can uniquely identify a channel in the tunnel
  */
 static struct GNUNET_CADET_ChannelTunnelNumber
-get_next_free_chid (struct CadetTunnel *t)
+get_next_free_ctn (struct CadetTunnel *t)
 {
   struct GNUNET_CADET_ChannelTunnelNumber ret;
-  uint32_t chid;
+  uint32_t ctn;
 
   /* FIXME: this logic does NOT prevent both ends of the
-     channel from picking the same CHID!
-     Need to reserve one bit of the CHID for the
+     channel from picking the same CTN!
+     Need to reserve one bit of the CTN for the
      direction, i.e. which side established the connection! */
-  chid = ntohl (t->next_chid.cn);
+  ctn = ntohl (t->next_ctn.cn);
   while (NULL !=
          GNUNET_CONTAINER_multihashmap32_get (t->channels,
-                                              chid))
-    chid++;
-  t->next_chid.cn = htonl (chid + 1);
-  ret.cn = ntohl (chid);
+                                              ctn))
+    ctn++;
+  t->next_ctn.cn = htonl (ctn + 1);
+  ret.cn = ntohl (ctn);
   return ret;
 }
 
@@ -1420,15 +1420,15 @@ struct GNUNET_CADET_ChannelTunnelNumber
 GCT_add_channel (struct CadetTunnel *t,
                  struct CadetChannel *ch)
 {
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
-  chid = get_next_free_chid (t);
+  ctn = get_next_free_ctn (t);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
-                                                      ntohl (chid.cn),
+                                                      ntohl (ctn.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  return chid;
+  return ctn;
 }
 
 
@@ -1759,13 +1759,13 @@ handle_plaintext_data (void *cls,
   struct CadetChannel *ch;
 
   ch = lookup_channel (t,
-                       msg->chid);
+                       msg->ctn);
   if (NULL == ch)
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     GCT_send_channel_destroy (t,
-                              msg->chid);
+                              msg->ctn);
     return;
   }
   GCCH_handle_channel_plaintext_data (ch,
@@ -1789,13 +1789,13 @@ handle_plaintext_data_ack (void *cls,
   struct CadetChannel *ch;
 
   ch = lookup_channel (t,
-                       ack->chid);
+                       ack->ctn);
   if (NULL == ch)
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     GCT_send_channel_destroy (t,
-                              ack->chid);
+                              ack->ctn);
     return;
   }
   GCCH_handle_channel_plaintext_data_ack (ch,
@@ -1816,16 +1816,16 @@ handle_plaintext_channel_create (void *cls,
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
-  chid = get_next_free_chid (t);
+  ctn = get_next_free_ctn (t);
   ch = GCCH_channel_incoming_new (t,
-                                  chid,
+                                  ctn,
                                   &cc->port,
                                   ntohl (cc->opt));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
-                                                      ntohl (chid.cn),
+                                                      ntohl (ctn.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
@@ -1835,18 +1835,18 @@ handle_plaintext_channel_create (void *cls,
  * Send a DESTROY message via the tunnel.
  *
  * @param t the tunnel to transmit over
- * @param chid ID of the channel to destroy
+ * @param ctn ID of the channel to destroy
  */
 void
 GCT_send_channel_destroy (struct CadetTunnel *t,
-                          struct GNUNET_CADET_ChannelTunnelNumber chid)
+                          struct GNUNET_CADET_ChannelTunnelNumber ctn)
 {
   struct GNUNET_CADET_ChannelManageMessage msg;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.reserved = htonl (0);
-  msg.chid = chid;
+  msg.ctn = ctn;
   GCT_send (t,
             &msg.header,
             NULL,
@@ -1870,13 +1870,13 @@ handle_plaintext_channel_ack (void *cls,
   struct CadetChannel *ch;
 
   ch = lookup_channel (t,
-                       cm->chid);
+                       cm->ctn);
   if (NULL == ch)
   {
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     GCT_send_channel_destroy (t,
-                              cm->chid);
+                              cm->ctn);
     return;
   }
   GCCH_handle_channel_create_ack (ch);
@@ -1896,7 +1896,7 @@ handle_plaintext_channel_destroy (void *cls,
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *cc = lookup_channel (t,
-                                            cm->chid);
+                                            cm->ctn);
 
   GCCH_handle_remote_destroy (cc);
 }

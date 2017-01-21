@@ -44,7 +44,7 @@
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
-#define LOG(level, ...) GNUNET_log (level,__VA_ARGS__)
+#define LOG(level,...) GNUNET_log_from (level,"cadet-channel",__VA_ARGS__)
 
 /**
  * How long do we initially wait before retransmitting?
@@ -263,13 +263,13 @@ struct CadetChannel
   /**
    * Number identifying this channel in its tunnel.
    */
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
    * Local tunnel number for local client owning the channel.
    * ( >= #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
    */
-  struct GNUNET_CADET_ClientChannelNumber lid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
    * Channel state.
@@ -327,11 +327,11 @@ GCCH_2s (const struct CadetChannel *ch)
     return "(NULL Channel)";
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "%s:%s chid:%X (%X)",
+                   "%s:%s ctn:%X (%X)",
                    GCT_2s (ch->t),
                    GNUNET_h2s (&ch->port),
-                   ch->chid,
-                   ntohl (ch->lid.channel_of_client));
+                   ch->ctn,
+                   ntohl (ch->ccn.channel_of_client));
   return buf;
 }
 
@@ -346,7 +346,7 @@ GCCH_2s (const struct CadetChannel *ch)
 struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch)
 {
-  return ch->chid;
+  return ch->ctn;
 }
 
 
@@ -394,7 +394,7 @@ channel_destroy (struct CadetChannel *ch)
   }
   GCT_remove_channel (ch->t,
                       ch,
-                      ch->chid);
+                      ch->ctn);
   GNUNET_free (ch);
 }
 
@@ -450,7 +450,7 @@ send_create (void *cls)
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
   msgcc.opt = htonl (options);
   msgcc.port = ch->port;
-  msgcc.chid = ch->chid;
+  msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_CREATE_SENT;
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
@@ -463,7 +463,7 @@ send_create (void *cls)
  * Create a new channel.
  *
  * @param owner local client owning the channel
- * @param owner_id local chid of this channel at the @a owner
+ * @param ccn local number of this channel at the @a owner
  * @param destination peer to which we should build the channel
  * @param port desired port at @a destination
  * @param options options for the channel
@@ -471,7 +471,7 @@ send_create (void *cls)
  */
 struct CadetChannel *
 GCCH_channel_local_new (struct CadetClient *owner,
-                        struct GNUNET_CADET_ClientChannelNumber owner_id,
+                        struct GNUNET_CADET_ClientChannelNumber ccn,
                         struct CadetPeer *destination,
                         const struct GNUNET_HashCode *port,
                         uint32_t options)
@@ -484,11 +484,11 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 32; /* FIXME: 32!? Do not hardcode! */
   ch->owner = owner;
-  ch->lid = owner_id;
+  ch->ccn = ccn;
   ch->port = *port;
   ch->t = GCP_get_tunnel (destination,
                           GNUNET_YES);
-  ch->chid = GCT_add_channel (ch->t,
+  ch->ctn = GCT_add_channel (ch->t,
                               ch);
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
   ch->retry_task = GNUNET_SCHEDULER_add_now (&send_create,
@@ -497,6 +497,12 @@ GCCH_channel_local_new (struct CadetClient *owner,
                             "# channels",
                             1,
                             GNUNET_NO);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Created channel to port %s at peer %s for client %s using tunnel %s\n",
+       GNUNET_h2s (port),
+       GCP_2s (destination),
+       GSC_2s (owner),
+       GCT_2s (ch->t));
   return ch;
 }
 
@@ -513,6 +519,10 @@ timeout_closed_cb (void *cls)
   struct CadetChannel *ch = cls;
 
   ch->retry_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Closing incoming channel to port %s from peer %s due to timeout\n",
+       GNUNET_h2s (&ch->port),
+       GCP_2s (GCT_get_destination (ch->t)));
   channel_destroy (ch);
 }
 
@@ -521,14 +531,14 @@ timeout_closed_cb (void *cls)
  * Create a new channel based on a request coming in over the network.
  *
  * @param t tunnel to the remote peer
- * @param chid identifier of this channel in the tunnel
+ * @param ctn identifier of this channel in the tunnel
  * @param port desired local port
  * @param options options for the channel
  * @return handle to the new channel
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
-                           struct GNUNET_CADET_ChannelTunnelNumber chid,
+                           struct GNUNET_CADET_ChannelTunnelNumber ctn,
                            const struct GNUNET_HashCode *port,
                            uint32_t options)
 {
@@ -538,7 +548,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   ch = GNUNET_new (struct CadetChannel);
   ch->port = *port;
   ch->t = t;
-  ch->chid = chid;
+  ch->ctn = ctn;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
@@ -561,6 +571,10 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
     ch->retry_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
                                                    &timeout_closed_cb,
                                                    ch);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Created loose incoming channel to port %s from peer %s\n",
+         GNUNET_h2s (&ch->port),
+         GCP_2s (GCT_get_destination (ch->t)));
   }
   else
   {
@@ -603,7 +617,7 @@ send_channel_ack (struct CadetChannel *ch)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.chid = ch->chid;
+  msg.ctn = ch->ctn;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid) - 1);
   msg.futures = GNUNET_htonll (ch->mid_futures);
   if (NULL != ch->last_control_qe)
@@ -646,7 +660,7 @@ send_ack_to_client (struct CadetChannel *ch,
 
   env = GNUNET_MQ_msg (ack,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  ack->channel_id = ch->lid;
+  ack->ccn = ch->ccn;
   GSC_send_to_client (c,
                       env);
 }
@@ -668,6 +682,12 @@ GCCH_bind (struct CadetChannel *ch,
   struct GNUNET_CADET_LocalChannelCreateMessage *tcm;
   uint32_t options;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Binding channel %s from tunnel %s to port %s of client %s\n",
+       GCCH_2s (ch),
+       GCT_2s (ch->t),
+       GNUNET_h2s (&ch->port),
+       GSC_2s (c));
   if (NULL != ch->retry_task)
   {
     /* there might be a timeout task here */
@@ -682,7 +702,7 @@ GCCH_bind (struct CadetChannel *ch,
   if (ch->out_of_order)
     options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   ch->dest = c;
-  ch->lid = GSC_bind (c,
+  ch->ccn = GSC_bind (c,
                       ch,
                       GCT_get_destination (ch->t),
                       &ch->port,
@@ -695,7 +715,7 @@ GCCH_bind (struct CadetChannel *ch,
   /* give client it's initial supply of ACKs */
   env = GNUNET_MQ_msg (tcm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  tcm->channel_id = ch->lid;
+  tcm->ccn = ch->ccn;
   tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
   tcm->port = ch->port;
   tcm->opt = htonl (options);
@@ -731,7 +751,7 @@ GCCH_channel_local_destroy (struct CadetChannel *ch)
   }
   /* Nothing left to do, just finish destruction */
   GCT_send_channel_destroy (ch->t,
-                            ch->chid);
+                            ch->ctn);
   channel_destroy (ch);
 }
 
@@ -760,7 +780,7 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch)
   }
   /* Nothing left to do, just finish destruction */
   GCT_send_channel_destroy (ch->t,
-                            ch->chid);
+                            ch->ctn);
   channel_destroy (ch);
 }
 
@@ -859,7 +879,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-  ld->channel_id = ch->lid;
+  ld->ccn = ch->ccn;
   GNUNET_memcpy (&ld[1],
                  &msg[1],
                  payload_size);
@@ -978,7 +998,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch)
   ch->destroy = GNUNET_YES;
   env = GNUNET_MQ_msg (tdm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
-  tdm->channel_id = ch->lid;
+  tdm->ccn = ch->ccn;
   GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
                       env);
   channel_destroy (ch);
@@ -1063,7 +1083,7 @@ GCCH_check_allow_client (struct CadetChannel *ch)
        GCCH_2s (ch));
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  msg->channel_id = ch->lid;
+  msg->ccn = ch->ccn;
   GSC_send_to_client (ch->owner ? ch->owner : ch->dest,
                       env);
 }
@@ -1169,7 +1189,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message.mid = ch->mid_send;
-  crm->data_message.chid = ch->chid;
+  crm->data_message.ctn = ch->ctn;
   GNUNET_memcpy (&crm[1],
                  message,
                  payload_size);
@@ -1243,7 +1263,7 @@ send_client_buffered_data (struct CadetChannel *ch)
   if (GNUNET_NO == ch->destroy)
     return;
   GCT_send_channel_destroy (ch->t,
-                            ch->chid);
+                            ch->ctn);
   channel_destroy (ch);
 }
 
@@ -1290,7 +1310,7 @@ GCCH_debug (struct CadetChannel *ch,
   LOG2 (level,
         "CHN Channel %s:%X (%p)\n",
         GCT_2s (ch->t),
-        ch->chid,
+        ch->ctn,
         ch);
   if (NULL != ch->owner)
   {
@@ -1298,7 +1318,7 @@ GCCH_debug (struct CadetChannel *ch,
           "CHN origin %s ready %s local-id: %u\n",
           GSC_2s (ch->owner),
           ch->client_ready ? "YES" : "NO",
-          ntohl (ch->lid.channel_of_client));
+          ntohl (ch->ccn.channel_of_client));
   }
   if (NULL != ch->dest)
   {
@@ -1306,7 +1326,7 @@ GCCH_debug (struct CadetChannel *ch,
           "CHN destination %s ready %s local-id: %u\n",
           GSC_2s (ch->dest),
           ch->client_ready ? "YES" : "NO",
-          ntohl (ch->lid.channel_of_client));
+          ntohl (ch->ccn.channel_of_client));
   }
   LOG2 (level,
         "CHN  Message IDs recv: %d (%LLX), send: %d\n",

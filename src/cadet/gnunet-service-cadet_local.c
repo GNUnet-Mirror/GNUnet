@@ -70,7 +70,7 @@ struct CadetClient
   /**
    * Channel ID for the next incoming channel.
    */
-  struct GNUNET_CADET_ClientChannelNumber next_chid;
+  struct GNUNET_CADET_ClientChannelNumber next_ccn;
 
   /**
    * Handle to communicate with the client
@@ -475,7 +475,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_CADET_LocalChannelDestroyMessage *msg;
   struct CadetClient *c;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_ClientChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a DESTROY CHANNEL from client!\n");
 
@@ -500,15 +500,15 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (const struct GNUNET_CADET_LocalChannelDestroyMessage *) message;
 
   /* Retrieve tunnel */
-  chid = msg->channel_id;
-  ch = GML_channel_get (c, chid);
+  ccn = msg->ccn;
+  ch = GML_channel_get (c, ccn);
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Client %u is destroying channel %X\n",
-       c->id, chid);
+       c->id, ccn);
 
   if (NULL == ch)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "  channel %X not found\n", chid);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  channel %X not found\n", ccn);
     GNUNET_STATISTICS_update (stats,
                               "# client destroy messages on unknown channel",
                               1, GNUNET_NO);
@@ -518,7 +518,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   GCCH_handle_local_destroy (ch,
                              c,
-                             ntohl (chid.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
+                             ntohl (ccn.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -539,7 +539,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_CADET_LocalData *msg;
   struct CadetClient *c;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_ClientChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
   size_t message_size;
   size_t payload_size;
   size_t payload_claimed_size;
@@ -585,13 +585,13 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  chid = msg->channel_id;
+  ccn = msg->ccn;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes (%u payload) by client %u\n",
        payload_size, payload_claimed_size, c->id);
 
   /* Channel exists? */
-  fwd = ntohl (chid.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
-  ch = GML_channel_get (c, chid);
+  fwd = ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
+  ch = GML_channel_get (c, ccn);
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats,
@@ -628,7 +628,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_CADET_LocalAck *msg;
   struct CadetChannel *ch;
   struct CadetClient *c;
-  struct GNUNET_CADET_ClientChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
@@ -646,16 +646,16 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (struct GNUNET_CADET_LocalAck *) message;
 
   /* Channel exists? */
-  chid = msg->channel_id;
+  ccn = msg->ccn;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n",
-       ntohl (chid.channel_of_client));
-  ch = GML_channel_get (c, chid);
+       ntohl (ccn.channel_of_client));
+  ch = GML_channel_get (c, ccn);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   -- ch %p\n", ch);
   if (NULL == ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Channel %X unknown.\n",
-         ntohl (chid.channel_of_client));
+         ntohl (ccn.channel_of_client));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  for client %u.\n", c->id);
     GNUNET_STATISTICS_update (stats,
                               "# client ack messages on unknown channel",
@@ -666,7 +666,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* If client is root, the ACK is going FWD, therefore this is "BCK ACK". */
   /* If client is dest, the ACK is going BCK, therefore this is "FWD ACK" */
-  fwd = ntohl (chid.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
+  fwd = ntohl (ccn.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
 
   GCCH_handle_local_ack (ch, fwd);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1213,17 +1213,17 @@ GML_shutdown (void)
  * Get a channel from a client.
  *
  * @param c Client to check.
- * @param chid Channel ID, must be local (> 0x800...).
+ * @param ccn Channel ID, must be local (> 0x800...).
  *
  * @return non-NULL if channel exists in the clients lists
  */
 struct CadetChannel *
 GML_channel_get (struct CadetClient *c,
-                 struct GNUNET_CADET_ClientChannelNumber chid)
+                 struct GNUNET_CADET_ClientChannelNumber ccn)
 {
   struct GNUNET_CONTAINER_MultiHashMap32 *map;
 
-  if (ntohl (chid.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+  if (ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     map = c->own_channels;
   else
     map = c->incoming_channels;
@@ -1232,12 +1232,12 @@ GML_channel_get (struct CadetClient *c,
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Client %s does no t have a valid map for CHID %X\n",
-         GML_2s (c), chid);
+         "Client %s does no t have a valid map for CCN %X\n",
+         GML_2s (c), ccn);
     return NULL;
   }
   return GNUNET_CONTAINER_multihashmap32_get (map,
-                                              chid.channel_of_client);
+                                              ccn.channel_of_client);
 }
 
 
@@ -1245,22 +1245,22 @@ GML_channel_get (struct CadetClient *c,
  * Add a channel to a client
  *
  * @param client Client.
- * @param chid Channel ID.
+ * @param ccn Channel ID.
  * @param ch Channel.
  */
 void
 GML_channel_add (struct CadetClient *client,
-                 struct GNUNET_CADET_ClientChannelNumber chid,
+                 struct GNUNET_CADET_ClientChannelNumber ccn,
                  struct CadetChannel *ch)
 {
-  if (ntohl (chid.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+  if (ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     GNUNET_CONTAINER_multihashmap32_put (client->own_channels,
-                                         chid.channel_of_client,
+                                         ccn.channel_of_client,
                                          ch,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   else
     GNUNET_CONTAINER_multihashmap32_put (client->incoming_channels,
-                                         chid.channel_of_client,
+                                         ccn.channel_of_client,
                                          ch,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
@@ -1270,21 +1270,21 @@ GML_channel_add (struct CadetClient *client,
  * Remove a channel from a client.
  *
  * @param client Client.
- * @param chid Channel ID.
+ * @param ccn Channel ID.
  * @param ch Channel.
  */
 void
 GML_channel_remove (struct CadetClient *client,
-                    struct GNUNET_CADET_ClientChannelNumber chid,
+                    struct GNUNET_CADET_ClientChannelNumber ccn,
                     struct CadetChannel *ch)
 {
-  if (ntohl (chid.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+  if (ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     GNUNET_CONTAINER_multihashmap32_remove (client->own_channels,
-                                            chid.channel_of_client,
+                                            ccn.channel_of_client,
                                             ch);
   else
     GNUNET_CONTAINER_multihashmap32_remove (client->incoming_channels,
-                                            chid.channel_of_client,
+                                            ccn.channel_of_client,
                                             ch);
 }
 
@@ -1297,27 +1297,27 @@ GML_channel_remove (struct CadetClient *client,
  * @return LID of a channel free to use.
  */
 struct GNUNET_CADET_ClientChannelNumber
-GML_get_next_chid (struct CadetClient *c)
+GML_get_next_ccn (struct CadetClient *c)
 {
-  struct GNUNET_CADET_ClientChannelNumber chid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   while (NULL != GML_channel_get (c,
-                                  c->next_chid))
+                                  c->next_ccn))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Channel %u exists...\n",
-         c->next_chid);
-    c->next_chid.channel_of_client
-      = htonl (1 + (ntohl (c->next_chid.channel_of_client)));
-    if (ntohl (c->next_chid.channel_of_client) >=
+         c->next_ccn);
+    c->next_ccn.channel_of_client
+      = htonl (1 + (ntohl (c->next_ccn.channel_of_client)));
+    if (ntohl (c->next_ccn.channel_of_client) >=
         GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-      c->next_chid.channel_of_client = htonl (0);
+      c->next_ccn.channel_of_client = htonl (0);
   }
-  chid = c->next_chid;
-  c->next_chid.channel_of_client
-    = htonl (1 + (ntohl (c->next_chid.channel_of_client)));
+  ccn = c->next_ccn;
+  c->next_ccn.channel_of_client
+    = htonl (1 + (ntohl (c->next_ccn.channel_of_client)));
 
-  return chid;
+  return ccn;
 }
 
 
@@ -1390,24 +1390,24 @@ GML_client_delete_channel (struct CadetClient *c,
  * If the client was already allowed to send data, do nothing.
  *
  * @param c Client to whom send the ACK.
- * @param id Channel ID to use
+ * @param ccn Channel ID to use
  */
 void
 GML_send_ack (struct CadetClient *c,
-              struct GNUNET_CADET_ClientChannelNumber id)
+              struct GNUNET_CADET_ClientChannelNumber ccn)
 {
   struct GNUNET_CADET_LocalAck msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "send local %s ack on %X towards %p\n",
-       ntohl (id.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI
+       ntohl (ccn.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI
        ? "FWD" : "BCK",
-       ntohl (id.channel_of_client),
+       ntohl (ccn.channel_of_client),
        c);
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  msg.channel_id = id;
+  msg.ccn = ccn;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
                                               &msg.header,
@@ -1421,14 +1421,14 @@ GML_send_ack (struct CadetClient *c,
  * Notify the client that a new incoming channel was created.
  *
  * @param c Client to notify.
- * @param id Channel ID.
+ * @param ccn Channel ID.
  * @param port Channel's destination port.
  * @param opt Options (bit array).
  * @param peer Origin peer.
  */
 void
 GML_send_channel_create (struct CadetClient *c,
-                         struct GNUNET_CADET_ClientChannelNumber id,
+                         struct GNUNET_CADET_ClientChannelNumber ccn,
                          const struct GNUNET_HashCode *port,
                          uint32_t opt,
                          const struct GNUNET_PeerIdentity *peer)
@@ -1437,7 +1437,7 @@ GML_send_channel_create (struct CadetClient *c,
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  msg.channel_id = id;
+  msg.ccn = ccn;
   msg.port = *port;
   msg.opt = htonl (opt);
   msg.peer = *peer;
@@ -1450,22 +1450,22 @@ GML_send_channel_create (struct CadetClient *c,
  * Build a local channel NACK message and send it to a local client.
  *
  * @param c Client to whom send the NACK.
- * @param id Channel ID to use
+ * @param ccn Channel ID to use
  */
 void
 GML_send_channel_nack (struct CadetClient *c,
-                       struct GNUNET_CADET_ClientChannelNumber id)
+                       struct GNUNET_CADET_ClientChannelNumber ccn)
 {
   struct GNUNET_CADET_LocalAck msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "send local nack on %X towards %p\n",
-       ntohl (id.channel_of_client),
+       ntohl (ccn.channel_of_client),
        c);
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED);
-  msg.channel_id = id;
+  msg.ccn = ccn;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
                                               &msg.header,
@@ -1477,11 +1477,11 @@ GML_send_channel_nack (struct CadetClient *c,
  * Notify a client that a channel is no longer valid.
  *
  * @param c Client.
- * @param id ID of the channel that is destroyed.
+ * @param ccn ID of the channel that is destroyed.
  */
 void
 GML_send_channel_destroy (struct CadetClient *c,
-                          struct GNUNET_CADET_ClientChannelNumber id)
+                          struct GNUNET_CADET_ClientChannelNumber ccn)
 {
   struct GNUNET_CADET_LocalChannelDestroyMessage msg;
 
@@ -1494,7 +1494,7 @@ GML_send_channel_destroy (struct CadetClient *c,
     return;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
-  msg.channel_id = id;
+  msg.ccn = ccn;
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &msg.header, GNUNET_NO);
 }
@@ -1505,12 +1505,12 @@ GML_send_channel_destroy (struct CadetClient *c,
  *
  * @param c Client to send to.
  * @param msg Message to modify and send.
- * @param id Channel ID to use (c can be both owner and client).
+ * @param ccn Channel ID to use (c can be both owner and client).
  */
 void
 GML_send_data (struct CadetClient *c,
                const struct GNUNET_CADET_ChannelAppDataMessage *msg,
-               struct GNUNET_CADET_ClientChannelNumber id)
+               struct GNUNET_CADET_ClientChannelNumber ccn)
 {
   struct GNUNET_CADET_LocalData *copy;
   uint16_t size = ntohs (msg->header.size) - sizeof (struct GNUNET_CADET_ChannelAppDataMessage);
@@ -1530,7 +1530,7 @@ GML_send_data (struct CadetClient *c,
   GNUNET_memcpy (&copy[1], &msg[1], size);
   copy->header.size = htons (sizeof (struct GNUNET_CADET_LocalData) + size);
   copy->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-  copy->channel_id = id;
+  copy->ccn = ccn;
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &copy->header, GNUNET_NO);
 }

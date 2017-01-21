@@ -286,12 +286,12 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch);
  * Search for a channel by global ID.
  *
  * @param t Tunnel containing the channel.
- * @param chid Public channel number.
+ * @param ctn Public channel number.
  *
  * @return channel handler, NULL if doesn't exist
  */
 struct CadetChannel *
-GCT_get_channel (struct CadetTunnel *t, struct GNUNET_CADET_ChannelTunnelNumber chid);
+GCT_get_channel (struct CadetTunnel *t, struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**
@@ -428,7 +428,7 @@ GCT_get_destination (struct CadetTunnel *t);
  * @return ID of a channel free to use.
  */
 struct GNUNET_CADET_ChannelTunnelNumber
-GCT_get_next_chid (struct CadetTunnel *t);
+GCT_get_next_ctn (struct CadetTunnel *t);
 
 
 /**

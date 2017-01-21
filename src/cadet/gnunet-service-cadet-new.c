@@ -66,19 +66,10 @@ struct CadetClient
   struct CadetClient *prev;
 
   /**
-   * Tunnels that belong to this client, indexed by local id
+   * Tunnels that belong to this client, indexed by local id,
+   * value is a `struct CadetChannel`.
    */
-  struct GNUNET_CONTAINER_MultiHashMap32 *own_channels;
-
-  /**
-   * Tunnels this client has accepted, indexed by incoming local id
-   */
-  struct GNUNET_CONTAINER_MultiHashMap32 *incoming_channels;
-
-  /**
-   * Channel ID for the next incoming channel.
-   */
-  struct GNUNET_CADET_ClientChannelNumber next_chid;
+  struct GNUNET_CONTAINER_MultiHashMap32 *channels;
 
   /**
    * Handle to communicate with the client
@@ -97,13 +88,13 @@ struct CadetClient
   struct GNUNET_CONTAINER_MultiHashMap *ports;
 
   /**
-   * Whether the client is active or shutting down (don't send confirmations
-   * to a client that is shutting down).
+   * Channel ID to use for the next incoming channel for this client.
+   * Wraps around (in theory).
    */
-  int shutting_down;
+  struct GNUNET_CADET_ClientChannelNumber next_ccn;
 
   /**
-   * ID of the client, mainly for debug messages
+   * ID of the client, mainly for debug messages. Purely internal to this file.
    */
   unsigned int id;
 };
@@ -193,7 +184,6 @@ unsigned long long ratchet_messages;
 struct GNUNET_TIME_Relative ratchet_time;
 
 
-
 /**
  * Send a message to a client.
  *
@@ -220,13 +210,27 @@ GSC_2s (struct CadetClient *c)
 {
   static char buf[32];
 
-  if (NULL == c)
-    return "Client(NULL)";
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "Client(%u)",
                    c->id);
   return buf;
+}
+
+
+/**
+ * Lookup channel of client @a c by @a ccn.
+ *
+ * @param c client to look in
+ * @param ccn channel ID to look up
+ * @return NULL if no such channel exists
+ */
+static struct CadetChannel *
+lookup_channel (struct CadetClient *c,
+                struct GNUNET_CADET_ClientChannelNumber ccn)
+{
+  return GNUNET_CONTAINER_multihashmap32_get (c->channels,
+                                              ntohl (ccn.channel_of_client));
 }
 
 
@@ -237,14 +241,14 @@ GSC_2s (struct CadetClient *c)
  * @param c client handle
  */
 static struct GNUNET_CADET_ClientChannelNumber
-client_get_next_lid (struct CadetClient *c)
+client_get_next_ccn (struct CadetClient *c)
 {
-  struct GNUNET_CADET_ClientChannelNumber ccn = c->next_chid;
+  struct GNUNET_CADET_ClientChannelNumber ccn = c->next_ccn;
 
   /* increment until we have a free one... */
   while (NULL !=
-         GNUNET_CONTAINER_multihashmap32_get (c->incoming_channels,
-                                              ntohl (ccn.channel_of_client)))
+         lookup_channel (c,
+                         ccn))
   {
     ccn.channel_of_client
       = htonl (1 + (ntohl (ccn.channel_of_client)));
@@ -252,15 +256,16 @@ client_get_next_lid (struct CadetClient *c)
         GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
       ccn.channel_of_client = htonl (0);
   }
-  c->next_chid.channel_of_client
+  c->next_ccn.channel_of_client
     = htonl (1 + (ntohl (ccn.channel_of_client)));
   return ccn;
 }
 
 
 /**
- * Bind incoming channel to this client, and notify client
- * about incoming connection.
+ * Bind incoming channel to this client, and notify client about
+ * incoming connection.  Caller is responsible for notifying the other
+ * peer about our acceptance of the channel.
  *
  * @param c client to bind to
  * @param ch channel to be bound
@@ -278,31 +283,32 @@ GSC_bind (struct CadetClient *c,
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalChannelCreateMessage *msg;
-  struct GNUNET_CADET_ClientChannelNumber lid;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
-  lid = client_get_next_lid (c);
+  ccn = client_get_next_ccn (c);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_put (c->incoming_channels,
-                                                      ntohl (lid.channel_of_client),
+                 GNUNET_CONTAINER_multihashmap32_put (c->channels,
+                                                      ntohl (ccn.channel_of_client),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Accepting incoming channel %s from %s on open port %s (%u)\n",
+       GCCH_2s (ch),
+       GCP_2s (dest),
+       GNUNET_h2s (port),
+       ntohl (options));
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  msg->channel_id = lid;
+  msg->ccn = ccn;
   msg->port = *port;
   msg->opt = htonl (options);
   msg->peer = *GCP_get_id (dest);
   GSC_send_to_client (c,
                       env);
-  return lid;
+  return ccn;
 }
 
-
-/******************************************************************************/
-/************************      MAIN FUNCTIONS      ****************************/
-/******************************************************************************/
 
 /**
  * Task run during shutdown.
@@ -313,7 +319,7 @@ static void
 shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "shutting down\n");
+              "Shutting down\n");
   shutting_down = GNUNET_YES;
   GCO_shutdown ();
   if (NULL != stats)
@@ -384,7 +390,10 @@ bind_loose_channel (void *cls,
 
 
 /**
- * Handler for port open requests.
+ * Handle port open request.  Creates a mapping from the
+ * port to the respective client and checks whether we have
+ * loose channels trying to bind to the port.  If so, those
+ * are bound.
  *
  * @param cls Identification of the client.
  * @param pmsg The actual message.
@@ -396,9 +405,9 @@ handle_port_open (void *cls,
   struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Open port %s requested by client %u\n",
+       "Open port %s requested by client %s\n",
        GNUNET_h2s (&pmsg->port),
-       c->id);
+       GSC_2s (c));
   if (NULL == c->ports)
     c->ports = GNUNET_CONTAINER_multihashmap_create (4,
                                                       GNUNET_NO);
@@ -412,13 +421,10 @@ handle_port_open (void *cls,
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
-  /* store in global hashmap */
-  /* FIXME only allow one client to have the port open,
-   *       have a backup hashmap with waiting clients */
-  GNUNET_CONTAINER_multihashmap_put (open_ports,
-                                     &pmsg->port,
-                                     c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multihashmap_put (open_ports,
+                                            &pmsg->port,
+                                            c,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_CONTAINER_multihashmap_get_multiple (loose_channels,
                                               &pmsg->port,
                                               &bind_loose_channel,
@@ -428,7 +434,10 @@ handle_port_open (void *cls,
 
 
 /**
- * Handler for port close requests.
+ * Handler for port close requests.  Marks this port as closed
+ * (unless of course we have another client with the same port
+ * open).  Note that existing channels accepted on the port are
+ * not affected.
  *
  * @param cls Identification of the client.
  * @param pmsg The actual message.
@@ -440,9 +449,9 @@ handle_port_close (void *cls,
   struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Open port %s requested by client %u\n",
+       "Closing port %s as requested by client %s\n",
        GNUNET_h2s (&pmsg->port),
-       c->id);
+       GSC_2s (c));
   if (GNUNET_YES !=
       GNUNET_CONTAINER_multihashmap_remove (c->ports,
                                             &pmsg->port,
@@ -456,36 +465,32 @@ handle_port_close (void *cls,
                  GNUNET_CONTAINER_multihashmap_remove (open_ports,
                                                        &pmsg->port,
                                                        c));
-
   GNUNET_SERVICE_client_continue (c->client);
 }
 
 
 /**
- * Handler for requests of new channels.
+ * Handler for requests for us creating a new channel to another peer and port.
  *
  * @param cls Identification of the client.
  * @param tcm The actual message.
  */
 static void
-handle_tunnel_create (void *cls,
-                      const struct GNUNET_CADET_LocalChannelCreateMessage *tcm)
+handle_channel_create (void *cls,
+                       const struct GNUNET_CADET_LocalChannelCreateMessage *tcm)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_ClientChannelNumber chid;
-  struct CadetPeer *dst;
 
-  chid = tcm->channel_id;
-  if (ntohl (chid.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+  if (ntohl (tcm->ccn.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
   {
     /* Channel ID not in allowed range. */
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
-  ch = GNUNET_CONTAINER_multihashmap32_get (c->own_channels,
-                                            ntohl (chid.channel_of_client));
+  ch = lookup_channel (c,
+                       tcm->ccn);
   if (NULL != ch)
   {
     /* Channel ID already in use. Not allowed. */
@@ -494,13 +499,11 @@ handle_tunnel_create (void *cls,
     return;
   }
 
-  dst = GCP_get (&tcm->peer,
-                 GNUNET_YES);
-
   /* Create channel */
   ch = GCCH_channel_local_new (c,
-                               chid,
-                               dst,
+                               tcm->ccn,
+                               GCP_get (&tcm->peer,
+                                        GNUNET_YES),
                                &tcm->port,
                                ntohl (tcm->opt));
   if (NULL == ch)
@@ -510,59 +513,36 @@ handle_tunnel_create (void *cls,
     return;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_put (c->own_channels,
-                                                      ntohl (chid.channel_of_client),
+                 GNUNET_CONTAINER_multihashmap32_put (c->channels,
+                                                      ntohl (tcm->ccn.channel_of_client),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New channel %s to %s at port %s requested by client %u\n",
+       "New channel %s to %s at port %s requested by client %s\n",
        GCCH_2s (ch),
        GNUNET_i2s (&tcm->peer),
        GNUNET_h2s (&tcm->port),
-       c->id);
+       GSC_2s (c));
   GNUNET_SERVICE_client_continue (c->client);
 }
 
 
 /**
- * Return the map which we use for client @a c for a channel ID of @a chid
- *
- * @param c client to find map for
- * @param chid chid to find map for
- * @return applicable map we use
- */
-static struct GNUNET_CONTAINER_MultiHashMap32 *
-get_map_by_chid (struct CadetClient *c,
-                 struct GNUNET_CADET_ClientChannelNumber chid)
-{
-  return (ntohl (chid.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-    ? c->own_channels
-    : c->incoming_channels;
-}
-
-
-/**
- * Handler for requests of deleting tunnels
+ * Handler for requests of destroying an existing channel.
  *
  * @param cls client identification of the client
  * @param msg the actual message
  */
 static void
-handle_tunnel_destroy (void *cls,
-                       const struct GNUNET_CADET_LocalChannelDestroyMessage *msg)
+handle_channel_destroy (void *cls,
+                        const struct GNUNET_CADET_LocalChannelDestroyMessage *msg)
 {
   struct CadetClient *c = cls;
-  struct GNUNET_CADET_ClientChannelNumber chid;
-  struct GNUNET_CONTAINER_MultiHashMap32 *map;
   struct CadetChannel *ch;
 
-  /* Retrieve tunnel */
-  chid = msg->channel_id;
-  map = get_map_by_chid (c,
-                         chid);
-  ch = GNUNET_CONTAINER_multihashmap32_get (map,
-                                            ntohl (chid.channel_of_client));
+  ch = lookup_channel (c,
+                       msg->ccn);
   if (NULL == ch)
   {
     /* Client attempted to destroy unknown channel */
@@ -571,12 +551,12 @@ handle_tunnel_destroy (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Client %u is destroying channel %s\n",
-       c->id,
+       "Client %s is destroying channel %s\n",
+       GSC_2s(c),
        GCCH_2s (ch));
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (map,
-                                                         ntohl (chid.channel_of_client),
+                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
+                                                         ntohl (msg->ccn.channel_of_client),
                                                          ch));
   GCCH_channel_local_destroy (ch);
   GNUNET_SERVICE_client_continue (c->client);
@@ -584,7 +564,7 @@ handle_tunnel_destroy (void *cls,
 
 
 /**
- * Check for client traffic data message is well-formed
+ * Check for client traffic data message is well-formed.
  *
  * @param cls identification of the client
  * @param msg the actual message
@@ -618,7 +598,8 @@ check_data (void *cls,
 
 
 /**
- * Handler for client traffic
+ * Handler for client payload traffic to be send on a channel to
+ * another peer.
  *
  * @param cls identification of the client
  * @param msg the actual message
@@ -628,16 +609,11 @@ handle_data (void *cls,
              const struct GNUNET_CADET_LocalData *msg)
 {
   struct CadetClient *c = cls;
-  struct GNUNET_CONTAINER_MultiHashMap32 *map;
-  struct GNUNET_CADET_ClientChannelNumber chid;
   struct CadetChannel *ch;
   const struct GNUNET_MessageHeader *payload;
 
-  chid = msg->channel_id;
-  map = get_map_by_chid (c,
-                         chid);
-  ch = GNUNET_CONTAINER_multihashmap32_get (map,
-                                            ntohl (chid.channel_of_client));
+  ch = lookup_channel (c,
+                       msg->ccn);
   if (NULL == ch)
   {
     /* Channel does not exist! */
@@ -648,9 +624,9 @@ handle_data (void *cls,
 
   payload = (const struct GNUNET_MessageHeader *) &msg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received %u bytes payload from client %u for channel %s\n",
+       "Received %u bytes payload from client %s for channel %s\n",
        ntohs (payload->size),
-       c->id,
+       GSC_2s (c),
        GCCH_2s (ch));
   if (GNUNET_OK !=
       GCCH_handle_local_data (ch,
@@ -674,15 +650,10 @@ handle_ack (void *cls,
             const struct GNUNET_CADET_LocalAck *msg)
 {
   struct CadetClient *c = cls;
-  struct GNUNET_CONTAINER_MultiHashMap32 *map;
-  struct GNUNET_CADET_ClientChannelNumber chid;
   struct CadetChannel *ch;
 
-  chid = msg->channel_id;
-  map = get_map_by_chid (c,
-                         chid);
-  ch = GNUNET_CONTAINER_multihashmap32_get (map,
-                                            ntohl (chid.channel_of_client));
+  ch = lookup_channel (c,
+                       msg->ccn);
   if (NULL == ch)
   {
     /* Channel does not exist! */
@@ -691,8 +662,8 @@ handle_ack (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a local ACK from client %u for channel %s\n",
-       c->id,
+       "Got a local ACK from client %s for channel %s\n",
+       GSC_2s(c),
        GCCH_2s (ch));
   GCCH_handle_local_ack (ch);
   GNUNET_SERVICE_client_continue (c->client);
@@ -869,14 +840,14 @@ get_all_tunnels_iterator (void *cls,
 
 
 /**
- * Handler for client's INFO TUNNELS request.
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS request.
  *
  * @param cls client Identification of the client.
  * @param message The actual message.
  */
 static void
-handle_get_tunnels (void *cls,
-                    const struct GNUNET_MessageHeader *message)
+handle_info_tunnels (void *cls,
+                     const struct GNUNET_MessageHeader *message)
 {
   struct CadetClient *c = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -893,7 +864,10 @@ handle_get_tunnels (void *cls,
 
 
 /**
- * FIXME.
+ * Update the message with information about the connection.
+ *
+ * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
+ * @param c a connection about which we should store information in @a cls
  */
 static void
 iter_connection (void *cls,
@@ -908,7 +882,10 @@ iter_connection (void *cls,
 
 
 /**
- * FIXME.
+ * Update the message with information about the channel.
+ *
+ * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
+ * @param ch a channel about which we should store information in @a cls
  */
 static void
 iter_channel (void *cls,
@@ -924,13 +901,13 @@ iter_channel (void *cls,
 
 
 /**
- * Handler for client's SHOW_TUNNEL request.
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL request.
  *
  * @param cls Identification of the client.
  * @param msg The actual message.
  */
 static void
-handle_show_tunnel (void *cls,
+handle_info_tunnel (void *cls,
                     const struct GNUNET_CADET_LocalInfo *msg)
 {
   struct CadetClient *c = cls;
@@ -1033,18 +1010,19 @@ handle_info_dump (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_ERROR,
        "*************************** DUMP START ***************************\n");
-  for (struct CadetClient *ci = clients_head; NULL != ci; ci = ci->next)
+  for (struct CadetClient *ci = clients_head;
+       NULL != ci;
+       ci = ci->next)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Client %u (%p), handle: %p, ports: %u, own channels: %u, incoming channels: %u\n",
+         "Client %u (%p), handle: %p, ports: %u, channels: %u\n",
          ci->id,
          ci,
          ci->client,
          (NULL != c->ports)
          ? GNUNET_CONTAINER_multihashmap_size (ci->ports)
          : 0,
-         GNUNET_CONTAINER_multihashmap32_size (ci->own_channels),
-         GNUNET_CONTAINER_multihashmap32_size (ci->incoming_channels));
+         GNUNET_CONTAINER_multihashmap32_size (ci->channels));
   }
   LOG (GNUNET_ERROR_TYPE_ERROR, "***************************\n");
   GCP_iterate_all (&show_peer_iterator,
@@ -1077,9 +1055,7 @@ client_connect_cb (void *cls,
   c->client = client;
   c->mq = mq;
   c->id = next_client_id++; /* overflow not important: just for debug */
-  c->own_channels
-    = GNUNET_CONTAINER_multihashmap32_create (32);
-  c->incoming_channels
+  c->channels
     = GNUNET_CONTAINER_multihashmap32_create (32);
   GNUNET_CONTAINER_DLL_insert (clients_head,
                                clients_tail,
@@ -1088,6 +1064,9 @@ client_connect_cb (void *cls,
                             "# clients",
                             +1,
                             GNUNET_NO);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client %s connected\n",
+       GSC_2s (c));
   return c;
 }
 
@@ -1096,57 +1075,30 @@ client_connect_cb (void *cls,
  * Iterator for deleting each channel whose client endpoint disconnected.
  *
  * @param cls Closure (client that has disconnected).
- * @param key The local channel id (used to access the hashmap).
+ * @param key The local channel id in host byte order
  * @param value The value stored at the key (channel to destroy).
  * @return #GNUNET_OK, keep iterating.
  */
 static int
-own_channel_destroy_iterator (void *cls,
-                              uint32_t key,
-                              void *value)
+channel_destroy_iterator (void *cls,
+                          uint32_t key,
+                          void *value)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch = value;
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
+                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
                                                          key,
                                                          ch));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying own channel %s, due to client %u shutdown.\n",
+       "Destroying channel %s, due to client %s disconnecting.\n",
        GCCH_2s (ch),
-       c->id);
-  GCCH_channel_local_destroy (ch);
-  return GNUNET_OK;
-}
-
-
-/**
- * Iterator for deleting each channel whose client endpoint disconnected.
- *
- * @param cls Closure (client that has disconnected).
- * @param key The local channel id (used to access the hashmap).
- * @param value The value stored at the key (channel to destroy).
- * @return #GNUNET_OK, keep iterating.
- */
-static int
-incoming_channel_destroy_iterator (void *cls,
-                                   uint32_t key,
-                                   void *value)
-{
-  struct CadetChannel *ch = value;
-  struct CadetClient *c = cls;
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
-                                                         key,
-                                                         ch));
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying incoming channel %s due to client %u shutdown.\n",
-       GCCH_2s (ch),
-       c->id);
-  GCCH_channel_incoming_destroy (ch);
+       GSC_2s (c));
+  if (key < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+    GCCH_channel_local_destroy (ch);
+  else
+    GCCH_channel_incoming_destroy (ch);
   return GNUNET_OK;
 }
 
@@ -1155,7 +1107,7 @@ incoming_channel_destroy_iterator (void *cls,
  * Remove client's ports from the global hashmap on disconnect.
  *
  * @param cls Closure (unused).
- * @param key Port.
+ * @param key the port.
  * @param value the `struct CadetClient` to remove
  * @return #GNUNET_OK, keep iterating.
  */
@@ -1166,6 +1118,10 @@ client_release_ports (void *cls,
 {
   struct CadetClient *c = value;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Closing port %s due to client %s disconnect.\n",
+       GNUNET_h2s (key),
+       GSC_2s (c));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (open_ports,
                                                        key,
@@ -1193,20 +1149,15 @@ client_disconnect_cb (void *cls,
   struct CadetClient *c = internal_cls;
 
   GNUNET_assert (c->client == client);
-  c->shutting_down = GNUNET_YES;
-  if (NULL != c->own_channels)
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client %s is disconnecting.\n",
+       GSC_2s (c));
+  if (NULL != c->channels)
   {
-    GNUNET_CONTAINER_multihashmap32_iterate (c->own_channels,
-                                             &own_channel_destroy_iterator,
+    GNUNET_CONTAINER_multihashmap32_iterate (c->channels,
+                                             &channel_destroy_iterator,
                                              c);
-    GNUNET_CONTAINER_multihashmap32_destroy (c->own_channels);
-  }
-  if (NULL != c->incoming_channels)
-  {
-    GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_channels,
-                                             &incoming_channel_destroy_iterator,
-                                             c);
-    GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_channels);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->channels);
   }
   if (NULL != c->ports)
   {
@@ -1291,7 +1242,7 @@ run (void *cls,
   GCD_init (c);
   GCO_init (c);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "CADET starting at peer %s\n",
+              "CADET started for peer %s\n",
               GNUNET_i2s (&my_full_id));
 
 }
@@ -1315,11 +1266,11 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
                           struct GNUNET_CADET_PortMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (tunnel_create,
+ GNUNET_MQ_hd_fixed_size (channel_create,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
                           struct GNUNET_CADET_LocalChannelCreateMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (tunnel_destroy,
+ GNUNET_MQ_hd_fixed_size (channel_destroy,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
                           struct GNUNET_CADET_LocalChannelDestroyMessage,
                           NULL),
@@ -1339,11 +1290,11 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
                           struct GNUNET_CADET_LocalInfo,
                           NULL),
- GNUNET_MQ_hd_fixed_size (get_tunnels,
+ GNUNET_MQ_hd_fixed_size (info_tunnels,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
                           struct GNUNET_MessageHeader,
                           NULL),
- GNUNET_MQ_hd_fixed_size (show_tunnel,
+ GNUNET_MQ_hd_fixed_size (info_tunnel,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
                           struct GNUNET_CADET_LocalInfo,
                           NULL),
