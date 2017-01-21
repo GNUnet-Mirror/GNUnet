@@ -249,6 +249,7 @@ do_send (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+
 /**
  * Connect to other client and send data
  *
@@ -261,13 +262,16 @@ do_connect (void *cls)
 
   connect_task = NULL;
   GNUNET_TESTING_peer_get_identity (me, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, GC_u2h (1),
-                                   GNUNET_CADET_OPTION_DEFAULT);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CONNECT BY PORT\n");
+  ch = GNUNET_CADET_channel_create (cadet_peer_1,
+                                    NULL,
+                                    &id, GC_u2h (1),
+                                    GNUNET_CADET_OPTION_DEFAULT);
   mth = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           &do_send, NULL);
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            sizeof (struct GNUNET_MessageHeader),
+                                            &do_send, NULL);
 }
 
 
@@ -308,12 +312,15 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_open_port (cadet_peer_2, GC_u2h (1),
-                          &inbound_channel, (void *) 2L);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  2),
-                                &do_connect, NULL);
+  GNUNET_CADET_open_port (cadet_peer_2,
+                          GC_u2h (1),
+                          &inbound_channel,
+                          (void *) 2L);
+  connect_task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                   2),
+                                    &do_connect,
+                                    NULL);
 }
 
 
