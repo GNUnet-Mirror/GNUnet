@@ -1737,6 +1737,7 @@ maintain_connections_cb (void *cls)
 {
   struct CadetTunnel *t = cls;
 
+  t->maintain_connections_task = NULL;
   GNUNET_break (0); // FIXME: implement!
 }
 
