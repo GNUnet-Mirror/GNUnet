@@ -277,7 +277,7 @@ GSC_bind (struct CadetClient *c,
           uint32_t options)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_TunnelCreateMessage *msg;
+  struct GNUNET_CADET_LocalChannelCreateMessage *msg;
   struct GNUNET_CADET_ClientChannelNumber lid;
 
   lid = client_get_next_lid (c);
@@ -289,7 +289,7 @@ GSC_bind (struct CadetClient *c,
 
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
   msg->channel_id = lid;
   msg->port = *port;
   msg->opt = htonl (options);
@@ -469,7 +469,7 @@ handle_port_close (void *cls,
  */
 static void
 handle_tunnel_create (void *cls,
-                      const struct GNUNET_CADET_TunnelCreateMessage *tcm)
+                      const struct GNUNET_CADET_LocalChannelCreateMessage *tcm)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -550,7 +550,7 @@ get_map_by_chid (struct CadetClient *c,
  */
 static void
 handle_tunnel_destroy (void *cls,
-                       const struct GNUNET_CADET_TunnelDestroyMessage *msg)
+                       const struct GNUNET_CADET_LocalChannelDestroyMessage *msg)
 {
   struct CadetClient *c = cls;
   struct GNUNET_CADET_ClientChannelNumber chid;
@@ -1316,12 +1316,12 @@ GNUNET_SERVICE_MAIN
                           struct GNUNET_CADET_PortMessage,
                           NULL),
  GNUNET_MQ_hd_fixed_size (tunnel_create,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE,
-                          struct GNUNET_CADET_TunnelCreateMessage,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
+                          struct GNUNET_CADET_LocalChannelCreateMessage,
                           NULL),
  GNUNET_MQ_hd_fixed_size (tunnel_destroy,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY,
-                          struct GNUNET_CADET_TunnelDestroyMessage,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
+                          struct GNUNET_CADET_LocalChannelDestroyMessage,
                           NULL),
  GNUNET_MQ_hd_var_size (data,
                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,

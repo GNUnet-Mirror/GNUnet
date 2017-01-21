@@ -588,7 +588,7 @@ request_data (void *cls)
  */
 static void
 handle_channel_created (void *cls,
-                        const struct GNUNET_CADET_TunnelCreateMessage *msg)
+                        const struct GNUNET_CADET_LocalChannelCreateMessage *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
@@ -628,12 +628,12 @@ handle_channel_created (void *cls,
   }
   else
   {
-    struct GNUNET_CADET_TunnelDestroyMessage *d_msg;
+    struct GNUNET_CADET_LocalChannelDestroyMessage *d_msg;
     struct GNUNET_MQ_Envelope *env;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No handler for incoming channels\n");
     env = GNUNET_MQ_msg (d_msg,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY);
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
     d_msg->channel_id = msg->channel_id;
     GNUNET_MQ_send (h->mq, env);
   }
@@ -649,7 +649,7 @@ handle_channel_created (void *cls,
  */
 static void
 handle_channel_destroy (void *cls,
-                        const struct GNUNET_CADET_TunnelDestroyMessage *msg)
+                        const struct GNUNET_CADET_LocalChannelDestroyMessage *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
@@ -1282,12 +1282,12 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (channel_created,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE,
-                             struct GNUNET_CADET_TunnelCreateMessage,
+                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
+                             struct GNUNET_CADET_LocalChannelCreateMessage,
                              h),
     GNUNET_MQ_hd_fixed_size (channel_destroy,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY,
-                             struct GNUNET_CADET_TunnelDestroyMessage,
+                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
+                             struct GNUNET_CADET_LocalChannelDestroyMessage,
                              h),
     GNUNET_MQ_hd_var_size (local_data,
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
@@ -1576,7 +1576,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                             const struct GNUNET_HashCode *port,
                             enum GNUNET_CADET_ChannelOption options)
 {
-  struct GNUNET_CADET_TunnelCreateMessage *msg;
+  struct GNUNET_CADET_LocalChannelCreateMessage *msg;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber chid;
@@ -1592,7 +1592,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   ch->ctx = channel_ctx;
   ch->peer = GNUNET_PEER_intern (peer);
 
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
   msg->channel_id = ch->chid;
   msg->port = *port;
   msg->peer = *peer;
@@ -1608,7 +1608,7 @@ void
 GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
 {
   struct GNUNET_CADET_Handle *h;
-  struct GNUNET_CADET_TunnelDestroyMessage *msg;
+  struct GNUNET_CADET_LocalChannelDestroyMessage *msg;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TransmitHandle *th;
   struct GNUNET_CADET_TransmitHandle *next;
@@ -1638,7 +1638,7 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
   }
 
   env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
   msg->channel_id = channel->chid;
   GNUNET_MQ_send (h->mq, env);
 

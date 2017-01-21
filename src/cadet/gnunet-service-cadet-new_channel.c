@@ -665,7 +665,7 @@ GCCH_bind (struct CadetChannel *ch,
            struct CadetClient *c)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_TunnelCreateMessage *tcm;
+  struct GNUNET_CADET_LocalChannelCreateMessage *tcm;
   uint32_t options;
 
   if (NULL != ch->retry_task)
@@ -694,7 +694,7 @@ GCCH_bind (struct CadetChannel *ch,
                                              ch);
   /* give client it's initial supply of ACKs */
   env = GNUNET_MQ_msg (tcm,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
   tcm->channel_id = ch->lid;
   tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
   tcm->port = ch->port;
@@ -973,11 +973,11 @@ void
 GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_TunnelDestroyMessage *tdm;
+  struct GNUNET_CADET_LocalChannelDestroyMessage *tdm;
 
   ch->destroy = GNUNET_YES;
   env = GNUNET_MQ_msg (tdm,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
   tdm->channel_id = ch->lid;
   GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
                       env);
