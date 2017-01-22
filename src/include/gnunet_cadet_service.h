@@ -497,7 +497,12 @@ struct GNUNET_CADET_ChannelTunnelNumber
 {
   /**
    * Which number does this channel have that uniquely identfies
-   * it within its tunnel?
+   * it within its tunnel, in network byte order.
+   *
+   * Given two peers, both may initiate channels over the same tunnel.
+   * The @e cn must be greater or equal to 0x80000000 (high-bit set)
+   * for tunnels initiated with the peer that has the larger peer
+   * identity as compared using #GNUNET_CRYPTO_cmp_peer_identity().
    */
   uint32_t cn GNUNET_PACKED;
 };
