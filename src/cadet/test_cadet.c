@@ -536,7 +536,9 @@ tmt_rdy (void *cls, size_t size, void *buf)
   long id = (long) cls;
   unsigned int counter;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy on %ld, filling buffer\n", id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tmt_rdy on %ld, filling buffer\n",
+              id);
   if (0 == id)
     th = NULL;
   else if ((peers_requested - 1) == id)
@@ -545,7 +547,8 @@ tmt_rdy (void *cls, size_t size, void *buf)
     GNUNET_assert (0);
   counter = get_expected_target () == id ? ack_sent : data_sent;
   msg_size = size_payload + counter;
-  if (size < msg_size || NULL == buf)
+  if ( (size < msg_size) ||
+       (NULL == buf) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, ack_received %u\n",
@@ -569,7 +572,8 @@ tmt_rdy (void *cls, size_t size, void *buf)
     if (SPEED_ACK == test)
       data_sent++;
   }
-  else if (SPEED == test || SPEED_ACK == test)
+  else if ( (SPEED == test) ||
+            (SPEED_ACK == test) )
   {
     if (get_expected_target() == id)
       ack_sent++;
@@ -580,9 +584,11 @@ tmt_rdy (void *cls, size_t size, void *buf)
                 " Sent message %u size %u\n",
                 counter,
                 (unsigned int) msg_size);
-    if (data_sent < TOTAL_PACKETS && SPEED == test)
+    if ( (data_sent < TOTAL_PACKETS) &&
+         (SPEED == test) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Scheduling message %d\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " Scheduling message %d\n",
                   counter + 1);
       data_job = GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }

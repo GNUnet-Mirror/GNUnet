@@ -629,30 +629,33 @@ check_data (void *cls,
   const char *buf;
   struct GNUNET_MessageHeader pa;
 
+  /* FIXME: what is the format we shall allow for @a msg?
+     ONE payload item or multiple? Seems current cadet_api
+     at least in theory allows more than one. Next-gen
+     cadet_api will likely no more.
+
+     Regardless, the multi-message check below should pass,
+     albeit it does not :-(. */
   /* Sanity check for message size */
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
-  if ( (payload_size < sizeof (struct GNUNET_MessageHeader)) ||
-       (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < payload_size) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   buf = (const char *) &msg[1];
-  do {
+  while (payload_size >= sizeof (struct GNUNET_MessageHeader))
+  {
     /* need to memcpy() for alignment */
     GNUNET_memcpy (&pa,
                    buf,
                    sizeof (pa));
     payload_claimed_size = ntohs (pa.size);
     if ( (payload_size < payload_claimed_size) ||
-         (0 == payload_claimed_size) )
+         (payload_claimed_size < sizeof (struct GNUNET_MessageHeader)) ||
+         (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < payload_claimed_size) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     payload_size -= payload_claimed_size;
     buf += payload_claimed_size;
-  } while (payload_size >= sizeof (struct GNUNET_MessageHeader));
+  }
   if (0 != payload_size)
   {
     GNUNET_break_op (0);

@@ -1294,7 +1294,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 
   if (GNUNET_NO == ch->client_allowed)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   ch->client_allowed = GNUNET_NO;
