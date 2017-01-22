@@ -478,7 +478,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     return;
   }
   path->hn = hn;
-  path->entries_length = i;
+  path->entries_length = i + 1;
   path->entries = GNUNET_new_array (path->entries_length,
                                     struct CadetPeerPathEntry);
   for (;i>=0;i--)
