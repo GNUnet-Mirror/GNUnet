@@ -292,7 +292,7 @@ GSC_bind (struct CadetClient *c,
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Accepting incoming channel %s from %s on open port %s (%u)\n",
+       "Accepting incoming %s from %s on open port %s (%u)\n",
        GCCH_2s (ch),
        GCP_2s (dest),
        GNUNET_h2s (port),
@@ -456,7 +456,7 @@ handle_port_open (void *cls,
   struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Open port %s requested by client %s\n",
+       "Open port %s requested by %s\n",
        GNUNET_h2s (&pmsg->port),
        GSC_2s (c));
   if (NULL == c->ports)
@@ -500,7 +500,7 @@ handle_port_close (void *cls,
   struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Closing port %s as requested by client %s\n",
+       "Closing port %s as requested by %s\n",
        GNUNET_h2s (&pmsg->port),
        GSC_2s (c));
   if (GNUNET_YES !=
@@ -550,7 +550,7 @@ handle_channel_create (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New channel to %s at port %s requested by client %s\n",
+       "New channel to %s at port %s requested by %s\n",
        GNUNET_i2s (&tcm->peer),
        GNUNET_h2s (&tcm->port),
        GSC_2s (c));
@@ -601,7 +601,7 @@ handle_channel_destroy (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Client %s is destroying channel %s\n",
+       "%s is destroying %s\n",
        GSC_2s(c),
        GCCH_2s (ch));
   GNUNET_assert (GNUNET_YES ==
@@ -624,9 +624,10 @@ static int
 check_data (void *cls,
             const struct GNUNET_CADET_LocalData *msg)
 {
-  const struct GNUNET_MessageHeader *payload;
   size_t payload_size;
   size_t payload_claimed_size;
+  const char *buf;
+  struct GNUNET_MessageHeader pa;
 
   /* Sanity check for message size */
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
@@ -636,11 +637,24 @@ check_data (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  payload = (struct GNUNET_MessageHeader *) &msg[1];
-  payload_claimed_size = ntohs (payload->size);
-  if (payload_size != payload_claimed_size)
+  buf = (const char *) &msg[1];
+  do {
+    /* need to memcpy() for alignment */
+    GNUNET_memcpy (&pa,
+                   buf,
+                   sizeof (pa));
+    payload_claimed_size = ntohs (pa.size);
+    if (payload_size < payload_claimed_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    payload_size -= payload_claimed_size;
+    buf += payload_claimed_size;
+  } while (payload_size >= sizeof (struct GNUNET_MessageHeader));
+  if (0 != payload_size)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -660,7 +674,8 @@ handle_data (void *cls,
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
-  const struct GNUNET_MessageHeader *payload;
+  size_t payload_size;
+  const char *buf;
 
   ch = lookup_channel (c,
                        msg->ccn);
@@ -671,16 +686,17 @@ handle_data (void *cls,
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
-
-  payload = (const struct GNUNET_MessageHeader *) &msg[1];
+  payload_size = ntohs (msg->header.size) - sizeof (*msg);
+  buf = (const char *) &msg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received %u bytes payload from client %s for channel %s\n",
-       ntohs (payload->size),
+       "Received %u bytes payload from %s for %s\n",
+       (unsigned int) payload_size,
        GSC_2s (c),
        GCCH_2s (ch));
   if (GNUNET_OK !=
       GCCH_handle_local_data (ch,
-                              payload))
+                              buf,
+                              payload_size))
   {
     GNUNET_SERVICE_client_drop (c->client);
     return;
@@ -712,7 +728,7 @@ handle_ack (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a local ACK from client %s for channel %s\n",
+       "Got a local ACK from %s for %s\n",
        GSC_2s(c),
        GCCH_2s (ch));
   GCCH_handle_local_ack (ch);
@@ -1115,7 +1131,7 @@ client_connect_cb (void *cls,
                             +1,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client %s connected\n",
+       "%s connected\n",
        GSC_2s (c));
   return c;
 }
@@ -1165,7 +1181,7 @@ channel_destroy_iterator (void *cls,
   struct CadetChannel *ch = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying channel %s, due to client %s disconnecting.\n",
+       "Destroying %s, due to %s disconnecting.\n",
        GCCH_2s (ch),
        GSC_2s (c));
   GNUNET_assert (GNUNET_YES ==
@@ -1196,7 +1212,7 @@ client_release_ports (void *cls,
   struct CadetClient *c = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Closing port %s due to client %s disconnect.\n",
+       "Closing port %s due to %s disconnect.\n",
        GNUNET_h2s (key),
        GSC_2s (c));
   GNUNET_assert (GNUNET_YES ==
@@ -1227,7 +1243,7 @@ client_disconnect_cb (void *cls,
 
   GNUNET_assert (c->client == client);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client %s is disconnecting.\n",
+       "%s is disconnecting.\n",
        GSC_2s (c));
   if (NULL != c->channels)
   {

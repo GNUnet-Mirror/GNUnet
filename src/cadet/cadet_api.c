@@ -564,7 +564,9 @@ request_data (void *cls)
   struct GNUNET_MQ_Envelope *env;
   size_t osize;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting Data: %u bytes\n", th->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requesting Data: %u bytes\n",
+       th->size);
 
   GNUNET_assert (GNUNET_YES == th->channel->allow_send);
   th->channel->allow_send = GNUNET_NO;

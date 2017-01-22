@@ -228,13 +228,15 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch);
  * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param message payload to transmit.
+ * @param buf payload to transmit.
+ * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
  *         #GNUNET_SYSERR in case of an error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        const struct GNUNET_MessageHeader *message);
+                        const char *buf,
+                        size_t buf_len);
 
 
 /**

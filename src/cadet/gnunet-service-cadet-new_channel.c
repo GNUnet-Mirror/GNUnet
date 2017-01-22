@@ -214,7 +214,7 @@ struct CadetChannel
    */
   struct GNUNET_SCHEDULER_Task *retry_control_task;
 
-    /**
+  /**
    * Task to resend/poll in case no ACK is received.
    */
   struct GNUNET_SCHEDULER_Task *retry_data_task;
@@ -1280,15 +1280,16 @@ data_sent_cb (void *cls)
  * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param message payload to transmit.
+ * @param buf payload to transmit.
+ * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
  *         #GNUNET_SYSERR in case of an error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        const struct GNUNET_MessageHeader *message)
+                        const char *buf,
+                        size_t buf_len)
 {
-  uint16_t payload_size = ntohs (message->size);
   struct CadetReliableMessage *crm;
 
   if (GNUNET_NO == ch->client_allowed)
@@ -1300,22 +1301,22 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   ch->pending_messages++;
 
   /* Everything is correct, send the message. */
-  crm = GNUNET_malloc (sizeof (*crm) + payload_size);
+  crm = GNUNET_malloc (sizeof (*crm) + buf_len);
   crm->ch = ch;
-  crm->data_message.header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + payload_size);
+  crm->data_message.header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
   crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message.mid = ch->mid_send;
   crm->data_message.ctn = ch->ctn;
   GNUNET_memcpy (&crm[1],
-                 message,
-                 payload_size);
+                 buf,
+                 buf_len);
   GNUNET_CONTAINER_DLL_insert (ch->head_sent,
                                ch->tail_sent,
                                crm);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending %u bytes from local client to %s\n",
-       payload_size,
+       buf_len,
        GCCH_2s (ch));
   crm->qe = GCT_send (ch->t,
                       &crm->data_message.header,
