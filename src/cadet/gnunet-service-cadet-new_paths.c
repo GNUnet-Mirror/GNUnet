@@ -25,7 +25,6 @@
  *
  * TODO:
  * - path desirability score calculations are not done
- *   (and will be tricky to have during path changes)
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_connection.h"
@@ -359,29 +358,11 @@ extend_path (struct CadetPeerPath *path,
   struct GNUNET_CONTAINER_HeapNode *hn;
   int i;
 
-  /* If we extend an existing path, detach it from the
-     old owner and re-attach to the new one */
-  hn = NULL;
-  for (i=num_peers-1;i>=0;i--)
-  {
-    /* FIXME: note that path->desirability is used, but not yet updated here! */
-    hn = GCP_attach_path (peers[i],
-                          path,
-                          old_len + (unsigned int) i,
-                          GNUNET_YES);
-    if (NULL != hn)
-      break;
-  }
-  if (NULL == hn)
-    return; /* none of the peers is interested in this path */
-  GCP_detach_path (path->entries[old_len-1]->peer,
-                   path,
-                   path->hn);
-  path->hn = hn;
+  /* Expand path */
   GNUNET_array_grow (path->entries,
                      path->entries_length,
-                     old_len + i);
-  for (;i >= 0;i--)
+                     old_len + num_peers);
+  for (i=num_peers-1;i >= 0;i--)
   {
     struct CadetPeerPathEntry *entry = GNUNET_new (struct CadetPeerPathEntry);
 
@@ -392,6 +373,41 @@ extend_path (struct CadetPeerPath *path,
                         entry,
                         old_len + i);
   }
+
+  /* If we extend an existing path, detach it from the
+     old owner and re-attach to the new one */
+  hn = NULL;
+  for (i=num_peers-1;i>=0;i--)
+  {
+    struct CadetPeerPathEntry *entry = path->entries[old_len + i];
+
+    path->entries_length = old_len + i + 1;
+    /* FIXME: note that path->desirability is used, but not yet updated here! */
+    hn = GCP_attach_path (peers[i],
+                          path,
+                          old_len + (unsigned int) i,
+                          GNUNET_YES);
+    if (NULL != hn)
+      break;
+    GCP_path_entry_remove (entry->peer,
+                           entry,
+                           old_len + i);
+    GNUNET_free (entry);
+    path->entries[old_len + i] = NULL;
+  }
+  if (NULL == hn)
+  {
+    /* none of the peers is interested in this path;
+       shrink path back */
+    GNUNET_array_grow (path->entries,
+                       path->entries_length,
+                       old_len);
+    return;
+  }
+  GCP_detach_path (path->entries[old_len-1]->peer,
+                   path,
+                   path->hn);
+  path->hn = hn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Extended path %s\n",
        GCPP_2s (path));
@@ -471,33 +487,10 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
   /* No match at all, create completely new path */
   path = GNUNET_new (struct CadetPeerPath);
-
-  /* First, try to attach it */
-  hn = NULL;
-  for (i=get_path_length + put_path_length-1;i>=0;i--)
-  {
-    path->entries_length = i + 1;
-    /* FIXME: note that path->desirability is used, but not yet initialized here! */
-    hn = GCP_attach_path (cpath[i],
-                          path,
-                          (unsigned int) i,
-                          GNUNET_NO);
-    if (NULL != hn)
-      break;
-  }
-  if (NULL == hn)
-  {
-    /* None of the peers on the path care about it. */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Path discovered from DHT is not interesting to us\n");
-    GNUNET_free (path);
-    return;
-  }
-  path->hn = hn;
-  path->entries_length = i + 1;
+  path->entries_length = get_path_length + put_path_length;
   path->entries = GNUNET_new_array (path->entries_length,
                                     struct CadetPeerPathEntry *);
-  for (;i>=0;i--)
+  for (i=path->entries_length-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = GNUNET_new (struct CadetPeerPathEntry);
 
@@ -508,6 +501,41 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                         entry,
                         i);
   }
+
+  /* Finally, try to attach it */
+  hn = NULL;
+  for (i=get_path_length + put_path_length-1;i>=0;i--)
+  {
+    struct CadetPeerPathEntry *entry = path->entries[i];
+
+    path->entries_length = i + 1;
+    /* FIXME: note that path->desirability is used, but not yet initialized here! */
+    hn = GCP_attach_path (cpath[i],
+                          path,
+                          (unsigned int) i,
+                          GNUNET_NO);
+    if (NULL != hn)
+      break;
+    GCP_path_entry_remove (entry->peer,
+                           entry,
+                           i);
+    GNUNET_free (entry);
+    path->entries[i] = NULL;
+  }
+  if (NULL == hn)
+  {
+    /* None of the peers on the path care about it. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Path discovered from DHT is not interesting to us\n");
+    GNUNET_free (path->entries);
+    GNUNET_free (path);
+    return;
+  }
+  path->hn = hn;
+  /* Shrink path to actual useful length */
+  GNUNET_array_grow (path->entries,
+                     path->entries_length,
+                     i);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Created new path %s based on information from DHT\n",
        GCPP_2s (path));
