@@ -405,6 +405,8 @@ GCT_2s (const struct CadetTunnel *t)
 {
   static char buf[64];
 
+  if (NULL == t)
+    return "T(NULL)";
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "T(%s)",
@@ -1751,29 +1753,6 @@ trigger_transmissions (struct CadetTunnel *t)
 
 
 /**
- * Function called to maintain the connections underlying our tunnel.
- * Tries to maintain (incl. tear down) connections for the tunnel, and
- * if there is a significant change, may trigger transmissions.
- *
- * Basically, needs to check if there are connections that perform
- * badly, and if so eventually kill them and trigger a replacement.
- * The strategy is to open one more connection than
- * #DESIRED_CONNECTIONS_PER_TUNNEL, and then periodically kick out the
- * least-performing one, and then inquire for new ones.
- *
- * @param cls the `struct CadetTunnel`
- */
-static void
-maintain_connections_cb (void *cls)
-{
-  struct CadetTunnel *t = cls;
-
-  t->maintain_connections_task = NULL;
-  GNUNET_break (0); // FIXME: implement!
-}
-
-
-/**
  * Consider using the path @a p for the tunnel @a t.
  * The tunnel destination is at offset @a off in path @a p.
  *
@@ -1801,7 +1780,13 @@ consider_path_cb (void *cls,
 
     ps = GCC_get_path (ct->cc);
     if (ps == path)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Ignoring duplicate path %s for tunnel %s.\n",
+                  GCPP_2s (path),
+                  GCT_2s (t));
       return GNUNET_YES; /* duplicate */
+    }
     min_length = GNUNET_MIN (min_length,
                              GCPP_get_length (ps));
     max_desire = GNUNET_MAX (max_desire,
@@ -1860,6 +1845,37 @@ consider_path_cb (void *cls,
               GCT_2s (t),
               GCC_2s (ct->cc));
   return GNUNET_YES;
+}
+
+
+/**
+ * Function called to maintain the connections underlying our tunnel.
+ * Tries to maintain (incl. tear down) connections for the tunnel, and
+ * if there is a significant change, may trigger transmissions.
+ *
+ * Basically, needs to check if there are connections that perform
+ * badly, and if so eventually kill them and trigger a replacement.
+ * The strategy is to open one more connection than
+ * #DESIRED_CONNECTIONS_PER_TUNNEL, and then periodically kick out the
+ * least-performing one, and then inquire for new ones.
+ *
+ * @param cls the `struct CadetTunnel`
+ */
+static void
+maintain_connections_cb (void *cls)
+{
+  struct CadetTunnel *t = cls;
+
+  t->maintain_connections_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Performing connection maintenance for tunnel %s.\n",
+              GCT_2s (t));
+
+  (void) GCP_iterate_paths (t->destination,
+                            &consider_path_cb,
+                            t);
+
+  GNUNET_break (0); // FIXME: implement!
 }
 
 
@@ -2177,9 +2193,6 @@ GCT_create_tunnel (struct CadetPeer *destination)
   t->ax.kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
-  (void) GCP_iterate_paths (destination,
-                            &consider_path_cb,
-                            t);
   t->maintain_connections_task
     = GNUNET_SCHEDULER_add_now (&maintain_connections_cb,
                                 t);
