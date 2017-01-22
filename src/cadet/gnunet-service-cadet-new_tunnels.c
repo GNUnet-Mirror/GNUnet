@@ -405,13 +405,10 @@ GCT_2s (const struct CadetTunnel *t)
 {
   static char buf[64];
 
-  if (NULL == t)
-    return "T(NULL)";
-
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "T(%s)",
-                   GCP_2s (t->destination));
+                   GNUNET_i2s (GCP_get_id (t->destination)));
   return buf;
 }
 

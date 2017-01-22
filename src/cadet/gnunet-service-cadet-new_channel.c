@@ -323,12 +323,10 @@ GCCH_2s (const struct CadetChannel *ch)
 {
   static char buf[128];
 
-  if (NULL == ch)
-    return "(NULL Channel)";
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "%s:%s ctn:%X (%X)",
-                   GCT_2s (ch->t),
+                   "%s:%s ctn:%X(%X)",
+                   GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
                    GNUNET_h2s (&ch->port),
                    ch->ctn,
                    ntohl (ch->ccn.channel_of_client));

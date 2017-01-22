@@ -28,6 +28,7 @@
  *   (and will be tricky to have during path changes)
  */
 #include "platform.h"
+#include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
@@ -133,6 +134,11 @@ GCPP_add_connection (struct CadetPeerPath *path,
 {
   struct CadetPeerPathEntry *entry;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding connection %s to path %s at offset %u\n",
+       GCC_2s (cc),
+       GCPP_2s (path),
+       off);
   GNUNET_assert (off < path->entries_length);
   entry = &path->entries[off];
   GNUNET_assert (NULL == entry->cc);
@@ -156,6 +162,11 @@ GCPP_del_connection (struct CadetPeerPath *path,
 {
   struct CadetPeerPathEntry *entry;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing connection %s to path %s at offset %u\n",
+       GCC_2s (cc),
+       GCPP_2s (path),
+       off);
   GNUNET_assert (off < path->entries_length);
   entry = &path->entries[off];
   GNUNET_assert (cc == entry->cc);
@@ -171,6 +182,9 @@ GCPP_del_connection (struct CadetPeerPath *path,
 static void
 path_destroy (struct CadetPeerPath *path)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Destroying path %s\n",
+       GCPP_2s (path));
   GNUNET_assert (0 ==
                  GNUNET_CONTAINER_multipeermap_size (path->connections));
   GNUNET_CONTAINER_multipeermap_destroy (path->connections);
@@ -191,6 +205,9 @@ GCPP_release (struct CadetPeerPath *path)
 {
   struct CadetPeerPathEntry *entry;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Owner releases path %s\n",
+       GCPP_2s (path));
   path->hn = NULL;
   entry = &path->entries[path->entries_length - 1];
   while (1)
@@ -360,6 +377,9 @@ extend_path (struct CadetPeerPath *path,
                         entry,
                         old_len + i);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Extended path %s\n",
+       GCPP_2s (path));
 }
 
 
@@ -414,11 +434,16 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
       if (i == get_path_length + put_path_length - 1)
       {
         /* Existing path includes this one, nothing to do! */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Path discovered from DHT is already known\n");
         return;
       }
       if (cm_ctx.match->entries_length == i + 1)
       {
         /* Existing path ends in the middle of new path, extend it! */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Trying to extend existing path %s by additional links discovered from DHT\n",
+             GCPP_2s (cm_ctx.match));
         extend_path (cm_ctx.match,
                      &cpath[i],
                      get_path_length + put_path_length - i,
@@ -447,6 +472,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   if (NULL == hn)
   {
     /* None of the peers on the path care about it. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Path discovered from DHT is not interesting to us\n");
     GNUNET_free (path);
     return;
   }
@@ -464,6 +491,9 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                         entry,
                         i);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Created new path %s based on information from DHT\n",
+       GCPP_2s (path));
 }
 
 
@@ -503,11 +533,17 @@ GCPP_get_path_from_route (unsigned int path_length,
       if (i == path_length - 1)
       {
         /* Existing path includes this one, return the match! */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Returning existing path %s as inverse for incoming connection\n",
+             GCPP_2s (cm_ctx.match));
         return cm_ctx.match;
       }
       if (cm_ctx.match->entries_length == i + 1)
       {
         /* Existing path ends in the middle of new path, extend it! */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Extending existing path %s to create inverse for incoming connection\n",
+             GCPP_2s (cm_ctx.match));
         extend_path (cm_ctx.match,
                      &cpath[i],
                      path_length - i,
@@ -538,6 +574,9 @@ GCPP_get_path_from_route (unsigned int path_length,
                               path,
                               path_length - 1,
                               GNUNET_YES);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Created new path %s to create inverse for incoming connection\n",
+       GCPP_2s (path));
   return path;
 }
 
@@ -612,8 +651,8 @@ GCPP_2s (struct CadetPeerPath *path)
     GNUNET_asprintf (&s,
                      "%s %s",
                      old,
-                     GCP_2s (GCPP_get_peer_at_offset (path,
-                                                      i)));
+                     GNUNET_i2s (GCP_get_id (GCPP_get_peer_at_offset (path,
+                                                                      i))));
     GNUNET_free_non_null (old);
     old = s;
   }
