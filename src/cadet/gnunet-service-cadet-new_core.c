@@ -468,15 +468,14 @@ handle_connection_create (void *cls,
       return;
     }
 
-    path = GCPP_get_path_from_route (path_length - 1,
-                                     pids);
     origin = GCP_get (&pids[0],
                       GNUNET_YES);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received CREATE message from %s via path %s for connection %s\n",
+         "Received CREATE message from %s for connection %s, building inverse path\n",
          GCP_2s (origin),
-         GCPP_2s (path),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+    path = GCPP_get_path_from_route (path_length - 1,
+                                     pids);
     GCT_add_inbound_connection (GCT_create_tunnel (origin),
                                 &msg->cid,
                                 path);
