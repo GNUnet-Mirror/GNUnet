@@ -34,6 +34,22 @@
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
+/**
+ * How long do we wait before first announcing our presence to the DHT.
+ * Used to wait for our HELLO to be available.  Note that we also get
+ * notifications when our HELLO is ready, so this is just the maximum
+ * we wait for the first notification.
+ */
+#define STARTUP_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+
+/**
+ * How long do we wait after we get an updated HELLO before publishing?
+ * Allows for the HELLO to be updated again quickly, for example in
+ * case multiple addresses changed and we got a partial update.
+ */
+#define CHANGE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
+
 #define LOG(level, ...) GNUNET_log_from (level,"cadet-dht",__VA_ARGS__)
 
 
@@ -195,6 +211,23 @@ announce_id (void *cls)
 
 
 /**
+ * Function called by the HELLO subsystem whenever OUR hello
+ * changes. Re-triggers the DHT PUT immediately.
+ */
+void
+GCD_hello_update ()
+{
+  if (NULL == announce_id_task)
+    return; /* too early */
+  GNUNET_SCHEDULER_cancel (announce_id_task);
+  announce_id_task
+    = GNUNET_SCHEDULER_add_delayed (CHANGE_DELAY,
+                                    &announce_id,
+                                    NULL);
+}
+
+
+/**
  * Initialize the DHT subsystem.
  *
  * @param c Configuration.
@@ -202,8 +235,6 @@ announce_id (void *cls)
 void
 GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "init\n");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c,
                                              "CADET",
@@ -235,8 +266,9 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                    64);
   GNUNET_break (NULL != dht_handle);
   announce_delay = GNUNET_TIME_UNIT_SECONDS;
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id,
-                                               NULL);
+  announce_id_task = GNUNET_SCHEDULER_add_delayed (STARTUP_DELAY,
+                                                   &announce_id,
+                                                   NULL);
 }
 
 

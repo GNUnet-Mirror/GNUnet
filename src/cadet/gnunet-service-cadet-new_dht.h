@@ -63,6 +63,13 @@ GCD_shutdown (void);
 
 
 /**
+ * Function called by the HELLO subsystem whenever OUR hello
+ * changes. Re-triggers the DHT PUT immediately.
+ */
+void
+GCD_hello_update (void);
+
+/**
  * Search DHT for paths to @a peeR_id
  *
  * @param peer_id peer to search for
