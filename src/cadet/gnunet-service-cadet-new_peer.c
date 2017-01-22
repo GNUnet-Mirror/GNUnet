@@ -954,10 +954,10 @@ GCP_iterate_paths (struct CadetPeer *cp,
 {
   unsigned int ret = 0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Iterating over paths to peer %s%s\n",
-              GCP_2s (cp),
-              (NULL == cp->core_mq) ? "" : " including direct link");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Iterating over paths to peer %s%s\n",
+       GCP_2s (cp),
+       (NULL == cp->core_mq) ? "" : " including direct link");
   if (NULL != cp->core_mq)
   {
     struct CadetPeerPath *path;
