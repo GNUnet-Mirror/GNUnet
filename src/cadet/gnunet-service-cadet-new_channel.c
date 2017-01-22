@@ -742,7 +742,7 @@ GCCH_bind (struct CadetChannel *ch,
                       env);
   for (unsigned int i=0;i<ch->max_pending_messages;i++)
     send_ack_to_client (ch,
-                        ch->owner);
+                        ch->dest);
 }
 
 
