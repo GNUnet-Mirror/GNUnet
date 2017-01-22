@@ -493,6 +493,10 @@ connection_create (struct CadetPeer *destination,
   cc->ready_cb_cls = ready_cb_cls;
   cc->path = path;
   cc->off = off;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating connection %s using path %s\n",
+       GCC_2s (cc),
+       GCPP_2s (path));
   GCPP_add_connection (path,
                        off,
                        cc);
@@ -506,10 +510,6 @@ connection_create (struct CadetPeer *destination,
   cc->mq_man = GCP_request_mq (first_hop,
                                &manage_first_hop_mq,
                                cc);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Created connection %s using path %s\n",
-       GCC_2s (cc),
-       GCPP_2s (path));
   return cc;
 }
 
@@ -672,7 +672,6 @@ GCC_debug (struct CadetConnection *cc,
            enum GNUNET_ErrorType level)
 {
   int do_log;
-  char *s;
 
   do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
                                        "cadet-con",
