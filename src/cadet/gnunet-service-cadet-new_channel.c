@@ -71,7 +71,7 @@ enum CadetChannelState
   /**
    * Connection create message sent, waiting for ACK.
    */
-  CADET_CHANNEL_CREATE_SENT,
+  CADET_CHANNEL_OPEN_SENT,
 
   /**
    * Connection confirmed, ready to carry traffic.
@@ -453,7 +453,7 @@ send_channel_open (void *cls)
   msgcc.opt = htonl (options);
   msgcc.port = ch->port;
   msgcc.ctn = ch->ctn;
-  ch->state = CADET_CHANNEL_CREATE_SENT;
+  ch->state = CADET_CHANNEL_OPEN_SENT;
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
                                   &channel_open_sent_cb,
@@ -821,7 +821,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
     /* this should be impossible */
     GNUNET_break (0);
     break;
-  case CADET_CHANNEL_CREATE_SENT:
+  case CADET_CHANNEL_OPEN_SENT:
     if (NULL == ch->owner)
     {
       /* We're not the owner, wrong direction! */

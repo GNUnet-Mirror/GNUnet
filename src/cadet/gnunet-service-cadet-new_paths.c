@@ -535,7 +535,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   /* Shrink path to actual useful length */
   GNUNET_array_grow (path->entries,
                      path->entries_length,
-                     i);
+                     i + 1);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Created new path %s based on information from DHT\n",
        GCPP_2s (path));

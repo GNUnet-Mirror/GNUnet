@@ -1279,6 +1279,7 @@ send_kx (struct CadetTunnel *t,
                                       &msg->ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
                                       &msg->ratchet_key);
+  ct->is_ready = GNUNET_NO;
   GCC_transmit (cc,
                 env);
   t->kx_retry_delay = GNUNET_TIME_STD_BACKOFF (t->kx_retry_delay);
@@ -1540,7 +1541,11 @@ destroy_tunnel (void *cls)
     GNUNET_free (ct);
   }
   while (NULL != (tq = t->tq_head))
+  {
+    if (NULL != tq->cont)
+      tq->cont (tq->cont_cls);
     GCT_send_cancel (tq);
+  }
   GCP_drop_tunnel (t->destination,
                    t);
   GNUNET_CONTAINER_multihashmap32_destroy (t->channels);
@@ -2163,36 +2168,35 @@ decrypted_error_cb (void *cls,
 struct CadetTunnel *
 GCT_create_tunnel (struct CadetPeer *destination)
 {
+  struct CadetTunnel *t = GNUNET_new (struct CadetTunnel);
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (plaintext_keepalive,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE,
                              struct GNUNET_MessageHeader,
-                             NULL),
+                             t),
     GNUNET_MQ_hd_var_size (plaintext_data,
                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA,
                            struct GNUNET_CADET_ChannelAppDataMessage,
-                           NULL),
+                           t),
     GNUNET_MQ_hd_fixed_size (plaintext_data_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK,
                              struct GNUNET_CADET_ChannelDataAckMessage,
-                             NULL),
+                             t),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_open,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN,
                              struct GNUNET_CADET_ChannelOpenMessage,
-                             NULL),
+                             t),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_open_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
                              struct GNUNET_CADET_ChannelManageMessage,
-                             NULL),
+                             t),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
                              struct GNUNET_CADET_ChannelManageMessage,
-                             NULL),
+                             t),
     GNUNET_MQ_handler_end ()
   };
-  struct CadetTunnel *t;
 
-  t = GNUNET_new (struct CadetTunnel);
   new_ephemeral (t);
   t->ax.kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
   t->destination = destination;

@@ -668,6 +668,8 @@ GCP_path_entry_add (struct CadetPeer *cp,
                     struct CadetPeerPathEntry *entry,
                     unsigned int off)
 {
+  GNUNET_assert (cp == GCPP_get_peer_at_offset (entry->path,
+                                                off));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Discovered that peer %s is on path %s at offset %u\n",
        GCP_2s (cp),
@@ -759,6 +761,8 @@ GCP_attach_path (struct CadetPeer *cp,
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
+  GNUNET_assert (cp == GCPP_get_peer_at_offset (path,
+                                                off));
   if (NULL == cp->path_heap)
   {
     /* #GCP_drop_owned_paths() was already called, we cannot take new ones! */

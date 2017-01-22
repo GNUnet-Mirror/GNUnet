@@ -176,6 +176,11 @@ GCC_destroy (struct CadetConnection *cc)
   GCP_request_mq_cancel (cc->mq_man,
                          env);
   cc->mq_man = NULL;
+  if (NULL != cc->task)
+  {
+    GNUNET_SCHEDULER_cancel (cc->task);
+    cc->task = NULL;
+  }
   GCPP_del_connection (cc->path,
                        cc->off,
                        cc);
@@ -329,6 +334,7 @@ send_create_ack (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   cc->task = NULL;
+  GNUNET_assert (CADET_CONNECTION_CREATE_RECEIVED == cc->state);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CONNECTION_CREATE_ACK message for %s\n",
        GCC_2s (cc));
@@ -357,8 +363,9 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
   if (GNUNET_YES == cc->mqm_ready)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Got duplicate CREATE for %s, scheduling another ACK\n",
-         GCC_2s (cc));
+         "Got duplicate CREATE for %s, scheduling another ACK (%s)\n",
+         GCC_2s (cc),
+         (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
     /* Tell tunnel that we are not ready for transmission anymore
        (until CREATE_ACK is done) */
     cc->ready_cb (cc->ready_cb_cls,
@@ -366,6 +373,8 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
     /* Revert back to the state of having only received the 'CREATE',
        and immediately proceed to send the CREATE_ACK. */
     cc->state = CADET_CONNECTION_CREATE_RECEIVED;
+    if (NULL != cc->task)
+      GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
                                          cc);
   }
