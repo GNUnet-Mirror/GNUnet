@@ -119,6 +119,20 @@ GCCH_channel_local_destroy (struct CadetChannel *ch);
 
 
 /**
+ * Function called once and only once after a channel was bound
+ * to its tunnel via #GCT_add_channel() is ready for transmission.
+ * Note that this is only the case for channels that this peer
+ * initiates, as for incoming channels we assume that they are
+ * ready for transmission immediately upon receiving the open
+ * message.  Used to bootstrap the #GCT_send() process.
+ *
+ * @param ch the channel for which the tunnel is now ready
+ */
+void
+GCCH_tunnel_up (struct CadetChannel *ch);
+
+
+/**
  * Create a new channel based on a request coming in over the network.
  *
  * @param t tunnel to the remote peer

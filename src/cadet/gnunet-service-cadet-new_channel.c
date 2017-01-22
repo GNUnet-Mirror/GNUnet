@@ -440,6 +440,9 @@ send_channel_open (void *cls)
   uint32_t options;
 
   ch->retry_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending CHANNEL_OPEN message for channel %s\n",
+       GCCH_2s (ch));
   options = 0;
   if (ch->nobuffer)
     options |= GNUNET_CADET_OPTION_NOBUFFER;
@@ -457,9 +460,25 @@ send_channel_open (void *cls)
                                   &msgcc.header,
                                   &channel_open_sent_cb,
                                   ch);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CHANNEL_OPEN message for channel %s\n",
-       GCCH_2s (ch));
+}
+
+
+/**
+ * Function called once and only once after a channel was bound
+ * to its tunnel via #GCT_add_channel() is ready for transmission.
+ * Note that this is only the case for channels that this peer
+ * initiates, as for incoming channels we assume that they are
+ * ready for transmission immediately upon receiving the open
+ * message.  Used to bootstrap the #GCT_send() process.
+ *
+ * @param ch the channel for which the tunnel is now ready
+ */
+void
+GCCH_tunnel_up (struct CadetChannel *ch)
+{
+  GNUNET_assert (NULL == ch->retry_task);
+  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_channel_open,
+                                             ch);
 }
 
 
@@ -492,11 +511,9 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->port = *port;
   ch->t = GCP_get_tunnel (destination,
                           GNUNET_YES);
-  ch->ctn = GCT_add_channel (ch->t,
-                              ch);
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_channel_open,
-                                             ch);
+  ch->ctn = GCT_add_channel (ch->t,
+                             ch);
   GNUNET_STATISTICS_update (stats,
                             "# channels",
                             1,
@@ -814,6 +831,8 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received channel OPEN_ACK for waiting channel %s, entering READY state\n",
          GCCH_2s (ch));
+    GNUNET_SCHEDULER_cancel (ch->retry_task);
+    ch->retry_task = NULL;
     ch->state = CADET_CHANNEL_READY;
     /* On first connect, send client as many ACKs as we allow messages
        to be buffered! */

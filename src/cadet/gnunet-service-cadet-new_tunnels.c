@@ -1174,6 +1174,27 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
 
 
 /**
+ * Our tunnel became ready for the first time, notify channels
+ * that have been waiting.
+ *
+ * @param cls our tunnel, not used
+ * @param key unique ID of the channel, not used
+ * @param value the `struct CadetChannel` to notify
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+notify_tunnel_up_cb (void *cls,
+                     uint32_t key,
+                     void *value)
+{
+  struct CadetChannel *ch = value;
+
+  GCCH_tunnel_up (ch);
+  return GNUNET_OK;
+}
+
+
+/**
  * Change the tunnel encryption state.
  * If the encryption state changes to OK, stop the rekey task.
  *
@@ -1201,6 +1222,14 @@ GCT_change_estate (struct CadetTunnel *t,
       GNUNET_SCHEDULER_cancel (t->kx_task);
       t->kx_task = NULL;
     }
+    if (CADET_TUNNEL_KEY_REKEY != old)
+    {
+      /* notify all channels that have been waiting */
+      GNUNET_CONTAINER_multihashmap32_iterate (t->channels,
+                                               &notify_tunnel_up_cb,
+                                               t);
+    }
+
     /* FIXME: schedule rekey task! */
   }
 }
@@ -1454,7 +1483,9 @@ get_next_free_ctn (struct CadetTunnel *t)
 
 
 /**
- * Add a channel to a tunnel.
+ * Add a channel to a tunnel, and notify channel that we are ready
+ * for transmission if we are already up.  Otherwise that notification
+ * will be done later in #notify_tunnel_up_cb().
  *
  * @param t Tunnel.
  * @param ch Channel
@@ -1476,6 +1507,9 @@ GCT_add_channel (struct CadetTunnel *t,
               "Adding channel %s to tunnel %s\n",
               GCCH_2s (ch),
               GCT_2s (t));
+  if ( (CADET_TUNNEL_KEY_OK == t->estate) ||
+       (CADET_TUNNEL_KEY_REKEY == t->estate) )
+    GCCH_tunnel_up (ch);
   return ctn;
 }
 
@@ -1518,6 +1552,11 @@ destroy_tunnel (void *cls)
   }
   GNUNET_MST_destroy (t->mst);
   GNUNET_MQ_destroy (t->mq);
+  while (NULL != t->ax.skipped_head)
+    delete_skipped_key (t,
+                        t->ax.skipped_head);
+  GNUNET_assert (0 == t->ax.skipped);
+  GNUNET_free_non_null (t->ax.kx_0);
   GNUNET_free_non_null (t->ax.DHRs);
   GNUNET_free (t);
 }
@@ -2138,6 +2177,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
 
   t = GNUNET_new (struct CadetTunnel);
   new_ephemeral (t);
+  t->ax.kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
   (void) GCP_iterate_paths (destination,
