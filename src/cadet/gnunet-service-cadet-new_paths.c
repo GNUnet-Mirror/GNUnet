@@ -217,7 +217,7 @@ GCPP_release (struct CadetPeerPath *path)
     entry = path->entries[path->entries_length - 1];
     path->hn = GCP_attach_path (entry->peer,
                                 path,
-                                path->entries_length,
+                                path->entries_length - 1,
                                 GNUNET_NO);
     if (NULL != path->hn)
       return; /* yep, got attached, we are done. */
