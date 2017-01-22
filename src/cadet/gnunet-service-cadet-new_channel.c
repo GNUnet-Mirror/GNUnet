@@ -770,9 +770,11 @@ GCCH_channel_local_destroy (struct CadetChannel *ch)
     ch->destroy = GNUNET_YES;
     return;
   }
-  /* Nothing left to do, just finish destruction */
-  GCT_send_channel_destroy (ch->t,
-                            ch->ctn);
+  /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
+  if (CADET_CHANNEL_NEW != ch->state)
+    GCT_send_channel_destroy (ch->t,
+                              ch->ctn);
+  /* Now finish our clean up */
   channel_destroy (ch);
 }
 
