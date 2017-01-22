@@ -287,11 +287,6 @@ struct CadetChannel
   int client_ready;
 
   /**
-   * Can the client send data to us?
-   */
-  int client_allowed;
-
-  /**
    * Is the tunnel bufferless (minimum latency)?
    */
   int nobuffer;
@@ -1165,8 +1160,6 @@ GCCH_check_allow_client (struct CadetChannel *ch)
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalAck *msg;
 
-  if (GNUNET_YES == ch->client_allowed)
-    return; /* client already allowed! */
   if (CADET_CHANNEL_READY != ch->state)
   {
     /* destination did not yet ACK our CREATE! */
@@ -1191,8 +1184,6 @@ GCCH_check_allow_client (struct CadetChannel *ch)
          GCCH_2s (ch));
     return;
   }
-  ch->client_allowed = GNUNET_YES;
-
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending local ack to %s client\n",
@@ -1292,12 +1283,11 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 {
   struct CadetReliableMessage *crm;
 
-  if (GNUNET_NO == ch->client_allowed)
+  if (ch->pending_messages > ch->max_pending_messages)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  ch->client_allowed = GNUNET_NO;
   ch->pending_messages++;
 
   /* Everything is correct, send the message. */
