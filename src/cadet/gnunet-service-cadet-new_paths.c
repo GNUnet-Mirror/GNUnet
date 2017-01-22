@@ -369,6 +369,11 @@ extend_path (struct CadetPeerPath *path,
     path->entries[old_len + i] = entry;
     entry->peer = peers[i];
     entry->path = path;
+  }
+  for (i=num_peers-1;i >= 0;i--)
+  {
+    struct CadetPeerPathEntry *entry = path->entries[old_len + i];
+
     GCP_path_entry_add (entry->peer,
                         entry,
                         old_len + i);
@@ -497,6 +502,11 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     path->entries[i] = entry;
     entry->peer = cpath[i];
     entry->path = path;
+  }
+  for (i=path->entries_length-1;i>=0;i--)
+  {
+    struct CadetPeerPathEntry *entry = path->entries[i];
+
     GCP_path_entry_add (entry->peer,
                         entry,
                         i);
@@ -615,6 +625,11 @@ GCPP_get_path_from_route (unsigned int path_length,
     path->entries[i] = entry;
     entry->peer = cpath[i];
     entry->path = path;
+  }
+  for (int i=path_length-1;i>=0;i--)
+  {
+    struct CadetPeerPathEntry *entry = path->entries[i];
+
     GCP_path_entry_add (entry->peer,
                         entry,
                         i);
