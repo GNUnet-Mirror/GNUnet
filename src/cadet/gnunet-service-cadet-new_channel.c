@@ -170,14 +170,6 @@ struct CadetChannel
   struct CadetTunnel *t;
 
   /**
-   * Last entry in the tunnel's queue relating to control messages
-   * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN or
-   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK).  Used to cancel
-   * transmission in case we receive updated information.
-   */
-  struct CadetTunnelQueueEntry *last_control_qe;
-
-  /**
    * Client owner of the tunnel, if any.
    * (Used if this channel represends the initiating end of the tunnel.)
    */
@@ -188,6 +180,14 @@ struct CadetChannel
    * (Used if this channel represents the listening end of the tunnel.)
    */
   struct CadetClient *dest;
+
+  /**
+   * Last entry in the tunnel's queue relating to control messages
+   * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN or
+   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK).  Used to cancel
+   * transmission in case we receive updated information.
+   */
+  struct CadetTunnelQueueEntry *last_control_qe;
 
   /**
    * Head of DLL of messages sent and not yet ACK'd.
@@ -417,6 +417,7 @@ channel_open_sent_cb (void *cls)
 {
   struct CadetChannel *ch = cls;
 
+  GNUNET_assert (NULL != ch->last_control_qe);
   ch->last_control_qe = NULL;
   ch->retry_time = GNUNET_TIME_STD_BACKOFF (ch->retry_time);
   ch->retry_task = GNUNET_SCHEDULER_add_delayed (ch->retry_time,
@@ -620,6 +621,7 @@ send_ack_cb (void *cls)
 {
   struct CadetChannel *ch = cls;
 
+  GNUNET_assert (NULL != ch->last_control_qe);
   ch->last_control_qe = NULL;
 }
 
@@ -1025,18 +1027,13 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
 void
 GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalChannelDestroyMessage *tdm;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received remote channel DESTROY for %s\n",
        GCCH_2s (ch));
   ch->destroy = GNUNET_YES;
-  env = GNUNET_MQ_msg (tdm,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
-  tdm->ccn = ch->ccn;
-  GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
-                      env);
+  GSC_handle_remote_channel_destroy ((NULL != ch->owner) ? ch->owner : ch->dest,
+                                     ch->ccn,
+                                     ch);
   channel_destroy (ch);
 }
 

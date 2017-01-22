@@ -30,6 +30,7 @@
 
 #include "gnunet_util_lib.h"
 #define NEW_CADET 1
+#include "cadet_protocol.h"
 
 /**
  * A client to the CADET service.  Each client gets a unique handle.
@@ -234,6 +235,19 @@ extern struct GNUNET_TIME_Relative ratchet_time;
 void
 GSC_send_to_client (struct CadetClient *c,
                     struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * A channel was destroyed by the other peer. Tell our client.
+ *
+ * @param c client that lost a channel
+ * @param ccn channel identification number for the client
+ * @param ch the channel object
+ */
+void
+GSC_handle_remote_channel_destroy (struct CadetClient *c,
+                                   struct GNUNET_CADET_ClientChannelNumber ccn,
+                                   struct CadetChannel *ch);
 
 
 /**

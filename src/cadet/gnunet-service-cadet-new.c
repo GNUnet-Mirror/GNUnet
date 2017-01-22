@@ -1122,6 +1122,33 @@ client_connect_cb (void *cls,
 
 
 /**
+ * A channel was destroyed by the other peer. Tell our client.
+ *
+ * @param c client that lost a channel
+ * @param ccn channel identification number for the client
+ * @param ch the channel object
+ */
+void
+GSC_handle_remote_channel_destroy (struct CadetClient *c,
+                                   struct GNUNET_CADET_ClientChannelNumber ccn,
+                                   struct CadetChannel *ch)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_LocalChannelDestroyMessage *tdm;
+
+  env = GNUNET_MQ_msg (tdm,
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
+  tdm->ccn = ccn;
+  GSC_send_to_client (c,
+                      env);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
+                                                         ntohl (ccn.channel_of_client),
+                                                         ch));
+}
+
+
+/**
  * Iterator for deleting each channel whose client endpoint disconnected.
  *
  * @param cls Closure (client that has disconnected).
@@ -1137,14 +1164,14 @@ channel_destroy_iterator (void *cls,
   struct CadetClient *c = cls;
   struct CadetChannel *ch = value;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
-                                                         key,
-                                                         ch));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying channel %s, due to client %s disconnecting.\n",
        GCCH_2s (ch),
        GSC_2s (c));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
+                                                         key,
+                                                         ch));
   if (key < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     GCCH_channel_local_destroy (ch);
   else

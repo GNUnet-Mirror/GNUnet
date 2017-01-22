@@ -309,6 +309,11 @@ struct CadetTunnel
   struct GNUNET_SCHEDULER_Task *maintain_connections_task;
 
   /**
+   * Task to send messages from queue (if possible).
+   */
+  struct GNUNET_SCHEDULER_Task *send_task;
+
+  /**
    * Task to trigger KX.
    */
   struct GNUNET_SCHEDULER_Task *kx_task;
@@ -569,10 +574,10 @@ new_ephemeral (struct CadetTunnel *t)
  * at our message queue and if there is a message, picks a connection
  * to send it on.
  *
- * @param t tunnel to process messages on
+ * @param cls the `struct CadetTunnel` to process messages on
  */
 static void
-trigger_transmissions (struct CadetTunnel *t);
+trigger_transmissions (void *cls);
 
 
 /* ************************************** start core crypto ***************************** */
@@ -1437,7 +1442,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
        we can start transmitting! */
     GCT_change_estate (t,
                        CADET_TUNNEL_KEY_OK);
-    trigger_transmissions (t);
+    if (NULL != t->send_task)
+      GNUNET_SCHEDULER_cancel (t->send_task);
+    t->send_task = GNUNET_SCHEDULER_add_now (&trigger_transmissions,
+                                             t);
     break;
   case CADET_TUNNEL_KEY_PING:
     /* Got a key yet again; need encrypted payload to advance */
@@ -1553,6 +1561,16 @@ destroy_tunnel (void *cls)
   {
     GNUNET_SCHEDULER_cancel (t->maintain_connections_task);
     t->maintain_connections_task = NULL;
+  }
+  if (NULL != t->send_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->send_task);
+    t->send_task = NULL;
+  }
+  if (NULL != t->kx_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->kx_task);
+    t->kx_task = NULL;
   }
   GNUNET_MST_destroy (t->mst);
   GNUNET_MQ_destroy (t->mq);
@@ -1744,13 +1762,15 @@ connection_ready_cb (void *cls,
  * at our message queue and if there is a message, picks a connection
  * to send it on.
  *
- * @param t tunnel to process messages on
+ * @param cls the `struct CadetTunnel` to process messages on
  */
 static void
-trigger_transmissions (struct CadetTunnel *t)
+trigger_transmissions (void *cls)
 {
+  struct CadetTunnel *t = cls;
   struct CadetTConnection *ct;
 
+  t->send_task = NULL;
   if (NULL == t->tq_head)
     return; /* no messages pending right now */
   ct = get_ready_connection (t);
@@ -2327,7 +2347,10 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   {
     GCT_change_estate (t,
                        CADET_TUNNEL_KEY_OK);
-    trigger_transmissions (t);
+    if (NULL != t->send_task)
+      GNUNET_SCHEDULER_cancel (t->send_task);
+    t->send_task = GNUNET_SCHEDULER_add_now (&trigger_transmissions,
+                                             t);
   }
   /* The MST will ultimately call #handle_decrypted() on each message. */
   GNUNET_break_op (GNUNET_OK ==
@@ -2393,7 +2416,11 @@ GCT_send (struct CadetTunnel *t,
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head,
                                     t->tq_tail,
                                     tq);
-  trigger_transmissions (t);
+  if (NULL != t->send_task)
+    GNUNET_SCHEDULER_cancel (t->send_task);
+  t->send_task
+    = GNUNET_SCHEDULER_add_now (&trigger_transmissions,
+                                t);
   return tq;
 }
 
