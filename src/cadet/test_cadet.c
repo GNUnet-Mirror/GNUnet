@@ -527,7 +527,7 @@ data_task (void *cls)
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
-size_t
+static size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
@@ -547,6 +547,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
     GNUNET_assert (0);
   counter = get_expected_target () == id ? ack_sent : data_sent;
   msg_size = size_payload + counter;
+  GNUNET_assert (msg_size > sizeof (struct GNUNET_MessageHeader));
   if ( (size < msg_size) ||
        (NULL == buf) )
   {
@@ -567,9 +568,11 @@ tmt_rdy (void *cls, size_t size, void *buf)
   *data = htonl (counter);
   if (GNUNET_NO == initialized)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sending initializer\n");
     msg_size = size_payload + 1000;
-    if (SPEED_ACK == test)
+    msg->size = htons (msg_size);
+  if (SPEED_ACK == test)
       data_sent++;
   }
   else if ( (SPEED == test) ||
@@ -601,7 +604,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
 /**
  * Function is called whenever a message is received.
  *
- * @param cls closure (set from GNUNET_CADET_connect, peer number)
+ * @param cls closure (set from GNUNET_CADET_connect(), peer number)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
