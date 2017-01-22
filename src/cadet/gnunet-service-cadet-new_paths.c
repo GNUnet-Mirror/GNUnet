@@ -627,6 +627,7 @@ struct CadetPeer *
 GCPP_get_peer_at_offset (struct CadetPeerPath *path,
                          unsigned int off)
 {
+  GNUNET_assert (off < path->entries_length);
   return path->entries[off].peer;
 }
 
@@ -637,26 +638,34 @@ GCPP_get_peer_at_offset (struct CadetPeerPath *path,
  * @param path path to convert
  * @return string, to be freed by caller (unlike other *_2s APIs!)
  */
-char *
+const char *
 GCPP_2s (struct CadetPeerPath *path)
 {
-  char *s;
-  char *old;
+  static char buf[2048];
+  size_t off;
+  const unsigned int max_plen = sizeof(buf) / 5 - 2; /* 5 characters per entry */
 
-  old = GNUNET_strdup ("");
+  off = 0;
   for (unsigned int i = 0;
        i < path->entries_length;
        i++)
   {
-    GNUNET_asprintf (&s,
-                     "%s %s",
-                     old,
-                     GNUNET_i2s (GCP_get_id (GCPP_get_peer_at_offset (path,
-                                                                      i))));
-    GNUNET_free_non_null (old);
-    old = s;
+    if ( (path->entries_length > max_plen) &&
+         (i == max_plen / 2) )
+      off += GNUNET_snprintf (&buf[off],
+                              sizeof (buf) - off,
+                              "... ");
+    if ( (path->entries_length > max_plen) &&
+         (i > max_plen / 2) &&
+         (i < path->entries_length - max_plen / 2) )
+      continue;
+    off += GNUNET_snprintf (&buf[off],
+                            sizeof (buf) - off,
+                            "%s ",
+                            GNUNET_i2s (GCP_get_id (GCPP_get_peer_at_offset (path,
+                                                                             i))));
   }
-  return old;
+  return buf;
 }
 
 
