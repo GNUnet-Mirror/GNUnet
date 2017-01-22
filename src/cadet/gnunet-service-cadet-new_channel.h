@@ -160,6 +160,17 @@ GCCH_channel_incoming_destroy (struct CadetChannel *ch);
 
 
 /**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN message again for
+ * this channel.  If the binding was successful, (re)transmit the
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
+ *
+ * @param ch channel that got the duplicate open
+ */
+void
+GCCH_handle_duplicate_open (struct CadetChannel *ch);
+
+
+/**
  * We got payload data for a channel.  Pass it on to the client.
  *
  * @param ch channel that got data

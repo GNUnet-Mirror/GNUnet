@@ -212,7 +212,12 @@ struct CadetChannel
   /**
    * Task to resend/poll in case no ACK is received.
    */
-  struct GNUNET_SCHEDULER_Task *retry_task;
+  struct GNUNET_SCHEDULER_Task *retry_control_task;
+
+    /**
+   * Task to resend/poll in case no ACK is received.
+   */
+  struct GNUNET_SCHEDULER_Task *retry_data_task;
 
   /**
    * Last time the channel was used
@@ -385,10 +390,15 @@ channel_destroy (struct CadetChannel *ch)
     GCT_send_cancel (ch->last_control_qe);
     ch->last_control_qe = NULL;
   }
-  if (NULL != ch->retry_task)
+  if (NULL != ch->retry_data_task)
   {
-    GNUNET_SCHEDULER_cancel (ch->retry_task);
-    ch->retry_task = NULL;
+    GNUNET_SCHEDULER_cancel (ch->retry_data_task);
+    ch->retry_data_task = NULL;
+  }
+  if (NULL != ch->retry_control_task)
+  {
+    GNUNET_SCHEDULER_cancel (ch->retry_control_task);
+    ch->retry_control_task = NULL;
   }
   GCT_remove_channel (ch->t,
                       ch,
@@ -420,9 +430,10 @@ channel_open_sent_cb (void *cls)
   GNUNET_assert (NULL != ch->last_control_qe);
   ch->last_control_qe = NULL;
   ch->retry_time = GNUNET_TIME_STD_BACKOFF (ch->retry_time);
-  ch->retry_task = GNUNET_SCHEDULER_add_delayed (ch->retry_time,
-                                                 &send_channel_open,
-                                                 ch);
+  ch->retry_control_task
+    = GNUNET_SCHEDULER_add_delayed (ch->retry_time,
+                                    &send_channel_open,
+                                    ch);
 }
 
 
@@ -438,7 +449,7 @@ send_channel_open (void *cls)
   struct GNUNET_CADET_ChannelOpenMessage msgcc;
   uint32_t options;
 
-  ch->retry_task = NULL;
+  ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CHANNEL_OPEN message for %s\n",
        GCCH_2s (ch));
@@ -475,9 +486,10 @@ send_channel_open (void *cls)
 void
 GCCH_tunnel_up (struct CadetChannel *ch)
 {
-  GNUNET_assert (NULL == ch->retry_task);
-  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_channel_open,
-                                             ch);
+  GNUNET_assert (NULL == ch->retry_control_task);
+  ch->retry_control_task
+    = GNUNET_SCHEDULER_add_now (&send_channel_open,
+                                ch);
 }
 
 
@@ -518,7 +530,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
                             1,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Created channel to port %s at peer %s for client %s using tunnel %s\n",
+       "Created channel to port %s at peer %s for %s using %s\n",
        GNUNET_h2s (port),
        GCP_2s (destination),
        GSC_2s (owner),
@@ -538,7 +550,7 @@ timeout_closed_cb (void *cls)
 {
   struct CadetChannel *ch = cls;
 
-  ch->retry_task = NULL;
+  ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Closing incoming channel to port %s from peer %s due to timeout\n",
        GNUNET_h2s (&ch->port),
@@ -588,9 +600,10 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
                                               port,
                                               ch,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    ch->retry_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
-                                                   &timeout_closed_cb,
-                                                   ch);
+    ch->retry_control_task
+      = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
+                                      &timeout_closed_cb,
+                                      ch);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Created loose incoming channel to port %s from peer %s\n",
          GNUNET_h2s (&ch->port),
@@ -657,12 +670,55 @@ send_channel_data_ack (struct CadetChannel *ch)
  * @param cls the `struct CadetChannel`
  */
 static void
-send_connect_ack (void *cls)
+send_open_ack (void *cls)
 {
   struct CadetChannel *ch = cls;
+  struct GNUNET_CADET_ChannelManageMessage msg;
 
-  ch->retry_task = NULL;
-  send_channel_data_ack (ch);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending CHANNEL_OPEN_ACK on channel %s\n",
+       GCCH_2s (ch));
+  ch->retry_control_task = NULL;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK);
+  msg.header.size = htons (sizeof (msg));
+  msg.reserved = htonl (0);
+  msg.ctn = ch->ctn;
+  if (NULL != ch->last_control_qe)
+    GCT_send_cancel (ch->last_control_qe);
+  ch->last_control_qe = GCT_send (ch->t,
+                                  &msg.header,
+                                  &send_ack_cb,
+                                  ch);
+}
+
+
+/**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN message again for
+ * this channel.  If the binding was successful, (re)transmit the
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
+ *
+ * @param ch channel that got the duplicate open
+ */
+void
+GCCH_handle_duplicate_open (struct CadetChannel *ch)
+{
+  if (NULL == ch->dest)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring duplicate channel OPEN on %s: port is closed\n",
+         GCCH_2s (ch));
+    return;
+  }
+  if (NULL != ch->retry_control_task)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring duplicate channel OPEN on %s: control message is pending\n",
+         GCCH_2s (ch));
+    return;
+  }
+  ch->retry_control_task
+    = GNUNET_SCHEDULER_add_now (&send_open_ack,
+                                ch);
 }
 
 
@@ -704,16 +760,16 @@ GCCH_bind (struct CadetChannel *ch,
   uint32_t options;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Binding %s from tunnel %s to port %s of client %s\n",
+       "Binding %s from %s to port %s of %s\n",
        GCCH_2s (ch),
        GCT_2s (ch->t),
        GNUNET_h2s (&ch->port),
        GSC_2s (c));
-  if (NULL != ch->retry_task)
+  if (NULL != ch->retry_control_task)
   {
     /* there might be a timeout task here */
-    GNUNET_SCHEDULER_cancel (ch->retry_task);
-    ch->retry_task = NULL;
+    GNUNET_SCHEDULER_cancel (ch->retry_control_task);
+    ch->retry_control_task = NULL;
   }
   options = 0;
   if (ch->nobuffer)
@@ -731,8 +787,9 @@ GCCH_bind (struct CadetChannel *ch,
   ch->mid_recv.mid = htonl (1); /* The CONNECT counts as message 0! */
 
   /* notify other peer that we accepted the connection */
-  ch->retry_task = GNUNET_SCHEDULER_add_now (&send_connect_ack,
-                                             ch);
+  ch->retry_control_task
+    = GNUNET_SCHEDULER_add_now (&send_open_ack,
+                                ch);
   /* give client it's initial supply of ACKs */
   env = GNUNET_MQ_msg (tcm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
@@ -833,8 +890,8 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received channel OPEN_ACK for waiting %s, entering READY state\n",
          GCCH_2s (ch));
-    GNUNET_SCHEDULER_cancel (ch->retry_task);
-    ch->retry_task = NULL;
+    GNUNET_SCHEDULER_cancel (ch->retry_control_task);
+    ch->retry_control_task = NULL;
     ch->state = CADET_CHANNEL_READY;
     /* On first connect, send client as many ACKs as we allow messages
        to be buffered! */
@@ -1062,7 +1119,7 @@ retry_transmission (void *cls)
   struct CadetChannel *ch = cls;
   struct CadetReliableMessage *crm = ch->head_sent;
 
-  ch->retry_task = NULL;
+  ch->retry_data_task = NULL;
   GNUNET_assert (NULL == crm->qe);
   crm->qe = GCT_send (ch->t,
                       &crm->data_message.header,
@@ -1161,11 +1218,12 @@ data_sent_cb (void *cls)
     GNUNET_CONTAINER_DLL_insert (ch->head_sent,
                                  ch->tail_sent,
                                  crm);
-    if (NULL != ch->retry_task)
-      GNUNET_SCHEDULER_cancel (ch->retry_task);
-    ch->retry_task = GNUNET_SCHEDULER_add_delayed (crm->retry_delay,
-                                                   &retry_transmission,
-                                                   ch);
+    if (NULL != ch->retry_data_task)
+      GNUNET_SCHEDULER_cancel (ch->retry_data_task);
+    ch->retry_data_task
+      = GNUNET_SCHEDULER_add_delayed (crm->retry_delay,
+                                      &retry_transmission,
+                                      ch);
     return;
   }
   for (off = ch->head_sent; NULL != off; off = off->next)

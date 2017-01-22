@@ -1472,19 +1472,28 @@ GCT_handle_kx (struct CadetTConnection *ct,
 static struct GNUNET_CADET_ChannelTunnelNumber
 get_next_free_ctn (struct CadetTunnel *t)
 {
+#define HIGH_BIT 0x8000000
   struct GNUNET_CADET_ChannelTunnelNumber ret;
   uint32_t ctn;
+  int cmp;
+  uint32_t highbit;
 
-  /* FIXME: this logic does NOT prevent both ends of the
-     channel from picking the same CTN!
-     Need to reserve one bit of the CTN for the
-     direction, i.e. which side established the connection! */
+  cmp = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+                                         GCP_get_id (GCT_get_destination (t)));
+  if (0 < cmp)
+    highbit = HIGH_BIT;
+  else if (0 > cmp)
+    highbit = 0;
+  else
+    GNUNET_assert (0); // loopback must never go here!
   ctn = ntohl (t->next_ctn.cn);
   while (NULL !=
          GNUNET_CONTAINER_multihashmap32_get (t->channels,
                                               ctn))
-    ctn++;
-  t->next_ctn.cn = htonl (ctn + 1);
+  {
+    ctn = ((ctn + 1) & (~ HIGH_BIT)) | highbit;
+  }
+  t->next_ctn.cn = htonl (((ctn + 1) & (~ HIGH_BIT)) | highbit);
   ret.cn = ntohl (ctn);
   return ret;
 }
@@ -2029,28 +2038,38 @@ handle_plaintext_data_ack (void *cls,
  * another peer.  Creates the incoming channel.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
- * @param cc the message we received on the tunnel
+ * @param copen the message we received on the tunnel
  */
 static void
 handle_plaintext_channel_open (void *cls,
-                               const struct GNUNET_CADET_ChannelOpenMessage *cc)
+                               const struct GNUNET_CADET_ChannelOpenMessage *copen)
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
-  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
+  ch = GNUNET_CONTAINER_multihashmap32_get (t->channels,
+                                            ntohl (copen->ctn.cn));
+  if (NULL != ch)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Receicved duplicate channel OPEN on port %s from %s (%s), resending ACK\n",
+         GNUNET_h2s (&copen->port),
+         GCT_2s (t),
+         GCCH_2s (ch));
+    GCCH_handle_duplicate_open (ch);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel OPEN on port %s from peer %s\n",
-       GNUNET_h2s (&cc->port),
-       GCP_2s (GCT_get_destination (t)));
-  ctn = get_next_free_ctn (t);
+       "Receicved channel OPEN on port %s from %s\n",
+       GNUNET_h2s (&copen->port),
+       GCT_2s (t));
   ch = GCCH_channel_incoming_new (t,
-                                  ctn,
-                                  &cc->port,
-                                  ntohl (cc->opt));
+                                  copen->ctn,
+                                  &copen->port,
+                                  ntohl (copen->opt));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
-                                                      ntohl (ctn.cn),
+                                                      ntohl (copen->ctn.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
@@ -2110,6 +2129,10 @@ handle_plaintext_channel_open_ack (void *cls,
                               cm->ctn);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Receicved channel OPEN_ACK on channel %s from %s\n",
+       GCCH_2s (ch),
+       GCT_2s (t));
   GCCH_handle_channel_open_ack (ch);
 }
 
@@ -2139,6 +2162,10 @@ handle_plaintext_channel_destroy (void *cls,
          GCCH_2s (ch));
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Receicved channel DESTROY on %s from %s\n",
+       GCCH_2s (ch),
+       GCT_2s (t));
   GCCH_handle_remote_destroy (ch);
 }
 
@@ -2385,7 +2412,7 @@ GCT_send (struct CadetTunnel *t,
 
   payload_size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Encrypting %u bytes of for tunnel %s\n",
+       "Encrypting %u bytes for tunnel %s\n",
        (unsigned int) payload_size,
        GCT_2s (t));
   env = GNUNET_MQ_msg_extra (ax_msg,
