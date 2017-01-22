@@ -599,11 +599,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
-int
-data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
+static int
+data_callback (void *cls,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -764,10 +765,11 @@ static struct GNUNET_CADET_MessageHandler handlers[] = {
  *         (can be NULL -- that's not an error).
  */
 static void *
-incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
-                 const struct GNUNET_PeerIdentity *initiator,
-                 const struct GNUNET_HashCode *port,
-                 enum GNUNET_CADET_ChannelOption options)
+incoming_channel (void *cls,
+                  struct GNUNET_CADET_Channel *channel,
+                  const struct GNUNET_PeerIdentity *initiator,
+                  const struct GNUNET_HashCode *port,
+                  enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d:%s\n",
@@ -804,7 +806,8 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
  *                   with the channel is stored
  */
 static void
-channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
+channel_cleaner (void *cls,
+                 const struct GNUNET_CADET_Channel *channel,
                  void *channel_ctx)
 {
   long i = (long) cls;
@@ -857,8 +860,8 @@ do_test (void *cls)
   enum GNUNET_CADET_ChannelOption flags;
 
   test_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "do_test\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "do_test\n");
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -872,20 +875,27 @@ do_test (void *cls)
     flags |= GNUNET_CADET_OPTION_RELIABLE;
   }
 
-  ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], &port, flags);
+  ch = GNUNET_CADET_channel_create (h1,
+                                    NULL,
+                                    p_id[1],
+                                    &port,
+                                    flags);
 
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &gather_stats_and_exit,
-                                                  (void *) __LINE__);
+  disconnect_task
+    = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                    &gather_stats_and_exit,
+                                    (void *) __LINE__);
   if (KEEPALIVE == test)
     return; /* Don't send any data. */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending data initializer...\n");
   data_received = 0;
   data_sent = 0;
   ack_received = 0;
   ack_sent = 0;
-  th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
+  th = GNUNET_CADET_notify_transmit_ready (ch,
+                                           GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            size_payload + 1000,
                                            &tmt_rdy, (void *) 0L);
@@ -909,23 +919,30 @@ pi_cb (void *cls,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id callback for %ld\n", i);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "id callback for %ld\n", i);
 
-  if (NULL == pinfo || NULL != emsg)
+  if ( (NULL == pinfo) ||
+       (NULL != emsg) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "pi_cb: %s\n", emsg);
     abort_test (__LINE__);
     return;
   }
   p_id[i] = pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id: %s\n", GNUNET_i2s (p_id[i]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  id: %s\n", GNUNET_i2s (p_id[i]));
   p_ids++;
   if (p_ids < 2)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got all IDs, starting test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got all IDs, starting test\n");
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                            &do_test, NULL);
+                                            &do_test,
+                                            NULL);
 }
+
 
 /**
  * test main: start test when all peers are connected
