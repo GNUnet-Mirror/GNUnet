@@ -525,6 +525,11 @@ handle_channel_create (void *cls,
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New channel to %s at port %s requested by client %s\n",
+       GNUNET_i2s (&tcm->peer),
+       GNUNET_h2s (&tcm->port),
+       GSC_2s (c));
 
   /* Create channel */
   ch = GCCH_channel_local_new (c,
@@ -545,12 +550,6 @@ handle_channel_create (void *cls,
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New channel %s to %s at port %s requested by client %s\n",
-       GCCH_2s (ch),
-       GNUNET_i2s (&tcm->peer),
-       GNUNET_h2s (&tcm->port),
-       GSC_2s (c));
   GNUNET_SERVICE_client_continue (c->client);
 }
 
