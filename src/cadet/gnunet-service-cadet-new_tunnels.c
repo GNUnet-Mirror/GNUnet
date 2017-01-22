@@ -2235,7 +2235,7 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
                                ct,
                                cid,
                                &connection_ready_cb,
-                               t);
+                               ct);
   /* FIXME: schedule job to kill connection (and path?)  if it takes
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
