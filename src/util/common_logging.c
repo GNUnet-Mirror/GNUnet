@@ -1209,8 +1209,11 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   static char buf[256];
   char *ret;
 
+  if (NULL == pid)
+    return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strcpy (buf, ret);
+  strcpy (buf,
+          ret);
   GNUNET_free (ret);
   buf[4] = '\0';
   return buf;
@@ -1234,8 +1237,11 @@ GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
   static char buf[256];
   char *ret;
 
+  if (NULL == pid)
+    return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strcpy (buf, ret);
+  strcpy (buf,
+          ret);
   GNUNET_free (ret);
   buf[4] = '\0';
   return buf;
