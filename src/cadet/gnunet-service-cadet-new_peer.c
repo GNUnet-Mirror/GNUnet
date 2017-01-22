@@ -40,7 +40,6 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
-#include "cadet_path.h"
 #include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_dht.h"
@@ -257,7 +256,8 @@ destroy_peer (void *cls)
   cp->destroy_task = NULL;
   GNUNET_assert (NULL == cp->t);
   GNUNET_assert (NULL == cp->core_mq);
-  GNUNET_assert (0 == cp->path_dll_length);
+  for (unsigned int i=0;i<cp->path_dll_length;i++)
+    GNUNET_assert (NULL == cp->path_heads[i]);
   GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (peers,
@@ -284,7 +284,11 @@ destroy_peer (void *cls)
     cp->connectivity_suggestion = NULL;
   }
   GNUNET_CONTAINER_multishortmap_destroy (cp->connections);
-  GNUNET_CONTAINER_heap_destroy (cp->path_heap);
+  if (NULL != cp->path_heap)
+  {
+    GNUNET_CONTAINER_heap_destroy (cp->path_heap);
+    cp->path_heap = NULL;
+  }
   GNUNET_free_non_null (cp->hello);
   /* Peer should not be freed if paths exist; if there are no paths,
      there ought to be no connections, and without connections, no
@@ -418,8 +422,9 @@ consider_peer_destroy (struct CadetPeer *cp)
                                                      cp);
     return;
   }
-  if (0 < cp->path_dll_length)
-    return; /* still relevant! */
+  for (unsigned int i=0;i<cp->path_dll_length;i++)
+    if (NULL != cp->path_heads[i])
+      return; /* still relevant! */
   if (NULL != cp->hello)
   {
     /* relevant only until HELLO expires */
@@ -628,6 +633,28 @@ GCP_destroy_all_peers ()
 
 
 /**
+ * Drop all paths owned by this peer, and do not
+ * allow new ones to be added: We are shutting down.
+ *
+ * @param cp peer to drop paths to
+ */
+void
+GCP_drop_owned_paths (struct CadetPeer *cp)
+{
+  struct CadetPeerPath *path;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Destroying all paths to %s\n",
+       GCP_2s (cp));
+  while (NULL != (path =
+                  GNUNET_CONTAINER_heap_remove_root (cp->path_heap)))
+    GCPP_release (path);
+  GNUNET_CONTAINER_heap_destroy (cp->path_heap);
+  cp->path_heap = NULL;
+}
+
+
+/**
  * Add an entry to the DLL of all of the paths that this peer is on.
  *
  * @param cp peer to modify
@@ -730,6 +757,12 @@ GCP_attach_path (struct CadetPeer *cp,
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
+  if (NULL == cp->path_heap)
+  {
+    /* #GCP_drop_owned_paths() was already called, we cannot take new ones! */
+    GNUNET_assert (GNUNET_NO == force);
+    return NULL;
+  }
   desirability = GCPP_get_desirability (path);
   if (GNUNET_NO == force)
   {

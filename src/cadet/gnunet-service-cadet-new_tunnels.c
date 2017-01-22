@@ -1601,7 +1601,11 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t)
 {
   GNUNET_assert (0 ==
                  GNUNET_CONTAINER_multihashmap32_size (t->channels));
-  GNUNET_SCHEDULER_cancel (t->destroy_task);
+  if (NULL != t->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = NULL;
+  }
   destroy_tunnel (t);
 }
 

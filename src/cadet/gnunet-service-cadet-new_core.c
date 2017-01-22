@@ -476,7 +476,8 @@ handle_connection_create (void *cls,
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
                                      pids);
-    GCT_add_inbound_connection (GCT_create_tunnel (origin),
+    GCT_add_inbound_connection (GCP_get_tunnel (origin,
+                                                GNUNET_YES),
                                 &msg->cid,
                                 path);
     return;

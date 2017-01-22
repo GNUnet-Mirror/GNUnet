@@ -91,6 +91,16 @@ GCP_count_paths (const struct CadetPeer *cp);
 
 
 /**
+ * Drop all paths owned by this peer, and do not
+ * allow new ones to be added: We are shutting down.
+ *
+ * @param cp peer to drop paths to
+ */
+void
+GCP_drop_owned_paths (struct CadetPeer *cp);
+
+
+/**
  * Peer path iterator.
  *
  * @param cls Closure.

@@ -55,13 +55,6 @@ struct CadetPeerPath
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
-   * Connections using this path, by destination peer
-   * (each hop of the path could correspond to an
-   * active connection).
-   */
-  struct GNUNET_CONTAINER_MultiPeerMap *connections;
-
-  /**
    * Desirability of the path. How unique is it for the various peers
    * on it?
    */
@@ -185,9 +178,6 @@ path_destroy (struct CadetPeerPath *path)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying path %s\n",
        GCPP_2s (path));
-  GNUNET_assert (0 ==
-                 GNUNET_CONTAINER_multipeermap_size (path->connections));
-  GNUNET_CONTAINER_multipeermap_destroy (path->connections);
   for (unsigned int i=0;i<path->entries_length;i++)
     GNUNET_free (path->entries[i]);
   GNUNET_free (path->entries);
@@ -214,10 +204,7 @@ GCPP_release (struct CadetPeerPath *path)
   entry = path->entries[path->entries_length - 1];
   while (1)
   {
-    /* cut 'off' end of path, verifying it is not in use */
-    GNUNET_assert (NULL ==
-                   GNUNET_CONTAINER_multipeermap_get (path->connections,
-                                                      GCP_get_id (entry->peer)));
+    /* cut 'off' end of path */
     GCP_path_entry_remove (entry->peer,
                            entry,
                            path->entries_length - 1);
