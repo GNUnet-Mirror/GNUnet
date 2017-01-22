@@ -755,7 +755,7 @@ GCP_attach_path (struct CadetPeer *cp,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Attaching path %p to peer %s (%s)\n",
+       "Attaching path %s to peer %s (%s)\n",
        GCPP_2s (path),
        GCP_2s (cp),
        (GNUNET_NO == force) ? "desirable" : "forced");
@@ -806,7 +806,7 @@ GCP_detach_path (struct CadetPeer *cp,
                  struct GNUNET_CONTAINER_HeapNode *hn)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Detatching path %p from peer %s\n",
+       "Detatching path %s from peer %s\n",
        GCPP_2s (path),
        GCP_2s (cp));
   GNUNET_assert (path ==
@@ -1007,8 +1007,14 @@ GCP_iterate_paths_at (struct CadetPeer *cp,
 {
   unsigned int ret = 0;
 
-  if (dist <= cp->path_dll_length)
+  if (dist >= cp->path_dll_length)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Asked to look for paths at distance %u, but maximum for me is < %u\n",
+         dist,
+         cp->path_dll_length);
     return 0;
+  }
   for (struct CadetPeerPathEntry *pe = cp->path_heads[dist];
        NULL != pe;
        pe = pe->next)
