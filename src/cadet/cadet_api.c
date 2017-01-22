@@ -432,13 +432,12 @@ create_channel (struct GNUNET_CADET_Handle *h,
  */
 // FIXME: simplify: call_cleaner is always #GNUNET_YES!!!
 static void
-destroy_channel (struct GNUNET_CADET_Channel *ch, int call_cleaner)
+destroy_channel (struct GNUNET_CADET_Channel *ch,
+                 int call_cleaner)
 {
   struct GNUNET_CADET_Handle *h;
   struct GNUNET_CADET_TransmitHandle *th;
   struct GNUNET_CADET_TransmitHandle *next;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " destroy_channel %X\n", ch->ccn);
 
   if (NULL == ch)
   {
@@ -446,15 +445,22 @@ destroy_channel (struct GNUNET_CADET_Channel *ch, int call_cleaner)
     return;
   }
   h = ch->cadet;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " destroy_channel %X of %p\n",
+       ch->ccn,
+       h);
 
   GNUNET_CONTAINER_DLL_remove (h->channels_head,
                                h->channels_tail,
                                ch);
 
   /* signal channel destruction */
-  if ( (NULL != h->cleaner) && (0 != ch->peer) && (GNUNET_YES == call_cleaner) )
+  if ( (NULL != h->cleaner) &&
+       (0 != ch->peer) &&
+       (GNUNET_YES == call_cleaner) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " calling cleaner\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         " calling cleaner\n");
     h->cleaner (h->cls, ch, ch->ctx);
   }
 
@@ -781,7 +787,6 @@ handle_local_ack (void *cls,
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
   ccn = message->ccn;
   ch = retrieve_channel (h, ccn);
   if (NULL == ch)
@@ -792,7 +797,7 @@ handle_local_ack (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  on channel %X!\n",
+       "Got an ACK on channel %X!\n",
        ntohl (ch->ccn.channel_of_client));
   ch->allow_send = GNUNET_YES;
   if (0 < ch->packet_size)
@@ -1420,6 +1425,14 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
+/**
+ * Disconnect from the cadet service. All channels will be destroyed. All channel
+ * disconnect callbacks will be called on any still connected peers, notifying
+ * about their disconnection. The registered inbound channel cleaner will be
+ * called should any inbound channels still exist.
+ *
+ * @param handle connection to cadet to disconnect
+ */
 void
 GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
 {
@@ -1632,7 +1645,9 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING, "no meta-traffic should be queued\n");
       }
-      GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
+      GNUNET_CONTAINER_DLL_remove (h->th_head,
+                                   h->th_tail,
+                                   th);
       GNUNET_CADET_notify_transmit_ready_cancel (th);
     }
   }
@@ -1643,7 +1658,8 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
   GNUNET_MQ_send (h->mq,
                   env);
 
-  destroy_channel (channel, GNUNET_YES);
+  destroy_channel (channel,
+                   GNUNET_YES);
 }
 
 
