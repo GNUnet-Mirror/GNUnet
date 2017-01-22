@@ -390,12 +390,14 @@ struct GNUNET_CADET_ChannelOpenMessage
 
 
 /**
- * Message to manage a Channel (CHANNEL_CREATE_ACK, CHANNEL_DESTROY).
+ * Message to manage a Channel
+ * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY).
  */
 struct GNUNET_CADET_ChannelManageMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE_ACK or
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK or
    * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY
    */
   struct GNUNET_MessageHeader header;
