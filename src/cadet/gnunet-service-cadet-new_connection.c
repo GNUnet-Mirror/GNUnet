@@ -162,7 +162,7 @@ GCC_destroy (struct CadetConnection *cc)
   struct GNUNET_MQ_Envelope *env = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying connection %s\n",
+       "Destroying %s\n",
        GCC_2s (cc));
   if (CADET_CONNECTION_SENDING_CREATE != cc->state)
   {
@@ -210,7 +210,7 @@ void
 GCC_handle_connection_create_ack (struct CadetConnection *cc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received CREATE_ACK for connection %s in state %d (%s)\n",
+       "Received CREATE_ACK for %s in state %d (%s)\n",
        GCC_2s (cc),
        cc->state,
        (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
@@ -246,7 +246,7 @@ GCC_handle_kx (struct CadetConnection *cc,
     /* We didn't get the CREATE_ACK, but instead got payload. That's fine,
        clearly something is working, so pretend we got an ACK. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Faking connection ACK for connection %s due to KX\n",
+         "Faking connection ACK for %s due to KX\n",
          GCC_2s (cc));
     GCC_handle_connection_create_ack (cc);
   }
@@ -270,7 +270,7 @@ GCC_handle_encrypted (struct CadetConnection *cc,
     /* We didn't get the CREATE_ACK, but instead got payload. That's fine,
        clearly something is working, so pretend we got an ACK. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Faking connection ACK for connection %s due to ENCRYPTED payload\n",
+         "Faking connection ACK for %s due to ENCRYPTED payload\n",
          GCC_2s (cc));
     GCC_handle_connection_create_ack (cc);
   }
@@ -306,7 +306,7 @@ send_create (void *cls)
     pids[i + 1] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
                                                         i));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CONNECTION_CREATE message for connection %s\n",
+       "Sending CONNECTION_CREATE message for %s\n",
        GCC_2s (cc));
   cc->env = env;
   cc->mqm_ready = GNUNET_NO;
@@ -330,7 +330,7 @@ send_create_ack (void *cls)
 
   cc->task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CONNECTION_CREATE_ACK message for connection %s\n",
+       "Sending CONNECTION_CREATE_ACK message for %s\n",
        GCC_2s (cc));
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   env = GNUNET_MQ_msg (ack_msg,
@@ -357,7 +357,7 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
   if (GNUNET_YES == cc->mqm_ready)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Got duplicate CREATE for connection %s, scheduling another ACK\n",
+         "Got duplicate CREATE for %s, scheduling another ACK\n",
          GCC_2s (cc));
     /* Tell tunnel that we are not ready for transmission anymore
        (until CREATE_ACK is done) */
@@ -375,7 +375,7 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
        can only be an ACK or payload, either of which would
        do. So actually no need to do anything. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Got duplicate CREATE for connection %s. MQ is busy, not queueing another ACK\n",
+         "Got duplicate CREATE for %s. MQ is busy, not queueing another ACK\n",
          GCC_2s (cc));
   }
 }
@@ -401,7 +401,7 @@ manage_first_hop_mq (void *cls,
   {
     /* Connection is down, for now... */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Core MQ for connection %s went down\n",
+         "Core MQ for %s went down\n",
          GCC_2s (cc));
     cc->mqm_ready = GNUNET_NO;
     cc->state = CADET_CONNECTION_NEW;
@@ -418,7 +418,7 @@ manage_first_hop_mq (void *cls,
 
   cc->mqm_ready = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Core MQ for connection %s became available in state %d\n",
+       "Core MQ for %s became available in state %d\n",
        GCC_2s (cc),
        cc->state);
   switch (cc->state)
@@ -495,7 +495,7 @@ connection_create (struct CadetPeer *destination,
   cc->path = path;
   cc->off = off;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating connection %s using path %s\n",
+       "Creating %s using path %s\n",
        GCC_2s (cc),
        GCPP_2s (path));
   GCPP_add_connection (path,
@@ -646,14 +646,14 @@ GCC_2s (const struct CadetConnection *cc)
   {
     GNUNET_snprintf (buf,
                      sizeof (buf),
-                     "Connection(%s(Tunnel(%s)))",
+                     "Connection %s (%s)",
                      GNUNET_sh2s (&cc->cid.connection_of_tunnel),
                      GCT_2s (cc->ct->t));
     return buf;
   }
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "Connection(%s(Tunnel(NULL)))",
+                   "Connection %s",
                    GNUNET_sh2s (&cc->cid.connection_of_tunnel));
   return buf;
 }
@@ -686,7 +686,7 @@ GCC_debug (struct CadetConnection *cc,
     return;
   }
   LOG2 (level,
-        "Connection %s to %s via path %s in state %d is %s\n",
+        "%s to %s via path %s in state %d is %s\n",
         GCC_2s (cc),
         GCP_2s (cc->destination),
         GCPP_2s (cc->path),

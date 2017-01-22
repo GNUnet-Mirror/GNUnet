@@ -325,7 +325,7 @@ GCCH_2s (const struct CadetChannel *ch)
 
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "%s:%s ctn:%X(%X)",
+                   "Channel %s:%s ctn:%X(%X)",
                    GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
                    GNUNET_h2s (&ch->port),
                    ch->ctn,
@@ -439,7 +439,7 @@ send_channel_open (void *cls)
 
   ch->retry_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CHANNEL_OPEN message for channel %s\n",
+       "Sending CHANNEL_OPEN message for %s\n",
        GCCH_2s (ch));
   options = 0;
   if (ch->nobuffer)
@@ -702,7 +702,7 @@ GCCH_bind (struct CadetChannel *ch,
   uint32_t options;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Binding channel %s from tunnel %s to port %s of client %s\n",
+       "Binding %s from tunnel %s to port %s of client %s\n",
        GCCH_2s (ch),
        GCT_2s (ch->t),
        GNUNET_h2s (&ch->port),
@@ -829,7 +829,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
       return;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received channel OPEN_ACK for waiting channel %s, entering READY state\n",
+         "Received channel OPEN_ACK for waiting %s, entering READY state\n",
          GCCH_2s (ch));
     GNUNET_SCHEDULER_cancel (ch->retry_task);
     ch->retry_task = NULL;
@@ -843,7 +843,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
   case CADET_CHANNEL_READY:
     /* duplicate ACK, maybe we retried the CREATE. Ignore. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received duplicate channel OPEN_ACK for channel %s\n",
+         "Received duplicate channel OPEN_ACK for %s\n",
          GCCH_2s (ch));
     GNUNET_STATISTICS_update (stats,
                               "# duplicate CREATE_ACKs",
@@ -906,7 +906,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
 
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved %u bytes of application data on channel %s\n",
+       "Receicved %u bytes of application data on %s\n",
        (unsigned int) payload_size,
        GCCH_2s (ch));
   env = GNUNET_MQ_msg_extra (ld,
@@ -1029,7 +1029,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch)
   struct GNUNET_CADET_LocalChannelDestroyMessage *tdm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received remote channel DESTROY for channel %s\n",
+       "Received remote channel DESTROY for %s\n",
        GCCH_2s (ch));
   ch->destroy = GNUNET_YES;
   env = GNUNET_MQ_msg (tdm,
@@ -1092,7 +1092,7 @@ GCCH_check_allow_client (struct CadetChannel *ch)
   {
     /* destination did not yet ACK our CREATE! */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Channel %s not yet ready, throttling client until ACK.\n",
+         "%s not yet ready, throttling client until ACK.\n",
          GCCH_2s (ch));
     return;
   }
@@ -1100,7 +1100,7 @@ GCCH_check_allow_client (struct CadetChannel *ch)
   {
     /* Too many messages in queue. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Message queue still too long on channel %s, throttling client until ACK.\n",
+         "Message queue still too long on %s, throttling client until ACK.\n",
          GCCH_2s (ch));
     return;
   }
@@ -1108,7 +1108,7 @@ GCCH_check_allow_client (struct CadetChannel *ch)
        (64 <= ntohl (ch->mid_send.mid) - ntohl (ch->head_sent->data_message.mid.mid)) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Gap in ACKs too big on channel %s, throttling client until ACK.\n",
+         "Gap in ACKs too big on %s, throttling client until ACK.\n",
          GCCH_2s (ch));
     return;
   }
@@ -1116,7 +1116,7 @@ GCCH_check_allow_client (struct CadetChannel *ch)
 
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending local ack to channel %s client\n",
+       "Sending local ack to %s client\n",
        GCCH_2s (ch));
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
@@ -1234,7 +1234,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
                                ch->tail_sent,
                                crm);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending %u bytes from local client to channel %s\n",
+       "Sending %u bytes from local client to %s\n",
        payload_size,
        GCCH_2s (ch));
   crm->qe = GCT_send (ch->t,
@@ -1266,7 +1266,7 @@ send_client_buffered_data (struct CadetChannel *ch)
     return; /* missing next one in-order */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Passing payload message to client on channel %s\n",
+              "Passing payload message to client on %s\n",
               GCCH_2s (ch));
 
   /* all good, pass next message to client */
@@ -1289,7 +1289,7 @@ send_client_buffered_data (struct CadetChannel *ch)
        maximum of 64 bits, and 15 is getting too close for comfort.)
        So we should send one now. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sender on channel %s likely blocked on flow-control, sending ACK now.\n",
+                "Sender on %s likely blocked on flow-control, sending ACK now.\n",
                 GCCH_2s (ch));
     if (GNUNET_YES == ch->reliable)
       send_channel_data_ack (ch);
@@ -1345,7 +1345,7 @@ GCCH_debug (struct CadetChannel *ch,
     return;
   }
   LOG2 (level,
-        "CHN Channel %s:%X (%p)\n",
+        "CHN %s:%X (%p)\n",
         GCT_2s (ch->t),
         ch->ctn,
         ch);

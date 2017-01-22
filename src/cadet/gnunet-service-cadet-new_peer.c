@@ -530,6 +530,8 @@ mqm_execute (struct GCP_MessageQueueManager *mqm)
                   mqm->env);
   mqm->env = NULL;
   cp->mqm_ready_counter--;
+  mqm->cb (mqm->cb_cls,
+           GNUNET_YES);
 }
 
 
