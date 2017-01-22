@@ -644,7 +644,8 @@ check_data (void *cls,
                    buf,
                    sizeof (pa));
     payload_claimed_size = ntohs (pa.size);
-    if (payload_size < payload_claimed_size)
+    if ( (payload_size < payload_claimed_size) ||
+         (0 == payload_claimed_size) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
