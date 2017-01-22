@@ -1164,7 +1164,7 @@ GNUNET_h2s (const struct GNUNET_HashCode * hc)
 const char *
 GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc)
 {
-  static char buf[32];
+  static char buf[64];
 
   GNUNET_STRINGS_data_to_string (shc,
                                  sizeof (*shc),
