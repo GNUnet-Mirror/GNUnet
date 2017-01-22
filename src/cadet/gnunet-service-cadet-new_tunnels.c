@@ -1256,16 +1256,16 @@ send_kx (struct CadetTunnel *t,
   ct = get_ready_connection (t);
   if (NULL == ct)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Wanted to send KX on tunnel %s, but no connection is ready, deferring\n",
-                GCT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Wanted to send KX on tunnel %s, but no connection is ready, deferring\n",
+         GCT_2s (t));
     return;
   }
   cc = ct->cc;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending KX on tunnel %s using connection %s\n",
-              GCT_2s (t),
-              GCC_2s (ct->cc));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending KX on tunnel %s using connection %s\n",
+       GCT_2s (t),
+       GCC_2s (ct->cc));
 
   // GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
   env = GNUNET_MQ_msg (msg,
@@ -1395,9 +1395,9 @@ GCT_handle_kx (struct CadetTConnection *ct,
          " known handshake key, exit\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Handling KX message for tunnel %s\n",
-              GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Handling KX message for tunnel %s\n",
+       GCT_2s (t));
 
   ax->RK = keys[0];
   if (GNUNET_YES == am_I_alice)
@@ -1502,10 +1502,10 @@ GCT_add_channel (struct CadetTunnel *t,
                                                       ntohl (ctn.cn),
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding channel %s to tunnel %s\n",
-              GCCH_2s (ch),
-              GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding channel %s to tunnel %s\n",
+       GCCH_2s (ch),
+       GCT_2s (t));
   if ( (CADET_TUNNEL_KEY_OK == t->estate) ||
        (CADET_TUNNEL_KEY_REKEY == t->estate) )
     GCCH_tunnel_up (ch);
@@ -1526,9 +1526,9 @@ destroy_tunnel (void *cls)
   struct CadetTunnelQueueEntry *tq;
 
   t->destroy_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Destroying idle tunnel %s\n",
-              GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Destroying idle tunnel %s\n",
+       GCT_2s (t));
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (t->channels));
   while (NULL != (ct = t->connection_head))
   {
@@ -1573,10 +1573,10 @@ GCT_remove_channel (struct CadetTunnel *t,
                     struct CadetChannel *ch,
                     struct GNUNET_CADET_ChannelTunnelNumber ctn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Removing channel %s from tunnel %s\n",
-              GCCH_2s (ch),
-              GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing channel %s from tunnel %s\n",
+       GCCH_2s (ch),
+       GCT_2s (t));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (t->channels,
                                                          ntohl (ctn.cn),
@@ -1643,10 +1643,10 @@ try_send_normal_payload (struct CadetTunnel *t,
   if (NULL == tq)
   {
     /* no messages pending right now */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Not sending payload of tunnel %s on ready connection %s (nothing pending)\n",
-                GCT_2s (t),
-                GCC_2s (ct->cc));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not sending payload of tunnel %s on ready connection %s (nothing pending)\n",
+         GCT_2s (t),
+         GCC_2s (ct->cc));
     return;
   }
   /* ready to send message 'tq' on tunnel 'ct' */
@@ -1657,10 +1657,10 @@ try_send_normal_payload (struct CadetTunnel *t,
   if (NULL != tq->cid)
     *tq->cid = *GCC_get_id (ct->cc);
   ct->is_ready = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending payload of tunnel %s on connection %s\n",
-              GCT_2s (t),
-              GCC_2s (ct->cc));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending payload of tunnel %s on connection %s\n",
+       GCT_2s (t),
+       GCC_2s (ct->cc));
   GCC_transmit (ct->cc,
                 tq->env);
   if (NULL != tq->cont)
@@ -1686,19 +1686,19 @@ connection_ready_cb (void *cls,
 
   if (GNUNET_NO == is_ready)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Connection %s no longer ready for tunnel %s\n",
-                GCC_2s (ct->cc),
-                GCT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Connection %s no longer ready for tunnel %s\n",
+         GCC_2s (ct->cc),
+         GCT_2s (t));
     ct->is_ready = GNUNET_NO;
     return;
   }
   ct->is_ready = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s now ready for tunnel %s in state %s\n",
-              GCC_2s (ct->cc),
-              GCT_2s (t),
-              estate2s (t->estate));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connection %s now ready for tunnel %s in state %s\n",
+       GCC_2s (ct->cc),
+       GCT_2s (t),
+       estate2s (t->estate));
   switch (t->estate)
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
@@ -1781,10 +1781,10 @@ consider_path_cb (void *cls,
     ps = GCC_get_path (ct->cc);
     if (ps == path)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Ignoring duplicate path %s for tunnel %s.\n",
-                  GCPP_2s (path),
-                  GCT_2s (t));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Ignoring duplicate path %s for tunnel %s.\n",
+           GCPP_2s (path),
+           GCT_2s (t));
       return GNUNET_YES; /* duplicate */
     }
     min_length = GNUNET_MIN (min_length,
@@ -1803,9 +1803,9 @@ consider_path_cb (void *cls,
   if ( (t->num_connections > DESIRED_CONNECTIONS_PER_TUNNEL) &&
        (min_length * 2 < off) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Ignoring paths of length %u, they are way too long.\n",
-                min_length * 2);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring paths of length %u, they are way too long.\n",
+         min_length * 2);
     return GNUNET_NO;
   }
   /* If we have enough paths and this one looks no better, ignore it. */
@@ -1813,11 +1813,11 @@ consider_path_cb (void *cls,
        (min_length < GCPP_get_length (path)) &&
        (max_desire > GCPP_get_desirability (path)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Ignoring path (%u/%llu) to %s, got something better already.\n",
-                GCPP_get_length (path),
-                (unsigned long long) GCPP_get_desirability (path),
-                GCP_2s (t->destination));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring path (%u/%llu) to %s, got something better already.\n",
+         GCPP_get_length (path),
+         (unsigned long long) GCPP_get_desirability (path),
+         GCP_2s (t->destination));
     return GNUNET_YES;
   }
 
@@ -1839,11 +1839,11 @@ consider_path_cb (void *cls,
                                t->connection_tail,
                                ct);
   t->num_connections++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Found interesting path %s for tunnel %s, created connection %s\n",
-              GCPP_2s (path),
-              GCT_2s (t),
-              GCC_2s (ct->cc));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found interesting path %s for tunnel %s, created connection %s\n",
+       GCPP_2s (path),
+       GCT_2s (t),
+       GCC_2s (ct->cc));
   return GNUNET_YES;
 }
 
@@ -1867,9 +1867,9 @@ maintain_connections_cb (void *cls)
   struct CadetTunnel *t = cls;
 
   t->maintain_connections_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Performing connection maintenance for tunnel %s.\n",
-              GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Performing connection maintenance for tunnel %s.\n",
+       GCT_2s (t));
 
   (void) GCP_iterate_paths (t->destination,
                             &consider_path_cb,

@@ -210,9 +210,10 @@ void
 GCC_handle_connection_create_ack (struct CadetConnection *cc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received CREATE_ACK for connection %s in state %d\n",
+       "Received CREATE_ACK for connection %s in state %d (%s)\n",
        GCC_2s (cc),
-       cc->state);
+       cc->state,
+       (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
   if (NULL != cc->task)
   {
     GNUNET_SCHEDULER_cancel (cc->task);

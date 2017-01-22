@@ -324,12 +324,29 @@ check_match (void *cls,
   GNUNET_assert (path->entries_length > off);
   if ( (path->entries_length != off + 1) &&
        (off + 1 != cm_ctx->cpath_length) )
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "check_match missmatch because path %s is too long (%u vs. %u vs. %u)\n",
+         GCPP_2s (path),
+         path->entries_length,
+         off + 1,
+         cm_ctx->cpath_length);
     return GNUNET_YES; /* too long, goes somewhere else already, thus cannot be useful */
+  }
   for (unsigned int i=0;i<off;i++)
     if (cm_ctx->cpath[i] !=
         GCPP_get_peer_at_offset (path,
                                  i))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "check_match path %s missmatches at offset %u\n",
+           GCPP_2s (path),
+           i);
       return GNUNET_YES; /* missmatch, ignore */
+    }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "check_match found match with path %s\n",
+       GCPP_2s (path));
   cm_ctx->match = path;
   return GNUNET_NO; /* match, we are done! */
 }
