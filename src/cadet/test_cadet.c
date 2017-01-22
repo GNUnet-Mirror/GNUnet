@@ -796,6 +796,7 @@ incoming_channel (void *cls,
   return NULL;
 }
 
+
 /**
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
@@ -813,7 +814,8 @@ channel_cleaner (void *cls,
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel disconnected at peer %ld\n", i);
+              "Incoming channel disconnected at peer %ld\n",
+              i);
   if (peers_running - 1 == i)
   {
     ok++;
@@ -824,7 +826,7 @@ channel_cleaner (void *cls,
   {
     if (P2P_SIGNAL == test)
     {
-      ok ++;
+      ok++;
     }
     GNUNET_break (channel == ch);
     ch = NULL;
@@ -841,8 +843,6 @@ channel_cleaner (void *cls,
     disconnect_task = GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
                                                 (void *) __LINE__);
   }
-
-  return;
 }
 
 
