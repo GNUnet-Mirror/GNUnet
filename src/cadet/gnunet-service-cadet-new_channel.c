@@ -271,10 +271,16 @@ struct CadetChannel
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
-   * Local tunnel number for local client owning the channel.
-   * ( >= #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
+   * Local tunnel number for local client @e owner owning the channel.
+   * ( >= #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
    */
-  struct GNUNET_CADET_ClientChannelNumber ccn;
+  struct GNUNET_CADET_ClientChannelNumber ccn_owner;
+
+  /**
+   * Local tunnel number for local client @e dest owning the channel.
+   * (< #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+   */
+  struct GNUNET_CADET_ClientChannelNumber ccn_dest;
 
   /**
    * Channel state.
@@ -330,11 +336,12 @@ GCCH_2s (const struct CadetChannel *ch)
 
   GNUNET_snprintf (buf,
                    sizeof (buf),
-                   "Channel %s:%s ctn:%X(%X)",
+                   "Channel %s:%s ctn:%X(%X/%X)",
                    GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
                    GNUNET_h2s (&ch->port),
                    ch->ctn,
-                   ntohl (ch->ccn.channel_of_client));
+                   ntohl (ch->ccn_owner.channel_of_client),
+                   ntohl (ch->ccn_dest.channel_of_client));
   return buf;
 }
 
@@ -526,7 +533,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 32; /* FIXME: 32!? Do not hardcode! */
   ch->owner = owner;
-  ch->ccn = ccn;
+  ch->ccn_owner = ccn;
   ch->port = *port;
   if (0 == memcmp (&my_full_id,
                    GCP_get_id (destination),
@@ -675,9 +682,9 @@ send_ack_cb (void *cls)
 
 
 /**
- * Compute and send the current ACK to the other peer.
+ * Compute and send the current #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK to the other peer.
  *
- * @param ch channel to send the ACK for
+ * @param ch channel to send the #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA_ACK for
  */
 static void
 send_channel_data_ack (struct CadetChannel *ch)
@@ -699,7 +706,7 @@ send_channel_data_ack (struct CadetChannel *ch)
 
 
 /**
- * Send our initial ACK to the client confirming that the
+ * Send our initial #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK to the client confirming that the
  * connection is up.
  *
  * @param cls the `struct CadetChannel`
@@ -761,7 +768,7 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch)
 
 
 /**
- * Send a LOCAL ACK to the client to solicit more messages.
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_LOCAL ACK to the client to solicit more messages.
  *
  * @param ch channel the ack is for
  * @param c client to send the ACK to
@@ -775,7 +782,7 @@ send_ack_to_client (struct CadetChannel *ch,
 
   env = GNUNET_MQ_msg (ack,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  ack->ccn = ch->ccn;
+  ack->ccn = (c == ch->owner) ? ch->ccn_owner : ch->ccn_dest;
   GSC_send_to_client (c,
                       env);
 }
@@ -817,11 +824,14 @@ GCCH_bind (struct CadetChannel *ch,
   if (ch->out_of_order)
     options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   ch->dest = c;
-  ch->ccn = GSC_bind (c,
-                      ch,
-                      GCT_get_destination (ch->t),
-                      &ch->port,
-                      options);
+  ch->ccn_dest = GSC_bind (c,
+                           ch,
+                           (GNUNET_YES == ch->is_loopback)
+                           ? GCP_get (&my_full_id,
+                                      GNUNET_YES)
+                           : GCT_get_destination (ch->t),
+                           &ch->port,
+                           options);
   ch->mid_recv.mid = htonl (1); /* The CONNECT counts as message 0! */
   if (GNUNET_YES == ch->is_loopback)
   {
@@ -838,8 +848,11 @@ GCCH_bind (struct CadetChannel *ch,
   /* give client it's initial supply of ACKs */
   env = GNUNET_MQ_msg (tcm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  tcm->ccn = ch->ccn;
-  tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
+  tcm->ccn = ch->ccn_dest;
+  if (GNUNET_YES == ch->is_loopback)
+    tcm->peer = my_full_id;
+  else
+    tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
   tcm->port = ch->port;
   tcm->opt = htonl (options);
   GSC_send_to_client (ch->dest,
@@ -922,8 +935,11 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received channel OPEN_ACK for waiting %s, entering READY state\n",
          GCCH_2s (ch));
-    GNUNET_SCHEDULER_cancel (ch->retry_control_task);
-    ch->retry_control_task = NULL;
+    if (NULL != ch->retry_control_task) /* can be NULL if ch->is_loopback */
+    {
+      GNUNET_SCHEDULER_cancel (ch->retry_control_task);
+      ch->retry_control_task = NULL;
+    }
     ch->state = CADET_CHANNEL_READY;
     /* On first connect, send client as many ACKs as we allow messages
        to be buffered! */
@@ -995,21 +1011,16 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   struct CadetOutOfOrderMessage *com;
   size_t payload_size;
 
+  GNUNET_assert (GNUNET_NO == ch->is_loopback);
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receicved %u bytes of application data on %s\n",
        (unsigned int) payload_size,
        GCCH_2s (ch));
-  if (GNUNET_YES == ch->is_loopback)
-  {
-    GNUNET_break (0); // FIXME: not implemented
-    return;
-  }
-
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-  ld->ccn = ch->ccn;
+  ld->ccn = (NULL == ch->dest) ? ch->ccn_owner : ch->ccn_dest;
   GNUNET_memcpy (&ld[1],
                  &msg[1],
                  payload_size);
@@ -1131,7 +1142,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
 void
 GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
-  GNUNET_break (GNUNET_NO == ch->is_loopback);
+  GNUNET_assert (GNUNET_NO == ch->is_loopback);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received remote channel DESTROY for %s\n",
        GCCH_2s (ch));
@@ -1150,7 +1161,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch)
   }
   ch->destroy = GNUNET_YES;
   GSC_handle_remote_channel_destroy ((NULL != ch->owner) ? ch->owner : ch->dest,
-                                     ch->ccn,
+                                     (NULL != ch->owner) ? ch->ccn_owner : ch->ccn_dest,
                                      ch);
   channel_destroy (ch);
 }
@@ -1231,8 +1242,8 @@ GCCH_check_allow_client (struct CadetChannel *ch)
        GCCH_2s (ch));
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  msg->ccn = ch->ccn;
-  GSC_send_to_client (ch->owner ? ch->owner : ch->dest,
+  msg->ccn = (NULL != ch->owner) ? ch->ccn_owner : ch->ccn_dest;
+  GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
                       env);
 }
 
@@ -1473,7 +1484,7 @@ GCCH_debug (struct CadetChannel *ch,
           "CHN origin %s ready %s local-id: %u\n",
           GSC_2s (ch->owner),
           ch->client_ready ? "YES" : "NO",
-          ntohl (ch->ccn.channel_of_client));
+          ntohl (ch->ccn_owner.channel_of_client));
   }
   if (NULL != ch->dest)
   {
@@ -1481,7 +1492,7 @@ GCCH_debug (struct CadetChannel *ch,
           "CHN destination %s ready %s local-id: %u\n",
           GSC_2s (ch->dest),
           ch->client_ready ? "YES" : "NO",
-          ntohl (ch->ccn.channel_of_client));
+          ntohl (ch->ccn_dest.channel_of_client));
   }
   LOG2 (level,
         "CHN  Message IDs recv: %d (%LLX), send: %d\n",
