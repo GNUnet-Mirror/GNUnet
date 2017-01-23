@@ -1493,7 +1493,6 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
  * @param port Hash representing the port number.
  * @param new_channel Function called when an channel is received.
  * @param new_channel_cls Closure for @a new_channel.
- *
  * @return Port handle.
  */
 struct GNUNET_CADET_Port *
@@ -1606,7 +1605,8 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
   struct GNUNET_CADET_TransmitHandle *th;
   struct GNUNET_CADET_TransmitHandle *next;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying channel\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Destroying channel\n");
   h = channel->cadet;
   for  (th = h->th_head; th != NULL; th = next)
   {
@@ -1623,7 +1623,8 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_WARNING, "no meta-traffic should be queued\n");
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "no meta-traffic should be queued\n");
       }
       GNUNET_CONTAINER_DLL_remove (h->th_head,
                                    h->th_tail,

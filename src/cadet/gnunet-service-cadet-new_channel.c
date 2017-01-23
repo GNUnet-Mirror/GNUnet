@@ -1020,10 +1020,6 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved %u bytes of application data on %s\n",
-       (unsigned int) payload_size,
-       GCCH_2s (ch));
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
@@ -1035,6 +1031,11 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
        ( (GNUNET_YES == ch->out_of_order) ||
          (msg->mid.mid == ch->mid_recv.mid) ) )
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Giving %u bytes of payload from %s to client %s\n",
+         (unsigned int) payload_size,
+         GCCH_2s (ch),
+         GSC_2s (ch->owner ? ch->owner : ch->dest));
     GSC_send_to_client (ch->owner ? ch->owner : ch->dest,
                         env);
     ch->mid_recv.mid = htonl (1 + ntohl (ch->mid_recv.mid));
@@ -1044,6 +1045,16 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   {
     /* FIXME-SECURITY: if the element is WAY too far ahead,
        drop it (can't buffer too much!) */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Queuing %s payload of %u bytes on %s (mid %u, need %u first)\n",
+         (GNUNET_YES == ch->client_ready)
+         ? "out-of-order"
+         : "client-not-ready",
+         (unsigned int) payload_size,
+         GCCH_2s (ch),
+         ntohl (msg->mid.mid),
+         ntohl (ch->mid_recv.mid));
+
     com = GNUNET_new (struct CadetOutOfOrderMessage);
     com->mid = msg->mid;
     com->env = env;
@@ -1438,11 +1449,15 @@ send_client_buffered_data (struct CadetChannel *ch)
  * Handle ACK from client on local channel.
  *
  * @param ch channel to destroy
+ * @param client_ccn ccn of the client sending the ack
  */
 void
-GCCH_handle_local_ack (struct CadetChannel *ch)
+GCCH_handle_local_ack (struct CadetChannel *ch,
+                       struct GNUNET_CADET_ClientChannelNumber client_ccn)
 {
   ch->client_ready = GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got LOCAL_ACK, client ready to receive more data!\n");
   send_client_buffered_data (ch);
 }
 

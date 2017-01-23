@@ -753,7 +753,8 @@ handle_ack (void *cls,
        "Got a local ACK from %s for %s\n",
        GSC_2s(c),
        GCCH_2s (ch));
-  GCCH_handle_local_ack (ch);
+  GCCH_handle_local_ack (ch,
+                         msg->ccn);
   GNUNET_SERVICE_client_continue (c->client);
 }
 

@@ -237,8 +237,10 @@ GCCH_handle_local_data (struct CadetChannel *ch,
  * Handle ACK from client on local channel.
  *
  * @param ch channel to destroy
+ * @param client_ccn ccn of the client sending the ack
  */
 void
-GCCH_handle_local_ack (struct CadetChannel *ch);
+GCCH_handle_local_ack (struct CadetChannel *ch,
+                       struct GNUNET_CADET_ClientChannelNumber client_ccn);
 
 #endif
