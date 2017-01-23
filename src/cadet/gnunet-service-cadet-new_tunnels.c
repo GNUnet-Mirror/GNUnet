@@ -2147,8 +2147,8 @@ handle_plaintext_channel_open_ack (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received channel OPEN_ACK for unknown channel, sending DESTROY\n",
-         GCCH_2s (ch));
+         "Received channel OPEN_ACK for unknown channel %u, sending DESTROY\n",
+         ntohl (cm->ctn.cn));
     GCT_send_channel_destroy (t,
                               cm->ctn);
     return;
