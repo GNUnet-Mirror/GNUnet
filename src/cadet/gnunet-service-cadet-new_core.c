@@ -312,6 +312,8 @@ send_broken (struct RouteDirection *target,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
+  if (NULL == target->mqm)
+    return; /* Can't send notification, connection is down! */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Notifying %s about BROKEN route at %s-%s of connection %s\n",
        GCP_2s (target->hop),
@@ -326,6 +328,7 @@ send_broken (struct RouteDirection *target,
     bm->peer1 = *peer1;
   if (NULL != peer2)
     bm->peer2 = *peer2;
+
   GCP_request_mq_cancel (target->mqm,
                          env);
   target->mqm = NULL;

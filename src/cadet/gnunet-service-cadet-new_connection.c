@@ -173,9 +173,12 @@ GCC_destroy (struct CadetConnection *cc)
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
     destroy_msg->cid = cc->cid;
   }
-  GCP_request_mq_cancel (cc->mq_man,
-                         env);
-  cc->mq_man = NULL;
+  if (NULL != cc->mq_man)
+  {
+    GCP_request_mq_cancel (cc->mq_man,
+                           env);
+    cc->mq_man = NULL;
+  }
   if (NULL != cc->task)
   {
     GNUNET_SCHEDULER_cancel (cc->task);
