@@ -407,9 +407,13 @@ channel_destroy (struct CadetChannel *ch)
     GNUNET_SCHEDULER_cancel (ch->retry_control_task);
     ch->retry_control_task = NULL;
   }
-  GCT_remove_channel (ch->t,
-                      ch,
-                      ch->ctn);
+  if (GNUNET_NO == ch->is_loopback)
+  {
+    GCT_remove_channel (ch->t,
+                        ch,
+                        ch->ctn);
+    ch->t = NULL;
+  }
   GNUNET_free (ch);
 }
 
