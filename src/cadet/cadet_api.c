@@ -513,29 +513,6 @@ remove_from_queue (struct GNUNET_CADET_TransmitHandle *th)
 }
 
 
-/**
- * Send an ack on the channel to confirm the processing of a message.
- *
- * @param ch Channel on which to send the ACK.
- */
-static void
-send_ack (struct GNUNET_CADET_Channel *ch)
-{
-  struct GNUNET_CADET_LocalAck *msg;
-  struct GNUNET_MQ_Envelope *env;
-
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ACK on channel %X\n",
-       ch->ccn.channel_of_client);
-  msg->ccn = ch->ccn;
-  GNUNET_MQ_send (ch->cadet->mq,
-                  env);
-}
-
-
 
 /******************************************************************************/
 /***********************      RECEIVE HANDLERS     ****************************/
@@ -1749,10 +1726,25 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
 }
 
 
+/**
+ * Send an ack on the channel to confirm the processing of a message.
+ *
+ * @param ch Channel on which to send the ACK.
+ */
 void
 GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel)
 {
-  send_ack (channel);
+  struct GNUNET_CADET_LocalAck *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending ACK on channel %X\n",
+       channel->ccn.channel_of_client);
+  msg->ccn = channel->ccn;
+  GNUNET_MQ_send (channel->cadet->mq,
+                  env);
 }
 
 

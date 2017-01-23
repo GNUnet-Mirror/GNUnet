@@ -633,7 +633,8 @@ data_callback (void *cls,
   {
     if (NULL != disconnect_task)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " reschedule timeout\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  " reschedule timeout\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                       &gather_stats_and_exit,
