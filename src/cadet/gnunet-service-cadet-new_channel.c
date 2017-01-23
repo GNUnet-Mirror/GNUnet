@@ -1350,8 +1350,24 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 
   if (GNUNET_YES == ch->is_loopback)
   {
-    GNUNET_break (0); // fIXME: not implemented
-    return GNUNET_SYSERR;
+    struct CadetClient *receiver;
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_CADET_LocalData *ld;
+
+    env = GNUNET_MQ_msg_extra (ld,
+                               buf_len,
+                               GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
+    receiver = (ch->owner == sender) ? ch->dest : ch->owner;
+    ld->ccn = (ch->owner == sender) ? ch->ccn_dest : ch->ccn_owner;
+    GNUNET_memcpy (&ld[1],
+                   buf,
+                   buf_len);
+    /* FIXME: this does not provide for flow control! */
+    GSC_send_to_client (receiver,
+                        env);
+    send_ack_to_client (ch,
+                        sender);
+    return GNUNET_OK;
   }
 
   /* Everything is correct, send the message. */
