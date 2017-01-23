@@ -722,7 +722,7 @@ send_open_ack (void *cls)
   struct GNUNET_CADET_ChannelManageMessage msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CHANNEL_OPEN_ACK on channel %s\n",
+       "Sending CHANNEL_OPEN_ACK on %s\n",
        GCCH_2s (ch));
   ch->retry_control_task = NULL;
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK);
@@ -763,7 +763,7 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch)
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Retransmitting OPEN_ACK on channel %s\n",
+       "Retransmitting OPEN_ACK on %s\n",
        GCCH_2s (ch));
   ch->retry_control_task
     = GNUNET_SCHEDULER_add_now (&send_open_ack,
@@ -1146,7 +1146,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch)
   if (NULL != ch->head_recv)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Lost end of transmission due to remote shutdown on channel %s\n",
+         "Lost end of transmission due to remote shutdown on %s\n",
          GCCH_2s (ch));
     /* FIXME: change API to notify client about truncated transmission! */
   }
