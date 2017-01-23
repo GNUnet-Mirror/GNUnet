@@ -209,7 +209,7 @@ GCC_get_ct (struct CadetConnection *cc)
 
 
 /**
- * A connection ACK was received for this connection, implying
+ * A CADET_CONNECTION_ACK was received for this connection, implying
  * that the end-to-end connection is up.  Process it.
  *
  * @param cc the connection that got the ACK.
@@ -218,7 +218,7 @@ void
 GCC_handle_connection_create_ack (struct CadetConnection *cc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received CREATE_ACK for %s in state %d (%s)\n",
+       "Received CADET_CONNECTION_CREATE_ACK for %s in state %d (%s)\n",
        GCC_2s (cc),
        cc->state,
        (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
@@ -251,10 +251,10 @@ GCC_handle_kx (struct CadetConnection *cc,
 {
   if (CADET_CONNECTION_SENT == cc->state)
   {
-    /* We didn't get the CREATE_ACK, but instead got payload. That's fine,
+    /* We didn't get the CADET_CONNECTION_CREATE_ACK, but instead got payload. That's fine,
        clearly something is working, so pretend we got an ACK. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Faking connection ACK for %s due to KX\n",
+         "Faking connection CADET_CONNECTION_CREATE_ACK for %s due to KX\n",
          GCC_2s (cc));
     GCC_handle_connection_create_ack (cc);
   }
@@ -314,7 +314,7 @@ send_create (void *cls)
     pids[i + 1] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
                                                         i));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CONNECTION_CREATE message for %s\n",
+       "Sending CADET_CONNECTION_CREATE message for %s\n",
        GCC_2s (cc));
   cc->env = env;
   cc->mqm_ready = GNUNET_NO;

@@ -446,7 +446,7 @@ handle_connection_create (void *cls,
   {
     /* Duplicate CREATE, pass it on, previous one might have been lost! */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Passing on duplicate CREATE message on connection %s\n",
+         "Passing on duplicate CADET_CONNECTION_CREATE message on connection %s\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     route_message (sender,
                    &msg->cid,
@@ -465,7 +465,7 @@ handle_connection_create (void *cls,
     if (NULL != cc)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Received duplicate CREATE message on connection %s\n",
+           "Received duplicate CADET_CONNECTION_CREATE message on connection %s\n",
            GNUNET_sh2s (&msg->cid.connection_of_tunnel));
       GCC_handle_duplicate_create (cc);
       return;
@@ -474,7 +474,7 @@ handle_connection_create (void *cls,
     origin = GCP_get (&pids[0],
                       GNUNET_YES);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received CREATE message from %s for connection %s, building inverse path\n",
+         "Received CADET_CONNECTION_CREATE message from %s for connection %s, building inverse path\n",
          GCP_2s (origin),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
@@ -496,7 +496,7 @@ handle_connection_create (void *cls,
     struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received CONNECTION_CREATE from %s for %s. Next hop %s:%u is down. Sending BROKEN\n",
+         "Received CADET_CONNECTION_CREATE from %s for %s. Next hop %s:%u is down. Sending BROKEN\n",
          GCP_2s (sender),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel),
          GNUNET_i2s (&pids[off + 1]),
@@ -513,7 +513,7 @@ handle_connection_create (void *cls,
 
   /* Workable route, create routing entry */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received CONNECTION_CREATE from %s for %s. Next hop %s:%u is up. Creating route\n",
+       "Received CADET_CONNECTION_CREATE from %s for %s. Next hop %s:%u is up. Creating route\n",
        GCP_2s (sender),
        GNUNET_sh2s (&msg->cid.connection_of_tunnel),
        GNUNET_i2s (&pids[off + 1]),
