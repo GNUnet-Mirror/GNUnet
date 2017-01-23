@@ -2182,8 +2182,8 @@ handle_plaintext_channel_destroy (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received channel DESTORY for unknown channel. Ignoring.\n",
-         GCCH_2s (ch));
+         "Received channel DESTORY for unknown channel %u. Ignoring.\n",
+         ntohl (cm->ctn.cn));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
