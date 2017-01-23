@@ -49,6 +49,8 @@ static struct GNUNET_SCHEDULER_Task *connect_task;
 
 static unsigned int repetition;
 
+static struct GNUNET_CADET_TransmitHandle *nth;
+
 
 /* forward declaration */
 static size_t
@@ -62,6 +64,11 @@ static void
 do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
+  if (NULL != nth)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (nth);
+    nth = NULL;
+  }
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -131,11 +138,11 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
       my_channel = ch1;
     else
       my_channel = ch2;
-    GNUNET_CADET_notify_transmit_ready (my_channel, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       sizeof (struct GNUNET_MessageHeader)
-                                       + DATA_SIZE,
-                                       &do_send, NULL);
+    nth = GNUNET_CADET_notify_transmit_ready (my_channel, GNUNET_NO,
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              sizeof (struct GNUNET_MessageHeader)
+                                              + DATA_SIZE,
+                                              &do_send, NULL);
     GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
@@ -228,6 +235,7 @@ do_send (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
+  nth = NULL;
   if (NULL == buf)
   {
     GNUNET_break (0);
@@ -257,9 +265,9 @@ do_connect (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch1 = GNUNET_CADET_channel_create (cadet, NULL, &id, GC_u2h (1),
                                      GNUNET_CADET_OPTION_DEFAULT);
-  GNUNET_CADET_notify_transmit_ready (ch1, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size, &do_send, NULL);
+  nth = GNUNET_CADET_notify_transmit_ready (ch1, GNUNET_NO,
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            size, &do_send, NULL);
 }
 
 
