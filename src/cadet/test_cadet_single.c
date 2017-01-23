@@ -51,6 +51,8 @@ static unsigned int repetition;
 
 static struct GNUNET_CADET_TransmitHandle *nth;
 
+static struct GNUNET_CADET_Port *port;
+
 
 /* forward declaration */
 static size_t
@@ -63,7 +65,13 @@ do_send (void *cls, size_t size, void *buf);
 static void
 do_shutdown (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutdown\n");
+  if (NULL != port)
+  {
+    GNUNET_CADET_close_port (port);
+    port = NULL;
+  }
   if (NULL != nth)
   {
     GNUNET_CADET_notify_transmit_ready_cancel (nth);
@@ -84,8 +92,8 @@ do_shutdown (void *cls)
     GNUNET_CADET_channel_destroy (ch1);
     ch1 = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect clients\n");
   if (NULL != cadet)
   {
     GNUNET_CADET_disconnect (cadet);
@@ -118,27 +126,28 @@ do_abort (void *cls)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
+data_callback (void *cls,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Data callback! Repetition %u/%u\n",
               repetition, REPETITIONS);
-  repetition = repetition + 1;
+  repetition++;
   if (repetition < REPETITIONS)
   {
     struct GNUNET_CADET_Channel *my_channel;
-    if (repetition % 2 == 0)
+    if (0 == repetition % 2)
       my_channel = ch1;
     else
       my_channel = ch2;
-    nth = GNUNET_CADET_notify_transmit_ready (my_channel, GNUNET_NO,
+    nth = GNUNET_CADET_notify_transmit_ready (my_channel,
+                                              GNUNET_NO,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               sizeof (struct GNUNET_MessageHeader)
                                               + DATA_SIZE,
@@ -146,7 +155,9 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All data OK. Destroying channel.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "All data OK. Destroying channel.\n");
+  GNUNET_assert (NULL == nth);
   GNUNET_CADET_channel_destroy (ch1);
   ch1 = NULL;
   return GNUNET_OK;
@@ -166,7 +177,8 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
  *         (can be NULL -- that's not an error)
  */
 static void *
-inbound_channel (void *cls, struct GNUNET_CADET_Channel *channel,
+inbound_channel (void *cls,
+                 struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
                  const struct GNUNET_HashCode *port,
                  enum GNUNET_CADET_ChannelOption options)
@@ -189,11 +201,13 @@ inbound_channel (void *cls, struct GNUNET_CADET_Channel *channel,
  *                   with the channel is stored
  */
 static void
-channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
+channel_end (void *cls,
+             const struct GNUNET_CADET_Channel *channel,
              void *channel_ctx)
 {
   long id = (long) cls;
 
+  nth = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "incoming channel closed at peer %ld\n",
               id);
@@ -227,7 +241,6 @@ static struct GNUNET_CADET_MessageHandler handlers1[] = {
  * @param cls Closure (unused).
  * @param size Buffer size.
  * @param buf Buffer to fill.
- *
  * @return size of test packet.
  */
 static size_t
@@ -265,9 +278,12 @@ do_connect (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch1 = GNUNET_CADET_channel_create (cadet, NULL, &id, GC_u2h (1),
                                      GNUNET_CADET_OPTION_DEFAULT);
-  nth = GNUNET_CADET_notify_transmit_ready (ch1, GNUNET_NO,
+  nth = GNUNET_CADET_notify_transmit_ready (ch1,
+                                            GNUNET_NO,
                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                            size, &do_send, NULL);
+                                            size,
+                                            &do_send,
+                                            NULL);
 }
 
 
@@ -293,12 +309,16 @@ run (void *cls,
                               (void *) 1L,     /* cls */
                               &channel_end,      /* inbound end hndlr */
                               handlers1); /* traffic handlers */
-  GNUNET_CADET_open_port (cadet, GC_u2h (1), &inbound_channel, (void *) 1L);
+  port = GNUNET_CADET_open_port (cadet,
+                                 GC_u2h (1),
+                                 &inbound_channel,
+                                 (void *) 1L);
 
 
   if (NULL == cadet)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to cadet :(\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Couldn't connect to cadet :(\n");
     result = GNUNET_SYSERR;
     return;
   }
@@ -313,17 +333,21 @@ run (void *cls,
  * Main
  */
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   result = GNUNET_NO;
   if (0 != GNUNET_TESTING_peer_run ("test-cadet-local",
                                     "test_cadet.conf",
                                     &run, NULL))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "run failed\n");
     return 2;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Final result: %d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Final result: %d\n",
+              result);
   return (result == GNUNET_OK) ? 0 : 1;
 }
 
