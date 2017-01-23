@@ -75,9 +75,29 @@ static char *listen_port;
 static int echo;
 
 /**
+ * Do round-trip time measurement
+ */
+static int measure_rtt;
+
+/**
+ * the period after which the next ping is sent
+ */
+static struct GNUNET_TIME_Relative measure_period;
+
+/**
  * Request a debug dump
  */
 static int dump;
+
+/**
+ * are we waiting for an echo reply?
+ */
+static int waiting_for_pong;
+
+/**
+ * identifier of the last ping we sent
+ */
+static uint16_t ping_count;
 
 /**
  * Time of last echo request.
@@ -148,6 +168,9 @@ static struct GNUNET_SCHEDULER_Task *job;
 static void
 listen_stdio (void);
 
+
+static void
+send_ping (void *cls);
 
 /**
  * Convert encryption status to human readable string.
@@ -296,6 +319,13 @@ data_ready (void *cls, size_t size, void *buf)
   }
   else
   {
+    waiting_for_pong = GNUNET_YES;
+    if (measure_period.rel_value_us != GNUNET_TIME_UNIT_ZERO.rel_value_us)
+    {
+      //struct GNUNET_TIME_Relative timeout = 
+      //  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, measure_period);
+      GNUNET_SCHEDULER_add_delayed (measure_period, &send_ping, NULL);
+    }
     echo_time = GNUNET_TIME_absolute_get ();
   }
 
@@ -456,21 +486,46 @@ channel_incoming (void *cls,
   return NULL;
 }
 
+///**
+// * @brief Send an echo request to the remote peer.
+// *
+// * @param cls Closure (NULL).
+// */
+//static void
+//send_echo (void *cls)
+//{
+//  if (NULL == ch)
+//    return;
+//  GNUNET_assert (NULL == th);
+//  th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
+//                                           GNUNET_TIME_UNIT_FOREVER_REL,
+//                                           sizeof (struct GNUNET_MessageHeader),
+//                                           &data_ready, NULL);
+//}
+
+
 /**
- * @brief Send an echo request to the remote peer.
- *
- * @param cls Closure (NULL).
+ * TODO
  */
-static void
-send_echo (void *cls)
+static void send_ping (void *cls)
 {
   if (NULL == ch)
     return;
   GNUNET_assert (NULL == th);
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+    waiting_for_pong = GNUNET_NO;
+  }
+  
+  ping_count++;
+  size_t ping_size = sizeof (struct GNUNET_MessageHeader) + sizeof (uint16_t);
   th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           &data_ready, NULL);
+                                           ping_size,
+                                           &data_ready, &ping_count);
 }
 
 
@@ -520,7 +575,12 @@ create_channel (void *cls)
   if (GNUNET_NO == echo)
     listen_stdio ();
   else
-    echo_task = GNUNET_SCHEDULER_add_now (&send_echo, NULL);
+  {
+    //echo_task = GNUNET_SCHEDULER_add_now (&send_echo, NULL);
+    ping_count = 0;
+    waiting_for_pong = GNUNET_NO;
+    GNUNET_SCHEDULER_add_now (&send_ping, NULL);
+  }
 }
 
 
@@ -544,7 +604,7 @@ data_callback (void *cls,
        void **channel_ctx,
        const struct GNUNET_MessageHeader *message)
 {
-  uint16_t len;
+  uint16_t len = ntohs (message->size) - sizeof (*message);
   ssize_t done;
   uint16_t off;
   const char *buf;
@@ -553,6 +613,24 @@ data_callback (void *cls,
 
   if (GNUNET_YES == echo)
   {
+    if (len != sizeof (uint16_t))
+    {
+      GNUNET_break (0);
+    }
+
+    if (NULL != th)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "too much data to send, dropping current echo\n");
+      return GNUNET_OK;
+    }
+
+    GNUNET_memcpy (&ping_count, &message[1], sizeof (ping_count));
+    th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             len,
+                                             &data_ready, &ping_count);
+    return GNUNET_OK;
     //if (NULL != listen_port)
     //{
     //  /* Just listening to echo incoming messages*/
@@ -570,18 +648,49 @@ data_callback (void *cls,
     //}
     //else
     //{
-      struct GNUNET_TIME_Relative latency;
+    //  struct GNUNET_TIME_Relative latency;
 
-      latency = GNUNET_TIME_absolute_get_duration (echo_time);
-      echo_time = GNUNET_TIME_UNIT_FOREVER_ABS;
-      FPRINTF (stdout, "time: %s\n",
-               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
-      echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                &send_echo, NULL);
+    //  latency = GNUNET_TIME_absolute_get_duration (echo_time);
+    //  echo_time = GNUNET_TIME_UNIT_FOREVER_ABS;
+    //  FPRINTF (stdout, "time: %s\n",
+    //           GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+    //  echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+    //                                            &send_echo, NULL);
     //}
   }
 
-  len = ntohs (message->size) - sizeof (*message);
+  if (GNUNET_YES == measure_rtt)
+  {
+    if (len != sizeof (uint16_t))
+    {
+      GNUNET_break (0);
+    }
+
+    uint16_t payload;
+    GNUNET_memcpy (&payload, &message[1], sizeof (payload));
+    if (payload == ping_count)
+    {
+      struct GNUNET_TIME_Relative latency =
+        GNUNET_TIME_absolute_get_duration (echo_time);
+      waiting_for_pong = GNUNET_NO;
+      FPRINTF (stdout,
+               "pong %d, %s\n",
+               ping_count,
+               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+      if (measure_period.rel_value_us == GNUNET_TIME_UNIT_ZERO.rel_value_us)
+      {
+        GNUNET_SCHEDULER_add_now (&send_ping, NULL);
+      }
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "received echo response after timeout, dropping.\n");
+    }
+
+    return GNUNET_OK;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
   buf = (const char *) &message[1];
   off = 0;
@@ -905,6 +1014,12 @@ run (void *cls,
   }
   else if (NULL != target_id)
   {
+    if (GNUNET_YES == echo)
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "echo service only allowed when listening for connections\n");
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Creating channel to %s\n",
                 target_id);
@@ -996,6 +1111,9 @@ main (int argc, char *const *argv)
     //{'f', "frequency", "RTT_FREQUENCY",
     // gettext_noop ("frequency for the round-trip time measurement"),
     // GNUNET_NO, &GNUNET_GETOPT_set_uint, &rtt_frequency},
+    {'M', "measure-rtt", NULL,
+     gettext_noop ("measure round trip time by sending packets to peer with echo mode enabled"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt},
     {'o', "open-port", NULL,
      gettext_noop ("port to listen to"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
@@ -1016,6 +1134,7 @@ main (int argc, char *const *argv)
   };
 
   monitor_mode = GNUNET_NO;
+  measure_period = GNUNET_TIME_UNIT_ZERO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
