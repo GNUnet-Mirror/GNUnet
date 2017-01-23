@@ -190,13 +190,18 @@ channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "incoming channel closed at peer %ld\n",
               id);
-  if (REPETITIONS == repetition && channel == ch2)
+  if ( (REPETITIONS == repetition) &&
+       (channel == ch2) )
   {
-    ch2 = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "everything fine! finishing!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "everything fine! finishing!\n");
     result = GNUNET_OK;
     GNUNET_SCHEDULER_shutdown ();
   }
+  if (channel == ch2)
+    ch2 = NULL;
+  if (channel == ch1)
+    ch1 = NULL;
 }
 
 
