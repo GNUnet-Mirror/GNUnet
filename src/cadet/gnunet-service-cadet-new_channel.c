@@ -1327,6 +1327,7 @@ data_sent_cb (void *cls)
  * buffer space in the tunnel.
  *
  * @param ch Channel.
+ * @param sender client sending the data
  * @param buf payload to transmit.
  * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
@@ -1334,6 +1335,7 @@ data_sent_cb (void *cls)
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
+                        struct CadetClient *sender,
                         const char *buf,
                         size_t buf_len)
 {

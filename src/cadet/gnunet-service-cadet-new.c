@@ -715,6 +715,7 @@ handle_data (void *cls,
        GCCH_2s (ch));
   if (GNUNET_OK !=
       GCCH_handle_local_data (ch,
+                              c,
                               buf,
                               payload_size))
   {
