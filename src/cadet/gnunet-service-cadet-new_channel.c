@@ -337,7 +337,9 @@ GCCH_2s (const struct CadetChannel *ch)
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "Channel %s:%s ctn:%X(%X/%X)",
-                   GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
+                   (GNUNET_YES == ch->is_loopback)
+                   ? "loopback"
+                   : GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
                    GNUNET_h2s (&ch->port),
                    ch->ctn,
                    ntohl (ch->ccn_owner.channel_of_client),
