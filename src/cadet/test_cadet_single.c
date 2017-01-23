@@ -234,7 +234,7 @@ do_send (void *cls, size_t size, void *buf)
     result = GNUNET_SYSERR;
     return 0;
   }
-  m->size = htons (sizeof (struct GNUNET_MessageHeader));
+  m->size = htons (sizeof (struct GNUNET_MessageHeader) + DATA_SIZE);
   m->type = htons (1);
   memset (&m[1], 0, DATA_SIZE);
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader) + DATA_SIZE);
