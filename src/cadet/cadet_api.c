@@ -268,7 +268,7 @@ struct GNUNET_CADET_Channel
   /**
    * Are we allowed to send to the service?
    */
-  int allow_send;
+  unsigned int allow_send;
 
 };
 
@@ -413,7 +413,6 @@ create_channel (struct GNUNET_CADET_Handle *h,
   {
     ch->ccn = ccn;
   }
-  ch->allow_send = GNUNET_NO;
   return ch;
 }
 
@@ -568,8 +567,10 @@ request_data (void *cls)
        "Requesting Data: %u bytes\n",
        th->size);
 
-  GNUNET_assert (GNUNET_YES == th->channel->allow_send);
-  th->channel->allow_send = GNUNET_NO;
+  GNUNET_assert (0 < th->channel->allow_send);
+  th->channel->allow_send--;
+  /* NOTE: we may be allowed to send another packet immediately,
+     albeit the current logic waits for the ACK. */
   th->request_data_task = NULL;
   th->channel->packet_size = 0;
   remove_from_queue (th);
@@ -621,7 +622,6 @@ handle_channel_created (void *cls,
     void *ctx;
 
     ch = create_channel (h, ccn);
-    ch->allow_send = GNUNET_NO;
     ch->peer = GNUNET_PEER_intern (&msg->peer);
     ch->cadet = h;
     ch->ccn = ccn;
@@ -801,21 +801,24 @@ handle_local_ack (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got an ACK on channel %X!\n",
        ntohl (ch->ccn.channel_of_client));
-  ch->allow_send = GNUNET_YES;
+  ch->allow_send++;
   if (0 < ch->packet_size)
   {
     struct GNUNET_CADET_TransmitHandle *th;
     struct GNUNET_CADET_TransmitHandle *next;
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  pending data, sending %u bytes!\n",
          ch->packet_size);
     for (th = h->th_head; NULL != th; th = next)
     {
       next = th->next;
-      if (th->channel == ch)
+      if ( (th->channel == ch) &&
+           (NULL == th->request_data_task) )
       {
-        GNUNET_assert (NULL == th->request_data_task);
-        th->request_data_task = GNUNET_SCHEDULER_add_now (&request_data, th);
+        th->request_data_task
+          = GNUNET_SCHEDULER_add_now (&request_data,
+                                      th);
         break;
       }
     }
@@ -1612,7 +1615,6 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   msg->port = *port;
   msg->peer = *peer;
   msg->opt = htonl (options);
-  ch->allow_send = GNUNET_NO;
   GNUNET_MQ_send (h->mq,
                   env);
   return ch;
@@ -1741,7 +1743,7 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    total size %u\n", th->size);
   th->notify = notify;
   th->notify_cls = notify_cls;
-  if (GNUNET_YES == channel->allow_send)
+  if (0 != channel->allow_send)
     th->request_data_task = GNUNET_SCHEDULER_add_now (&request_data, th);
   else
     add_to_queue (channel->cadet, th);
