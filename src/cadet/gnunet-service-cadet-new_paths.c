@@ -68,6 +68,19 @@ struct CadetPeerPath
 
 
 /**
+ * Calculate the path's desirability score.
+ *
+ * @param path path to calculate the score for
+ */
+static void
+recalculate_path_desirability (struct CadetPeerPath *path)
+{
+  /* FIXME: update path desirability! */
+  GNUNET_break (0); // not implemented
+}
+
+
+/**
  * Return how much we like keeping the path.  This is an aggregate
  * score based on various factors, including the age of the path
  * (older == better), and the value of this path to all of its ajacent
@@ -261,8 +274,7 @@ GCPP_update_score (struct CadetPeerPath *path,
     else
       entry->score += delta;
   }
-
-  /* FIXME: update path desirability! */
+  recalculate_path_desirability (path);
 }
 
 
@@ -387,7 +399,7 @@ extend_path (struct CadetPeerPath *path,
     struct CadetPeerPathEntry *entry = path->entries[old_len + i];
 
     path->entries_length = old_len + i + 1;
-    /* FIXME: note that path->desirability is used, but not yet updated here! */
+    recalculate_path_desirability (path);
     hn = GCP_attach_path (peers[i],
                           path,
                           old_len + (unsigned int) i,
@@ -519,7 +531,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     struct CadetPeerPathEntry *entry = path->entries[i];
 
     path->entries_length = i + 1;
-    /* FIXME: note that path->desirability is used, but not yet initialized here! */
+    recalculate_path_desirability (path);
     hn = GCP_attach_path (cpath[i],
                           path,
                           (unsigned int) i,
@@ -634,6 +646,7 @@ GCPP_get_path_from_route (unsigned int path_length,
                         entry,
                         i);
   }
+  recalculate_path_desirability (path);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Created new path %s to create inverse for incoming connection\n",
        GCPP_2s (path));
