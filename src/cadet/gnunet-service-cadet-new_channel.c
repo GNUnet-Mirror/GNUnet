@@ -940,7 +940,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
       return;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received channel OPEN_ACK for waiting %s, entering READY state\n",
+         "Received CHANNEL_OPEN_ACK for waiting %s, entering READY state\n",
          GCCH_2s (ch));
     if (NULL != ch->retry_control_task) /* can be NULL if ch->is_loopback */
     {
@@ -1127,6 +1127,10 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
                                ch->tail_sent,
                                crm);
   ch->pending_messages--;
+  send_ack_to_client (ch,
+                      (NULL == ch->owner)
+                      ? GNUNET_NO
+                      : GNUNET_YES);
   GNUNET_free (crm);
   GNUNET_assert (ch->pending_messages < ch->max_pending_messages);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1210,54 +1214,6 @@ retry_transmission (void *cls)
 
 
 /**
- * Check if we can now allow the client to transmit, and if so,
- * let the client know about it.
- *
- * @param ch channel to check
- */
-static void
-GCCH_check_allow_client (struct CadetChannel *ch)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalAck *msg;
-
-  if (CADET_CHANNEL_READY != ch->state)
-  {
-    /* destination did not yet ACK our CREATE! */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s not yet ready, throttling client until ACK.\n",
-         GCCH_2s (ch));
-    return;
-  }
-  if (ch->pending_messages > ch->max_pending_messages)
-  {
-    /* Too many messages in queue. */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Message queue still too long on %s, throttling client until ACK.\n",
-         GCCH_2s (ch));
-    return;
-  }
-  if ( (NULL != ch->head_sent) &&
-       (64 <= ntohl (ch->mid_send.mid) - ntohl (ch->head_sent->data_message.mid.mid)) )
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Gap in ACKs too big on %s, throttling client until ACK.\n",
-         GCCH_2s (ch));
-    return;
-  }
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending local ack to %s client\n",
-       GCCH_2s (ch));
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  msg->ccn = (NULL != ch->owner) ? ch->ccn_owner : ch->ccn_dest;
-  GSC_send_to_client ((NULL != ch->owner) ? ch->owner : ch->dest,
-                      env);
-}
-
-
-/**
  * Function called once the tunnel has sent one of our messages.
  * If the message is unreliable, simply frees the `crm`. If the
  * message was reliable, calculate retransmission time and
@@ -1272,6 +1228,7 @@ data_sent_cb (void *cls)
   struct CadetChannel *ch = crm->ch;
   struct CadetReliableMessage *off;
 
+  GNUNET_assert (GNUNET_NO == ch->is_loopback);
   crm->qe = NULL;
   GNUNET_CONTAINER_DLL_remove (ch->head_sent,
                                ch->tail_sent,
@@ -1280,7 +1237,10 @@ data_sent_cb (void *cls)
   {
     GNUNET_free (crm);
     ch->pending_messages--;
-    GCCH_check_allow_client (ch);
+    send_ack_to_client (ch,
+                        (NULL == ch->owner)
+                        ? GNUNET_NO
+                        : GNUNET_YES);
     return;
   }
   if (0 == crm->retry_delay.rel_value_us)
@@ -1411,7 +1371,6 @@ GCCH_handle_local_data (struct CadetChannel *ch,
                       &crm->data_message.header,
                       &data_sent_cb,
                       crm);
-  GCCH_check_allow_client (ch);
   return GNUNET_OK;
 }
 
