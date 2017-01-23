@@ -256,11 +256,6 @@ struct GNUNET_CADET_Channel
   void *ctx;
 
   /**
-   * Size of packet queued in this channel
-   */
-  unsigned int packet_size;
-
-  /**
    * Channel options: reliability, etc.
    */
   enum GNUNET_CADET_ChannelOption options;
@@ -572,7 +567,6 @@ request_data (void *cls)
   /* NOTE: we may be allowed to send another packet immediately,
      albeit the current logic waits for the ACK. */
   th->request_data_task = NULL;
-  th->channel->packet_size = 0;
   remove_from_queue (th);
 
   env = GNUNET_MQ_msg_extra (msg,
@@ -788,6 +782,7 @@ handle_local_ack (void *cls,
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber ccn;
+  struct GNUNET_CADET_TransmitHandle *th;
 
   ccn = message->ccn;
   ch = retrieve_channel (h, ccn);
@@ -802,28 +797,18 @@ handle_local_ack (void *cls,
        "Got an ACK on channel %X!\n",
        ntohl (ch->ccn.channel_of_client));
   ch->allow_send++;
-  if (0 < ch->packet_size)
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Checking for pending data\n");
+  for (th = h->th_head; NULL != th; th = th->next)
   {
-    struct GNUNET_CADET_TransmitHandle *th;
-    struct GNUNET_CADET_TransmitHandle *next;
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  pending data, sending %u bytes!\n",
-         ch->packet_size);
-    for (th = h->th_head; NULL != th; th = next)
+    if ( (th->channel == ch) &&
+         (NULL == th->request_data_task) )
     {
-      next = th->next;
-      if ( (th->channel == ch) &&
-           (NULL == th->request_data_task) )
-      {
-        th->request_data_task
-          = GNUNET_SCHEDULER_add_now (&request_data,
-                                      th);
-        break;
-      }
+      th->request_data_task
+        = GNUNET_SCHEDULER_add_now (&request_data,
+                                    th);
+      break;
     }
-    /* Complain if we got thru all th without sending anything, ch was wrong */
-    GNUNET_break (NULL != th);
   }
 }
 
@@ -1728,8 +1713,6 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "    to destination\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    payload size %u\n", notify_size);
   GNUNET_assert (NULL != notify);
-  GNUNET_assert (0 == channel->packet_size); // Only one data packet allowed
-
   if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != maxdelay.rel_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1739,7 +1722,6 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
   th = GNUNET_new (struct GNUNET_CADET_TransmitHandle);
   th->channel = channel;
   th->size = notify_size;
-  channel->packet_size = th->size;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    total size %u\n", th->size);
   th->notify = notify;
   th->notify_cls = notify_cls;
