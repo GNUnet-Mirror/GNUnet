@@ -558,8 +558,9 @@ request_data (void *cls)
   size_t osize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Requesting Data: %u bytes\n",
-       th->size);
+       "Requesting Data: %u bytes (allow send is %u)\n",
+       th->size,
+       th->channel->allow_send);
 
   GNUNET_assert (0 < th->channel->allow_send);
   th->channel->allow_send--;
@@ -727,41 +728,34 @@ handle_local_data (void *cls,
   unsigned int i;
   uint16_t type;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a data message!\n");
   ch = retrieve_channel (h,
                          message->ccn);
   GNUNET_assert (NULL != ch);
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
+  type = ntohs (payload->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got a %s data on channel %s [%X] of type %s\n",
        GC_f2s (ntohl (ch->ccn.channel_of_client) >=
                GNUNET_CADET_LOCAL_CHANNEL_ID_CLI),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)),
-       ntohl (message->ccn.channel_of_client));
+       ntohl (message->ccn.channel_of_client),
+       GC_m2s (type));
 
-  type = ntohs (payload->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GC_m2s (type));
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "    checking handler for type %u\n",
-         handler->type);
     if (handler->type == type)
     {
       if (GNUNET_OK !=
           handler->callback (h->cls, ch, &ch->ctx, payload))
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "callback caused disconnection\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "callback caused disconnection\n");
         GNUNET_CADET_channel_destroy (ch);
         break;
       }
-      else
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "callback completed successfully\n");
-        break;
-      }
+      break;
     }
   }
 }
@@ -792,12 +786,11 @@ handle_local_ack (void *cls,
          ntohl (ccn.channel_of_client));
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got an ACK on channel %X!\n",
-       ntohl (ch->ccn.channel_of_client));
   ch->allow_send++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Checking for pending data\n");
+       "Got an ACK on channel %X, allow send now %u!\n",
+       ntohl (ch->ccn.channel_of_client),
+       ch->allow_send);
   for (th = h->th_head; NULL != th; th = th->next)
   {
     if ( (th->channel == ch) &&
@@ -1269,8 +1262,7 @@ handle_get_tunnel (void *cls,
  * original state.
  *
  * @param h handle to the cadet
- *
- * @return GNUNET_YES in case of sucess, GNUNET_NO otherwise (service down...)
+ * @return #GNUNET_YES in case of success, #GNUNET_NO otherwise (service down...)
  */
 static int
 do_reconnect (struct GNUNET_CADET_Handle *h)
@@ -1701,17 +1693,17 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
   struct GNUNET_CADET_TransmitHandle *th;
 
   GNUNET_assert (NULL != channel);
-  GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= notify_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "CADET NOTIFY TRANSMIT READY\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    on channel %X\n", channel->ccn);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    allow_send %d\n", channel->allow_send);
-  if (ntohl (channel->ccn.channel_of_client) >=
-      GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "    to origin\n");
-  else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "    to destination\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    payload size %u\n", notify_size);
   GNUNET_assert (NULL != notify);
+  GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= notify_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "CADET NOTIFY TRANSMIT READY on channel %X allow_send is %u to %s with %u bytes\n",
+       channel->ccn,
+       channel->allow_send,
+       (ntohl (channel->ccn.channel_of_client) >=
+        GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+       ? "origin"
+       : "destination",
+       (unsigned int) notify_size);
   if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != maxdelay.rel_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1721,15 +1713,15 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
   th = GNUNET_new (struct GNUNET_CADET_TransmitHandle);
   th->channel = channel;
   th->size = notify_size;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    total size %u\n", th->size);
   th->notify = notify;
   th->notify_cls = notify_cls;
   if (0 != channel->allow_send)
-    th->request_data_task = GNUNET_SCHEDULER_add_now (&request_data, th);
+    th->request_data_task
+      = GNUNET_SCHEDULER_add_now (&request_data,
+                                  th);
   else
-    add_to_queue (channel->cadet, th);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "CADET NOTIFY TRANSMIT READY END\n");
+    add_to_queue (channel->cadet,
+                  th);
   return th;
 }
 

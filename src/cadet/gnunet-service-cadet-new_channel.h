@@ -220,7 +220,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch);
  * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param sender client sending the data
+ * @param sender_ccn ccn of the sender
  * @param buf payload to transmit.
  * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
@@ -228,7 +228,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch);
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        struct CadetClient *sender,
+                        struct GNUNET_CADET_ClientChannelNumber sender_ccn,
                         const char *buf,
                         size_t buf_len);
 

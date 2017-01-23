@@ -2154,7 +2154,7 @@ handle_plaintext_channel_open_ack (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel OPEN_ACK on channel %s from %s\n",
+       "Received channel OPEN_ACK on channel %s from %s\n",
        GCCH_2s (ch),
        GCT_2s (t));
   GCCH_handle_channel_open_ack (ch);

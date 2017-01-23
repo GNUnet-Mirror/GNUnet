@@ -537,7 +537,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
   ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
-  ch->max_pending_messages = (ch->nobuffer) ? 1 : 32; /* FIXME: 32!? Do not hardcode! */
+  ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   ch->owner = owner;
   ch->ccn_owner = ccn;
   ch->port = *port;
@@ -633,7 +633,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
   ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
-  ch->max_pending_messages = (ch->nobuffer) ? 1 : 32; /* FIXME: 32!? Do not hardcode! */
+  ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   GNUNET_STATISTICS_update (stats,
                             "# channels",
                             1,
@@ -774,21 +774,31 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch)
 
 
 /**
- * Send a #GNUNET_MESSAGE_TYPE_CADET_LOCAL ACK to the client to solicit more messages.
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK to the client to solicit more messages.
  *
  * @param ch channel the ack is for
- * @param c client to send the ACK to
+ * @param to_owner #GNUNET_YES to send to owner,
+ *                 #GNUNET_NO to send to dest
  */
 static void
 send_ack_to_client (struct CadetChannel *ch,
-                    struct CadetClient *c)
+                    int to_owner)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalAck *ack;
+  struct CadetClient *c;
 
   env = GNUNET_MQ_msg (ack,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  ack->ccn = (c == ch->owner) ? ch->ccn_owner : ch->ccn_dest;
+  ack->ccn = (GNUNET_YES == to_owner) ? ch->ccn_owner : ch->ccn_dest;
+  c = (GNUNET_YES == to_owner)
+    ? ch->owner
+    : ch->dest;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending CADET_LOCAL_ACK to %s (%s) at ccn %X\n",
+       GSC_2s (c),
+       (GNUNET_YES == to_owner) ? "owner" : "dest",
+       ntohl (ack->ccn.channel_of_client));
   GSC_send_to_client (c,
                       env);
 }
@@ -836,6 +846,8 @@ GCCH_bind (struct CadetChannel *ch,
                            : GCT_get_destination (ch->t),
                            &ch->port,
                            options);
+  GNUNET_assert (ntohl (ch->ccn_dest.channel_of_client) <
+                 GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
   ch->mid_recv.mid = htonl (1); /* The CONNECT counts as message 0! */
   if (GNUNET_YES == ch->is_loopback)
   {
@@ -850,9 +862,11 @@ GCCH_bind (struct CadetChannel *ch,
                                   ch);
   }
   /* give client it's initial supply of ACKs */
+  GNUNET_assert (ntohl (ch->ccn_dest.channel_of_client) <
+                 GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
   for (unsigned int i=0;i<ch->max_pending_messages;i++)
     send_ack_to_client (ch,
-                        ch->dest);
+                        GNUNET_NO);
 }
 
 
@@ -938,7 +952,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
        to be buffered! */
     for (unsigned int i=0;i<ch->max_pending_messages;i++)
       send_ack_to_client (ch,
-                          ch->owner);
+                          GNUNET_YES);
     break;
   case CADET_CHANNEL_READY:
     /* duplicate ACK, maybe we retried the CREATE. Ignore. */
@@ -1121,7 +1135,9 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
        (unsigned int) ntohl (ack->mid.mid),
        ch->pending_messages);
   send_ack_to_client (ch,
-                      (NULL == ch->owner) ? ch->dest : ch->owner);
+                      (NULL == ch->owner)
+                      ? GNUNET_NO
+                      : GNUNET_YES);
 }
 
 
@@ -1316,7 +1332,7 @@ data_sent_cb (void *cls)
  * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param sender client sending the data
+ * @param sender_ccn ccn of the sender
  * @param buf payload to transmit.
  * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
@@ -1324,7 +1340,7 @@ data_sent_cb (void *cls)
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        struct CadetClient *sender,
+                        struct GNUNET_CADET_ClientChannelNumber sender_ccn,
                         const char *buf,
                         size_t buf_len)
 {
@@ -1342,12 +1358,26 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     struct CadetClient *receiver;
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_CADET_LocalData *ld;
+    int to_owner;
 
     env = GNUNET_MQ_msg_extra (ld,
                                buf_len,
                                GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-    receiver = (ch->owner == sender) ? ch->dest : ch->owner;
-    ld->ccn = (ch->owner == sender) ? ch->ccn_dest : ch->ccn_owner;
+    if (sender_ccn.channel_of_client ==
+        ch->ccn_owner.channel_of_client)
+    {
+      receiver = ch->dest;
+      ld->ccn = ch->ccn_dest;
+      to_owner = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_assert (sender_ccn.channel_of_client ==
+                     ch->ccn_dest.channel_of_client);
+      receiver = ch->owner;
+      ld->ccn = ch->ccn_owner;
+      to_owner = GNUNET_YES;
+    }
     GNUNET_memcpy (&ld[1],
                    buf,
                    buf_len);
@@ -1355,7 +1385,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GSC_send_to_client (receiver,
                         env);
     send_ack_to_client (ch,
-                        sender);
+                        to_owner);
     return GNUNET_OK;
   }
 

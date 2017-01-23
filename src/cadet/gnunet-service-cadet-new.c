@@ -292,11 +292,12 @@ GSC_bind (struct CadetClient *c,
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Accepting incoming %s from %s on open port %s (%u)\n",
+       "Accepting incoming %s from %s on open port %s (%u), assigning ccn %X\n",
        GCCH_2s (ch),
        GCP_2s (dest),
        GNUNET_h2s (port),
-       ntohl (options));
+       ntohl (options),
+       ntohl (ccn.channel_of_client));
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (cm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
@@ -715,7 +716,7 @@ handle_data (void *cls,
        GCCH_2s (ch));
   if (GNUNET_OK !=
       GCCH_handle_local_data (ch,
-                              c,
+                              msg->ccn,
                               buf,
                               payload_size))
   {

@@ -68,7 +68,7 @@ extern "C"
 /**
  * Minimum value for channel IDs of local clients.
  */
-#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000
+#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000U
 
 /**
  * FIXME.
