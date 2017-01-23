@@ -787,7 +787,16 @@ incoming_channel (void *cls,
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == peers_requested - 1)
+  {
+    if (NULL != incoming_ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Duplicate incoming channel for client %lu\n",
+                  (long) cls);
+      GNUNET_break(0);
+    }
     incoming_ch = channel;
+  }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

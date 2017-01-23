@@ -282,7 +282,7 @@ GSC_bind (struct CadetClient *c,
           uint32_t options)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalChannelCreateMessage *msg;
+  struct GNUNET_CADET_LocalChannelCreateMessage *cm;
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
   ccn = client_get_next_ccn (c);
@@ -298,12 +298,12 @@ GSC_bind (struct CadetClient *c,
        GNUNET_h2s (port),
        ntohl (options));
   /* notify local client about incoming connection! */
-  env = GNUNET_MQ_msg (msg,
+  env = GNUNET_MQ_msg (cm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  msg->ccn = ccn;
-  msg->port = *port;
-  msg->opt = htonl (options);
-  msg->peer = *GCP_get_id (dest);
+  cm->ccn = ccn;
+  cm->port = *port;
+  cm->opt = htonl (options);
+  cm->peer = *GCP_get_id (dest);
   GSC_send_to_client (c,
                       env);
   return ccn;

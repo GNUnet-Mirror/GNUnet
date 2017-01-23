@@ -804,8 +804,6 @@ void
 GCCH_bind (struct CadetChannel *ch,
            struct CadetClient *c)
 {
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalChannelCreateMessage *tcm;
   uint32_t options;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -850,17 +848,6 @@ GCCH_bind (struct CadetChannel *ch,
                                   ch);
   }
   /* give client it's initial supply of ACKs */
-  env = GNUNET_MQ_msg (tcm,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
-  tcm->ccn = ch->ccn_dest;
-  if (GNUNET_YES == ch->is_loopback)
-    tcm->peer = my_full_id;
-  else
-    tcm->peer = *GCP_get_id (GCT_get_destination (ch->t));
-  tcm->port = ch->port;
-  tcm->opt = htonl (options);
-  GSC_send_to_client (ch->dest,
-                      env);
   for (unsigned int i=0;i<ch->max_pending_messages;i++)
     send_ack_to_client (ch,
                         ch->dest);
