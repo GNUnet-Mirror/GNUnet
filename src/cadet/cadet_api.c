@@ -475,7 +475,6 @@ destroy_channel (struct GNUNET_CADET_Channel *ch,
   if (0 != ch->peer)
     GNUNET_PEER_change_rc (ch->peer, -1);
   GNUNET_free (ch);
-
 }
 
 
@@ -1367,7 +1366,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Requested RECONNECT, destroying all channels\n");
-  for (ch = h->channels_head; NULL != ch; ch = h->channels_head)
+  while (NULL != (ch = h->channels_head))
     destroy_channel (ch, GNUNET_YES);
   if (NULL == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
@@ -1741,9 +1740,8 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
   if (NULL != th->request_data_task)
   {
     GNUNET_SCHEDULER_cancel (th->request_data_task);
+    th->request_data_task = NULL;
   }
-  th->request_data_task = NULL;
-
   remove_from_queue (th);
   GNUNET_free (th);
 }
