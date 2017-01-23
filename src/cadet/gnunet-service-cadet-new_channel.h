@@ -113,9 +113,11 @@ GCCH_bind (struct CadetChannel *ch,
  * local client, so no need to tell the client.
  *
  * @param ch channel to destroy
+ * @param c client that caused the destruction
  */
 void
-GCCH_channel_local_destroy (struct CadetChannel *ch);
+GCCH_channel_local_destroy (struct CadetChannel *ch,
+                            struct CadetClient *c);
 
 
 /**
@@ -147,16 +149,6 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
                            struct GNUNET_CADET_ChannelTunnelNumber chid,
                            const struct GNUNET_HashCode *port,
                            uint32_t options);
-
-
-/**
- * Destroy channel that was incoming.  Called by the
- * local client, so no need to tell the client.
- *
- * @param ch channel to destroy
- */
-void
-GCCH_channel_incoming_destroy (struct CadetChannel *ch);
 
 
 /**

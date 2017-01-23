@@ -302,6 +302,11 @@ struct CadetChannel
   int out_of_order;
 
   /**
+   * Is this channel a loopback channel, where the destination is us again?
+   */
+  int is_loopback;
+
+  /**
    * Flag to signal the destruction of the channel.  If this is set to
    * #GNUNET_YES the channel will be destroyed once the queue is
    * empty.
@@ -523,11 +528,38 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->owner = owner;
   ch->ccn = ccn;
   ch->port = *port;
-  ch->t = GCP_get_tunnel (destination,
-                          GNUNET_YES);
-  ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-  ch->ctn = GCT_add_channel (ch->t,
-                             ch);
+  if (0 == memcmp (&my_full_id,
+                   GCP_get_id (destination),
+                   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    ch->is_loopback = GNUNET_YES;
+    ch->dest = GNUNET_CONTAINER_multihashmap_get (open_ports,
+                                                  port);
+    if (NULL == ch->dest)
+    {
+      /* port closed, wait for it to possibly open */
+      (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
+                                                port,
+                                                ch,
+                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Created loose incoming loopback channel to port %s\n",
+           GNUNET_h2s (&ch->port));
+    }
+    else
+    {
+      GCCH_bind (ch,
+                 ch->dest);
+    }
+  }
+  else
+  {
+    ch->t = GCP_get_tunnel (destination,
+                            GNUNET_YES);
+    ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
+    ch->ctn = GCT_add_channel (ch->t,
+                               ch);
+  }
   GNUNET_STATISTICS_update (stats,
                             "# channels",
                             1,
@@ -537,7 +569,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
        GNUNET_h2s (port),
        GCP_2s (destination),
        GSC_2s (owner),
-       GCT_2s (ch->t));
+       (GNUNET_YES == ch->is_loopback) ? "loopback" : GCT_2s (ch->t));
   return ch;
 }
 
@@ -791,11 +823,18 @@ GCCH_bind (struct CadetChannel *ch,
                       &ch->port,
                       options);
   ch->mid_recv.mid = htonl (1); /* The CONNECT counts as message 0! */
-
-  /* notify other peer that we accepted the connection */
-  ch->retry_control_task
-    = GNUNET_SCHEDULER_add_now (&send_open_ack,
-                                ch);
+  if (GNUNET_YES == ch->is_loopback)
+  {
+    ch->state = CADET_CHANNEL_OPEN_SENT;
+    GCCH_handle_channel_open_ack (ch);
+  }
+  else
+  {
+    /* notify other peer that we accepted the connection */
+    ch->retry_control_task
+      = GNUNET_SCHEDULER_add_now (&send_open_ack,
+                                  ch);
+  }
   /* give client it's initial supply of ACKs */
   env = GNUNET_MQ_msg (tcm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
@@ -812,17 +851,27 @@ GCCH_bind (struct CadetChannel *ch,
 
 
 /**
- * Destroy locally created channel.  Called by the
- * local client, so no need to tell the client.
+ * Destroy locally created channel.  Called by the local client, so no
+ * need to tell the client.
  *
  * @param ch channel to destroy
+ * @param c client that caused the destruction
  */
 void
-GCCH_channel_local_destroy (struct CadetChannel *ch)
+GCCH_channel_local_destroy (struct CadetChannel *ch,
+                            struct CadetClient *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Local client asks for destruction of %s which it initiated\n",
+       "%s asks for destruction of %s\n",
+       GSC_2s (c),
        GCCH_2s (ch));
+  GNUNET_assert (NULL != c);
+  if (c == ch->owner)
+    ch->owner = NULL;
+  else if (c == ch->dest)
+    ch->dest = NULL;
+  else
+    GNUNET_assert (0);
   if (GNUNET_YES == ch->destroy)
   {
     /* other end already destroyed, with the local client gone, no need
@@ -830,9 +879,12 @@ GCCH_channel_local_destroy (struct CadetChannel *ch)
     channel_destroy (ch);
     return;
   }
-  if (NULL != ch->head_sent)
+  if ( (NULL != ch->head_sent) ||
+       (NULL != ch->owner) ||
+       (NULL != ch->dest) )
   {
-    /* allow send queue to train first */
+    /* Wait for other end to destroy us as well,
+       and otherwise allow send queue to be transmitted first */
     ch->destroy = GNUNET_YES;
     return;
   }
@@ -840,39 +892,7 @@ GCCH_channel_local_destroy (struct CadetChannel *ch)
   if (CADET_CHANNEL_NEW != ch->state)
     GCT_send_channel_destroy (ch->t,
                               ch->ctn);
-  /* Now finish our clean up */
-  channel_destroy (ch);
-}
-
-
-/**
- * Destroy channel that was incoming.  Called by the
- * local client, so no need to tell the client.
- *
- * @param ch channel to destroy
- */
-void
-GCCH_channel_incoming_destroy (struct CadetChannel *ch)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Local client asks for destruction of %s which it accepted\n",
-       GCCH_2s (ch));
-  if (GNUNET_YES == ch->destroy)
-  {
-    /* other end already destroyed, with the remote client gone, no need
-       to finish transmissions, just destroy immediately. */
-    channel_destroy (ch);
-    return;
-  }
-  if (NULL != ch->head_recv)
-  {
-    /* allow local client to see all data first */
-    ch->destroy = GNUNET_YES;
-    return;
-  }
   /* Nothing left to do, just finish destruction */
-  GCT_send_channel_destroy (ch->t,
-                            ch->ctn);
   channel_destroy (ch);
 }
 
@@ -980,6 +1000,12 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
        "Receicved %u bytes of application data on %s\n",
        (unsigned int) payload_size,
        GCCH_2s (ch));
+  if (GNUNET_YES == ch->is_loopback)
+  {
+    GNUNET_break (0); // FIXME: not implemented
+    return;
+  }
+
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
@@ -1054,6 +1080,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
 {
   struct CadetReliableMessage *crm;
 
+  GNUNET_break (GNUNET_NO == ch->is_loopback);
   if (GNUNET_NO == ch->reliable)
   {
     /* not expecting ACKs on unreliable channel, odd */
@@ -1104,9 +1131,23 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
 void
 GCCH_handle_remote_destroy (struct CadetChannel *ch)
 {
+  GNUNET_break (GNUNET_NO == ch->is_loopback);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received remote channel DESTROY for %s\n",
        GCCH_2s (ch));
+  if (GNUNET_YES == ch->destroy)
+  {
+    /* Local client already gone, this is instant-death. */
+    channel_destroy (ch);
+    return;
+  }
+  if (NULL != ch->head_recv)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Lost end of transmission due to remote shutdown on channel %s\n",
+         GCCH_2s (ch));
+    /* FIXME: change API to notify client about truncated transmission! */
+  }
   ch->destroy = GNUNET_YES;
   GSC_handle_remote_channel_destroy ((NULL != ch->owner) ? ch->owner : ch->dest,
                                      ch->ccn,
@@ -1289,6 +1330,12 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     return GNUNET_SYSERR;
   }
   ch->pending_messages++;
+
+  if (GNUNET_YES == ch->is_loopback)
+  {
+    GNUNET_break (0); // fIXME: not implemented
+    return GNUNET_SYSERR;
+  }
 
   /* Everything is correct, send the message. */
   crm = GNUNET_malloc (sizeof (*crm) + buf_len);

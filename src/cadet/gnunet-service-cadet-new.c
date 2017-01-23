@@ -131,7 +131,7 @@ struct GNUNET_PeerIdentity my_full_id;
 struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
- * Signal that shutdown is happening: prevent recover measures.
+ * Signal that shutdown is happening: prevent recovery measures.
  */
 int shutting_down;
 
@@ -356,17 +356,11 @@ destroy_paths_now (void *cls,
 
 
 /**
- * Task run during shutdown.
- *
- * @param cls unused
+ * Shutdown everything once the clients have disconnected.
  */
 static void
-shutdown_task (void *cls)
+shutdown_rest ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Shutting down\n");
-  shutting_down = GNUNET_YES;
-  GCO_shutdown ();
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats,
@@ -410,6 +404,23 @@ shutdown_task (void *cls)
   GCH_shutdown ();
   GNUNET_free_non_null (my_private_key);
   my_private_key = NULL;
+}
+
+
+/**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ */
+static void
+shutdown_task (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Shutting down\n");
+  shutting_down = GNUNET_YES;
+  GCO_shutdown ();
+  if (NULL == clients_head)
+    shutdown_rest ();
 }
 
 
@@ -608,7 +619,8 @@ handle_channel_destroy (void *cls,
                  GNUNET_CONTAINER_multihashmap32_remove (c->channels,
                                                          ntohl (msg->ccn.channel_of_client),
                                                          ch));
-  GCCH_channel_local_destroy (ch);
+  GCCH_channel_local_destroy (ch,
+                              c);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -1196,10 +1208,8 @@ channel_destroy_iterator (void *cls,
                  GNUNET_CONTAINER_multihashmap32_remove (c->channels,
                                                          key,
                                                          ch));
-  if (key < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-    GCCH_channel_local_destroy (ch);
-  else
-    GCCH_channel_incoming_destroy (ch);
+  GCCH_channel_local_destroy (ch,
+                              c);
   return GNUNET_OK;
 }
 
@@ -1275,6 +1285,9 @@ client_disconnect_cb (void *cls,
                             -1,
                             GNUNET_NO);
   GNUNET_free (c);
+  if ( (NULL == clients_head) &&
+       (GNUNET_YES == shutting_down) )
+    shutdown_rest ();
 }
 
 

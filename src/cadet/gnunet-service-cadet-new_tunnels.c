@@ -1624,6 +1624,26 @@ GCT_remove_channel (struct CadetTunnel *t,
 
 
 /**
+ * Destroy remaining channels during shutdown.
+ *
+ * @param cls the `struct CadetTunnel` of the channel
+ * @param key key of the channel
+ * @param value the `struct CadetChannel`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+destroy_remaining_channels (void *cls,
+                            uint32_t key,
+                            void *value)
+{
+  struct CadetChannel *ch = value;
+
+  GCCH_handle_remote_destroy (ch);
+  return GNUNET_OK;
+}
+
+
+/**
  * Destroys the tunnel @a t now, without delay. Used during shutdown.
  *
  * @param t tunnel to destroy
@@ -1631,6 +1651,10 @@ GCT_remove_channel (struct CadetTunnel *t,
 void
 GCT_destroy_tunnel_now (struct CadetTunnel *t)
 {
+  GNUNET_assert (GNUNET_YES == shutting_down);
+  GNUNET_CONTAINER_multihashmap32_iterate (t->channels,
+                                           &destroy_remaining_channels,
+                                           t);
   GNUNET_assert (0 ==
                  GNUNET_CONTAINER_multihashmap32_size (t->channels));
   if (NULL != t->destroy_task)
