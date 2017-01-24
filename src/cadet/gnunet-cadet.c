@@ -23,6 +23,8 @@
  * @brief Print information about cadet tunnels and peers.
  * @author Bartlomiej Polot
  */
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
@@ -638,9 +640,10 @@ data_callback (void *cls,
                   GNUNET_STRINGS_absolute_time_to_string (echo_time));
       waiting_for_pong = GNUNET_NO;
       FPRINTF (stdout,
-               "pong %d, %s\n",
+               "%d,%" PRId64 "\n",
                ping_count,
-               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+               latency.rel_value_us);
+               //GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
       if (measure_period.rel_value_us == GNUNET_TIME_UNIT_ZERO.rel_value_us)
       {
         GNUNET_SCHEDULER_add_now (&send_ping, NULL);
