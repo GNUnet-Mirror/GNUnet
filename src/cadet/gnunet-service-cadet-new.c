@@ -635,8 +635,8 @@ handle_channel_destroy (void *cls,
  * @return #GNUNET_OK if @a msg is OK, #GNUNET_SYSERR if not
  */
 static int
-check_data (void *cls,
-            const struct GNUNET_CADET_LocalData *msg)
+check_local_data (void *cls,
+                  const struct GNUNET_CADET_LocalData *msg)
 {
   size_t payload_size;
   size_t payload_claimed_size;
@@ -691,8 +691,8 @@ check_data (void *cls,
  * @param msg the actual message
  */
 static void
-handle_data (void *cls,
-             const struct GNUNET_CADET_LocalData *msg)
+handle_local_data (void *cls,
+                   const struct GNUNET_CADET_LocalData *msg)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -735,8 +735,8 @@ handle_data (void *cls,
  * @param msg The actual message.
  */
 static void
-handle_ack (void *cls,
-            const struct GNUNET_CADET_LocalAck *msg)
+handle_local_ack (void *cls,
+                  const struct GNUNET_CADET_LocalAck *msg)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -1395,11 +1395,11 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
                           struct GNUNET_CADET_LocalChannelDestroyMessage,
                           NULL),
- GNUNET_MQ_hd_var_size (data,
+ GNUNET_MQ_hd_var_size (local_data,
                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
                         struct GNUNET_CADET_LocalData,
                         NULL),
- GNUNET_MQ_hd_fixed_size (ack,
+ GNUNET_MQ_hd_fixed_size (local_ack,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
                           struct GNUNET_CADET_LocalAck,
                           NULL),
