@@ -1354,7 +1354,7 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 
 
 /**
- * Parse an address given as a string into a 
+ * Parse an address given as a string into a
  * `struct sockaddr`.
  *
  * @param addr the address
@@ -1372,7 +1372,7 @@ GNUNET_STRINGS_parse_socket_addr (const char *addr,
   *af = AF_UNSPEC;
   if ('[' == *addr)
   {
-    /* IPv6 */    
+    /* IPv6 */
     *sa = GNUNET_malloc (sizeof (struct sockaddr_in6));
     if (GNUNET_OK !=
 	GNUNET_STRINGS_to_address_ipv6 (cp,

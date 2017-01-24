@@ -735,9 +735,9 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
   {
     /* new timeout is earlier, reschedule master task */
     GNUNET_SCHEDULER_cancel (n->task);
-    n->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (timeout),
-                                            &master_task,
-                                            n);
+    n->task = GNUNET_SCHEDULER_add_at (timeout,
+                                       &master_task,
+                                       n);
   }
   n->timeout = timeout;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

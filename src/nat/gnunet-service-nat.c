@@ -1434,8 +1434,8 @@ handle_register (void *cls,
   off = (const char *) &message[1];
   for (unsigned int i=0;i<ch->num_caddrs;i++)
   {
-    size_t alen;
     const struct sockaddr *sa = (const struct sockaddr *) off;
+    size_t alen;
     uint16_t port;
     int is_nat;
 
@@ -1450,22 +1450,28 @@ handle_register (void *cls,
     {
     case AF_INET:
       {
-	const struct sockaddr_in *s4 = (const struct sockaddr_in *) sa;
+        struct sockaddr_in s4;
 
+        GNUNET_memcpy (&s4,
+                       off,
+                       sizeof (struct sockaddr_in));
 	alen = sizeof (struct sockaddr_in);
-	if (is_nat_v4 (&s4->sin_addr))
+	if (is_nat_v4 (&s4.sin_addr))
 	  is_nat = GNUNET_YES;
-	port = ntohs (s4->sin_port);
+	port = ntohs (s4.sin_port);
       }
       break;
     case AF_INET6:
       {
-	const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) sa;
+        struct sockaddr_in6 s6;
 
+        GNUNET_memcpy (&s6,
+                       off,
+                       sizeof (struct sockaddr_in6));
 	alen = sizeof (struct sockaddr_in6);
-	if (is_nat_v6 (&s6->sin6_addr))
+	if (is_nat_v6 (&s6.sin6_addr))
 	  is_nat = GNUNET_YES;
-	port = ntohs (s6->sin6_port);
+	port = ntohs (s6.sin6_port);
       }
       break;
 #if AF_UNIX
@@ -1483,7 +1489,7 @@ handle_register (void *cls,
     GNUNET_assert (alen <= left);
     GNUNET_assert (alen <= sizeof (struct sockaddr_storage));
     GNUNET_memcpy (&ch->caddrs[i].ss,
-		   sa,
+		   off,
 		   alen);
 
     /* If applicable, try UPNPC NAT punching */

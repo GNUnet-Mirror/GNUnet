@@ -426,19 +426,20 @@ transmit_next_request_task (void *cls)
     delay = GNUNET_TIME_absolute_get_remaining (cqr->retry_time);
     if (delay.rel_value_us > 0)
     {
-      cqr->hnode =
-          GNUNET_CONTAINER_heap_insert (retry_heap,
+      cqr->hnode
+        = GNUNET_CONTAINER_heap_insert (retry_heap,
                                         cqr,
                                         cqr->retry_time.abs_value_us);
-      retry_task =
-          GNUNET_SCHEDULER_add_delayed (delay,
-                                        &transmit_next_request_task,
-                                        NULL);
+      retry_task
+        = GNUNET_SCHEDULER_add_at (cqr->retry_time,
+                                   &transmit_next_request_task,
+                                   NULL);
       return;
     }
     transmit_request (cqr);
     cqr->hnode
-      = GNUNET_CONTAINER_heap_insert (retry_heap, cqr,
+      = GNUNET_CONTAINER_heap_insert (retry_heap,
+                                      cqr,
                                       cqr->retry_time.abs_value_us);
   }
 }

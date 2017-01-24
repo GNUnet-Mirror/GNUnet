@@ -1054,9 +1054,9 @@ static void
 send_connection_ack (struct CadetConnection *c, int fwd)
 {
   static struct CadetEncryptedMessageIdentifier zero;
-  struct GNUNET_CADET_ConnectionCreateMessageAckMessage msg;
+  struct GNUNET_CADET_ConnectionCreateAckMessage msg;
   struct CadetTunnel *t;
-  const uint16_t size = sizeof (struct GNUNET_CADET_ConnectionCreateMessageAckMessage);
+  const uint16_t size = sizeof (struct GNUNET_CADET_ConnectionCreateAckMessage);
   const uint16_t type = GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK;
 
   GCC_check_connections ();
@@ -2067,7 +2067,7 @@ GCC_handle_create (struct CadetPeer *peer,
  */
 void
 GCC_handle_confirm (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
+                    const struct GNUNET_CADET_ConnectionCreateAckMessage *msg)
 {
   static struct CadetEncryptedMessageIdentifier zero;
   struct CadetConnection *c;

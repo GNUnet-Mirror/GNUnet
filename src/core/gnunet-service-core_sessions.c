@@ -90,9 +90,9 @@ struct Session
 
   /**
    * Key exchange state for this peer.
-   */ 
+   */
   struct GSC_KeyExchangeInfo *kx;
-  
+
   /**
    * Head of list of requests from clients for transmission to
    * this peer.
@@ -725,10 +725,10 @@ try_transmission (struct Session *session)
                                                           GNUNET_YES));
       if (NULL != session->cork_task)
         GNUNET_SCHEDULER_cancel (session->cork_task);
-      session->cork_task =
-          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (min_deadline),
-                                        &pop_cork_task,
-                                        session);
+      session->cork_task
+        = GNUNET_SCHEDULER_add_at (min_deadline,
+                                   &pop_cork_task,
+                                   session);
     }
     else
     {

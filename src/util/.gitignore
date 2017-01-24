@@ -62,3 +62,4 @@ test_speedup
 test_strings
 test_strings_to_data
 test_time
+test_socks.nc

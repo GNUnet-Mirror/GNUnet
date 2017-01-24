@@ -113,9 +113,25 @@ GCCH_bind (struct CadetChannel *ch,
  * local client, so no need to tell the client.
  *
  * @param ch channel to destroy
+ * @param c client that caused the destruction
  */
 void
-GCCH_channel_local_destroy (struct CadetChannel *ch);
+GCCH_channel_local_destroy (struct CadetChannel *ch,
+                            struct CadetClient *c);
+
+
+/**
+ * Function called once and only once after a channel was bound
+ * to its tunnel via #GCT_add_channel() is ready for transmission.
+ * Note that this is only the case for channels that this peer
+ * initiates, as for incoming channels we assume that they are
+ * ready for transmission immediately upon receiving the open
+ * message.  Used to bootstrap the #GCT_send() process.
+ *
+ * @param ch the channel for which the tunnel is now ready
+ */
+void
+GCCH_tunnel_up (struct CadetChannel *ch);
 
 
 /**
@@ -136,13 +152,14 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
 
 
 /**
- * Destroy channel that was incoming.  Called by the
- * local client, so no need to tell the client.
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN message again for
+ * this channel.  If the binding was successful, (re)transmit the
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
  *
- * @param ch channel to destroy
+ * @param ch channel that got the duplicate open
  */
 void
-GCCH_channel_incoming_destroy (struct CadetChannel *ch);
+GCCH_handle_duplicate_open (struct CadetChannel *ch);
 
 
 /**
@@ -174,7 +191,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  * @param ch channel to destroy
  */
 void
-GCCH_handle_channel_create_ack (struct CadetChannel *ch);
+GCCH_handle_channel_open_ack (struct CadetChannel *ch);
 
 
 /**
@@ -203,21 +220,27 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch);
  * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param message payload to transmit.
+ * @param sender_ccn ccn of the sender
+ * @param buf payload to transmit.
+ * @param buf_len number of bytes in @a buf
  * @return #GNUNET_OK if everything goes well,
  *         #GNUNET_SYSERR in case of an error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        const struct GNUNET_MessageHeader *message);
+                        struct GNUNET_CADET_ClientChannelNumber sender_ccn,
+                        const char *buf,
+                        size_t buf_len);
 
 
 /**
  * Handle ACK from client on local channel.
  *
  * @param ch channel to destroy
+ * @param client_ccn ccn of the client sending the ack
  */
 void
-GCCH_handle_local_ack (struct CadetChannel *ch);
+GCCH_handle_local_ack (struct CadetChannel *ch,
+                       struct GNUNET_CADET_ClientChannelNumber client_ccn);
 
 #endif

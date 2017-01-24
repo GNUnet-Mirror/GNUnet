@@ -34,6 +34,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "cadet_protocol.h"
 #include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet-new_dht.h"
 #include "gnunet-service-cadet-new_hello.h"
 #include "gnunet-service-cadet-new_peer.h"
 
@@ -52,7 +53,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo;
 /**
  * Iterator context.
  */
-static struct GNUNET_PEERINFO_NotifyContext* nc;
+static struct GNUNET_PEERINFO_NotifyContext *nc;
 
 
 /**
@@ -80,6 +81,7 @@ got_hello (void *cls,
   {
     GNUNET_free_non_null (mine);
     mine = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (&hello->header);
+    GCD_hello_update ();
     return;
   }
 

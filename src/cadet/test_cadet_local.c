@@ -64,33 +64,36 @@ do_connect (void *cls);
 static void
 do_shutdown (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutdown\n");
   if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = NULL;
-  }
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
   }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 1\n");
   if (NULL != cadet_peer_1)
   {
     GNUNET_CADET_disconnect (cadet_peer_1);
     cadet_peer_1 = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 2\n");
   if (NULL != cadet_peer_2)
   {
     GNUNET_CADET_disconnect (cadet_peer_2);
     cadet_peer_2 = NULL;
+  }
+  if (NULL != connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
   }
 }
 
@@ -115,12 +118,12 @@ do_abort (void *cls)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
+data_callback (void *cls,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -196,10 +199,12 @@ channel_end (void *cls,
     ch = NULL;
   if (GNUNET_NO == got_data)
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  2),
-                                  &do_connect, NULL);
+    if (NULL == connect_task)
+      connect_task
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                       2),
+                                        &do_connect,
+                                        NULL);
   }
 }
 
@@ -249,6 +254,7 @@ do_send (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+
 /**
  * Connect to other client and send data
  *
@@ -261,13 +267,16 @@ do_connect (void *cls)
 
   connect_task = NULL;
   GNUNET_TESTING_peer_get_identity (me, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, GC_u2h (1),
-                                   GNUNET_CADET_OPTION_DEFAULT);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CONNECT BY PORT\n");
+  ch = GNUNET_CADET_channel_create (cadet_peer_1,
+                                    NULL,
+                                    &id, GC_u2h (1),
+                                    GNUNET_CADET_OPTION_DEFAULT);
   mth = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           &do_send, NULL);
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            sizeof (struct GNUNET_MessageHeader),
+                                            &do_send, NULL);
 }
 
 
@@ -284,7 +293,8 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   me = peer;
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 15),
@@ -294,13 +304,13 @@ run (void *cls,
                                      (void *) 1L,       /* cls */
                                      &channel_end,      /* channel end hndlr */
                                      handlers1); /* traffic handlers */
-
   cadet_peer_2 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
                                      &channel_end,      /* channel end hndlr */
                                      handlers2); /* traffic handlers */
 
-  if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
+  if ( (NULL == cadet_peer_1) ||
+       (NULL == cadet_peer_2) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Couldn't connect to cadet :(\n");
@@ -308,12 +318,16 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_open_port (cadet_peer_2, GC_u2h (1),
-                          &inbound_channel, (void *) 2L);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  2),
-                                &do_connect, NULL);
+  GNUNET_CADET_open_port (cadet_peer_2,
+                          GC_u2h (1),
+                          &inbound_channel,
+                          (void *) 2L);
+  if (NULL == connect_task)
+    connect_task
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                     2),
+                                      &do_connect,
+                                      NULL);
 }
 
 

@@ -614,6 +614,22 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
  * @ingroup logging
  * Convert a peer identity to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
+ * NOT reentrant!  Identical to #GNUNET_i2s(), except that another
+ * buffer is used so both #GNUNET_i2s() and #GNUNET_i2s2() can be
+ * used within the same log statement.
+ *
+ * @param pid the peer identity
+ * @return string form of the pid; will be overwritten by next
+ *         call to #GNUNET_i2s().
+ */
+const char *
+GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid);
+
+
+/**
+ * @ingroup logging
+ * Convert a peer identity to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  *
  * @param pid the peer identity

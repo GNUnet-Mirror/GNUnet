@@ -113,12 +113,12 @@ GCC_transmit (struct CadetConnection *cc,
 
 
 /**
- * An ACK was received for this connection, process it.
+ * A CREATE_ACK was received for this connection, process it.
  *
  * @param cc the connection that got the ACK.
  */
 void
-GCC_handle_connection_ack (struct CadetConnection *cc);
+GCC_handle_connection_create_ack (struct CadetConnection *cc);
 
 
 /**

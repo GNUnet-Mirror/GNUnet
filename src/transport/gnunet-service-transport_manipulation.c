@@ -219,7 +219,6 @@ send_delayed (void *cls)
   struct DelayQueueEntry *dqe = cls;
   struct DelayQueueEntry *next;
   struct TM_Peer *tmp = dqe->tmp;
-  struct GNUNET_TIME_Relative delay;
 
   GNUNET_break (GNUNET_YES ==
                 GST_neighbours_test_connected (&dqe->id));
@@ -233,9 +232,9 @@ send_delayed (void *cls)
     if (NULL != next)
     {
       /* More delayed messages */
-      delay = GNUNET_TIME_absolute_get_remaining(next->sent_at);
-      tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed(delay,
-                                                          &send_delayed, next);
+      tmp->send_delay_task = GNUNET_SCHEDULER_add_at (next->sent_at,
+                                                      &send_delayed,
+                                                      next);
     }
   }
   else
@@ -249,10 +248,9 @@ send_delayed (void *cls)
     if (NULL != next)
     {
       /* More delayed messages */
-      delay = GNUNET_TIME_absolute_get_remaining(next->sent_at);
-      generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                              &send_delayed,
-                                                              next);
+      generic_send_delay_task = GNUNET_SCHEDULER_add_at (next->sent_at,
+                                                         &send_delayed,
+                                                         next);
     }
   }
   GST_neighbours_send (&dqe->id,
@@ -503,9 +501,9 @@ GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
     generic_send_delay_task = NULL;
     if (NULL != generic_dqe_head)
       generic_send_delay_task
-        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at),
-                                        &send_delayed,
-                                        generic_dqe_head);
+        = GNUNET_SCHEDULER_add_at (generic_dqe_head->sent_at,
+                                   &send_delayed,
+                                   generic_dqe_head);
   }
 }
 

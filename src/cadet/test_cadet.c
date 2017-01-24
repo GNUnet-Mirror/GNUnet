@@ -527,7 +527,7 @@ data_task (void *cls)
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
-size_t
+static size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
@@ -536,7 +536,9 @@ tmt_rdy (void *cls, size_t size, void *buf)
   long id = (long) cls;
   unsigned int counter;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy on %ld, filling buffer\n", id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tmt_rdy on %ld, filling buffer\n",
+              id);
   if (0 == id)
     th = NULL;
   else if ((peers_requested - 1) == id)
@@ -545,7 +547,9 @@ tmt_rdy (void *cls, size_t size, void *buf)
     GNUNET_assert (0);
   counter = get_expected_target () == id ? ack_sent : data_sent;
   msg_size = size_payload + counter;
-  if (size < msg_size || NULL == buf)
+  GNUNET_assert (msg_size > sizeof (struct GNUNET_MessageHeader));
+  if ( (size < msg_size) ||
+       (NULL == buf) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, ack_received %u\n",
@@ -564,12 +568,15 @@ tmt_rdy (void *cls, size_t size, void *buf)
   *data = htonl (counter);
   if (GNUNET_NO == initialized)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sending initializer\n");
     msg_size = size_payload + 1000;
-    if (SPEED_ACK == test)
+    msg->size = htons (msg_size);
+  if (SPEED_ACK == test)
       data_sent++;
   }
-  else if (SPEED == test || SPEED_ACK == test)
+  else if ( (SPEED == test) ||
+            (SPEED_ACK == test) )
   {
     if (get_expected_target() == id)
       ack_sent++;
@@ -580,9 +587,11 @@ tmt_rdy (void *cls, size_t size, void *buf)
                 " Sent message %u size %u\n",
                 counter,
                 (unsigned int) msg_size);
-    if (data_sent < TOTAL_PACKETS && SPEED == test)
+    if ( (data_sent < TOTAL_PACKETS) &&
+         (SPEED == test) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Scheduling message %d\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " Scheduling message %d\n",
                   counter + 1);
       data_job = GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }
@@ -595,15 +604,16 @@ tmt_rdy (void *cls, size_t size, void *buf)
 /**
  * Function is called whenever a message is received.
  *
- * @param cls closure (set from GNUNET_CADET_connect, peer number)
+ * @param cls closure (set from GNUNET_CADET_connect(), peer number)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
-int
-data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
+static int
+data_callback (void *cls,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -764,10 +774,11 @@ static struct GNUNET_CADET_MessageHandler handlers[] = {
  *         (can be NULL -- that's not an error).
  */
 static void *
-incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
-                 const struct GNUNET_PeerIdentity *initiator,
-                 const struct GNUNET_HashCode *port,
-                 enum GNUNET_CADET_ChannelOption options)
+incoming_channel (void *cls,
+                  struct GNUNET_CADET_Channel *channel,
+                  const struct GNUNET_PeerIdentity *initiator,
+                  const struct GNUNET_HashCode *port,
+                  enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d:%s\n",
@@ -776,7 +787,16 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == peers_requested - 1)
+  {
+    if (NULL != incoming_ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Duplicate incoming channel for client %lu\n",
+                  (long) cls);
+      GNUNET_break(0);
+    }
     incoming_ch = channel;
+  }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -794,6 +814,7 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   return NULL;
 }
 
+
 /**
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
@@ -804,13 +825,15 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
  *                   with the channel is stored
  */
 static void
-channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
+channel_cleaner (void *cls,
+                 const struct GNUNET_CADET_Channel *channel,
                  void *channel_ctx)
 {
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel disconnected at peer %ld\n", i);
+              "Incoming channel disconnected at peer %ld\n",
+              i);
   if (peers_running - 1 == i)
   {
     ok++;
@@ -821,7 +844,7 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
   {
     if (P2P_SIGNAL == test)
     {
-      ok ++;
+      ok++;
     }
     GNUNET_break (channel == ch);
     ch = NULL;
@@ -838,8 +861,6 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
     disconnect_task = GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
                                                 (void *) __LINE__);
   }
-
-  return;
 }
 
 
@@ -857,8 +878,8 @@ do_test (void *cls)
   enum GNUNET_CADET_ChannelOption flags;
 
   test_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "do_test\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "do_test\n");
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -872,20 +893,27 @@ do_test (void *cls)
     flags |= GNUNET_CADET_OPTION_RELIABLE;
   }
 
-  ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], &port, flags);
+  ch = GNUNET_CADET_channel_create (h1,
+                                    NULL,
+                                    p_id[1],
+                                    &port,
+                                    flags);
 
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &gather_stats_and_exit,
-                                                  (void *) __LINE__);
+  disconnect_task
+    = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                    &gather_stats_and_exit,
+                                    (void *) __LINE__);
   if (KEEPALIVE == test)
     return; /* Don't send any data. */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending data initializer...\n");
   data_received = 0;
   data_sent = 0;
   ack_received = 0;
   ack_sent = 0;
-  th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
+  th = GNUNET_CADET_notify_transmit_ready (ch,
+                                           GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            size_payload + 1000,
                                            &tmt_rdy, (void *) 0L);
@@ -909,23 +937,30 @@ pi_cb (void *cls,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id callback for %ld\n", i);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "id callback for %ld\n", i);
 
-  if (NULL == pinfo || NULL != emsg)
+  if ( (NULL == pinfo) ||
+       (NULL != emsg) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "pi_cb: %s\n", emsg);
     abort_test (__LINE__);
     return;
   }
   p_id[i] = pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id: %s\n", GNUNET_i2s (p_id[i]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  id: %s\n", GNUNET_i2s (p_id[i]));
   p_ids++;
   if (p_ids < 2)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got all IDs, starting test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got all IDs, starting test\n");
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                            &do_test, NULL);
+                                            &do_test,
+                                            NULL);
 }
+
 
 /**
  * test main: start test when all peers are connected
