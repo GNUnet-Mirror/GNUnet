@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
@@ -200,6 +202,36 @@ static int benchmark_receive;
  * Option -l.
  */
 static int benchmark_receive;
+
+/**
+ * Activate echo mode
+ */
+static int echo;
+
+/**
+ * Do round-trip time measurement
+ */
+static int measure_rtt;
+
+/**
+ * the number of RTT measurements to be done
+ */
+//static size_t number_rtt;
+
+/**
+ * the period after which the next ping is sent
+ */
+static struct GNUNET_TIME_Relative measure_period;
+
+/**
+ * are re waiting for an echo reply?
+ */
+static int waiting_for_pong;
+
+/**
+ * identifier of the last ping we sent
+ */
+static uint16_t ping_count;
 
 /**
  * Option -i.
@@ -511,7 +543,7 @@ operation_timeout (void *cls)
  * @param cls closure with the message queue
  */
 static void
-do_send (void *cls)
+send_benchmark (void *cls)
 {
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MessageHeader *m;
@@ -519,13 +551,13 @@ do_send (void *cls)
 
   env = GNUNET_MQ_msg_extra (m,
 			     BLOCKSIZE * 1024,
-			      GNUNET_MESSAGE_TYPE_DUMMY);
+			     GNUNET_MESSAGE_TYPE_DUMMY);
   memset (&m[1],
 	  52,
 	  BLOCKSIZE * 1024 - sizeof(struct GNUNET_MessageHeader));
   traffic_sent += BLOCKSIZE * 1024;
   GNUNET_MQ_notify_sent (env,
-			 &do_send,
+			 &send_benchmark,
 			 mq);
   if (verbosity > 0)
     FPRINTF (stdout,
@@ -533,6 +565,38 @@ do_send (void *cls)
 	     (unsigned int) BLOCKSIZE * 1024);
   GNUNET_MQ_send (mq,
 		  env);
+}
+
+
+/**
+ * TODO
+ */
+static void
+send_ping (void *cls)
+{
+  struct GNUNET_MQ_Handle *mq = cls;
+  struct GNUNET_MessageHeader *m;
+  struct GNUNET_MQ_Envelope *env;
+
+  GNUNET_assert (mq != NULL);
+
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+    waiting_for_pong = GNUNET_NO;
+  }
+
+  ping_count++;
+  env = GNUNET_MQ_msg_extra (m, sizeof (ping_count), GNUNET_MESSAGE_TYPE_DUMMY);
+  GNUNET_memcpy (&m[1], &ping_count, sizeof (ping_count));
+  GNUNET_MQ_send (mq, env);
+  start_time = GNUNET_TIME_absolute_get();
+  if (measure_period.rel_value_us != GNUNET_TIME_UNIT_ZERO.rel_value_us)
+  {
+    GNUNET_SCHEDULER_add_delayed (measure_period, &send_ping, mq);
+  }
 }
 
 
@@ -549,25 +613,36 @@ notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
 		struct GNUNET_MQ_Handle *mq)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "connection established to %s\n",
+              GNUNET_i2s_full (peer));
+  GNUNET_assert (benchmark_send || measure_rtt);
   if (0 != memcmp (&pid,
 		   peer,
 		   sizeof(struct GNUNET_PeerIdentity)))
     return NULL;
   ret = 0;
-  if (! benchmark_send)
-    return NULL;
   if (NULL != op_timeout)
   {
     GNUNET_SCHEDULER_cancel (op_timeout);
     op_timeout = NULL;
   }
-  if (verbosity > 0)
-    FPRINTF (stdout,
-	     _("Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
-	     GNUNET_i2s (peer),
-	     BLOCKSIZE);
-  start_time = GNUNET_TIME_absolute_get ();
-  do_send (mq);
+  if (benchmark_send)
+  {
+    if (verbosity > 0)
+      FPRINTF (stdout,
+	       _("Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
+	       GNUNET_i2s (peer),
+	       BLOCKSIZE);
+    start_time = GNUNET_TIME_absolute_get ();
+    send_benchmark (mq);
+  }
+  else
+  {
+    ping_count = 0;
+    waiting_for_pong = GNUNET_NO;
+    send_ping (mq);
+  }
   return mq;
 }
 
@@ -585,6 +660,9 @@ notify_disconnect (void *cls,
                    const struct GNUNET_PeerIdentity *peer,
 		   void *internal_cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "connection to %s lost.\n",
+              GNUNET_i2s_full (peer));
   if (0 != memcmp (&pid,
 		   peer,
 		   sizeof(struct GNUNET_PeerIdentity)))
@@ -597,6 +675,32 @@ notify_disconnect (void *cls,
 	   _("Disconnected from peer `%s' while benchmarking\n"),
 	   GNUNET_i2s (&pid));
 }
+
+  
+static void *
+listen_notify_connect (void *cls,
+                       const struct GNUNET_PeerIdentity *peer,
+                       struct GNUNET_MQ_Handle *mq)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "incoming connection from %s\n",
+              GNUNET_i2s_full (peer));
+  GNUNET_assert (benchmark_receive || echo);
+  return mq;
+}
+
+
+static void
+listen_notify_disconnect (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          void *internal_cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "connection to %s lost.",
+              GNUNET_i2s_full (peer));
+  GNUNET_assert (benchmark_receive || echo);
+}
+
 
 
 /**
@@ -680,15 +784,51 @@ static void
 handle_dummy (void *cls,
 	      const struct GNUNET_MessageHeader *message)
 {
-  if (! benchmark_receive)
-    return;
-  if (verbosity > 0)
+  if (benchmark_receive)
+  {
+    if (verbosity > 0)
+      FPRINTF (stdout,
+               _("Received %u bytes\n"),
+               (unsigned int) ntohs (message->size));
+    if (0 == traffic_received)
+      start_time = GNUNET_TIME_absolute_get ();
+    traffic_received += ntohs (message->size);
+  }
+  if (measure_rtt)
+  {
+    struct GNUNET_TIME_Relative latency =
+      GNUNET_TIME_absolute_get_duration (start_time);
+    waiting_for_pong = GNUNET_NO;
     FPRINTF (stdout,
-	     _("Received %u bytes\n"),
-	     (unsigned int) ntohs (message->size));
-  if (0 == traffic_received)
-    start_time = GNUNET_TIME_absolute_get ();
-  traffic_received += ntohs (message->size);
+            "%d,%" PRId64 "\n",
+            ping_count,
+            latency.rel_value_us);
+    send_ping (cls);
+  }
+  if (echo)
+  {
+    GNUNET_assert (NULL != handle);
+    //struct GNUNET_MQ_Handle *mq = GNUNET_TRANSPORT_core_get_mq (handle, &pid);
+    struct GNUNET_MQ_Handle *mq = cls;
+    struct GNUNET_MessageHeader *m;
+    struct GNUNET_MQ_Envelope *env;
+    uint16_t message_size = ntohs (message->size);
+    uint16_t size = message_size - sizeof (*message);
+
+    GNUNET_assert (mq != NULL);
+
+    if (size != sizeof (uint16_t))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "received unexpected payload, ignoring.\n");
+      return;
+    }
+    env = GNUNET_MQ_msg_extra (m, size, GNUNET_MESSAGE_TYPE_DUMMY);
+    GNUNET_memcpy (&m[1], &message[1], size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "pong!\n");
+    GNUNET_MQ_send (mq, env);
+  }
 }
 
 
@@ -1259,32 +1399,36 @@ run (void *cls,
 
   counter = benchmark_send + benchmark_receive + iterate_connections
       + monitor_connections + monitor_connects + do_disconnect +
-      monitor_plugins;
+      monitor_plugins + measure_rtt + echo;
 
   if (1 < counter)
   {
     FPRINTF (stderr,
-             _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s %s\n"),
+             _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s, %s, %s, %s\n"),
              "disconnect",
 	     "benchmark send",
 	     "benchmark receive",
 	     "information",
              "monitor",
 	     "events",
-	     "plugins");
+	     "plugins",
+             "measure-rtt",
+             "echo");
     return;
   }
   if (0 == counter)
   {
     FPRINTF (stderr,
-	     _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"),
+	     _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s, %s, %s\n"),
              "disconnect",
 	     "benchmark send",
 	     "benchmark receive",
 	     "information",
              "monitor",
 	     "events",
-	     "plugins");
+	     "plugins",
+             "measure-rtt",
+             "echo");
     return;
   }
 
@@ -1313,7 +1457,8 @@ run (void *cls,
              "%s",
              _("Blacklisting request in place, stop with CTRL-C\n"));
   }
-  else if (benchmark_send) /* -s: Benchmark sending */
+  else if (benchmark_send || /* -s: Benchmark sending */
+           measure_rtt)      /* -r Measure round-trip time to given peer */
   {
     if (NULL == cpid)
     {
@@ -1323,9 +1468,17 @@ run (void *cls,
       ret = 1;
       return;
     }
+    struct GNUNET_MQ_MessageHandler handlers[] = {
+      GNUNET_MQ_hd_var_size (dummy,
+                             GNUNET_MESSAGE_TYPE_DUMMY,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+      GNUNET_MQ_handler_end ()
+    };
+
     handle = GNUNET_TRANSPORT_core_connect (cfg,
 					    NULL,
-					    NULL,
+					    handlers,
 					    NULL,
 					    &notify_connect,
 					    &notify_disconnect,
@@ -1343,7 +1496,8 @@ run (void *cls,
                                                &operation_timeout,
                                                NULL);
   }
-  else if (benchmark_receive) /* -b: Benchmark receiving */
+  else if (benchmark_receive || /* -b: Benchmark receiving */
+           echo)                /* -e: Activate echo mode */
   {
     struct GNUNET_MQ_MessageHandler handlers[] = {
       GNUNET_MQ_hd_var_size (dummy,
@@ -1357,8 +1511,8 @@ run (void *cls,
 					    NULL,
 					    handlers,
 					    NULL,
-					    NULL,
-					    NULL,
+					    &listen_notify_connect,
+					    &listen_notify_disconnect,
 					    NULL);
     if (NULL == handle)
     {
@@ -1449,6 +1603,15 @@ main (int argc,
     { 'D', "disconnect",
       NULL, gettext_noop ("disconnect from a peer"), 0,
       &GNUNET_GETOPT_set_one, &do_disconnect },
+    { 'e', "echo", NULL,
+      gettext_noop ("activate echo mode"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo },
+    { 'r', "measure-rtt", NULL,
+      gettext_noop ("measure round trip time by sending packets to an echo-mode enabled peer"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt },
+    //{'n', "number", NULL,
+    // gettext_noop ("number of RTT measurements"),
+    // GNUNET_NO, &GNUNET_GETOPT_set_ulong, &number_rtt},
     { 'i', "information", NULL,
       gettext_noop ("provide information about all current connections (once)"),
       0, &GNUNET_GETOPT_set_one, &iterate_connections },
@@ -1473,6 +1636,9 @@ main (int argc,
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
+
+  // TODO: get measure_period from command line option
+  measure_period = GNUNET_TIME_UNIT_ZERO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
