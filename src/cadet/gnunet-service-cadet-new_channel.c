@@ -126,9 +126,8 @@ struct CadetReliableMessage
   /**
    * Data message we are trying to send.
    */
-  struct GNUNET_CADET_ChannelAppDataMessage data_message;
+  struct GNUNET_CADET_ChannelAppDataMessage *data_message;
 
-  /* followed by variable-size payload */
 };
 
 
@@ -420,6 +419,7 @@ channel_destroy (struct CadetChannel *ch)
     GNUNET_CONTAINER_DLL_remove (ch->head_sent,
                                  ch->tail_sent,
                                  crm);
+    GNUNET_free (crm->data_message);
     GNUNET_free (crm);
   }
   if (NULL != ch->owner)
@@ -1188,7 +1188,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
   for (crm = ch->head_sent;
         NULL != crm;
        crm = crm->next)
-    if (ack->mid.mid == crm->data_message.mid.mid)
+    if (ack->mid.mid == crm->data_message->mid.mid)
       break;
   if (NULL == crm)
   {
@@ -1206,12 +1206,13 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
   GNUNET_CONTAINER_DLL_remove (ch->head_sent,
                                ch->tail_sent,
                                crm);
+  GNUNET_free (crm->data_message);
+  GNUNET_free (crm);
   ch->pending_messages--;
   send_ack_to_client (ch,
                       (NULL == ch->owner)
                       ? GNUNET_NO
                       : GNUNET_YES);
-  GNUNET_free (crm);
   GNUNET_assert (ch->pending_messages < ch->max_pending_messages);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received DATA_ACK on %s for message %u (%u ACKs pending)\n",
@@ -1290,7 +1291,7 @@ retry_transmission (void *cls)
   ch->retry_data_task = NULL;
   GNUNET_assert (NULL == crm->qe);
   crm->qe = GCT_send (ch->t,
-                      &crm->data_message.header,
+                      &crm->data_message->header,
                       &data_sent_cb,
                       crm);
 }
@@ -1432,14 +1433,16 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   }
 
   /* Everything is correct, send the message. */
-  crm = GNUNET_malloc (sizeof (*crm) + buf_len);
+  crm = GNUNET_malloc (sizeof (*crm));
   crm->ch = ch;
-  crm->data_message.header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
-  crm->data_message.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
+  crm->data_message = GNUNET_malloc (sizeof (struct GNUNET_CADET_ChannelAppDataMessage)
+                                     + buf_len);
+  crm->data_message->header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
+  crm->data_message->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
-  crm->data_message.mid = ch->mid_send;
-  crm->data_message.ctn = ch->ctn;
-  GNUNET_memcpy (&crm[1],
+  crm->data_message->mid = ch->mid_send;
+  crm->data_message->ctn = ch->ctn;
+  GNUNET_memcpy (&crm->data_message[1],
                  buf,
                  buf_len);
   GNUNET_CONTAINER_DLL_insert (ch->head_sent,
@@ -1450,7 +1453,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
        buf_len,
        GCCH_2s (ch));
   crm->qe = GCT_send (ch->t,
-                      &crm->data_message.header,
+                      &crm->data_message->header,
                       &data_sent_cb,
                       crm);
   return GNUNET_OK;
