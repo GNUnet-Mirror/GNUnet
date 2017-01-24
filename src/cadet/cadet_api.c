@@ -489,7 +489,9 @@ static void
 add_to_queue (struct GNUNET_CADET_Handle *h,
               struct GNUNET_CADET_TransmitHandle *th)
 {
-  GNUNET_CONTAINER_DLL_insert_tail (h->th_head, h->th_tail, th);
+  GNUNET_CONTAINER_DLL_insert_tail (h->th_head,
+                                    h->th_tail,
+                                    th);
 }
 
 
@@ -554,6 +556,7 @@ request_data (void *cls)
                       th->size,
                       &msg[1]);
   GNUNET_assert (osize == th->size);
+
   GNUNET_MQ_send (th->channel->cadet->mq,
                   env);
   GNUNET_free (th);
@@ -706,7 +709,6 @@ handle_local_data (void *cls,
   const struct GNUNET_MessageHeader *payload;
   const struct GNUNET_CADET_MessageHandler *handler;
   struct GNUNET_CADET_Channel *ch;
-  unsigned int i;
   uint16_t type;
 
   ch = retrieve_channel (h,
@@ -723,8 +725,7 @@ handle_local_data (void *cls,
        ntohl (message->ccn.channel_of_client),
        GC_m2s (type),
        type);
-
-  for (i = 0; i < h->n_handlers; i++)
+  for (unsigned i=0;i<h->n_handlers;i++)
   {
     handler = &h->message_handlers[i];
     if (handler->type == type)
@@ -738,11 +739,14 @@ handle_local_data (void *cls,
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "callback caused disconnection\n");
         GNUNET_CADET_channel_destroy (ch);
-        break;
+        return;
       }
-      break;
+      return;
     }
   }
+  /* Other peer sent message we do not comprehend. */
+  GNUNET_break_op (0);
+  GNUNET_CADET_receive_done (ch);
 }
 
 
