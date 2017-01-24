@@ -563,7 +563,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
     return 0;
   }
   msg->size = htons (msg_size);
-  msg->type = htons (1);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   data = (uint32_t *) &msg[1];
   *data = htonl (counter);
   if (GNUNET_NO == initialized)
@@ -757,7 +757,9 @@ data_callback (void *cls,
  * {callback_function, message_type, size_expected}
  */
 static struct GNUNET_CADET_MessageHandler handlers[] = {
-  {&data_callback, 1, sizeof (struct GNUNET_MessageHeader)},
+  {&data_callback,
+   GNUNET_MESSAGE_TYPE_DUMMY,
+   sizeof (struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
 
