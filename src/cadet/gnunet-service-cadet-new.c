@@ -621,7 +621,8 @@ handle_channel_destroy (void *cls,
                                                          ntohl (msg->ccn.channel_of_client),
                                                          ch));
   GCCH_channel_local_destroy (ch,
-                              c);
+                              c,
+                              msg->ccn);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -1201,6 +1202,7 @@ channel_destroy_iterator (void *cls,
                           void *value)
 {
   struct CadetClient *c = cls;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
   struct CadetChannel *ch = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1211,8 +1213,10 @@ channel_destroy_iterator (void *cls,
                  GNUNET_CONTAINER_multihashmap32_remove (c->channels,
                                                          key,
                                                          ch));
+  ccn.channel_of_client = htonl (key);
   GCCH_channel_local_destroy (ch,
-                              c);
+                              c,
+                              ccn);
   return GNUNET_OK;
 }
 

@@ -601,45 +601,49 @@ handle_channel_created (void *cls,
 
   ccn = msg->ccn;
   port_number = &msg->port;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating incoming channel %X [%s]\n",
-       ntohl (ccn.channel_of_client),
-       GNUNET_h2s (port_number));
   if (ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
   {
     GNUNET_break (0);
     return;
   }
   port = find_port (h, port_number);
-  if (NULL != port)
-  {
-    void *ctx;
-
-    ch = create_channel (h, ccn);
-    ch->peer = GNUNET_PEER_intern (&msg->peer);
-    ch->cadet = h;
-    ch->ccn = ccn;
-    ch->port = port;
-    ch->options = ntohl (msg->opt);
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", ch);
-    ctx = port->handler (port->cls, ch, &msg->peer, port->hash, ch->options);
-    if (NULL != ctx)
-      ch->ctx = ctx;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
-  }
-  else
+  if (NULL == port)
   {
     struct GNUNET_CADET_LocalChannelDestroyMessage *d_msg;
     struct GNUNET_MQ_Envelope *env;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "No handler for incoming channels\n");
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No handler for incoming channel %X [%s]\n",
+         ntohl (ccn.channel_of_client),
+         GNUNET_h2s (port_number));
+    /* FIXME: should disconnect instead, this is a serious error! */
     env = GNUNET_MQ_msg (d_msg,
                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
     d_msg->ccn = msg->ccn;
-    GNUNET_MQ_send (h->mq, env);
+    GNUNET_MQ_send (h->mq,
+                    env);
+    return;
   }
-  return;
+
+  ch = create_channel (h,
+                       ccn);
+  ch->peer = GNUNET_PEER_intern (&msg->peer);
+  ch->cadet = h;
+  ch->ccn = ccn;
+  ch->port = port;
+  ch->options = ntohl (msg->opt);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating incoming channel %X [%s] %p\n",
+       ntohl (ccn.channel_of_client),
+       GNUNET_h2s (port_number),
+       ch);
+  ch->ctx = port->handler (port->cls,
+                           ch,
+                           &msg->peer,
+                           port->hash,
+                           ch->options);
 }
 
 
@@ -735,12 +739,13 @@ handle_local_data (void *cls,
   payload = (struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a %s data on channel %s [%X] of type %s\n",
+       "Got a %s data on channel %s [%X] of type %s (%u)\n",
        GC_f2s (ntohl (ch->ccn.channel_of_client) >=
                GNUNET_CADET_LOCAL_CHANNEL_ID_CLI),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)),
        ntohl (message->ccn.channel_of_client),
-       GC_m2s (type));
+       GC_m2s (type),
+       type);
 
   for (i = 0; i < h->n_handlers; i++)
   {
@@ -748,7 +753,10 @@ handle_local_data (void *cls,
     if (handler->type == type)
     {
       if (GNUNET_OK !=
-          handler->callback (h->cls, ch, &ch->ctx, payload))
+          handler->callback (h->cls,
+                             ch,
+                             &ch->ctx,
+                             payload))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "callback caused disconnection\n");
@@ -1378,9 +1386,10 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_CADET_Handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CADET_connect()\n");
   h = GNUNET_new (struct GNUNET_CADET_Handle);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " addr %p\n", h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GNUNET_CADET_connect() %p\n",
+       h);
   h->cfg = cfg;
   h->cleaner = cleaner;
   h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
@@ -1401,7 +1410,6 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   for (h->n_handlers = 0;
        handlers && handlers[h->n_handlers].type;
        h->n_handlers++) ;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CADET_connect() END\n");
   return h;
 }
 
@@ -1574,18 +1582,19 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new channel to %s:%u\n",
-       GNUNET_i2s (peer), port);
   ccn.channel_of_client = htonl (0);
   ch = create_channel (h, ccn);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", ch);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n",
-       ntohl (ch->ccn.channel_of_client));
   ch->ctx = channel_ctx;
   ch->peer = GNUNET_PEER_intern (peer);
 
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating new channel to %s:%u at %p number %X\n",
+       GNUNET_i2s (peer),
+       port,
+       ch,
+       ntohl (ch->ccn.channel_of_client));
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
   msg->ccn = ch->ccn;
   msg->port = *port;
   msg->peer = *peer;

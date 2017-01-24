@@ -114,10 +114,12 @@ GCCH_bind (struct CadetChannel *ch,
  *
  * @param ch channel to destroy
  * @param c client that caused the destruction
+ * @param ccn client number of the client @a c
  */
 void
 GCCH_channel_local_destroy (struct CadetChannel *ch,
-                            struct CadetClient *c);
+                            struct CadetClient *c,
+                            struct GNUNET_CADET_ClientChannelNumber ccn);
 
 
 /**
@@ -166,6 +168,7 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch);
  * We got payload data for a channel.  Pass it on to the client.
  *
  * @param ch channel that got data
+ * @param msg message that was received
  */
 void
 GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
