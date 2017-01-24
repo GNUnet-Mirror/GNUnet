@@ -578,6 +578,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ccco->client_ready = GNUNET_YES;
 
   ch = GNUNET_new (struct CadetChannel);
+  ch->mid_recv.mid = htonl (1); /* The OPEN_ACK counts as message 0! */
   ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
   ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
   ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
@@ -898,7 +899,7 @@ GCCH_bind (struct CadetChannel *ch,
                         options);
   GNUNET_assert (ntohl (cccd->ccn.channel_of_client) <
                  GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
-  ch->mid_recv.mid = htonl (1); /* The CONNECT counts as message 0! */
+  ch->mid_recv.mid = htonl (1); /* The OPEN counts as message 0! */
   if (GNUNET_YES == ch->is_loopback)
   {
     ch->state = CADET_CHANNEL_OPEN_SENT;
