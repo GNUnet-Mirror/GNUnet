@@ -1451,7 +1451,6 @@ GCCH_handle_local_data (struct CadetChannel *ch,
                    buf_len);
     if (GNUNET_YES == receiver->client_ready)
     {
-      /* FIXME: this does not provide for flow control! */
       GSC_send_to_client (receiver->c,
                           env);
       send_ack_to_client (ch,
