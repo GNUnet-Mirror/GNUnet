@@ -2203,9 +2203,10 @@ start_client (struct GNUNET_SERVICE_Handle *sh,
                                               client);
   client->mst = GNUNET_MST_create (&service_client_mst_cb,
 				   client);
-  client->user_context = sh->connect_cb (sh->cb_cls,
-                                         client,
-                                         client->mq);
+  if (NULL != sh->connect_cb)
+    client->user_context = sh->connect_cb (sh->cb_cls,
+                                           client,
+                                           client->mq);
   GNUNET_MQ_set_handlers_closure (client->mq,
                                   client->user_context);
   client->recv_task
@@ -2525,9 +2526,10 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
   GNUNET_CONTAINER_DLL_remove (sh->clients_head,
                                sh->clients_tail,
                                c);
-  sh->disconnect_cb (sh->cb_cls,
-                     c,
-                     c->user_context);
+  if (NULL != sh->disconnect_cb)
+    sh->disconnect_cb (sh->cb_cls,
+                       c,
+                       c->user_context);
   if (NULL != c->warn_task)
   {
     GNUNET_SCHEDULER_cancel (c->warn_task);
