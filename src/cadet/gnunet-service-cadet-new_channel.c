@@ -861,9 +861,16 @@ send_ack_to_client (struct CadetChannel *ch,
   struct GNUNET_CADET_LocalAck *ack;
   struct CadetChannelClient *ccc;
 
+  ccc = (GNUNET_YES == to_owner) ? ch->owner : ch->dest;
+  if (NULL == ccc)
+  {
+    /* This can happen if we are just getting ACKs after
+       our local client already disconnected. */
+    GNUNET_assert (GNUNET_YES == ch->destroy);
+    return;
+  }
   env = GNUNET_MQ_msg (ack,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  ccc = (GNUNET_YES == to_owner) ? ch->owner : ch->dest;
   ack->ccn = ccc->ccn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CADET_LOCAL_ACK to %s (%s) at ccn %X (%u/%u pending)\n",
@@ -1431,6 +1438,7 @@ cmp_crm_by_next_retry (void *cls,
     return GNUNET_YES;
   return GNUNET_NO;
 }
+
 
 /**
  * Function called once the tunnel has sent one of our messages.
