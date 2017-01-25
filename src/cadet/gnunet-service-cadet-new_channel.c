@@ -526,6 +526,7 @@ send_channel_open (void *cls)
                                   &msgcc.header,
                                   &channel_open_sent_cb,
                                   ch);
+  GNUNET_assert (NULL == ch->retry_control_task);
 }
 
 
@@ -1315,6 +1316,7 @@ retry_transmission (void *cls)
                       &crm->data_message->header,
                       &data_sent_cb,
                       crm);
+  GNUNET_assert (NULL == ch->retry_data_task);
 }
 
 
@@ -1334,7 +1336,9 @@ data_sent_cb (void *cls)
   struct CadetReliableMessage *off;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
+  GNUNET_assert (NULL != crm->qe);
   crm->qe = NULL;
+  GNUNET_assert (NULL == ch->retry_data_task);
   GNUNET_CONTAINER_DLL_remove (ch->head_sent,
                                ch->tail_sent,
                                crm);
@@ -1361,8 +1365,6 @@ data_sent_cb (void *cls)
     GNUNET_CONTAINER_DLL_insert (ch->head_sent,
                                  ch->tail_sent,
                                  crm);
-    if (NULL != ch->retry_data_task)
-      GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     GNUNET_assert (NULL == crm->qe);
     ch->retry_data_task
       = GNUNET_SCHEDULER_add_delayed (crm->retry_delay,
@@ -1447,11 +1449,24 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_memcpy (&ld[1],
                    buf,
                    buf_len);
-    /* FIXME: this does not provide for flow control! */
-    GSC_send_to_client (receiver->c,
-                        env);
-    send_ack_to_client (ch,
-                        to_owner);
+    if (GNUNET_YES == receiver->client_ready)
+    {
+      /* FIXME: this does not provide for flow control! */
+      GSC_send_to_client (receiver->c,
+                          env);
+      send_ack_to_client (ch,
+                          to_owner);
+    }
+    else
+    {
+      struct CadetOutOfOrderMessage *oom;
+
+      oom = GNUNET_new (struct CadetOutOfOrderMessage);
+      oom->env = env;
+      GNUNET_CONTAINER_DLL_insert_tail (receiver->head_recv,
+                                        receiver->tail_recv,
+                                        oom);
+    }
     return GNUNET_OK;
   }
 
@@ -1475,10 +1490,16 @@ GCCH_handle_local_data (struct CadetChannel *ch,
        "Sending %u bytes from local client to %s\n",
        buf_len,
        GCCH_2s (ch));
+  if (NULL != ch->retry_data_task)
+  {
+    GNUNET_SCHEDULER_cancel (ch->retry_data_task);
+    ch->retry_data_task = NULL;
+  }
   crm->qe = GCT_send (ch->t,
                       &crm->data_message->header,
                       &data_sent_cb,
                       crm);
+  GNUNET_assert (NULL == ch->retry_data_task);
   return GNUNET_OK;
 }
 
@@ -1515,6 +1536,34 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
          ntohl (ccc->ccn.channel_of_client));
     return; /* none pending */
   }
+  if (GNUNET_YES == ch->is_loopback)
+  {
+    int to_owner;
+
+    /* Messages are always in-order, just send */
+    GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
+                                 ccc->tail_recv,
+                                 com);
+    GSC_send_to_client (ccc->c,
+                        com->env);
+    /* Notify sender that we can receive more */
+    if (ccc->ccn.channel_of_client ==
+        ch->owner->ccn.channel_of_client)
+    {
+      to_owner = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_assert (ccc->ccn.channel_of_client ==
+                     ch->dest->ccn.channel_of_client);
+      to_owner = GNUNET_YES;
+    }
+    send_ack_to_client (ch,
+                        to_owner);
+    GNUNET_free (com);
+    return;
+  }
+
   if ( (com->mid.mid != ch->mid_recv.mid) &&
        (GNUNET_NO == ch->out_of_order) )
   {
