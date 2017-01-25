@@ -1265,10 +1265,10 @@ retry_transmission (void *cls)
 
 
 /**
- * We got an ACK for a message in our queue, remove it from
+ * We got an PLAINTEXT_DATA_ACK for a message in our queue, remove it from
  * the queue and tell our client that it can send more.
  *
- * @param ch the channel that got the ACK
+ * @param ch the channel that got the PLAINTEXT_DATA_ACK
  * @param crm the message that got acknowledged
  */
 static void
