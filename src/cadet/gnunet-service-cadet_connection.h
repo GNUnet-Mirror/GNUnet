@@ -136,7 +136,7 @@ GCC_handle_create (struct CadetPeer *peer,
  */
 void
 GCC_handle_confirm (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg);
+                    const struct GNUNET_CADET_ConnectionCreateAckMessage *msg);
 
 
 /**

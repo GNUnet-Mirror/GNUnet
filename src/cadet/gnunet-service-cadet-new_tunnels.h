@@ -39,45 +39,13 @@
 
 
 /**
- * All the connectivity states a tunnel can be in.
- */
-enum CadetTunnelCState
-{
-  /**
-   * Uninitialized status, should never appear in operation.
-   */
-  CADET_TUNNEL_NEW,
-
-  /**
-   * No path to the peer known yet.
-   */
-  CADET_TUNNEL_SEARCHING,
-
-  /**
-   * Request sent, not yet answered.
-   */
-  CADET_TUNNEL_WAITING,
-
-  /**
-   * Peer connected and ready to accept data.
-   */
-  CADET_TUNNEL_READY,
-
-  /**
-   * Tunnel being shut down, don't try to keep it alive.
-   */
-  CADET_TUNNEL_SHUTDOWN
-};
-
-
-
-/**
  * All the encryption states a tunnel can be in.
  */
 enum CadetTunnelEState
 {
   /**
-   * Uninitialized status, should never appear in operation.
+   * Uninitialized status, we need to send KX.  We will stay
+   * in this state until the first connection is up.
    */
   CADET_TUNNEL_KEY_UNINITIALIZED,
 
@@ -87,19 +55,10 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_SENT,
 
   /**
-   * In OTR: New ephemeral key and ping sent, waiting for pong.
-   *
-   * This means that we DO have the peer's ephemeral key, otherwise the
-   * state would be KEY_SENT. We DO NOT have a valid session key (either no
-   * previous key or previous key expired).
-   *
-   *
-   * In Axolotl: Key sent and received but no deciphered traffic yet.
-   *
-   * This means that we can send traffic (otherwise we would never complete
-   * the handshake), but we don't have complete confirmation. Since the first
-   * traffic MUST be a complete channel creation 3-way handshake, no payload
-   * will be sent before confirmation.
+   * Key received and we sent ours back, but we got no traffic yet.
+   * We will not yet send traffic, as this might have been a replay.
+   * The other (initiating) peer should send a CHANNEL_OPEN next
+   * anyway.
    */
   CADET_TUNNEL_KEY_PING,
 
@@ -137,6 +96,15 @@ GCT_2s (const struct CadetTunnel *t);
  */
 struct CadetTunnel *
 GCT_create_tunnel (struct CadetPeer *destination);
+
+
+/**
+ * Destroys the tunnel @a t now, without delay. Used during shutdown.
+ *
+ * @param t tunnel to destroy
+ */
+void
+GCT_destroy_tunnel_now (struct CadetTunnel *t);
 
 
 /**
@@ -193,12 +161,23 @@ GCT_add_channel (struct CadetTunnel *t,
  *
  * @param t Tunnel.
  * @param ch Channel
- * @param gid unique number identifying @a ch within @a t
+ * @param ctn unique number identifying @a ch within @a t
  */
 void
 GCT_remove_channel (struct CadetTunnel *t,
                     struct CadetChannel *ch,
-                    struct GNUNET_CADET_ChannelTunnelNumber gid);
+                    struct GNUNET_CADET_ChannelTunnelNumber ctn);
+
+
+/**
+ * Send a DESTROY message via the tunnel.
+ *
+ * @param t the tunnel to transmit over
+ * @param ctn ID of the channel to destroy
+ */
+void
+GCT_send_channel_destroy (struct CadetTunnel *t,
+                          struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**
@@ -297,17 +276,6 @@ void
 GCT_iterate_channels (struct CadetTunnel *t,
                       GCT_ChannelIterator iter,
                       void *iter_cls);
-
-
-/**
- * Get the connectivity state of a tunnel.
- *
- * @param t Tunnel.
- *
- * @return Tunnel's connectivity state.
- */
-enum CadetTunnelCState
-GCT_get_cstate (struct CadetTunnel *t);
 
 
 /**

@@ -68,7 +68,7 @@ extern "C"
 /**
  * Minimum value for channel IDs of local clients.
  */
-#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000
+#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000U
 
 /**
  * FIXME.
@@ -135,10 +135,10 @@ struct GNUNET_CADET_PortMessage
 /**
  * Message for a client to create channels.
  */
-struct GNUNET_CADET_ChannelOpenMessageMessage
+struct GNUNET_CADET_LocalChannelCreateMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE
    *
    * Size: sizeof(struct GNUNET_CADET_ChannelOpenMessageMessage)
    */
@@ -147,7 +147,7 @@ struct GNUNET_CADET_ChannelOpenMessageMessage
   /**
    * ID of a channel controlled by this client.
    */
-  struct GNUNET_CADET_ClientChannelNumber channel_id;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
    * Channel's peer
@@ -167,21 +167,19 @@ struct GNUNET_CADET_ChannelOpenMessageMessage
 
 
 /**
- * Message for a client to destroy channels.
+ * Message for or to a client to destroy tunnel.
  */
-struct GNUNET_CADET_ChannelDestroyMessage
+struct GNUNET_CADET_LocalChannelDestroyMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_DESTROY
-   *
-   * Size: sizeof(struct GNUNET_CADET_ChannelDestroyMessage)
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of a channel controlled by this client.
    */
-  struct GNUNET_CADET_ClientChannelNumber channel_id;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 };
 
 
@@ -198,7 +196,7 @@ struct GNUNET_CADET_LocalData
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ClientChannelNumber id;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
    * Payload follows
@@ -220,13 +218,15 @@ struct GNUNET_CADET_LocalAck
   /**
    * ID of the channel allowed to send more data.
    */
-  struct GNUNET_CADET_ClientChannelNumber channel_id;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
 };
 
 
 /**
  * Message to inform the client about channels in the service.
+ *
+ * TODO: split into two messages!
  */
 struct GNUNET_CADET_LocalInfo
 {
@@ -239,12 +239,7 @@ struct GNUNET_CADET_LocalInfo
   /**
    * ID of the channel allowed to send more data.
    */
-  struct GNUNET_CADET_ClientChannelNumber channel_id;
-
-  /**
-   * ID of the owner of the channel (can be local peer).
-   */
-//   struct GNUNET_PeerIdentity owner;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
    * ID of the destination of the channel (can be local peer).
@@ -255,6 +250,8 @@ struct GNUNET_CADET_LocalInfo
 
 /**
  * Message to inform the client about one of the peers in the service.
+ *
+ * TODO: split into two messages!
  */
 struct GNUNET_CADET_LocalInfoPeer
 {
@@ -286,6 +283,8 @@ struct GNUNET_CADET_LocalInfoPeer
 
 /**
  * Message to inform the client about one of the tunnels in the service.
+ *
+ * TODO: split into two messages!
  */
 struct GNUNET_CADET_LocalInfoTunnel
 {

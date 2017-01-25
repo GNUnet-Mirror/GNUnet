@@ -249,9 +249,9 @@ handle_mq_error (void *cls,
 {
   struct GNUNET_CORE_Handle *h = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MQ ERROR: %d\n",
-              error);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "MQ ERROR: %d\n",
+       error);
   reconnect_later (h);
 }
 
@@ -348,10 +348,10 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) cork);
   sm->reserved = htonl (0);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Calling get_message with buffer of %u bytes (%s)\n",
-              (unsigned int) msize,
-	      cork ? "corked" : "uncorked");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Calling get_message with buffer of %u bytes (%s)\n",
+       (unsigned int) msize,
+       cork ? "corked" : "uncorked");
 }
 
 

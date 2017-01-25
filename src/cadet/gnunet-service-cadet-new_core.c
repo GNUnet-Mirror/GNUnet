@@ -27,10 +27,7 @@
  * All functions in this file should use the prefix GCO (Gnunet Cadet cOre (bottom))
  *
  * TODO:
- * - pass encrypted ACK to connection (!)
- * - given BROKEN messages, destroy paths (?)
- * -
- * - handle POLL (if needed)
+ * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_core.h"
@@ -40,6 +37,10 @@
 #include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_core_service.h"
 #include "cadet_protocol.h"
+
+
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-cor",__VA_ARGS__)
+
 
 /**
  * Number of messages we are willing to buffer per route.
@@ -172,6 +173,11 @@ route_message (struct CadetPeer *prev,
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to route message of type %u from %s on connection %s: no route\n",
+         ntohs (msg->type),
+         GCP_2s (prev),
+         GNUNET_sh2s (&cid->connection_of_tunnel));
     env = GNUNET_MQ_msg (bm,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
     bm->cid = *cid;
@@ -183,6 +189,12 @@ route_message (struct CadetPeer *prev,
   dir = (prev == route->prev.hop) ? &route->next : &route->prev;
   if (GNUNET_YES == dir->is_ready)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Routing message of type %u from %s to %s on connection %s\n",
+         ntohs (msg->type),
+         GCP_2s (prev),
+         GNUNET_i2s (GCP_get_id (dir->hop)),
+         GNUNET_sh2s (&cid->connection_of_tunnel));
     dir->is_ready = GNUNET_NO;
     GCP_send (dir->mqm,
               GNUNET_MQ_msg_copy (msg));
@@ -192,12 +204,24 @@ route_message (struct CadetPeer *prev,
   if (NULL != env)
   {
     /* Queue full, drop earliest message in queue */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Queue full due to new message of type %u from %s to %s on connection %s, dropping old message\n",
+         ntohs (msg->type),
+         GCP_2s (prev),
+         GNUNET_i2s (GCP_get_id (dir->hop)),
+         GNUNET_sh2s (&cid->connection_of_tunnel));
     GNUNET_assert (dir->out_rpos == dir->out_wpos);
     GNUNET_MQ_discard (env);
     dir->out_rpos++;
     if (ROUTE_BUFFER_SIZE == dir->out_rpos)
       dir->out_rpos = 0;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Queueing new message of type %u from %s to %s on connection %s\n",
+       ntohs (msg->type),
+       GCP_2s (prev),
+       GNUNET_i2s (GCP_get_id (dir->hop)),
+       GNUNET_sh2s (&cid->connection_of_tunnel));
   env = GNUNET_MQ_msg_copy (msg);
   dir->out_buffer[dir->out_wpos] = env;
   dir->out_wpos++;
@@ -260,6 +284,11 @@ destroy_direction (struct RouteDirection *dir)
 static void
 destroy_route (struct CadetRoute *route)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Destroying route from %s to %s of connection %s\n",
+       GNUNET_i2s  (GCP_get_id (route->prev.hop)),
+       GNUNET_i2s2 (GCP_get_id (route->next.hop)),
+       GNUNET_sh2s (&route->cid.connection_of_tunnel));
   destroy_direction (&route->prev);
   destroy_direction (&route->next);
   GNUNET_free (route);
@@ -283,6 +312,15 @@ send_broken (struct RouteDirection *target,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
+  if (NULL == target->mqm)
+    return; /* Can't send notification, connection is down! */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying %s about BROKEN route at %s-%s of connection %s\n",
+       GCP_2s (target->hop),
+       GNUNET_i2s (peer1),
+       GNUNET_i2s2 (peer2),
+       GNUNET_sh2s (&cid->connection_of_tunnel));
+
   env = GNUNET_MQ_msg (bm,
                        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
   bm->cid = *cid;
@@ -290,6 +328,7 @@ send_broken (struct RouteDirection *target,
     bm->peer1 = *peer1;
   if (NULL != peer2)
     bm->peer2 = *peer2;
+
   GCP_request_mq_cancel (target->mqm,
                          env);
   target->mqm = NULL;
@@ -406,6 +445,9 @@ handle_connection_create (void *cls,
       get_route (&msg->cid))
   {
     /* Duplicate CREATE, pass it on, previous one might have been lost! */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Passing on duplicate CADET_CONNECTION_CREATE message on connection %s\n",
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     route_message (sender,
                    &msg->cid,
                    &msg->header);
@@ -422,16 +464,23 @@ handle_connection_create (void *cls,
                                              &msg->cid.connection_of_tunnel);
     if (NULL != cc)
     {
-      /* Duplicate CREATE, likely our ACK got lost, retransmit the ACK! */
-      GNUNET_break (0); // FIXME: not implemented!
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received duplicate CADET_CONNECTION_CREATE message on connection %s\n",
+           GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+      GCC_handle_duplicate_create (cc);
       return;
     }
 
-    path = GCPP_get_path_from_route (path_length,
-                                     pids);
     origin = GCP_get (&pids[0],
                       GNUNET_YES);
-    GCT_add_inbound_connection (GCT_create_tunnel (origin),
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CADET_CONNECTION_CREATE message from %s for connection %s, building inverse path\n",
+         GCP_2s (origin),
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+    path = GCPP_get_path_from_route (path_length - 1,
+                                     pids);
+    GCT_add_inbound_connection (GCP_get_tunnel (origin,
+                                                GNUNET_YES),
                                 &msg->cid,
                                 path);
     return;
@@ -446,6 +495,12 @@ handle_connection_create (void *cls,
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_CADET_ConnectionBrokenMessage *bm;
 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CADET_CONNECTION_CREATE from %s for %s. Next hop %s:%u is down. Sending BROKEN\n",
+         GCP_2s (sender),
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel),
+         GNUNET_i2s (&pids[off + 1]),
+         off + 1);
     env = GNUNET_MQ_msg (bm,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
     bm->cid = msg->cid;
@@ -457,6 +512,12 @@ handle_connection_create (void *cls,
   }
 
   /* Workable route, create routing entry */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received CADET_CONNECTION_CREATE from %s for %s. Next hop %s:%u is up. Creating route\n",
+       GCP_2s (sender),
+       GNUNET_sh2s (&msg->cid.connection_of_tunnel),
+       GNUNET_i2s (&pids[off + 1]),
+       off + 1);
   route = GNUNET_new (struct CadetRoute);
   route->cid = msg->cid;
   dir_init (&route->prev,
@@ -481,7 +542,7 @@ handle_connection_create (void *cls,
  */
 static void
 handle_connection_create_ack (void *cls,
-                              const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
+                              const struct GNUNET_CADET_ConnectionCreateAckMessage *msg)
 {
   struct CadetPeer *peer = cls;
   struct CadetConnection *cc;
@@ -502,7 +563,10 @@ handle_connection_create_ack (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    GCC_handle_connection_ack (cc);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CONNECTION_CREATE_ACK for connection %s.\n",
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+    GCC_handle_connection_create_ack (cc);
     return;
   }
 
@@ -544,6 +608,9 @@ handle_connection_broken (void *cls,
       GNUNET_break_op (0);
       return;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CONNECTION_BROKEN for connection %s. Destroying it.\n",
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     GCC_destroy (cc);
 
     /* FIXME: also destroy the path up to the specified link! */
@@ -590,78 +657,23 @@ handle_connection_destroy (void *cls,
       GNUNET_break_op (0);
       return;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CONNECTION_DESTROY for connection %s. Destroying connection.\n",
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+
     GCC_destroy (cc);
     return;
   }
 
   /* We're just an intermediary peer, route the message along its path */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received CONNECTION_DESTROY for connection %s. Destroying route.\n",
+       GNUNET_sh2s (&msg->cid.connection_of_tunnel));
   route = get_route (&msg->cid);
   route_message (peer,
                  &msg->cid,
                  &msg->header);
   destroy_route (route);
-}
-
-
-/**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_HOP_BY_HOP_ENCRYPTED_ACK.
- *
- * @param cls Closure (CadetPeer for neighbor that sent the message).
- * @param msg Message itself.
- */
-static void
-handle_hop_by_hop_encrypted_ack (void *cls,
-                                 const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg)
-{
-  struct CadetPeer *peer = cls;
-  struct CadetConnection *cc;
-
-  /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
-  if (NULL != cc)
-  {
-    /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
-
-    if (peer !=
-        GCPP_get_peer_at_offset (path,
-                                 0))
-    {
-      /* received message from unexpected direction, ignore! */
-      GNUNET_break_op (0);
-      return;
-    }
-#if FIXME
-    GCC_handle_ack (peer,
-                    msg);
-#endif
-    return;
-  }
-
-  /* We're just an intermediary peer, route the message along its path */
-  route_message (peer,
-                 &msg->cid,
-                 &msg->header);
-}
-
-
-/**
- * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL
- *
- * @param cls Closure (CadetPeer for neighbor that sent the message).
- * @param msg Message itself.
- */
-static void
-handle_poll (void *cls,
-             const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg)
-{
-  struct CadetPeer *peer = cls;
-
-#if FIXME
-  GCC_handle_poll (peer,
-                   msg);
-#endif
 }
 
 
@@ -755,7 +767,6 @@ handle_tunnel_encrypted (void *cls,
                           msg);
     return;
   }
-
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
@@ -804,6 +815,9 @@ core_connect_cb (void *cls,
 {
   struct CadetPeer *cp;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "CORE connection to peer %s was established.\n",
+       GNUNET_i2s (peer));
   cp = GCP_get (peer,
                 GNUNET_YES);
   GCP_set_mq (cp,
@@ -825,6 +839,9 @@ core_disconnect_cb (void *cls,
 {
   struct CadetPeer *cp = peer_cls;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "CORE connection to peer %s went down.\n",
+       GNUNET_i2s (peer));
   GCP_set_mq (cp,
               NULL);
 }
@@ -845,7 +862,7 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                            NULL),
     GNUNET_MQ_hd_fixed_size (connection_create_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK,
-                             struct GNUNET_CADET_ConnectionCreateMessageAckMessage,
+                             struct GNUNET_CADET_ConnectionCreateAckMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (connection_broken,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
@@ -854,14 +871,6 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_MQ_hd_fixed_size (connection_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
                              struct GNUNET_CADET_ConnectionDestroyMessage,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (hop_by_hop_encrypted_ack,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK,
-                             struct GNUNET_CADET_ConnectionEncryptedAckMessage,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (poll,
-                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL,
-                             struct GNUNET_CADET_ConnectionHopByHopPollMessage,
                              NULL),
     GNUNET_MQ_hd_fixed_size (tunnel_kx,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,

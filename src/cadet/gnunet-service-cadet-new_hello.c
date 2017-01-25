@@ -17,7 +17,16 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
+/**
+ * @file cadet/gnunet-service-cadet-new_hello.c
+ * @brief spread knowledge about how to contact other peers from PEERINFO
+ * @author Bartlomiej Polot
+ * @author Christian Grothoff
+ *
+ * TODO:
+ * - is most of this necessary/helpful?
+ * - should we not simply restrict this to OUR hello?
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
@@ -25,6 +34,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "cadet_protocol.h"
 #include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet-new_dht.h"
 #include "gnunet-service-cadet-new_hello.h"
 #include "gnunet-service-cadet-new_peer.h"
 
@@ -43,7 +53,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo;
 /**
  * Iterator context.
  */
-static struct GNUNET_PEERINFO_NotifyContext* nc;
+static struct GNUNET_PEERINFO_NotifyContext *nc;
 
 
 /**
@@ -71,6 +81,7 @@ got_hello (void *cls,
   {
     GNUNET_free_non_null (mine);
     mine = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (&hello->header);
+    GCD_hello_update ();
     return;
   }
 
@@ -83,7 +94,6 @@ got_hello (void *cls,
                   GNUNET_YES);
   GCP_set_hello (peer,
                  hello);
-
 }
 
 

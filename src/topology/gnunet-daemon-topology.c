@@ -534,10 +534,10 @@ schedule_next_hello (void *cls)
 			    1,
 			    GNUNET_NO);
   /* prepare to send the next one */
-  if (NULL != pl->hello_delay_task)
-    GNUNET_SCHEDULER_cancel (pl->hello_delay_task);
   pl->next_hello_allowed
     = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
+  if (NULL != pl->hello_delay_task)
+    GNUNET_SCHEDULER_cancel (pl->hello_delay_task);
   pl->hello_delay_task
     = GNUNET_SCHEDULER_add_now (&schedule_next_hello,
 				pl);
@@ -1022,7 +1022,7 @@ check_hello (void *cls,
 	     const struct GNUNET_HELLO_Message *message)
 {
   struct GNUNET_PeerIdentity pid;
-    
+
   if (GNUNET_OK !=
       GNUNET_HELLO_get_id (message,
 			   &pid))

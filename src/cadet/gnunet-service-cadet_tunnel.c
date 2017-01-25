@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,16 +17,17 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
+/**
+ * @file cadet/gnunet-service-cadet_tunnel.c
+ * @brief logical links between CADET clients
+ * @author Bartlomiej Polot
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
-
 #include "cadet_protocol.h"
 #include "cadet_path.h"
-
 #include "gnunet-service-cadet_tunnel.h"
 #include "gnunet-service-cadet_connection.h"
 #include "gnunet-service-cadet_channel.h"
@@ -310,7 +311,7 @@ struct CadetTunnel
   /**
    * Channel ID for the next created channel.
    */
-  struct GNUNET_CADET_ChannelTunnelNumber next_chid;
+  struct GNUNET_CADET_ChannelTunnelNumber next_ctn;
 
   /**
    * Destroy flag: if true, destroy on last message.
@@ -1562,7 +1563,7 @@ send_channel_destroy (struct CadetTunnel *t,
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
-  msg.chid = gid;
+  msg.ctn = gid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "WARNING destroying unknown channel %u on tunnel %s\n",
@@ -1608,7 +1609,7 @@ handle_data (struct CadetTunnel *t,
 
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats,
@@ -1617,8 +1618,8 @@ handle_data (struct CadetTunnel *t,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "channel 0x%X unknown\n",
-         ntohl (msg->chid.cn));
-    send_channel_destroy (t, msg->chid);
+         ntohl (msg->ctn.cn));
+    send_channel_destroy (t, msg->ctn);
     return;
   }
 
@@ -1653,13 +1654,13 @@ handle_data_ack (struct CadetTunnel *t,
   }
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data ack on unknown channel",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
-         ntohl (msg->chid.cn));
+         ntohl (msg->ctn.cn));
     return;
   }
 
@@ -1689,7 +1690,7 @@ handle_ch_create (struct CadetTunnel *t,
   }
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL != ch && ! GCT_is_loopback (t))
   {
     /* Probably a retransmission, safe to ignore */
@@ -1724,14 +1725,14 @@ handle_ch_nack (struct CadetTunnel *t,
   }
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# channel NACK on unknown channel",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "WARNING channel %u unknown\n",
-         ntohl (msg->chid.cn));
+         ntohl (msg->ctn.cn));
     return;
   }
 
@@ -1766,7 +1767,7 @@ handle_ch_ack (struct CadetTunnel *t,
   }
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats,
@@ -1775,7 +1776,7 @@ handle_ch_ack (struct CadetTunnel *t,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "WARNING channel %u unknown\n",
-         ntohl (msg->chid.cn));
+         ntohl (msg->ctn.cn));
     return;
   }
 
@@ -1810,7 +1811,7 @@ handle_ch_destroy (struct CadetTunnel *t,
   }
 
   /* Check channel */
-  ch = GCT_get_channel (t, msg->chid);
+  ch = GCT_get_channel (t, msg->ctn);
   if (NULL == ch)
   {
     /* Probably a retransmission, safe to ignore */
@@ -2203,7 +2204,7 @@ GCT_new (struct CadetPeer *destination)
   struct CadetTunnel *t;
 
   t = GNUNET_new (struct CadetTunnel);
-  t->next_chid.cn = 0;
+  t->next_ctn.cn = 0;
   t->peer = destination;
 
   if (GNUNET_OK !=
@@ -2509,13 +2510,13 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch)
  * Search for a channel by global ID.
  *
  * @param t Tunnel containing the channel.
- * @param chid Public channel number.
+ * @param ctn Public channel number.
  *
  * @return channel handler, NULL if doesn't exist
  */
 struct CadetChannel *
 GCT_get_channel (struct CadetTunnel *t,
-                 struct GNUNET_CADET_ChannelTunnelNumber chid)
+                 struct GNUNET_CADET_ChannelTunnelNumber ctn)
 {
   struct CadetTChannel *iter;
 
@@ -2524,7 +2525,7 @@ GCT_get_channel (struct CadetTunnel *t,
 
   for (iter = t->channel_head; NULL != iter; iter = iter->next)
   {
-    if (GCCH_get_id (iter->ch).cn == chid.cn)
+    if (GCCH_get_id (iter->ch).cn == ctn.cn)
       break;
   }
 
@@ -2972,9 +2973,9 @@ GCT_get_destination (struct CadetTunnel *t)
  * @return GID of a channel free to use.
  */
 struct GNUNET_CADET_ChannelTunnelNumber
-GCT_get_next_chid (struct CadetTunnel *t)
+GCT_get_next_ctn (struct CadetTunnel *t)
 {
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
   struct GNUNET_CADET_ChannelTunnelNumber mask;
   int result;
 
@@ -2987,21 +2988,21 @@ GCT_get_next_chid (struct CadetTunnel *t)
     mask.cn = htonl (0x40000000);
   else
     mask.cn = 0x0;
-  t->next_chid.cn |= mask.cn;
+  t->next_ctn.cn |= mask.cn;
 
-  while (NULL != GCT_get_channel (t, t->next_chid))
+  while (NULL != GCT_get_channel (t, t->next_ctn))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Channel %u exists...\n",
-         t->next_chid.cn);
-    t->next_chid.cn = htonl ((ntohl (t->next_chid.cn) + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
-    t->next_chid.cn |= mask.cn;
+         t->next_ctn.cn);
+    t->next_ctn.cn = htonl ((ntohl (t->next_ctn.cn) + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
+    t->next_ctn.cn |= mask.cn;
   }
-  chid = t->next_chid;
-  t->next_chid.cn = (t->next_chid.cn + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
-  t->next_chid.cn |= mask.cn;
+  ctn = t->next_ctn;
+  t->next_ctn.cn = (t->next_ctn.cn + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
+  t->next_ctn.cn |= mask.cn;
 
-  return chid;
+  return ctn;
 }
 
 

@@ -72,6 +72,7 @@ GCCH_destroy (struct CadetChannel *ch);
 struct GNUNET_CADET_ChannelTunnelNumber
 GCCH_get_id (const struct CadetChannel *ch);
 
+
 /**
  * Get the channel tunnel.
  *
@@ -81,6 +82,7 @@ GCCH_get_id (const struct CadetChannel *ch);
  */
 struct CadetTunnel *
 GCCH_get_tunnel (const struct CadetChannel *ch);
+
 
 /**
  * Get free buffer space towards the client on a specific channel.
@@ -224,7 +226,7 @@ GCCH_handle_local_destroy (struct CadetChannel *ch,
  */
 int
 GCCH_handle_local_create (struct CadetClient *c,
-                          struct GNUNET_CADET_ChannelOpenMessageMessage *msg);
+                          struct GNUNET_CADET_LocalChannelCreateMessage *msg);
 
 /**
  * Handler for cadet network payload traffic.

@@ -617,7 +617,7 @@ send_ack (struct CadetConnection *c,
   /* Build ACK message and send on conn */
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK);
-  msg.cemi = ack_cemi;
+  msg.cemi_max = ack_cemi;
   msg.cid = c->id;
 
   prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header,
@@ -1054,9 +1054,9 @@ static void
 send_connection_ack (struct CadetConnection *c, int fwd)
 {
   static struct CadetEncryptedMessageIdentifier zero;
-  struct GNUNET_CADET_ConnectionCreateMessageAckMessage msg;
+  struct GNUNET_CADET_ConnectionCreateAckMessage msg;
   struct CadetTunnel *t;
-  const uint16_t size = sizeof (struct GNUNET_CADET_ConnectionCreateMessageAckMessage);
+  const uint16_t size = sizeof (struct GNUNET_CADET_ConnectionCreateAckMessage);
   const uint16_t type = GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK;
 
   GCC_check_connections ();
@@ -2067,7 +2067,7 @@ GCC_handle_create (struct CadetPeer *peer,
  */
 void
 GCC_handle_confirm (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionCreateMessageAckMessage *msg)
+                    const struct GNUNET_CADET_ConnectionCreateAckMessage *msg)
 {
   static struct CadetEncryptedMessageIdentifier zero;
   struct CadetConnection *c;
@@ -2373,7 +2373,7 @@ GCC_handle_ack (struct CadetPeer *peer,
     return;
   }
 
-  ack = msg->cemi;
+  ack = msg->cemi_max;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " %s ACK %u (was %u)\n",
        GC_f2s (fwd),
        ntohl (ack.pid),

@@ -155,7 +155,7 @@ struct GNUNET_SCHEDULER_Task
    * Is this task run on shutdown?
    */
   int on_shutdown;
-  
+
   /**
    * Is this task in the ready list?
    */
@@ -490,7 +490,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
 
 
 /**
- * Request the shutdown of a scheduler.  Marks all tasks 
+ * Request the shutdown of a scheduler.  Marks all tasks
  * awaiting shutdown as ready. Note that tasks
  * scheduled with #GNUNET_SCHEDULER_add_shutdown() AFTER this call
  * will be delayed until the next shutdown signal.
@@ -534,13 +534,13 @@ destroy_task (struct GNUNET_SCHEDULER_Task *t)
  * Output stack trace of task @a t.
  *
  * @param t task to dump stack trace of
- */ 
+ */
 static void
 dump_backtrace (struct GNUNET_SCHEDULER_Task *t)
 {
 #if EXECINFO
   unsigned int i;
-  
+
   for (i = 0; i < t->num_backtrace_strings; i++)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Task %p trace %u: %s\n",
@@ -1080,10 +1080,10 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
 
 
 /**
- * Schedule a new task to be run with a specified delay.  The task
- * will be scheduled for execution once the delay has expired.
+ * Schedule a new task to be run at the specified time.  The task
+ * will be scheduled for execution at time @a at.
  *
- * @param delay when should this operation time out?
+ * @param at time when the operation should run
  * @param priority priority to use for the task
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -1091,10 +1091,10 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
  *         only valid until @a task is started!
  */
 struct GNUNET_SCHEDULER_Task *
-GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
-					    enum GNUNET_SCHEDULER_Priority priority,
-					    GNUNET_SCHEDULER_TaskCallback task,
-                                            void *task_cls)
+GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
+                                       enum GNUNET_SCHEDULER_Priority priority,
+                                       GNUNET_SCHEDULER_TaskCallback task,
+                                       void *task_cls)
 {
   struct GNUNET_SCHEDULER_Task *t;
   struct GNUNET_SCHEDULER_Task *pos;
@@ -1110,12 +1110,13 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
-  t->timeout = GNUNET_TIME_relative_to_absolute (delay);
+  t->timeout = at;
   t->priority = priority;
   t->lifeness = current_lifeness;
   /* try tail first (optimization in case we are
    * appending to a long list of tasks with timeouts) */
-  if (0 == delay.rel_value_us)
+  if ( (NULL == pending_timeout_head) ||
+       (at.abs_value_us < pending_timeout_head->timeout.abs_value_us) )
   {
     GNUNET_CONTAINER_DLL_insert (pending_timeout_head,
                                  pending_timeout_tail,
@@ -1144,15 +1145,39 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
                                        pending_timeout_tail,
                                        prev,
                                        t);
-    /* finally, update heuristic insertion point to last insertion... */
-    pending_timeout_last = t;
   }
+  /* finally, update heuristic insertion point to last insertion... */
+  pending_timeout_last = t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding task: %p\n",
        t);
   init_backtrace (t);
   return t;
+}
+
+
+/**
+ * Schedule a new task to be run with a specified delay.  The task
+ * will be scheduled for execution once the delay has expired.
+ *
+ * @param delay when should this operation time out?
+ * @param priority priority to use for the task
+ * @param task main function of the task
+ * @param task_cls closure of @a task
+ * @return unique task identifier for the job
+ *         only valid until @a task is started!
+ */
+struct GNUNET_SCHEDULER_Task *
+GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
+					    enum GNUNET_SCHEDULER_Priority priority,
+					    GNUNET_SCHEDULER_TaskCallback task,
+                                            void *task_cls)
+{
+  return GNUNET_SCHEDULER_add_at_with_priority (GNUNET_TIME_relative_to_absolute (delay),
+                                                priority,
+                                                task,
+                                                task_cls);
 }
 
 
@@ -1178,6 +1203,29 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 
 
 /**
+ * Schedule a new task to be run at the specified time.  The task
+ * will be scheduled for execution once specified time has been
+ * reached. It will be run with the DEFAULT priority.
+ *
+ * @param at time at which this operation should run
+ * @param task main function of the task
+ * @param task_cls closure of @a task
+ * @return unique task identifier for the job
+ *         only valid until @a task is started!
+ */
+struct GNUNET_SCHEDULER_Task *
+GNUNET_SCHEDULER_add_at (struct GNUNET_TIME_Absolute at,
+                         GNUNET_SCHEDULER_TaskCallback task,
+                         void *task_cls)
+{
+  return GNUNET_SCHEDULER_add_at_with_priority (at,
+                                                GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                                task,
+                                                task_cls);
+}
+
+
+/**
  * Schedule a new task to be run with a specified delay.  The task
  * will be scheduled for execution once the delay has expired. It
  * will be run with the DEFAULT priority.
@@ -1195,7 +1243,8 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
 {
   return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
 						     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-						     task, task_cls);
+						     task,
+                                                     task_cls);
 }
 
 
@@ -1391,7 +1440,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.  It will be run with the DEFAULT priority.
  *
- * @param delay when should this operation time out? 
+ * @param delay when should this operation time out?
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -1640,7 +1689,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
  * </code>
  *
  * @param prio how important is this task?
- * @param delay how long should we wait? 
+ * @param delay how long should we wait?
  * @param rs set of file descriptors we want to read (can be NULL)
  * @param ws set of file descriptors we want to write (can be NULL)
  * @param task main function of the task

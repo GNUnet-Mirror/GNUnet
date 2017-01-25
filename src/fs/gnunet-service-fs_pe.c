@@ -427,10 +427,10 @@ schedule_peer_transmission (void *cls)
                            gettext_noop ("# delay heap timeout (ms)"),
                            delay.rel_value_us / 1000LL, GNUNET_NO);
 
-    pp->task =
-        GNUNET_SCHEDULER_add_delayed (delay,
-                                      &schedule_peer_transmission,
-                                      pp);
+    pp->task
+      = GNUNET_SCHEDULER_add_at (rp->earliest_transmission,
+                                 &schedule_peer_transmission,
+                                 pp);
     return;
   }
 #if INSANE_STATISTICS

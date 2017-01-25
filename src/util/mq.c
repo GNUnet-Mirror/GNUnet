@@ -811,12 +811,13 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
  * @param cb_cls closure for the callback
  */
 void
-GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *mqm,
+GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
                        GNUNET_SCHEDULER_TaskCallback cb,
                        void *cb_cls)
 {
-  mqm->sent_cb = cb;
-  mqm->sent_cls = cb_cls;
+  GNUNET_assert (NULL == ev->sent_cb);
+  ev->sent_cb = cb;
+  ev->sent_cls = cb_cls;
 }
 
 

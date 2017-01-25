@@ -75,36 +75,36 @@ GML_shutdown (void);
  * Get a channel from a client.
  *
  * @param c Client to check.
- * @param chid Channel ID, must be local (> 0x800...).
+ * @param ccn Channel ID, must be local (> 0x800...).
  *
  * @return non-NULL if channel exists in the clients lists
  */
 struct CadetChannel *
 GML_channel_get (struct CadetClient *c,
-                 struct GNUNET_CADET_ClientChannelNumber chid);
+                 struct GNUNET_CADET_ClientChannelNumber ccn);
 
 /**
  * Add a channel to a client
  *
  * @param client Client.
- * @param chid Channel ID.
+ * @param ccn Channel ID.
  * @param ch Channel.
  */
 void
 GML_channel_add (struct CadetClient *client,
-                 struct GNUNET_CADET_ClientChannelNumber chid,
+                 struct GNUNET_CADET_ClientChannelNumber ccn,
                  struct CadetChannel *ch);
 
 /**
  * Remove a channel from a client
  *
  * @param client Client.
- * @param chid Channel ID.
+ * @param ccn Channel ID.
  * @param ch Channel.
  */
 void
 GML_channel_remove (struct CadetClient *client,
-                    struct GNUNET_CADET_ClientChannelNumber chid,
+                    struct GNUNET_CADET_ClientChannelNumber ccn,
                     struct CadetChannel *ch);
 
 /**
@@ -115,7 +115,7 @@ GML_channel_remove (struct CadetClient *client,
  * @return LID of a channel free to use.
  */
 struct GNUNET_CADET_ClientChannelNumber
-GML_get_next_chid (struct CadetClient *c);
+GML_get_next_ccn (struct CadetClient *c);
 
 /**
  * Check if client has registered with the service and has not disconnected

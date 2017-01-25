@@ -497,7 +497,12 @@ struct GNUNET_CADET_ChannelTunnelNumber
 {
   /**
    * Which number does this channel have that uniquely identfies
-   * it within its tunnel?
+   * it within its tunnel, in network byte order.
+   *
+   * Given two peers, both may initiate channels over the same tunnel.
+   * The @e cn must be greater or equal to 0x80000000 (high-bit set)
+   * for tunnels initiated with the peer that has the larger peer
+   * identity as compared using #GNUNET_CRYPTO_cmp_peer_identity().
    */
   uint32_t cn GNUNET_PACKED;
 };
@@ -685,6 +690,164 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel);
  */
 const struct GNUNET_HashCode *
 GC_u2h (uint32_t port);
+
+
+/******************************************************************************/
+/******************************* MQ-BASED API *********************************/
+/******************************************************************************/
+
+/**
+ * Function called after #GNUNET_CADET_connecT has succeeded (or failed
+ * for good). Implementations of this function must not call
+ * #GNUNET_CADET_disconnecT (other than by scheduling a new task to
+ * do this later).
+ *
+ * @param cls closure
+ * @param connected #GNUNET_YES if successfully connected, #GNUNET_NO otherwise.
+ */
+typedef void
+(*GNUNET_CADET_StartupCallback) (void *cls, int connected);
+
+
+/**
+ * Method called whenever a given peer connects in mq-based CADET.
+ *
+ * @param cls Closure given to @a GNUNET_CADET_connecT.
+ * @param channel New handle to the channel.
+ * @param channel_cls Closure given to @a GNUNET_CADET_open_porT.
+ *        NOTE: do we need two cls? I'd get rid of this one.
+ * @param peer Peer that started this channel.
+ *
+ * NOTE: to keep symmetry between incoming and outgoing channels, this call
+ *       does not provide the *mq, since we cannot cleanly return an mq
+ *       from @a GNUNET_CADET_channel_create.
+ *       The client must always call @a GNUNET_CADET_get_mq to the *mq
+ *       Alternatively, we can provide the mq here and add and out **mq
+ *       to @a GNUNET_CADET_channel_create
+ *
+ * @return initial channel context for the channel
+ *         (can be NULL -- that's not an error)
+ */
+typedef void *
+(*GNUNET_CADET_ConnectEventHandler) (void *cls,
+                                     struct GNUNET_CADET_Channel *channel,
+                                     const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * Function called whenever an mq-channel is destroyed.  Should clean up
+ * any associated state, including cancelling any pending transmission on this
+ * channel.
+ *
+ * It must NOT call @a GNUNET_CADET_channel_destroy on the channel.
+ *
+ * @param cls Closure (set from @a GNUNET_CADET_connecT).
+ * @param channel Connection to the other end (henceforth invalid).
+ * @param channel_ctx Context (set from @a GNUNET_CADET_ConnectEventHandler).
+ */
+typedef void
+(GNUNET_CADET_DisconnectEventHandler) (void *cls,
+                                       const struct GNUNET_CADET_Channel *channel,
+                                       void *channel_ctx);
+
+/**
+ * Connect to the mq-based cadet service.
+ *
+ * NOTE: it would be more elegant to provide a separate @a handlers and
+ *       @a disconnects for each port, giving them to @a GNUNET_CADET_open_porT,
+ *       but how do we handle *incoming* channels?
+ *
+ * @param cfg Configuration to use.
+ * @param cls Closure for the various callbacks that follow (including
+ *            handlers in the handlers array).
+ * @param init callback to call once we have successfully connected
+ *             to the cadet service
+ * @param disconnects Function called when a channel is destroyed.
+ *                    It is called immediately if the channel is destroyed by
+ *                    calling @a GNUNET_CADET_channel_destroy.
+ * @param handlers Callbacks for messages we care about, NULL-terminated.
+ *                 Messages of a type that is not in the handlers array
+ *                 are ignored if received.
+ *
+ * @return handle to the cadet service NULL on error
+ *         (in this case, init is never called)
+ */
+struct GNUNET_CADET_Handle *
+GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      void *cls,
+                      GNUNET_CADET_StartupCallback init,
+                      GNUNET_CADET_DisconnectEventHandler disconnects,
+                      const struct GNUNET_MQ_MessageHandler *handlers);
+
+/**
+ * Disconnect from the mq-based cadet service. All channels will be destroyed.
+ * All channel disconnect callbacks will be called on any still connected peers,
+ * notifying about their disconnection. The registered inbound channel cleaner
+ * will be called should any inbound channels still exist.
+ *
+ * @param handle connection to cadet to disconnect
+ */
+void
+GNUNET_CADET_disconnecT (struct GNUNET_CADET_Handle *handle);
+
+/**
+ * Open a port to receive incomming mq-based channels.
+ *
+ * @param h CADET handle.
+ * @param port Hash representing the port number.
+ * @param new_channel Function called when an channel is received.
+ * @param new_channel_cls Closure for @a new_channel.
+ *        NOTE: get rid of this cls?
+ *
+ * @return Port handle.
+ */
+struct GNUNET_CADET_Port *
+GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
+			const struct GNUNET_HashCode *port,
+			GNUNET_CADET_ConnectEventHandler new_channel,
+			void *new_channel_cls);
+
+/**
+ * Close a port opened with @a GNUNET_CADET_open_porT.
+ * The @a new_channel callback will no longer be called.
+ *
+ * @param p Port handle.
+ */
+void
+GNUNET_CADET_close_porT (struct GNUNET_CADET_Port *p);
+
+/**
+ * Obtain the message queue for a connected peer.
+ *
+ * @param h the cadet handle
+ * @param channel the identity of the peer
+ *
+ * @return NULL if @a channel is not yet connected.
+ *         NOTE: provide an mq before a channel is connected?
+ *               provide a callback to notify a client a channel connected?
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CADET_get_mq (const struct GNUNET_CADET_Handle *h,
+		     const struct GNUNET_CADET_Channel *channel);
+
+/* NOTE:
+ * GNUNET_CADET_channel_create and _destroy can stay the same.
+ * Monitor API can stay the same (low-priority).
+
+struct GNUNET_CADET_Channel *
+GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
+                            void *channel_ctx,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_HashCode *port,
+                            enum GNUNET_CADET_ChannelOption options);
+void
+GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel);
+
+*/
+
+/******************************************************************************/
+/******************************* MQ-BASED API *********************************/
+/******************************************************************************/
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

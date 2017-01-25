@@ -87,7 +87,7 @@ struct GNUNET_CADET_ConnectionCreateMessage
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_CADET_ConnectionCreateMessageAckMessage
+struct GNUNET_CADET_ConnectionCreateAckMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK
@@ -253,10 +253,17 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    */
   struct GNUNET_MessageHeader header;
 
+#if NEW_CADET
   /**
-   * ID of the packet (hop by hop).
+   * Reserved, for alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+#else
+  /**
+   * Maximum packet ID authorized.
    */
   struct CadetEncryptedMessageIdentifier cemi;
+#endif
 
   /**
    * ID of the connection.
@@ -294,6 +301,8 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    */
 };
 
+
+#ifndef NEW_CADET
 
 /**
  * Message to query a peer about its Flow Control status regarding a tunnel.
@@ -337,13 +346,15 @@ struct GNUNET_CADET_ConnectionEncryptedAckMessage
   /**
    * Maximum packet ID authorized.
    */
-  struct CadetEncryptedMessageIdentifier cemi;
+  struct CadetEncryptedMessageIdentifier cemi_max;
 
   /**
    * ID of the connection.
    */
   struct GNUNET_CADET_ConnectionTunnelIdentifier cid;
 };
+
+#endif
 
 
 /******************************************************************************/
@@ -374,17 +385,20 @@ struct GNUNET_CADET_ChannelOpenMessage
   /**
    * ID of the channel within the tunnel.
    */
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 };
 
 
 /**
- * Message to manage a Channel (ACK, NACK, Destroy).
+ * Message to manage a Channel
+ * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY).
  */
 struct GNUNET_CADET_ChannelManageMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK or
+   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY
    */
   struct GNUNET_MessageHeader header;
 
@@ -398,7 +412,7 @@ struct GNUNET_CADET_ChannelManageMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 };
 
 
@@ -424,7 +438,7 @@ struct GNUNET_CADET_ChannelAppDataMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
    * Payload follows
@@ -445,7 +459,7 @@ struct GNUNET_CADET_ChannelDataAckMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber chid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
    * Bitfield of already-received newer messages
@@ -482,8 +496,7 @@ struct ChannelMessageIdentifier
 struct GNUNET_CADET_ChannelAppDataMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_UNICAST,
-   *       #GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA.
    */
   struct GNUNET_MessageHeader header;
 
@@ -495,7 +508,7 @@ struct GNUNET_CADET_ChannelAppDataMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
    * Payload follows
@@ -516,7 +529,7 @@ struct GNUNET_CADET_ChannelDataAckMessage
   /**
    * ID of the channel
    */
-  struct GNUNET_CADET_ChannelTunnelNumber gid;
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
    * Bitfield of already-received messages past @e mid.

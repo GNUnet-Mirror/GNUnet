@@ -437,7 +437,7 @@ handle_start (void *cls,
   GNUNET_notification_context_add (nc,
 				   mq);
   setup_estimate_message (&em);
-  env = GNUNET_MQ_msg_copy (&em.header);	
+  env = GNUNET_MQ_msg_copy (&em.header);
   GNUNET_MQ_send (mq,
 		  env);
   GNUNET_SERVICE_client_continue (client);
@@ -607,14 +607,14 @@ transmit_task_cb (void *cls)
   struct NSEPeerEntry *peer_entry = cls;
   unsigned int idx;
   struct GNUNET_MQ_Envelope *env;
-  
+
   peer_entry->transmit_task = NULL;
   idx = estimate_index;
   if (GNUNET_NO == peer_entry->previous_round)
   {
     idx = (idx + HISTORY_SIZE - 1) % HISTORY_SIZE;
     peer_entry->previous_round = GNUNET_YES;
-    peer_entry->transmit_task 
+    peer_entry->transmit_task
       = GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0),
 				      &transmit_task_cb,
 				      peer_entry);
@@ -652,12 +652,12 @@ transmit_task_cb (void *cls)
                             GNUNET_NO);
 #if ENABLE_NSE_HISTOGRAM
   peer_entry->transmitted_messages++;
-  peer_entry->last_transmitted_size 
+  peer_entry->last_transmitted_size
     = ntohl(size_estimate_messages[idx].matching_bits);
 #endif
   env = GNUNET_MQ_msg_copy (&size_estimate_messages[idx].header);
   GNUNET_MQ_send (peer_entry->mq,
-		  env);  
+		  env);
 }
 
 
@@ -811,11 +811,10 @@ update_flood_message (void *cls)
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &schedule_current_round,
                                          NULL);
-  flood_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (next_timestamp),
-				    &update_flood_message,
-                                    NULL);
+  flood_task
+    = GNUNET_SCHEDULER_add_at (next_timestamp,
+                               &update_flood_message,
+                               NULL);
 }
 
 
@@ -1012,7 +1011,7 @@ update_flood_times (void *cls,
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    if (NULL == peer_entry->transmit_task) 
+    if (NULL == peer_entry->transmit_task)
     {
       GNUNET_break (0);
     }
@@ -1034,7 +1033,7 @@ update_flood_times (void *cls,
 /**
  * Core handler for size estimate flooding messages.
  *
- * @param cls peer this message is from 
+ * @param cls peer this message is from
  * @param incoming_flood received message
  */
 static void
@@ -1169,7 +1168,7 @@ handle_p2p_estimate (void *cls,
     /* push back our result now, that peer is spreading bad information... */
     if (NULL != peer_entry->transmit_task)
       GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-    peer_entry->transmit_task 
+    peer_entry->transmit_task
       = GNUNET_SCHEDULER_add_now (&transmit_task_cb,
 				  peer_entry);
     /* Not closer than our most recent message, no need to do work here */
@@ -1431,11 +1430,10 @@ core_init (void *cls,
 			 current_timestamp);
     estimate_count++;
   }
-  flood_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                    (next_timestamp),
-				    &update_flood_message,
-                                    NULL);
+  flood_task
+    = GNUNET_SCHEDULER_add_at (next_timestamp,
+                               &update_flood_message,
+                               NULL);
 }
 
 

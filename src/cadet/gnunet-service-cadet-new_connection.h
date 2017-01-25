@@ -113,12 +113,23 @@ GCC_transmit (struct CadetConnection *cc,
 
 
 /**
- * An ACK was received for this connection, process it.
+ * A CREATE_ACK was received for this connection, process it.
  *
  * @param cc the connection that got the ACK.
  */
 void
-GCC_handle_connection_ack (struct CadetConnection *cc);
+GCC_handle_connection_create_ack (struct CadetConnection *cc);
+
+
+/**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE for a
+ * connection that we already have.  Either our ACK got lost
+ * or something is fishy.  Consider retransmitting the ACK.
+ *
+ * @param cc connection that got the duplicate CREATE
+ */
+void
+GCC_handle_duplicate_create (struct CadetConnection *cc);
 
 
 /**
