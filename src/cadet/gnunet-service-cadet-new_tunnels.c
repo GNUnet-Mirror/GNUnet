@@ -1704,7 +1704,7 @@ try_send_normal_payload (struct CadetTunnel *t,
   {
     /* no messages pending right now */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Not sending payload of tunnel %s on ready connection %s (nothing pending)\n",
+         "Not sending payload of %s on ready %s (nothing pending)\n",
          GCT_2s (t),
          GCC_2s (ct->cc));
     return;
@@ -1718,7 +1718,7 @@ try_send_normal_payload (struct CadetTunnel *t,
     *tq->cid = *GCC_get_id (ct->cc);
   ct->is_ready = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending payload of tunnel %s on connection %s\n",
+       "Sending payload of %s on %s\n",
        GCT_2s (t),
        GCC_2s (ct->cc));
   GCC_transmit (ct->cc,

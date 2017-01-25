@@ -1498,17 +1498,23 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   else
     GNUNET_assert (0);
   ccc->client_ready = GNUNET_YES;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got LOCAL_ACK, client ready to receive more data!\n");
   com = ccc->head_recv;
   if (NULL == com)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got LOCAL_ACK, %s-%X ready to receive more data (but none pending)!\n",
+         GSC_2s (ccc->c),
+         ntohl (ccc->ccn.channel_of_client));
     return; /* none pending */
+  }
   if ( (com->mid.mid != ch->mid_recv.mid) &&
        (GNUNET_NO == ch->out_of_order) )
     return; /* missing next one in-order */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Passing payload message to client on %s\n",
+              "Got LOCAL ACK, passing payload message to %s-%X on %s\n",
+              GSC_2s (ccc->c),
+              ntohl (ccc->ccn.channel_of_client),
               GCCH_2s (ch));
 
   /* all good, pass next message to client */
