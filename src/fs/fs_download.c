@@ -1380,6 +1380,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
               "Will try to reconnect in %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (dc->reconnect_backoff,
                                                       GNUNET_YES));
+  GNUNET_assert (NULL == dc->job_queue);
   dc->task =
     GNUNET_SCHEDULER_add_delayed (dc->reconnect_backoff,
 				  &do_reconnect,
@@ -1533,7 +1534,7 @@ reconstruct_cont (void *cls)
   struct GNUNET_FS_DownloadContext *dc = cls;
 
   /* clean up state from tree encoder */
-  if (dc->task != NULL)
+  if (NULL != dc->task)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
     dc->task = NULL;
@@ -1584,9 +1585,13 @@ get_next_block (void *cls)
  * @param block_size size of block (in bytes)
  */
 static void
-reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
-                unsigned int depth, enum GNUNET_BLOCK_Type type,
-                const void *block, uint16_t block_size)
+reconstruct_cb (void *cls,
+                const struct ContentHashKey *chk,
+                uint64_t offset,
+                unsigned int depth,
+                enum GNUNET_BLOCK_Type type,
+                const void *block,
+                uint16_t block_size)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1607,7 +1612,8 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
 		  "Block %u < %u irrelevant for our range\n",
 		  chld,
 		  dr->children[0]->chk_idx);
-      dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
+      dc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+                                           dc);
       return; /* irrelevant block */
     }
     if (chld > dr->children[dr->num_children-1]->chk_idx)
@@ -1701,8 +1707,10 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     GNUNET_assert (0);
     break;
   }
-  dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
-  if ((dr == dc->top_request) && (dr->state == BRS_DOWNLOAD_UP))
+  dc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+                                       dc);
+  if ( (dr == dc->top_request) &&
+       (dr->state == BRS_DOWNLOAD_UP) )
     check_completed (dc);
 }
 
@@ -1882,7 +1890,8 @@ GNUNET_FS_download_start_task_ (void *cls)
 				     &reconstruct_cb,
                                      NULL,
 				     &reconstruct_cont);
-    dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
+    dc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+                                         dc);
   }
   else
   {
@@ -2037,6 +2046,7 @@ create_download_context (struct GNUNET_FS_Handle *h,
 	      filename,
 	      (unsigned long long) length,
               dc->treedepth);
+  GNUNET_assert (NULL == dc->job_queue);
   dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_,
                                        dc);
   return dc;
@@ -2199,6 +2209,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
   if (NULL != dc->mq)
     return; /* already running */
   GNUNET_assert (NULL == dc->job_queue);
+  GNUNET_assert (NULL == dc->task);
   GNUNET_assert (NULL != dc->active);
   dc->job_queue =
       GNUNET_FS_queue_ (dc->h,
@@ -2240,6 +2251,7 @@ GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
 
+  GNUNET_assert (NULL == dc->task);
   dc->job_queue =
     GNUNET_FS_queue_ (dc->h,
                       &activate_fs_download,
