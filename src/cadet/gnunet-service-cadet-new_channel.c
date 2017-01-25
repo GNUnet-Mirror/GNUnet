@@ -1087,6 +1087,20 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   size_t payload_size;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
+  if ( (GNUNET_YES == ch->destroy) &&
+       (NULL == ch->owner) &&
+       (NULL == ch->dest) )
+  {
+    /* This client is gone, but we still have messages to send to
+       the other end (which is why @a ch is not yet dead).  However,
+       we cannot pass messages to our client anymore. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Dropping incoming payload on %s as this end is already closed\n",
+         GCCH_2s (ch));
+    /* FIXME: send back ACK/NACK/Closed notification
+       to stop retransmissions! */
+    return;
+  }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
   env = GNUNET_MQ_msg_extra (ld,
                              payload_size,
