@@ -3,7 +3,7 @@ FORCESTART = YES
 AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2096
 HOSTNAME = localhost
-BINARY = gnunet-service-cadet
+BINARY = gnunet-service-cadet-new
 # PREFIX = valgrind --leak-check=yes
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;

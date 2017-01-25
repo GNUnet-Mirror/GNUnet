@@ -19,3 +19,4 @@ test_cadet_5_speed_reliable
 test_cadet_5_speed_reliable_backwards
 test_cadet_local
 test_cadet_single
+gnunet-service-cadet-new
