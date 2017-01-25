@@ -1963,7 +1963,7 @@ GCT_consider_path (struct CadetTunnel *t,
 
 
 /**
- * NOT IMPLEMENTED.
+ * We got a keepalive. Track in statistics.
  *
  * @param cls the `struct CadetTunnel` for which we decrypted the message
  * @param msg  the message we received on the tunnel
@@ -1974,7 +1974,13 @@ handle_plaintext_keepalive (void *cls,
 {
   struct CadetTunnel *t = cls;
 
-  GNUNET_break (0); // FIXME
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received KEEPALIVE on tunnel %s\n",
+       GCT_2s (t));
+  GNUNET_STATISTICS_update (stats,
+                            "# keepalives received",
+                            1,
+                            GNUNET_NO);
 }
 
 

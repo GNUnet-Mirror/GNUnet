@@ -26,11 +26,18 @@
  *
  * TODO:
  * - Optimize ACKs by using 'mid_futures' properly!
+ * - calculate current RTT if possible, use that for initial retransmissions
+ *   (NOTE: needs us to learn which connection the tunnel uses for the message!)
  * - introduce shutdown so we can have half-closed channels, modify
  *   destroy to include MID to have FIN-ACK equivalents, etc.
  * - estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
+ *   (and figure out how/where to use this!)
  * - check that '0xFFULL' really is sufficient for flow control!
+ *   (this is right now a big HACK!)
  * - revisit handling of 'unreliable' traffic!
+ *   (has not seen enough review)
+ * - revisit handling of 'unbuffered' traffic!
+ *   (has not seen enough review)
  * - revisit handling of 'out-of-order' option, especially in combination with/without 'reliable'.
  * - figure out flow control without ACKs (unreliable traffic!)
  */

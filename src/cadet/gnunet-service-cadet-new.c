@@ -1343,7 +1343,7 @@ run (void *cls,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c,
                                            "CADET",
-                                           "REFRESHC_CONNECTION_TIME",
+                                           "REFRESH_CONNECTION_TIME",
                                            &keepalive_period))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,

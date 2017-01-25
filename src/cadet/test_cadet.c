@@ -345,15 +345,21 @@ shutdown_task (void *cls)
  *          operation has executed successfully.
  */
 static void
-stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+stats_cont (void *cls,
+            struct GNUNET_TESTBED_Operation *op,
+            const char *emsg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " KA sent: %u, KA received: %u\n",
-              ka_sent, ka_received);
+              ka_sent,
+              ka_received);
   if ( (KEEPALIVE == test) &&
        ( (ka_sent < 2) ||
          (ka_sent > ka_received + 1)) )
+  {
+    GNUNET_break (0);
     ok--;
+  }
   GNUNET_TESTBED_operation_done (stats_op);
 
   if (NULL != disconnect_task)
