@@ -1285,6 +1285,11 @@ handle_matching_ack (struct CadetChannel *ch,
        GCCH_2s (ch),
        (unsigned int) ntohl (crm->data_message->mid.mid),
        ch->pending_messages);
+  if (NULL != crm->qe)
+  {
+    GCT_send_cancel (crm->qe);
+    crm->qe = NULL;
+  }
   GNUNET_free (crm->data_message);
   GNUNET_free (crm);
   send_ack_to_client (ch,
@@ -1331,14 +1336,18 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
     {
       handle_matching_ack (ch,
                            crm);
+      found = GNUNET_YES;
       continue;
     }
     delta = (unsigned int) (ntohl (crm->data_message->mid.mid) - mid_base) - 1;
     if (delta >= 64)
       continue;
     if (0 != (mid_mask & (1LLU << delta)))
+    {
       handle_matching_ack (ch,
                            crm);
+      found = GNUNET_YES;
+    }
   }
   if (GNUNET_NO == found)
   {

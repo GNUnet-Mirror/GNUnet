@@ -2092,7 +2092,7 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiH
                         element, \
                         head)) ) \
   { \
-    /* insert at head, e;e,emt < head */ \
+    /* insert at head, element < head */ \
     GNUNET_CONTAINER_DLL_insert (head, \
                                  tail, \
                                  element); \
