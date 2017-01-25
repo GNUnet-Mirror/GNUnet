@@ -1688,7 +1688,7 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
   GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= notify_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "CADET NOTIFY TRANSMIT READY on channel %X allow_send is %u to %s with %u bytes\n",
-       channel->ccn,
+       ntohl (channel->ccn.channel_of_client),
        channel->allow_send,
        (ntohl (channel->ccn.channel_of_client) >=
         GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
@@ -1745,7 +1745,7 @@ GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel)
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK on channel %X\n",
-       channel->ccn.channel_of_client);
+       ntohl (channel->ccn.channel_of_client));
   msg->ccn = channel->ccn;
   GNUNET_MQ_send (channel->cadet->mq,
                   env);
