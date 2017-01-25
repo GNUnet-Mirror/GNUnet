@@ -842,10 +842,12 @@ send_ack_to_client (struct CadetChannel *ch,
   ccc = (GNUNET_YES == to_owner) ? ch->owner : ch->dest;
   ack->ccn = ccc->ccn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CADET_LOCAL_ACK to %s (%s) at ccn %X\n",
+       "Sending CADET_LOCAL_ACK to %s (%s) at ccn %X (%u/%u pending)\n",
        GSC_2s (ccc->c),
        (GNUNET_YES == to_owner) ? "owner" : "dest",
-       ntohl (ack->ccn.channel_of_client));
+       ntohl (ack->ccn.channel_of_client),
+       ch->pending_messages,
+       ch->max_pending_messages);
   GSC_send_to_client (ccc->c,
                       env);
 }
@@ -1047,23 +1049,35 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
  */
 static int
 is_before (void *cls,
-           void *e1,
-           void *e2)
+           struct CadetOutOfOrderMessage *m1,
+           struct CadetOutOfOrderMessage *m2)
 {
-  struct CadetOutOfOrderMessage *m1 = e1;
-  struct CadetOutOfOrderMessage *m2 = e2;
   uint32_t v1 = ntohl (m1->mid.mid);
   uint32_t v2 = ntohl (m2->mid.mid);
   uint32_t delta;
 
-  delta = v1 - v2;
+  delta = v2 - v1;
+  GNUNET_assert (0 != delta);
   if (delta > (uint32_t) INT_MAX)
   {
     /* in overflow range, we can safely assume we wrapped around */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u > %u => %p > %p\n",
+                (unsigned int) v1,
+                (unsigned int) v2,
+                m1,
+                m2);
     return GNUNET_NO;
   }
   else
   {
+    /* result is small, thus v2 > v1, thus e1 < e2 */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u < %u => %p < %p\n",
+                (unsigned int) v1,
+                (unsigned int) v2,
+                m1,
+                m2);
     return GNUNET_YES;
   }
 }
@@ -1129,6 +1143,8 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   {
     /* FIXME-SECURITY: if the element is WAY too far ahead,
        drop it (can't buffer too much!) */
+    /* FIXME-SECURITY: if element is a BIT in the past and/or
+       duplicate, just drop it! */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Queuing %s payload of %u bytes on %s (mid %u, need %u first)\n",
          (GNUNET_YES == ccc->client_ready)
@@ -1142,40 +1158,13 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
     com = GNUNET_new (struct CadetOutOfOrderMessage);
     com->mid = msg->mid;
     com->env = env;
-    /* sort into list ordered by "is_before" */
-    if ( (NULL == ccc->head_recv) ||
-         (GNUNET_YES == is_before (ch,
-                                   com,
-                                   ccc->head_recv)) )
-    {
-      GNUNET_CONTAINER_DLL_insert (ccc->head_recv,
-                                   ccc->tail_recv,
-                                   com);
-    }
-    else
-    {
-      struct CadetOutOfOrderMessage *pos;
 
-      for (pos = ccc->head_recv;
-           NULL != pos;
-           pos = pos->next)
-      {
-        if (GNUNET_YES !=
-            is_before (NULL,
-                       pos,
-                       com))
-          break;
-      }
-      if (NULL == pos)
-        GNUNET_CONTAINER_DLL_insert_tail (ccc->head_recv,
-                                          ccc->tail_recv,
-                                          com);
-      else
-        GNUNET_CONTAINER_DLL_insert_after (ccc->head_recv,
-                                           ccc->tail_recv,
-                                           com,
-                                           pos->prev);
-    }
+    GNUNET_CONTAINER_DLL_insert_sorted (struct CadetOutOfOrderMessage,
+                                        is_before,
+                                        NULL,
+                                        ccc->head_recv,
+                                        ccc->tail_recv,
+                                        com);
   }
 }
 
@@ -1509,7 +1498,15 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   }
   if ( (com->mid.mid != ch->mid_recv.mid) &&
        (GNUNET_NO == ch->out_of_order) )
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got LOCAL_ACK, %s-%X ready to receive more data (but next one is out-of-order %u vs. %u)!\n",
+         GSC_2s (ccc->c),
+         ntohl (ccc->ccn.channel_of_client),
+         ntohl (com->mid.mid),
+         ntohl (ch->mid_recv.mid));
     return; /* missing next one in-order */
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got LOCAL ACK, passing payload message to %s-%X on %s\n",
