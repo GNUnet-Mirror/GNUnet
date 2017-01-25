@@ -1039,10 +1039,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
 /**
  * Test if element @a e1 comes before element @a e2.
  *
- * TODO: use opportunity to create generic list insertion sort
- * logic in container!
- *
- * @param cls closure, our `struct CadetChannel`
+ * @param cls closure, to a flag where we indicate duplicate packets
  * @param e1 an element of to sort
  * @param e2 another element to sort
  * @return #GNUNET_YES if @e1 < @e2, otherwise #GNUNET_NO
@@ -1052,12 +1049,14 @@ is_before (void *cls,
            struct CadetOutOfOrderMessage *m1,
            struct CadetOutOfOrderMessage *m2)
 {
+  int *duplicate = cls;
   uint32_t v1 = ntohl (m1->mid.mid);
   uint32_t v2 = ntohl (m2->mid.mid);
   uint32_t delta;
 
   delta = v2 - v1;
-  GNUNET_assert (0 != delta);
+  if (0 == delta)
+    *duplicate = GNUNET_YES;
   if (delta > (uint32_t) INT_MAX)
   {
     /* in overflow range, we can safely assume we wrapped around */
@@ -1097,7 +1096,6 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalData *ld;
   struct CadetChannelClient *ccc;
-  struct CadetOutOfOrderMessage *com;
   size_t payload_size;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
@@ -1141,12 +1139,41 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   }
   else
   {
+    struct CadetOutOfOrderMessage *com;
+    int duplicate;
+
     /* FIXME-SECURITY: if the element is WAY too far ahead,
        drop it (can't buffer too much!) */
-    /* FIXME-SECURITY: if element is a BIT in the past and/or
-       duplicate, just drop it! */
+
+    com = GNUNET_new (struct CadetOutOfOrderMessage);
+    com->mid = msg->mid;
+    com->env = env;
+    duplicate = GNUNET_NO;
+    GNUNET_CONTAINER_DLL_insert_sorted (struct CadetOutOfOrderMessage,
+                                        is_before,
+                                        &duplicate,
+                                        ccc->head_recv,
+                                        ccc->tail_recv,
+                                        com);
+    if (GNUNET_YES == duplicate)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Duplicate payload of %u bytes on %s (mid %u) dropped\n",
+           (unsigned int) payload_size,
+           GCCH_2s (ch),
+           ntohl (msg->mid.mid));
+      GNUNET_STATISTICS_update (stats,
+                                "# duplicate DATA",
+                                1,
+                                GNUNET_NO);
+      GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
+                                   ccc->tail_recv,
+                                   com);
+      GNUNET_free (com);
+      return;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Queuing %s payload of %u bytes on %s (mid %u, need %u first)\n",
+         "Queued %s payload of %u bytes on %s (mid %u, need %u first)\n",
          (GNUNET_YES == ccc->client_ready)
          ? "out-of-order"
          : "client-not-ready",
@@ -1154,17 +1181,6 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          GCCH_2s (ch),
          ntohl (msg->mid.mid),
          ntohl (ch->mid_recv.mid));
-
-    com = GNUNET_new (struct CadetOutOfOrderMessage);
-    com->mid = msg->mid;
-    com->env = env;
-
-    GNUNET_CONTAINER_DLL_insert_sorted (struct CadetOutOfOrderMessage,
-                                        is_before,
-                                        NULL,
-                                        ccc->head_recv,
-                                        ccc->tail_recv,
-                                        com);
   }
 }
 
