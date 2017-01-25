@@ -1169,6 +1169,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
       GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
                                    ccc->tail_recv,
                                    com);
+      GNUNET_MQ_discard (com->env);
       GNUNET_free (com);
       return;
     }
