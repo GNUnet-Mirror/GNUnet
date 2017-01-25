@@ -1,3 +1,7 @@
 gnunet-set-profiler
 gnunet-service-set
 gnunet-set-ibf-profiler
+test_set_api
+test_set_intersection_result_full
+test_set_union_copy
+test_set_union_result_symmetric
