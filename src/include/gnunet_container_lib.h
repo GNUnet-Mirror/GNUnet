@@ -2073,6 +2073,55 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiH
 
 
 
+/**
+ * Insertion sort of @a element into DLL from @a head to @a tail
+ * sorted by @a comparator.
+ *
+ * @param TYPE element type of the elements, i.e. `struct ListElement`
+ * @param comparator function like memcmp() to compare elements; takes
+ *                   three arguments, the @a comparator_cls and two elements,
+ *                   returns an `int` (-1, 0 or 1)
+ * @param comparator_cls closure for @a comparator
+ * @param[in,out] head head of DLL
+ * @param[in,out] tail tail of DLL
+ * @param element element to insert
+ */
+#define GNUNET_CONTAINER_DLL_insert_sorted(TYPE,comparator,comparator_cls,head,tail,element) do { \
+  if ( (NULL == head) || \
+       (0 < comparator (comparator_cls, \
+                        element, \
+                        head)) ) \
+  { \
+    /* insert at head, e;e,emt < head */ \
+    GNUNET_CONTAINER_DLL_insert (head, \
+                                 tail, \
+                                 element); \
+  } \
+  else \
+  {          \
+    TYPE *pos; \
+    \
+    for (pos = head; \
+         NULL != pos; \
+         pos = pos->next) \
+      if (0 < \
+          comparator (comparator_cls, \
+                      element, \
+                      pos)) \
+        break; /* element < pos */ \
+      if (NULL == pos) /* => element > tail */ \
+        GNUNET_CONTAINER_DLL_insert_tail (head, \
+                                          tail, \
+                                          element); \
+      else /* prev < element < pos */ \
+        GNUNET_CONTAINER_DLL_insert_after (head, \
+                                           tail, \
+                                           element, \
+                                           pos->prev); \
+    } \
+  } while (0)
+
+
 /* ******************** Heap *************** */
 
 
