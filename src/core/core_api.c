@@ -204,6 +204,11 @@ disconnect_and_free_peer_entry (void *cls,
                                                        pr));
   GNUNET_MQ_destroy (pr->mq);
   GNUNET_assert (NULL == pr->mq);
+  if (NULL != pr->env)
+  {
+    GNUNET_MQ_discard (pr->env);
+    pr->env = NULL;
+  }
   GNUNET_free (pr);
   return GNUNET_YES;
 }
