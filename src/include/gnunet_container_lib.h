@@ -2092,8 +2092,8 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiH
                         element, \
                         head)) ) \
   { \
-    /* insert at head, e;e,emt < head */ \
-    GNUNET_CONTAINER_DLL_insert (head, \
+    /* insert at head, element < head */ \
+    GNUNET_CONTAINER_DLL_insert (head,                                \
                                  tail, \
                                  element); \
   } \
@@ -2109,17 +2109,21 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiH
                       element, \
                       pos)) \
         break; /* element < pos */ \
-      if (NULL == pos) /* => element > tail */ \
-        GNUNET_CONTAINER_DLL_insert_tail (head, \
-                                          tail, \
-                                          element); \
-      else /* prev < element < pos */ \
-        GNUNET_CONTAINER_DLL_insert_after (head, \
-                                           tail, \
-                                           element, \
-                                           pos->prev); \
+    if (NULL == pos) /* => element > tail */ \
+    { \
+      GNUNET_CONTAINER_DLL_insert_tail (head,                             \
+                                        tail, \
+                                        element); \
     } \
-  } while (0)
+    else /* prev < element < pos */ \
+    { \
+      GNUNET_CONTAINER_DLL_insert_after (head, \
+                                         tail, \
+                                         pos->prev, \
+                                         element); \
+    } \
+  } \
+} while (0)
 
 
 /* ******************** Heap *************** */

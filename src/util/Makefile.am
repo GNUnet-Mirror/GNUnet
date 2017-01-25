@@ -273,6 +273,7 @@ check_PROGRAMS = \
  test_common_logging \
  test_configuration \
  test_container_bloomfilter \
+ test_container_dll \
  test_container_meta_data \
  test_container_multihashmap \
  test_container_multihashmap32 \
@@ -396,6 +397,11 @@ test_configuration_LDADD = \
 test_container_bloomfilter_SOURCES = \
  test_container_bloomfilter.c
 test_container_bloomfilter_LDADD = \
+ libgnunetutil.la
+
+test_container_dll_SOURCES = \
+ test_container_dll.c
+test_container_dll_LDADD = \
  libgnunetutil.la
 
 test_container_meta_data_SOURCES = \

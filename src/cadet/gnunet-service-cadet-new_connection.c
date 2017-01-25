@@ -27,16 +27,18 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - Optimization: keepalive messages / timeout (timeout to be done @ peer level!)
+ * - Implement: keepalive messages / timeout (timeout to be done @ peer level!)
  * - Optimization: keep performance metrics (?)
  */
 #include "platform.h"
+#include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_channel.h"
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
 
 
@@ -119,6 +121,11 @@ struct CadetConnection
   struct GNUNET_SCHEDULER_Task *task;
 
   /**
+   * Queue entry for keepalive messages.
+   */
+  struct CadetTunnelQueueEntry *keepalive_qe;
+
+  /**
    * Function to call once we are ready to transmit.
    */
   GCC_ReadyCallback ready_cb;
@@ -184,6 +191,11 @@ GCC_destroy (struct CadetConnection *cc)
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
+  if (NULL != cc->keepalive_qe)
+  {
+    GCT_send_cancel (cc->keepalive_qe);
+    cc->keepalive_qe = NULL;
+  }
   GCPP_del_connection (cc->path,
                        cc->off,
                        cc);
@@ -209,7 +221,72 @@ GCC_get_ct (struct CadetConnection *cc)
 
 
 /**
- * A CADET_CONNECTION_ACK was received for this connection, implying
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE through the
+ * tunnel to prevent it from timing out.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ */
+static void
+send_keepalive (void *cls);
+
+
+/**
+ * Keepalive was transmitted.  Remember this, and possibly
+ * schedule the next one.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ */
+static void
+keepalive_done (void *cls)
+{
+  struct CadetConnection *cc = cls;
+
+  cc->keepalive_qe = NULL;
+  if ( (GNUNET_YES == cc->mqm_ready) &&
+       (NULL == cc->task) )
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
+}
+
+
+/**
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE through the
+ * tunnel to prevent it from timing out.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ */
+static void
+send_keepalive (void *cls)
+{
+  struct CadetConnection *cc = cls;
+  struct GNUNET_MessageHeader msg;
+
+  cc->task = NULL;
+  GNUNET_assert (NULL != cc->ct);
+  GNUNET_assert (GNUNET_YES == cc->mqm_ready);
+  GNUNET_assert (NULL == cc->keepalive_qe);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Sending KEEPALIVE on behalf of %s via %s\n",
+       GCC_2s (cc),
+       GCT_2s (cc->ct->t));
+  GNUNET_STATISTICS_update (stats,
+                            "# keepalives sent",
+                            1,
+                            GNUNET_NO);
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE);
+
+  cc->keepalive_qe
+    = GCT_send (cc->ct->t,
+                &msg,
+                &keepalive_done,
+                cc);
+}
+
+
+/**
+ * A #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK was received for this connection, implying
  * that the end-to-end connection is up.  Process it.
  *
  * @param cc the connection that got the ACK.
@@ -227,15 +304,18 @@ GCC_handle_connection_create_ack (struct CadetConnection *cc)
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
-#if FIXME_KEEPALIVE
-  cc->task = GNUNET_SCHEDULER_add_delayed (cc->keepalive_period,
-                                           &send_keepalive,
-                                           cc);
-#endif
   cc->state = CADET_CONNECTION_READY;
   if (GNUNET_YES == cc->mqm_ready)
+  {
     cc->ready_cb (cc->ready_cb_cls,
                   GNUNET_YES);
+    if ( (NULL == cc->keepalive_qe) &&
+         (GNUNET_YES == cc->mqm_ready) &&
+         (NULL == cc->task) )
+      cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                               &send_keepalive,
+                                               cc);
+  }
 }
 
 
@@ -288,7 +368,8 @@ GCC_handle_encrypted (struct CadetConnection *cc,
 
 
 /**
- * Send a CREATE message to the first hop.
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE message to the
+ * first hop.
  *
  * @param cls the `struct CadetConnection` to initiate
  */
@@ -459,6 +540,19 @@ manage_first_hop_mq (void *cls,
   case CADET_CONNECTION_READY:
     cc->ready_cb (cc->ready_cb_cls,
                   GNUNET_YES);
+    if ( (NULL == cc->keepalive_qe) &&
+         (GNUNET_YES == cc->mqm_ready) &&
+         (NULL == cc->task) )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Scheduling keepalive for %s in %s\n",
+           GCC_2s (cc),
+           GNUNET_STRINGS_relative_time_to_string (keepalive_period,
+                                                   GNUNET_YES));
+      cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                               &send_keepalive,
+                                               cc);
+    }
     break;
   }
 }
@@ -610,6 +704,11 @@ GCC_transmit (struct CadetConnection *cc,
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   GNUNET_assert (CADET_CONNECTION_READY == cc->state);
   cc->mqm_ready = GNUNET_NO;
+  if (NULL != cc->task)
+  {
+    GNUNET_SCHEDULER_cancel (cc->task);
+    cc->task = NULL;
+  }
   GCP_send (cc->mq_man,
             env);
 }
