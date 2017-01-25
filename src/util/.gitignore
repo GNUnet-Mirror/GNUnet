@@ -22,6 +22,7 @@ test_connection_timeout.nc
 test_connection_timeout_no_connect.nc
 test_connection_transmit_cancel.nc
 test_container_bloomfilter
+test_container_dll
 test_container_heap
 test_container_meta_data
 test_container_multihashmap
