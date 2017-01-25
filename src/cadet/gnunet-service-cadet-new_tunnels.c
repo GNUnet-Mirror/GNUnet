@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  *
  * FIXME:
+ * - implement keepalive
+ * - implement rekeying
  * - check KX estate machine -- make sure it is never stuck!
  * - clean up KX logic, including adding sender authentication
  * - implement connection management (evaluate, kill old ones,

@@ -183,6 +183,11 @@ unsigned long long ratchet_messages;
  */
 struct GNUNET_TIME_Relative ratchet_time;
 
+/**
+ * How frequently do we send KEEPALIVE messages on idle connections?
+ */
+struct GNUNET_TIME_Relative keepalive_period;
+
 
 /**
  * Send a message to a client.
@@ -1334,6 +1339,18 @@ run (void *cls,
                                "RATCHET_TIME",
                                "need delay value");
     ratchet_time = GNUNET_TIME_UNIT_HOURS;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c,
+                                           "CADET",
+                                           "REFRESHC_CONNECTION_TIME",
+                                           &keepalive_period))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET",
+                               "REFRESH_CONNECTION_TIME",
+                               "need delay value");
+    keepalive_period = GNUNET_TIME_UNIT_MINUTES;
   }
 
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);

@@ -226,6 +226,11 @@ extern unsigned long long ratchet_messages;
 extern struct GNUNET_TIME_Relative ratchet_time;
 
 /**
+ * How frequently do we send KEEPALIVE messages on idle connections?
+ */
+extern struct GNUNET_TIME_Relative keepalive_period;
+
+/**
  * Signal that shutdown is happening: prevent recovery measures.
  */
 extern int shutting_down;
