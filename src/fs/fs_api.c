@@ -2541,7 +2541,6 @@ signal_download_resume (struct GNUNET_FS_DownloadContext *dc)
     signal_download_resume (dcc);
     dcc = dcc->next;
   }
-  GNUNET_FS_download_start_downloading_ (dc);
 }
 
 
@@ -2855,9 +2854,9 @@ deserialize_download (struct GNUNET_FS_Handle *h,
     signal_download_resume (dc);
   }
   GNUNET_free (uris);
-  if (NULL == dc->job_queue)
-    dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_,
-                                         dc);
+  GNUNET_assert (NULL == dc->job_queue);
+  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_,
+                                       dc);
   return;
 cleanup:
   GNUNET_free_non_null (uris);
