@@ -1339,6 +1339,7 @@ data_sent_cb (void *cls)
                                crm);
   if (GNUNET_NO == ch->reliable)
   {
+    GNUNET_free (crm->data_message);
     GNUNET_free (crm);
     ch->pending_messages--;
     send_ack_to_client (ch,
@@ -1361,6 +1362,7 @@ data_sent_cb (void *cls)
                                  crm);
     if (NULL != ch->retry_data_task)
       GNUNET_SCHEDULER_cancel (ch->retry_data_task);
+    GNUNET_assert (NULL == crm->qe);
     ch->retry_data_task
       = GNUNET_SCHEDULER_add_delayed (crm->retry_delay,
                                       &retry_transmission,
