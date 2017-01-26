@@ -240,6 +240,8 @@ multicast_ca1 (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (member_key, &member_pub_key);
   
   // Get GNUnet identity of origin
+  // FIXME: the return value is not a GNUNET_PeerIdentity, it can retrieved in
+  // pi_cb: pinfo->result.id
   peer_id_origin = GNUNET_TESTBED_peer_get_information (peers[0],
                                                 GNUNET_TESTBED_PIT_IDENTITY,
                                                 pi_cb,
@@ -369,6 +371,16 @@ testbed_master (void *cls,
               "connected to testbed_master()\n");
               
   peers = p;
+
+  /**
+   * FIXME:
+   * we can't already GNUNET_TESTBED_service_connect here, because in the 
+   * continuation callback multicast_ca1 we need the origin's peer identity
+   * which we can retrieve only using the asynchronous
+   * GNUNET_TESTBED_peer_get_information function.
+   * So we need to call GNUNET_TESTBED_peer_get_information here, and call
+   * GNUNET_TESTBED_service_connect in the result callback.
+   */
 
   /* connect to a peers service */
   op0 = GNUNET_TESTBED_service_connect
