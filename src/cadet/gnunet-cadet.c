@@ -82,14 +82,14 @@ static int echo;
 static int measure_rtt;
 
 /**
+ * the number of RTT measurements to be done
+ */
+static unsigned int number_rtt;
+
+/**
  * the period after which the next ping is sent
  */
 static struct GNUNET_TIME_Relative measure_period;
-
-/**
- * Request a debug dump
- */
-static int dump;
 
 /**
  * are we waiting for an echo reply?
@@ -100,6 +100,11 @@ static int waiting_for_pong;
  * identifier of the last ping we sent
  */
 static uint16_t ping_count;
+
+/**
+ * Request a debug dump
+ */
+static int dump;
 
 /**
  * Time of last echo request.
@@ -506,14 +511,20 @@ static void send_ping (void *cls)
                 ping_count);
     waiting_for_pong = GNUNET_NO;
   }
+
+  if (number_rtt != 0 && ping_count == number_rtt)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   
-  ping_count++;
   data_size = sizeof (uint16_t);
   size_t message_size = data_size + sizeof (struct GNUNET_MessageHeader);
   th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            message_size,
                                            &data_ready, &ping_count);
+  ping_count++;
 }
 
 
@@ -564,8 +575,17 @@ create_channel (void *cls)
     listen_stdio ();
   else if (GNUNET_YES == measure_rtt)
   {
+    if (number_rtt > UINT16_MAX)
+    {
+      FPRINTF (stderr,
+               _("the given --number is outside the allowed range 0..%u\n"),
+               UINT16_MAX);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
     ping_count = 0;
     waiting_for_pong = GNUNET_NO;
+    // FIXME: no need for scheduling, just call send_ping(NULL)
     GNUNET_SCHEDULER_add_now (&send_ping, NULL);
   }
 }
@@ -1078,9 +1098,12 @@ main (int argc, char *const *argv)
     //{'f', "frequency", "RTT_FREQUENCY",
     // gettext_noop ("frequency for the round-trip time measurement"),
     // GNUNET_NO, &GNUNET_GETOPT_set_uint, &rtt_frequency},
-    {'M', "measure-rtt", NULL,
-     gettext_noop ("measure round trip time by sending packets to peer with echo mode enabled"),
+    {'r', "measure-rtt", NULL,
+     gettext_noop ("measure round trip time by sending packets to an echo-mode enabled peer"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt},
+    {'n', "number", NULL,
+     gettext_noop ("number of RTT measurements"),
+     GNUNET_YES, &GNUNET_GETOPT_set_ulong, &number_rtt},
     {'o', "open-port", NULL,
      gettext_noop ("port to listen to"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
@@ -1101,6 +1124,7 @@ main (int argc, char *const *argv)
   };
 
   monitor_mode = GNUNET_NO;
+  // TODO: get measure_period from command line option
   measure_period = GNUNET_TIME_UNIT_ZERO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
