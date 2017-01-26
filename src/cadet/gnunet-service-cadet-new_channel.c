@@ -1190,6 +1190,8 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                               1,
                               GNUNET_NO);
     GNUNET_MQ_discard (env);
+    if (GNUNET_YES == ch->reliable)
+      send_channel_data_ack (ch);
     return;
   }
 
@@ -1348,16 +1350,38 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
     crmn = crm->next;
     if (ack->mid.mid == crm->data_message->mid.mid)
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got DATA_ACK with base %u matching message %u on %s\n",
+           (unsigned int) mid_base,
+           ntohl (crm->data_message->mid.mid),
+           GCCH_2s (ch));
       handle_matching_ack (ch,
                            crm);
       found = GNUNET_YES;
       continue;
     }
     delta = (unsigned int) (ntohl (crm->data_message->mid.mid) - mid_base) - 1;
+    if (delta >= UINT_MAX - ch->max_pending_messages)
+    {
+      /* overflow, means crm was way in the past, so this ACK counts for it. */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got DATA_ACK with base %u past %u on %s\n",
+           (unsigned int) mid_base,
+           ntohl (crm->data_message->mid.mid),
+           GCCH_2s (ch));
+      handle_matching_ack (ch,
+                           crm);
+      found = GNUNET_YES;
+      continue;
+    }
     if (delta >= 64)
       continue;
     if (0 != (mid_mask & (1LLU << delta)))
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got DATA_ACK with mask for %u on %s\n",
+           ntohl (crm->data_message->mid.mid),
+           GCCH_2s (ch));
       handle_matching_ack (ch,
                            crm);
       found = GNUNET_YES;
@@ -1498,9 +1522,8 @@ data_sent_cb (void *cls)
        GCCH_2s (ch),
        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (ch->head_sent->next_retry),
                                                GNUNET_YES));
-  if (crm == ch->head_sent)
+  if (NULL == ch->head_sent->qe)
   {
-    /* We are the new head, need to reschedule retry task */
     if (NULL != ch->retry_data_task)
       GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     ch->retry_data_task
@@ -1698,7 +1721,7 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got LOCAL ACK, passing payload message %u to %s-%X on %s\n",
+       "Got LOCAL_ACK, passing payload message %u to %s-%X on %s\n",
        ntohl (com->mid.mid),
        GSC_2s (ccc->c),
        ntohl (ccc->ccn.channel_of_client),

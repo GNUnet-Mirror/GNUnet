@@ -235,6 +235,11 @@ extern struct GNUNET_TIME_Relative keepalive_period;
  */
 extern int shutting_down;
 
+/**
+ * Set to non-zero values to create random drops to test retransmissions.
+ */
+extern unsigned long long drop_percent;
+
 
 /**
  * Send a message to a client.

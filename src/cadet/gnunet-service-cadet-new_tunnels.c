@@ -361,17 +361,6 @@ struct CadetTunnel
    */
   struct CadetTunnelQueueEntry *tq_tail;
 
-
-  /**
-   * Ephemeral message in the queue (to avoid queueing more than one).
-   */
-  struct CadetConnectionQueue *ephm_hKILL;
-
-  /**
-   * Pong message in the queue.
-   */
-  struct CadetConnectionQueue *pong_hKILL;
-
   /**
    * How long do we wait until we retry the KX?
    */
