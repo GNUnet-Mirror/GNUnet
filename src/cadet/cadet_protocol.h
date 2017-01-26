@@ -462,7 +462,7 @@ struct GNUNET_CADET_ChannelDataAckMessage
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
-   * Bitfield of already-received newer messages
+   * Bitfield of already-received messages past @e mid.
    * pid +  1 @ LSB
    * pid + 64 @ MSB
    */
@@ -532,14 +532,16 @@ struct GNUNET_CADET_ChannelDataAckMessage
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   /**
-   * Bitfield of already-received messages past @e mid.
-   * pid +  1 @ LSB
-   * pid + 64 @ MSB
+   * Bitfield of already-received newer messages.  Note that bit 0
+   * corresponds to @e mid + 1.
+   *
+   * pid +  0 @ LSB
+   * pid + 63 @ MSB
    */
   uint64_t futures GNUNET_PACKED;
 
   /**
-   * Last message ID received.
+   * Next message ID expected.
    */
   struct ChannelMessageIdentifier mid;
 };
