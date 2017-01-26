@@ -216,7 +216,7 @@ static int measure_rtt;
 /**
  * the number of RTT measurements to be done
  */
-//static size_t number_rtt;
+static unsigned int number_rtt;
 
 /**
  * the period after which the next ping is sent
@@ -503,8 +503,9 @@ operation_timeout (void *cls)
     FPRINTF (stdout,
              _("Failed to connect to `%s'\n"),
              GNUNET_i2s_full (&pid));
-    GNUNET_SCHEDULER_shutdown ();
+
     ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (iterate_connections)
@@ -588,7 +589,12 @@ send_ping (void *cls)
     waiting_for_pong = GNUNET_NO;
   }
 
-  ping_count++;
+  if (number_rtt != 0 && ping_count == number_rtt)
+  {
+    ret = 0;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   env = GNUNET_MQ_msg_extra (m, sizeof (ping_count), GNUNET_MESSAGE_TYPE_DUMMY);
   GNUNET_memcpy (&m[1], &ping_count, sizeof (ping_count));
   GNUNET_MQ_send (mq, env);
@@ -597,6 +603,7 @@ send_ping (void *cls)
   {
     GNUNET_SCHEDULER_add_delayed (measure_period, &send_ping, mq);
   }
+  ping_count++;
 }
 
 
@@ -1468,6 +1475,16 @@ run (void *cls,
       ret = 1;
       return;
     }
+
+    if (number_rtt > UINT16_MAX)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "the given --number is outside the allowed range 0..%u\n",
+                  UINT16_MAX);
+      ret = 2;
+      return;
+    }
+
     struct GNUNET_MQ_MessageHandler handlers[] = {
       GNUNET_MQ_hd_var_size (dummy,
                              GNUNET_MESSAGE_TYPE_DUMMY,
@@ -1609,9 +1626,9 @@ main (int argc,
     { 'r', "measure-rtt", NULL,
       gettext_noop ("measure round trip time by sending packets to an echo-mode enabled peer"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt },
-    //{'n', "number", NULL,
-    // gettext_noop ("number of RTT measurements"),
-    // GNUNET_NO, &GNUNET_GETOPT_set_ulong, &number_rtt},
+    { 'N', "number", "NUMBER",
+      gettext_noop ("number of RTT measurements"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &number_rtt },
     { 'i', "information", NULL,
       gettext_noop ("provide information about all current connections (once)"),
       0, &GNUNET_GETOPT_set_one, &iterate_connections },
