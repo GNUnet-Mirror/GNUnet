@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - currently only allowing one unique connection per path,
+ * - BUG: currently only allowing one unique connection per path,
  *   but need to allow 2 in case WE are establishing one from A to B
  *   while at the same time B establishes one to A.
  *   Also, must not ASSERT if B establishes a 2nd one to us.

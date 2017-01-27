@@ -24,15 +24,15 @@
  * @author Christian Grothoff
  *
  * FIXME:
- * - implement keepalive
- * - implement rekeying
- * - check KX estate machine -- make sure it is never stuck!
- * - clean up KX logic, including adding sender authentication
- * - implement connection management (evaluate, kill old ones,
- *   search for new ones)
- * - when managing connections, distinguish those that
- *   have (recently) had traffic from those that were
- *   never ready (or not recently)
+ * - KX:
+ *   + implement rekeying
+ *   + check KX estate machine -- make sure it is never stuck!
+ *   + clean up KX logic, including adding sender authentication
+ * - connection management
+ *   + properly (evaluate, kill old ones, search for new ones)
+ *   + when managing connections, distinguish those that
+ *     have (recently) had traffic from those that were
+ *     never ready (or not recently)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -360,17 +360,6 @@ struct CadetTunnel
    * Queued messages, to transmit once tunnel gets connected.
    */
   struct CadetTunnelQueueEntry *tq_tail;
-
-
-  /**
-   * Ephemeral message in the queue (to avoid queueing more than one).
-   */
-  struct CadetConnectionQueue *ephm_hKILL;
-
-  /**
-   * Pong message in the queue.
-   */
-  struct CadetConnectionQueue *pong_hKILL;
 
   /**
    * How long do we wait until we retry the KX?

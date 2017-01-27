@@ -188,6 +188,11 @@ struct GNUNET_TIME_Relative ratchet_time;
  */
 struct GNUNET_TIME_Relative keepalive_period;
 
+/**
+ * Set to non-zero values to create random drops to test retransmissions.
+ */
+unsigned long long drop_percent;
+
 
 /**
  * Send a message to a client.
@@ -1352,7 +1357,22 @@ run (void *cls,
                                "need delay value");
     keepalive_period = GNUNET_TIME_UNIT_MINUTES;
   }
-
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "DROP_PERCENT",
+                                             &drop_percent))
+  {
+    drop_percent = 0;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Cadet is running with DROP enabled.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "This is NOT a good idea!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Remove DROP_PERCENT from config file.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+  }
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   if (NULL == my_private_key)
   {

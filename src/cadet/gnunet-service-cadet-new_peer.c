@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - timeout for routes
  * - optimize stopping/restarting DHT search to situations
  *   where we actually need it (i.e. not if we have a direct connection,
  *   or if we already have plenty of good short ones, or maybe even
@@ -503,6 +504,34 @@ GCP_set_mq (struct CadetPeer *cp,
 
 
 /**
+ * Debug function should NEVER return true in production code, useful to
+ * simulate losses for testcases.
+ *
+ * @return #GNUNET_YES or #GNUNET_NO with the decision to drop.
+ */
+static int
+should_I_drop (void)
+{
+  if (0 == drop_percent)
+    return GNUNET_NO;
+  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                101) < drop_percent)
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Function called when CORE took one of the messages from
+ * a message queue manager and transmitted it.
+ *
+ * @param cls the `struct CadetPeeer` where we made progress
+ */
+static void
+mqm_send_done (void *cls);
+
+
+/**
  * Transmit current envelope from this @a mqm.
  *
  * @param mqm mqm to transmit message for now
@@ -512,10 +541,6 @@ mqm_execute (struct GCP_MessageQueueManager *mqm)
 {
   struct CadetPeer *cp = mqm->cp;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending to peer %s from MQM %p\n",
-       GCP_2s (cp),
-       mqm);
   /* Move entry to the end of the DLL, to be fair. */
   if (mqm != cp->mqm_tail)
   {
@@ -526,10 +551,27 @@ mqm_execute (struct GCP_MessageQueueManager *mqm)
                                       cp->mqm_tail,
                                       mqm);
   }
-  GNUNET_MQ_send (cp->core_mq,
-                  mqm->env);
-  mqm->env = NULL;
   cp->mqm_ready_counter--;
+  if (GNUNET_YES == should_I_drop ())
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "DROPPING message to peer %s from MQM %p\n",
+         GCP_2s (cp),
+         mqm);
+    GNUNET_MQ_discard (mqm->env);
+    mqm->env = NULL;
+    mqm_send_done (cp);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending to peer %s from MQM %p\n",
+         GCP_2s (cp),
+         mqm);
+    GNUNET_MQ_send (cp->core_mq,
+                    mqm->env);
+    mqm->env = NULL;
+  }
   mqm->cb (mqm->cb_cls,
            GNUNET_YES);
 }
