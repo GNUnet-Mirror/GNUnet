@@ -158,31 +158,21 @@ struct CadetConnection
 
 
 /**
- * Destroy a connection.
+ * Destroy a connection, part of the internal implementation.  Called
+ * only from #GCC_destroy_from_core() or #GCC_destroy_from_tunnel().
  *
  * @param cc connection to destroy
  */
-void
+static void
 GCC_destroy (struct CadetConnection *cc)
 {
-  struct GNUNET_MQ_Envelope *env = NULL;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying %s\n",
        GCC_2s (cc));
-  if (CADET_CONNECTION_SENDING_CREATE != cc->state)
-  {
-    struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
-
-    /* Need to notify next hop that we are down. */
-    env = GNUNET_MQ_msg (destroy_msg,
-                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
-    destroy_msg->cid = cc->cid;
-  }
   if (NULL != cc->mq_man)
   {
     GCP_request_mq_cancel (cc->mq_man,
-                           env);
+                           NULL);
     cc->mq_man = NULL;
   }
   if (NULL != cc->task)
@@ -203,6 +193,56 @@ GCC_destroy (struct CadetConnection *cc)
                                                         &GCC_get_id (cc)->connection_of_tunnel,
                                                         cc));
   GNUNET_free (cc);
+}
+
+
+
+/**
+ * Destroy a connection, called when the CORE layer is already done
+ * (i.e. has received a BROKEN message), but if we still have to
+ * communicate the destruction of the connection to the tunnel (if one
+ * exists).
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_core (struct CadetConnection *cc)
+{
+  if (NULL != cc->ct)
+  {
+    GCT_connection_lost (cc->ct);
+    cc->ct = NULL;
+  }
+  GCC_destroy (cc);
+}
+
+
+/**
+ * Destroy a connection, called if the tunnel association with the
+ * connection was already broken, but we still need to notify the CORE
+ * layer about the breakage.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_tunnel (struct CadetConnection *cc)
+{
+  cc->ct = NULL;
+  if ( (CADET_CONNECTION_SENDING_CREATE != cc->state) &&
+       (NULL != cc->mq_man) )
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
+
+    /* Need to notify next hop that we are down. */
+    env = GNUNET_MQ_msg (destroy_msg,
+                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
+    destroy_msg->cid = cc->cid;
+    GCP_request_mq_cancel (cc->mq_man,
+                           env);
+    cc->mq_man = NULL;
+  }
+  GCC_destroy (cc);
 }
 
 
@@ -630,7 +670,8 @@ connection_create (struct CadetPeer *destination,
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
- * @return handle to the connection
+ * @return handle to the connection, NULL if we already have
+ *         a connection that takes precedence on @a path
  */
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
@@ -640,6 +681,54 @@ GCC_create_inbound (struct CadetPeer *destination,
                     GCC_ReadyCallback ready_cb,
                     void *ready_cb_cls)
 {
+  struct CadetConnection *cc;
+  unsigned int off;
+
+  off = GCPP_find_peer (path,
+                        destination);
+  GNUNET_assert (UINT_MAX != off);
+  cc = GCPP_get_connection (path,
+                            destination,
+                            off);
+  if (NULL != cc)
+  {
+    int cmp;
+
+    cmp = memcmp (cid,
+                  &cc->cid,
+                  sizeof (*cid));
+    if (0 == cmp)
+    {
+      /* Two peers picked the SAME random connection identifier at the
+         same time for the same path? Must be malicious.  Drop
+         connection (existing and inbound), even if it is the only
+         one. */
+      GNUNET_break_op (0);
+      GCT_connection_lost (cc->ct);
+      GCC_destroy_without_tunnel (cc);
+      return NULL;
+    }
+    if (0 < cmp)
+    {
+      /* drop existing */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got two connections on %s, dropping my existing %s\n",
+           GCPP_2s (path),
+           GCC_2s (cc));
+      GCT_connection_lost (cc->ct);
+      GCC_destroy_without_tunnel (cc);
+    }
+    else
+    {
+      /* keep existing */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got two connections on %s, keeping my existing %s\n",
+           GCPP_2s (path),
+           GCC_2s (cc));
+      return NULL;
+    }
+  }
+
   return connection_create (destination,
                             path,
                             ct,

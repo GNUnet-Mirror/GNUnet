@@ -1523,6 +1523,24 @@ GCT_add_channel (struct CadetTunnel *t,
 
 
 /**
+ * We lost a connection, remove it from our list and clean up
+ * the connection object itself.
+ *
+ * @param ct binding of connection to tunnel of the connection that was lost.
+ */
+void
+GCT_connection_lost (struct CadetTConnection *ct)
+{
+  struct CadetTunnel *t = ct->t;
+
+  GNUNET_CONTAINER_DLL_remove (t->connection_head,
+                               t->connection_tail,
+                               ct);
+  GNUNET_free (ct);
+}
+
+
+/**
  * This tunnel is no longer used, destroy it.
  *
  * @param cls the idle tunnel
@@ -1541,12 +1559,12 @@ destroy_tunnel (void *cls)
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (t->channels));
   while (NULL != (ct = t->connection_head))
   {
+    struct CadetConnection *cc;
+
     GNUNET_assert (ct->t == t);
-    GNUNET_CONTAINER_DLL_remove (t->connection_head,
-                                 t->connection_tail,
-                                 ct);
-    GCC_destroy (ct->cc);
-    GNUNET_free (ct);
+    cc = ct->cc;
+    GCT_connection_lost (ct);
+    GCC_destroy_without_tunnel (cc);
   }
   while (NULL != (tq = t->tq_head))
   {
@@ -2291,8 +2309,10 @@ GCT_create_tunnel (struct CadetPeer *destination)
  * @param t a tunnel
  * @param cid connection identifer to use for the connection
  * @param path path to use for the connection
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on failure (duplicate connection)
  */
-void
+int
 GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                             struct CadetPeerPath *path)
@@ -2308,6 +2328,15 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
                                cid,
                                &connection_ready_cb,
                                ct);
+  if (NULL == ct->cc)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Tunnel %s refused inbound connection %s (duplicate)\n",
+         GCT_2s (t),
+         GCC_2s (ct->cc));
+    GNUNET_free (ct);
+    return GNUNET_SYSERR;
+  }
   /* FIXME: schedule job to kill connection (and path?)  if it takes
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
@@ -2320,6 +2349,7 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
        "Tunnel %s has new connection %s\n",
        GCT_2s (t),
        GCC_2s (ct->cc));
+  return GNUNET_OK;
 }
 
 
