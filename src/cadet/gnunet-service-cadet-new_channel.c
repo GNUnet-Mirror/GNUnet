@@ -1775,7 +1775,8 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   }
 
   if ( (com->mid.mid != ch->mid_recv.mid) &&
-       (GNUNET_NO == ch->out_of_order) )
+       (GNUNET_NO == ch->out_of_order) &&
+       (GNUNET_YES == ch->reliable) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got LOCAL_ACK, %s-%X ready to receive more data (but next one is out-of-order %u vs. %u)!\n",
