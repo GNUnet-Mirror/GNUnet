@@ -218,6 +218,11 @@ static unsigned int ka_sent;
  */
 static unsigned int ka_received;
 
+/**
+ * How many messages were dropped by CADET because of full buffers?
+ */
+static unsigned int msg_dropped;
+
 
 /**
  * Get the client number considered as the "target" or "receiver", depending on
@@ -390,6 +395,7 @@ stats_iterator (void *cls,
 {
   static const char *s_sent = "# keepalives sent";
   static const char *s_recv = "# keepalives received";
+  static const char *drops = "# messages dropped due to full buffer";
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
@@ -401,9 +407,10 @@ stats_iterator (void *cls,
               (unsigned long long) value);
   if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
-
   if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
     ka_received = value;
+  if (0 == strncmp(drops, name, strlen (drops)))
+    msg_dropped += value;
 
   return GNUNET_OK;
 }
@@ -435,7 +442,7 @@ gather_stats_and_exit (void *cls)
   }
   stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
                                             "cadet", NULL,
-                                            stats_iterator, stats_cont, cls);
+                                            &stats_iterator, stats_cont, cls);
 }
 
 
@@ -1134,8 +1141,10 @@ main (int argc, char *argv[])
                         &channel_cleaner,
                         handlers,
                         ports);
+  if (NULL != strstr (argv[0], "_reliable"))
+    msg_dropped = 0; /* dropped should be retransmitted */
 
-  if (ok_goal > ok)
+  if (ok_goal > ok - msg_dropped)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "FAILED! (%d/%d)\n", ok, ok_goal);
