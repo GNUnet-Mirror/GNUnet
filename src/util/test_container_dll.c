@@ -71,11 +71,8 @@ cmp_elem (void *cls,
 int
 main (int argc, char **argv)
 {
-  unsigned int values2[] = {
-    4, 5, 8, 6, 9, 3, 7, 2, 6, 1, 0
-  };
   unsigned int values[] = {
-    1, 3, 2, 0
+    4, 5, 8, 6, 9, 3, 7, 2, 6, 1, 0
   };
   struct Element *head = NULL;
   struct Element *tail = NULL;
