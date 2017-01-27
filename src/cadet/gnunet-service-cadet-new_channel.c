@@ -1084,8 +1084,8 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch)
  * Test if element @a e1 comes before element @a e2.
  *
  * @param cls closure, to a flag where we indicate duplicate packets
- * @param e1 an element of to sort
- * @param e2 another element to sort
+ * @param m1 a message of to sort
+ * @param m2 another message to sort
  * @return #GNUNET_YES if @e1 < @e2, otherwise #GNUNET_NO
  */
 static int
@@ -1108,7 +1108,7 @@ is_before (void *cls,
   }
   else
   {
-    /* result is small, thus v2 > v1, thus e1 < e2 */
+    /* result is small, thus v2 > v1, thus m1 < m2 */
     return GNUNET_YES;
   }
 }
