@@ -538,20 +538,6 @@ GCT_get_estate (struct CadetTunnel *t)
 
 
 /**
- * Create a new Axolotl ephemeral (ratchet) key.
- *
- * @param t Tunnel.
- */
-static void
-new_ephemeral (struct CadetTunnel *t)
-{
-  GNUNET_free_non_null (t->ax.DHRs);
-  t->ax.DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
-}
-
-
-
-/**
  * Called when either we have a new connection, or a new message in the
  * queue, or some existing connection has transmission capacity.  Looks
  * at our message queue and if there is a message, picks a connection
@@ -564,6 +550,19 @@ trigger_transmissions (void *cls);
 
 
 /* ************************************** start core crypto ***************************** */
+
+
+/**
+ * Create a new Axolotl ephemeral (ratchet) key.
+ *
+ * @param ax key material to update
+ */
+static void
+new_ephemeral (struct CadetTunnelAxolotl *ax)
+{
+  GNUNET_free_non_null (ax->DHRs);
+  ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
+}
 
 
 /**
@@ -663,23 +662,21 @@ t_hmac_derive_key (const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 /**
  * Encrypt data with the axolotl tunnel key.
  *
- * @param t Tunnel whose key to use.
+ * @param ax key material to use.
  * @param dst Destination with @a size bytes for the encrypted data.
  * @param src Source of the plaintext. Can overlap with @c dst, must contain @a size bytes
  * @param size Size of the buffers at @a src and @a dst
  */
 static void
-t_ax_encrypt (struct CadetTunnel *t,
+t_ax_encrypt (struct CadetTunnelAxolotl *ax,
               void *dst,
               const void *src,
               size_t size)
 {
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  ax = &t->ax;
   ax->ratchet_counter++;
   if ( (GNUNET_YES == ax->ratchet_allowed) &&
        ( (ratchet_messages <= ax->ratchet_counter) ||
@@ -695,7 +692,7 @@ t_ax_encrypt (struct CadetTunnel *t,
     struct GNUNET_HashCode hmac;
     static const char ctx[] = "axolotl ratchet";
 
-    new_ephemeral (t);
+    new_ephemeral (ax);
     ax->HKs = ax->NHKs;
 
     /* RK, NHKs, CKs = KDF( HMAC-HASH(RK, DH(DHRs, DHRr)) ) */
@@ -749,23 +746,21 @@ t_ax_encrypt (struct CadetTunnel *t,
 /**
  * Decrypt data with the axolotl tunnel key.
  *
- * @param t Tunnel whose key to use.
+ * @param ax key material to use.
  * @param dst Destination for the decrypted data, must contain @a size bytes.
  * @param src Source of the ciphertext. Can overlap with @c dst, must contain @a size bytes.
  * @param size Size of the @a src and @a dst buffers
  */
 static void
-t_ax_decrypt (struct CadetTunnel *t,
+t_ax_decrypt (struct CadetTunnelAxolotl *ax,
               void *dst,
               const void *src,
               size_t size)
 {
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  ax = &t->ax;
   t_hmac_derive_key (&ax->CKr,
                      &MK,
                      "0",
@@ -791,18 +786,16 @@ t_ax_decrypt (struct CadetTunnel *t,
 /**
  * Encrypt header with the axolotl header key.
  *
- * @param t Tunnel whose key to use.
+ * @param ax key material to use.
  * @param msg Message whose header to encrypt.
  */
 static void
-t_h_encrypt (struct CadetTunnel *t,
+t_h_encrypt (struct CadetTunnelAxolotl *ax,
              struct GNUNET_CADET_TunnelEncryptedMessage *msg)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  ax = &t->ax;
   GNUNET_CRYPTO_symmetric_derive_iv (&iv,
                                      &ax->HKs,
                                      NULL, 0,
@@ -819,20 +812,18 @@ t_h_encrypt (struct CadetTunnel *t,
 /**
  * Decrypt header with the current axolotl header key.
  *
- * @param t Tunnel whose current ax HK to use.
+ * @param ax key material to use.
  * @param src Message whose header to decrypt.
  * @param dst Where to decrypt header to.
  */
 static void
-t_h_decrypt (struct CadetTunnel *t,
+t_h_decrypt (struct CadetTunnelAxolotl *ax,
              const struct GNUNET_CADET_TunnelEncryptedMessage *src,
              struct GNUNET_CADET_TunnelEncryptedMessage *dst)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct CadetTunnelAxolotl *ax;
   size_t out_size;
 
-  ax = &t->ax;
   GNUNET_CRYPTO_symmetric_derive_iv (&iv,
                                      &ax->HKr,
                                      NULL, 0,
@@ -849,18 +840,18 @@ t_h_decrypt (struct CadetTunnel *t,
 /**
  * Delete a key from the list of skipped keys.
  *
- * @param t Tunnel to delete from.
+ * @param ax key material to delete @a key from.
  * @param key Key to delete.
  */
 static void
-delete_skipped_key (struct CadetTunnel *t,
+delete_skipped_key (struct CadetTunnelAxolotl *ax,
                     struct CadetTunnelSkippedKey *key)
 {
-  GNUNET_CONTAINER_DLL_remove (t->ax.skipped_head,
-                               t->ax.skipped_tail,
+  GNUNET_CONTAINER_DLL_remove (ax->skipped_head,
+                               ax->skipped_tail,
                                key);
   GNUNET_free (key);
-  t->ax.skipped--;
+  ax->skipped--;
 }
 
 
@@ -868,14 +859,14 @@ delete_skipped_key (struct CadetTunnel *t,
  * Decrypt and verify data with the appropriate tunnel key and verify that the
  * data has not been altered since it was sent by the remote peer.
  *
- * @param t Tunnel whose key to use.
+ * @param ax key material to use.
  * @param dst Destination for the plaintext.
  * @param src Source of the message. Can overlap with @c dst.
  * @param size Size of the message.
  * @return Size of the decrypted data, -1 if an error was encountered.
  */
 static ssize_t
-try_old_ax_keys (struct CadetTunnel *t,
+try_old_ax_keys (struct CadetTunnelAxolotl *ax,
                  void *dst,
                  const struct GNUNET_CADET_TunnelEncryptedMessage *src,
                  size_t size)
@@ -897,7 +888,7 @@ try_old_ax_keys (struct CadetTunnel *t,
 
   /* Find a correct Header Key */
   valid_HK = NULL;
-  for (key = t->ax.skipped_head; NULL != key; key = key->next)
+  for (key = ax->skipped_head; NULL != key; key = key->next)
   {
     t_hmac (&src->ax_header,
             sizeof (struct GNUNET_CADET_AxHeader) + esize,
@@ -954,7 +945,7 @@ try_old_ax_keys (struct CadetTunnel *t,
                                          &key->MK,
                                          &iv,
                                          dst);
-  delete_skipped_key (t,
+  delete_skipped_key (ax,
                       key);
   return res;
 }
@@ -963,32 +954,32 @@ try_old_ax_keys (struct CadetTunnel *t,
 /**
  * Delete a key from the list of skipped keys.
  *
- * @param t Tunnel to delete from.
+ * @param ax key material to delete from.
  * @param HKr Header Key to use.
  */
 static void
-store_skipped_key (struct CadetTunnel *t,
+store_skipped_key (struct CadetTunnelAxolotl *ax,
                    const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr)
 {
   struct CadetTunnelSkippedKey *key;
 
   key = GNUNET_new (struct CadetTunnelSkippedKey);
   key->timestamp = GNUNET_TIME_absolute_get ();
-  key->Kn = t->ax.Nr;
-  key->HK = t->ax.HKr;
-  t_hmac_derive_key (&t->ax.CKr,
+  key->Kn = ax->Nr;
+  key->HK = ax->HKr;
+  t_hmac_derive_key (&ax->CKr,
                      &key->MK,
                      "0",
                      1);
-  t_hmac_derive_key (&t->ax.CKr,
-                     &t->ax.CKr,
+  t_hmac_derive_key (&ax->CKr,
+                     &ax->CKr,
                      "1",
                      1);
-  GNUNET_CONTAINER_DLL_insert (t->ax.skipped_head,
-                               t->ax.skipped_tail,
+  GNUNET_CONTAINER_DLL_insert (ax->skipped_head,
+                               ax->skipped_tail,
                                key);
-  t->ax.skipped++;
-  t->ax.Nr++;
+  ax->skipped++;
+  ax->Nr++;
 }
 
 
@@ -996,23 +987,23 @@ store_skipped_key (struct CadetTunnel *t,
  * Stage skipped AX keys and calculate the message key.
  * Stores each HK and MK for skipped messages.
  *
- * @param t Tunnel where to stage the keys.
+ * @param ax key material to use
  * @param HKr Header key.
  * @param Np Received meesage number.
  * @return #GNUNET_OK if keys were stored.
  *         #GNUNET_SYSERR if an error ocurred (Np not expected).
  */
 static int
-store_ax_keys (struct CadetTunnel *t,
+store_ax_keys (struct CadetTunnelAxolotl *ax,
                const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr,
                uint32_t Np)
 {
   int gap;
 
-  gap = Np - t->ax.Nr;
+  gap = Np - ax->Nr;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Storing skipped keys [%u, %u)\n",
-       t->ax.Nr,
+       ax->Nr,
        Np);
   if (MAX_KEY_GAP < gap)
   {
@@ -1022,7 +1013,7 @@ store_ax_keys (struct CadetTunnel *t,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Got message %u, expected %u+\n",
          Np,
-         t->ax.Nr);
+         ax->Nr);
     return GNUNET_SYSERR;
   }
   if (0 > gap)
@@ -1031,13 +1022,13 @@ store_ax_keys (struct CadetTunnel *t,
     return GNUNET_SYSERR;
   }
 
-  while (t->ax.Nr < Np)
-    store_skipped_key (t,
+  while (ax->Nr < Np)
+    store_skipped_key (ax,
                        HKr);
 
-  while (t->ax.skipped > MAX_SKIPPED_KEYS)
-    delete_skipped_key (t,
-                        t->ax.skipped_tail);
+  while (ax->skipped > MAX_SKIPPED_KEYS)
+    delete_skipped_key (ax,
+                        ax->skipped_tail);
   return GNUNET_OK;
 }
 
@@ -1046,19 +1037,18 @@ store_ax_keys (struct CadetTunnel *t,
  * Decrypt and verify data with the appropriate tunnel key and verify that the
  * data has not been altered since it was sent by the remote peer.
  *
- * @param t Tunnel whose key to use.
+ * @param ax key material to use
  * @param dst Destination for the plaintext.
  * @param src Source of the message. Can overlap with @c dst.
  * @param size Size of the message.
  * @return Size of the decrypted data, -1 if an error was encountered.
  */
 static ssize_t
-t_ax_decrypt_and_validate (struct CadetTunnel *t,
+t_ax_decrypt_and_validate (struct CadetTunnelAxolotl *ax,
                            void *dst,
                            const struct GNUNET_CADET_TunnelEncryptedMessage *src,
                            size_t size)
 {
-  struct CadetTunnelAxolotl *ax;
   struct GNUNET_ShortHashCode msg_hmac;
   struct GNUNET_HashCode hmac;
   struct GNUNET_CADET_TunnelEncryptedMessage plaintext_header;
@@ -1067,7 +1057,6 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
   size_t esize; /* Size of encryped payload */
 
   esize = size - sizeof (struct GNUNET_CADET_TunnelEncryptedMessage);
-  ax = &t->ax;
 
   /* Try current HK */
   t_hmac (&src->ax_header,
@@ -1095,20 +1084,20 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
                      sizeof (msg_hmac)))
     {
       /* Try the skipped keys, if that fails, we're out of luck. */
-      return try_old_ax_keys (t,
+      return try_old_ax_keys (ax,
                               dst,
                               src,
                               size);
     }
     HK = ax->HKr;
     ax->HKr = ax->NHKr;
-    t_h_decrypt (t,
+    t_h_decrypt (ax,
                  src,
                  &plaintext_header);
     Np = ntohl (plaintext_header.ax_header.Ns);
     PNp = ntohl (plaintext_header.ax_header.PNs);
     DHRp = &plaintext_header.ax_header.DHRs;
-    store_ax_keys (t,
+    store_ax_keys (ax,
                    &HK,
                    PNp);
 
@@ -1134,25 +1123,25 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
   }
   else
   {
-    t_h_decrypt (t,
+    t_h_decrypt (ax,
                  src,
                  &plaintext_header);
     Np = ntohl (plaintext_header.ax_header.Ns);
     PNp = ntohl (plaintext_header.ax_header.PNs);
   }
   if ( (Np != ax->Nr) &&
-       (GNUNET_OK != store_ax_keys (t,
+       (GNUNET_OK != store_ax_keys (ax,
                                     &ax->HKr,
                                     Np)) )
   {
     /* Try the skipped keys, if that fails, we're out of luck. */
-    return try_old_ax_keys (t,
+    return try_old_ax_keys (ax,
                             dst,
                             src,
                             size);
   }
 
-  t_ax_decrypt (t,
+  t_ax_decrypt (ax,
                 dst,
                 &src[1],
                 esize);
@@ -1586,7 +1575,7 @@ destroy_tunnel (void *cls)
   GNUNET_MST_destroy (t->mst);
   GNUNET_MQ_destroy (t->mq);
   while (NULL != t->ax.skipped_head)
-    delete_skipped_key (t,
+    delete_skipped_key (&t->ax,
                         t->ax.skipped_head);
   GNUNET_assert (0 == t->ax.skipped);
   GNUNET_free_non_null (t->ax.kx_0);
@@ -2276,7 +2265,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
     GNUNET_MQ_handler_end ()
   };
 
-  new_ephemeral (t);
+  new_ephemeral (&t->ax);
   t->ax.kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
@@ -2397,7 +2386,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
                             "# received encrypted",
                             1,
                             GNUNET_NO);
-  decrypted_size = t_ax_decrypt_and_validate (t,
+  decrypted_size = t_ax_decrypt_and_validate (&t->ax,
                                               cbuf,
                                               msg,
                                               size);
@@ -2462,7 +2451,7 @@ GCT_send (struct CadetTunnel *t,
   env = GNUNET_MQ_msg_extra (ax_msg,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED);
-  t_ax_encrypt (t,
+  t_ax_encrypt (&t->ax,
                 &ax_msg[1],
                 message,
                 payload_size);
@@ -2470,7 +2459,7 @@ GCT_send (struct CadetTunnel *t,
   ax_msg->ax_header.PNs = htonl (t->ax.PNs);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax.DHRs,
                                       &ax_msg->ax_header.DHRs);
-  t_h_encrypt (t,
+  t_h_encrypt (&t->ax,
                ax_msg);
   t_hmac (&ax_msg->ax_header,
           sizeof (struct GNUNET_CADET_AxHeader) + payload_size,
