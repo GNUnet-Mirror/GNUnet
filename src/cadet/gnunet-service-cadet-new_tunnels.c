@@ -49,6 +49,12 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-tun",__VA_ARGS__)
 
+/**
+ * How often do we try to decrypt payload with unverified key
+ * material?  Used to limit CPU increase upon receiving bogus
+ * KX.
+ */
+#define MAX_UNVERIFIED_ATTEMPTS 16
 
 /**
  * How long do we wait until tearing down an idle tunnel?
@@ -293,6 +299,15 @@ struct CadetTunnel
   struct CadetTunnelAxolotl ax;
 
   /**
+   * Unverified Axolotl info, used only if we got a fresh KX (not a
+   * KX_AUTH) while our end of the tunnel was still up.  In this case,
+   * we keep the fresh KX around but do not put it into action until
+   * we got encrypted payload that assures us of the authenticity of
+   * the KX.
+   */
+  struct CadetTunnelAxolotl *unverified_ax;
+
+  /**
    * Task scheduled if there are no more channels using the tunnel.
    */
   struct GNUNET_SCHEDULER_Task *destroy_task;
@@ -367,6 +382,13 @@ struct CadetTunnel
    * Number of connections in the @e connection_head DLL.
    */
   unsigned int num_connections;
+
+  /**
+   * How often have we tried and failed to decrypt a message using
+   * the unverified KX material from @e unverified_ax?  Used to
+   * stop trying after #MAX_UNVERIFIED_ATTEMPTS.
+   */
+  unsigned int unverified_attempts;
 
   /**
    * Number of entries in the @e tq_head DLL.
@@ -1218,13 +1240,14 @@ GCT_change_estate (struct CadetTunnel *t,
  * FIXME: does not take care of sender-authentication yet!
  *
  * @param t Tunnel on which to send it.
+ * @param ax axolotl key context to use
  * @param force_reply Force the other peer to reply with a KX message.
  */
 static void
 send_kx (struct CadetTunnel *t,
+         struct CadetTunnelAxolotl *ax,
          int force_reply)
 {
-  struct CadetTunnelAxolotl *ax = &t->ax;
   struct CadetTConnection *ct;
   struct CadetConnection *cc;
   struct GNUNET_MQ_Envelope *env;
@@ -1269,9 +1292,26 @@ send_kx (struct CadetTunnel *t,
 
 
 /**
- * Handle KX message.
+ * Cleanup state used by @a ax.
  *
- * FIXME: sender-authentication in KX is missing!
+ * @param ax state to free, but not memory of @a ax itself
+ */
+static void
+cleanup_ax (struct CadetTunnelAxolotl *ax)
+{
+  while (NULL != ax->skipped_head)
+    delete_skipped_key (ax,
+                        ax->skipped_head);
+  GNUNET_assert (0 == ax->skipped);
+  GNUNET_free_non_null (ax->kx_0);
+  GNUNET_free_non_null (ax->DHRs);
+}
+
+
+/**
+ * Handle KX message that lacks authentication (and which will thus
+ * only be considered authenticated after we respond with our own
+ * KX_AUTH and finally successfully decrypt payload).
  *
  * @param ct connection/tunnel combo that received encrypted message
  * @param msg the key exchange message
@@ -1281,12 +1321,35 @@ GCT_handle_kx (struct CadetTConnection *ct,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   struct CadetTunnel *t = ct->t;
-  struct CadetTunnelAxolotl *ax = &t->ax;
+  struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
   struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
   const char salt[] = "CADET Axolotl salt";
   const struct GNUNET_PeerIdentity *pid;
   int am_I_alice;
+
+  /* We only keep ONE unverified KX around, so if there is an existing one,
+     clean it up. */
+  if (NULL != t->unverified_ax)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Dropping old unverified KX state, got a fresh one.\n",
+         t->unverified_attempts);
+    cleanup_ax (t->unverified_ax);
+    memset (t->unverified_ax,
+            0,
+            sizeof (struct CadetTunnelAxolotl));
+    new_ephemeral (t->unverified_ax);
+    t->unverified_ax->kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
+  }
+  else
+  {
+    t->unverified_ax = GNUNET_new (struct CadetTunnelAxolotl);
+    new_ephemeral (t->unverified_ax);
+    t->unverified_ax->kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
+  }
+  t->unverified_attempts = 0;
+  ax = t->unverified_ax;
 
   pid = GCP_get_id (t->destination);
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
@@ -1309,6 +1372,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
       t->kx_task = NULL;
     }
     send_kx (t,
+             ax,
              GNUNET_NO);
   }
 
@@ -1574,12 +1638,12 @@ destroy_tunnel (void *cls)
   }
   GNUNET_MST_destroy (t->mst);
   GNUNET_MQ_destroy (t->mq);
-  while (NULL != t->ax.skipped_head)
-    delete_skipped_key (&t->ax,
-                        t->ax.skipped_head);
-  GNUNET_assert (0 == t->ax.skipped);
-  GNUNET_free_non_null (t->ax.kx_0);
-  GNUNET_free_non_null (t->ax.DHRs);
+  cleanup_ax (&t->ax);
+  if (NULL != t->unverified_ax)
+  {
+    cleanup_ax (t->unverified_ax);
+    GNUNET_free (t->unverified_ax);
+  }
   GNUNET_free (t);
 }
 
@@ -1669,6 +1733,7 @@ retry_kx (void *cls)
 
   t->kx_task = NULL;
   send_kx (t,
+           &t->ax,
            ( (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate) ||
              (CADET_TUNNEL_KEY_SENT == t->estate) )
            ? GNUNET_YES
@@ -1754,6 +1819,7 @@ connection_ready_cb (void *cls,
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
     send_kx (t,
+             &t->ax,
              GNUNET_YES);
     break;
   case CADET_TUNNEL_KEY_SENT:
@@ -1773,6 +1839,7 @@ connection_ready_cb (void *cls,
     break;
   case CADET_TUNNEL_KEY_REKEY:
     send_kx (t,
+             &t->ax,
              GNUNET_NO);
     t->estate = CADET_TUNNEL_KEY_OK;
     break;
@@ -2386,13 +2453,70 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
                             "# received encrypted",
                             1,
                             GNUNET_NO);
-  decrypted_size = t_ax_decrypt_and_validate (&t->ax,
-                                              cbuf,
-                                              msg,
-                                              size);
+  decrypted_size = -1;
+  if ( (CADET_TUNNEL_KEY_OK == t->estate) ||
+       (CADET_TUNNEL_KEY_REKEY == t->estate) )
+  {
+    /* We have well-established key material available,
+       try that. (This is the common case.) */
+    decrypted_size = t_ax_decrypt_and_validate (&t->ax,
+                                                cbuf,
+                                                msg,
+                                                size);
+  }
+
+  if ( (-1 == decrypted_size) &&
+       (NULL != t->unverified_ax) )
+  {
+    /* We have un-authenticated KX material available. We should try
+       this as a back-up option, in case the sender crashed and
+       switched keys. */
+    decrypted_size = t_ax_decrypt_and_validate (t->unverified_ax,
+                                                cbuf,
+                                                msg,
+                                                size);
+    if (-1 != decrypted_size)
+    {
+      /* It worked! Treat this as authentication of the AX data! */
+      cleanup_ax (&t->ax);
+      t->ax = *t->unverified_ax;
+      GNUNET_free (t->unverified_ax);
+      t->unverified_ax = NULL;
+    }
+    if (CADET_TUNNEL_KEY_PING == t->estate)
+    {
+      /* First time it worked, move tunnel into production! */
+      GCT_change_estate (t,
+                         CADET_TUNNEL_KEY_OK);
+      if (NULL != t->send_task)
+        GNUNET_SCHEDULER_cancel (t->send_task);
+      t->send_task = GNUNET_SCHEDULER_add_now (&trigger_transmissions,
+                                               t);
+    }
+  }
+  if (NULL != t->unverified_ax)
+  {
+    /* We had unverified KX material that was useless; so increment
+       counter and eventually move to ignore it.  Note that we even do
+       this increment if we successfully decrypted with the old KX
+       material and thus didn't even both with the new one.  This is
+       the ideal case, as a malicious injection of bogus KX data
+       basically only causes us to increment a counter a few times. */
+    t->unverified_attempts++;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to decrypt message with unverified KX data %u times\n",
+         t->unverified_attempts);
+    if (t->unverified_attempts > MAX_UNVERIFIED_ATTEMPTS)
+    {
+      cleanup_ax (t->unverified_ax);
+      GNUNET_free (t->unverified_ax);
+      t->unverified_ax = NULL;
+    }
+  }
 
   if (-1 == decrypted_size)
   {
+    /* Decryption failed for good, complain. */
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Tunnel %s failed to decrypt and validate encrypted data\n",
@@ -2403,15 +2527,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
                               GNUNET_NO);
     return;
   }
-  if (CADET_TUNNEL_KEY_PING == t->estate)
-  {
-    GCT_change_estate (t,
-                       CADET_TUNNEL_KEY_OK);
-    if (NULL != t->send_task)
-      GNUNET_SCHEDULER_cancel (t->send_task);
-    t->send_task = GNUNET_SCHEDULER_add_now (&trigger_transmissions,
-                                             t);
-  }
+
   /* The MST will ultimately call #handle_decrypted() on each message. */
   GNUNET_break_op (GNUNET_OK ==
                    GNUNET_MST_from_buffer (t->mst,
@@ -2430,7 +2546,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
  * @param t Tunnel on which this message is transmitted.
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
- * @return Handle to cancel message. NULL if @c cont is NULL.
+ * @return Handle to cancel message
  */
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
@@ -2443,6 +2559,12 @@ GCT_send (struct CadetTunnel *t,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelEncryptedMessage *ax_msg;
 
+  if ( (CADET_TUNNEL_KEY_OK != t->estate) &&
+       (CADET_TUNNEL_KEY_REKEY != t->estate) )
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   payload_size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Encrypting %u bytes for tunnel %s\n",
@@ -2638,9 +2760,6 @@ GCT_debug (const struct CadetTunnel *t,
         estate2s (t->estate),
         t->tq_len,
         t->num_connections);
-#if DUMP_KEYS_TO_STDERR
-  ax_debug (t->ax, level);
-#endif
   LOG2 (level,
         "TTT channels:\n");
   GNUNET_CONTAINER_multihashmap32_iterate (t->channels,
