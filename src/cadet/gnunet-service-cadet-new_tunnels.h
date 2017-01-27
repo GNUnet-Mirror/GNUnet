@@ -200,7 +200,7 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
  * @param t Tunnel on which this message is transmitted.
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
- * @return Handle to cancel message. NULL if @c cont is NULL.
+ * @return Handle to cancel message.
  */
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
