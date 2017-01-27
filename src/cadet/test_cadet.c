@@ -820,8 +820,9 @@ incoming_channel (void *cls,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Incoming channel for unknown client %lu\n", (long) cls);
-    GNUNET_break(0);
+                "Incoming channel for unexpected peer #%lu\n",
+                (long) cls);
+    GNUNET_break (0);
   }
   if (NULL != disconnect_task)
   {
