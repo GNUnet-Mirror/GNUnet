@@ -479,10 +479,30 @@ handle_connection_create (void *cls,
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
                                      pids);
-    GCT_add_inbound_connection (GCP_get_tunnel (origin,
-                                                GNUNET_YES),
-                                &msg->cid,
-                                path);
+    if (GNUNET_OK !=
+        GCT_add_inbound_connection (GCP_get_tunnel (origin,
+                                                    GNUNET_YES),
+                                    &msg->cid,
+                                    path))
+    {
+      /* Send back BROKEN: duplicate connection on the same path,
+         we will use the other one. */
+      struct GNUNET_MQ_Envelope *env;
+      struct GNUNET_CADET_ConnectionBrokenMessage *bm;
+
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received CADET_CONNECTION_CREATE from %s for %s, but %s already has a connection. Sending BROKEN\n",
+           GCP_2s (sender),
+           GNUNET_sh2s (&msg->cid.connection_of_tunnel),
+           GCPP_2s (path));
+      env = GNUNET_MQ_msg (bm,
+                           GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
+      bm->cid = msg->cid;
+      bm->peer1 = my_full_id;
+      GCP_send_ooo (sender,
+                    env);
+      return;
+    }
     return;
   }
   /* We are merely a hop on the way, check if we can support the route */
@@ -611,7 +631,7 @@ handle_connection_broken (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received CONNECTION_BROKEN for connection %s. Destroying it.\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
-    GCC_destroy (cc);
+    GCC_destroy_without_core (cc);
 
     /* FIXME: also destroy the path up to the specified link! */
     return;
@@ -661,7 +681,7 @@ handle_connection_destroy (void *cls,
          "Received CONNECTION_DESTROY for connection %s. Destroying connection.\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
 
-    GCC_destroy (cc);
+    GCC_destroy_without_core (cc);
     return;
   }
 

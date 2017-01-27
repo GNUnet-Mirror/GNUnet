@@ -47,12 +47,26 @@ typedef void
 
 
 /**
- * Destroy a connection.
+ * Destroy a connection, called when the CORE layer is already done
+ * (i.e. has received a BROKEN message), but if we still have to
+ * communicate the destruction of the connection to the tunnel (if one
+ * exists).
  *
  * @param cc connection to destroy
  */
 void
-GCC_destroy (struct CadetConnection *cc);
+GCC_destroy_without_core (struct CadetConnection *cc);
+
+
+/**
+ * Destroy a connection, called if the tunnel association with the
+ * connection was already broken, but we still need to notify the CORE
+ * layer about the breakage.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_tunnel (struct CadetConnection *cc);
 
 
 /**
@@ -84,7 +98,8 @@ GCC_create (struct CadetPeer *destination,
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
- * @return handle to the connection
+ * @return handle to the connection, NULL if we already have
+ *         a connection that takes precedence on @a path
  */
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,

@@ -205,7 +205,9 @@ enum GNUNET_CADET_KX_Flags {
 struct GNUNET_CADET_TunnelKeyExchangeMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX.
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX or
+   * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH as part
+   * of `struct GNUNET_CADET_TunnelKeyExchangeAuthMessage`.
    */
   struct GNUNET_MessageHeader header;
 
@@ -234,17 +236,57 @@ struct GNUNET_CADET_TunnelKeyExchangeMessage
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ratchet_key;
 
-#ifdef NEW_CADET
-  /**
-   * Proof that sender could compute the 3-DH, in lieu of a signature.
-   */
-  struct GNUNET_HashCode triple_dh_proof;
-#endif
 };
 
 
 /**
- * Axolotl tunnel message.
+ * Message for a Key eXchange for a tunnel, with authentication.
+ * Used as a response to the initial KX as well as for rekeying.
+ */
+struct GNUNET_CADET_TunnelKeyExchangeAuthMessage
+{
+
+  /**
+   * Message header with key material.
+   */
+  struct GNUNET_CADET_TunnelKeyExchangeMessage kx;
+
+  /**
+   * KDF-proof that sender could compute the 3-DH, used in lieu of a
+   * signature or payload data.
+   */
+  struct GNUNET_HashCode auth;
+
+};
+
+
+/**
+ * Encrypted axolotl header with numbers that identify which
+ * keys in which ratchet are to be used to decrypt the body.
+ */
+struct GNUNET_CADET_AxHeader
+{
+
+  /**
+   * Number of messages sent with the current ratchet key.
+   */
+  uint32_t Ns GNUNET_PACKED;
+
+  /**
+   * Number of messages sent with the previous ratchet key.
+   */
+  uint32_t PNs GNUNET_PACKED;
+
+  /**
+   * Current ratchet key.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
+
+};
+
+
+/**
+ * Axolotl-encrypted tunnel message with application payload.
  */
 struct GNUNET_CADET_TunnelEncryptedMessage
 {
@@ -277,8 +319,13 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    */
   struct GNUNET_ShortHashCode hmac;
 
-  /**************** AX_HEADER start ****************/
-
+  #if NEW_CADET
+  /**
+   * Axolotl-header that specifies which keys to use in which ratchet
+   * to decrypt the body that follows.
+   */
+  struct GNUNET_CADET_AxHeader ax_header;
+#else
   /**
    * Number of messages sent with the current ratchet key.
    */
@@ -293,9 +340,7 @@ struct GNUNET_CADET_TunnelEncryptedMessage
    * Current ratchet key.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
-
-  /**************** AX_HEADER  end  ****************/
-
+#endif
   /**
    * Encrypted content follows.
    */

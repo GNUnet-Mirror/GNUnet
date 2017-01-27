@@ -113,11 +113,23 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t);
  * @param t a tunnel
  * @param cid connection identifer to use for the connection
  * @param path path to use for the connection
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on failure (duplicate connection)
  */
-void
+int
 GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                             struct CadetPeerPath *path);
+
+
+/**
+ * We lost a connection, remove it from our list and clean up
+ * the connection object itself.
+ *
+ * @param ct binding of connection to tunnel of the connection that was lost.
+ */
+void
+GCT_connection_lost (struct CadetTConnection *ct);
 
 
 /**

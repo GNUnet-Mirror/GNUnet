@@ -47,6 +47,15 @@ src/cadet/gnunet-service-cadet_connection.c
 src/cadet/gnunet-service-cadet_dht.c
 src/cadet/gnunet-service-cadet_hello.c
 src/cadet/gnunet-service-cadet_local.c
+src/cadet/gnunet-service-cadet-new.c
+src/cadet/gnunet-service-cadet-new_channel.c
+src/cadet/gnunet-service-cadet-new_connection.c
+src/cadet/gnunet-service-cadet-new_core.c
+src/cadet/gnunet-service-cadet-new_dht.c
+src/cadet/gnunet-service-cadet-new_hello.c
+src/cadet/gnunet-service-cadet-new_paths.c
+src/cadet/gnunet-service-cadet-new_peer.c
+src/cadet/gnunet-service-cadet-new_tunnels.c
 src/cadet/gnunet-service-cadet_peer.c
 src/cadet/gnunet-service-cadet_tunnel.c
 src/consensus/consensus_api.c
@@ -435,6 +444,7 @@ src/util/container_meta_data.c
 src/util/container_multihashmap32.c
 src/util/container_multihashmap.c
 src/util/container_multipeermap.c
+src/util/container_multishortmap.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
 src/util/crypto_ecc_dlog.c
