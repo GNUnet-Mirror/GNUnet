@@ -210,7 +210,11 @@ route_message (struct CadetPeer *prev,
          GCP_2s (prev),
          GNUNET_i2s (GCP_get_id (dir->hop)),
          GNUNET_sh2s (&cid->connection_of_tunnel));
-    GNUNET_assert (dir->out_rpos == dir->out_wpos);
+    GNUNET_STATISTICS_update (stats,
+                              "# messages dropped due to full buffer",
+                              1,
+                              GNUNET_NO);
+  GNUNET_assert (dir->out_rpos == dir->out_wpos);
     GNUNET_MQ_discard (env);
     dir->out_rpos++;
     if (ROUTE_BUFFER_SIZE == dir->out_rpos)
