@@ -1242,6 +1242,13 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
 
       /* Yep, need to drop. Drop the oldest message in
          the buffer. */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Queue full due slow client on %s, dropping oldest message\n",
+           GCCH_2s (ch));
+      GNUNET_STATISTICS_update (stats,
+                                "# messages dropped due to slow client",
+                                1,
+                                GNUNET_NO);
       drop = ccc->head_recv;
       GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
                                    ccc->tail_recv,

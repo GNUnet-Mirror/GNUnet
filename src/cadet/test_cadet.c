@@ -395,7 +395,8 @@ stats_iterator (void *cls,
 {
   static const char *s_sent = "# keepalives sent";
   static const char *s_recv = "# keepalives received";
-  static const char *drops = "# messages dropped due to full buffer";
+  static const char *rdrops = "# messages dropped due to full buffer";
+  static const char *cdrops = "# messages dropped due to slow client";
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
@@ -409,7 +410,9 @@ stats_iterator (void *cls,
     ka_sent = value;
   if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
     ka_received = value;
-  if (0 == strncmp(drops, name, strlen (drops)))
+  if (0 == strncmp(rdrops, name, strlen (rdrops)))
+    msg_dropped += value;
+  if (0 == strncmp(cdrops, name, strlen (cdrops)))
     msg_dropped += value;
 
   return GNUNET_OK;
