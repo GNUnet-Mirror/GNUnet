@@ -699,6 +699,7 @@ GC_u2h (uint32_t port);
 /**
  * Method called whenever a given peer connects in MQ-based CADET.
  *
+ * @param cls Closure from @a GNUNET_CADET_open_porT.
  * @param channel New handle to the channel.
  * @param source Peer that started this channel.
  *
@@ -707,7 +708,8 @@ GC_u2h (uint32_t port);
  *         - Each the @a GNUNET_MQ_MessageCallback for each message.
  */
 typedef void *
-(*GNUNET_CADET_ConnectEventHandler) (struct GNUNET_CADET_Channel *channel,
+(*GNUNET_CADET_ConnectEventHandler) (void *cls,
+                                     struct GNUNET_CADET_Channel *channel,
                                      const struct GNUNET_PeerIdentity *source);
 
 
@@ -719,14 +721,31 @@ typedef void *
  * It should clean up any associated state, including cancelling any pending
  * transmission on this channel.
  *
- * FIXME: what about MQ-pending transmissions?
- *
  * @param cls Channel closure.
  * @param channel Connection to the other end (henceforth invalid).
  */
 typedef void
-(GNUNET_CADET_DisconnectEventHandler) (void *cls,
-                                       const struct GNUNET_CADET_Channel *channel);
+(*GNUNET_CADET_DisconnectEventHandler) (void *cls,
+                                        const struct GNUNET_CADET_Channel *channel);
+
+
+/**
+ * Function called whenever an MQ-channel's transmission window size changes.
+ *
+ * The first callback in an outgoing channel will be with a non-zero value
+ * and will mean the channel is connected to the destination.
+ *
+ * For an incoming channel it will be called immediately after the
+ * @a GNUNET_CADET_ConnectEventHandler, also with a non-zero value.
+ *
+ * @param cls Channel closure.
+ * @param channel Connection to the other end (henceforth invalid).
+ * @param window_size New window size.
+ */
+typedef void
+(*GNUNET_CADET_WindowSizeEventHandler) (void *cls,
+                                        const struct GNUNET_CADET_Channel *channel,
+                                        int window_size);
 
 
 /**
@@ -746,7 +765,8 @@ GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param h CADET handle.
  * @param port Hash identifying the port.
  * @param connects Function called when an incoming channel is connected.
- * FIXME: add connects_cls to give the incoming handler a closure?
+ * @param connects_cls Closure for the @a connects handler.
+ * @param window_changes Function called when the transmit window size changes.
  * @param disconnects Function called when a channel is disconnected.
  * @param handlers Callbacks for messages we care about, NULL-terminated.
  *
@@ -756,6 +776,8 @@ struct GNUNET_CADET_Port *
 GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
                         const struct GNUNET_HashCode *port,
                         GNUNET_CADET_ConnectEventHandler connects,
+                        void * connects_cls,
+                        GNUNET_CADET_WindowSizeEventHandler window_changes,
                         GNUNET_CADET_DisconnectEventHandler disconnects,
                         const struct GNUNET_MQ_MessageHandler *handlers);
 
@@ -774,6 +796,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
  * @param destination Peer identity the channel should go to.
  * @param port Identification of the destination port.
  * @param options CadetOption flag field, with all desired option bits set to 1.
+ * @param window_changes Function called when the transmit window size changes.
  * @param disconnects Function called when the channel is disconnected.
  * @param handlers Callbacks for messages we care about, NULL-terminated.
  *
@@ -785,6 +808,7 @@ GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
                              const struct GNUNET_PeerIdentity *destination,
                              const struct GNUNET_HashCode *port,
                              enum GNUNET_CADET_ChannelOption options,
+                             GNUNET_CADET_WindowSizeEventHandler window_changes,
                              GNUNET_CADET_DisconnectEventHandler disconnects,
                              const struct GNUNET_MQ_MessageHandler *handlers);
 
@@ -795,8 +819,6 @@ GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
  * @param channel The channel handle from which to get the MQ.
  *
  * @return NULL if @a channel is not yet connected.
- *         FIXME: provide an mq before a channel is connected?
- *               provide a callback to notify a client a channel connected?
  */
 struct GNUNET_MQ_Handle *
 GNUNET_CADET_get_mq (const struct GNUNET_CADET_Channel *channel);
