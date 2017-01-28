@@ -19,7 +19,8 @@
 */
 /**
  * @file cadet/test_cadet.c
- *
+ * @author Bart Polot
+ * @author Christian Grothoff
  * @brief Test for the cadet service: retransmission of traffic.
  */
 #include <stdio.h>

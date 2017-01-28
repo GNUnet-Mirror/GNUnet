@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -302,6 +301,14 @@ send_keepalive (void *cls)
   struct GNUNET_MessageHeader msg;
 
   cc->task = NULL;
+  if (CADET_TUNNEL_KEY_OK != GCT_get_estate (cc->ct->t))
+  {
+    /* Tunnel not yet ready, wait with keepalives... */
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
+    return;
+  }
   GNUNET_assert (NULL != cc->ct);
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   GNUNET_assert (NULL == cc->keepalive_qe);
@@ -379,6 +386,30 @@ GCC_handle_kx (struct CadetConnection *cc,
   }
   GCT_handle_kx (cc->ct,
                  msg);
+}
+
+
+/**
+ * Handle KX_AUTH message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg)
+{
+  if (CADET_CONNECTION_SENT == cc->state)
+  {
+    /* We didn't get the CADET_CONNECTION_CREATE_ACK, but instead got payload. That's fine,
+       clearly something is working, so pretend we got an ACK. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Faking connection CADET_CONNECTION_CREATE_ACK for %s due to KX\n",
+         GCC_2s (cc));
+    GCC_handle_connection_create_ack (cc);
+  }
+  GCT_handle_kx_auth (cc->ct,
+                      msg);
 }
 
 

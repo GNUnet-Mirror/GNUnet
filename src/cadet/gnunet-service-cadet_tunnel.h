@@ -87,7 +87,7 @@ enum CadetTunnelEState
   /**
    * Ephemeral key sent, waiting for peer's key.
    */
-  CADET_TUNNEL_KEY_SENT,
+  CADET_TUNNEL_KEY_AX_SENT,
 
   /**
    * In OTR: New ephemeral key and ping sent, waiting for pong.
@@ -104,7 +104,7 @@ enum CadetTunnelEState
    * traffic MUST be a complete channel creation 3-way handshake, no payload
    * will be sent before confirmation.
    */
-  CADET_TUNNEL_KEY_PING,
+  CADET_TUNNEL_KEY_AX_AUTH_SENT,
 
   /**
    * Handshake completed: session key available.

@@ -50,17 +50,30 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_UNINITIALIZED,
 
   /**
-   * Ephemeral key sent, waiting for peer's key.
+   * KX message sent, waiting for other peer's KX_AUTH.
    */
-  CADET_TUNNEL_KEY_SENT,
+  CADET_TUNNEL_KEY_AX_SENT,
 
   /**
-   * Key received and we sent ours back, but we got no traffic yet.
+   * KX message received, trying to send back KX_AUTH.
+   */
+  CADET_TUNNEL_KEY_AX_RECV,
+
+  /**
+   * KX message sent and received, trying to send back KX_AUTH.
+   */
+  CADET_TUNNEL_KEY_AX_SENT_AND_RECV,
+
+  /**
+   * KX received and we sent KX_AUTH back, but we got no traffic yet,
+   * so we're waiting for either KX_AUTH or ENCRYPED traffic from
+   * the other peer.
+   *
    * We will not yet send traffic, as this might have been a replay.
    * The other (initiating) peer should send a CHANNEL_OPEN next
-   * anyway.
+   * anyway, and then we are in business!
    */
-  CADET_TUNNEL_KEY_PING,
+  CADET_TUNNEL_KEY_AX_AUTH_SENT,
 
   /**
    * Handshake completed: session key available.
@@ -304,6 +317,17 @@ GCT_get_estate (struct CadetTunnel *t);
 void
 GCT_handle_kx (struct CadetTConnection *ct,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
+
+
+/**
+ * Handle KX_AUTH message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCT_handle_kx_auth (struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
 
 
 /**

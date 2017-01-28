@@ -744,6 +744,47 @@ handle_tunnel_kx (void *cls,
 
 
 /**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_tunnel_kx_auth (void *cls,
+                       const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg)
+{
+  struct CadetPeer *peer = cls;
+  struct CadetConnection *cc;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->kx.cid.connection_of_tunnel);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_handle_kx_auth (cc,
+                        msg);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 &msg->kx.cid,
+                 &msg->kx.header);
+}
+
+
+/**
  * Check if the encrypted message has the appropriate size.
  *
  * @param cls Closure (unused).
@@ -900,6 +941,10 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_MQ_hd_fixed_size (tunnel_kx,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,
                              struct GNUNET_CADET_TunnelKeyExchangeMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (tunnel_kx_auth,
+                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH,
+                             struct GNUNET_CADET_TunnelKeyExchangeAuthMessage,
                              NULL),
     GNUNET_MQ_hd_var_size (tunnel_encrypted,
                            GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED,

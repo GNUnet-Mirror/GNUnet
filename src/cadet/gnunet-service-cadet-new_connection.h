@@ -159,6 +159,17 @@ GCC_handle_kx (struct CadetConnection *cc,
 
 
 /**
+ * Handle KX_AUTH message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+
+
+/**
  * Handle encrypted message.
  *
  * @param cc connection that received encrypted message
