@@ -65,14 +65,8 @@ enum CadetTunnelEState
   /**
    * Handshake completed: session key available.
    */
-  CADET_TUNNEL_KEY_OK,
+  CADET_TUNNEL_KEY_OK
 
-  /**
-   * New ephemeral key and ping sent, waiting for pong. Unlike KEY_PING,
-   * we still have a valid session key and therefore we *can* still send
-   * traffic on the tunnel.
-   */
-  CADET_TUNNEL_KEY_REKEY
 };
 
 
