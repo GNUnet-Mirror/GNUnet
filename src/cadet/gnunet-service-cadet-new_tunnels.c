@@ -133,32 +133,40 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_SymmetricSessionKey RK;
 
   /**
-   * 32-byte header key (send).
+   * 32-byte header key (currently used for sending).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey HKs;
 
   /**
-   * 32-byte header key (recv)
+   * 32-byte header key (currently used for receiving)
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey HKr;
 
   /**
-   * 32-byte next header key (send).
+   * 32-byte next header key (for sending), used once the
+   * ratchet advances.  We are sure that the sender has this
+   * key as well only after @e ratchet_allowed is #GNUNET_YES.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKs;
 
   /**
-   * 32-byte next header key (recv).
+   * 32-byte next header key (for receiving).  To be tried
+   * when decrypting with @e HKr fails and thus the sender
+   * may have advanced the ratchet.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKr;
 
   /**
-   * 32-byte chain keys (used for forward-secrecy updating, send).
+   * 32-byte chain keys (used for forward-secrecy) for
+   * sending messages. Updated for every message.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKs;
 
   /**
-   * 32-byte chain keys (used for forward-secrecy updating, recv).
+   * 32-byte chain keys (used for forward-secrecy) for
+   * receiving messages. Updated for every message. If
+   * messages are skipped, the respective derived MKs
+   * (and the current @HKr) are kept in the @e skipped_head DLL.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
 
@@ -168,17 +176,18 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_EcdhePrivateKey *kx_0;
 
   /**
-   * ECDH Ratchet key (send).
+   * ECDH Ratchet key (our private key in the current DH).
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
 
   /**
-   * ECDH Ratchet key (recv).
+   * ECDH Ratchet key (other peer's public key in the current DH).
    */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
 
   /**
-   * When does this ratchet expire and a new one is triggered.
+   * Time when the current ratchet expires and a new one is triggered
+   * (if @e ratchet_allowed is #GNUNET_YES).
    */
   struct GNUNET_TIME_Absolute ratchet_expiration;
 
@@ -208,16 +217,28 @@ struct CadetTunnelAxolotl
   int ratchet_flag;
 
   /**
-   * Number of messages recieved since our last ratchet advance.
-   * - If this counter = 0, we cannot send a new ratchet key in next msg.
-   * - If this counter > 0, we can (but don't yet have to) send a new key.
+   * True (#GNUNET_YES) if we have received a message from the
+   * other peer that uses the keys from our last ratchet step.
+   * This implies that we are again allowed to advance the ratchet,
+   * otherwise we have to wait until the other peer sees our current
+   * ephemeral key and advances first.
+   *
+   * #GNUNET_NO if we have advanced the ratched but lack any evidence
+   * that the other peer has noticed this.
    */
-  unsigned int ratchet_allowed;
+  int ratchet_allowed;
 
   /**
    * Number of messages recieved since our last ratchet advance.
-   * - If this counter = 0, we cannot send a new ratchet key in next msg.
-   * - If this counter > 0, we can (but don't yet have to) send a new key.
+   *
+   * If this counter = 0, we cannot send a new ratchet key in the next
+   * message.
+   *
+   * If this counter > 0, we could (but don't have to) send a new key.
+   *
+   * Once the @e ratchet_counter is larger than
+   * #ratchet_messages (or @e ratchet_expiration time has past), and
+   * @e ratchet_allowed is #GNUNET_YES, we advance the ratchet.
    */
   unsigned int ratchet_counter;
 
@@ -629,7 +650,7 @@ t_hmac (const void *plaintext,
  * Perform a HMAC.
  *
  * @param key Key to use.
- * @param hash[out] Resulting HMAC.
+ * @param[out] hash Resulting HMAC.
  * @param source Source key material (data to HMAC).
  * @param len Length of @a source.
  */
@@ -809,7 +830,7 @@ t_ax_decrypt (struct CadetTunnelAxolotl *ax,
  * Encrypt header with the axolotl header key.
  *
  * @param ax key material to use.
- * @param msg Message whose header to encrypt.
+ * @param[in|out] msg Message whose header to encrypt.
  */
 static void
 t_h_encrypt (struct CadetTunnelAxolotl *ax,
@@ -822,11 +843,11 @@ t_h_encrypt (struct CadetTunnelAxolotl *ax,
                                      &ax->HKs,
                                      NULL, 0,
                                      NULL);
-  out_size = GNUNET_CRYPTO_symmetric_encrypt (&msg->ax_header.Ns,
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (&msg->ax_header,
                                               sizeof (struct GNUNET_CADET_AxHeader),
                                               &ax->HKs,
                                               &iv,
-                                              &msg->ax_header.Ns);
+                                              &msg->ax_header);
   GNUNET_assert (sizeof (struct GNUNET_CADET_AxHeader) == out_size);
 }
 
@@ -2579,6 +2600,9 @@ GCT_send (struct CadetTunnel *t,
                 payload_size);
   ax_msg->ax_header.Ns = htonl (t->ax.Ns++);
   ax_msg->ax_header.PNs = htonl (t->ax.PNs);
+  /* FIXME: we should do this once, not once per message;
+     this is a point multiplication, and DHRs does not
+     change all the time. */
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax.DHRs,
                                       &ax_msg->ax_header.DHRs);
   t_h_encrypt (&t->ax,
