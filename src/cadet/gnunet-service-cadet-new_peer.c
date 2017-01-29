@@ -114,9 +114,9 @@ struct CadetPeer
   struct GNUNET_PeerIdentity pid;
 
   /**
-   * Last time we heard from this peer
+   * Last time we heard from this peer (currently not used!)
    */
-  struct GNUNET_TIME_Absolute last_contact;
+  struct GNUNET_TIME_Absolute last_contactXXX;
 
   /**
    * Array of DLLs of paths traversing the peer, organized by the
