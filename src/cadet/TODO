@@ -1,5 +1,3 @@
-- URGENT: implement path desirability calculations (lack of them is confusing!)
-
 - URGENT: Congestion/flow control (CHANNEL):
   + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
    (and figure out how/where to use this!)

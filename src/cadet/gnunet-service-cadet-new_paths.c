@@ -22,9 +22,6 @@
  * @brief Information we track per path.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
- *
- * TODO:
- * - path desirability score calculations are not done
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_connection.h"
