@@ -159,6 +159,37 @@ struct CadetConnection
 
 
 /**
+ * Update the connection state. Also triggers the necessary
+ * MQM notifications.
+ *
+ * @param cc connection to update the state for
+ * @param new_state new state for @a cc
+ * @param new_mqm_ready new `mqm_ready` state for @a cc
+ */
+static void
+update_state (struct CadetConnection *cc,
+              enum CadetConnectionState new_state,
+              int new_mqm_ready)
+{
+  int old_ready;
+  int new_ready;
+
+  if ( (new_state == cc->state) &&
+       (new_mqm_ready == cc->mqm_ready) )
+    return; /* no change, nothing to do */
+  old_ready = ( (CADET_CONNECTION_READY == cc->state) &&
+                (GNUNET_YES == cc->mqm_ready) );
+  new_ready = ( (CADET_CONNECTION_READY == new_state) &&
+                (GNUNET_YES == new_mqm_ready) );
+  cc->state = new_state;
+  cc->mqm_ready = new_mqm_ready;
+  if (old_ready != new_ready)
+    cc->ready_cb (cc->ready_cb_cls,
+                  new_ready);
+}
+
+
+/**
  * Destroy a connection, part of the internal implementation.  Called
  * only from #GCC_destroy_from_core() or #GCC_destroy_from_tunnel().
  *
@@ -354,18 +385,15 @@ GCC_handle_connection_create_ack (struct CadetConnection *cc)
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
-  cc->state = CADET_CONNECTION_READY;
-  if (GNUNET_YES == cc->mqm_ready)
-  {
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_YES);
-    if ( (NULL == cc->keepalive_qe) &&
-         (GNUNET_YES == cc->mqm_ready) &&
-         (NULL == cc->task) )
-      cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
-                                               &send_keepalive,
-                                               cc);
-  }
+  update_state (cc,
+                CADET_CONNECTION_READY,
+                cc->mqm_ready);
+  if ( (NULL == cc->keepalive_qe) &&
+       (GNUNET_YES == cc->mqm_ready) &&
+       (NULL == cc->task) )
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
 }
 
 
@@ -472,8 +500,9 @@ send_create (void *cls)
        "Sending CADET_CONNECTION_CREATE message for %s\n",
        GCC_2s (cc));
   cc->env = env;
-  cc->mqm_ready = GNUNET_NO;
-  cc->state = CADET_CONNECTION_SENT;
+  update_state (cc,
+                CADET_CONNECTION_SENT,
+                GNUNET_NO);
   GCP_send (cc->mq_man,
             env);
 }
@@ -501,8 +530,9 @@ send_create_ack (void *cls)
                        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK);
   ack_msg->cid = cc->cid;
   cc->env = env;
-  cc->mqm_ready = GNUNET_NO;
-  cc->state = CADET_CONNECTION_READY;
+  update_state (cc,
+                CADET_CONNECTION_READY,
+                GNUNET_NO);
   GCP_send (cc->mq_man,
             env);
 }
@@ -524,14 +554,11 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
          "Got duplicate CREATE for %s, scheduling another ACK (%s)\n",
          GCC_2s (cc),
          (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
-    /* Tell tunnel that we are not ready for transmission anymore
-       (until CREATE_ACK is done) */
-    if (CADET_CONNECTION_READY == cc->state)
-      cc->ready_cb (cc->ready_cb_cls,
-                    GNUNET_NO);
     /* Revert back to the state of having only received the 'CREATE',
        and immediately proceed to send the CREATE_ACK. */
-    cc->state = CADET_CONNECTION_CREATE_RECEIVED;
+    update_state (cc,
+                  CADET_CONNECTION_CREATE_RECEIVED,
+                  cc->mqm_ready);
     if (NULL != cc->task)
       GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
@@ -571,24 +598,21 @@ manage_first_hop_mq (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Core MQ for %s went down\n",
          GCC_2s (cc));
-    cc->state = CADET_CONNECTION_NEW;
+    update_state (cc,
+                  CADET_CONNECTION_NEW,
+                  GNUNET_NO);
     cc->retry_delay = GNUNET_TIME_UNIT_ZERO;
     if (NULL != cc->task)
     {
       GNUNET_SCHEDULER_cancel (cc->task);
       cc->task = NULL;
     }
-    if (GNUNET_YES == cc->mqm_ready)
-    {
-      cc->mqm_ready = GNUNET_NO;
-      if (CADET_CONNECTION_READY == cc->state)
-        cc->ready_cb (cc->ready_cb_cls,
-                      GNUNET_NO);
-    }
     return;
   }
 
-  cc->mqm_ready = GNUNET_YES;
+  update_state (cc,
+                cc->state,
+                GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Core MQ for %s became available in state %d\n",
        GCC_2s (cc),
@@ -617,8 +641,6 @@ manage_first_hop_mq (void *cls,
                                          cc);
     break;
   case CADET_CONNECTION_READY:
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_YES);
     if ( (NULL == cc->keepalive_qe) &&
          (GNUNET_YES == cc->mqm_ready) &&
          (NULL == cc->task) )
