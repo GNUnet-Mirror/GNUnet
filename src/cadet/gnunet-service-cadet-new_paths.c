@@ -28,6 +28,7 @@
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_connection.h"
+#include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
@@ -191,7 +192,20 @@ path_destroy (struct CadetPeerPath *path)
        "Destroying path %s\n",
        GCPP_2s (path));
   for (unsigned int i=0;i<path->entries_length;i++)
-    GNUNET_free (path->entries[i]);
+  {
+    struct CadetPeerPathEntry *entry = path->entries[i];
+
+    if (NULL != entry->cc)
+    {
+      struct CadetTConnection *ct;
+
+      ct = GCC_get_ct (entry->cc);
+      if (NULL != ct)
+        GCT_connection_lost (ct);
+      GCC_destroy_without_tunnel (entry->cc);
+    }
+    GNUNET_free (entry);
+  }
   GNUNET_free (path->entries);
   GNUNET_free (path);
 }

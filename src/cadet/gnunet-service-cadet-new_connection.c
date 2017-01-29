@@ -225,6 +225,10 @@ GCC_destroy (struct CadetConnection *cc)
   GCPP_del_connection (cc->path,
                        cc->off,
                        cc);
+  for (unsigned int i=0;i<cc->off;i++)
+    GCP_remove_connection (GCPP_get_peer_at_offset (cc->path,
+                                                    i),
+                           cc);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multishortmap_remove (connections,
                                                         &GCC_get_id (cc)->connection_of_tunnel,

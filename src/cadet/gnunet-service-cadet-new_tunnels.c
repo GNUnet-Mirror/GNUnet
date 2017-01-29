@@ -2037,6 +2037,7 @@ destroy_tunnel (void *cls)
     GNUNET_free (t->unverified_ax);
   }
   cleanup_ax (&t->ax);
+  GNUNET_assert (NULL == t->destroy_task);
   GNUNET_free (t);
 }
 
@@ -2061,12 +2062,14 @@ GCT_remove_channel (struct CadetTunnel *t,
                  GNUNET_CONTAINER_multihashmap32_remove (t->channels,
                                                          ntohl (ctn.cn),
                                                          ch));
-  if (0 ==
-      GCT_count_channels (t))
+  if ( (0 ==
+        GCT_count_channels (t)) &&
+       (NULL == t->destroy_task) )
   {
-    t->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
-                                                    &destroy_tunnel,
-                                                    t);
+    t->destroy_task
+      = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
+                                      &destroy_tunnel,
+                                      t);
   }
 }
 
