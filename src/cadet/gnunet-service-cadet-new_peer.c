@@ -208,6 +208,12 @@ struct CadetPeer
   unsigned int num_paths;
 
   /**
+   * Sum over all of the offsets of all of the paths in the @a path_heads DLLs.
+   * Used to speed-up @GCP_get_desirability_of_path() calculation.
+   */
+  unsigned int off_sum;
+
+  /**
    * Number of message queue managers of this peer that have a message in waiting.
    *
    * Used to quickly see if we need to bother scanning the @e msm_head DLL.
@@ -241,6 +247,67 @@ GCP_2s (const struct CadetPeer *cp)
                    "P(%s)",
                    GNUNET_i2s (&cp->pid));
   return buf;
+}
+
+
+/**
+ * Calculate how desirable a path is for @a cp if @a cp
+ * is at offset @a off.
+ *
+ * The 'desirability_table.c' program can be used to compute a list of
+ * sample outputs for different scenarios.  Basically, we score paths
+ * lower if there are many alternatives, and higher if they are
+ * shorter than average, and very high if they are much shorter than
+ * average and without many alternatives.
+ *
+ * @param cp a peer reachable via a path
+ * @param off offset of @a cp in the path
+ * @return score how useful a path is to reach @a cp,
+ *         positive scores mean path is more desirable
+ */
+double
+GCP_get_desirability_of_path (struct CadetPeer *cp,
+                              unsigned int off)
+{
+  unsigned int num_alts = cp->num_paths;
+  unsigned int off_sum;
+  double avg_sum;
+  double path_delta;
+  double weight_alts;
+
+  GNUNET_assert (num_alts >= 1); /* 'path' should be in there! */
+  GNUNET_assert (0 != cp->path_dll_length);
+
+  /* We maintain 'off_sum' in 'peer' and thereby
+     avoid the SLOW recalculation each time. Kept here
+     just to document what is going on. */
+#if SLOW
+  off_sum = 0;
+  for (unsigned int j=0;j<cp->path_dll_length;j++)
+    for (struct CadetPeerPathEntry *pe = cp->path_heads[j];
+         NULL != pe;
+         pe = pe->next)
+      off_sum += j;
+  GNUNET_assert (off_sum == cp->off_sum);
+#else
+  off_sum = cp->off_sum;
+#endif
+  avg_sum = off_sum * 1.0 / cp->path_dll_length;
+  path_delta = off - avg_sum;
+  /* path_delta positiv: path off of peer above average (bad path for peer),
+     path_delta negativ: path off of peer below average (good path for peer) */
+  if (path_delta <= - 1.0)
+    weight_alts = - num_alts / path_delta; /* discount alternative paths */
+  else if (path_delta >= 1.0)
+    weight_alts = num_alts * path_delta; /* overcount alternative paths */
+  else
+    weight_alts = num_alts; /* count alternative paths normally */
+
+
+  /* off+1: long paths are generally harder to find and thus count
+     a bit more as they get longer.  However, above-average paths
+     still need to count less, hence the squaring of that factor. */
+  return (off + 1.0) / (weight_alts * weight_alts);
 }
 
 
@@ -757,6 +824,7 @@ GCP_path_entry_add (struct CadetPeer *cp,
   GNUNET_CONTAINER_DLL_insert (cp->path_heads[off],
                                cp->path_tails[off],
                                entry);
+  cp->off_sum += off;
   cp->num_paths++;
 
   /* If we have a tunnel to this peer, tell the tunnel that there is a
@@ -797,6 +865,7 @@ GCP_path_entry_remove (struct CadetPeer *cp,
                                cp->path_tails[off],
                                entry);
   GNUNET_assert (0 < cp->num_paths);
+  cp->off_sum -= off;
   cp->num_paths--;
   if ( (NULL == cp->core_mq) &&
        (NULL != cp->t) &&

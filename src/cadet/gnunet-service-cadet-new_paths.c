@@ -76,8 +76,16 @@ struct CadetPeerPath
 static void
 recalculate_path_desirability (struct CadetPeerPath *path)
 {
-  /* FIXME: update path desirability! */
-  GNUNET_break (0); // not implemented
+  double result = 0.0;
+
+  for (unsigned int i=0;i<path->entries_length;i++)
+  {
+    struct CadetPeer *cp = path->entries[i]->peer;
+
+    result += GCP_get_desirability_of_path (cp,
+                                            i);
+  }
+  path->desirability = (GNUNET_CONTAINER_HeapCostType) result;
 }
 
 

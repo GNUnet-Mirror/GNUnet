@@ -60,6 +60,20 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
 
 
 /**
+ * Calculate how desirable a path is for @a cp if
+ * @a cp is at offset @a off in the path.
+ *
+ * @param cp a peer reachable via a path
+ * @param off offset of @a cp in a path
+ * @return score how useful a path is to reach @a cp,
+ *         positive scores mean path is more desirable
+ */
+double
+GCP_get_desirability_of_path (struct CadetPeer *cp,
+                              unsigned int off);
+
+
+/**
  * Obtain the peer identity for a `struct CadetPeer`.
  *
  * @param cp our peer handle
