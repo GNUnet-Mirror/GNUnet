@@ -35,9 +35,10 @@
 
 #define NUM_PEERS 2
 
-static struct GNUNET_TESTBED_Operation *op0;
+static struct GNUNET_TESTBED_Operation *op0; 
 static struct GNUNET_TESTBED_Operation *op1;
 static struct GNUNET_TESTBED_Peer **peers;
+const struct GNUNET_PeerIdentity *peer_id_origin;
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
@@ -99,13 +100,6 @@ timeout_task (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-static void
-pi_cb (void *cls,
-       struct GNUNET_TESTBED_Operation *op,
-       const struct GNUNET_TESTBED_PeerInformation *pinfo,
-       const char *emsg)
-{
-}
 
 static void 
 member_join_request (void *cls,
@@ -211,7 +205,7 @@ service_connect1 (void *cls,
   struct GNUNET_MULTICAST_Member *member = ca_result; 
 
   if (NULL != member)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connected to multicast service of member\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
   else 
     result = GNUNET_SYSERR;
 }
@@ -230,29 +224,10 @@ multicast_ca1 (void *cls,
                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_MessageHeader *join_msg;
-  const struct GNUNET_PeerIdentity *peer_id_origin;
-  struct GNUNET_HashCode pub_hash;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connecting to multicast service of member...\n");
   
   // Get members keys
   member_key = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_CRYPTO_ecdsa_key_get_public (member_key, &member_pub_key);
-  
-  // Get GNUnet identity of origin
-  // FIXME: the return value is not a GNUNET_PeerIdentity, it can retrieved in
-  // pi_cb: pinfo->result.id
-  peer_id_origin = GNUNET_TESTBED_peer_get_information (peers[0],
-                                                GNUNET_TESTBED_PIT_IDENTITY,
-                                                pi_cb,
-                                                NULL);
-
-  GNUNET_assert(NULL != peer_id_origin);
-
-  GNUNET_CRYPTO_hash (&peer_id_origin, sizeof (peer_id_origin), &pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "member: id of origin is %s\n",
-              GNUNET_h2s (&pub_hash));
   
   char data[] = "Hello Mr. Smith!";
   uint8_t data_size = strlen (data) + 1;
@@ -277,6 +252,40 @@ multicast_ca1 (void *cls,
 }
 
 
+static void
+peer_information_cb (void *cls,
+                     struct GNUNET_TESTBED_Operation *op,
+                     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+                     const char *emsg)
+{
+  struct GNUNET_HashCode pub_hash;
+
+  if (NULL == pinfo) {
+    result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
+  
+  GNUNET_CRYPTO_hash (&peer_id_origin, sizeof (peer_id_origin), &pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got peer information of origin (%s)\n", GNUNET_h2s (&pub_hash));
+  peer_id_origin = pinfo->result.id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Create member peer\n");
+  /* connect to multicast service of member */
+  op1 = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
+                                        peers[1],                /* The peer whose service to connect to */
+                                        "multicast",             /* The name of the service */
+                                        service_connect1,   /* callback to call after a handle to service
+                                                               is opened */
+                                        NULL,                    /* closure for the above callback */
+                                        multicast_ca1,      /* callback to call with peer's configuration;
+                                                               this should open the needed service connection */
+                                        multicast_da1,     /* callback to be called when closing the
+                                                              opened service connection */
+                                        NULL);                   /* closure for the above two callbacks */
+}
+
 /**
  * Test logic of peer "0" being origin starts here.
  *
@@ -296,7 +305,13 @@ service_connect0 (void *cls,
   struct GNUNET_MULTICAST_Origin *origin = ca_result;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "connected to multicast service of origin\n");
+              "Connected to multicast service of origin\n");
+
+  // Get GNUnet identity of origin
+  op0 = GNUNET_TESTBED_peer_get_information (peers[0],
+                                             GNUNET_TESTBED_PIT_IDENTITY,
+                                             peer_information_cb,
+                                             NULL);
 
   /* Connection to service successful. Here we'd usually do something with
    * the service. */
@@ -314,9 +329,6 @@ static void *
 multicast_ca0 (void *cls,
                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "connecting to multicast service of origin...\n");
-              
   group_key = GNUNET_CRYPTO_eddsa_key_create ();
   GNUNET_CRYPTO_eddsa_key_get_public (group_key, &group_pub_key);
               
@@ -339,6 +351,7 @@ multicast_da0 (void *cls,
               "disconnecting from multicast service of origin\n");
 
 }
+
 
 /**
  * Main function inovked from TESTBED once all of the
@@ -366,49 +379,25 @@ testbed_master (void *cls,
 {
   /* Testbed is ready with peers running and connected in a pre-defined overlay
      topology (FIXME)  */
-     
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "connected to testbed_master()\n");
+              "Connected to testbed_master()\n");
               
   peers = p;
 
-  /**
-   * FIXME:
-   * we can't already GNUNET_TESTBED_service_connect here, because in the 
-   * continuation callback multicast_ca1 we need the origin's peer identity
-   * which we can retrieve only using the asynchronous
-   * GNUNET_TESTBED_peer_get_information function.
-   * So we need to call GNUNET_TESTBED_peer_get_information here, and call
-   * GNUNET_TESTBED_service_connect in the result callback.
-   */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Create origin peer\n");
+  op0 = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
+                                        peers[0],                /* The peer whose service to connect to */
+                                        "multicast",             /* The name of the service */
+                                        service_connect0,   /* callback to call after a handle to service
+                                                               is opened */
+                                        NULL,                    /* closure for the above callback */
+                                        multicast_ca0,      /* callback to call with peer's configuration;
+                                                               this should open the needed service connection */
+                                        multicast_da0,     /* callback to be called when closing the
+                                                              opened service connection */
+                                        NULL);                   /* closure for the above two callbacks */
 
-  /* connect to a peers service */
-  op0 = GNUNET_TESTBED_service_connect
-      (NULL,                    /* Closure for operation */
-       peers[0],                /* The peer whose service to connect to */
-       "multicast",             /* The name of the service */
-       service_connect0,   /* callback to call after a handle to service
-                                   is opened */
-       NULL,                    /* closure for the above callback */
-       multicast_ca0,      /* callback to call with peer's configuration;
-                                   this should open the needed service connection */
-       multicast_da0,     /* callback to be called when closing the
-                                   opened service connection */
-       NULL);                   /* closure for the above two callbacks */
-  
-  op1 = GNUNET_TESTBED_service_connect
-      (NULL,                    /* Closure for operation */
-       peers[1],                /* The peer whose service to connect to */
-       "multicast",             /* The name of the service */
-       service_connect1,   /* callback to call after a handle to service
-                                   is opened */
-       NULL,                    /* closure for the above callback */
-       multicast_ca1,      /* callback to call with peer's configuration;
-                                   this should open the needed service connection */
-       multicast_da1,     /* callback to be called when closing the
-                                   opened service connection */
-       NULL);                   /* closure for the above two callbacks */
-  
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
   
   /* Schedule the shutdown task with a delay of a few 1econds */
