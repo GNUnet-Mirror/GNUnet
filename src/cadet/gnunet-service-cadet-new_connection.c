@@ -719,7 +719,7 @@ connection_create (struct CadetPeer *destination,
                        cc);
   for (unsigned int i=0;i<off;i++)
     GCP_add_connection (GCPP_get_peer_at_offset (path,
-                                                 off),
+                                                 i),
                         cc);
 
   first_hop = GCPP_get_peer_at_offset (path,
