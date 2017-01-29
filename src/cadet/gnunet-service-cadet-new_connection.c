@@ -26,7 +26,9 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - Optimization: keep per-connection performance metrics (?)
+ * - keep per-connection performance metrics
+ * - in particular, interact with channel (!) to see
+ *   if we get ACKs indicating successful payload delivery.
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new.h"

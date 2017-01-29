@@ -253,11 +253,11 @@ GCT_count_any_connections (const struct CadetTunnel *t);
  * Iterator over connections.
  *
  * @param cls closure
- * @param c one of the connections
+ * @param ct one of the connections
  */
 typedef void
 (*GCT_ConnectionIterator) (void *cls,
-                           struct CadetConnection *c);
+                           struct CadetTConnection *ct);
 
 
 /**

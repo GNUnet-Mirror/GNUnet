@@ -24,11 +24,14 @@
  * @author Christian Grothoff
  *
  * FIXME:
- * - connection management
- *   + properly (evaluate, kill old ones, search for new ones)
+ * - proper connection evaluation during connection management:
  *   + when managing connections, distinguish those that
  *     have (recently) had traffic from those that were
  *     never ready (or not recently)
+ *   + consider quality of current connection set when deciding
+ *     how often to do maintenance
+ *   + interact with PEER to drive DHT GET/PUT operations based
+ *     on how much we like our connections
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1961,6 +1964,25 @@ GCT_connection_lost (struct CadetTConnection *ct)
 
 
 /**
+ * Clean up connection @a ct of a tunnel.
+ *
+ * @param cls the `struct CadetTunnel`
+ * @param ct connection to clean up
+ */
+static void
+destroy_t_connection (void *cls,
+                      struct CadetTConnection *ct)
+{
+  struct CadetTunnel *t = cls;
+  struct CadetConnection *cc = ct->cc;
+
+  GNUNET_assert (ct->t == t);
+  GCT_connection_lost (ct);
+  GCC_destroy_without_tunnel (cc);
+}
+
+
+/**
  * This tunnel is no longer used, destroy it.
  *
  * @param cls the idle tunnel
@@ -1969,7 +1991,6 @@ static void
 destroy_tunnel (void *cls)
 {
   struct CadetTunnel *t = cls;
-  struct CadetTConnection *ct;
   struct CadetTunnelQueueEntry *tq;
 
   t->destroy_task = NULL;
@@ -1977,24 +1998,11 @@ destroy_tunnel (void *cls)
        "Destroying idle %s\n",
        GCT_2s (t));
   GNUNET_assert (0 == GCT_count_channels (t));
-  while (NULL != (ct = t->connection_ready_head))
-  {
-    struct CadetConnection *cc;
-
-    GNUNET_assert (ct->t == t);
-    cc = ct->cc;
-    GCT_connection_lost (ct);
-    GCC_destroy_without_tunnel (cc);
-  }
-  while (NULL != (ct = t->connection_busy_head))
-  {
-    struct CadetConnection *cc;
-
-    GNUNET_assert (ct->t == t);
-    cc = ct->cc;
-    GCT_connection_lost (ct);
-    GCC_destroy_without_tunnel (cc);
-  }
+  GCT_iterate_connections (t,
+                           &destroy_t_connection,
+                           t);
+  GNUNET_assert (NULL == t->connection_ready_head);
+  GNUNET_assert (NULL == t->connection_busy_head);
   while (NULL != (tq = t->tq_head))
   {
     if (NULL != tq->cont)
@@ -2293,9 +2301,20 @@ struct EvaluationSummary
   GNUNET_CONTAINER_HeapCostType max_desire;
 
   /**
-   * Path we are comparing against.
+   * Path we are comparing against for #evaluate_connection, can be NULL.
    */
   struct CadetPeerPath *path;
+
+  /**
+   * Connection deemed the "worst" so far encountered by #evaluate_connection,
+   * NULL if we did not yet encounter any connections.
+   */
+  struct CadetTConnection *worst;
+
+  /**
+   * Numeric score of @e worst, only set if @e worst is non-NULL.
+   */
+  double worst_score;
 
   /**
    * Set to #GNUNET_YES if we have a connection over @e path already.
@@ -2310,14 +2329,18 @@ struct EvaluationSummary
  * what kinds of connections we have.
  *
  * @param cls the `struct EvaluationSummary *` to update
- * @param cc a connection to include in the summary
+ * @param ct a connection to include in the summary
  */
 static void
 evaluate_connection (void *cls,
-                     struct CadetConnection *cc)
+                     struct CadetTConnection *ct)
 {
   struct EvaluationSummary *es = cls;
+  struct CadetConnection *cc = ct->cc;
   struct CadetPeerPath *ps = GCC_get_path (cc);
+  GNUNET_CONTAINER_HeapCostType ct_desirability;
+  uint32_t ct_length;
+  double score;
 
   if (ps == es->path)
   {
@@ -2327,14 +2350,28 @@ evaluate_connection (void *cls,
     es->duplicate = GNUNET_YES;
     return;
   }
+  ct_desirability = GCPP_get_desirability (ps);
+  ct_length = GCPP_get_length (ps);
+
+  /* FIXME: calculate score on more than path,
+     include connection performance metrics like
+     last successful transmission, uptime, etc. */
+  score = ct_desirability + ct_length; /* FIXME: weigh these as well! */
+
+  if ( (NULL == es->worst) ||
+       (score < es->worst_score) )
+  {
+    es->worst = ct;
+    es->worst_score = score;
+  }
   es->min_length = GNUNET_MIN (es->min_length,
-                               GCPP_get_length (ps));
+                               ct_length);
   es->max_length = GNUNET_MAX (es->max_length,
-                               GCPP_get_length (ps));
+                               ct_length);
   es->min_desire = GNUNET_MIN (es->min_desire,
-                               GCPP_get_desirability (ps));
+                               ct_desirability);
   es->max_desire = GNUNET_MAX (es->max_desire,
-                               GCPP_get_desirability (ps));
+                               ct_desirability);
 }
 
 
@@ -2378,7 +2415,8 @@ consider_path_cb (void *cls,
      this one is more than twice as long than what we are currently
      using, then ignore all of these super-long ones! */
   if ( (GCT_count_any_connections (t) > DESIRED_CONNECTIONS_PER_TUNNEL) &&
-       (es.min_length * 2 < off) )
+       (es.min_length * 2 < off) &&
+       (es.max_length < off) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ignoring paths of length %u, they are way too long.\n",
@@ -2388,7 +2426,8 @@ consider_path_cb (void *cls,
   /* If we have enough paths and this one looks no better, ignore it. */
   if ( (GCT_count_any_connections (t) >= DESIRED_CONNECTIONS_PER_TUNNEL) &&
        (es.min_length < GCPP_get_length (path)) &&
-       (es.max_desire > GCPP_get_desirability (path)) )
+       (es.min_desire > GCPP_get_desirability (path)) &&
+       (es.max_length < off) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ignoring path (%u/%llu) to %s, got something better already.\n",
@@ -2408,6 +2447,7 @@ consider_path_cb (void *cls,
                        ct,
                        &connection_ready_cb,
                        ct);
+
   /* FIXME: schedule job to kill connection (and path?)  if it takes
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
@@ -2442,17 +2482,50 @@ static void
 maintain_connections_cb (void *cls)
 {
   struct CadetTunnel *t = cls;
+  struct GNUNET_TIME_Relative delay;
+  struct EvaluationSummary es;
 
   t->maintain_connections_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Performing connection maintenance for %s.\n",
        GCT_2s (t));
 
+  es.min_length = UINT_MAX;
+  es.max_length = 0;
+  es.max_desire = 0;
+  es.min_desire = UINT64_MAX;
+  es.path = NULL;
+  es.worst = NULL;
+  es.duplicate = GNUNET_NO;
+  GCT_iterate_connections (t,
+                           &evaluate_connection,
+                           &es);
+  if ( (NULL != es.worst) &&
+       (GCT_count_any_connections (t) > DESIRED_CONNECTIONS_PER_TUNNEL) )
+  {
+    /* Clear out worst-performing connection 'es.worst'. */
+    destroy_t_connection (t,
+                          es.worst);
+  }
+
+  /* Consider additional paths */
   (void) GCP_iterate_paths (t->destination,
                             &consider_path_cb,
                             t);
 
-  GNUNET_break (0); // FIXME: implement!
+  /* FIXME: calculate when to try again based on how well we are doing;
+     in particular, if we have to few connections, we might be able
+     to do without this (as PATHS should tell us whenever a new path
+     is available instantly; however, need to make sure this job is
+     restarted after that happens).
+     Furthermore, if the paths we do know are in a reasonably narrow
+     quality band and are plentyful, we might also consider us stabilized
+     and then reduce the frequency accordingly.  */
+  delay = GNUNET_TIME_UNIT_MINUTES;
+  t->maintain_connections_task
+    = GNUNET_SCHEDULER_add_delayed (delay,
+                                    &maintain_connections_cb,
+                                    t);
 }
 
 
@@ -3133,7 +3206,7 @@ GCT_iterate_connections (struct CadetTunnel *t,
   {
     n = ct->next;
     iter (iter_cls,
-          ct->cc);
+          ct);
   }
   for (struct CadetTConnection *ct = t->connection_busy_head;
        NULL != ct;
@@ -3141,7 +3214,7 @@ GCT_iterate_connections (struct CadetTunnel *t,
   {
     n = ct->next;
     iter (iter_cls,
-          ct->cc);
+          ct);
   }
 }
 

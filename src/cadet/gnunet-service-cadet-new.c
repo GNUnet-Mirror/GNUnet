@@ -967,17 +967,18 @@ handle_info_tunnels (void *cls,
  * Update the message with information about the connection.
  *
  * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
- * @param c a connection about which we should store information in @a cls
+ * @param ct a connection about which we should store information in @a cls
  */
 static void
 iter_connection (void *cls,
-                 struct CadetConnection *c)
+                 struct CadetTConnection *ct)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
+  struct CadetConnection *cc = ct->cc;
   struct GNUNET_CADET_ConnectionTunnelIdentifier *h;
 
   h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  h[msg->connections++] = *(GCC_get_id (c));
+  h[msg->connections++] = *(GCC_get_id (cc));
 }
 
 
