@@ -47,6 +47,7 @@
 
 /**
  * Number of messages we are willing to buffer per route.
+ * FIXME: have global buffer pool instead!
  */
 #define ROUTE_BUFFER_SIZE 8
 
