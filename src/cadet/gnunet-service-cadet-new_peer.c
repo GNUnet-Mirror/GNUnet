@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - timeout for routes
  * - optimize stopping/restarting DHT search to situations
  *   where we actually need it (i.e. not if we have a direct connection,
  *   or if we already have plenty of good short ones, or maybe even
