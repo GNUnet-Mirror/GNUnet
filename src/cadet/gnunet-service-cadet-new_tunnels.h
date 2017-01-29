@@ -246,7 +246,7 @@ GCT_count_channels (struct CadetTunnel *t);
  * @return number of connections available for the tunnel
  */
 unsigned int
-GCT_count_any_connections (struct CadetTunnel *t);
+GCT_count_any_connections (const struct CadetTunnel *t);
 
 
 /**

@@ -365,14 +365,24 @@ struct CadetTunnel
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * DLL of connections that are actively used to reach the destination peer.
+   * DLL of ready connections that are actively used to reach the destination peer.
    */
-  struct CadetTConnection *connection_head;
+  struct CadetTConnection *connection_ready_head;
 
   /**
-   * DLL of connections that are actively used to reach the destination peer.
+   * DLL of ready connections that are actively used to reach the destination peer.
    */
-  struct CadetTConnection *connection_tail;
+  struct CadetTConnection *connection_ready_tail;
+
+  /**
+   * DLL of connections that we maintain that might be used to reach the destination peer.
+   */
+  struct CadetTConnection *connection_busy_head;
+
+  /**
+   * DLL of connections that we maintain that might be used to reach the destination peer.
+   */
+  struct CadetTConnection *connection_busy_tail;
 
   /**
    * Channels inside this tunnel. Maps
@@ -406,9 +416,14 @@ struct CadetTunnel
   struct GNUNET_TIME_Absolute next_kx_attempt;
 
   /**
-   * Number of connections in the @e connection_head DLL.
+   * Number of connections in the @e connection_ready_head DLL.
    */
-  unsigned int num_connections;
+  unsigned int num_ready_connections;
+
+  /**
+   * Number of connections in the @e connection_busy_head DLL.
+   */
+  unsigned int num_busy_connections;
 
   /**
    * How often have we tried and failed to decrypt a message using
@@ -433,6 +448,31 @@ struct CadetTunnel
   int kx_auth_requested;
 
 };
+
+
+/**
+ * Connection @a ct is now unready, clear it's ready flag
+ * and move it from the ready DLL to the busy DLL.
+ *
+ * @param ct connection to move to unready status
+ */
+static void
+mark_connection_unready (struct CadetTConnection *ct)
+{
+  struct CadetTunnel *t = ct->t;
+
+  GNUNET_assert (GNUNET_YES == ct->is_ready);
+  GNUNET_CONTAINER_DLL_remove (t->connection_ready_head,
+                               t->connection_ready_tail,
+                               ct);
+  GNUNET_assert (0 < t->num_ready_connections);
+  t->num_ready_connections--;
+  ct->is_ready = GNUNET_NO;
+  GNUNET_CONTAINER_DLL_insert (t->connection_busy_head,
+                               t->connection_busy_tail,
+                               ct);
+  t->num_busy_connections++;
+}
 
 
 /**
@@ -544,9 +584,9 @@ lookup_channel (struct CadetTunnel *t,
  * @return Number of connections created, either being established or ready.
  */
 unsigned int
-GCT_count_any_connections (struct CadetTunnel *t)
+GCT_count_any_connections (const struct CadetTunnel *t)
 {
-  return t->num_connections;
+  return t->num_ready_connections + t->num_busy_connections;
 }
 
 
@@ -560,25 +600,7 @@ GCT_count_any_connections (struct CadetTunnel *t)
 static struct CadetTConnection *
 get_ready_connection (struct CadetTunnel *t)
 {
-  for (struct CadetTConnection *pos = t->connection_head;
-       NULL != pos;
-       pos = pos->next)
-    if (GNUNET_YES == pos->is_ready)
-    {
-      if (pos != t->connection_tail)
-      {
-        /* move 'pos' to the end, so we try other ready connections
-           first next time (round-robin, modulo availability) */
-        GNUNET_CONTAINER_DLL_remove (t->connection_head,
-                                     t->connection_tail,
-                                     pos);
-        GNUNET_CONTAINER_DLL_insert_tail (t->connection_head,
-                                          t->connection_tail,
-                                          pos);
-      }
-      return pos;
-    }
-  return NULL;
+  return t->connection_ready_head;
 }
 
 
@@ -1316,7 +1338,7 @@ send_kx (struct CadetTunnel *t,
                                       &msg->ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
                                       &msg->ratchet_key);
-  ct->is_ready = GNUNET_NO;
+  mark_connection_unready (ct);
   t->kx_retry_delay = GNUNET_TIME_STD_BACKOFF (t->kx_retry_delay);
   t->next_kx_attempt = GNUNET_TIME_relative_to_absolute (t->kx_retry_delay);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
@@ -1394,7 +1416,7 @@ send_kx_auth (struct CadetTunnel *t,
     = GNUNET_TIME_relative_to_absolute (t->kx_retry_delay);
 
   /* Send via cc, mark it as unready */
-  ct->is_ready = GNUNET_NO;
+  mark_connection_unready (ct);
 
   /* Update state machine, unless we are already OK */
   if (CADET_TUNNEL_KEY_OK != t->estate)
@@ -1926,9 +1948,14 @@ GCT_connection_lost (struct CadetTConnection *ct)
 {
   struct CadetTunnel *t = ct->t;
 
-  GNUNET_CONTAINER_DLL_remove (t->connection_head,
-                               t->connection_tail,
-                               ct);
+  if (GNUNET_YES == ct->is_ready)
+    GNUNET_CONTAINER_DLL_remove (t->connection_ready_head,
+                                 t->connection_ready_tail,
+                                 ct);
+  else
+    GNUNET_CONTAINER_DLL_remove (t->connection_busy_head,
+                                 t->connection_busy_tail,
+                                 ct);
   GNUNET_free (ct);
 }
 
@@ -1950,7 +1977,16 @@ destroy_tunnel (void *cls)
        "Destroying idle %s\n",
        GCT_2s (t));
   GNUNET_assert (0 == GCT_count_channels (t));
-  while (NULL != (ct = t->connection_head))
+  while (NULL != (ct = t->connection_ready_head))
+  {
+    struct CadetConnection *cc;
+
+    GNUNET_assert (ct->t == t);
+    cc = ct->cc;
+    GCT_connection_lost (ct);
+    GCC_destroy_without_tunnel (cc);
+  }
+  while (NULL != (ct = t->connection_busy_head))
   {
     struct CadetConnection *cc;
 
@@ -2101,7 +2137,7 @@ try_send_normal_payload (struct CadetTunnel *t,
                                tq);
   if (NULL != tq->cid)
     *tq->cid = *GCC_get_id (ct->cc);
-  ct->is_ready = GNUNET_NO;
+  mark_connection_unready (ct);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending payload of %s on %s\n",
        GCT_2s (t),
@@ -2135,10 +2171,21 @@ connection_ready_cb (void *cls,
          "%s no longer ready for %s\n",
          GCC_2s (ct->cc),
          GCT_2s (t));
-    ct->is_ready = GNUNET_NO;
+    mark_connection_unready (ct);
     return;
   }
+  GNUNET_assert (GNUNET_NO == ct->is_ready);
+  GNUNET_CONTAINER_DLL_remove (t->connection_busy_head,
+                               t->connection_busy_tail,
+                               ct);
+  GNUNET_assert (0 < t->num_busy_connections);
+  t->num_busy_connections--;
   ct->is_ready = GNUNET_YES;
+  GNUNET_CONTAINER_DLL_insert_tail (t->connection_ready_head,
+                                    t->connection_ready_tail,
+                                    ct);
+  t->num_ready_connections++;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s now ready for %s in state %s\n",
        GCC_2s (ct->cc),
@@ -2219,6 +2266,79 @@ trigger_transmissions (void *cls)
 
 
 /**
+ * Closure for #evaluate_connection. Used to assemble summary information
+ * about the existing connections so we can evaluate a new path.
+ */
+struct EvaluationSummary
+{
+
+  /**
+   * Minimum length of any of our connections, `UINT_MAX` if we have none.
+   */
+  unsigned int min_length;
+
+  /**
+   * Maximum length of any of our connections, 0 if we have none.
+   */
+  unsigned int max_length;
+
+  /**
+   * Minimum desirability of any of our connections, UINT64_MAX if we have none.
+   */
+  GNUNET_CONTAINER_HeapCostType min_desire;
+
+  /**
+   * Maximum desirability of any of our connections, 0 if we have none.
+   */
+  GNUNET_CONTAINER_HeapCostType max_desire;
+
+  /**
+   * Path we are comparing against.
+   */
+  struct CadetPeerPath *path;
+
+  /**
+   * Set to #GNUNET_YES if we have a connection over @e path already.
+   */
+  int duplicate;
+
+};
+
+
+/**
+ * Evaluate a connection, updating our summary information in @a cls about
+ * what kinds of connections we have.
+ *
+ * @param cls the `struct EvaluationSummary *` to update
+ * @param cc a connection to include in the summary
+ */
+static void
+evaluate_connection (void *cls,
+                     struct CadetConnection *cc)
+{
+  struct EvaluationSummary *es = cls;
+  struct CadetPeerPath *ps = GCC_get_path (cc);
+
+  if (ps == es->path)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring duplicate path %s.\n",
+         GCPP_2s (es->path));
+    es->duplicate = GNUNET_YES;
+    return;
+  }
+  es->min_length = GNUNET_MIN (es->min_length,
+                               GCPP_get_length (ps));
+  es->max_length = GNUNET_MAX (es->max_length,
+                               GCPP_get_length (ps));
+  es->min_desire = GNUNET_MIN (es->min_desire,
+                               GCPP_get_desirability (ps));
+  es->max_desire = GNUNET_MAX (es->max_desire,
+                               GCPP_get_desirability (ps));
+}
+
+
+/**
  * Consider using the path @a p for the tunnel @a t.
  * The tunnel destination is at offset @a off in path @a p.
  *
@@ -2233,31 +2353,22 @@ consider_path_cb (void *cls,
                   unsigned int off)
 {
   struct CadetTunnel *t = cls;
-  unsigned int min_length = UINT_MAX;
-  GNUNET_CONTAINER_HeapCostType max_desire = 0;
+  struct EvaluationSummary es;
   struct CadetTConnection *ct;
 
-  /* Check if we care about the new path. */
-  for (ct = t->connection_head;
-       NULL != ct;
-       ct = ct->next)
-  {
-    struct CadetPeerPath *ps;
+  es.min_length = UINT_MAX;
+  es.max_length = 0;
+  es.max_desire = 0;
+  es.min_desire = UINT64_MAX;
+  es.path = path;
+  es.duplicate = GNUNET_NO;
 
-    ps = GCC_get_path (ct->cc);
-    if (ps == path)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Ignoring duplicate path %s for %s.\n",
-           GCPP_2s (path),
-           GCT_2s (t));
-      return GNUNET_YES; /* duplicate */
-    }
-    min_length = GNUNET_MIN (min_length,
-                             GCPP_get_length (ps));
-    max_desire = GNUNET_MAX (max_desire,
-                             GCPP_get_desirability (ps));
-  }
+  /* Compute evaluation summary over existing connections. */
+  GCT_iterate_connections (t,
+                           &evaluate_connection,
+                           &es);
+  if (GNUNET_YES == es.duplicate)
+    return GNUNET_YES;
 
   /* FIXME: not sure we should really just count
      'num_connections' here, as they may all have
@@ -2266,18 +2377,18 @@ consider_path_cb (void *cls,
   /* We iterate by increasing path length; if we have enough paths and
      this one is more than twice as long than what we are currently
      using, then ignore all of these super-long ones! */
-  if ( (t->num_connections > DESIRED_CONNECTIONS_PER_TUNNEL) &&
-       (min_length * 2 < off) )
+  if ( (GCT_count_any_connections (t) > DESIRED_CONNECTIONS_PER_TUNNEL) &&
+       (es.min_length * 2 < off) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ignoring paths of length %u, they are way too long.\n",
-         min_length * 2);
+         es.min_length * 2);
     return GNUNET_NO;
   }
   /* If we have enough paths and this one looks no better, ignore it. */
-  if ( (t->num_connections >= DESIRED_CONNECTIONS_PER_TUNNEL) &&
-       (min_length < GCPP_get_length (path)) &&
-       (max_desire > GCPP_get_desirability (path)) )
+  if ( (GCT_count_any_connections (t) >= DESIRED_CONNECTIONS_PER_TUNNEL) &&
+       (es.min_length < GCPP_get_length (path)) &&
+       (es.max_desire > GCPP_get_desirability (path)) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ignoring path (%u/%llu) to %s, got something better already.\n",
@@ -2301,10 +2412,10 @@ consider_path_cb (void *cls,
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
      => Note: to be done within 'connection'-logic! */
-  GNUNET_CONTAINER_DLL_insert (t->connection_head,
-                               t->connection_tail,
+  GNUNET_CONTAINER_DLL_insert (t->connection_busy_head,
+                               t->connection_busy_tail,
                                ct);
-  t->num_connections++;
+  t->num_busy_connections++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Found interesting path %s for %s, created %s\n",
        GCPP_2s (path),
@@ -2737,10 +2848,10 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
      too long to get ready! (And track performance data on how long
      other connections took with the tunnel!)
      => Note: to be done within 'connection'-logic! */
-  GNUNET_CONTAINER_DLL_insert (t->connection_head,
-                               t->connection_tail,
+  GNUNET_CONTAINER_DLL_insert (t->connection_busy_head,
+                               t->connection_busy_tail,
                                ct);
-  t->num_connections++;
+  t->num_busy_connections++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s has new %s\n",
        GCT_2s (t),
@@ -3015,11 +3126,23 @@ GCT_iterate_connections (struct CadetTunnel *t,
                          GCT_ConnectionIterator iter,
                          void *iter_cls)
 {
-  for (struct CadetTConnection *ct = t->connection_head;
+  struct CadetTConnection *n;
+  for (struct CadetTConnection *ct = t->connection_ready_head;
        NULL != ct;
-       ct = ct->next)
+       ct = n)
+  {
+    n = ct->next;
     iter (iter_cls,
           ct->cc);
+  }
+  for (struct CadetTConnection *ct = t->connection_busy_head;
+       NULL != ct;
+       ct = n)
+  {
+    n = ct->next;
+    iter (iter_cls,
+          ct->cc);
+  }
 }
 
 
@@ -3133,7 +3256,7 @@ GCT_debug (const struct CadetTunnel *t,
         GCT_2s (t),
         estate2s (t->estate),
         t->tq_len,
-        t->num_connections);
+        GCT_count_any_connections (t));
   LOG2 (level,
         "TTT channels:\n");
   GNUNET_CONTAINER_multihashmap32_iterate (t->channels,
@@ -3141,7 +3264,10 @@ GCT_debug (const struct CadetTunnel *t,
                                            &level);
   LOG2 (level,
         "TTT connections:\n");
-  for (iter_c = t->connection_head; NULL != iter_c; iter_c = iter_c->next)
+  for (iter_c = t->connection_ready_head; NULL != iter_c; iter_c = iter_c->next)
+    GCC_debug (iter_c->cc,
+               level);
+  for (iter_c = t->connection_busy_head; NULL != iter_c; iter_c = iter_c->next)
     GCC_debug (iter_c->cc,
                level);
 
