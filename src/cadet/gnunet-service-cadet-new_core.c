@@ -326,6 +326,10 @@ destroy_route (struct CadetRoute *route)
        GNUNET_sh2s (&route->cid.connection_of_tunnel));
   GNUNET_assert (route ==
                  GNUNET_CONTAINER_heap_remove_node (route->hn));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multishortmap_remove (routes,
+                                                        &route->cid.connection_of_tunnel,
+                                                        route));
   destroy_direction (&route->prev);
   destroy_direction (&route->next);
   GNUNET_free (route);
