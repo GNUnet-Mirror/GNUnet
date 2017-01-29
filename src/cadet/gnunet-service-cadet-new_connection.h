@@ -75,6 +75,7 @@ GCC_destroy_without_tunnel (struct CadetConnection *cc);
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -83,6 +84,7 @@ GCC_destroy_without_tunnel (struct CadetConnection *cc);
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,
             void *ready_cb_cls);
@@ -95,6 +97,7 @@ GCC_create (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -104,6 +107,7 @@ GCC_create (struct CadetPeer *destination,
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
+                    enum GNUNET_CADET_ChannelOption options,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                     GCC_ReadyCallback ready_cb,

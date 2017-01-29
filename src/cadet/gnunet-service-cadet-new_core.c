@@ -28,6 +28,7 @@
  *
  * TODO:
  * - properly implement GLOBAL message buffer, instead of per-route buffers
+ * - do NOT use buffering if the route options say no buffer!
  * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
@@ -128,6 +129,11 @@ struct CadetRoute
    * Position of this route in the #route_heap.
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Options for the route, control buffering.
+   */
+  enum GNUNET_CADET_ChannelOption options;
 };
 
 
@@ -521,7 +527,9 @@ handle_connection_create (void *cls,
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
   unsigned int path_length;
   unsigned int off;
+  enum GNUNET_CADET_ChannelOption options;
 
+  options = (enum GNUNET_CADET_ChannelOption) ntohl (msg->options);
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
   /* Initiator is at offset 0. */
   for (off=1;off<path_length;off++)
@@ -585,6 +593,7 @@ handle_connection_create (void *cls,
         GCT_add_inbound_connection (GCP_get_tunnel (origin,
                                                     GNUNET_YES),
                                     &msg->cid,
+                                    (enum GNUNET_CADET_ChannelOption) ntohl (msg->options),
                                     path))
     {
       /* Send back BROKEN: duplicate connection on the same path,
@@ -639,6 +648,7 @@ handle_connection_create (void *cls,
        GNUNET_i2s (&pids[off + 1]),
        off + 1);
   route = GNUNET_new (struct CadetRoute);
+  route->options = options;
   route->cid = msg->cid;
   route->last_use = GNUNET_TIME_absolute_get ();
   dir_init (&route->prev,

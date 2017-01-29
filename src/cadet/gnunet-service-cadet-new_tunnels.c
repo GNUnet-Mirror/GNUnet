@@ -2444,6 +2444,7 @@ consider_path_cb (void *cls,
   ct->t = t;
   ct->cc = GCC_create (t->destination,
                        path,
+                       GNUNET_CADET_OPTION_DEFAULT, /* FIXME: set based on what channels want/need! */
                        ct,
                        &connection_ready_cb,
                        ct);
@@ -2888,6 +2889,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
  *
  * @param t a tunnel
  * @param cid connection identifer to use for the connection
+ * @param options options for the connection
  * @param path path to use for the connection
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on failure (duplicate connection)
@@ -2895,6 +2897,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
 int
 GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                            enum GNUNET_CADET_ChannelOption options,
                             struct CadetPeerPath *path)
 {
   struct CadetTConnection *ct;
@@ -2904,6 +2907,7 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
   ct->t = t;
   ct->cc = GCC_create_inbound (t->destination,
                                path,
+                               options,
                                ct,
                                cid,
                                &connection_ready_cb,

@@ -3425,7 +3425,7 @@ GCC_send_create (struct CadetConnection *c)
     msg = (struct GNUNET_CADET_ConnectionCreateMessage *) cbuf;
     msg->header.size = htons (size);
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
-    msg->reserved = htonl (0);
+    msg->options = htonl (0);
     msg->cid = *GCC_get_id (c);
     peers = (struct GNUNET_PeerIdentity *) &msg[1];
     for (int i = 0; i < c->path->length; i++)

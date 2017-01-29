@@ -67,9 +67,12 @@ struct GNUNET_CADET_ConnectionCreateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For alignment.
+   * Connection options in network byte order.
+   * #GNUNET_CADET_OPTION_DEFAULT for buffered;
+   * #GNUNET_CADET_OPTION_NOBUFFER for unbuffered.
+   * Other flags are ignored and should not be set at this level.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t options GNUNET_PACKED;
 
   /**
    * ID of the connection
