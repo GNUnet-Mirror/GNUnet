@@ -1275,35 +1275,38 @@ GCT_change_estate (struct CadetTunnel *t,
 /**
  * Send a KX message.
  *
- * @param t Tunnel on which to send it.
+ * @param t tunnel on which to send the KX_AUTH
+ * @param ct Tunnel and connection on which to send the KX_AUTH, NULL if
+ *           we are to find one that is ready.
  * @param ax axolotl key context to use
  */
 static void
 send_kx (struct CadetTunnel *t,
+         struct CadetTConnection *ct,
          struct CadetTunnelAxolotl *ax)
 {
-  struct CadetTConnection *ct;
   struct CadetConnection *cc;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  ct = get_ready_connection (t);
+  if (NULL == ct)
+    ct = get_ready_connection (t);
   if (NULL == ct)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Wanted to send KX on %s, but no connection is ready, deferring\n",
-         GCT_2s (t));
+         "Wanted to send %s in state %s, but no connection is ready, deferring\n",
+         GCT_2s (t),
+         estate2s (t->estate));
     t->next_kx_attempt = GNUNET_TIME_absolute_get ();
     return;
   }
   cc = ct->cc;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending KX on  %s using %s in state %s\n",
+       "Sending KX on %s via %s using %s in state %s\n",
        GCT_2s (t),
-       GCC_2s (ct->cc),
+       GCC_2s (cc),
        estate2s (t->estate));
-
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX);
   flags = GNUNET_CADET_KX_FLAG_FORCE_REPLY; /* always for KX */
@@ -1330,23 +1333,27 @@ send_kx (struct CadetTunnel *t,
 /**
  * Send a KX_AUTH message.
  *
- * @param t Tunnel on which to send it.
+ * @param t tunnel on which to send the KX_AUTH
+ * @param ct Tunnel and connection on which to send the KX_AUTH, NULL if
+ *           we are to find one that is ready.
  * @param ax axolotl key context to use
  * @param force_reply Force the other peer to reply with a KX_AUTH message
  *         (set if we would like to transmit right now, but cannot)
  */
 static void
 send_kx_auth (struct CadetTunnel *t,
+              struct CadetTConnection *ct,
               struct CadetTunnelAxolotl *ax,
               int force_reply)
 {
-  struct CadetTConnection *ct;
   struct CadetConnection *cc;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  ct = get_ready_connection (t);
+  if ( (NULL == ct) ||
+       (GNUNET_NO == ct->is_ready) )
+    ct = get_ready_connection (t);
   if (NULL == ct)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1560,6 +1567,7 @@ retry_kx (void *cls)
   case CADET_TUNNEL_KEY_UNINITIALIZED: /* first attempt */
   case CADET_TUNNEL_KEY_AX_SENT:       /* trying again */
     send_kx (t,
+             NULL,
              &t->ax);
     break;
   case CADET_TUNNEL_KEY_AX_RECV:
@@ -1578,6 +1586,7 @@ retry_kx (void *cls)
       ax = &t->ax;
     }
     send_kx_auth (t,
+                  NULL,
                   ax,
                   (0 == GCT_count_channels (t))
                   ? GNUNET_NO
@@ -1598,6 +1607,7 @@ retry_kx (void *cls)
       ax = &t->ax;
     }
     send_kx_auth (t,
+                  NULL,
                   ax,
                   (0 == GCT_count_channels (t))
                   ? GNUNET_NO
@@ -1617,6 +1627,7 @@ retry_kx (void *cls)
       ax = &t->ax;
     }
     send_kx_auth (t,
+                  NULL,
                   ax,
                   GNUNET_NO);
     break;
@@ -1648,6 +1659,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got duplicate KX. Firing back KX_AUTH.\n");
     send_kx_auth (t,
+                  ct,
                   &t->ax,
                   GNUNET_NO);
     return;
@@ -1666,6 +1678,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
            "Got duplicate unverified KX on %s. Fire back KX_AUTH again.\n",
            GCT_2s (t));
       send_kx_auth (t,
+                    ct,
                     t->unverified_ax,
                     GNUNET_NO);
       return;
@@ -2145,6 +2158,7 @@ connection_ready_cb (void *cls,
       t->kx_task = NULL;
     }
     send_kx (t,
+             ct,
              &t->ax);
     break;
   case CADET_TUNNEL_KEY_AX_RECV:
@@ -2167,6 +2181,7 @@ connection_ready_cb (void *cls,
         t->kx_task = NULL;
       }
       send_kx_auth (t,
+                    ct,
                     &t->ax,
                     GNUNET_NO);
       return;
@@ -2776,6 +2791,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
       t->kx_task = NULL;
     }
     send_kx_auth (t,
+                  ct,
                   &t->ax,
                   GNUNET_YES);
     return;
@@ -2792,6 +2808,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
       t->kx_task = NULL;
     }
     send_kx (t,
+             ct,
              &t->ax);
     return;
   case CADET_TUNNEL_KEY_AX_AUTH_SENT:
