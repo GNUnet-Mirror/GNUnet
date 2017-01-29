@@ -345,6 +345,8 @@ GCC_handle_connection_create_ack (struct CadetConnection *cc)
        GCC_2s (cc),
        cc->state,
        (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
+  if (CADET_CONNECTION_READY == cc->state)
+    return; /* Duplicate ACK, ignore */
   if (NULL != cc->task)
   {
     GNUNET_SCHEDULER_cancel (cc->task);
@@ -522,8 +524,9 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
          (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
     /* Tell tunnel that we are not ready for transmission anymore
        (until CREATE_ACK is done) */
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_NO);
+    if (CADET_CONNECTION_READY == cc->state)
+      cc->ready_cb (cc->ready_cb_cls,
+                    GNUNET_NO);
     /* Revert back to the state of having only received the 'CREATE',
        and immediately proceed to send the CREATE_ACK. */
     cc->state = CADET_CONNECTION_CREATE_RECEIVED;
@@ -566,7 +569,6 @@ manage_first_hop_mq (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Core MQ for %s went down\n",
          GCC_2s (cc));
-    cc->mqm_ready = GNUNET_NO;
     cc->state = CADET_CONNECTION_NEW;
     cc->retry_delay = GNUNET_TIME_UNIT_ZERO;
     if (NULL != cc->task)
@@ -574,8 +576,13 @@ manage_first_hop_mq (void *cls,
       GNUNET_SCHEDULER_cancel (cc->task);
       cc->task = NULL;
     }
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_NO);
+    if (GNUNET_YES == cc->mqm_ready)
+    {
+      cc->mqm_ready = GNUNET_NO;
+      if (CADET_CONNECTION_READY == cc->state)
+        cc->ready_cb (cc->ready_cb_cls,
+                      GNUNET_NO);
+    }
     return;
   }
 
