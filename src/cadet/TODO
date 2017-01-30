@@ -4,10 +4,6 @@
   + get current RTT from connection; use that for initial retransmissions!
   + figure out flow control without ACKs (unreliable traffic!)
 
-- HIGH: revisit message buffer, have global buffer instead per-route, but then
-        make sure it is shared fairly across routes and connections (CORE);
-        also, do not buffer if the connection is set to unbuffered!
-
 - HIGH: revisit handling of 'unbuffered' traffic! (CHANNEL/TUNNEL)
         (need to push down through tunnel into connection selection);
         At Tunnel-level, try to create connections that match channel
