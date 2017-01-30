@@ -501,9 +501,12 @@ send_channel_open (void *cls);
  * create message.  Delays for a bit until we retry.
  *
  * @param cls our `struct CadetChannel`.
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
  */
 static void
-channel_open_sent_cb (void *cls)
+channel_open_sent_cb (void *cls,
+                      const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetChannel *ch = cls;
 
@@ -755,9 +758,12 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
  * ACKs for ACKs ;-).
  *
  * @param cls our `struct CadetChannel`.
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
  */
 static void
-send_ack_cb (void *cls)
+send_ack_cb (void *cls,
+             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetChannel *ch = cls;
 
@@ -1322,9 +1328,12 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
  * wait for ACK (or retransmit).
  *
  * @param cls the `struct CadetReliableMessage` that was sent
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
  */
 static void
-data_sent_cb (void *cls);
+data_sent_cb (void *cls,
+              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
 
 
 /**
@@ -1549,9 +1558,12 @@ cmp_crm_by_next_retry (void *cls,
  * wait for ACK (or retransmit).
  *
  * @param cls the `struct CadetReliableMessage` that was sent
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
  */
 static void
-data_sent_cb (void *cls)
+data_sent_cb (void *cls,
+              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetReliableMessage *crm = cls;
   struct CadetChannel *ch = crm->ch;

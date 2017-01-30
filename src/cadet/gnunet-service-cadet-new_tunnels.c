@@ -277,7 +277,7 @@ struct CadetTunnelQueueEntry
   /**
    * Continuation to call once sent (on the channel layer).
    */
-  GNUNET_SCHEDULER_TaskCallback cont;
+  GCT_SendContinuation cont;
 
   /**
    * Closure for @c cont.
@@ -2006,7 +2006,8 @@ destroy_tunnel (void *cls)
   while (NULL != (tq = t->tq_head))
   {
     if (NULL != tq->cont)
-      tq->cont (tq->cont_cls);
+      tq->cont (tq->cont_cls,
+                NULL);
     GCT_send_cancel (tq);
   }
   GCP_drop_tunnel (t->destination,
@@ -2156,7 +2157,8 @@ try_send_normal_payload (struct CadetTunnel *t,
   GCC_transmit (ct->cc,
                 tq->env);
   if (NULL != tq->cont)
-    tq->cont (tq->cont_cls);
+    tq->cont (tq->cont_cls,
+              GCC_get_id (ct->cc));
   GNUNET_free (tq);
 }
 
@@ -3114,7 +3116,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
           const struct GNUNET_MessageHeader *message,
-          GNUNET_SCHEDULER_TaskCallback cont,
+          GCT_SendContinuation cont,
           void *cont_cls)
 {
   struct CadetTunnelQueueEntry *tq;

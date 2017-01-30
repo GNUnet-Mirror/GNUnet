@@ -202,6 +202,19 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
 
 
 /**
+ * Function called when a transmission requested using #GCT_send is done.
+ *
+ * @param cls closure
+ * @param ctn identifier of the connection used for transmission, NULL if
+ *            the transmission failed (to be used to match ACKs to the
+ *            respective connection for connection performance evaluation)
+ */
+typedef void
+(*GCT_SendContinuation)(void *cls,
+                        const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection if not provided.
  *
@@ -214,7 +227,7 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
           const struct GNUNET_MessageHeader *message,
-          GNUNET_SCHEDULER_TaskCallback cont,
+          GCT_SendContinuation cont,
           void *cont_cls);
 
 

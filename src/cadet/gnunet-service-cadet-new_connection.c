@@ -315,9 +315,12 @@ send_keepalive (void *cls);
  * schedule the next one.
  *
  * @param cls the `struct CadetConnection` to keep alive.
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
  */
 static void
-keepalive_done (void *cls)
+keepalive_done (void *cls,
+                const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetConnection *cc = cls;
 
