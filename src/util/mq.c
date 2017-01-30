@@ -1140,4 +1140,50 @@ GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh
 }
 
 
+/**
+ * Insert @a env into the envelope DLL starting at @a env_head
+ * Note that @a env must not be in any MQ while this function
+ * is used with DLLs defined outside of the MQ module.  This
+ * is just in case some application needs to also manage a
+ * FIFO of envelopes independent of MQ itself and wants to
+ * re-use the pointers internal to @a env.  Use with caution.
+ *
+ * @param[in|out] env_head of envelope DLL
+ * @param[in|out] env_tail tail of envelope DLL
+ * @param[in|out] env element to insert at the tail
+ */
+void
+GNUNET_MQ_dll_insert_tail (struct GNUNET_MQ_Envelope **env_head,
+                           struct GNUNET_MQ_Envelope **env_tail,
+                           struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_CONTAINER_DLL_insert_tail (*env_head,
+                                    *env_tail,
+                                    env);
+}
+
+
+/**
+ * Remove @a env from the envelope DLL starting at @a env_head.
+ * Note that @a env must not be in any MQ while this function
+ * is used with DLLs defined outside of the MQ module. This
+ * is just in case some application needs to also manage a
+ * FIFO of envelopes independent of MQ itself and wants to
+ * re-use the pointers internal to @a env.  Use with caution.
+ *
+ * @param[in|out] env_head of envelope DLL
+ * @param[in|out] env_tail tail of envelope DLL
+ * @param[in|out] env element to remove from the DLL
+ */
+void
+GNUNET_MQ_dll_remove (struct GNUNET_MQ_Envelope **env_head,
+                      struct GNUNET_MQ_Envelope **env_tail,
+                      struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_CONTAINER_DLL_remove (*env_head,
+                               *env_tail,
+                               env);
+}
+
+
 /* end of mq.c */
