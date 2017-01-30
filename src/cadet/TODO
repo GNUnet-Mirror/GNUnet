@@ -1,8 +1,7 @@
 - URGENT: Congestion/flow control (CHANNEL):
   + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
    (and figure out how/where to use this!)
-  + calculate current RTT if possible, use that for initial retransmissions
-   (NOTE: needs us to learn which connection the tunnel uses for the message!)
+  + get current RTT from connection; use that for initial retransmissions!
   + figure out flow control without ACKs (unreliable traffic!)
 
 - HIGH: revisit message buffer, have global buffer instead per-route, but then
@@ -25,9 +24,6 @@
 
 - OPTIMIZATION: proper connection evaluation during connection management:
   + PATHS: path desirability score calculations are not done
-  + CONNECTION: keep per-connection performance metrics;
-                in particular, interact with channel (!) to see
-                if we get ACKs indicating successful payload delivery.
   + TUNNELS:
     * when managing connections, distinguish those that
       have (recently) had traffic from those that were
