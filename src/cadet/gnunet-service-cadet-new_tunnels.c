@@ -25,11 +25,8 @@
  *
  * FIXME:
  * - proper connection evaluation during connection management:
- *   + when managing connections, distinguish those that
- *     have (recently) had traffic from those that were
- *     never ready (or not recently)
- *   + consider quality of current connection set when deciding
- *     how often to do maintenance
+ *   + consider quality (or quality spread?) of current connection set
+ *     when deciding how often to do maintenance
  *   + interact with PEER to drive DHT GET/PUT operations based
  *     on how much we like our connections
  */
@@ -2354,9 +2351,13 @@ evaluate_connection (void *cls,
   struct EvaluationSummary *es = cls;
   struct CadetConnection *cc = ct->cc;
   struct CadetPeerPath *ps = GCC_get_path (cc);
+  const struct CadetConnectionMetrics *metrics;
   GNUNET_CONTAINER_HeapCostType ct_desirability;
+  struct GNUNET_TIME_Relative uptime;
+  struct GNUNET_TIME_Relative last_use;
   uint32_t ct_length;
   double score;
+  double success_rate;
 
   if (ps == es->path)
   {
@@ -2368,11 +2369,17 @@ evaluate_connection (void *cls,
   }
   ct_desirability = GCPP_get_desirability (ps);
   ct_length = GCPP_get_length (ps);
-
-  /* FIXME: calculate score on more than path,
-     include connection performance metrics like
-     last successful transmission, uptime, etc. */
-  score = ct_desirability + ct_length; /* FIXME: weigh these as well! */
+  metrics = GCC_get_metrics (cc);
+  uptime = GNUNET_TIME_absolute_get_duration (metrics->age);
+  last_use = GNUNET_TIME_absolute_get_duration (metrics->last_use);
+  /* We add 1.0 here to avoid division by zero. */
+  success_rate = (metrics->num_acked_transmissions + 1.0) / (metrics->num_successes + 1.0);
+  score
+    = ct_desirability
+    + 100.0 / (1.0 + ct_length) /* longer paths = better */
+    + sqrt (uptime.rel_value_us / 60000000LL) /* larger uptime = better */
+    - last_use.rel_value_us / 1000L;          /* longer idle = worse */
+  score *= success_rate;        /* weigh overall by success rate */
 
   if ( (NULL == es->worst) ||
        (score < es->worst_score) )

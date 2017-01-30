@@ -25,9 +25,6 @@
 - OPTIMIZATION: proper connection evaluation during connection management:
   + PATHS: path desirability score calculations are not done
   + TUNNELS:
-    * when managing connections, distinguish those that
-      have (recently) had traffic from those that were
-      never ready (or not recently)
     * consider quality of current connection set when deciding
       how often to do maintenance
     * interact with PEER to drive DHT GET/PUT operations based
