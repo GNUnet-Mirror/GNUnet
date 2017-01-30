@@ -1417,13 +1417,16 @@ handle_matching_ack (struct CadetChannel *ch,
     crm->qe = NULL;
   }
   if ( (1 == crm->num_transmissions) &&
-       (NULL != cti) &&
-       (0 == memcmp (cti,
-                     &crm->connection_taken,
-                     sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier))) )
+       (NULL != cti) )
   {
-    GCC_latency_observed (cti,
-                          GNUNET_TIME_absolute_get_duration (crm->first_transmission_time));
+    GCC_ack_observed (cti);
+    if (0 == memcmp (cti,
+                     &crm->connection_taken,
+                     sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier)))
+    {
+      GCC_latency_observed (cti,
+                            GNUNET_TIME_absolute_get_duration (crm->first_transmission_time));
+    }
   }
   GNUNET_free (crm->data_message);
   GNUNET_free (crm);
@@ -1643,6 +1646,7 @@ data_sent_cb (void *cls,
     {
       crm->first_transmission_time = GNUNET_TIME_absolute_get ();
       crm->connection_taken = *cid;
+      GCC_ack_expected (cid);
     }
   }
   if (0 == crm->retry_delay.rel_value_us)

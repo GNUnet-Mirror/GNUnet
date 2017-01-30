@@ -177,6 +177,58 @@ GCC_handle_kx_auth (struct CadetConnection *cc,
 
 
 /**
+ * Performance metrics for a connection.
+ */
+struct CadetConnectionMetrics
+{
+
+  /**
+   * Our current best estimate of the latency, based on a weighted
+   * average of at least @a latency_datapoints values.
+   */
+  struct GNUNET_TIME_Relative aged_latency;
+
+  /**
+   * When was this connection first established? (by us sending or
+   * receiving the CREATE_ACK for the first time)
+   */
+  struct GNUNET_TIME_Absolute age;
+
+  /**
+   * When was this connection last used? (by us sending or
+   * receiving a PAYLOAD message on it)
+   */
+  struct GNUNET_TIME_Absolute last_use;
+
+  /**
+   * How many packets that ought to generate an ACK did we send via
+   * this connection?
+   */
+  unsigned long long num_acked_transmissions;
+
+  /**
+   * Number of packets that were sent via this connection did actually
+   * receive an ACK?  (Note: ACKs may be transmitted and lost via
+   * other connections, so this value should only be interpreted
+   * relative to @e num_acked_transmissions and in relation to other
+   * connections.)
+   */
+  unsigned long long num_successes;
+
+};
+
+
+/**
+ * Obtain performance @a metrics from @a cc.
+ *
+ * @param cc connection to query
+ * @return the metrics
+ */
+const struct CadetConnectionMetrics *
+GCC_get_metrics (struct CadetConnection *cc);
+
+
+/**
  * Handle encrypted message.
  *
  * @param cc connection that received encrypted message
@@ -185,6 +237,28 @@ GCC_handle_kx_auth (struct CadetConnection *cc,
 void
 GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
+
+
+/**
+ * We sent a message for which we expect to receive an ACK via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we expect an ACK
+ */
+void
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
+ * We observed an ACK for a message that was originally sent via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we got an ACK for a message
+ *            that was originally sent via this connection (the ACK
+ *            may have gotten back to us via a different connection).
+ */
+void
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
 
 
 /**

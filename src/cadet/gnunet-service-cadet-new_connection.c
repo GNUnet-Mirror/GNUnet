@@ -24,11 +24,6 @@
  *        end-to-end routes and transmits messages along the route
  * @author Bartlomiej Polot
  * @author Christian Grothoff
- *
- * TODO:
- * - keep per-connection performance metrics
- * - in particular, interact with channel (!) to see
- *   if we get ACKs indicating successful payload delivery.
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new.h"
@@ -141,6 +136,11 @@ struct CadetConnection
   struct GNUNET_TIME_Relative retry_delay;
 
   /**
+   * Performance metrics for this connection.
+   */
+  struct CadetConnectionMetrics metrics;
+
+  /**
    * State of the connection.
    */
   enum CadetConnectionState state;
@@ -149,6 +149,11 @@ struct CadetConnection
    * Options for the route, control buffering.
    */
   enum GNUNET_CADET_ChannelOption options;
+
+  /**
+   * How many latency observations did we make for this connection?
+   */
+  unsigned int latency_datapoints;
 
   /**
    * Offset of our @e destination in @e path.
@@ -301,6 +306,19 @@ GCC_get_ct (struct CadetConnection *cc)
 
 
 /**
+ * Obtain performance @a metrics from @a cc.
+ *
+ * @param cc connection to query
+ * @return the metrics
+ */
+const struct CadetConnectionMetrics *
+GCC_get_metrics (struct CadetConnection *cc)
+{
+  return &cc->metrics;
+}
+
+
+/**
  * Send a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE through the
  * tunnel to prevent it from timing out.
  *
@@ -377,18 +395,80 @@ send_keepalive (void *cls)
 
 
 /**
+ * We sent a message for which we expect to receive an ACK via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we expect an ACK
+ */
+void
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  struct CadetConnection *cc;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  cc->metrics.num_acked_transmissions++;
+}
+
+
+/**
+ * We observed an ACK for a message that was originally sent via
+ * the connection identified by @a cti.
+ *
+ * @param cti connection identifier where we got an ACK for a message
+ *            that was originally sent via this connection (the ACK
+ *            may have gotten back to us via a different connection).
+ */
+void
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  struct CadetConnection *cc;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  cc->metrics.num_successes++;
+}
+
+
+/**
  * We observed some the given @a latency on the connection
  * identified by @a cti.  (The same connection was taken
  * in both directions.)
  *
- * @param cti connection identifier where we measured latency
+ * @param cid connection identifier where we measured latency
  * @param latency the observed latency
  */
 void
-GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                       struct GNUNET_TIME_Relative latency)
 {
-  GNUNET_break (0); // FIXME
+  struct CadetConnection *cc;
+  double weight;
+  double result;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  GNUNET_STATISTICS_update (stats,
+                            "# latencies observed",
+                            1,
+                            GNUNET_NO);
+  cc->latency_datapoints++;
+  if (cc->latency_datapoints >= 7)
+    weight = 7.0;
+  else
+    weight = cc->latency_datapoints;
+  /* Compute weighted average, giving at MOST weight 7 to the
+     existing values, or less if that value is based on fewer than 7
+     measurements. */
+  result = (weight * cc->metrics.aged_latency.rel_value_us) + 1.0 * latency.rel_value_us;
+  result /= (weight + 1.0);
+  cc->metrics.aged_latency.rel_value_us = (uint64_t) result;
 }
 
 
@@ -413,6 +493,7 @@ GCC_handle_connection_create_ack (struct CadetConnection *cc)
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
+  cc->metrics.age = GNUNET_TIME_absolute_get ();
   update_state (cc,
                 CADET_CONNECTION_READY,
                 cc->mqm_ready);
@@ -492,6 +573,7 @@ GCC_handle_encrypted (struct CadetConnection *cc,
          GCC_2s (cc));
     GCC_handle_connection_create_ack (cc);
   }
+  cc->metrics.last_use = GNUNET_TIME_absolute_get ();
   GCT_handle_encrypted (cc->ct,
                         msg);
 }
@@ -666,6 +748,7 @@ manage_first_hop_mq (void *cls,
     break;
   case CADET_CONNECTION_CREATE_RECEIVED:
     /* We got the 'CREATE' (incoming connection), should send the CREATE_ACK */
+    cc->metrics.age = GNUNET_TIME_absolute_get ();
     cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
                                          cc);
     break;
@@ -891,6 +974,7 @@ GCC_transmit (struct CadetConnection *cc,
        GCC_2s (cc));
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   GNUNET_assert (CADET_CONNECTION_READY == cc->state);
+  cc->metrics.last_use = GNUNET_TIME_absolute_get ();
   cc->mqm_ready = GNUNET_NO;
   if (NULL != cc->task)
   {
