@@ -1816,8 +1816,11 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                    sizeof (kx_auth)))
   {
     /* This KX_AUTH is not using the latest KX/KX_AUTH data
-       we transmitted to the sender, refuse it! */
+       we transmitted to the sender, refuse it, try KX again. */
     GNUNET_break_op (0);
+    send_kx (t,
+             NULL,
+             &t->ax);
     return;
   }
   /* Yep, we're good. */

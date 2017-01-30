@@ -21,7 +21,10 @@
 
 /**
  * @file cadet/gnunet-service-cadet-new_connection.h
- * @brief
+ * @brief A connection is a live end-to-end messaging mechanism
+ *       where the peers are identified by a path and know how
+ *       to forward along the route using a connection identifier
+ *       for routing the data.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
@@ -182,6 +185,19 @@ GCC_handle_kx_auth (struct CadetConnection *cc,
 void
 GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
+
+
+/**
+ * We observed some the given @a latency on the connection
+ * identified by @a cti.  (The same connection was taken
+ * in both directions.)
+ *
+ * @param cti connection identifier where we measured latency
+ * @param latency the observed latency
+ */
+void
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                      struct GNUNET_TIME_Relative latency);
 
 
 /**

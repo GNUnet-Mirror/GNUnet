@@ -377,6 +377,22 @@ send_keepalive (void *cls)
 
 
 /**
+ * We observed some the given @a latency on the connection
+ * identified by @a cti.  (The same connection was taken
+ * in both directions.)
+ *
+ * @param cti connection identifier where we measured latency
+ * @param latency the observed latency
+ */
+void
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                      struct GNUNET_TIME_Relative latency)
+{
+  GNUNET_break (0); // FIXME
+}
+
+
+/**
  * A #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK was received for this connection, implying
  * that the end-to-end connection is up.  Process it.
  *

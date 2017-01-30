@@ -129,6 +129,11 @@ struct CadetReliableMessage
   struct CadetTunnelQueueEntry *qe;
 
   /**
+   * Data message we are trying to send.
+   */
+  struct GNUNET_CADET_ChannelAppDataMessage *data_message;
+
+  /**
    * How soon should we retry if we fail to get an ACK?
    * Messages in the queue are sorted by this value.
    */
@@ -141,9 +146,23 @@ struct CadetReliableMessage
   struct GNUNET_TIME_Relative retry_delay;
 
   /**
-   * Data message we are trying to send.
+   * Time when we first successfully transmitted the message
+   * (that is, set @e num_transmissions to 1).
    */
-  struct GNUNET_CADET_ChannelAppDataMessage *data_message;
+  struct GNUNET_TIME_Absolute first_transmission_time;
+
+  /**
+   * Identifier of the connection that this message took when it
+   * was first transmitted.  Only useful if @e num_transmissions is 1.
+   */
+  struct GNUNET_CADET_ConnectionTunnelIdentifier connection_taken;
+
+  /**
+   * How often was this message transmitted?  #GNUNET_SYSERR if there
+   * was an error transmitting the message, #GNUNET_NO if it was not
+   * yet transmitted ever, otherwise the number of (re) transmissions.
+   */
+  int num_transmissions;
 
 };
 
@@ -1374,10 +1393,12 @@ retry_transmission (void *cls)
  * the queue and tell our client that it can send more.
  *
  * @param ch the channel that got the PLAINTEXT_DATA_ACK
+ * @param cti identifier of the connection that delivered the message
  * @param crm the message that got acknowledged
  */
 static void
 handle_matching_ack (struct CadetChannel *ch,
+                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
                      struct CadetReliableMessage *crm)
 {
   GNUNET_CONTAINER_DLL_remove (ch->head_sent,
@@ -1394,6 +1415,15 @@ handle_matching_ack (struct CadetChannel *ch,
   {
     GCT_send_cancel (crm->qe);
     crm->qe = NULL;
+  }
+  if ( (1 == crm->num_transmissions) &&
+       (NULL != cti) &&
+       (0 == memcmp (cti,
+                     &crm->connection_taken,
+                     sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier))) )
+  {
+    GCC_latency_observed (cti,
+                          GNUNET_TIME_absolute_get_duration (crm->first_transmission_time));
   }
   GNUNET_free (crm->data_message);
   GNUNET_free (crm);
@@ -1452,6 +1482,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
            ntohl (crm->data_message->mid.mid),
            GCCH_2s (ch));
       handle_matching_ack (ch,
+                           cti,
                            crm);
       found = GNUNET_YES;
       continue;
@@ -1471,6 +1502,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
            ntohl (crm->data_message->mid.mid),
            GCCH_2s (ch));
       handle_matching_ack (ch,
+                           cti,
                            crm);
       found = GNUNET_YES;
     }
@@ -1596,6 +1628,22 @@ data_sent_cb (void *cls,
                         ? GNUNET_NO
                         : GNUNET_YES);
     return;
+  }
+  if (NULL == cid)
+  {
+    /* There was an error sending. */
+    crm->num_transmissions = GNUNET_SYSERR;
+  }
+  else if (GNUNET_SYSERR != crm->num_transmissions)
+  {
+    /* Increment transmission counter, and possibly store @a cid
+       if this was the first transmission. */
+    crm->num_transmissions++;
+    if (1 == crm->num_transmissions)
+    {
+      crm->first_transmission_time = GNUNET_TIME_absolute_get ();
+      crm->connection_taken = *cid;
+    }
   }
   if (0 == crm->retry_delay.rel_value_us)
     crm->retry_delay = ch->expected_delay;
