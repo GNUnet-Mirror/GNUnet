@@ -527,10 +527,12 @@ GCP_set_mq (struct CadetPeer *cp,
        GCP_2s (cp),
        mq);
   cp->core_mq = mq;
-  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
+  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head, *next;
        NULL != mqm;
-       mqm = mqm->next)
+       mqm = next)
   {
+    /* Save next pointer in case mqm gets freed by the callback */
+    next = mqm->next;
     if (NULL == mq)
     {
       if (NULL != mqm->env)
