@@ -409,6 +409,13 @@ struct CadetTunnel
   struct CadetTunnelQueueEntry *tq_tail;
 
   /**
+   * Identification of the connection from which we are currently processing
+   * a message. Only valid (non-NULL) during #handle_decrypted() and the
+   * handle-*()-functions called from our @e mq during that function.
+   */
+  struct CadetTConnection *current_ct;
+
+  /**
    * How long do we wait until we retry the KX?
    */
   struct GNUNET_TIME_Relative kx_retry_delay;
@@ -2090,7 +2097,8 @@ destroy_remaining_channels (void *cls,
 {
   struct CadetChannel *ch = value;
 
-  GCCH_handle_remote_destroy (ch);
+  GCCH_handle_remote_destroy (ch,
+                              NULL);
   return GNUNET_OK;
 }
 
@@ -2620,6 +2628,7 @@ handle_plaintext_data (void *cls,
     return;
   }
   GCCH_handle_channel_plaintext_data (ch,
+                                      GCC_get_id (t->current_ct->cc),
                                       msg);
 }
 
@@ -2653,6 +2662,7 @@ handle_plaintext_data_ack (void *cls,
     return;
   }
   GCCH_handle_channel_plaintext_data_ack (ch,
+                                          GCC_get_id (t->current_ct->cc),
                                           ack);
 }
 
@@ -2680,7 +2690,8 @@ handle_plaintext_channel_open (void *cls,
          GNUNET_h2s (&copen->port),
          GCT_2s (t),
          GCCH_2s (ch));
-    GCCH_handle_duplicate_open (ch);
+    GCCH_handle_duplicate_open (ch,
+                                GCC_get_id (t->current_ct->cc));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2757,7 +2768,8 @@ handle_plaintext_channel_open_ack (void *cls,
        "Received channel OPEN_ACK on channel %s from %s\n",
        GCCH_2s (ch),
        GCT_2s (t));
-  GCCH_handle_channel_open_ack (ch);
+  GCCH_handle_channel_open_ack (ch,
+                                GCC_get_id (t->current_ct->cc));
 }
 
 
@@ -2790,7 +2802,8 @@ handle_plaintext_channel_destroy (void *cls,
        "Receicved channel DESTROY on %s from %s\n",
        GCCH_2s (ch),
        GCT_2s (t));
-  GCCH_handle_remote_destroy (ch);
+  GCCH_handle_remote_destroy (ch,
+                              GCC_get_id (t->current_ct->cc));
 }
 
 
@@ -2808,6 +2821,7 @@ handle_decrypted (void *cls,
 {
   struct CadetTunnel *t = cls;
 
+  GNUNET_assert (NULL != t->current_ct);
   GNUNET_MQ_inject_message (t->mq,
                             msg);
   return GNUNET_OK;
@@ -3094,12 +3108,14 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   }
 
   /* The MST will ultimately call #handle_decrypted() on each message. */
+  t->current_ct = ct;
   GNUNET_break_op (GNUNET_OK ==
                    GNUNET_MST_from_buffer (t->mst,
                                            cbuf,
                                            decrypted_size,
                                            GNUNET_YES,
                                            GNUNET_NO));
+  t->current_ct = NULL;
 }
 
 

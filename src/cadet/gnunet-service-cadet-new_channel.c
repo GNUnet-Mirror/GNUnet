@@ -838,9 +838,11 @@ send_open_ack (void *cls)
  * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
  *
  * @param ch channel that got the duplicate open
+ * @param cti identifier of the connection that delivered the message
  */
 void
-GCCH_handle_duplicate_open (struct CadetChannel *ch)
+GCCH_handle_duplicate_open (struct CadetChannel *ch,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
 {
   if (NULL == ch->dest)
   {
@@ -955,7 +957,8 @@ GCCH_bind (struct CadetChannel *ch,
   if (GNUNET_YES == ch->is_loopback)
   {
     ch->state = CADET_CHANNEL_OPEN_SENT;
-    GCCH_handle_channel_open_ack (ch);
+    GCCH_handle_channel_open_ack (ch,
+                                  NULL);
   }
   else
   {
@@ -1040,9 +1043,11 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
  * (the port is open on the other side). Begin transmissions.
  *
  * @param ch channel to destroy
+ * @param cti identifier of the connection that delivered the message
  */
 void
-GCCH_handle_channel_open_ack (struct CadetChannel *ch)
+GCCH_handle_channel_open_ack (struct CadetChannel *ch,
+                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
 {
   switch (ch->state)
   {
@@ -1125,10 +1130,12 @@ is_before (void *cls,
  * and send an ACK to the other end (once flow control allows it!)
  *
  * @param ch channel that got data
+ * @param cti identifier of the connection that delivered the message
  * @param msg message that was received
  */
 void
 GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
+                                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
                                     const struct GNUNET_CADET_ChannelAppDataMessage *msg)
 {
   struct GNUNET_MQ_Envelope *env;
@@ -1402,10 +1409,12 @@ handle_matching_ack (struct CadetChannel *ch,
  * Possibly resume transmissions.
  *
  * @param ch channel that got the ack
+ * @param cti identifier of the connection that delivered the message
  * @param ack details about what was received
  */
 void
 GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
+                                        const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
                                         const struct GNUNET_CADET_ChannelDataAckMessage *ack)
 {
   struct CadetReliableMessage *crm;
@@ -1499,9 +1508,12 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  * the tunnel.
  *
  * @param ch channel to destroy
+ * @param cti identifier of the connection that delivered the message,
+ *            NULL if we are simulating receiving a destroy due to shutdown
  */
 void
-GCCH_handle_remote_destroy (struct CadetChannel *ch)
+GCCH_handle_remote_destroy (struct CadetChannel *ch,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
 {
   struct CadetChannelClient *ccc;
 
