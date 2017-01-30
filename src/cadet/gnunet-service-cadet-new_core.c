@@ -44,6 +44,47 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-cor",__VA_ARGS__)
 
+/**
+ * Information we keep per direction for a route.
+ */
+struct RouteDirection;
+
+
+/**
+ * Set of CadetRoutes that have exactly the same number of messages
+ * in their buffer.  Used so we can efficiently find all of those
+ * routes that have the current maximum of messages in the buffer (in
+ * case we have to purge).
+ */
+struct Rung
+{
+
+  /**
+   * Rung of RouteDirections with one more buffer entry each.
+   */
+  struct Rung *next;
+
+  /**
+   * Rung of RouteDirections with one less buffer entry each.
+   */
+  struct Rung *prev;
+
+  /**
+   * DLL of route directions with a number of buffer entries matching this rung.
+   */
+  struct RouteDirection *rd_head;
+
+  /**
+   * DLL of route directions with a number of buffer entries matching this rung.
+   */
+  struct RouteDirection *rd_tail;
+
+  /**
+   * Total number of route directions in this rung.
+   */
+  unsigned int num_routes;
+};
+
 
 /**
  * Number of messages we are willing to buffer per route.
@@ -57,6 +98,32 @@
  */
 struct RouteDirection
 {
+
+  /**
+   * DLL of other route directions within the same `struct Rung`.
+   */
+  struct RouteDirection *prev;
+
+  /**
+   * DLL of other route directions within the same `struct Rung`.
+   */
+  struct RouteDirection *next;
+
+  /**
+   * Rung of this route direction (matches length of the buffer DLL).
+   */
+  struct Rung *rung;
+
+  /**
+   * Head of DLL of envelopes we have in the buffer for this direction.
+   */
+  struct GNUNET_MQ_Envelope *env_head;
+
+  /**
+   * Tail of DLL of envelopes we have in the buffer for this direction.
+   */
+  struct GNUNET_MQ_Envelope *env_tail;
+
   /**
    * Target peer.
    */
@@ -157,6 +224,16 @@ static struct GNUNET_CONTAINER_Heap *route_heap;
  * Maximum number of concurrent routes this peer will support.
  */
 static unsigned long long max_routes;
+
+/**
+ * Maximum number of envelopes we will buffer at this peer.
+ */
+static unsigned long long max_buffers;
+
+/**
+ * Current number of envelopes we have buffered at this peer.
+ */
+static unsigned long long cur_buffers;
 
 /**
  * Task to timeout routes.
@@ -1079,7 +1156,13 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                              "CADET",
                                              "MAX_ROUTES",
                                              &max_routes))
-    max_routes = 10000;
+    max_routes = 5000;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "MAX_MSGS_QUEUE",
+                                             &max_buffers))
+    max_buffers = 10000;
   routes = GNUNET_CONTAINER_multishortmap_create (1024,
                                                   GNUNET_NO);
   route_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
