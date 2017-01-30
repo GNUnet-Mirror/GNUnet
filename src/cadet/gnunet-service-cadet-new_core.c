@@ -762,11 +762,12 @@ handle_connection_broken (void *cls,
   }
 
   /* We're just an intermediary peer, route the message along its path */
-  route = get_route (&msg->cid);
   route_message (peer,
                  &msg->cid,
                  &msg->header);
-  destroy_route (route);
+  route = get_route (&msg->cid);
+  if (NULL != route)
+    destroy_route (route);
   /* FIXME: also destroy paths we MAY have up to the specified link! */
 }
 
@@ -813,11 +814,12 @@ handle_connection_destroy (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received CONNECTION_DESTROY for connection %s. Destroying route.\n",
        GNUNET_sh2s (&msg->cid.connection_of_tunnel));
-  route = get_route (&msg->cid);
   route_message (peer,
                  &msg->cid,
                  &msg->header);
-  destroy_route (route);
+  route = get_route (&msg->cid);
+  if (NULL != route)
+    destroy_route (route);
 }
 
 
