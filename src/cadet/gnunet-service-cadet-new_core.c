@@ -278,15 +278,11 @@ lower_rung (struct RouteDirection *dir)
                                        rung->prev,
                                        prev);
   }
-  else
-  {
-    rung = prev;
-  }
-  GNUNET_assert (NULL != rung);
-  GNUNET_CONTAINER_DLL_insert (rung->rd_head,
-                               rung->rd_tail,
+  GNUNET_assert (NULL != prev);
+  GNUNET_CONTAINER_DLL_insert (prev->rd_head,
+                               prev->rd_tail,
                                dir);
-  dir->rung = rung;
+  dir->rung = prev;
 }
 
 
