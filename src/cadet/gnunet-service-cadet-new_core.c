@@ -27,7 +27,6 @@
  * All functions in this file should use the prefix GCO (Gnunet Cadet cOre (bottom))
  *
  * TODO:
- * - do NOT use buffering if the route options say no buffer!
  * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
@@ -394,6 +393,12 @@ route_message (struct CadetPeer *prev,
               GNUNET_MQ_msg_copy (msg));
     return;
   }
+  /* Check if buffering is disallowed, and if so, make sure we only queue
+     one message per direction. */
+  if ( (0 != (route->options & GNUNET_CADET_OPTION_NOBUFFER)) &&
+       (NULL != dir->env_head) )
+    discard_buffer (dir,
+                    dir->env_head);
   rung = dir->rung;
   if (cur_buffers == max_buffers)
   {
