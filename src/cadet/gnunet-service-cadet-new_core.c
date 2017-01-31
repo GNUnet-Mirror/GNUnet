@@ -286,7 +286,7 @@ lower_rung (struct RouteDirection *dir)
   GNUNET_CONTAINER_DLL_insert (rung->rd_head,
                                rung->rd_tail,
                                dir);
-
+  dir->rung = rung;
 }
 
 
@@ -438,6 +438,8 @@ route_message (struct CadetPeer *prev,
   GNUNET_CONTAINER_DLL_insert (nxt->rd_head,
                                nxt->rd_tail,
                                dir);
+  dir->rung = nxt;
+
   /* add message into 'dir' buffer */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queueing new message of type %u from %s to %s on connection %s\n",
