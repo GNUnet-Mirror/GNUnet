@@ -25,8 +25,6 @@
  *
  * TODO:
  * - Congestion/flow control:
- *   + calculate current RTT if possible, use that for initial retransmissions
- *     (NOTE: needs us to learn which connection the tunnel uses for the message!)
  *   + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
  *     (and figure out how/where to use this!)
  *   + figure out flow control without ACKs (unreliable traffic!)
@@ -305,11 +303,6 @@ struct CadetChannel
    * Counter for exponential backoff.
    */
   struct GNUNET_TIME_Relative retry_time;
-
-  /**
-   * How long does it usually take to get an ACK.
-   */
-  struct GNUNET_TIME_Relative expected_delay;
 
   /**
    * Bitfield of already-received messages past @e mid_recv.
@@ -1649,10 +1642,17 @@ data_sent_cb (void *cls,
       GCC_ack_expected (cid);
     }
   }
-  if (0 == crm->retry_delay.rel_value_us)
-    crm->retry_delay = ch->expected_delay;
-  else
-    crm->retry_delay = GNUNET_TIME_STD_BACKOFF (crm->retry_delay);
+  if ( (0 == crm->retry_delay.rel_value_us) &&
+       (NULL != cid) )
+  {
+    struct CadetConnection *cc = GCC_lookup (cid);
+
+    if (NULL != cc)
+      crm->retry_delay = GCC_get_metrics (cc)->aged_latency;
+    else
+      crm->retry_delay = ch->retry_time;
+  }
+  crm->retry_delay = GNUNET_TIME_STD_BACKOFF (crm->retry_delay);
   crm->retry_delay = GNUNET_TIME_relative_max (crm->retry_delay,
                                                MIN_RTT_DELAY);
   crm->next_retry = GNUNET_TIME_relative_to_absolute (crm->retry_delay);

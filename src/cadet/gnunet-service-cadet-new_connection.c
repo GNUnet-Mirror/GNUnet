@@ -169,6 +169,20 @@ struct CadetConnection
 
 
 /**
+ * Lookup a connection by its identifier.
+ *
+ * @param cid identifier to resolve
+ * @return NULL if connection was not found
+ */
+struct CadetConnection *
+GCC_lookup (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  return GNUNET_CONTAINER_multishortmap_get (connections,
+                                             &cid->connection_of_tunnel);
+}
+
+
+/**
  * Update the connection state. Also triggers the necessary
  * MQM notifications.
  *
@@ -405,8 +419,7 @@ GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetConnection *cc;
 
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &cid->connection_of_tunnel);
+  cc = GCC_lookup (cid);
   if (NULL == cc)
     return; /* whopise, connection alredy down? */
   cc->metrics.num_acked_transmissions++;
@@ -426,8 +439,7 @@ GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   struct CadetConnection *cc;
 
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &cid->connection_of_tunnel);
+  cc = GCC_lookup (cid);
   if (NULL == cc)
     return; /* whopise, connection alredy down? */
   cc->metrics.num_successes++;
@@ -450,8 +462,7 @@ GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
   double weight;
   double result;
 
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &cid->connection_of_tunnel);
+  cc = GCC_lookup (cid);
   if (NULL == cc)
     return; /* whopise, connection alredy down? */
   GNUNET_STATISTICS_update (stats,

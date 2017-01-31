@@ -804,8 +804,7 @@ handle_connection_create (void *cls,
     struct CadetPeerPath *path;
     struct CadetPeer *origin;
 
-    cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                             &msg->cid.connection_of_tunnel);
+    cc = GCC_lookup (&msg->cid);
     if (NULL != cc)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -925,8 +924,7 @@ handle_connection_create_ack (void *cls,
   struct CadetConnection *cc;
 
   /* First, check if ACK belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify ACK came from the right direction */
@@ -970,8 +968,7 @@ handle_connection_broken (void *cls,
   struct CadetRoute *route;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -1020,8 +1017,7 @@ handle_connection_destroy (void *cls,
   struct CadetRoute *route;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -1070,8 +1066,7 @@ handle_tunnel_kx (void *cls,
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -1111,8 +1106,7 @@ handle_tunnel_kx_auth (void *cls,
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->kx.cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->kx.cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
@@ -1168,8 +1162,7 @@ handle_tunnel_encrypted (void *cls,
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
-  cc = GNUNET_CONTAINER_multishortmap_get (connections,
-                                           &msg->cid.connection_of_tunnel);
+  cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */

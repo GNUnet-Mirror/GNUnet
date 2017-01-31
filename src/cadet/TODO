@@ -1,7 +1,6 @@
 - URGENT: Congestion/flow control (CHANNEL):
   + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
    (and figure out how/where to use this!)
-  + get current RTT from connection; use that for initial retransmissions!
   + figure out flow control without ACKs (unreliable traffic!)
 
 - HIGH: revisit handling of 'unbuffered' traffic! (CHANNEL/TUNNEL)
