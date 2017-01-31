@@ -975,6 +975,12 @@ handle_local_data (void *cls,
        ntohl (message->ccn.channel_of_client),
        GC_m2s (type),
        type);
+  if (NULL != ch->mq)
+  {
+    GNUNET_MQ_inject_message (ch->mq, payload);
+    return;
+  }
+  /** @a deprecated */
   for (unsigned i=0;i<h->n_handlers;i++)
   {
     handler = &h->message_handlers[i];
@@ -1006,6 +1012,8 @@ handle_local_data (void *cls,
  *
  * @param h Cadet handle.
  * @param message Message itself.
+ *
+ * FIXME either delete or port to MQ
  */
 static void
 handle_local_ack (void *cls,
