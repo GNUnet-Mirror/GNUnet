@@ -8,7 +8,9 @@
         (need to push down through tunnel into connection selection);
         At Tunnel-level, try to create connections that match channel
         preferences (buffered/unbuffered) and select connections for
-         channel traffic that match channel preferences.
+        channel traffic that match channel preferences.
+        BUT: not sure this is ideal, discloses traffic type to
+        routers. We don't want that! (Maybe revise decision to do this?)
 
 - HIGH: revisit handling of 'buffered' traffic: 4 is a rather small buffer; (CHANNEL)
         maybe reserve more bits in 'options' to allow for buffer size control?

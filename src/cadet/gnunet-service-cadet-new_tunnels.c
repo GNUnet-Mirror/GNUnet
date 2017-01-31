@@ -2712,6 +2712,11 @@ handle_plaintext_channel_open (void *cls,
                                   copen->ctn,
                                   &copen->port,
                                   ntohl (copen->opt));
+  if (NULL != t->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = NULL;
+  }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
                                                       ntohl (copen->ctn.cn),
