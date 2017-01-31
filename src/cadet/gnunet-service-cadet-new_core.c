@@ -275,8 +275,8 @@ lower_rung (struct RouteDirection *dir)
     prev->rung_off = rung->rung_off - 1;
     GNUNET_CONTAINER_DLL_insert_after (rung_head,
                                        rung_tail,
-                                       prev,
-                                       rung);
+                                       rung->prev,
+                                       prev);
   }
   else
   {
