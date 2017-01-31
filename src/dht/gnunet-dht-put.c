@@ -57,9 +57,14 @@ static unsigned int replication = 5;
 static int verbose;
 
 /**
- * Use DHT demultixplex_everywhere
+ * Use #GNUNET_DHT_DEMULTIPLEX_EVERYWHERE.
  */
 static int demultixplex_everywhere;
+
+/**
+ * Use #GNUNET_DHT_RO_RECORD_ROUTE.
+ */
+static int record_route;
 
 /**
  * Handle to the DHT
@@ -144,6 +149,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Absolute expiration;
+  enum GNUNET_DHT_RouteOption ro;
 
   cfg = c;
   if ((NULL == query_key) || (NULL == data))
@@ -171,10 +177,15 @@ run (void *cls,
   if (verbose)
     FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
+  ro = GNUNET_DHT_RO_NONE;
+  if (demultixplex_everywhere)
+    ro |= GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+  if (record_route)
+    ro |= GNUNET_DHT_RO_RECORD_ROUTE;
   GNUNET_DHT_put (dht_handle,
                   &key,
                   replication,
-                  (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
+                  ro,
                   query_type,
                   strlen (data),
                   data,
@@ -203,6 +214,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'r', "replication", "LEVEL",
    gettext_noop ("how many replicas to create"),
    1, &GNUNET_GETOPT_set_uint, &replication},
+  {'R', "record", NULL,
+   gettext_noop ("use DHT's record route option"),
+   0, &GNUNET_GETOPT_set_one, &record_route},
   {'t', "type", "TYPE",
    gettext_noop ("the type to insert data as"),
    1, &GNUNET_GETOPT_set_uint, &query_type},
