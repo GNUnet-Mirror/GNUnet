@@ -78,6 +78,7 @@ GCC_destroy_without_tunnel (struct CadetConnection *cc);
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
  * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
@@ -87,6 +88,7 @@ GCC_destroy_without_tunnel (struct CadetConnection *cc);
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            unsigned int off,
             enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,

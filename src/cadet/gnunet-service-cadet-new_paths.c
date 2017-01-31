@@ -478,6 +478,9 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
   /* precompute 'cpath' so we can avoid doing the lookups lots of times */
   skip = 0;
+  memset (cpath,
+          0,
+          sizeof (cpath)); /* Just to trigger harder errors later. */
   total_len = get_path_length + put_path_length;
   for (unsigned int off=0;off<total_len;off++)
   {

@@ -778,6 +778,7 @@ manage_first_hop_mq (void *cls,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
  * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param init_state initial state for the connection
@@ -788,6 +789,7 @@ manage_first_hop_mq (void *cls,
 static struct CadetConnection *
 connection_create (struct CadetPeer *destination,
                    struct CadetPeerPath *path,
+                   unsigned int off,
                    enum GNUNET_CADET_ChannelOption options,
                    struct CadetTConnection *ct,
                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
@@ -797,11 +799,7 @@ connection_create (struct CadetPeer *destination,
 {
   struct CadetConnection *cc;
   struct CadetPeer *first_hop;
-  unsigned int off;
 
-  off = GCPP_find_peer (path,
-                        destination);
-  GNUNET_assert (UINT_MAX > off);
   cc = GNUNET_new (struct CadetConnection);
   cc->options = options;
   cc->state = init_state;
@@ -854,7 +852,7 @@ connection_create (struct CadetPeer *destination,
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
-                   enum GNUNET_CADET_ChannelOption options,
+                    enum GNUNET_CADET_ChannelOption options,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                     GCC_ReadyCallback ready_cb,
@@ -910,6 +908,7 @@ GCC_create_inbound (struct CadetPeer *destination,
 
   return connection_create (destination,
                             path,
+                            off,
                             options,
                             ct,
                             cid,
@@ -925,6 +924,7 @@ GCC_create_inbound (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
  * @param options options for the connection
  * @param ct tunnel that uses the connection
  * @param ready_cb function to call when ready to transmit
@@ -934,6 +934,7 @@ GCC_create_inbound (struct CadetPeer *destination,
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            unsigned int off,
             enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,
@@ -946,6 +947,7 @@ GCC_create (struct CadetPeer *destination,
                               sizeof (cid));
   return connection_create (destination,
                             path,
+                            off,
                             options,
                             ct,
                             &cid,

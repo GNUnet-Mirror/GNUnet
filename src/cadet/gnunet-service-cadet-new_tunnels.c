@@ -2467,6 +2467,7 @@ consider_path_cb (void *cls,
   ct->t = t;
   ct->cc = GCC_create (t->destination,
                        path,
+                       off,
                        GNUNET_CADET_OPTION_DEFAULT, /* FIXME: set based on what channels want/need! */
                        ct,
                        &connection_ready_cb,
