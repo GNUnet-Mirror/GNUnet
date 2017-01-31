@@ -491,10 +491,8 @@ create_channel (struct GNUNET_CADET_Handle *h,
  *
  * @return Handle to the required channel or NULL if not found.
  */
-// FIXME: simplify: call_cleaner is always #GNUNET_YES!!!
 static void
-destroy_channel (struct GNUNET_CADET_Channel *ch,
-                 int call_cleaner)
+destroy_channel (struct GNUNET_CADET_Channel *ch)
 {
   struct GNUNET_CADET_Handle *h;
   struct GNUNET_CADET_TransmitHandle *th;
@@ -516,13 +514,28 @@ destroy_channel (struct GNUNET_CADET_Channel *ch,
                                ch);
 
   /* signal channel destruction */
-  if ( (NULL != h->cleaner) &&
-       (0 != ch->peer) &&
-       (GNUNET_YES == call_cleaner) )
+  if (0 != ch->peer)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         " calling cleaner\n");
-    h->cleaner (h->cls, ch, ch->ctx);
+    if (NULL != h->cleaner)
+    {
+      /** @a deprecated  */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          " calling cleaner\n");
+      h->cleaner (h->cls, ch, ch->ctx);
+    }
+    else if (NULL != ch->disconnects)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          " calling disconnect handler\n");
+      ch->disconnects (ch->ctx, ch);
+    }
+    else
+    {
+      /* Application won't be aware of the channel destruction and use
+       * a pointer to free'd memory.
+       */
+      GNUNET_assert (0);
+    }
   }
 
   /* check that clients did not leave messages behind in the queue */
@@ -853,8 +866,7 @@ handle_channel_destroy (void *cls,
          ntohl (ccn.channel_of_client));
     return;
   }
-  destroy_channel (ch,
-                   GNUNET_YES);
+  destroy_channel (ch);
 }
 
 
@@ -1546,7 +1558,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Requested RECONNECT, destroying all channels\n");
   while (NULL != (ch = h->channels_head))
-    destroy_channel (ch, GNUNET_YES);
+    destroy_channel (ch);
   if (NULL == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
@@ -1621,8 +1633,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
            "channel %X not destroyed\n",
            ntohl (ch->ccn.channel_of_client));
     }
-    destroy_channel (ch,
-                     GNUNET_YES);
+    destroy_channel (ch);
     ch = aux;
   }
   while (NULL != (th = handle->th_head))
@@ -1829,8 +1840,7 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
   GNUNET_MQ_send (h->mq,
                   env);
 
-  destroy_channel (channel,
-                   GNUNET_YES);
+  destroy_channel (channel);
 }
 
 
@@ -2362,7 +2372,7 @@ GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h->mq_api = GNUNET_YES;
   h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
   do_reconnect (h);
-  if (h->mq == NULL)
+  if (NULL == h->mq)
   {
     GNUNET_break (0);
     GNUNET_CADET_disconnect (h);
@@ -2403,6 +2413,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
   struct GNUNET_CADET_Port *p;
 
   GNUNET_assert (NULL != connects);
+  GNUNET_assert (NULL != disconnects);
 
   p = GNUNET_new (struct GNUNET_CADET_Port);
   p->cadet = h;
@@ -2461,6 +2472,8 @@ GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
   struct GNUNET_CADET_ClientChannelNumber ccn;
   struct GNUNET_CADET_LocalChannelCreateMessage *msg;
   struct GNUNET_MQ_Envelope *env;
+
+  GNUNET_assert (NULL != disconnects);
 
   /* Save parameters */
   ccn.channel_of_client = htonl (0);
