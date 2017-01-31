@@ -307,6 +307,10 @@ discard_buffer (struct RouteDirection *dir,
   cur_buffers--;
   GNUNET_MQ_discard (env);
   lower_rung (dir);
+  GNUNET_STATISTICS_set (stats,
+                         "# buffer use",
+                         cur_buffers,
+                         GNUNET_NO);
 }
 
 
@@ -452,6 +456,10 @@ route_message (struct CadetPeer *prev,
                              &dir->env_tail,
                              env);
   cur_buffers++;
+  GNUNET_STATISTICS_set (stats,
+                         "# buffer use",
+                         cur_buffers,
+                         GNUNET_NO);
   /* Clean up 'rung' if now empty (and not head) */
   if ( (NULL == rung->rd_head) &&
        (rung != rung_head) )
@@ -537,6 +545,10 @@ destroy_route (struct CadetRoute *route)
                  GNUNET_CONTAINER_multishortmap_remove (routes,
                                                         &route->cid.connection_of_tunnel,
                                                         route));
+  GNUNET_STATISTICS_set (stats,
+                         "# routes",
+                         GNUNET_CONTAINER_multishortmap_size (routes),
+                         GNUNET_NO);
   destroy_direction (&route->prev);
   destroy_direction (&route->next);
   GNUNET_free (route);
@@ -657,6 +669,10 @@ dir_ready_cb (void *cls,
                             &dir->env_tail,
                             env);
       cur_buffers--;
+      GNUNET_STATISTICS_set (stats,
+                             "# buffer use",
+                             cur_buffers,
+                             GNUNET_NO);
       lower_rung (dir);
       dir->is_ready = GNUNET_NO;
       GCP_send (dir->mqm,
@@ -875,6 +891,10 @@ handle_connection_create (void *cls,
                                                      &route->cid.connection_of_tunnel,
                                                      route,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_STATISTICS_set (stats,
+                         "# routes",
+                         GNUNET_CONTAINER_multishortmap_size (routes),
+                         GNUNET_NO);
   route->hn = GNUNET_CONTAINER_heap_insert (route_heap,
                                             route,
                                             route->last_use.abs_value_us);
