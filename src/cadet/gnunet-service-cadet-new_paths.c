@@ -489,7 +489,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     cpath[off - skip] = GCP_get (pid,
                                  GNUNET_YES);
     /* Check that no peer is twice on the path */
-    for (unsigned int i=0;i<off;i++)
+    for (unsigned int i=0;i<off - skip;i++)
     {
       if (cpath[i] == cpath[off])
       {
