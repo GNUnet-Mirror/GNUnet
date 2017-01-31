@@ -1011,6 +1011,11 @@ GCP_add_connection (struct CadetPeer *cp,
                                                      &GCC_get_id (cc)->connection_of_tunnel,
                                                      cc,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  if (NULL != cp->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (cp->destroy_task);
+    cp->destroy_task = NULL;
+  }
 }
 
 
@@ -1032,6 +1037,7 @@ GCP_remove_connection (struct CadetPeer *cp,
                  GNUNET_CONTAINER_multishortmap_remove (cp->connections,
                                                         &GCC_get_id (cc)->connection_of_tunnel,
                                                         cc));
+  consider_peer_destroy (cp);
 }
 
 

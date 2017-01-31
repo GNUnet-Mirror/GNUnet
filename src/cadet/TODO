@@ -1,7 +1,6 @@
 - URGENT: Congestion/flow control (CHANNEL):
   + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
    (and figure out how/where to use this!)
-  + figure out flow control without ACKs (unreliable traffic!)
 
 - HIGH: revisit handling of 'unbuffered' traffic! (CHANNEL/TUNNEL)
         (need to push down through tunnel into connection selection);
@@ -20,7 +19,6 @@
         point of breakage) as well as connection/route (CORE)
 
 - OPTIMIZATION: proper connection evaluation during connection management:
-  + PATHS: path desirability score calculations are not done
   + TUNNELS:
     * consider quality of current connection set when deciding
       how often to do maintenance
