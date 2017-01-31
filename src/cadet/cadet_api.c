@@ -1724,13 +1724,15 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
 {
   struct GNUNET_CADET_PortMessage *msg;
   struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_HashCode *id;
 
   env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
 
-  msg->port = *p->hash;
+  id = NULL != p->hash ? p->hash : &p->id;
+  msg->port = *id;
   GNUNET_MQ_send (p->cadet->mq, env);
-  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports, p->hash, p);
-  GNUNET_free (p->hash);
+  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports, id, p);
+  GNUNET_free_non_null (p->hash);
   GNUNET_free (p);
 }
 
