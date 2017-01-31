@@ -1146,7 +1146,7 @@ GCP_iterate_paths (struct CadetPeer *cp,
     if (GNUNET_NO ==
         callback (callback_cls,
                   path,
-                  1))
+                  0))
       return ret;
   }
   for (unsigned int i=0;i<cp->path_dll_length;i++)

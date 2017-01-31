@@ -2416,6 +2416,7 @@ consider_path_cb (void *cls,
   struct EvaluationSummary es;
   struct CadetTConnection *ct;
 
+  GNUNET_assert (off < GCPP_get_length (path));
   es.min_length = UINT_MAX;
   es.max_length = 0;
   es.max_desire = 0;
