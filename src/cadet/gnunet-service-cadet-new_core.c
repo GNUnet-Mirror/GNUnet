@@ -706,6 +706,10 @@ dir_init (struct RouteDirection *dir,
   dir->mqm = GCP_request_mq (hop,
                              &dir_ready_cb,
                              dir);
+  GNUNET_CONTAINER_DLL_insert (rung_head->rd_head,
+                               rung_head->rd_tail,
+                               dir);
+  dir->rung = rung_head;
   GNUNET_assert (GNUNET_YES == dir->is_ready);
 }
 
