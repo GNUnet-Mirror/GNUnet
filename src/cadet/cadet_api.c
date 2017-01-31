@@ -958,7 +958,12 @@ handle_local_data (void *cls,
 
   ch = retrieve_channel (h,
                          message->ccn);
-  GNUNET_assert (NULL != ch);
+  if (NULL == ch)
+  {
+    GNUNET_break_op (0);
+    reconnect (h);
+    return;
+  }
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
