@@ -380,6 +380,41 @@ struct CadetMQState
 };
 
 
+
+/******************************************************************************/
+/*********************      FUNCTION DECLARATIONS     *************************/
+/******************************************************************************/
+
+/**
+ * Reconnect to the service, retransmit all infomation to try to restore the
+ * original state.
+ *
+ * @param h Handle to the CADET service.
+ */
+static void
+schedule_reconnect (struct GNUNET_CADET_Handle *h);
+
+
+/**
+ * Reconnect callback: tries to reconnect again after a failer previous
+ * reconnection.
+ *
+ * @param cls Closure (cadet handle).
+ */
+static void
+reconnect_cbk (void *cls);
+
+
+/**
+ * Reconnect to the service, retransmit all infomation to try to restore the
+ * original state.
+ *
+ * @param h handle to the cadet
+ */
+static void
+reconnect (struct GNUNET_CADET_Handle *h);
+
+
 /******************************************************************************/
 /***********************     AUXILIARY FUNCTIONS      *************************/
 /******************************************************************************/
@@ -1003,27 +1038,6 @@ handle_local_ack (void *cls,
   }
 }
 
-/**
- * Reconnect to the service, retransmit all infomation to try to restore the
- * original state.
- *
- * @param h handle to the cadet
- *
- * @return #GNUNET_YES in case of sucess, #GNUNET_NO otherwise (service down...)
- */
-static void
-reconnect (struct GNUNET_CADET_Handle *h);
-
-
-/**
- * Reconnect callback: tries to reconnect again after a failer previous
- * reconnection.
- *
- * @param cls closure (cadet handle)
- */
-static void
-reconnect_cbk (void *cls);
-
 
 /**
  * Generic error handler, called with the appropriate error code and
@@ -1455,16 +1469,14 @@ handle_get_tunnel (void *cls,
 }
 
 
-
 /**
  * Reconnect to the service, retransmit all infomation to try to restore the
  * original state.
  *
  * @param h handle to the cadet
- * @return #GNUNET_YES in case of success, #GNUNET_NO otherwise (service down...)
  */
-static int
-do_reconnect (struct GNUNET_CADET_Handle *h)
+static void
+reconnect (struct GNUNET_CADET_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (channel_created,
@@ -1499,16 +1511,28 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
                            struct GNUNET_CADET_LocalInfoTunnel,
                            h),
-  // FIXME
+// FIXME
 //   GNUNET_MQ_hd_fixed_Y       size (channel_destroyed,
-//                            GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED,
-//                            struct GNUNET_CADET_ChannelDestroyMessage);
+//                        GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED,
+//                        struct GNUNET_CADET_ChannelDestroyMessage);
     GNUNET_MQ_handler_end ()
   };
+  struct GNUNET_CADET_Channel *ch;
+
+  while (NULL != (ch = h->channels_head))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Destroying channel due to a reconnect\n");
+    destroy_channel (ch);
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CADET\n");
 
-  GNUNET_assert (NULL == h->mq);
+  if (NULL != h->mq)
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
   h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "cadet",
                                  handlers,
@@ -1516,14 +1540,13 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
                                  h);
   if (NULL == h->mq)
   {
-    reconnect (h);
-    return GNUNET_NO;
+    schedule_reconnect (h);
+    return;
   }
   else
   {
     h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
-  return GNUNET_YES;
 }
 
 /**
@@ -1538,7 +1561,7 @@ reconnect_cbk (void *cls)
   struct GNUNET_CADET_Handle *h = cls;
 
   h->reconnect_task = NULL;
-  do_reconnect (h);
+  reconnect (h);
 }
 
 
@@ -1551,17 +1574,14 @@ reconnect_cbk (void *cls)
  * @return #GNUNET_YES in case of sucess, #GNUNET_NO otherwise (service down...)
  */
 static void
-reconnect (struct GNUNET_CADET_Handle *h)
+schedule_reconnect (struct GNUNET_CADET_Handle *h)
 {
-  struct GNUNET_CADET_Channel *ch;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Requested RECONNECT, destroying all channels\n");
-  while (NULL != (ch = h->channels_head))
-    destroy_channel (ch);
   if (NULL == h->reconnect_task)
+  {
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
+    h->reconnect_time = GNUNET_TIME_STD_BACKOFF (h->reconnect_time);
+  }
 }
 
 
@@ -1584,7 +1604,7 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->cfg = cfg;
   h->cleaner = cleaner;
   h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
-  do_reconnect (h);
+  reconnect (h);
   if (h->mq == NULL)
   {
     GNUNET_break (0);
@@ -2371,7 +2391,7 @@ GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h->cfg = cfg;
   h->mq_api = GNUNET_YES;
   h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
-  do_reconnect (h);
+  reconnect (h);
   if (NULL == h->mq)
   {
     GNUNET_break (0);
