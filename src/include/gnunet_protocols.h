@@ -2651,8 +2651,19 @@ extern "C"
 
 /**
  * Hop-by-hop, connection dependent ACK.
+ *
+ * @deprecated
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK 1005
+
+/**
+ * We do not bother with ACKs for
+ * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
+ * poll for one if we got nothing for a while and start to be worried.
+ *
+ * @deprecated
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
 
 /**
  * Axolotl key exchange.
@@ -2665,11 +2676,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED 1008
 
 /**
- * We do not bother with ACKs for
- * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
- * poll for one if we got nothing for a while and start to be worried.
+ * Axolotl key exchange response with authentication.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH 1009
 
 
 
@@ -2707,6 +2716,8 @@ extern "C"
 
 /**
  * Reject the creation of a channel
+ *
+ * @deprecated
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED 1016
 

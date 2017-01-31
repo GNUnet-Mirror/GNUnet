@@ -50,29 +50,36 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_UNINITIALIZED,
 
   /**
-   * Ephemeral key sent, waiting for peer's key.
+   * KX message sent, waiting for other peer's KX_AUTH.
    */
-  CADET_TUNNEL_KEY_SENT,
+  CADET_TUNNEL_KEY_AX_SENT,
 
   /**
-   * Key received and we sent ours back, but we got no traffic yet.
+   * KX message received, trying to send back KX_AUTH.
+   */
+  CADET_TUNNEL_KEY_AX_RECV,
+
+  /**
+   * KX message sent and received, trying to send back KX_AUTH.
+   */
+  CADET_TUNNEL_KEY_AX_SENT_AND_RECV,
+
+  /**
+   * KX received and we sent KX_AUTH back, but we got no traffic yet,
+   * so we're waiting for either KX_AUTH or ENCRYPED traffic from
+   * the other peer.
+   *
    * We will not yet send traffic, as this might have been a replay.
    * The other (initiating) peer should send a CHANNEL_OPEN next
-   * anyway.
+   * anyway, and then we are in business!
    */
-  CADET_TUNNEL_KEY_PING,
+  CADET_TUNNEL_KEY_AX_AUTH_SENT,
 
   /**
    * Handshake completed: session key available.
    */
-  CADET_TUNNEL_KEY_OK,
+  CADET_TUNNEL_KEY_OK
 
-  /**
-   * New ephemeral key and ping sent, waiting for pong. Unlike KEY_PING,
-   * we still have a valid session key and therefore we *can* still send
-   * traffic on the tunnel.
-   */
-  CADET_TUNNEL_KEY_REKEY
 };
 
 
@@ -112,12 +119,26 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t);
  *
  * @param t a tunnel
  * @param cid connection identifer to use for the connection
+ * @param options options for the connection
  * @param path path to use for the connection
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on failure (duplicate connection)
  */
-void
+int
 GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                            enum GNUNET_CADET_ChannelOption options,
                             struct CadetPeerPath *path);
+
+
+/**
+ * We lost a connection, remove it from our list and clean up
+ * the connection object itself.
+ *
+ * @param ct binding of connection to tunnel of the connection that was lost.
+ */
+void
+GCT_connection_lost (struct CadetTConnection *ct);
 
 
 /**
@@ -181,6 +202,19 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
 
 
 /**
+ * Function called when a transmission requested using #GCT_send is done.
+ *
+ * @param cls closure
+ * @param ctn identifier of the connection used for transmission, NULL if
+ *            the transmission failed (to be used to match ACKs to the
+ *            respective connection for connection performance evaluation)
+ */
+typedef void
+(*GCT_SendContinuation)(void *cls,
+                        const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection if not provided.
  *
@@ -188,12 +222,12 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
  * @param t Tunnel on which this message is transmitted.
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
- * @return Handle to cancel message. NULL if @c cont is NULL.
+ * @return Handle to cancel message.
  */
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
           const struct GNUNET_MessageHeader *message,
-          GNUNET_SCHEDULER_TaskCallback cont,
+          GCT_SendContinuation cont,
           void *cont_cls);
 
 
@@ -227,18 +261,18 @@ GCT_count_channels (struct CadetTunnel *t);
  * @return number of connections available for the tunnel
  */
 unsigned int
-GCT_count_any_connections (struct CadetTunnel *t);
+GCT_count_any_connections (const struct CadetTunnel *t);
 
 
 /**
  * Iterator over connections.
  *
  * @param cls closure
- * @param c one of the connections
+ * @param ct one of the connections
  */
 typedef void
 (*GCT_ConnectionIterator) (void *cls,
-                           struct CadetConnection *c);
+                           struct CadetTConnection *ct);
 
 
 /**
@@ -298,6 +332,17 @@ GCT_get_estate (struct CadetTunnel *t);
 void
 GCT_handle_kx (struct CadetTConnection *ct,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
+
+
+/**
+ * Handle KX_AUTH message.
+ *
+ * @param ct connection/tunnel combo that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCT_handle_kx_auth (struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
 
 
 /**

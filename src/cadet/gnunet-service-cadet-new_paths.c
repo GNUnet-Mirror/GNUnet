@@ -22,12 +22,10 @@
  * @brief Information we track per path.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
- *
- * TODO:
- * - path desirability score calculations are not done
  */
 #include "platform.h"
 #include "gnunet-service-cadet-new_connection.h"
+#include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_paths.h"
 
@@ -75,8 +73,16 @@ struct CadetPeerPath
 static void
 recalculate_path_desirability (struct CadetPeerPath *path)
 {
-  /* FIXME: update path desirability! */
-  GNUNET_break (0); // not implemented
+  double result = 0.0;
+
+  for (unsigned int i=0;i<path->entries_length;i++)
+  {
+    struct CadetPeer *cp = path->entries[i]->peer;
+
+    result += GCP_get_desirability_of_path (cp,
+                                            i);
+  }
+  path->desirability = (GNUNET_CONTAINER_HeapCostType) result;
 }
 
 
@@ -191,7 +197,20 @@ path_destroy (struct CadetPeerPath *path)
        "Destroying path %s\n",
        GCPP_2s (path));
   for (unsigned int i=0;i<path->entries_length;i++)
-    GNUNET_free (path->entries[i]);
+  {
+    struct CadetPeerPathEntry *entry = path->entries[i];
+
+    if (NULL != entry->cc)
+    {
+      struct CadetTConnection *ct;
+
+      ct = GCC_get_ct (entry->cc);
+      if (NULL != ct)
+        GCT_connection_lost (ct);
+      GCC_destroy_without_tunnel (entry->cc);
+    }
+    GNUNET_free (entry);
+  }
   GNUNET_free (path->entries);
   GNUNET_free (path);
 }
@@ -454,25 +473,42 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   struct CadetPeerPath *path;
   struct GNUNET_CONTAINER_HeapNode *hn;
   int i;
+  unsigned int skip;
+  unsigned int total_len;
 
   /* precompute 'cpath' so we can avoid doing the lookups lots of times */
-  for (unsigned int off=0;off<get_path_length + put_path_length;off++)
+  skip = 0;
+  memset (cpath,
+          0,
+          sizeof (cpath)); /* Just to trigger harder errors later. */
+  total_len = get_path_length + put_path_length;
+  for (unsigned int off=0;off<total_len;off++)
   {
     const struct GNUNET_PeerIdentity *pid;
 
     pid = (off < get_path_length)
       ? &get_path[get_path_length - off]
       : &put_path[get_path_length + put_path_length - off];
-    cpath[off] = GCP_get (pid,
-                          GNUNET_YES);
+    cpath[off - skip] = GCP_get (pid,
+                                 GNUNET_YES);
+    /* Check that no peer is twice on the path */
+    for (unsigned int i=0;i<off - skip;i++)
+    {
+      if (cpath[i] == cpath[off])
+      {
+        skip = off - i;
+        break;
+      }
+    }
   }
+  total_len -= skip;
 
   /* First figure out if this path is a subset of an existing path, an
      extension of an existing path, or a new path. */
-  cm_ctx.cpath_length = get_path_length + put_path_length;
+  cm_ctx.cpath_length = total_len;
   cm_ctx.cpath = cpath;
   cm_ctx.match = NULL;
-  for (i=get_path_length + put_path_length-1;i>=0;i--)
+  for (i=total_len-1;i>=0;i--)
   {
     GCP_iterate_paths_at (cpath[i],
                           (unsigned int) i,
@@ -480,7 +516,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
                           &cm_ctx);
     if (NULL != cm_ctx.match)
     {
-      if (i == get_path_length + put_path_length - 1)
+      if (i == total_len - 1)
       {
         /* Existing path includes this one, nothing to do! */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -494,8 +530,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
              "Trying to extend existing path %s by additional links discovered from DHT\n",
              GCPP_2s (cm_ctx.match));
         extend_path (cm_ctx.match,
-                     &cpath[i],
-                     get_path_length + put_path_length - i,
+                     &cpath[i + 1],
+                     total_len - i - 1,
                      GNUNET_NO);
         return;
       }
@@ -504,7 +540,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
   /* No match at all, create completely new path */
   path = GNUNET_new (struct CadetPeerPath);
-  path->entries_length = get_path_length + put_path_length;
+  path->entries_length = total_len;
   path->entries = GNUNET_new_array (path->entries_length,
                                     struct CadetPeerPathEntry *);
   for (i=path->entries_length-1;i>=0;i--)
@@ -526,7 +562,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
 
   /* Finally, try to attach it */
   hn = NULL;
-  for (i=get_path_length + put_path_length-1;i>=0;i--)
+  for (i=total_len-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = path->entries[i];
 
@@ -613,8 +649,8 @@ GCPP_get_path_from_route (unsigned int path_length,
              "Extending existing path %s to create inverse for incoming connection\n",
              GCPP_2s (cm_ctx.match));
         extend_path (cm_ctx.match,
-                     &cpath[i],
-                     path_length - i,
+                     &cpath[i + 1],
+                     path_length - i - 1,
                      GNUNET_YES);
         /* Check that extension was successful */
         GNUNET_assert (cm_ctx.match->entries_length == path_length);

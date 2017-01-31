@@ -183,6 +183,16 @@ unsigned long long ratchet_messages;
  */
 struct GNUNET_TIME_Relative ratchet_time;
 
+/**
+ * How frequently do we send KEEPALIVE messages on idle connections?
+ */
+struct GNUNET_TIME_Relative keepalive_period;
+
+/**
+ * Set to non-zero values to create random drops to test retransmissions.
+ */
+unsigned long long drop_percent;
+
 
 /**
  * Send a message to a client.
@@ -621,7 +631,8 @@ handle_channel_destroy (void *cls,
                                                          ntohl (msg->ccn.channel_of_client),
                                                          ch));
   GCCH_channel_local_destroy (ch,
-                              c);
+                              c,
+                              msg->ccn);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -634,8 +645,8 @@ handle_channel_destroy (void *cls,
  * @return #GNUNET_OK if @a msg is OK, #GNUNET_SYSERR if not
  */
 static int
-check_data (void *cls,
-            const struct GNUNET_CADET_LocalData *msg)
+check_local_data (void *cls,
+                  const struct GNUNET_CADET_LocalData *msg)
 {
   size_t payload_size;
   size_t payload_claimed_size;
@@ -690,8 +701,8 @@ check_data (void *cls,
  * @param msg the actual message
  */
 static void
-handle_data (void *cls,
-             const struct GNUNET_CADET_LocalData *msg)
+handle_local_data (void *cls,
+                   const struct GNUNET_CADET_LocalData *msg)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -734,8 +745,8 @@ handle_data (void *cls,
  * @param msg The actual message.
  */
 static void
-handle_ack (void *cls,
-            const struct GNUNET_CADET_LocalAck *msg)
+handle_local_ack (void *cls,
+                  const struct GNUNET_CADET_LocalAck *msg)
 {
   struct CadetClient *c = cls;
   struct CadetChannel *ch;
@@ -956,17 +967,18 @@ handle_info_tunnels (void *cls,
  * Update the message with information about the connection.
  *
  * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
- * @param c a connection about which we should store information in @a cls
+ * @param ct a connection about which we should store information in @a cls
  */
 static void
 iter_connection (void *cls,
-                 struct CadetConnection *c)
+                 struct CadetTConnection *ct)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
+  struct CadetConnection *cc = ct->cc;
   struct GNUNET_CADET_ConnectionTunnelIdentifier *h;
 
   h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  h[msg->connections++] = *(GCC_get_id (c));
+  h[msg->connections++] = *(GCC_get_id (cc));
 }
 
 
@@ -1201,6 +1213,7 @@ channel_destroy_iterator (void *cls,
                           void *value)
 {
   struct CadetClient *c = cls;
+  struct GNUNET_CADET_ClientChannelNumber ccn;
   struct CadetChannel *ch = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1211,8 +1224,10 @@ channel_destroy_iterator (void *cls,
                  GNUNET_CONTAINER_multihashmap32_remove (c->channels,
                                                          key,
                                                          ch));
+  ccn.channel_of_client = htonl (key);
   GCCH_channel_local_destroy (ch,
-                              c);
+                              c,
+                              ccn);
   return GNUNET_OK;
 }
 
@@ -1331,7 +1346,34 @@ run (void *cls,
                                "need delay value");
     ratchet_time = GNUNET_TIME_UNIT_HOURS;
   }
-
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c,
+                                           "CADET",
+                                           "REFRESH_CONNECTION_TIME",
+                                           &keepalive_period))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET",
+                               "REFRESH_CONNECTION_TIME",
+                               "need delay value");
+    keepalive_period = GNUNET_TIME_UNIT_MINUTES;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "DROP_PERCENT",
+                                             &drop_percent))
+  {
+    drop_percent = 0;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Cadet is running with DROP enabled.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "This is NOT a good idea!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Remove DROP_PERCENT from config file.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+  }
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   if (NULL == my_private_key)
   {
@@ -1391,11 +1433,11 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
                           struct GNUNET_CADET_LocalChannelDestroyMessage,
                           NULL),
- GNUNET_MQ_hd_var_size (data,
+ GNUNET_MQ_hd_var_size (local_data,
                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
                         struct GNUNET_CADET_LocalData,
                         NULL),
- GNUNET_MQ_hd_fixed_size (ack,
+ GNUNET_MQ_hd_fixed_size (local_ack,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
                           struct GNUNET_CADET_LocalAck,
                           NULL),

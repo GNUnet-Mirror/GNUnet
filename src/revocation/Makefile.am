@@ -72,7 +72,7 @@ check_SCRIPTS = \
   test_local_revocation.py
 
 if ENABLE_TEST_RUN
- AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
  TESTS = \
  $(check_SCRIPTS) \
  $(check_PROGRAMS)

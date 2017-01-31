@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011 GNUnet e.V.
+     Copyright (C) 2011, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,7 +19,8 @@
 */
 /**
  * @file cadet/test_cadet.c
- *
+ * @author Bart Polot
+ * @author Christian Grothoff
  * @brief Test for the cadet service: retransmission of traffic.
  */
 #include <stdio.h>
@@ -64,7 +65,7 @@ static int test;
 /**
  * String with test name
  */
-char *test_name;
+static char *test_name;
 
 /**
  * Flag to send traffic leaf->root in speed tests to test BCK_ACK logic.
@@ -79,32 +80,32 @@ static int ok;
 /**
  * Number of events expected to conclude the test successfully.
  */
-int ok_goal;
+static int ok_goal;
 
 /**
  * Size of each test packet
  */
-size_t size_payload = sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t);
+static size_t size_payload = sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t);
 
 /**
  * Operation to get peer ids.
  */
-struct GNUNET_TESTBED_Operation *t_op[2];
+static struct GNUNET_TESTBED_Operation *t_op[2];
 
 /**
  * Peer ids.
  */
-struct GNUNET_PeerIdentity *p_id[2];
+static struct GNUNET_PeerIdentity *p_id[2];
 
 /**
  * Port ID
  */
-struct GNUNET_HashCode port;
+static struct GNUNET_HashCode port;
 
 /**
  * Peer ids counter.
  */
-unsigned int p_ids;
+static unsigned int p_ids;
 
 /**
  * Is the setup initialized?
@@ -217,6 +218,11 @@ static unsigned int ka_sent;
  * Keepalives received.
  */
 static unsigned int ka_received;
+
+/**
+ * How many messages were dropped by CADET because of full buffers?
+ */
+static unsigned int msg_dropped;
 
 
 /**
@@ -345,12 +351,21 @@ shutdown_task (void *cls)
  *          operation has executed successfully.
  */
 static void
-stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+stats_cont (void *cls,
+            struct GNUNET_TESTBED_Operation *op,
+            const char *emsg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
-              ka_sent, ka_received);
-  if (KEEPALIVE == test && (ka_sent < 2 || ka_sent > ka_received + 1))
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              " KA sent: %u, KA received: %u\n",
+              ka_sent,
+              ka_received);
+  if ( (KEEPALIVE == test) &&
+       ( (ka_sent < 2) ||
+         (ka_sent > ka_received + 1)) )
+  {
+    GNUNET_break (0);
     ok--;
+  }
   GNUNET_TESTBED_operation_done (stats_op);
 
   if (NULL != disconnect_task)
@@ -381,6 +396,8 @@ stats_iterator (void *cls,
 {
   static const char *s_sent = "# keepalives sent";
   static const char *s_recv = "# keepalives received";
+  static const char *rdrops = "# messages dropped due to full buffer";
+  static const char *cdrops = "# messages dropped due to slow client";
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
@@ -392,9 +409,12 @@ stats_iterator (void *cls,
               (unsigned long long) value);
   if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
-
   if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
     ka_received = value;
+  if (0 == strncmp(rdrops, name, strlen (rdrops)))
+    msg_dropped += value;
+  if (0 == strncmp(cdrops, name, strlen (cdrops)))
+    msg_dropped += value;
 
   return GNUNET_OK;
 }
@@ -426,7 +446,7 @@ gather_stats_and_exit (void *cls)
   }
   stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
                                             "cadet", NULL,
-                                            stats_iterator, stats_cont, cls);
+                                            &stats_iterator, stats_cont, cls);
 }
 
 
@@ -439,10 +459,11 @@ gather_stats_and_exit (void *cls)
 static void
 abort_test (long line)
 {
-  if (disconnect_task != NULL)
+  if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting test from %ld\n", line);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Aborting test from %ld\n", line);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                                 (void *) line);
   }
@@ -563,7 +584,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
     return 0;
   }
   msg->size = htons (msg_size);
-  msg->type = htons (1);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_DUMMY);
   data = (uint32_t *) &msg[1];
   *data = htonl (counter);
   if (GNUNET_NO == initialized)
@@ -633,7 +654,8 @@ data_callback (void *cls,
   {
     if (NULL != disconnect_task)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " reschedule timeout\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  " reschedule timeout\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                       &gather_stats_and_exit,
@@ -756,7 +778,9 @@ data_callback (void *cls,
  * {callback_function, message_type, size_expected}
  */
 static struct GNUNET_CADET_MessageHandler handlers[] = {
-  {&data_callback, 1, sizeof (struct GNUNET_MessageHeader)},
+  {&data_callback,
+   GNUNET_MESSAGE_TYPE_DUMMY,
+   sizeof (struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
 
@@ -800,8 +824,9 @@ incoming_channel (void *cls,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Incoming channel for unknown client %lu\n", (long) cls);
-    GNUNET_break(0);
+                "Incoming channel for unexpected peer #%lu\n",
+                (long) cls);
+    GNUNET_break (0);
   }
   if (NULL != disconnect_task)
   {
@@ -1121,8 +1146,10 @@ main (int argc, char *argv[])
                         &channel_cleaner,
                         handlers,
                         ports);
+  if (NULL != strstr (argv[0], "_reliable"))
+    msg_dropped = 0; /* dropped should be retransmitted */
 
-  if (ok_goal > ok)
+  if (ok_goal > ok - msg_dropped)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "FAILED! (%d/%d)\n", ok, ok_goal);

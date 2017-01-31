@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -25,18 +24,16 @@
  *        end-to-end routes and transmits messages along the route
  * @author Bartlomiej Polot
  * @author Christian Grothoff
- *
- * TODO:
- * - Optimization: keepalive messages / timeout (timeout to be done @ peer level!)
- * - Optimization: keep performance metrics (?)
  */
 #include "platform.h"
+#include "gnunet-service-cadet-new.h"
 #include "gnunet-service-cadet-new_channel.h"
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_paths.h"
 #include "gnunet-service-cadet-new_peer.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
 
 
@@ -119,6 +116,11 @@ struct CadetConnection
   struct GNUNET_SCHEDULER_Task *task;
 
   /**
+   * Queue entry for keepalive messages.
+   */
+  struct CadetTunnelQueueEntry *keepalive_qe;
+
+  /**
    * Function to call once we are ready to transmit.
    */
   GCC_ReadyCallback ready_cb;
@@ -134,9 +136,24 @@ struct CadetConnection
   struct GNUNET_TIME_Relative retry_delay;
 
   /**
+   * Performance metrics for this connection.
+   */
+  struct CadetConnectionMetrics metrics;
+
+  /**
    * State of the connection.
    */
   enum CadetConnectionState state;
+
+  /**
+   * Options for the route, control buffering.
+   */
+  enum GNUNET_CADET_ChannelOption options;
+
+  /**
+   * How many latency observations did we make for this connection?
+   */
+  unsigned int latency_datapoints;
 
   /**
    * Offset of our @e destination in @e path.
@@ -152,31 +169,52 @@ struct CadetConnection
 
 
 /**
- * Destroy a connection.
+ * Update the connection state. Also triggers the necessary
+ * MQM notifications.
+ *
+ * @param cc connection to update the state for
+ * @param new_state new state for @a cc
+ * @param new_mqm_ready new `mqm_ready` state for @a cc
+ */
+static void
+update_state (struct CadetConnection *cc,
+              enum CadetConnectionState new_state,
+              int new_mqm_ready)
+{
+  int old_ready;
+  int new_ready;
+
+  if ( (new_state == cc->state) &&
+       (new_mqm_ready == cc->mqm_ready) )
+    return; /* no change, nothing to do */
+  old_ready = ( (CADET_CONNECTION_READY == cc->state) &&
+                (GNUNET_YES == cc->mqm_ready) );
+  new_ready = ( (CADET_CONNECTION_READY == new_state) &&
+                (GNUNET_YES == new_mqm_ready) );
+  cc->state = new_state;
+  cc->mqm_ready = new_mqm_ready;
+  if (old_ready != new_ready)
+    cc->ready_cb (cc->ready_cb_cls,
+                  new_ready);
+}
+
+
+/**
+ * Destroy a connection, part of the internal implementation.  Called
+ * only from #GCC_destroy_from_core() or #GCC_destroy_from_tunnel().
  *
  * @param cc connection to destroy
  */
-void
+static void
 GCC_destroy (struct CadetConnection *cc)
 {
-  struct GNUNET_MQ_Envelope *env = NULL;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying %s\n",
        GCC_2s (cc));
-  if (CADET_CONNECTION_SENDING_CREATE != cc->state)
-  {
-    struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
-
-    /* Need to notify next hop that we are down. */
-    env = GNUNET_MQ_msg (destroy_msg,
-                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
-    destroy_msg->cid = cc->cid;
-  }
   if (NULL != cc->mq_man)
   {
     GCP_request_mq_cancel (cc->mq_man,
-                           env);
+                           NULL);
     cc->mq_man = NULL;
   }
   if (NULL != cc->task)
@@ -184,14 +222,73 @@ GCC_destroy (struct CadetConnection *cc)
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
+  if (NULL != cc->keepalive_qe)
+  {
+    GCT_send_cancel (cc->keepalive_qe);
+    cc->keepalive_qe = NULL;
+  }
   GCPP_del_connection (cc->path,
                        cc->off,
                        cc);
+  for (unsigned int i=0;i<cc->off;i++)
+    GCP_remove_connection (GCPP_get_peer_at_offset (cc->path,
+                                                    i),
+                           cc);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multishortmap_remove (connections,
                                                         &GCC_get_id (cc)->connection_of_tunnel,
                                                         cc));
   GNUNET_free (cc);
+}
+
+
+
+/**
+ * Destroy a connection, called when the CORE layer is already done
+ * (i.e. has received a BROKEN message), but if we still have to
+ * communicate the destruction of the connection to the tunnel (if one
+ * exists).
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_core (struct CadetConnection *cc)
+{
+  if (NULL != cc->ct)
+  {
+    GCT_connection_lost (cc->ct);
+    cc->ct = NULL;
+  }
+  GCC_destroy (cc);
+}
+
+
+/**
+ * Destroy a connection, called if the tunnel association with the
+ * connection was already broken, but we still need to notify the CORE
+ * layer about the breakage.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_tunnel (struct CadetConnection *cc)
+{
+  cc->ct = NULL;
+  if ( (CADET_CONNECTION_SENDING_CREATE != cc->state) &&
+       (NULL != cc->mq_man) )
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_CADET_ConnectionDestroyMessage *destroy_msg;
+
+    /* Need to notify next hop that we are down. */
+    env = GNUNET_MQ_msg (destroy_msg,
+                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
+    destroy_msg->cid = cc->cid;
+    GCP_request_mq_cancel (cc->mq_man,
+                           env);
+    cc->mq_man = NULL;
+  }
+  GCC_destroy (cc);
 }
 
 
@@ -209,7 +306,174 @@ GCC_get_ct (struct CadetConnection *cc)
 
 
 /**
- * A CADET_CONNECTION_ACK was received for this connection, implying
+ * Obtain performance @a metrics from @a cc.
+ *
+ * @param cc connection to query
+ * @return the metrics
+ */
+const struct CadetConnectionMetrics *
+GCC_get_metrics (struct CadetConnection *cc)
+{
+  return &cc->metrics;
+}
+
+
+/**
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE through the
+ * tunnel to prevent it from timing out.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ */
+static void
+send_keepalive (void *cls);
+
+
+/**
+ * Keepalive was transmitted.  Remember this, and possibly
+ * schedule the next one.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ * @param cid identifier of the connection within the tunnel, NULL
+ *            if transmission failed
+ */
+static void
+keepalive_done (void *cls,
+                const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  struct CadetConnection *cc = cls;
+
+  cc->keepalive_qe = NULL;
+  if ( (GNUNET_YES == cc->mqm_ready) &&
+       (NULL == cc->task) )
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
+}
+
+
+/**
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE through the
+ * tunnel to prevent it from timing out.
+ *
+ * @param cls the `struct CadetConnection` to keep alive.
+ */
+static void
+send_keepalive (void *cls)
+{
+  struct CadetConnection *cc = cls;
+  struct GNUNET_MessageHeader msg;
+
+  cc->task = NULL;
+  if (CADET_TUNNEL_KEY_OK != GCT_get_estate (cc->ct->t))
+  {
+    /* Tunnel not yet ready, wait with keepalives... */
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
+    return;
+  }
+  GNUNET_assert (NULL != cc->ct);
+  GNUNET_assert (GNUNET_YES == cc->mqm_ready);
+  GNUNET_assert (NULL == cc->keepalive_qe);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Sending KEEPALIVE on behalf of %s via %s\n",
+       GCC_2s (cc),
+       GCT_2s (cc->ct->t));
+  GNUNET_STATISTICS_update (stats,
+                            "# keepalives sent",
+                            1,
+                            GNUNET_NO);
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE);
+
+  cc->keepalive_qe
+    = GCT_send (cc->ct->t,
+                &msg,
+                &keepalive_done,
+                cc);
+}
+
+
+/**
+ * We sent a message for which we expect to receive an ACK via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we expect an ACK
+ */
+void
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  struct CadetConnection *cc;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  cc->metrics.num_acked_transmissions++;
+}
+
+
+/**
+ * We observed an ACK for a message that was originally sent via
+ * the connection identified by @a cti.
+ *
+ * @param cti connection identifier where we got an ACK for a message
+ *            that was originally sent via this connection (the ACK
+ *            may have gotten back to us via a different connection).
+ */
+void
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
+{
+  struct CadetConnection *cc;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  cc->metrics.num_successes++;
+}
+
+
+/**
+ * We observed some the given @a latency on the connection
+ * identified by @a cti.  (The same connection was taken
+ * in both directions.)
+ *
+ * @param cid connection identifier where we measured latency
+ * @param latency the observed latency
+ */
+void
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                      struct GNUNET_TIME_Relative latency)
+{
+  struct CadetConnection *cc;
+  double weight;
+  double result;
+
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &cid->connection_of_tunnel);
+  if (NULL == cc)
+    return; /* whopise, connection alredy down? */
+  GNUNET_STATISTICS_update (stats,
+                            "# latencies observed",
+                            1,
+                            GNUNET_NO);
+  cc->latency_datapoints++;
+  if (cc->latency_datapoints >= 7)
+    weight = 7.0;
+  else
+    weight = cc->latency_datapoints;
+  /* Compute weighted average, giving at MOST weight 7 to the
+     existing values, or less if that value is based on fewer than 7
+     measurements. */
+  result = (weight * cc->metrics.aged_latency.rel_value_us) + 1.0 * latency.rel_value_us;
+  result /= (weight + 1.0);
+  cc->metrics.aged_latency.rel_value_us = (uint64_t) result;
+}
+
+
+/**
+ * A #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK was received for this connection, implying
  * that the end-to-end connection is up.  Process it.
  *
  * @param cc the connection that got the ACK.
@@ -222,20 +486,23 @@ GCC_handle_connection_create_ack (struct CadetConnection *cc)
        GCC_2s (cc),
        cc->state,
        (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
+  if (CADET_CONNECTION_READY == cc->state)
+    return; /* Duplicate ACK, ignore */
   if (NULL != cc->task)
   {
     GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = NULL;
   }
-#if FIXME_KEEPALIVE
-  cc->task = GNUNET_SCHEDULER_add_delayed (cc->keepalive_period,
-                                           &send_keepalive,
-                                           cc);
-#endif
-  cc->state = CADET_CONNECTION_READY;
-  if (GNUNET_YES == cc->mqm_ready)
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_YES);
+  cc->metrics.age = GNUNET_TIME_absolute_get ();
+  update_state (cc,
+                CADET_CONNECTION_READY,
+                cc->mqm_ready);
+  if ( (NULL == cc->keepalive_qe) &&
+       (GNUNET_YES == cc->mqm_ready) &&
+       (NULL == cc->task) )
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
 }
 
 
@@ -264,6 +531,30 @@ GCC_handle_kx (struct CadetConnection *cc,
 
 
 /**
+ * Handle KX_AUTH message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg)
+{
+  if (CADET_CONNECTION_SENT == cc->state)
+  {
+    /* We didn't get the CADET_CONNECTION_CREATE_ACK, but instead got payload. That's fine,
+       clearly something is working, so pretend we got an ACK. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Faking connection CADET_CONNECTION_CREATE_ACK for %s due to KX\n",
+         GCC_2s (cc));
+    GCC_handle_connection_create_ack (cc);
+  }
+  GCT_handle_kx_auth (cc->ct,
+                      msg);
+}
+
+
+/**
  * Handle encrypted message.
  *
  * @param cc connection that received encrypted message
@@ -282,13 +573,15 @@ GCC_handle_encrypted (struct CadetConnection *cc,
          GCC_2s (cc));
     GCC_handle_connection_create_ack (cc);
   }
+  cc->metrics.last_use = GNUNET_TIME_absolute_get ();
   GCT_handle_encrypted (cc->ct,
                         msg);
 }
 
 
 /**
- * Send a CREATE message to the first hop.
+ * Send a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE message to the
+ * first hop.
  *
  * @param cls the `struct CadetConnection` to initiate
  */
@@ -307,6 +600,7 @@ send_create (void *cls)
   env = GNUNET_MQ_msg_extra (create_msg,
                              (1 + path_length) * sizeof (struct GNUNET_PeerIdentity),
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
+  create_msg->options = htonl ((uint32_t) cc->options);
   create_msg->cid = cc->cid;
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
   pids[0] = my_full_id;
@@ -317,8 +611,9 @@ send_create (void *cls)
        "Sending CADET_CONNECTION_CREATE message for %s\n",
        GCC_2s (cc));
   cc->env = env;
-  cc->mqm_ready = GNUNET_NO;
-  cc->state = CADET_CONNECTION_SENT;
+  update_state (cc,
+                CADET_CONNECTION_SENT,
+                GNUNET_NO);
   GCP_send (cc->mq_man,
             env);
 }
@@ -346,8 +641,9 @@ send_create_ack (void *cls)
                        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK);
   ack_msg->cid = cc->cid;
   cc->env = env;
-  cc->mqm_ready = GNUNET_NO;
-  cc->state = CADET_CONNECTION_READY;
+  update_state (cc,
+                CADET_CONNECTION_READY,
+                GNUNET_NO);
   GCP_send (cc->mq_man,
             env);
 }
@@ -369,13 +665,11 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
          "Got duplicate CREATE for %s, scheduling another ACK (%s)\n",
          GCC_2s (cc),
          (GNUNET_YES == cc->mqm_ready) ? "MQM ready" : "MQM busy");
-    /* Tell tunnel that we are not ready for transmission anymore
-       (until CREATE_ACK is done) */
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_NO);
     /* Revert back to the state of having only received the 'CREATE',
        and immediately proceed to send the CREATE_ACK. */
-    cc->state = CADET_CONNECTION_CREATE_RECEIVED;
+    update_state (cc,
+                  CADET_CONNECTION_CREATE_RECEIVED,
+                  cc->mqm_ready);
     if (NULL != cc->task)
       GNUNET_SCHEDULER_cancel (cc->task);
     cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
@@ -415,20 +709,21 @@ manage_first_hop_mq (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Core MQ for %s went down\n",
          GCC_2s (cc));
-    cc->mqm_ready = GNUNET_NO;
-    cc->state = CADET_CONNECTION_NEW;
+    update_state (cc,
+                  CADET_CONNECTION_NEW,
+                  GNUNET_NO);
     cc->retry_delay = GNUNET_TIME_UNIT_ZERO;
     if (NULL != cc->task)
     {
       GNUNET_SCHEDULER_cancel (cc->task);
       cc->task = NULL;
     }
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_NO);
     return;
   }
 
-  cc->mqm_ready = GNUNET_YES;
+  update_state (cc,
+                cc->state,
+                GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Core MQ for %s became available in state %d\n",
        GCC_2s (cc),
@@ -453,12 +748,24 @@ manage_first_hop_mq (void *cls,
     break;
   case CADET_CONNECTION_CREATE_RECEIVED:
     /* We got the 'CREATE' (incoming connection), should send the CREATE_ACK */
+    cc->metrics.age = GNUNET_TIME_absolute_get ();
     cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
                                          cc);
     break;
   case CADET_CONNECTION_READY:
-    cc->ready_cb (cc->ready_cb_cls,
-                  GNUNET_YES);
+    if ( (NULL == cc->keepalive_qe) &&
+         (GNUNET_YES == cc->mqm_ready) &&
+         (NULL == cc->task) )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Scheduling keepalive for %s in %s\n",
+           GCC_2s (cc),
+           GNUNET_STRINGS_relative_time_to_string (keepalive_period,
+                                                   GNUNET_YES));
+      cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                               &send_keepalive,
+                                               cc);
+    }
     break;
   }
 }
@@ -471,6 +778,8 @@ manage_first_hop_mq (void *cls,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param init_state initial state for the connection
  * @param ready_cb function to call when ready to transmit
@@ -480,6 +789,8 @@ manage_first_hop_mq (void *cls,
 static struct CadetConnection *
 connection_create (struct CadetPeer *destination,
                    struct CadetPeerPath *path,
+                   unsigned int off,
+                   enum GNUNET_CADET_ChannelOption options,
                    struct CadetTConnection *ct,
                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                    enum CadetConnectionState init_state,
@@ -488,12 +799,9 @@ connection_create (struct CadetPeer *destination,
 {
   struct CadetConnection *cc;
   struct CadetPeer *first_hop;
-  unsigned int off;
 
-  off = GCPP_find_peer (path,
-                        destination);
-  GNUNET_assert (UINT_MAX > off);
   cc = GNUNET_new (struct CadetConnection);
+  cc->options = options;
   cc->state = init_state;
   cc->ct = ct;
   cc->cid = *cid;
@@ -515,7 +823,7 @@ connection_create (struct CadetPeer *destination,
                        cc);
   for (unsigned int i=0;i<off;i++)
     GCP_add_connection (GCPP_get_peer_at_offset (path,
-                                                 off),
+                                                 i),
                         cc);
 
   first_hop = GCPP_get_peer_at_offset (path,
@@ -534,21 +842,74 @@ connection_create (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
- * @return handle to the connection
+ * @return handle to the connection, NULL if we already have
+ *         a connection that takes precedence on @a path
  */
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
+                    enum GNUNET_CADET_ChannelOption options,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                     GCC_ReadyCallback ready_cb,
                     void *ready_cb_cls)
 {
+  struct CadetConnection *cc;
+  unsigned int off;
+
+  off = GCPP_find_peer (path,
+                        destination);
+  GNUNET_assert (UINT_MAX != off);
+  cc = GCPP_get_connection (path,
+                            destination,
+                            off);
+  if (NULL != cc)
+  {
+    int cmp;
+
+    cmp = memcmp (cid,
+                  &cc->cid,
+                  sizeof (*cid));
+    if (0 == cmp)
+    {
+      /* Two peers picked the SAME random connection identifier at the
+         same time for the same path? Must be malicious.  Drop
+         connection (existing and inbound), even if it is the only
+         one. */
+      GNUNET_break_op (0);
+      GCT_connection_lost (cc->ct);
+      GCC_destroy_without_tunnel (cc);
+      return NULL;
+    }
+    if (0 < cmp)
+    {
+      /* drop existing */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got two connections on %s, dropping my existing %s\n",
+           GCPP_2s (path),
+           GCC_2s (cc));
+      GCT_connection_lost (cc->ct);
+      GCC_destroy_without_tunnel (cc);
+    }
+    else
+    {
+      /* keep existing */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got two connections on %s, keeping my existing %s\n",
+           GCPP_2s (path),
+           GCC_2s (cc));
+      return NULL;
+    }
+  }
+
   return connection_create (destination,
                             path,
+                            off,
+                            options,
                             ct,
                             cid,
                             CADET_CONNECTION_CREATE_RECEIVED,
@@ -563,6 +924,8 @@ GCC_create_inbound (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
+ * @param options options for the connection
  * @param ct tunnel that uses the connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -571,6 +934,8 @@ GCC_create_inbound (struct CadetPeer *destination,
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            unsigned int off,
+            enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,
             void *ready_cb_cls)
@@ -582,6 +947,8 @@ GCC_create (struct CadetPeer *destination,
                               sizeof (cid));
   return connection_create (destination,
                             path,
+                            off,
+                            options,
                             ct,
                             &cid,
                             CADET_CONNECTION_NEW,
@@ -609,7 +976,13 @@ GCC_transmit (struct CadetConnection *cc,
        GCC_2s (cc));
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
   GNUNET_assert (CADET_CONNECTION_READY == cc->state);
+  cc->metrics.last_use = GNUNET_TIME_absolute_get ();
   cc->mqm_ready = GNUNET_NO;
+  if (NULL != cc->task)
+  {
+    GNUNET_SCHEDULER_cancel (cc->task);
+    cc->task = NULL;
+  }
   GCP_send (cc->mq_man,
             env);
 }

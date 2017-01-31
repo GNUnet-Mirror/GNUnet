@@ -21,7 +21,10 @@
 
 /**
  * @file cadet/gnunet-service-cadet-new_connection.h
- * @brief
+ * @brief A connection is a live end-to-end messaging mechanism
+ *       where the peers are identified by a path and know how
+ *       to forward along the route using a connection identifier
+ *       for routing the data.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
@@ -47,12 +50,26 @@ typedef void
 
 
 /**
- * Destroy a connection.
+ * Destroy a connection, called when the CORE layer is already done
+ * (i.e. has received a BROKEN message), but if we still have to
+ * communicate the destruction of the connection to the tunnel (if one
+ * exists).
  *
  * @param cc connection to destroy
  */
 void
-GCC_destroy (struct CadetConnection *cc);
+GCC_destroy_without_core (struct CadetConnection *cc);
+
+
+/**
+ * Destroy a connection, called if the tunnel association with the
+ * connection was already broken, but we still need to notify the CORE
+ * layer about the breakage.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_tunnel (struct CadetConnection *cc);
 
 
 /**
@@ -61,6 +78,8 @@ GCC_destroy (struct CadetConnection *cc);
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -69,6 +88,8 @@ GCC_destroy (struct CadetConnection *cc);
 struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
+            unsigned int off,
+            enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,
             void *ready_cb_cls);
@@ -81,14 +102,17 @@ GCC_create (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
+ * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
- * @return handle to the connection
+ * @return handle to the connection, NULL if we already have
+ *         a connection that takes precedence on @a path
  */
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
+                    enum GNUNET_CADET_ChannelOption options,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                     GCC_ReadyCallback ready_cb,
@@ -144,6 +168,69 @@ GCC_handle_kx (struct CadetConnection *cc,
 
 
 /**
+ * Handle KX_AUTH message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+
+
+/**
+ * Performance metrics for a connection.
+ */
+struct CadetConnectionMetrics
+{
+
+  /**
+   * Our current best estimate of the latency, based on a weighted
+   * average of at least @a latency_datapoints values.
+   */
+  struct GNUNET_TIME_Relative aged_latency;
+
+  /**
+   * When was this connection first established? (by us sending or
+   * receiving the CREATE_ACK for the first time)
+   */
+  struct GNUNET_TIME_Absolute age;
+
+  /**
+   * When was this connection last used? (by us sending or
+   * receiving a PAYLOAD message on it)
+   */
+  struct GNUNET_TIME_Absolute last_use;
+
+  /**
+   * How many packets that ought to generate an ACK did we send via
+   * this connection?
+   */
+  unsigned long long num_acked_transmissions;
+
+  /**
+   * Number of packets that were sent via this connection did actually
+   * receive an ACK?  (Note: ACKs may be transmitted and lost via
+   * other connections, so this value should only be interpreted
+   * relative to @e num_acked_transmissions and in relation to other
+   * connections.)
+   */
+  unsigned long long num_successes;
+
+};
+
+
+/**
+ * Obtain performance @a metrics from @a cc.
+ *
+ * @param cc connection to query
+ * @return the metrics
+ */
+const struct CadetConnectionMetrics *
+GCC_get_metrics (struct CadetConnection *cc);
+
+
+/**
  * Handle encrypted message.
  *
  * @param cc connection that received encrypted message
@@ -152,6 +239,41 @@ GCC_handle_kx (struct CadetConnection *cc,
 void
 GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
+
+
+/**
+ * We sent a message for which we expect to receive an ACK via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we expect an ACK
+ */
+void
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
+ * We observed an ACK for a message that was originally sent via
+ * the connection identified by @a cti.
+ *
+ * @param cid connection identifier where we got an ACK for a message
+ *            that was originally sent via this connection (the ACK
+ *            may have gotten back to us via a different connection).
+ */
+void
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
+ * We observed some the given @a latency on the connection
+ * identified by @a cti.  (The same connection was taken
+ * in both directions.)
+ *
+ * @param cti connection identifier where we measured latency
+ * @param latency the observed latency
+ */
+void
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                      struct GNUNET_TIME_Relative latency);
 
 
 /**

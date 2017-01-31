@@ -499,10 +499,10 @@ estate2s (enum CadetTunnelEState es)
   {
     case CADET_TUNNEL_KEY_UNINITIALIZED:
       return "CADET_TUNNEL_KEY_UNINITIALIZED";
-    case CADET_TUNNEL_KEY_SENT:
-      return "CADET_TUNNEL_KEY_SENT";
-    case CADET_TUNNEL_KEY_PING:
-      return "CADET_TUNNEL_KEY_PING";
+    case CADET_TUNNEL_KEY_AX_SENT:
+      return "CADET_TUNNEL_KEY_AX_SENT";
+    case CADET_TUNNEL_KEY_AX_AUTH_SENT:
+      return "CADET_TUNNEL_KEY_AX_AUTH_SENT";
     case CADET_TUNNEL_KEY_OK:
       return "CADET_TUNNEL_KEY_OK";
     case CADET_TUNNEL_KEY_REKEY:
@@ -534,7 +534,7 @@ is_ready (struct CadetTunnel *t)
   conn_ok = CADET_TUNNEL_READY == t->cstate;
   enc_ok = CADET_TUNNEL_KEY_OK == t->estate
            || CADET_TUNNEL_KEY_REKEY == t->estate
-           || CADET_TUNNEL_KEY_PING == t->estate;
+           || CADET_TUNNEL_KEY_AX_AUTH_SENT == t->estate;
   ready = conn_ok && enc_ok;
   ready = ready || GCT_is_loopback (t);
   return ready;
@@ -1486,7 +1486,7 @@ kx_resend (void *cls)
     return;
   }
 
-  GCT_send_kx (t, CADET_TUNNEL_KEY_SENT >= t->estate);
+  GCT_send_kx (t, CADET_TUNNEL_KEY_AX_SENT >= t->estate);
 }
 
 
@@ -1950,7 +1950,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   if (-1 == decrypted_size)
   {
     GNUNET_STATISTICS_update (stats, "# unable to decrypt", 1, GNUNET_NO);
-    if (CADET_TUNNEL_KEY_PING <= t->estate)
+    if (CADET_TUNNEL_KEY_AX_AUTH_SENT <= t->estate)
     {
       GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto, tunnel %s\n", GCT_2s (t));
@@ -2126,7 +2126,7 @@ GCT_handle_kx (struct CadetTunnel *t,
   ax->Nr = 0;
   ax->Ns = 0;
 
-  GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
+  GCT_change_estate (t, CADET_TUNNEL_KEY_AX_AUTH_SENT);
   send_queued_data (t);
 
   CADET_TIMING_END;
@@ -3251,7 +3251,7 @@ GCT_send_kx (struct CadetTunnel *t, int force_reply)
                                          GCC_is_origin (c, GNUNET_YES),
                                          GNUNET_YES, &ephm_sent, t);
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
-    GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
+    GCT_change_estate (t, CADET_TUNNEL_KEY_AX_SENT);
 }
 
 

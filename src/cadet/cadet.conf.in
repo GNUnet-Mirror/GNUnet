@@ -3,7 +3,7 @@ FORCESTART = YES
 AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2096
 HOSTNAME = localhost
-BINARY = gnunet-service-cadet
+BINARY = gnunet-service-cadet-new
 # PREFIX = valgrind --leak-check=yes
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -11,13 +11,43 @@ UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-cadet.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
+
+# How often do we send KEEPALIVE messages on connections to keep them
+# from timing out?
 REFRESH_CONNECTION_TIME = 5 min
+
+# Percentage of packets CADET is artificially dropping. Used for testing only!
+# DROP_PERCENT =
+
+# How frequently do we usually anounce our presence in the DHT?
 ID_ANNOUNCE_TIME = 1 h
+
+# FIXME: document
 CONNECT_TIMEOUT = 30 s
+
+# What is the replication level we give to the DHT when announcing our
+# existence?  Usually there is no need to change this.
 DHT_REPLICATION_LEVEL = 3
-MAX_TUNNELS = 1000
+
+# FIXME: not implemented
+# MAX_TUNNELS = 1000
+
+# FIXME: not implemented, replaced by MAX_ROUTES in NEW CADET!
 MAX_CONNECTIONS = 1000
+
+# How many routes do we participate in at most?  Should be smaller
+# than MAX_MSGS_QUEUE
+MAX_ROUTES = 5000
+
+# FIXME: not implemented
 MAX_MSGS_QUEUE = 10000
+
+# FIXME: not implemented
 MAX_PEERS = 1000
+
+# How often do we advance the ratchet even if there is not
+# any traffic?
 RATCHET_TIME = 1 h
+
+# How often do we advance the ratched if there is traffic?
 RATCHET_MESSAGES = 64

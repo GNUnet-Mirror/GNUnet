@@ -350,6 +350,7 @@ read_stdio (void *cls)
 {
   static char buf[60000];
 
+  rd_task = NULL;
   data_size = read (0, buf, 60000);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "stdio read %u bytes\n",
@@ -503,6 +504,8 @@ static void send_ping (void *cls)
               "send_ping\n");
   if (NULL == ch)
     return;
+  if (NULL == ch)
+    return;
   GNUNET_assert (NULL == th);
   if (GNUNET_YES == waiting_for_pong)
   {
@@ -607,9 +610,9 @@ create_channel (void *cls)
  */
 static int
 data_callback (void *cls,
-       struct GNUNET_CADET_Channel *channel,
-       void **channel_ctx,
-       const struct GNUNET_MessageHeader *message)
+               struct GNUNET_CADET_Channel *channel,
+               void **channel_ctx,
+               const struct GNUNET_MessageHeader *message)
 {
   uint16_t message_size = ntohs (message->size);
   uint16_t size = message_size - sizeof (*message);

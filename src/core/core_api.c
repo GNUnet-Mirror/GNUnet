@@ -204,6 +204,11 @@ disconnect_and_free_peer_entry (void *cls,
                                                        pr));
   GNUNET_MQ_destroy (pr->mq);
   GNUNET_assert (NULL == pr->mq);
+  if (NULL != pr->env)
+  {
+    GNUNET_MQ_discard (pr->env);
+    pr->env = NULL;
+  }
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -331,7 +336,6 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   env = GNUNET_MQ_msg (smr,
                        GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->priority = htonl ((uint32_t) priority);
-  // smr->deadline = GNUNET_TIME_absolute_hton (deadline);
   smr->peer = pr->peer;
   smr->reserved = htonl (0);
   smr->size = htons (msize);
@@ -344,7 +348,6 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
 				     GNUNET_MESSAGE_TYPE_CORE_SEND,
 				     msg);
   sm->priority = htonl ((uint32_t) priority);
-  // sm->deadline = GNUNET_TIME_absolute_hton (deadline);
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) cork);
   sm->reserved = htonl (0);

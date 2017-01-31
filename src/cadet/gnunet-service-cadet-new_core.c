@@ -27,6 +27,7 @@
  * All functions in this file should use the prefix GCO (Gnunet Cadet cOre (bottom))
  *
  * TODO:
+ * - do NOT use buffering if the route options say no buffer!
  * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
@@ -36,16 +37,58 @@
 #include "gnunet-service-cadet-new_connection.h"
 #include "gnunet-service-cadet-new_tunnels.h"
 #include "gnunet_core_service.h"
+#include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
 
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-cor",__VA_ARGS__)
 
+/**
+ * Information we keep per direction for a route.
+ */
+struct RouteDirection;
+
 
 /**
- * Number of messages we are willing to buffer per route.
+ * Set of CadetRoutes that have exactly the same number of messages
+ * in their buffer.  Used so we can efficiently find all of those
+ * routes that have the current maximum of messages in the buffer (in
+ * case we have to purge).
  */
-#define ROUTE_BUFFER_SIZE 8
+struct Rung
+{
+
+  /**
+   * Rung of RouteDirections with one more buffer entry each.
+   */
+  struct Rung *next;
+
+  /**
+   * Rung of RouteDirections with one less buffer entry each.
+   */
+  struct Rung *prev;
+
+  /**
+   * DLL of route directions with a number of buffer entries matching this rung.
+   */
+  struct RouteDirection *rd_head;
+
+  /**
+   * DLL of route directions with a number of buffer entries matching this rung.
+   */
+  struct RouteDirection *rd_tail;
+
+  /**
+   * Total number of route directions in this rung.
+   */
+  unsigned int num_routes;
+
+  /**
+   * Number of messages route directions at this rung have
+   * in their buffer.
+   */
+  unsigned int rung_off;
+};
 
 
 /**
@@ -53,6 +96,32 @@
  */
 struct RouteDirection
 {
+
+  /**
+   * DLL of other route directions within the same `struct Rung`.
+   */
+  struct RouteDirection *prev;
+
+  /**
+   * DLL of other route directions within the same `struct Rung`.
+   */
+  struct RouteDirection *next;
+
+  /**
+   * Rung of this route direction (matches length of the buffer DLL).
+   */
+  struct Rung *rung;
+
+  /**
+   * Head of DLL of envelopes we have in the buffer for this direction.
+   */
+  struct GNUNET_MQ_Envelope *env_head;
+
+  /**
+   * Tail of DLL of envelopes we have in the buffer for this direction.
+   */
+  struct GNUNET_MQ_Envelope *env_tail;
+
   /**
    * Target peer.
    */
@@ -67,21 +136,6 @@ struct RouteDirection
    * Message queue manager for @e hop.
    */
   struct GCP_MessageQueueManager *mqm;
-
-  /**
-   * Cyclic message buffer to @e hop.
-   */
-  struct GNUNET_MQ_Envelope *out_buffer[ROUTE_BUFFER_SIZE];
-
-  /**
-   * Next write offset to use to append messages to @e out_buffer.
-   */
-  unsigned int out_wpos;
-
-  /**
-   * Next read offset to use to retrieve messages from @e out_buffer.
-   */
-  unsigned int out_rpos;
 
   /**
    * Is @e mqm currently ready for transmission?
@@ -122,6 +176,15 @@ struct CadetRoute
    */
   struct GNUNET_TIME_Absolute last_use;
 
+  /**
+   * Position of this route in the #route_heap.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Options for the route, control buffering.
+   */
+  enum GNUNET_CADET_ChannelOption options;
 };
 
 
@@ -135,6 +198,47 @@ static struct GNUNET_CORE_Handle *core;
  */
 static struct GNUNET_CONTAINER_MultiShortmap *routes;
 
+/**
+ * Heap of routes, MIN-sorted by last activity.
+ */
+static struct GNUNET_CONTAINER_Heap *route_heap;
+
+/**
+ * Rung zero (always pointed to by #rung_head).
+ */
+static struct Rung rung_zero;
+
+/**
+ * DLL of rungs, with the head always point to a rung of
+ * route directions with no messages in the queue.
+ */
+static struct Rung *rung_head = &rung_zero;
+
+/**
+ * Tail of the #rung_head DLL.
+ */
+static struct Rung *rung_tail = &rung_zero;
+
+/**
+ * Maximum number of concurrent routes this peer will support.
+ */
+static unsigned long long max_routes;
+
+/**
+ * Maximum number of envelopes we will buffer at this peer.
+ */
+static unsigned long long max_buffers;
+
+/**
+ * Current number of envelopes we have buffered at this peer.
+ */
+static unsigned long long cur_buffers;
+
+/**
+ * Task to timeout routes.
+ */
+static struct GNUNET_SCHEDULER_Task *timeout_task;
+
 
 /**
  * Get the route corresponding to a hash.
@@ -146,6 +250,91 @@ get_route (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid)
 {
   return GNUNET_CONTAINER_multishortmap_get (routes,
                                              &cid->connection_of_tunnel);
+}
+
+
+/**
+ * Lower the rung in which @a dir is by 1.
+ *
+ * @param dir direction to lower in rung.
+ */
+static void
+lower_rung (struct RouteDirection *dir)
+{
+  struct Rung *rung = dir->rung;
+  struct Rung *prev;
+
+  GNUNET_CONTAINER_DLL_remove (rung->rd_head,
+                               rung->rd_tail,
+                               dir);
+  prev = rung->prev;
+  GNUNET_assert (NULL != prev);
+  if (prev->rung_off != rung->rung_off - 1)
+  {
+    prev = GNUNET_new (struct Rung);
+    prev->rung_off = rung->rung_off - 1;
+    GNUNET_CONTAINER_DLL_insert_after (rung_head,
+                                       rung_tail,
+                                       prev,
+                                       rung);
+  }
+  else
+  {
+    rung = prev;
+  }
+  GNUNET_assert (NULL != rung);
+  GNUNET_CONTAINER_DLL_insert (rung->rd_head,
+                               rung->rd_tail,
+                               dir);
+  dir->rung = rung;
+}
+
+
+/**
+ * Discard the buffer @a env from the route direction @a dir and
+ * move @a dir down a rung.
+ *
+ * @param dir direction that contains the @a env in the buffer
+ * @param env envelope to discard
+ */
+static void
+discard_buffer (struct RouteDirection *dir,
+                struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_MQ_dll_remove (&dir->env_head,
+                        &dir->env_tail,
+                        env);
+  cur_buffers--;
+  GNUNET_MQ_discard (env);
+  lower_rung (dir);
+}
+
+
+/**
+ * Discard all messages from the highest rung, to make space.
+ */
+static void
+discard_all_from_rung_tail ()
+{
+  struct Rung *tail = rung_tail;
+  struct RouteDirection *dir;
+
+  while (NULL != (dir = tail->rd_head))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Queue full due new message %s on connection %s, dropping old message\n",
+         GNUNET_sh2s (&dir->my_route->cid.connection_of_tunnel));
+    GNUNET_STATISTICS_update (stats,
+                              "# messages dropped due to full buffer",
+                              1,
+                              GNUNET_NO);
+    discard_buffer (dir,
+                    dir->env_head);
+  }
+  GNUNET_CONTAINER_DLL_remove (rung_head,
+                               rung_tail,
+                               tail);
+  GNUNET_free (tail);
 }
 
 
@@ -165,6 +354,8 @@ route_message (struct CadetPeer *prev,
 {
   struct CadetRoute *route;
   struct RouteDirection *dir;
+  struct Rung *rung;
+  struct Rung *nxt;
   struct GNUNET_MQ_Envelope *env;
 
   route = get_route (cid);
@@ -186,6 +377,9 @@ route_message (struct CadetPeer *prev,
                   env);
     return;
   }
+  route->last_use = GNUNET_TIME_absolute_get ();
+  GNUNET_CONTAINER_heap_update_cost (route->hn,
+                                     route->last_use.abs_value_us);
   dir = (prev == route->prev.hop) ? &route->next : &route->prev;
   if (GNUNET_YES == dir->is_ready)
   {
@@ -200,22 +394,53 @@ route_message (struct CadetPeer *prev,
               GNUNET_MQ_msg_copy (msg));
     return;
   }
-  env = dir->out_buffer[dir->out_wpos];
-  if (NULL != env)
+  rung = dir->rung;
+  if (cur_buffers == max_buffers)
   {
-    /* Queue full, drop earliest message in queue */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Queue full due to new message of type %u from %s to %s on connection %s, dropping old message\n",
-         ntohs (msg->type),
-         GCP_2s (prev),
-         GNUNET_i2s (GCP_get_id (dir->hop)),
-         GNUNET_sh2s (&cid->connection_of_tunnel));
-    GNUNET_assert (dir->out_rpos == dir->out_wpos);
-    GNUNET_MQ_discard (env);
-    dir->out_rpos++;
-    if (ROUTE_BUFFER_SIZE == dir->out_rpos)
-      dir->out_rpos = 0;
+    /* Need to make room. */
+    if (NULL != rung->next)
+    {
+      /* Easy case, drop messages from route directions in highest rung */
+      discard_all_from_rung_tail ();
+    }
+    else
+    {
+      /* We are in the highest rung, drop our own! */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Queue full due new message %s on connection %s, dropping old message\n",
+           GNUNET_sh2s (&dir->my_route->cid.connection_of_tunnel));
+      GNUNET_STATISTICS_update (stats,
+                                "# messages dropped due to full buffer",
+                                1,
+                                GNUNET_NO);
+      discard_buffer (dir,
+                      dir->env_head);
+      rung = dir->rung;
+    }
   }
+  /* remove 'dir' from current rung */
+  GNUNET_CONTAINER_DLL_remove (rung->rd_head,
+                               rung->rd_tail,
+                               dir);
+  /* make 'nxt' point to the next higher rung, creat if necessary */
+  nxt = rung->next;
+  if ( (NULL == nxt) ||
+       (rung->rung_off + 1 != nxt->rung_off) )
+  {
+    nxt = GNUNET_new (struct Rung);
+    nxt->rung_off = rung->rung_off + 1;
+    GNUNET_CONTAINER_DLL_insert_after (rung_head,
+                                       rung_tail,
+                                       rung,
+                                       nxt);
+  }
+  /* insert 'dir' into next higher rung */
+  GNUNET_CONTAINER_DLL_insert (nxt->rd_head,
+                               nxt->rd_tail,
+                               dir);
+  dir->rung = nxt;
+
+  /* add message into 'dir' buffer */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queueing new message of type %u from %s to %s on connection %s\n",
        ntohs (msg->type),
@@ -223,10 +448,19 @@ route_message (struct CadetPeer *prev,
        GNUNET_i2s (GCP_get_id (dir->hop)),
        GNUNET_sh2s (&cid->connection_of_tunnel));
   env = GNUNET_MQ_msg_copy (msg);
-  dir->out_buffer[dir->out_wpos] = env;
-  dir->out_wpos++;
-  if (ROUTE_BUFFER_SIZE == dir->out_wpos)
-    dir->out_wpos = 0;
+  GNUNET_MQ_dll_insert_tail (&dir->env_head,
+                             &dir->env_tail,
+                             env);
+  cur_buffers++;
+  /* Clean up 'rung' if now empty (and not head) */
+  if ( (NULL == rung->rd_head) &&
+       (rung != rung_head) )
+  {
+    GNUNET_CONTAINER_DLL_remove (rung_head,
+                                 rung_tail,
+                                 rung);
+    GNUNET_free (rung);
+  }
 }
 
 
@@ -261,18 +495,26 @@ check_connection_create (void *cls,
 static void
 destroy_direction (struct RouteDirection *dir)
 {
-  for (unsigned int i=0;i<ROUTE_BUFFER_SIZE;i++)
-    if (NULL != dir->out_buffer[i])
-    {
-      GNUNET_MQ_discard (dir->out_buffer[i]);
-      dir->out_buffer[i] = NULL;
-    }
+  struct GNUNET_MQ_Envelope *env;
+
+  while (NULL != (env = dir->env_head))
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# messages dropped due to route destruction",
+                              1,
+                              GNUNET_NO);
+    discard_buffer (dir,
+                    env);
+  }
   if (NULL != dir->mqm)
   {
     GCP_request_mq_cancel (dir->mqm,
                            NULL);
     dir->mqm = NULL;
   }
+  GNUNET_CONTAINER_DLL_remove (rung_head->rd_head,
+                               rung_head->rd_tail,
+                               dir);
 }
 
 
@@ -289,6 +531,12 @@ destroy_route (struct CadetRoute *route)
        GNUNET_i2s  (GCP_get_id (route->prev.hop)),
        GNUNET_i2s2 (GCP_get_id (route->next.hop)),
        GNUNET_sh2s (&route->cid.connection_of_tunnel));
+  GNUNET_assert (route ==
+                 GNUNET_CONTAINER_heap_remove_node (route->hn));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multishortmap_remove (routes,
+                                                        &route->cid.connection_of_tunnel,
+                                                        route));
   destroy_direction (&route->prev);
   destroy_direction (&route->next);
   GNUNET_free (route);
@@ -336,6 +584,49 @@ send_broken (struct RouteDirection *target,
 
 
 /**
+ * Function called to check if any routes have timed out, and if
+ * so, to clean them up.  Finally, schedules itself again at the
+ * earliest time where there might be more work.
+ *
+ * @param cls NULL
+ */
+static void
+timeout_cb (void *cls)
+{
+  struct CadetRoute *r;
+  struct GNUNET_TIME_Relative linger;
+  struct GNUNET_TIME_Absolute exp;
+
+  timeout_task = NULL;
+  linger = GNUNET_TIME_relative_multiply (keepalive_period,
+                                          3);
+  while (NULL != (r = GNUNET_CONTAINER_heap_peek (route_heap)))
+  {
+    exp = GNUNET_TIME_absolute_add (r->last_use,
+                                    linger);
+    if (0 != GNUNET_TIME_absolute_get_duration (exp).rel_value_us)
+    {
+      /* Route not yet timed out, wait until it does. */
+      timeout_task = GNUNET_SCHEDULER_add_at (exp,
+                                              &timeout_cb,
+                                              NULL);
+      return;
+    }
+    send_broken (&r->prev,
+                 &r->cid,
+                 NULL,
+                 NULL);
+    send_broken (&r->next,
+                 &r->cid,
+                 NULL,
+                 NULL);
+    destroy_route (r);
+  }
+  /* No more routes left, so no need for a #timeout_task */
+}
+
+
+/**
  * Function called when the message queue to the previous hop
  * becomes available/unavailable.  We expect this function to
  * be called immediately when we register, and then again
@@ -360,12 +651,13 @@ dir_ready_cb (void *cls,
     struct GNUNET_MQ_Envelope *env;
 
     dir->is_ready = GNUNET_YES;
-    if (NULL != (env = dir->out_buffer[dir->out_rpos]))
+    if (NULL != (env = dir->env_head))
     {
-      dir->out_buffer[dir->out_rpos] = NULL;
-      dir->out_rpos++;
-      if (ROUTE_BUFFER_SIZE == dir->out_rpos)
-        dir->out_rpos = 0;
+      GNUNET_MQ_dll_remove (&dir->env_head,
+                            &dir->env_tail,
+                            env);
+      cur_buffers--;
+      lower_rung (dir);
       dir->is_ready = GNUNET_NO;
       GCP_send (dir->mqm,
                 env);
@@ -403,6 +695,35 @@ dir_init (struct RouteDirection *dir,
 
 
 /**
+ * We could not create the desired route.  Send a
+ * #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+ * message to @a target.
+ *
+ * @param target who should receive the message
+ * @param cid identifier of the connection/route that failed
+ * @param failure_at neighbour with which we failed to route,
+ *        or NULL.
+ */
+static void
+send_broken_without_mqm (struct CadetPeer *target,
+                         const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                         const struct GNUNET_PeerIdentity *failure_at)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CADET_ConnectionBrokenMessage *bm;
+
+  env = GNUNET_MQ_msg (bm,
+                       GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
+  bm->cid = *cid;
+  bm->peer1 = my_full_id;
+  if (NULL != failure_at)
+    bm->peer2 = *failure_at;
+  GCP_send_ooo (target,
+                env);
+}
+
+
+/**
  * Handle for #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
  *
  * @param cls Closure (CadetPeer for neighbor that sent the message).
@@ -419,7 +740,9 @@ handle_connection_create (void *cls,
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
   unsigned int path_length;
   unsigned int off;
+  enum GNUNET_CADET_ChannelOption options;
 
+  options = (enum GNUNET_CADET_ChannelOption) ntohl (msg->options);
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
   /* Initiator is at offset 0. */
   for (off=1;off<path_length;off++)
@@ -479,10 +802,25 @@ handle_connection_create (void *cls,
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
                                      pids);
-    GCT_add_inbound_connection (GCP_get_tunnel (origin,
-                                                GNUNET_YES),
-                                &msg->cid,
-                                path);
+    if (GNUNET_OK !=
+        GCT_add_inbound_connection (GCP_get_tunnel (origin,
+                                                    GNUNET_YES),
+                                    &msg->cid,
+                                    (enum GNUNET_CADET_ChannelOption) ntohl (msg->options),
+                                    path))
+    {
+      /* Send back BROKEN: duplicate connection on the same path,
+         we will use the other one. */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received CADET_CONNECTION_CREATE from %s for %s, but %s already has a connection. Sending BROKEN\n",
+           GCP_2s (sender),
+           GNUNET_sh2s (&msg->cid.connection_of_tunnel),
+           GCPP_2s (path));
+      send_broken_without_mqm (sender,
+                               &msg->cid,
+                               NULL);
+      return;
+    }
     return;
   }
   /* We are merely a hop on the way, check if we can support the route */
@@ -492,22 +830,26 @@ handle_connection_create (void *cls,
        (GNUNET_NO == GCP_has_core_connection (next)) )
   {
     /* unworkable, send back BROKEN notification */
-    struct GNUNET_MQ_Envelope *env;
-    struct GNUNET_CADET_ConnectionBrokenMessage *bm;
-
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received CADET_CONNECTION_CREATE from %s for %s. Next hop %s:%u is down. Sending BROKEN\n",
          GCP_2s (sender),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel),
          GNUNET_i2s (&pids[off + 1]),
          off + 1);
-    env = GNUNET_MQ_msg (bm,
-                         GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
-    bm->cid = msg->cid;
-    bm->peer1 = pids[off + 1];
-    bm->peer2 = my_full_id;
-    GCP_send_ooo (sender,
-                  env);
+    send_broken_without_mqm (sender,
+                             &msg->cid,
+                             &pids[off + 1]);
+    return;
+  }
+  if (max_routes <= GNUNET_CONTAINER_multishortmap_size (routes))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received CADET_CONNECTION_CREATE from %s for %s. We have reached our route limit. Sending BROKEN\n",
+         GCP_2s (sender),
+         GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+    send_broken_without_mqm (sender,
+                             &msg->cid,
+                             &pids[off - 1]);
     return;
   }
 
@@ -519,7 +861,9 @@ handle_connection_create (void *cls,
        GNUNET_i2s (&pids[off + 1]),
        off + 1);
   route = GNUNET_new (struct CadetRoute);
+  route->options = options;
   route->cid = msg->cid;
+  route->last_use = GNUNET_TIME_absolute_get ();
   dir_init (&route->prev,
             route,
             sender);
@@ -531,6 +875,14 @@ handle_connection_create (void *cls,
                                                      &route->cid.connection_of_tunnel,
                                                      route,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  route->hn = GNUNET_CONTAINER_heap_insert (route_heap,
+                                            route,
+                                            route->last_use.abs_value_us);
+  if (NULL == timeout_task)
+    timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (keepalive_period,
+                                                                                3),
+                                                 &timeout_cb,
+                                                 NULL);
 }
 
 
@@ -611,18 +963,19 @@ handle_connection_broken (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received CONNECTION_BROKEN for connection %s. Destroying it.\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
-    GCC_destroy (cc);
+    GCC_destroy_without_core (cc);
 
     /* FIXME: also destroy the path up to the specified link! */
     return;
   }
 
   /* We're just an intermediary peer, route the message along its path */
-  route = get_route (&msg->cid);
   route_message (peer,
                  &msg->cid,
                  &msg->header);
-  destroy_route (route);
+  route = get_route (&msg->cid);
+  if (NULL != route)
+    destroy_route (route);
   /* FIXME: also destroy paths we MAY have up to the specified link! */
 }
 
@@ -661,7 +1014,7 @@ handle_connection_destroy (void *cls,
          "Received CONNECTION_DESTROY for connection %s. Destroying connection.\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
 
-    GCC_destroy (cc);
+    GCC_destroy_without_core (cc);
     return;
   }
 
@@ -669,11 +1022,12 @@ handle_connection_destroy (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received CONNECTION_DESTROY for connection %s. Destroying route.\n",
        GNUNET_sh2s (&msg->cid.connection_of_tunnel));
-  route = get_route (&msg->cid);
   route_message (peer,
                  &msg->cid,
                  &msg->header);
-  destroy_route (route);
+  route = get_route (&msg->cid);
+  if (NULL != route)
+    destroy_route (route);
 }
 
 
@@ -715,6 +1069,47 @@ handle_tunnel_kx (void *cls,
   route_message (peer,
                  &msg->cid,
                  &msg->header);
+}
+
+
+/**
+ * Handle for #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH
+ *
+ * @param cls Closure (CadetPeer for neighbor that sent the message).
+ * @param msg Message itself.
+ */
+static void
+handle_tunnel_kx_auth (void *cls,
+                       const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg)
+{
+  struct CadetPeer *peer = cls;
+  struct CadetConnection *cc;
+
+  /* First, check if message belongs to a connection that ends here. */
+  cc = GNUNET_CONTAINER_multishortmap_get (connections,
+                                           &msg->kx.cid.connection_of_tunnel);
+  if (NULL != cc)
+  {
+    /* verify message came from the right direction */
+    struct CadetPeerPath *path = GCC_get_path (cc);
+
+    if (peer !=
+        GCPP_get_peer_at_offset (path,
+                                 0))
+    {
+      /* received message from unexpected direction, ignore! */
+      GNUNET_break_op (0);
+      return;
+    }
+    GCC_handle_kx_auth (cc,
+                        msg);
+    return;
+  }
+
+  /* We're just an intermediary peer, route the message along its path */
+  route_message (peer,
+                 &msg->kx.cid,
+                 &msg->kx.header);
 }
 
 
@@ -876,6 +1271,10 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX,
                              struct GNUNET_CADET_TunnelKeyExchangeMessage,
                              NULL),
+    GNUNET_MQ_hd_fixed_size (tunnel_kx_auth,
+                             GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH,
+                             struct GNUNET_CADET_TunnelKeyExchangeAuthMessage,
+                             NULL),
     GNUNET_MQ_hd_var_size (tunnel_encrypted,
                            GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED,
                            struct GNUNET_CADET_TunnelEncryptedMessage,
@@ -883,8 +1282,21 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_MQ_handler_end ()
   };
 
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "MAX_ROUTES",
+                                             &max_routes))
+    max_routes = 5000;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
+                                             "MAX_MSGS_QUEUE",
+                                             &max_buffers))
+    max_buffers = 10000;
   routes = GNUNET_CONTAINER_multishortmap_create (1024,
                                                   GNUNET_NO);
+  route_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   core = GNUNET_CORE_connect (c,
                               NULL,
                               &core_init_cb,
@@ -907,6 +1319,14 @@ GCO_shutdown ()
   }
   GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (routes));
   GNUNET_CONTAINER_multishortmap_destroy (routes);
+  routes = NULL;
+  GNUNET_CONTAINER_heap_destroy (route_heap);
+  route_heap = NULL;
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
 }
 
 /* end of gnunet-cadet-service_core.c */
