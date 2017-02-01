@@ -69,7 +69,7 @@ block_plugin_dns_evaluate (void *cls,
     if (0 != xquery_size)
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
-    if (0 == reply_block_size)
+    if (NULL == reply_block)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
     if (sizeof (struct GNUNET_DNS_Advertisement) != reply_block_size)

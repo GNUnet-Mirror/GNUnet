@@ -170,8 +170,13 @@ datacache_get_iterator (void *cls,
 			unsigned int put_path_length,
 			const struct GNUNET_PeerIdentity *put_path)
 {
+  static char non_null;
   struct GetRequestContext *ctx = cls;
   enum GNUNET_BLOCK_EvaluationResult eval;
+
+  if ( (NULL == data) &&
+       (0 == data_size) )
+    data = &non_null; /* point anywhere, but not to NULL */
 
   eval
     = GNUNET_BLOCK_evaluate (GDS_block_context,

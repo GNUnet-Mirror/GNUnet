@@ -75,8 +75,7 @@ block_plugin_dht_evaluate (void *cls,
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }
-  if ( (NULL == reply_block) ||
-       (0 == reply_block_size) )
+  if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   if (reply_block_size < sizeof (struct GNUNET_MessageHeader))
   {
