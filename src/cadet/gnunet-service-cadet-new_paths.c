@@ -227,6 +227,7 @@ void
 GCPP_release (struct CadetPeerPath *path)
 {
   struct CadetPeerPathEntry *entry;
+  int force;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Owner releases path %s\n",
@@ -249,12 +250,14 @@ GCPP_release (struct CadetPeerPath *path)
     /* see if new peer at the end likes this path any better */
     entry = path->entries[path->entries_length - 1];
     GNUNET_assert (path == entry->path);
+    force = (NULL == entry->cc) ? GNUNET_NO : GNUNET_YES;
     path->hn = GCP_attach_path (entry->peer,
                                 path,
                                 path->entries_length - 1,
-                                GNUNET_NO);
+                                force);
     if (NULL != path->hn)
       return; /* yep, got attached, we are done. */
+    GNUNET_assert (GNUNET_NO == force);
   }
 
   /* nobody wants us, discard the path */
