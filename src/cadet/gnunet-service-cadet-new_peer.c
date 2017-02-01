@@ -327,6 +327,7 @@ destroy_peer (void *cls)
   cp->destroy_task = NULL;
   GNUNET_assert (NULL == cp->t);
   GNUNET_assert (NULL == cp->core_mq);
+  GNUNET_assert (0 == cp->num_paths);
   for (unsigned int i=0;i<cp->path_dll_length;i++)
     GNUNET_assert (NULL == cp->path_heads[i]);
   GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections));
@@ -494,9 +495,8 @@ consider_peer_destroy (struct CadetPeer *cp)
                                                      cp);
     return;
   }
-  for (unsigned int i=0;i<cp->path_dll_length;i++)
-    if (NULL != cp->path_heads[i])
-      return; /* still relevant! */
+  if (0 != cp->num_paths)
+    return; /* still relevant! */
   if (NULL != cp->hello)
   {
     /* relevant only until HELLO expires */
@@ -843,6 +843,13 @@ GCP_path_entry_add (struct CadetPeer *cp,
     GCD_search_stop (cp->search_h);
     cp->search_h = NULL;
   }
+  if (NULL != cp->destroy_task)
+  {
+    /* paths changed, this resets the destroy timeout counter
+       and aborts a destroy task that may no longer be valid
+       to have (as we now have more paths via this peer). */
+    consider_peer_destroy (cp);
+  }
 }
 
 
@@ -875,6 +882,11 @@ GCP_path_entry_remove (struct CadetPeer *cp,
        (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) )
     cp->search_h
       = GCD_search (&cp->pid);
+  if (NULL == cp->destroy_task)
+  {
+    /* paths changed, we might now be ready for destruction, check again */
+    consider_peer_destroy (cp);
+  }
 }
 
 
