@@ -2428,6 +2428,7 @@ consider_path_cb (void *cls,
   es.min_desire = UINT64_MAX;
   es.path = path;
   es.duplicate = GNUNET_NO;
+  es.worst = NULL;
 
   /* Compute evaluation summary over existing connections. */
   GCT_iterate_connections (t,
