@@ -1910,6 +1910,11 @@ GCT_add_channel (struct CadetTunnel *t,
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   ctn = get_next_free_ctn (t);
+  if (NULL != t->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = NULL;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
                                                       ntohl (ctn.cn),
