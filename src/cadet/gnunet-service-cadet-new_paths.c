@@ -233,6 +233,7 @@ GCPP_release (struct CadetPeerPath *path)
        GCPP_2s (path));
   path->hn = NULL;
   entry = path->entries[path->entries_length - 1];
+  GNUNET_assert (path == entry->path);
   while (1)
   {
     /* cut 'off' end of path */
@@ -247,6 +248,7 @@ GCPP_release (struct CadetPeerPath *path)
 
     /* see if new peer at the end likes this path any better */
     entry = path->entries[path->entries_length - 1];
+    GNUNET_assert (path == entry->path);
     path->hn = GCP_attach_path (entry->peer,
                                 path,
                                 path->entries_length - 1,
@@ -386,7 +388,6 @@ extend_path (struct CadetPeerPath *path,
              int force)
 {
   unsigned int old_len = path->entries_length;
-  struct GNUNET_CONTAINER_HeapNode *hn;
   int i;
 
   /* Expand path */
@@ -412,18 +413,21 @@ extend_path (struct CadetPeerPath *path,
 
   /* If we extend an existing path, detach it from the
      old owner and re-attach to the new one */
-  hn = NULL;
+  GCP_detach_path (path->entries[old_len-1]->peer,
+                   path,
+                   path->hn);
+  path->hn = NULL;
   for (i=num_peers-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = path->entries[old_len + i];
 
     path->entries_length = old_len + i + 1;
     recalculate_path_desirability (path);
-    hn = GCP_attach_path (peers[i],
-                          path,
-                          old_len + (unsigned int) i,
-                          GNUNET_YES);
-    if (NULL != hn)
+    path->hn = GCP_attach_path (peers[i],
+                                path,
+                                old_len + (unsigned int) i,
+                                GNUNET_NO);
+    if (NULL != path->hn)
       break;
     GCP_path_entry_remove (entry->peer,
                            entry,
@@ -431,19 +435,20 @@ extend_path (struct CadetPeerPath *path,
     GNUNET_free (entry);
     path->entries[old_len + i] = NULL;
   }
-  if (NULL == hn)
+  if (NULL == path->hn)
   {
     /* none of the peers is interested in this path;
-       shrink path back */
+       shrink path back and re-attach. */
     GNUNET_array_grow (path->entries,
                        path->entries_length,
                        old_len);
+    path->hn = GCP_attach_path (path->entries[old_len - 1]->peer,
+                                path,
+                                old_len - 1,
+                                GNUNET_YES);
+    GNUNET_assert (NULL != path->hn);
     return;
   }
-  GCP_detach_path (path->entries[old_len-1]->peer,
-                   path,
-                   path->hn);
-  path->hn = hn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Extended path %s\n",
        GCPP_2s (path));

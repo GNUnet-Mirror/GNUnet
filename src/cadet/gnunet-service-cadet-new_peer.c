@@ -913,6 +913,7 @@ GCP_attach_path (struct CadetPeer *cp,
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
+  GNUNET_assert (off == GCPP_get_length (path) - 1);
   GNUNET_assert (cp == GCPP_get_peer_at_offset (path,
                                                 off));
   if (NULL == cp->path_heap)
@@ -972,7 +973,7 @@ GCP_attach_path (struct CadetPeer *cp,
                                GCPP_get_length (root) - 1)) )
     {
       /* Got plenty of paths to this destination, and this is a low-quality
-         one that we don't care, allow it to die. */
+         one that we don't care about. Allow it to die. */
       GNUNET_assert (root ==
                      GNUNET_CONTAINER_heap_remove_root (cp->path_heap));
       GCPP_release (root);
