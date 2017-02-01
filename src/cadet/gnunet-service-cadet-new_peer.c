@@ -488,7 +488,8 @@ consider_peer_destroy (struct CadetPeer *cp)
     return; /* still relevant! */
   if (0 != GNUNET_CONTAINER_multishortmap_size (cp->connections))
     return; /* still relevant! */
-  if (0 < GNUNET_CONTAINER_heap_get_size (cp->path_heap))
+  if ( (NULL != cp->path_heap) &&
+       (0 < GNUNET_CONTAINER_heap_get_size (cp->path_heap)) )
   {
     cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PATH_TIMEOUT,
                                                      &drop_paths,
