@@ -1804,7 +1804,17 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                          GCP_get_id (t->destination),
                          &msg->kx.ephemeral_key,
                          &msg->kx.ratchet_key);
-  GNUNET_break (GNUNET_OK == ret);
+  if (GNUNET_OK != ret)
+  {
+    if (GNUNET_NO == ret)
+      GNUNET_STATISTICS_update (stats,
+                                "# redundant KX_AUTH received",
+                                1,
+                                GNUNET_NO);
+    else
+      GNUNET_break (0); /* connect to self!? */
+    return;
+  }
   GNUNET_CRYPTO_hash (&ax_tmp.RK,
                       sizeof (ax_tmp.RK),
                       &kx_auth);
