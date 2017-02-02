@@ -154,6 +154,8 @@ struct GNUNET_SOCIAL_Host *hst;
 struct GNUNET_SOCIAL_Guest *gst;
 struct GNUNET_SOCIAL_Place *plc;
 
+const char *method_received;
+
 
 /* DISCONNECT */
 
@@ -308,7 +310,7 @@ static void
 guest_left (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "The guest has left the place.\n");
+              "Guest has left the place.\n");
 }
 
 
@@ -555,10 +557,15 @@ slicer_recv_method (void *cls,
                     uint64_t message_id,
                     const char *method_name)
 {
+  method_received = method_name;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Received method for message ID %" PRIu64 ":\n"
               "%s (flags: %x)\n",
               message_id, method_name, ntohl (meth->flags));
+  /* routing header is missing, so we just print double newline */
+  printf(".\n\n");
+  /* we output . instead of | to indicate that this is not proper PSYC syntax */
+  /* FIXME: use libpsyc here */
 }
 
 
@@ -576,10 +583,15 @@ slicer_recv_modifier (void *cls,
                       uint16_t value_size,
                       uint16_t full_value_size)
 {
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               message_id, oper, name, value_size, (const char *) value, value_size);
+#endif
+  /* obviously not binary safe */
+  printf("%c%s\t%.*s\n",
+              oper, name, value_size, (const char *) value);
 }
 
 
@@ -594,10 +606,15 @@ slicer_recv_data (void *cls,
                   const void *data,
                   uint16_t data_size)
 {
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               message_id, data_size, (const char *) data);
+#endif
+  /* obviously not binary safe */
+  printf("%s\n%.*s\n",
+              method_received, data_size, (const char *) data);
 }
 
 
@@ -611,6 +628,7 @@ slicer_recv_eom (void *cls,
                 uint64_t message_id,
                 uint8_t is_cancelled)
 {
+  printf(".\n");
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Received end of message ID %" PRIu64
               ", cancelled: %u\n",
@@ -685,7 +703,7 @@ guest_recv_local_enter (void *cls, int result,
 {
   char *pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest entered to local place: %s, max_message_id: %" PRIu64 "\n",
+              "Guest entered local place: %s, max_message_id: %" PRIu64 "\n",
               pub_str, max_message_id);
   GNUNET_free (pub_str);
   GNUNET_assert (0 <= result);
@@ -1012,8 +1030,7 @@ app_recv_host (void *cls,
                enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   char *host_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (host_pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Host:  %s\n", host_pub_str);
+  printf ("Host\t%s\n", host_pub_str);
   GNUNET_free (host_pub_str);
 
   if ((op_host_reconnect || op_host_leave || op_host_announce || op_host_assign
@@ -1039,8 +1056,7 @@ app_recv_guest (void *cls,
                 enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   char *guest_pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (guest_pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest: %s\n", guest_pub_str);
+  printf ("Guest\t%s\n", guest_pub_str);
   GNUNET_free (guest_pub_str);
 
   if ((op_guest_reconnect || op_guest_leave || op_guest_talk
@@ -1065,7 +1081,7 @@ app_recv_ego (void *cls,
               const char *name)
 {
   char *s = GNUNET_CRYPTO_ecdsa_public_key_to_string (pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Ego:   %s\t%s\n", s, name);
+  printf ("Ego\t%s\t%s\n", s, name);
   GNUNET_free (s);
 
   if (0 == memcmp (&ego_pub_key, pub_key, sizeof (*pub_key))
@@ -1124,6 +1140,7 @@ run (void *cls, char *const *args, const char *cfgfile,
          || op_look_at || op_look_for))
   {
     op_status = 1;
+    fputs("Caution: This tool does not produce correct binary safe PSYC syntax.\n\n", stderr);
   }
 
   GNUNET_SCHEDULER_add_shutdown (scheduler_shutdown, NULL);
