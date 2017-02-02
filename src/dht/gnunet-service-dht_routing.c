@@ -128,17 +128,17 @@ struct ProcessContext
   struct GNUNET_TIME_Absolute expiration_time;
 
   /**
-   * Number of entries in 'put_path'.
+   * Number of entries in @e put_path.
    */
   unsigned int put_path_length;
 
   /**
-   * Number of entries in 'get_path'.
+   * Number of entries in @e get_path.
    */
   unsigned int get_path_length;
 
   /**
-   * Number of bytes in 'data'.
+   * Number of bytes in @e data.
    */
   size_t data_size;
 
@@ -223,8 +223,13 @@ process (void *cls,
                               gettext_noop
                               ("# Good REPLIES matched against routing table"),
                               1, GNUNET_NO);
-    GDS_NEIGHBOURS_handle_reply (&rr->peer, pc->type, pc->expiration_time, key,
-                                 ppl, pc->put_path, gpl, pc->get_path, pc->data,
+    GDS_NEIGHBOURS_handle_reply (&rr->peer,
+				 pc->type,
+				 pc->expiration_time,
+				 key,
+                                 ppl, pc->put_path,
+				 gpl, pc->get_path,
+				 pc->data,
                                  pc->data_size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
@@ -275,9 +280,9 @@ process (void *cls,
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
- * @param put_path_length number of entries in put_path
+ * @param put_path_length number of entries in @a put_path
  * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in get_path
+ * @param get_path_length number of entries in @a get_path
  * @param get_path peers this reply has traversed so far (if tracked)
  * @param data payload of the reply
  * @param data_size number of bytes in data
