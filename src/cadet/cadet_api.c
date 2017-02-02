@@ -291,6 +291,11 @@ struct GNUNET_CADET_Channel
   struct GNUNET_MQ_Handle *mq;
 
   /**
+   * Task to allow mq to send more traffic.
+   */
+  struct GNUNET_SCHEDULER_Task *mq_cont;
+
+  /**
    * Window change handler.
    */
   GNUNET_CADET_WindowSizeEventHandler window_changes;
@@ -630,10 +635,36 @@ remove_from_queue (struct GNUNET_CADET_TransmitHandle *th)
 }
 
 
+/**
+ * Notify the application about a change in the window size (if needed).
+ *
+ * @param ch Channel to notify about.
+ */
+static void
+notify_window_size (struct GNUNET_CADET_Channel *ch)
+{
+  if (NULL != ch->window_changes)
+  {
+    ch->window_changes (ch->ctx, ch, ch->allow_send);
+  }
+}
+
 /******************************************************************************/
 /***********************      MQ API CALLBACKS     ****************************/
 /******************************************************************************/
 
+/**
+ * Allow the MQ implementation to send the next message.
+ *
+ * @param cls Closure (channel whose mq to activate).
+ */
+static void
+cadet_mq_send_continue (void *cls)
+{
+  struct GNUNET_CADET_Channel *ch = cls;
+
+  GNUNET_MQ_impl_send_continue (ch->mq);
+}
 
 /**
  * Implement sending functionality of a message queue for
@@ -680,7 +711,14 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
                                  msg);
   cadet_msg->ccn = ch->ccn;
   GNUNET_MQ_send (h->mq, env);
-  GNUNET_MQ_impl_send_continue (mq);
+
+  GNUNET_assert (0 < ch->allow_send);
+  ch->allow_send--;
+  notify_window_size (ch);
+  if (0 < ch->allow_send)
+  {
+    ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_continue, ch);
+  } /* Otherwise it will be called upon ACK receipt. */
 }
 
 
@@ -1012,8 +1050,6 @@ handle_local_data (void *cls,
  *
  * @param h Cadet handle.
  * @param message Message itself.
- *
- * FIXME either delete or port to MQ
  */
 static void
 handle_local_ack (void *cls,
@@ -1038,6 +1074,18 @@ handle_local_ack (void *cls,
        "Got an ACK on channel %X, allow send now %u!\n",
        ntohl (ch->ccn.channel_of_client),
        ch->allow_send);
+  if (NULL != ch->mq)
+  {
+    notify_window_size (ch);
+    if (1 == ch->allow_send)
+    {
+      ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_continue, ch);
+    }
+    return;
+  }
+
+  /** @deprecated */
+  /* Old style API */
   for (th = h->th_head; NULL != th; th = th->next)
   {
     if ( (th->channel == ch) &&
