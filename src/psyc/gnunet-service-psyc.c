@@ -467,6 +467,9 @@ schedule_transmit_message (void *cls)
 static void
 shutdown_task (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutting down...\n");
+  GNUNET_PSYCSTORE_disconnect (store);
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
