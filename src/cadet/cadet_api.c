@@ -1027,7 +1027,7 @@ handle_local_data (void *cls,
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
-  fwd = ntohl (ch->ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
+  fwd = ntohl (ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a %s data on channel %s [%X] of type %s (%u)\n",
        GC_f2s (fwd),
