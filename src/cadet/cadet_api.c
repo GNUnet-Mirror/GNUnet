@@ -325,6 +325,8 @@ struct GNUNET_CADET_Port
 
   /**
    * Port ID.
+   *
+   * @deprecated
    */
   struct GNUNET_HashCode *hash;
 
@@ -1100,7 +1102,7 @@ handle_local_ack (void *cls,
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Got an ACK on channel %X, sending pending message!\n",
+           "Got an ACK on mq channel %X, sending pending message!\n",
            ntohl (ch->ccn.channel_of_client));
       GNUNET_MQ_send (h->mq, ch->pending_env);
       ch->allow_send--;
