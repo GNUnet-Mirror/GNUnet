@@ -906,10 +906,10 @@ handle_channel_created (void *cls,
     /** @deprecated */
     /* Old style API */
     ch->ctx = port->handler (port->cls,
-                            ch,
-                            &msg->peer,
-                            port->hash,
-                            ch->options);
+                             ch,
+                             &msg->peer,
+                             port->hash,
+                             ch->options);
   } else {
     /* MQ API */
     GNUNET_assert (NULL != port->connects);
@@ -1012,6 +1012,7 @@ handle_local_data (void *cls,
   const struct GNUNET_CADET_MessageHandler *handler;
   struct GNUNET_CADET_Channel *ch;
   uint16_t type;
+  int fwd;
 
   ch = retrieve_channel (h,
                          message->ccn);
@@ -1024,16 +1025,19 @@ handle_local_data (void *cls,
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
+  fwd = ntohl (ch->ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a %s data on channel %s [%X] of type %s (%u)\n",
-       GC_f2s (ntohl (ch->ccn.channel_of_client) >=
-               GNUNET_CADET_LOCAL_CHANNEL_ID_CLI),
+       GC_f2s (fwd),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)),
        ntohl (message->ccn.channel_of_client),
        GC_m2s (type),
        type);
   if (NULL != ch->mq)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "injecting msg %s into mq\n",
+         GC_m2s (ntohs (payload->type)));
     GNUNET_MQ_inject_message (ch->mq, payload);
     return;
   }
