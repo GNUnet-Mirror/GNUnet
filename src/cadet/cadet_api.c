@@ -922,7 +922,7 @@ handle_channel_created (void *cls,
                                             port->handlers,
                                             &cadet_mq_error_handler,
                                             ch);
-    ch->ctx = port->connects (port->cadet->cls,
+    ch->ctx = port->connects (port->cls,
                               ch,
                               &msg->peer);
     GNUNET_MQ_set_handlers_closure (ch->mq, ch->ctx);
@@ -2535,7 +2535,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (h->ports,
-						    p->hash,
+						    &p->id,
 						    p,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
