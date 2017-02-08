@@ -110,11 +110,7 @@ libgnunetcadettest_a_LIBADD = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
-  test_cadet_2_speed_reliable_backwards \
-  test_cadet_5_speed \
-  test_cadet_5_speed_ack \
-  test_cadet_5_speed_reliable \
-  test_cadet_5_speed_reliable_backwards \
+  test_cadet_local_mq \
   test_cadet_single \
   test_cadet_local \
   test_cadet_2_forward \
@@ -124,9 +120,14 @@ check_PROGRAMS = \
   test_cadet_2_speed_ack \
   test_cadet_2_speed_backwards \
   test_cadet_2_speed_reliable \
+  test_cadet_2_speed_reliable_backwards \
   test_cadet_5_forward \
   test_cadet_5_signal \
   test_cadet_5_keepalive \
+  test_cadet_5_speed \
+  test_cadet_5_speed_ack \
+  test_cadet_5_speed_reliable \
+  test_cadet_5_speed_reliable_backwards \
   test_cadet_5_speed_backwards
 endif
 
@@ -157,6 +158,13 @@ test_cadet_local_SOURCES = \
   test_cadet_local.c
 test_cadet_local_LDADD = $(ld_cadet_test_lib)
 
+
+test_cadet_local_mq_SOURCES = \
+  test_cadet_local_mq.c
+test_cadet_local_mq_LDADD = \
+  libgnunetcadet.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_cadet_2_forward_SOURCES = \
   test_cadet.c
