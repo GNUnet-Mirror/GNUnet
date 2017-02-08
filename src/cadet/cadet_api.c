@@ -734,7 +734,7 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   else
   {
     /* Service has NOT allowed this message, queue it and wait for an ACK */
-    GNUNET_assert (NULL != ch->pending_env);
+    GNUNET_assert (NULL == ch->pending_env);
     ch->pending_env = env;
   }
 }
