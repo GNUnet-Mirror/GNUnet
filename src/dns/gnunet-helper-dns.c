@@ -794,6 +794,8 @@ main (int argc, char *const*argv)
       sbin_ip = "/sbin/ip";
     else if (0 == access ("/usr/sbin/ip", X_OK))
       sbin_ip = "/usr/sbin/ip";
+    else if (0 == access ("/bin/ip", X_OK)) /* gentoo has it there */
+      sbin_ip = "/bin/ip";
     else
     {
       fprintf (stderr,

@@ -435,18 +435,18 @@ channel_incoming (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Not listening to channels\n");
     return NULL;
   }
-#if 0
   // Closing the listen port currently breaks open connections.
   // Is this an intentional departure from POSIX socket behavior?
   //
   if (NULL != lp) {
     /* Now that we have our circuit up and running, let's not
      * get confused by further incoming connect requests.
+     * You need to start another 'gnunet-cadet -o' process
+     * to receive those.
      */
     GNUNET_CADET_close_port (lp);
     lp = NULL;
   }
-#endif
   ch = channel;
   if (GNUNET_NO == echo)
   {
