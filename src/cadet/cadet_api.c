@@ -910,7 +910,9 @@ handle_channel_created (void *cls,
                              &msg->peer,
                              port->hash,
                              ch->options);
-  } else {
+  }
+  else
+  {
     /* MQ API */
     GNUNET_assert (NULL != port->connects);
     ch->window_changes = port->window_changes;
@@ -1036,8 +1038,9 @@ handle_local_data (void *cls,
   if (NULL != ch->mq)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "injecting msg %s into mq\n",
-         GC_m2s (ntohs (payload->type)));
+         "injecting msg %s into mq %p\n",
+         GC_m2s (ntohs (payload->type)),
+         ch->mq);
     GNUNET_MQ_inject_message (ch->mq, payload);
     return;
   }
