@@ -258,17 +258,15 @@ peer_information_cb (void *cls,
                      const struct GNUNET_TESTBED_PeerInformation *pinfo,
                      const char *emsg)
 {
-  struct GNUNET_HashCode pub_hash;
-
   if (NULL == pinfo) {
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
   
-  GNUNET_CRYPTO_hash (&peer_id_origin, sizeof (peer_id_origin), &pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Got peer information of origin (%s)\n", GNUNET_h2s (&pub_hash));
   peer_id_origin = pinfo->result.id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got peer information of origin (%s)\n", GNUNET_i2s(pinfo->result.id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create member peer\n");
@@ -400,8 +398,8 @@ testbed_master (void *cls,
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
   
-  /* Schedule the shutdown task with a delay of a few 1econds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3),
+  /* Schedule the shutdown task with a delay of a few Seconds */
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
 					      &timeout_task, NULL);
 }
 
