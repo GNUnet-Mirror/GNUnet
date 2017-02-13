@@ -238,6 +238,7 @@ GCPP_release (struct CadetPeerPath *path)
   while (1)
   {
     /* cut 'off' end of path */
+    GNUNET_assert (NULL == entry->cc);
     GCP_path_entry_remove (entry->peer,
                            entry,
                            path->entries_length - 1);
