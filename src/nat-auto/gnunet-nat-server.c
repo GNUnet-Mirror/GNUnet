@@ -56,6 +56,7 @@ try_anat (uint32_t dst_ipv4,
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in lsa;
   struct sockaddr_in rsa;
+  const struct sockaddr *sa;
   socklen_t sa_len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -77,11 +78,12 @@ try_anat (uint32_t dst_ipv4,
   rsa.sin_addr.s_addr = dst_ipv4;
   rsa.sin_port = htons (dport);
   sa_len = sizeof (lsa);
+  sa = (const struct sockaddr *) &lsa;
   h = GNUNET_NAT_register (cfg,
 			   "none",
                            is_tcp ? IPPROTO_TCP : IPPROTO_UDP,
                            1,
-			   (const struct sockaddr **) &lsa,
+			   &sa,
 			   &sa_len,
                            NULL, NULL, NULL);
   GNUNET_NAT_request_reversal (h,
