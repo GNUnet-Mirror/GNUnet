@@ -678,7 +678,7 @@ handle_client_audio_message (void *cls,
                              const struct ClientAudioMessage *msg)
 {
   struct Line *line = cls;
-  struct ClientAudioMessage *mam;
+  struct CadetAudioMessage *mam;
   struct Channel *ch;
   size_t size;
 
@@ -1087,6 +1087,7 @@ handle_cadet_audio_message (void *cls,
                              msize,
                              GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   cam->cid = ch->cid;
+
   GNUNET_memcpy (&cam[1],
                  &msg[1],
                  msize);
