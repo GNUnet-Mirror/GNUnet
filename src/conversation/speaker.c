@@ -29,6 +29,7 @@
 #include "gnunet_speaker_lib.h"
 #include "conversation.h"
 
+#define DEBUG_MEASURE_LATENCY 1
 
 /**
  * Internal data structures for the speaker.
@@ -139,9 +140,14 @@ play (void *cls,
     return;
   }
   am = (struct AudioMessage *) buf;
+
   am->header.size = htons (sizeof (struct AudioMessage) + data_size);
   am->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
-  GNUNET_memcpy (&am[1], data, data_size);
+#ifdef DEBUG_MEASURE_LATENCY
+    GNUNET_memcpy (am, data, data_size);
+#else
+    GNUNET_memcpy (&am[1], data, data_size);
+#endif
   (void) GNUNET_HELPER_send (spe->playback_helper,
 			     &am->header,
 			     GNUNET_NO,

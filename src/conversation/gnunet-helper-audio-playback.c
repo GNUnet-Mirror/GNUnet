@@ -42,6 +42,7 @@
 
 #define DEBUG_READ_PURE_OGG 1
 #define DEBUG_DUMP_DECODED_OGG 1
+#define DEBUG_MEASURE_LATENCY 1
 
 #define MAXLINE 4096
 
@@ -120,6 +121,13 @@ static int channels;
 static int preskip;
 
 static float gain;
+
+#ifdef DEBUG_MEASURE_LATENCY
+/**
+ * output file for latency measurement
+ */
+static FILE *measurement_file;
+#endif
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -339,6 +347,9 @@ static void
 quit (int ret)
 {
   mainloop_api->quit (mainloop_api, ret);
+#ifdef DEBUG_MEASURE_LATENCY
+  FCLOSE (measurement_file);
+#endif
   exit (ret);
 }
 
@@ -562,6 +573,10 @@ stdin_receiver (void *cls,
     audio = (struct AudioMessage *) msg;
     payload_len = ntohs (audio->header.size) - sizeof (struct AudioMessage);
 
+#ifdef DEBUG_MEASURE_LATENCY
+    struct GNUNET_TIME_Absolute decode_begin_time = GNUNET_TIME_absolute_get();
+#endif
+
     /*Get the ogg buffer for writing*/
     data = ogg_sync_buffer (&oy, payload_len);
     /*Read bitstream from input file*/
@@ -569,6 +584,29 @@ stdin_receiver (void *cls,
     ogg_sync_wrote (&oy, payload_len);
 
     ogg_demux_and_decode ();
+#ifdef DEBUG_MEASURE_LATENCY
+    struct GNUNET_TIME_Relative decode_latency =
+      GNUNET_TIME_absolute_get_duration (decode_begin_time);
+    struct GNUNET_TIME_Absolute encode_begin_time =
+      GNUNET_TIME_absolute_ntoh (audio->encode_begin_time);
+    struct GNUNET_TIME_Absolute encode_end_time =
+      GNUNET_TIME_absolute_ntoh (audio->encode_end_time);
+    struct GNUNET_TIME_Relative encode_latency =
+      GNUNET_TIME_absolute_get_difference (encode_begin_time, encode_end_time);
+    struct GNUNET_TIME_Relative network_rtt = 
+      GNUNET_TIME_absolute_get_difference (encode_end_time, decode_begin_time);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"received: encode_begin_time = %" PRId64 ", encode_end_time = %" PRId64 ", audio->header.size = %u\n",
+		encode_begin_time.abs_value_us,
+		encode_end_time.abs_value_us,
+                ntohs (audio->header.size));
+
+    FPRINTF (measurement_file, "%" PRId64 ",%" PRId64 ",%" PRId64 "\n",
+             encode_latency.rel_value_us,
+             network_rtt.rel_value_us,
+             decode_latency.rel_value_us);
+#endif
     break;
   default:
     break;
@@ -774,6 +812,9 @@ main (int argc, char *argv[])
   ready_pipe[1] = -1;
 #ifdef DEBUG_DUMP_DECODED_OGG
   dump_to_stdout = getenv ("GNUNET_DUMP_DECODED_OGG") ? 1 : 0;
+#endif
+#ifdef DEBUG_MEASURE_LATENCY
+  measurement_file = FOPEN ("conversation_measurement.csv", "w");
 #endif
   while (1)
   {

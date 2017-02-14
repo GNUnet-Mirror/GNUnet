@@ -30,6 +30,7 @@
 #include "gnunet_microphone_lib.h"
 #include "conversation.h"
 
+#define DEBUG_MEASURE_LATENCY 1
 
 /**
  * Internal data structures for the microphone.
@@ -74,17 +75,22 @@ process_record_messages (void *cls,
 			 const struct GNUNET_MessageHeader *msg)
 {
   struct Microphone *mic = cls;
-  const struct AudioMessage *am;
 
   if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  am = (const struct AudioMessage *) msg;
+#ifdef DEBUG_MEASURE_LATENCY
+  mic->rdc (mic->rdc_cls,
+	    ntohs (msg->size),
+	    msg);
+#else
+  const struct AudioMessage *am = (const struct AudioMessage *) msg;
   mic->rdc (mic->rdc_cls,
 	    ntohs (msg->size) - sizeof (struct AudioMessage),
 	    &am[1]);
+#endif
   return GNUNET_OK;
 }
 

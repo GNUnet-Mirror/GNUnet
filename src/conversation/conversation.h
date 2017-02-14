@@ -59,8 +59,20 @@ struct AudioMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by audio data */
+  // FIXME: make compilation of record_timestamp and network_send_timestamp optional
+  /**
+   * the timestamp the record helper sets before encoding
+   */
+  struct GNUNET_TIME_AbsoluteNBO encode_begin_time; 
 
+  /**
+   * the round-trip time the conversation api calculates when receiving an
+   * echo from the other call participant
+   */
+  struct GNUNET_TIME_AbsoluteNBO encode_end_time;
+
+  /* followed by audio data */
+  
 };
 
 

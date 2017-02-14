@@ -241,9 +241,80 @@ static unsigned int caller_num_gen;
 static char *address;
 
 /**
+ * Activate echo mode
+ */
+static int echo;
+
+/**
  * Be verbose.
  */
 static int verbose;
+
+
+struct EchoMicrophone
+{
+  GNUNET_MICROPHONE_RecordedDataCallback rdc;
+  void *rdc_cls;
+};
+
+
+static void dummy (void *cls)
+{
+
+}
+
+
+static int mic_enable (void *cls,
+                       GNUNET_MICROPHONE_RecordedDataCallback rdc,
+                       void *rdc_cls)
+{
+  struct EchoMicrophone *mic = cls;
+  GNUNET_assert (mic);
+  mic->rdc = rdc;
+  mic->rdc_cls = rdc_cls;
+  return GNUNET_OK;
+}
+
+
+static int speaker_enable (void *cls)
+{
+  return GNUNET_OK;
+}
+
+
+static void speaker_play (void *cls,
+                          size_t data_size,
+                          const void *data)
+{
+  struct EchoMicrophone *mic = cls;
+  GNUNET_assert (mic);
+  GNUNET_assert (mic->rdc);
+  // playing means echoing by pretending we recorded audio data
+  mic->rdc (mic->rdc_cls, data_size, data);
+}
+
+
+static void
+create_echo_handles (struct GNUNET_MICROPHONE_Handle **mic_handle,
+                     struct GNUNET_SPEAKER_Handle **speaker_handle)
+{
+  struct GNUNET_SPEAKER_Handle *speaker = GNUNET_new (struct GNUNET_SPEAKER_Handle);
+  struct GNUNET_MICROPHONE_Handle *microphone = GNUNET_new (struct GNUNET_MICROPHONE_Handle);
+  struct EchoMicrophone *mic_cls = GNUNET_new (struct EchoMicrophone);
+
+  microphone->enable_microphone = mic_enable;
+  microphone->disable_microphone = dummy;
+  microphone->destroy_microphone = dummy;
+  microphone->cls = mic_cls;
+  speaker->enable_speaker = speaker_enable;
+  speaker->play = speaker_play;
+  speaker->disable_speaker = dummy;
+  speaker->destroy_speaker = dummy;
+  speaker->cls = mic_cls;
+
+  *mic_handle = microphone;
+  *speaker_handle = speaker;
+}
 
 
 /**
@@ -1220,8 +1291,17 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = GNUNET_CONFIGURATION_dup (c);
-  speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
-  mic = GNUNET_MICROPHONE_create_from_hardware (cfg);
+
+  if (echo)
+  {
+    create_echo_handles (&mic, &speaker);
+  }
+
+  else
+  {
+    speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
+    mic = GNUNET_MICROPHONE_create_from_hardware (cfg);
+  }
   if (NULL == ego_name)
   {
     FPRINTF (stderr,
@@ -1278,6 +1358,9 @@ main (int argc, char *const *argv)
     {'e', "ego", "NAME",
      gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
      1, &GNUNET_GETOPT_set_string, &ego_name},
+    {'E', "echo", NULL,
+     gettext_noop ("activate echo mode"),
+     0, &GNUNET_GETOPT_set_one, &echo},
     {'p', "phone", "LINE",
       gettext_noop ("sets the LINE to use for the phone"),
      1, &GNUNET_GETOPT_set_string, &line},
