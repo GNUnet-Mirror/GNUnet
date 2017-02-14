@@ -254,7 +254,7 @@ check_SCRIPTS = \
   test_dht_tools.py
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g' -e 's,[@]bindir[@],$(bindir),g'
 
 %.py: %.py.in Makefile
 	$(do_subst) < $(srcdir)/$< > $@

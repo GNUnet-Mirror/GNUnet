@@ -503,7 +503,7 @@ check_monitor_get (void *cls,
   uint16_t msize = ntohs (msg->header.size) - sizeof (*msg);
 
   if ( (plen > UINT16_MAX) ||
-       (plen * sizeof (struct GNUNET_HashCode) != msize) )
+       (plen * sizeof (struct GNUNET_PeerIdentity) != msize) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

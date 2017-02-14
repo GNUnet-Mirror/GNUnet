@@ -702,9 +702,6 @@ GC_u2h (uint32_t port);
  * @param cls Closure from #GNUNET_CADET_open_porT.
  * @param channel New handle to the channel.
  * @param source Peer that started this channel.
- * FIXME: Add port that this channel is created for, or is cls enough?
- *        Port cannot be closed yet, #handle_channel_create would have
- *        rejected it.
  * @return Closure for the incoming @a channel. It's given to:
  *         - The #GNUNET_CADET_DisconnectEventHandler (given to
  *           #GNUNET_CADET_open_porT) when the channel dies.

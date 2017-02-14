@@ -182,22 +182,22 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
 					     &conninfo))
     conninfo = NULL;
   dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
+
+  if (NULL != dbh)
+  {
+    if (PQstatus (dbh) != CONNECTION_OK)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "postgres",
+                       _("Unable to connect to Postgres database '%s': %s\n"),
+                       conninfo,
+                       PQerrorMessage (dbh));
+      PQfinish (dbh);
+      dbh = NULL;
+    }
+  }
+  // FIXME: warn about out-of-memory when dbh is NULL?
   GNUNET_free_non_null (conninfo);
-  if (NULL == dbh)
-  {
-    /* FIXME: warn about out-of-memory? */
-    return NULL;
-  }
-  if (PQstatus (dbh) != CONNECTION_OK)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		     "postgres",
-                     _("Unable to connect to Postgres database '%s': %s\n"),
-                     conninfo,
-                     PQerrorMessage (dbh));
-    PQfinish (dbh);
-    return NULL;
-  }
   return dbh;
 }
 

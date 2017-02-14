@@ -73,6 +73,16 @@ GCC_destroy_without_tunnel (struct CadetConnection *cc);
 
 
 /**
+ * Lookup a connection by its identifier.
+ *
+ * @param cid identifier to resolve
+ * @return NULL if connection was not found
+ */
+struct CadetConnection *
+GCC_lookup (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
  * Create a connection to @a destination via @a path and
  * notify @a cb whenever we are ready for more data.
  *

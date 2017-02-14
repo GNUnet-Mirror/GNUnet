@@ -49,6 +49,11 @@
 #define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)
 
 /**
+ * Enable slow sanity checks to debug issues.
+ */ 
+#define SANITY_CHECKS 1
+
+/**
  * How many buckets will we allow total.
  */
 #define MAX_BUCKETS sizeof (struct GNUNET_HashCode) * 8
@@ -1746,6 +1751,20 @@ handle_dht_p2p_put (void *cls,
     /* extend 'put path' by sender */
     if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
     {
+#if SANITY_CHECKS
+      for (unsigned int i=0;i<=putlen;i++)
+      {
+	for (unsigned int j=0;j<i;j++)
+	{
+	  GNUNET_break (0 != memcmp (&pp[i],
+				     &pp[j],
+				     sizeof (struct GNUNET_PeerIdentity)));
+	}
+	GNUNET_break (0 != memcmp (&pp[i],
+				   peer->id,
+				   sizeof (struct GNUNET_PeerIdentity)));	
+      }
+#endif
       GNUNET_memcpy (pp,
 		     put_path,
 		     putlen * sizeof (struct GNUNET_PeerIdentity));
@@ -2280,6 +2299,20 @@ handle_dht_p2p_result (void *cls,
   {
     struct GNUNET_PeerIdentity xget_path[get_path_length + 1];
 
+#if SANITY_CHECKS
+    for (unsigned int i=0;i<=get_path_length;i++)
+    {
+      for (unsigned int j=0;j<i;j++)
+      {
+	GNUNET_break (0 != memcmp (&get_path[i],
+				   &get_path[j],
+				   sizeof (struct GNUNET_PeerIdentity)));
+      }
+      GNUNET_break (0 != memcmp (&get_path[i],
+				 peer->id,
+				 sizeof (struct GNUNET_PeerIdentity)));	
+    }
+#endif
     GNUNET_memcpy (xget_path,
 		   get_path,
 		   get_path_length * sizeof (struct GNUNET_PeerIdentity));

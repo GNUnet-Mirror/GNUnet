@@ -227,15 +227,18 @@ void
 GCPP_release (struct CadetPeerPath *path)
 {
   struct CadetPeerPathEntry *entry;
+  int force;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Owner releases path %s\n",
        GCPP_2s (path));
   path->hn = NULL;
   entry = path->entries[path->entries_length - 1];
+  GNUNET_assert (path == entry->path);
   while (1)
   {
     /* cut 'off' end of path */
+    GNUNET_assert (NULL == entry->cc);
     GCP_path_entry_remove (entry->peer,
                            entry,
                            path->entries_length - 1);
@@ -247,12 +250,15 @@ GCPP_release (struct CadetPeerPath *path)
 
     /* see if new peer at the end likes this path any better */
     entry = path->entries[path->entries_length - 1];
+    GNUNET_assert (path == entry->path);
+    force = (NULL == entry->cc) ? GNUNET_NO : GNUNET_YES;
     path->hn = GCP_attach_path (entry->peer,
                                 path,
                                 path->entries_length - 1,
-                                GNUNET_NO);
+                                force);
     if (NULL != path->hn)
       return; /* yep, got attached, we are done. */
+    GNUNET_assert (GNUNET_NO == force);
   }
 
   /* nobody wants us, discard the path */
@@ -386,7 +392,6 @@ extend_path (struct CadetPeerPath *path,
              int force)
 {
   unsigned int old_len = path->entries_length;
-  struct GNUNET_CONTAINER_HeapNode *hn;
   int i;
 
   /* Expand path */
@@ -412,18 +417,21 @@ extend_path (struct CadetPeerPath *path,
 
   /* If we extend an existing path, detach it from the
      old owner and re-attach to the new one */
-  hn = NULL;
+  GCP_detach_path (path->entries[old_len-1]->peer,
+                   path,
+                   path->hn);
+  path->hn = NULL;
   for (i=num_peers-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = path->entries[old_len + i];
 
     path->entries_length = old_len + i + 1;
     recalculate_path_desirability (path);
-    hn = GCP_attach_path (peers[i],
-                          path,
-                          old_len + (unsigned int) i,
-                          GNUNET_YES);
-    if (NULL != hn)
+    path->hn = GCP_attach_path (peers[i],
+                                path,
+                                old_len + (unsigned int) i,
+                                GNUNET_NO);
+    if (NULL != path->hn)
       break;
     GCP_path_entry_remove (entry->peer,
                            entry,
@@ -431,19 +439,20 @@ extend_path (struct CadetPeerPath *path,
     GNUNET_free (entry);
     path->entries[old_len + i] = NULL;
   }
-  if (NULL == hn)
+  if (NULL == path->hn)
   {
     /* none of the peers is interested in this path;
-       shrink path back */
+       shrink path back and re-attach. */
     GNUNET_array_grow (path->entries,
                        path->entries_length,
                        old_len);
+    path->hn = GCP_attach_path (path->entries[old_len - 1]->peer,
+                                path,
+                                old_len - 1,
+                                GNUNET_YES);
+    GNUNET_assert (NULL != path->hn);
     return;
   }
-  GCP_detach_path (path->entries[old_len-1]->peer,
-                   path,
-                   path->hn);
-  path->hn = hn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Extended path %s\n",
        GCPP_2s (path));
@@ -494,7 +503,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     /* Check that no peer is twice on the path */
     for (unsigned int i=0;i<off - skip;i++)
     {
-      if (cpath[i] == cpath[off])
+     if (cpath[i] == cpath[off - skip])
       {
         skip = off - i;
         break;

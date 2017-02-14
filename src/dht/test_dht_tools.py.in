@@ -20,6 +20,8 @@ import subprocess
 import time
 import tempfile
 
+os.environ["PATH"] = "@bindir@" + ":" + os.environ["PATH"];
+
 if os.name == "nt":
   tmp = os.getenv ("TEMP")
 else:

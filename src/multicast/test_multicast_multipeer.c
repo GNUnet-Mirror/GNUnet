@@ -37,12 +37,16 @@
 
 static struct GNUNET_TESTBED_Operation *op0; 
 static struct GNUNET_TESTBED_Operation *op1;
+static struct GNUNET_TESTBED_Operation *pi_op0;
+static struct GNUNET_TESTBED_Operation *pi_op1;
+
 static struct GNUNET_TESTBED_Peer **peers;
-const struct GNUNET_PeerIdentity *peer_id_origin;
+const struct GNUNET_PeerIdentity *peer_id[2];
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
 static struct GNUNET_MULTICAST_Origin *origin;
+static struct GNUNET_MULTICAST_Member *member;
 
 struct GNUNET_CRYPTO_EddsaPrivateKey *group_key;
 struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
@@ -82,6 +86,16 @@ shutdown_task (void *cls)
     GNUNET_TESTBED_operation_done (op1);
     op1 = NULL;
   }
+  if (NULL != pi_op0)
+  {
+    GNUNET_TESTBED_operation_done (pi_op0);
+    pi_op0 = NULL;
+  }
+  if (NULL != pi_op1)
+  {
+    GNUNET_TESTBED_operation_done (pi_op1);
+    pi_op1 = NULL;
+  }
   if (NULL != timeout_tid)
     {
       GNUNET_SCHEDULER_cancel (timeout_tid);
@@ -108,7 +122,7 @@ member_join_request (void *cls,
                      struct GNUNET_MULTICAST_JoinHandle *jh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Member sent a join request.");
+              "Member sent a join request.\n");
   
 }
 
@@ -122,29 +136,31 @@ member_join_decision (void *cls,
                       const struct GNUNET_MessageHeader *join_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Member received a decision from origin: ...");
+              "Member received a decision from origin: %s\n", (GNUNET_YES == is_admitted)?"accepted":"rejected");
   
+  result = GNUNET_OK;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 static void 
 member_replay_frag ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "member replay frag...");
+              "member replay frag...\n");
 }
 
 static void 
 member_replay_msg () 
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "member replay msg...");
+              "member replay msg...\n");
 }
 
 static void 
 member_message () 
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "member message...");
+              "member message...\n");
 }
 
 static void 
@@ -153,8 +169,29 @@ origin_join_request (void *cls,
                  const struct GNUNET_MessageHeader *join_msg,
                  struct GNUNET_MULTICAST_JoinHandle *jh) 
 {
+  struct GNUNET_MessageHeader *join_resp;
+
+  uint8_t data_size = ntohs (join_msg->size);
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "yey, got a join request. Let's see who it is.");
+              "Dizzy: Mh, got a join request...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "'%s'\n", (char *)&join_msg[1]);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "Dizzy: Oh, it's Bird! Let's get him in.\n");
+
+  char data[] = "Hi, Bird. Come in!";
+  data_size = strlen (data) + 1;
+  join_resp = GNUNET_malloc (sizeof (join_resp) + data_size);
+  join_resp->size = htons (sizeof (join_resp) + data_size);
+  join_resp->type = htons (123);
+  GNUNET_memcpy (&join_resp[1], data, data_size);
+
+  GNUNET_MULTICAST_join_decision (jh,
+                                  GNUNET_YES,
+                                  0,
+                                  NULL,
+                                  join_resp);
 
   result = GNUNET_OK;
 }
@@ -166,7 +203,7 @@ origin_replay_frag (void *cls,
                 uint64_t flags,
                 struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-  
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay fraq msg\n");
 }
 
 static void 
@@ -193,6 +230,7 @@ static void
 origin_message (void *cls,
             const struct GNUNET_MULTICAST_MessageHeader *msg) 
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin message msg\n");
 }
 
 
@@ -202,7 +240,7 @@ service_connect1 (void *cls,
                   void *ca_result,
                   const char *emsg)
 {
-  struct GNUNET_MULTICAST_Member *member = ca_result; 
+  member = ca_result; 
 
   if (NULL != member)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
@@ -215,7 +253,9 @@ multicast_da1 (void *cls,
                void * op_result)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "disconnecting from multicast service of member\n");
+              "Member parting from multicast group\n");
+
+  GNUNET_MULTICAST_member_part (member, NULL, NULL);
 }
 
 
@@ -229,17 +269,20 @@ multicast_ca1 (void *cls,
   member_key = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_CRYPTO_ecdsa_key_get_public (member_key, &member_pub_key);
   
-  char data[] = "Hello Mr. Smith!";
+  char data[] = "Whut's up, Dizzy!";
   uint8_t data_size = strlen (data) + 1;
   join_msg = GNUNET_malloc (sizeof (join_msg) + data_size);
   join_msg->size = htons (sizeof (join_msg) + data_size);
   join_msg->type = htons (123);
   GNUNET_memcpy (&join_msg[1], data, data_size);
   
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Members tries to join multicast group\n");
+  
   return GNUNET_MULTICAST_member_join (cfg,
                                        &group_pub_key,
                                        member_key,
-                                       peer_id_origin,
+                                       peer_id[0],
                                        0,
                                        NULL,
                                        join_msg, /* join message */
@@ -258,20 +301,22 @@ peer_information_cb (void *cls,
                      const struct GNUNET_TESTBED_PeerInformation *pinfo,
                      const char *emsg)
 {
-  struct GNUNET_HashCode pub_hash;
+  int i = (int) cls;
 
   if (NULL == pinfo) {
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
   
-  GNUNET_CRYPTO_hash (&peer_id_origin, sizeof (peer_id_origin), &pub_hash);
+  peer_id[i] = pinfo->result.id;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Got peer information of origin (%s)\n", GNUNET_h2s (&pub_hash));
-  peer_id_origin = pinfo->result.id;
+              "Got peer information of %s (%s)\n", (0==i)?"origin":"member" ,GNUNET_i2s(pinfo->result.id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create member peer\n");
+
+  if (0 == i) {
   /* connect to multicast service of member */
   op1 = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
                                         peers[1],                /* The peer whose service to connect to */
@@ -284,6 +329,7 @@ peer_information_cb (void *cls,
                                         multicast_da1,     /* callback to be called when closing the
                                                               opened service connection */
                                         NULL);                   /* closure for the above two callbacks */
+  }
 }
 
 /**
@@ -302,16 +348,21 @@ service_connect0 (void *cls,
                   void *ca_result,
                   const char *emsg)
 {
-  struct GNUNET_MULTICAST_Origin *origin = ca_result;
+  origin = ca_result;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connected to multicast service of origin\n");
 
   // Get GNUnet identity of origin
-  op0 = GNUNET_TESTBED_peer_get_information (peers[0],
-                                             GNUNET_TESTBED_PIT_IDENTITY,
-                                             peer_information_cb,
-                                             NULL);
+  pi_op0 = GNUNET_TESTBED_peer_get_information (peers[0],
+                                               GNUNET_TESTBED_PIT_IDENTITY,
+                                               peer_information_cb,
+                                               (void *) 0);
+  // Get GNUnet identity of member
+  pi_op1 = GNUNET_TESTBED_peer_get_information (peers[1],
+                                               GNUNET_TESTBED_PIT_IDENTITY,
+                                               peer_information_cb,
+                                               (void *) 1);
 
   /* Connection to service successful. Here we'd usually do something with
    * the service. */
@@ -348,8 +399,9 @@ multicast_da0 (void *cls,
                void *op_result)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "disconnecting from multicast service of origin\n");
+              "Origin closes multicast group\n");
 
+  GNUNET_MULTICAST_origin_stop (origin, NULL, NULL);
 }
 
 
@@ -400,8 +452,8 @@ testbed_master (void *cls,
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
   
-  /* Schedule the shutdown task with a delay of a few 1econds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3),
+  /* Schedule the shutdown task with a delay of a few Seconds */
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40),
 					      &timeout_task, NULL);
 }
 

@@ -1804,7 +1804,17 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                          GCP_get_id (t->destination),
                          &msg->kx.ephemeral_key,
                          &msg->kx.ratchet_key);
-  GNUNET_break (GNUNET_OK == ret);
+  if (GNUNET_OK != ret)
+  {
+    if (GNUNET_NO == ret)
+      GNUNET_STATISTICS_update (stats,
+                                "# redundant KX_AUTH received",
+                                1,
+                                GNUNET_NO);
+    else
+      GNUNET_break (0); /* connect to self!? */
+    return;
+  }
   GNUNET_CRYPTO_hash (&ax_tmp.RK,
                       sizeof (ax_tmp.RK),
                       &kx_auth);
@@ -1910,6 +1920,11 @@ GCT_add_channel (struct CadetTunnel *t,
   struct GNUNET_CADET_ChannelTunnelNumber ctn;
 
   ctn = get_next_free_ctn (t);
+  if (NULL != t->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = NULL;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_put (t->channels,
                                                       ntohl (ctn.cn),
@@ -2416,12 +2431,14 @@ consider_path_cb (void *cls,
   struct EvaluationSummary es;
   struct CadetTConnection *ct;
 
+  GNUNET_assert (off < GCPP_get_length (path));
   es.min_length = UINT_MAX;
   es.max_length = 0;
   es.max_desire = 0;
   es.min_desire = UINT64_MAX;
   es.path = path;
   es.duplicate = GNUNET_NO;
+  es.worst = NULL;
 
   /* Compute evaluation summary over existing connections. */
   GCT_iterate_connections (t,

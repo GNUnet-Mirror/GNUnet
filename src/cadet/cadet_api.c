@@ -291,6 +291,16 @@ struct GNUNET_CADET_Channel
   struct GNUNET_MQ_Handle *mq;
 
   /**
+   * Task to allow mq to send more traffic.
+   */
+  struct GNUNET_SCHEDULER_Task *mq_cont;
+
+  /**
+   * Pending envelope in case we don't have an ACK from the service.
+   */
+  struct GNUNET_MQ_Envelope *pending_env;
+
+  /**
    * Window change handler.
    */
   GNUNET_CADET_WindowSizeEventHandler window_changes;
@@ -315,6 +325,8 @@ struct GNUNET_CADET_Port
 
   /**
    * Port ID.
+   *
+   * @deprecated
    */
   struct GNUNET_HashCode *hash;
 
@@ -547,7 +559,11 @@ destroy_channel (struct GNUNET_CADET_Channel *ch)
   GNUNET_CONTAINER_DLL_remove (h->channels_head,
                                h->channels_tail,
                                ch);
-
+  if (NULL != ch->mq_cont)
+  {
+    GNUNET_SCHEDULER_cancel (ch->mq_cont);
+    ch->mq_cont = NULL;
+  }
   /* signal channel destruction */
   if (0 != ch->peer)
   {
@@ -630,10 +646,37 @@ remove_from_queue (struct GNUNET_CADET_TransmitHandle *th)
 }
 
 
+/**
+ * Notify the application about a change in the window size (if needed).
+ *
+ * @param ch Channel to notify about.
+ */
+static void
+notify_window_size (struct GNUNET_CADET_Channel *ch)
+{
+  if (NULL != ch->window_changes)
+  {
+    ch->window_changes (ch->ctx, ch, ch->allow_send);
+  }
+}
+
 /******************************************************************************/
 /***********************      MQ API CALLBACKS     ****************************/
 /******************************************************************************/
 
+/**
+ * Allow the MQ implementation to send the next message.
+ *
+ * @param cls Closure (channel whose mq to activate).
+ */
+static void
+cadet_mq_send_continue (void *cls)
+{
+  struct GNUNET_CADET_Channel *ch = cls;
+
+  ch->mq_cont = NULL;
+  GNUNET_MQ_impl_send_continue (ch->mq);
+}
 
 /**
  * Implement sending functionality of a message queue for
@@ -679,8 +722,21 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
                                  GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
                                  msg);
   cadet_msg->ccn = ch->ccn;
-  GNUNET_MQ_send (h->mq, env);
-  GNUNET_MQ_impl_send_continue (mq);
+
+  if (0 < ch->allow_send)
+  {
+    /* Service has allowed this message, just send it and continue accepting */
+    GNUNET_MQ_send (h->mq, env);
+    ch->allow_send--;
+    ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_continue, ch);
+    // notify_window_size (ch); /* FIXME add "verbose" setting? */
+  }
+  else
+  {
+    /* Service has NOT allowed this message, queue it and wait for an ACK */
+    GNUNET_assert (NULL == ch->pending_env);
+    ch->pending_env = env;
+  }
 }
 
 
@@ -725,6 +781,7 @@ cadet_mq_error_handler (void *cls,
  * @param mq message queue
  * @param impl_state state specific to the implementation
  */
+
 static void
 cadet_mq_cancel_impl (struct GNUNET_MQ_Handle *mq,
                      void *impl_state)
@@ -849,11 +906,13 @@ handle_channel_created (void *cls,
     /** @deprecated */
     /* Old style API */
     ch->ctx = port->handler (port->cls,
-                            ch,
-                            &msg->peer,
-                            port->hash,
-                            ch->options);
-  } else {
+                             ch,
+                             &msg->peer,
+                             port->hash,
+                             ch->options);
+  }
+  else
+  {
     /* MQ API */
     GNUNET_assert (NULL != port->connects);
     ch->window_changes = port->window_changes;
@@ -865,7 +924,7 @@ handle_channel_created (void *cls,
                                             port->handlers,
                                             &cadet_mq_error_handler,
                                             ch);
-    ch->ctx = port->connects (port->cadet->cls,
+    ch->ctx = port->connects (port->cls,
                               ch,
                               &msg->peer);
     GNUNET_MQ_set_handlers_closure (ch->mq, ch->ctx);
@@ -955,6 +1014,7 @@ handle_local_data (void *cls,
   const struct GNUNET_CADET_MessageHandler *handler;
   struct GNUNET_CADET_Channel *ch;
   uint16_t type;
+  int fwd;
 
   ch = retrieve_channel (h,
                          message->ccn);
@@ -967,16 +1027,20 @@ handle_local_data (void *cls,
 
   payload = (struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
+  fwd = ntohl (ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a %s data on channel %s [%X] of type %s (%u)\n",
-       GC_f2s (ntohl (ch->ccn.channel_of_client) >=
-               GNUNET_CADET_LOCAL_CHANNEL_ID_CLI),
+       GC_f2s (fwd),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)),
        ntohl (message->ccn.channel_of_client),
        GC_m2s (type),
        type);
   if (NULL != ch->mq)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "injecting msg %s into mq %p\n",
+         GC_m2s (ntohs (payload->type)),
+         ch->mq);
     GNUNET_MQ_inject_message (ch->mq, payload);
     return;
   }
@@ -1012,8 +1076,6 @@ handle_local_data (void *cls,
  *
  * @param h Cadet handle.
  * @param message Message itself.
- *
- * FIXME either delete or port to MQ
  */
 static void
 handle_local_ack (void *cls,
@@ -1034,10 +1096,31 @@ handle_local_ack (void *cls,
     return;
   }
   ch->allow_send++;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got an ACK on channel %X, allow send now %u!\n",
-       ntohl (ch->ccn.channel_of_client),
-       ch->allow_send);
+  if (NULL != ch->mq)
+  {
+    if (NULL == ch->pending_env)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got an ACK on mq channel %X, allow send now %u!\n",
+           ntohl (ch->ccn.channel_of_client),
+           ch->allow_send);
+      notify_window_size (ch);
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got an ACK on mq channel %X, sending pending message!\n",
+           ntohl (ch->ccn.channel_of_client));
+      GNUNET_MQ_send (h->mq, ch->pending_env);
+      ch->allow_send--;
+      ch->pending_env = NULL;
+      ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_continue, ch);
+    }
+    return;
+  }
+
+  /** @deprecated */
+  /* Old style API */
   for (th = h->th_head; NULL != th; th = th->next)
   {
     if ( (th->channel == ch) &&
@@ -2455,11 +2538,20 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
-  p->handlers = handlers;
+  if (NULL != handlers)
+  {
+    unsigned int i;
+    for (i=0;NULL != handlers[i].cb; i++) ;
+    p->handlers = GNUNET_new_array (i + 1,
+                                    struct GNUNET_MQ_MessageHandler);
+    GNUNET_memcpy ((struct GNUNET_MQ_MessageHandler *) p->handlers,
+                   handlers,
+                   i * sizeof (struct GNUNET_MQ_MessageHandler));
+  }
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (h->ports,
-						    p->hash,
+						    &p->id,
 						    p,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 

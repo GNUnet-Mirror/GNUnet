@@ -148,13 +148,36 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                     size_t size, const void *data)
+                     unsigned int put_path_length,
+                     enum GNUNET_BLOCK_Type type,
+                     size_t size,
+                     const void *data)
 {
   FPRINTF (stdout,
 	   _("Result %d, type %d:\n%.*s\n"),
-	   result_count, type,
-           (unsigned int) size, (char *) data);
+	   result_count,
+           type,
+           (unsigned int) size,
+           (char *) data);
+  if (verbose)
+  {
+    FPRINTF (stdout,
+             "  GET path: ");
+    for (unsigned int i=0;i<get_path_length;i++)
+      FPRINTF (stdout,
+               "%s%s",
+               (0 == i) ? "" : "-",
+               GNUNET_i2s (&get_path[i]));
+    FPRINTF (stdout,
+             "\n  PUT path: ");
+    for (unsigned int i=0;i<put_path_length;i++)
+      FPRINTF (stdout,
+               "%s%s",
+               (0 == i) ? "" : "-",
+               GNUNET_i2s (&put_path[i]));
+    FPRINTF (stdout,
+             "\n");
+  }
   result_count++;
 }
 

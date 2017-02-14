@@ -44,7 +44,7 @@ static char *query_key;
 /**
  * User supplied expiration value
  */
-static unsigned long long expiration_seconds = 3600;
+static struct GNUNET_TIME_Relative expiration;
 
 /**
  * Desired replication level.
@@ -57,9 +57,14 @@ static unsigned int replication = 5;
 static int verbose;
 
 /**
- * Use DHT demultixplex_everywhere
+ * Use #GNUNET_DHT_DEMULTIPLEX_EVERYWHERE.
  */
 static int demultixplex_everywhere;
+
+/**
+ * Use #GNUNET_DHT_RO_RECORD_ROUTE.
+ */
+static int record_route;
 
 /**
  * Handle to the DHT
@@ -144,6 +149,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Absolute expiration;
+  enum GNUNET_DHT_RouteOption ro;
 
   cfg = c;
   if ((NULL == query_key) || (NULL == data))
@@ -164,17 +170,20 @@ run (void *cls,
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
-  expiration =
-      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_SECONDS,
-                                         expiration_seconds));
   if (verbose)
-    FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
-             query_key, data);
+    FPRINTF (stderr,
+             _("Issuing put request for `%s' with data `%s'!\n"),
+             query_key,
+             data);
+  ro = GNUNET_DHT_RO_NONE;
+  if (demultixplex_everywhere)
+    ro |= GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+  if (record_route)
+    ro |= GNUNET_DHT_RO_RECORD_ROUTE;
   GNUNET_DHT_put (dht_handle,
                   &key,
                   replication,
-                  (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
+                  ro,
                   query_type,
                   strlen (data),
                   data,
@@ -193,7 +202,7 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    1, &GNUNET_GETOPT_set_string, &data},
   {'e', "expiration", "EXPIRATION",
    gettext_noop ("how long to store this entry in the dht (in seconds)"),
-   1, &GNUNET_GETOPT_set_ulong, &expiration_seconds},
+   1, &GNUNET_GETOPT_set_relative_time, &expiration},
   {'k', "key", "KEY",
    gettext_noop ("the query key"),
    1, &GNUNET_GETOPT_set_string, &query_key},
@@ -203,6 +212,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'r', "replication", "LEVEL",
    gettext_noop ("how many replicas to create"),
    1, &GNUNET_GETOPT_set_uint, &replication},
+  {'R', "record", NULL,
+   gettext_noop ("use DHT's record route option"),
+   0, &GNUNET_GETOPT_set_one, &record_route},
   {'t', "type", "TYPE",
    gettext_noop ("the type to insert data as"),
    1, &GNUNET_GETOPT_set_uint, &query_type},
@@ -226,11 +238,17 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
                                                  &argc, &argv))
     return 2;
+  expiration = GNUNET_TIME_UNIT_HOURS;
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-put",
+          GNUNET_PROGRAM_run (argc,
+                              argv,
+                              "gnunet-dht-put",
                               gettext_noop
                               ("Issue a PUT request to the GNUnet DHT insert DATA under KEY."),
-                              options, &run, NULL)) ? ret : 1;
+                              options,
+                              &run,
+                              NULL))
+    ? ret : 1;
 }
 
 /* end of gnunet-dht-put.c */
