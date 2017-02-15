@@ -321,23 +321,21 @@ start_callback (void *cls,
 		enum GNUNET_ARM_RequestStatus rs,
 		enum GNUNET_ARM_Result result)
 {
-  char *msg;
-
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %s\n"));
-    FPRINTF (stdout, msg, req_string (rs));
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to start the ARM service: %s\n"),
+             req_string (rs));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if ( (GNUNET_ARM_RESULT_STARTING != result) &&
        (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result) )
   {
-    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %s\n"));
-    FPRINTF (stdout, msg, ret_string (result));
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to start the ARM service: %s\n"),
+             ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -417,28 +415,23 @@ init_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs,
 	       enum GNUNET_ARM_Result result)
 {
-  char *msg;
-
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    GNUNET_asprintf (&msg,
-                     _("Failed to send a request to start the `%s' service: %%s\n"),
-                     init);
-    FPRINTF (stdout, msg, req_string (rs));
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to send a request to start the `%s' service: %s\n"),
+             init,
+             req_string (rs));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if ((GNUNET_ARM_RESULT_STARTING != result) &&
       (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result))
   {
-    GNUNET_asprintf (&msg,
-                     _("Failed to start the `%s' service: %s\n"),
-                     init,
-                     ret_string (result));
-    FPRINTF (stdout, "%s", msg);
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to start the `%s' service: %s\n"),
+             init,
+             ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
