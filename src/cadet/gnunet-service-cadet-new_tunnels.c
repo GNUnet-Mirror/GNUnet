@@ -1888,12 +1888,12 @@ get_next_free_ctn (struct CadetTunnel *t)
   ctn = ntohl (t->next_ctn.cn);
   while (NULL !=
          GNUNET_CONTAINER_multihashmap32_get (t->channels,
-                                              ctn))
+                                              ctn | highbit))
   {
-    ctn = ((ctn + 1) & (~ HIGH_BIT)) | highbit;
+    ctn = ((ctn + 1) & (~ HIGH_BIT));
   }
-  t->next_ctn.cn = htonl (((ctn + 1) & (~ HIGH_BIT)) | highbit);
-  ret.cn = htonl (ctn);
+  t->next_ctn.cn = htonl ((ctn + 1) & (~ HIGH_BIT));
+  ret.cn = htonl (ctn | highbit);
   return ret;
 }
 
