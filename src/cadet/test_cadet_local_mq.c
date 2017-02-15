@@ -189,8 +189,9 @@ handle_data_received (void *cls,
 
   payload = GNUNET_ntohll (msg->payload);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Data callback payload %lu with cls: %p! Shutting down.\n",
-              payload, cls);
+	      "Data callback payload %llu with cls: %p! Shutting down.\n",
+              (unsigned long long) payload,
+              cls);
   GNUNET_assert (42 == payload);
   got_data = GNUNET_YES;
   GNUNET_SCHEDULER_shutdown ();
