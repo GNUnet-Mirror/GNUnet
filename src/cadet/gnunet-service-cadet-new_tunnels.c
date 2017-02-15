@@ -2640,7 +2640,7 @@ handle_plaintext_data (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved %u bytes of application data for unknown channel %u, sending DESTROY\n",
+         "Received %u bytes of application data for unknown channel %u, sending DESTROY\n",
          (unsigned int) (ntohs (msg->header.size) - sizeof (*msg)),
          ntohl (msg->ctn.cn));
     GCT_send_channel_destroy (t,
@@ -2675,7 +2675,7 @@ handle_plaintext_data_ack (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved DATA_ACK for unknown channel %u, sending DESTROY\n",
+         "Received DATA_ACK for unknown channel %u, sending DESTROY\n",
          ntohl (ack->ctn.cn));
     GCT_send_channel_destroy (t,
                               ack->ctn);
@@ -2706,7 +2706,7 @@ handle_plaintext_channel_open (void *cls,
   if (NULL != ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved duplicate channel OPEN on port %s from %s (%s), resending ACK\n",
+         "Received duplicate channel OPEN on port %s from %s (%s), resending ACK\n",
          GNUNET_h2s (&copen->port),
          GCT_2s (t),
          GCCH_2s (ch));
@@ -2715,7 +2715,7 @@ handle_plaintext_channel_open (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel OPEN on port %s from %s\n",
+       "Received channel OPEN on port %s from %s\n",
        GNUNET_h2s (&copen->port),
        GCT_2s (t));
   ch = GCCH_channel_incoming_new (t,
@@ -2824,7 +2824,7 @@ handle_plaintext_channel_destroy (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel DESTROY on %s from %s\n",
+       "Received channel DESTROY on %s from %s\n",
        GCCH_2s (ch),
        GCT_2s (t));
   GCCH_handle_remote_destroy (ch,
