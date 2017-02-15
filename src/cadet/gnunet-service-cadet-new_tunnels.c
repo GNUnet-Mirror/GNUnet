@@ -1893,7 +1893,7 @@ get_next_free_ctn (struct CadetTunnel *t)
     ctn = ((ctn + 1) & (~ HIGH_BIT)) | highbit;
   }
   t->next_ctn.cn = htonl (((ctn + 1) & (~ HIGH_BIT)) | highbit);
-  ret.cn = ntohl (ctn);
+  ret.cn = htonl (ctn);
   return ret;
 }
 
@@ -2706,7 +2706,7 @@ handle_plaintext_channel_open (void *cls,
   if (NULL != ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received duplicate channel OPEN on port %s from %s (%s), resending ACK\n",
+         "Received duplicate channel CHANNEL_OPEN on port %s from %s (%s), resending ACK\n",
          GNUNET_h2s (&copen->port),
          GCT_2s (t),
          GCCH_2s (ch));
@@ -2715,7 +2715,7 @@ handle_plaintext_channel_open (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received channel OPEN on port %s from %s\n",
+       "Received CHANNEL_OPEN on port %s from %s\n",
        GNUNET_h2s (&copen->port),
        GCT_2s (t));
   ch = GCCH_channel_incoming_new (t,

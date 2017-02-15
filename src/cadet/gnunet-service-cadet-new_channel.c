@@ -859,19 +859,19 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch,
   if (NULL == ch->dest)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Ignoring duplicate channel OPEN on %s: port is closed\n",
+         "Ignoring duplicate CHANNEL_OPEN on %s: port is closed\n",
          GCCH_2s (ch));
     return;
   }
   if (NULL != ch->retry_control_task)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Ignoring duplicate channel OPEN on %s: control message is pending\n",
+         "Ignoring duplicate CHANNEL_OPEN on %s: control message is pending\n",
          GCCH_2s (ch));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Retransmitting OPEN_ACK on %s\n",
+       "Retransmitting CHANNEL_OPEN_ACK on %s\n",
        GCCH_2s (ch));
   ch->retry_control_task
     = GNUNET_SCHEDULER_add_now (&send_open_ack,
