@@ -430,7 +430,7 @@ extend_path (struct CadetPeerPath *path,
     path->hn = GCP_attach_path (peers[i],
                                 path,
                                 old_len + (unsigned int) i,
-                                GNUNET_NO);
+                                force);
     if (NULL != path->hn)
       break;
     GCP_path_entry_remove (entry->peer,
