@@ -1056,7 +1056,8 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
   switch (ch->state)
   {
   case CADET_CHANNEL_NEW:
-    GNUNET_break (0);
+    /* We gave up on a channel that we created as a client to a remote
+       target, but that never went anywhere. Nothing to do here. */
     break;
   case CADET_CHANNEL_LOOSE:
     GSC_drop_loose_channel (&ch->port,
