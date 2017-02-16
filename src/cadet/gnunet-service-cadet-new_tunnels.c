@@ -173,18 +173,14 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
 
   /**
-   * ECDH for key exchange (A0 / B0).  Note that for the
-   * 'unverified_ax', this member is an alias with the main
-   * 't->ax.kx_0' value, so do not free it!
+   * ECDH for key exchange (A0 / B0).
    */
-  struct GNUNET_CRYPTO_EcdhePrivateKey *kx_0;
+  struct GNUNET_CRYPTO_EcdhePrivateKey kx_0;
 
   /**
-   * ECDH Ratchet key (our private key in the current DH).  Note that
-   * for the 'unverified_ax', this member is an alias with the main
-   * 't->ax.kx_0' value, so do not free it!
+   * ECDH Ratchet key (our private key in the current DH).
    */
-  struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
+  struct GNUNET_CRYPTO_EcdhePrivateKey DHRs;
 
   /**
    * ECDH Ratchet key (other peer's public key in the current DH).
@@ -648,10 +644,10 @@ trigger_transmissions (void *cls);
 static void
 new_ephemeral (struct CadetTunnelAxolotl *ax)
 {
-  GNUNET_free_non_null (ax->DHRs);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new ephemeral ratchet key (DHRs)\n");
-  ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdhe_key_create2 (&ax->DHRs));
 }
 
 
@@ -786,7 +782,7 @@ t_ax_encrypt (struct CadetTunnelAxolotl *ax,
     ax->HKs = ax->NHKs;
 
     /* RK, NHKs, CKs = KDF( HMAC-HASH(RK, DH(DHRs, DHRr)) ) */
-    GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
+    GNUNET_CRYPTO_ecc_ecdh (&ax->DHRs,
                             &ax->DHRr,
                             &dh);
     t_ax_hmac_hash (&ax->RK,
@@ -1192,7 +1188,7 @@ t_ax_decrypt_and_validate (struct CadetTunnelAxolotl *ax,
                    PNp);
 
     /* RKp, NHKp, CKp = KDF (HMAC-HASH (RK, DH (DHRp, DHRs))) */
-    GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
+    GNUNET_CRYPTO_ecc_ecdh (&ax->DHRs,
                             DHRp,
                             &dh);
     t_ax_hmac_hash (&ax->RK,
@@ -1341,9 +1337,9 @@ send_kx (struct CadetTunnel *t,
   flags = GNUNET_CADET_KX_FLAG_FORCE_REPLY; /* always for KX */
   msg->flags = htonl (flags);
   msg->cid = *GCC_get_id (cc);
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax->kx_0,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&ax->kx_0,
                                       &msg->ephemeral_key);
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&ax->DHRs,
                                       &msg->ratchet_key);
   mark_connection_unready (ct);
   t->kx_retry_delay = GNUNET_TIME_STD_BACKOFF (t->kx_retry_delay);
@@ -1406,9 +1402,9 @@ send_kx_auth (struct CadetTunnel *t,
     flags |= GNUNET_CADET_KX_FLAG_FORCE_REPLY;
   msg->kx.flags = htonl (flags);
   msg->kx.cid = *GCC_get_id (cc);
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax->kx_0,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&ax->kx_0,
                                       &msg->kx.ephemeral_key);
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&ax->DHRs,
                                       &msg->kx.ratchet_key);
   /* Compute authenticator (this is the main difference to #send_kx()) */
   GNUNET_CRYPTO_hash (&ax->RK,
@@ -1447,8 +1443,8 @@ cleanup_ax (struct CadetTunnelAxolotl *ax)
     delete_skipped_key (ax,
                         ax->skipped_head);
   GNUNET_assert (0 == ax->skipped);
-  GNUNET_free_non_null (ax->kx_0);
-  GNUNET_free_non_null (ax->DHRs);
+  GNUNET_CRYPTO_ecdhe_key_clear (&ax->kx_0);
+  GNUNET_CRYPTO_ecdhe_key_clear (&ax->DHRs);
 }
 
 
@@ -1508,7 +1504,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   }
   else
   {
-    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* B0 */
+    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* B0 */
                               &pid->public_key,    /* A */
                               &key_material[0]);
   }
@@ -1516,7 +1512,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   /* ECDH A0 B */
   if (GNUNET_YES == am_I_alice)
   {
-    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* A0 */
+    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* A0 */
                               &pid->public_key,    /* B */
                               &key_material[1]);
   }
@@ -1532,7 +1528,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   /* ECDH A0 B0 */
   /* (This is the triple-DH, we could probably safely skip this,
      as A0/B0 are already in the key material.) */
-  GNUNET_CRYPTO_ecc_ecdh (ax->kx_0,             /* A0 or B0 */
+  GNUNET_CRYPTO_ecc_ecdh (&ax->kx_0,             /* A0 or B0 */
                           ephemeral_key,  /* B0 or A0 */
                           &key_material[2]);
 
@@ -1835,8 +1831,6 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   if (NULL != t->unverified_ax)
   {
     /* We got some "stale" KX before, drop that. */
-    t->unverified_ax->DHRs = NULL; /* aliased with ax.DHRs */
-    t->unverified_ax->kx_0 = NULL; /* aliased with ax.DHRs */
     cleanup_ax (t->unverified_ax);
     GNUNET_free (t->unverified_ax);
     t->unverified_ax = NULL;
@@ -1894,12 +1888,12 @@ get_next_free_ctn (struct CadetTunnel *t)
   ctn = ntohl (t->next_ctn.cn);
   while (NULL !=
          GNUNET_CONTAINER_multihashmap32_get (t->channels,
-                                              ctn))
+                                              ctn | highbit))
   {
-    ctn = ((ctn + 1) & (~ HIGH_BIT)) | highbit;
+    ctn = ((ctn + 1) & (~ HIGH_BIT));
   }
-  t->next_ctn.cn = htonl (((ctn + 1) & (~ HIGH_BIT)) | highbit);
-  ret.cn = ntohl (ctn);
+  t->next_ctn.cn = htonl ((ctn + 1) & (~ HIGH_BIT));
+  ret.cn = htonl (ctn | highbit);
   return ret;
 }
 
@@ -2054,8 +2048,6 @@ destroy_tunnel (void *cls)
   GNUNET_MQ_destroy (t->mq);
   if (NULL != t->unverified_ax)
   {
-    t->unverified_ax->DHRs = NULL; /* aliased with ax.DHRs */
-    t->unverified_ax->kx_0 = NULL; /* aliased with ax.DHRs */
     cleanup_ax (t->unverified_ax);
     GNUNET_free (t->unverified_ax);
   }
@@ -2648,7 +2640,7 @@ handle_plaintext_data (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved %u bytes of application data for unknown channel %u, sending DESTROY\n",
+         "Received %u bytes of application data for unknown channel %u, sending DESTROY\n",
          (unsigned int) (ntohs (msg->header.size) - sizeof (*msg)),
          ntohl (msg->ctn.cn));
     GCT_send_channel_destroy (t,
@@ -2683,7 +2675,7 @@ handle_plaintext_data_ack (void *cls,
     /* We don't know about such a channel, might have been destroyed on our
        end in the meantime, or never existed. Send back a DESTROY. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved DATA_ACK for unknown channel %u, sending DESTROY\n",
+         "Received DATA_ACK for unknown channel %u, sending DESTROY\n",
          ntohl (ack->ctn.cn));
     GCT_send_channel_destroy (t,
                               ack->ctn);
@@ -2714,7 +2706,7 @@ handle_plaintext_channel_open (void *cls,
   if (NULL != ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receicved duplicate channel OPEN on port %s from %s (%s), resending ACK\n",
+         "Received duplicate channel CHANNEL_OPEN on port %s from %s (%s), resending ACK\n",
          GNUNET_h2s (&copen->port),
          GCT_2s (t),
          GCCH_2s (ch));
@@ -2723,7 +2715,7 @@ handle_plaintext_channel_open (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel OPEN on port %s from %s\n",
+       "Received CHANNEL_OPEN on port %s from %s\n",
        GNUNET_h2s (&copen->port),
        GCT_2s (t));
   ch = GCCH_channel_incoming_new (t,
@@ -2832,7 +2824,7 @@ handle_plaintext_channel_destroy (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receicved channel DESTROY on %s from %s\n",
+       "Received channel DESTROY on %s from %s\n",
        GCCH_2s (ch),
        GCT_2s (t));
   GCCH_handle_remote_destroy (ch,
@@ -2917,7 +2909,8 @@ GCT_create_tunnel (struct CadetPeer *destination)
 
   t->kx_retry_delay = INITIAL_KX_RETRY_DELAY;
   new_ephemeral (&t->ax);
-  t->ax.kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdhe_key_create2 (&t->ax.kx_0));
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
   t->maintain_connections_task
@@ -3086,8 +3079,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     if (-1 != decrypted_size)
     {
       /* It worked! Treat this as authentication of the AX data! */
-      t->ax.DHRs = NULL; /* aliased with ax.DHRs */
-      t->ax.kx_0 = NULL; /* aliased with ax.DHRs */
       cleanup_ax (&t->ax);
       t->ax = *t->unverified_ax;
       GNUNET_free (t->unverified_ax);
@@ -3118,8 +3109,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
          t->unverified_attempts);
     if (t->unverified_attempts > MAX_UNVERIFIED_ATTEMPTS)
     {
-      t->unverified_ax->DHRs = NULL; /* aliased with ax.DHRs */
-      t->unverified_ax->kx_0 = NULL; /* aliased with ax.DHRs */
       cleanup_ax (t->unverified_ax);
       GNUNET_free (t->unverified_ax);
       t->unverified_ax = NULL;
@@ -3195,7 +3184,7 @@ GCT_send (struct CadetTunnel *t,
   /* FIXME: we should do this once, not once per message;
      this is a point multiplication, and DHRs does not
      change all the time. */
-  GNUNET_CRYPTO_ecdhe_key_get_public (t->ax.DHRs,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&t->ax.DHRs,
                                       &ax_msg->ax_header.DHRs);
   t_h_encrypt (&t->ax,
                ax_msg);

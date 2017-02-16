@@ -1240,6 +1240,17 @@ GNUNET_CRYPTO_eddsa_key_create (void);
 
 /**
  * @ingroup crypto
+ * Create a new private key.  Clear with #GNUNET_CRYPTO_ecdhe_key_clear().
+ *
+ * @param[out] pk set to fresh private key;
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ */
+int
+GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk);
+
+
+/**
+ * @ingroup crypto
  * Create a new private key. Caller must free return value.
  *
  * @return fresh private key; free using #GNUNET_free
