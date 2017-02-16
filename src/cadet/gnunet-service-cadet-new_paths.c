@@ -153,6 +153,7 @@ GCPP_add_connection (struct CadetPeerPath *path,
   GNUNET_assert (off < path->entries_length);
   entry = path->entries[off];
   GNUNET_assert (NULL == entry->cc);
+  GNUNET_assert (NULL != cc);
   entry->cc = cc;
 }
 
@@ -433,6 +434,7 @@ extend_path (struct CadetPeerPath *path,
                                 force);
     if (NULL != path->hn)
       break;
+    GNUNET_assert (NULL == entry->cc);
     GCP_path_entry_remove (entry->peer,
                            entry,
                            old_len + i);
