@@ -1328,7 +1328,7 @@ send_kx (struct CadetTunnel *t,
   }
   cc = ct->cc;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending KX on %s via %s using %s in state %s\n",
+       "Sending KX on %s via %s in state %s\n",
        GCT_2s (t),
        GCC_2s (cc),
        estate2s (t->estate));
