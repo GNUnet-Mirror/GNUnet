@@ -76,7 +76,7 @@
 
 
 /**
- * All the states a connection can be in.
+ * All the states a channel can be in.
  */
 enum CadetChannelState
 {
@@ -86,7 +86,13 @@ enum CadetChannelState
   CADET_CHANNEL_NEW,
 
   /**
-   * Connection create message sent, waiting for ACK.
+   * Channel is to a port that is not open, we're waiting for the
+   * port to be opened.
+   */
+  CADET_CHANNEL_LOOSE,
+
+  /**
+   * CHANNEL_OPEN message sent, waiting for CHANNEL_OPEN_ACK.
    */
   CADET_CHANNEL_OPEN_SENT,
 
@@ -644,6 +650,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
     if (NULL == c)
     {
       /* port closed, wait for it to possibly open */
+      ch->state = CADET_CHANNEL_LOOSE;
       (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
                                                 port,
                                                 ch,
@@ -740,6 +747,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   if (NULL == c)
   {
     /* port closed, wait for it to possibly open */
+    ch->state = CADET_CHANNEL_LOOSE;
     (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
                                               port,
                                               ch,
@@ -977,6 +985,7 @@ GCCH_bind (struct CadetChannel *ch,
   else
   {
     /* notify other peer that we accepted the connection */
+    ch->state = CADET_CHANNEL_READY;
     ch->retry_control_task
       = GNUNET_SCHEDULER_add_now (&send_open_ack,
                                   ch);
@@ -1044,12 +1053,19 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     return;
   }
   /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
-  if (CADET_CHANNEL_NEW == ch->state)
+  switch (ch->state)
+  {
+  case CADET_CHANNEL_NEW:
+    GNUNET_break (0);
+    break;
+  case CADET_CHANNEL_LOOSE:
     GSC_drop_loose_channel (&ch->port,
                             ch);
-  else
+    break;
+  default:
     GCT_send_channel_destroy (ch->t,
                               ch->ctn);
+  }
   /* Nothing left to do, just finish destruction */
   channel_destroy (ch);
 }
@@ -1071,6 +1087,10 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
   case CADET_CHANNEL_NEW:
     /* this should be impossible */
     GNUNET_break (0);
+    break;
+  case CADET_CHANNEL_LOOSE:
+    /* This makes no sense. */
+    GNUNET_break_op (0);
     break;
   case CADET_CHANNEL_OPEN_SENT:
     if (NULL == ch->owner)
