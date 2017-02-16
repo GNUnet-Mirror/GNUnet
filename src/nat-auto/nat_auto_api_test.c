@@ -553,7 +553,7 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          nh);
     }
     LOG (GNUNET_ERROR_TYPE_INFO,
-	 "NAT test listens on port %u (%s)\n",
+	 "NAT test listens on port %llu (%s)\n",
 	 bnd_port,
 	 (IPPROTO_TCP == proto) ? "tcp" : "udp");
     nh->nat = GNUNET_NAT_register (cfg,
