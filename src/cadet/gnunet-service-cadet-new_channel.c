@@ -566,6 +566,8 @@ send_channel_open (void *cls)
   msgcc.port = ch->port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
+  if (NULL != ch->last_control_qe)
+    GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
                                   &channel_open_sent_cb,
@@ -801,13 +803,13 @@ send_channel_data_ack (struct CadetChannel *ch)
   msg.ctn = ch->ctn;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid));
   msg.futures = GNUNET_htonll (ch->mid_futures);
-  if (NULL != ch->last_control_qe)
-    GCT_send_cancel (ch->last_control_qe);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending DATA_ACK %u:%llX via %s\n",
        (unsigned int) ntohl (msg.mid.mid),
        (unsigned long long) ch->mid_futures,
        GCCH_2s (ch));
+  if (NULL != ch->last_control_qe)
+    GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe = GCT_send (ch->t,
                                   &msg.header,
                                   &send_ack_cb,
