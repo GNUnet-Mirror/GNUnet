@@ -1044,7 +1044,10 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     return;
   }
   /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
-  if (CADET_CHANNEL_NEW != ch->state)
+  if (CADET_CHANNEL_NEW == ch->state)
+    GSC_drop_loose_channel (&ch->port,
+                            ch);
+  else
     GCT_send_channel_destroy (ch->t,
                               ch->ctn);
   /* Nothing left to do, just finish destruction */
@@ -1710,6 +1713,11 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  if (GNUNET_YES == ch->destroy)
+  {
+    /* we are going down, drop messages */
+    return GNUNET_OK;
+  }
   ch->pending_messages++;
 
   if (GNUNET_YES == ch->is_loopback)
@@ -1722,18 +1730,24 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     env = GNUNET_MQ_msg_extra (ld,
                                buf_len,
                                GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-    if (sender_ccn.channel_of_client ==
-        ch->owner->ccn.channel_of_client)
+    if ( (NULL != ch->owner) &&
+         (sender_ccn.channel_of_client ==
+          ch->owner->ccn.channel_of_client) )
     {
       receiver = ch->dest;
       to_owner = GNUNET_NO;
     }
-    else
+    else if ( (NULL != ch->dest) &&
+              (sender_ccn.channel_of_client ==
+               ch->dest->ccn.channel_of_client) )
     {
-      GNUNET_assert (sender_ccn.channel_of_client ==
-                     ch->dest->ccn.channel_of_client);
       receiver = ch->owner;
       to_owner = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
     ld->ccn = receiver->ccn;
     GNUNET_memcpy (&ld[1],
