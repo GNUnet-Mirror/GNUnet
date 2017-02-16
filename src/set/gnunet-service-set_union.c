@@ -1594,7 +1594,7 @@ union_evaluate (struct Operation *op,
   {
     /* the context message is too large */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (op->spec->set->client);
+    GNUNET_SERVICE_client_drop (op->spec->set->client);
     return;
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
