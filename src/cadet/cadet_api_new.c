@@ -707,7 +707,7 @@ handle_local_data (void *cls,
     return;
   }
 
-  payload = (struct GNUNET_MessageHeader *) &message[1];
+  payload = (const struct GNUNET_MessageHeader *) &message[1];
   type = ntohs (payload->type);
   fwd = ntohl (ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
