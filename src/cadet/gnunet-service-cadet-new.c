@@ -1238,14 +1238,14 @@ channel_destroy_iterator (void *cls,
        "Destroying %s, due to %s disconnecting.\n",
        GCCH_2s (ch),
        GSC_2s (c));
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
-                                                         key,
-                                                         ch));
   ccn.channel_of_client = htonl (key);
   GCCH_channel_local_destroy (ch,
                               c,
                               ccn);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (c->channels,
+                                                         key,
+                                                         ch));
   return GNUNET_OK;
 }
 
@@ -1304,6 +1304,7 @@ client_disconnect_cb (void *cls,
     GNUNET_CONTAINER_multihashmap32_iterate (c->channels,
                                              &channel_destroy_iterator,
                                              c);
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (c->channels));
     GNUNET_CONTAINER_multihashmap32_destroy (c->channels);
   }
   if (NULL != c->ports)
