@@ -711,11 +711,10 @@ handle_local_data (void *cls,
   type = ntohs (payload->type);
   fwd = ntohl (ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a %s data on channel %s [%X] of type %s (%u)\n",
-       GC_f2s (fwd),
+       "Got a %s data on channel %s [%X] of type %u\n",
+       fwd ? "FWD" : "BWD",
        GNUNET_i2s (&ch->peer),
        ntohl (message->ccn.channel_of_client),
-       GC_m2s (type),
        type);
   GNUNET_MQ_inject_message (ch->mq,
                             payload);

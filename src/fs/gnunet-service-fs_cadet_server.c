@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -84,11 +84,6 @@ struct CadetClient
    * Channel for communication.
    */
   struct GNUNET_CADET_Channel *channel;
-
-  /**
-   * Handle for active write operation, or NULL.
-   */
-  struct GNUNET_CADET_TransmitHandle *wh;
 
   /**
    * Head of write queue.
@@ -439,8 +434,6 @@ disconnect_cb (void *cls,
     GNUNET_SCHEDULER_cancel (sc->terminate_task);
   if (NULL != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task);
-  if (NULL != sc->wh)
-    GNUNET_CADET_notify_transmit_ready_cancel (sc->wh);
   if (NULL != sc->qe)
     GNUNET_DATASTORE_cancel (sc->qe);
   while (NULL != (wqi = sc->wqi_head))
@@ -456,7 +449,6 @@ disconnect_cb (void *cls,
   sc_count--;
   GNUNET_free (sc);
 }
-
 
 
 /**
