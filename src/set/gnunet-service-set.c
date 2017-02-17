@@ -229,11 +229,6 @@ listener_destroy (struct Listener *listener)
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  if (NULL != listener->client_mq)
-  {
-    GNUNET_MQ_destroy (listener->client_mq);
-    listener->client_mq = NULL;
-  }
   GNUNET_CADET_close_port (listener->open_port);
   GNUNET_CONTAINER_DLL_remove (listeners_head,
                                listeners_tail,
@@ -473,11 +468,6 @@ _GSS_operation_destroy (struct Operation *op,
     GNUNET_free (op->spec);
     op->spec = NULL;
   }
-  if (NULL != op->mq)
-  {
-    GNUNET_MQ_destroy (op->mq);
-    op->mq = NULL;
-  }
   if (NULL != (channel = op->channel))
   {
     op->channel = NULL;
@@ -537,11 +527,6 @@ set_destroy (struct Set *set)
     _GSS_operation_destroy (set->ops_head, GNUNET_NO);
   set->vt->destroy_set (set->state);
   set->state = NULL;
-  if (NULL != set->client_mq)
-  {
-    GNUNET_MQ_destroy (set->client_mq);
-    set->client_mq = NULL;
-  }
   if (NULL != set->iter)
   {
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
@@ -686,11 +671,6 @@ incoming_destroy (struct Operation *incoming)
   {
     GNUNET_free (incoming->spec);
     incoming->spec = NULL;
-  }
-  if (NULL != incoming->mq)
-  {
-    GNUNET_MQ_destroy (incoming->mq);
-    incoming->mq = NULL;
   }
   if (NULL != (channel = incoming->channel))
   {
