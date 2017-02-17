@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012 GNUnet e.V.
+     Copyright (C) 2012, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -38,14 +38,15 @@ struct GSF_CadetRequest;
  * @param cls closure
  * @param type type of the block, ANY on error
  * @param expiration expiration time for the block
- * @param data_size number of bytes in 'data', 0 on error
+ * @param data_size number of bytes in @a data, 0 on error
  * @param data reply block data, NULL on error
  */
-typedef void (*GSF_CadetReplyProcessor)(void *cls,
-					 enum GNUNET_BLOCK_Type type,
-					 struct GNUNET_TIME_Absolute expiration,
-					 size_t data_size,
-					 const void *data);
+typedef void
+(*GSF_CadetReplyProcessor)(void *cls,
+                           enum GNUNET_BLOCK_Type type,
+                           struct GNUNET_TIME_Absolute expiration,
+                           size_t data_size,
+                           const void *data);
 
 
 /**
@@ -55,14 +56,28 @@ typedef void (*GSF_CadetReplyProcessor)(void *cls,
  * @param query hash to query for the block
  * @param type desired type for the block
  * @param proc function to call with result
- * @param proc_cls closure for 'proc'
+ * @param proc_cls closure for @a proc
  * @return handle to cancel the operation
  */
 struct GSF_CadetRequest *
 GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
-		  const struct GNUNET_HashCode *query,
-		  enum GNUNET_BLOCK_Type type,
-		  GSF_CadetReplyProcessor proc, void *proc_cls);
+                 const struct GNUNET_HashCode *query,
+                 enum GNUNET_BLOCK_Type type,
+                 GSF_CadetReplyProcessor proc,
+                 void *proc_cls);
+
+/**
+ * Function called on each active cadets to shut them down.
+ *
+ * @param cls NULL
+ * @param key target peer, unused
+ * @param value the `struct CadetHandle` to destroy
+ * @return #GNUNET_YES (continue to iterate)
+ */
+int
+GSF_cadet_release_clients (void *cls,
+                           const struct GNUNET_PeerIdentity *key,
+                           void *value);
 
 
 /**
@@ -89,17 +104,15 @@ void
 GSF_cadet_stop_server (void);
 
 /**
- * Initialize subsystem for non-anonymous file-sharing.
+ * Cadet channel for creating outbound channels.
  */
-void
-GSF_cadet_start_client (void);
-
+extern struct GNUNET_CADET_Handle *cadet_handle;
 
 /**
- * Shutdown subsystem for non-anonymous file-sharing.
+ * Map from peer identities to 'struct CadetHandles' with cadet
+ * channels to those peers.
  */
-void
-GSF_cadet_stop_client (void);
+extern struct GNUNET_CONTAINER_MultiPeerMap *cadet_map;
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
