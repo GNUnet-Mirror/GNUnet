@@ -368,6 +368,13 @@ route_message (struct CadetPeer *prev,
          ntohs (msg->type),
          GCP_2s (prev),
          GNUNET_sh2s (&cid->connection_of_tunnel));
+    switch (ntohs (msg->type))
+    {
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      /* No need to respond to these! */
+      return;
+    }
     env = GNUNET_MQ_msg (bm,
                          GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN);
     bm->cid = *cid;

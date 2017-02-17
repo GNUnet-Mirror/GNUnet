@@ -76,7 +76,7 @@
 
 
 /**
- * All the states a connection can be in.
+ * All the states a channel can be in.
  */
 enum CadetChannelState
 {
@@ -86,7 +86,13 @@ enum CadetChannelState
   CADET_CHANNEL_NEW,
 
   /**
-   * Connection create message sent, waiting for ACK.
+   * Channel is to a port that is not open, we're waiting for the
+   * port to be opened.
+   */
+  CADET_CHANNEL_LOOSE,
+
+  /**
+   * CHANNEL_OPEN message sent, waiting for CHANNEL_OPEN_ACK.
    */
   CADET_CHANNEL_OPEN_SENT,
 
@@ -566,6 +572,8 @@ send_channel_open (void *cls)
   msgcc.port = ch->port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
+  if (NULL != ch->last_control_qe)
+    GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe = GCT_send (ch->t,
                                   &msgcc.header,
                                   &channel_open_sent_cb,
@@ -642,6 +650,7 @@ GCCH_channel_local_new (struct CadetClient *owner,
     if (NULL == c)
     {
       /* port closed, wait for it to possibly open */
+      ch->state = CADET_CHANNEL_LOOSE;
       (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
                                                 port,
                                                 ch,
@@ -738,6 +747,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   if (NULL == c)
   {
     /* port closed, wait for it to possibly open */
+    ch->state = CADET_CHANNEL_LOOSE;
     (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
                                               port,
                                               ch,
@@ -801,13 +811,13 @@ send_channel_data_ack (struct CadetChannel *ch)
   msg.ctn = ch->ctn;
   msg.mid.mid = htonl (ntohl (ch->mid_recv.mid));
   msg.futures = GNUNET_htonll (ch->mid_futures);
-  if (NULL != ch->last_control_qe)
-    GCT_send_cancel (ch->last_control_qe);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending DATA_ACK %u:%llX via %s\n",
        (unsigned int) ntohl (msg.mid.mid),
        (unsigned long long) ch->mid_futures,
        GCCH_2s (ch));
+  if (NULL != ch->last_control_qe)
+    GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe = GCT_send (ch->t,
                                   &msg.header,
                                   &send_ack_cb,
@@ -975,6 +985,7 @@ GCCH_bind (struct CadetChannel *ch,
   else
   {
     /* notify other peer that we accepted the connection */
+    ch->state = CADET_CHANNEL_READY;
     ch->retry_control_task
       = GNUNET_SCHEDULER_add_now (&send_open_ack,
                                   ch);
@@ -1042,9 +1053,20 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     return;
   }
   /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
-  if (CADET_CHANNEL_NEW != ch->state)
+  switch (ch->state)
+  {
+  case CADET_CHANNEL_NEW:
+    /* We gave up on a channel that we created as a client to a remote
+       target, but that never went anywhere. Nothing to do here. */
+    break;
+  case CADET_CHANNEL_LOOSE:
+    GSC_drop_loose_channel (&ch->port,
+                            ch);
+    break;
+  default:
     GCT_send_channel_destroy (ch->t,
                               ch->ctn);
+  }
   /* Nothing left to do, just finish destruction */
   channel_destroy (ch);
 }
@@ -1066,6 +1088,10 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
   case CADET_CHANNEL_NEW:
     /* this should be impossible */
     GNUNET_break (0);
+    break;
+  case CADET_CHANNEL_LOOSE:
+    /* This makes no sense. */
+    GNUNET_break_op (0);
     break;
   case CADET_CHANNEL_OPEN_SENT:
     if (NULL == ch->owner)
@@ -1708,6 +1734,11 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  if (GNUNET_YES == ch->destroy)
+  {
+    /* we are going down, drop messages */
+    return GNUNET_OK;
+  }
   ch->pending_messages++;
 
   if (GNUNET_YES == ch->is_loopback)
@@ -1720,18 +1751,24 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     env = GNUNET_MQ_msg_extra (ld,
                                buf_len,
                                GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-    if (sender_ccn.channel_of_client ==
-        ch->owner->ccn.channel_of_client)
+    if ( (NULL != ch->owner) &&
+         (sender_ccn.channel_of_client ==
+          ch->owner->ccn.channel_of_client) )
     {
       receiver = ch->dest;
       to_owner = GNUNET_NO;
     }
-    else
+    else if ( (NULL != ch->dest) &&
+              (sender_ccn.channel_of_client ==
+               ch->dest->ccn.channel_of_client) )
     {
-      GNUNET_assert (sender_ccn.channel_of_client ==
-                     ch->dest->ccn.channel_of_client);
       receiver = ch->owner;
       to_owner = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
     ld->ccn = receiver->ccn;
     GNUNET_memcpy (&ld[1],

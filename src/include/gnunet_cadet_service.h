@@ -713,6 +713,7 @@ typedef void *
                                      struct GNUNET_CADET_Channel *channel,
                                      const struct GNUNET_PeerIdentity *source);
 
+
 /**
  * Function called whenever an MQ-channel is destroyed, even if the destruction
  * was requested by #GNUNET_CADET_channel_destroy.
@@ -727,6 +728,7 @@ typedef void *
 typedef void
 (*GNUNET_CADET_DisconnectEventHandler) (void *cls,
                                         const struct GNUNET_CADET_Channel *channel);
+
 
 /**
  * Function called whenever an MQ-channel's transmission window size changes.
@@ -747,6 +749,7 @@ typedef void
                                         const struct GNUNET_CADET_Channel *channel,
                                         int window_size);
 
+
 /**
  * Connect to the MQ-based cadet service.
  *
@@ -755,6 +758,7 @@ typedef void
  */
 struct GNUNET_CADET_Handle *
 GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
 
 /**
  * Open a port to receive incomming MQ-based channels.
@@ -809,6 +813,7 @@ GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
                              GNUNET_CADET_WindowSizeEventHandler window_changes,
                              GNUNET_CADET_DisconnectEventHandler disconnects,
                              const struct GNUNET_MQ_MessageHandler *handlers);
+
 
 /**
  * Obtain the message queue for a connected channel.

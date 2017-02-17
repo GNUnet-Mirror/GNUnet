@@ -730,7 +730,8 @@ server_client_send_impl (struct GNUNET_MQ_Handle *mq,
   state->th = GNUNET_SERVER_notify_transmit_ready (state->client,
 						   ntohs (msg->size),
 						   GNUNET_TIME_UNIT_FOREVER_REL,
-						   &transmit_queued, mq);
+						   &transmit_queued,
+                                                   mq);
 }
 
 

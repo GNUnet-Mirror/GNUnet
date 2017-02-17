@@ -520,7 +520,7 @@ struct Set
    * Client that owns the set.  Only one client may own a set,
    * and there can only be one set per client.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Message queue for the client.

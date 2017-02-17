@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2013, 2014 GNUnet e.V.
+      Copyright (C) 2013, 2014, 2017 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -53,7 +53,7 @@ struct Listener
    * Client that owns the listener.
    * Only one client may own a listener.
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVICE_Client *client;
 
   /**
    * Message queue for the client
@@ -157,7 +157,7 @@ struct GNUNET_STATISTICS_Handle *_GSS_statistics;
  *         does not own a set
  */
 static struct Set *
-set_get (struct GNUNET_SERVER_Client *client)
+set_get (struct GNUNET_SERVICE_Client *client)
 {
   struct Set *set;
 
@@ -176,7 +176,7 @@ set_get (struct GNUNET_SERVER_Client *client)
  *         if there isn't any
  */
 static struct Listener *
-listener_get (struct GNUNET_SERVER_Client *client)
+listener_get (struct GNUNET_SERVICE_Client *client)
 {
   struct Listener *listener;
 
@@ -221,12 +221,12 @@ listener_destroy (struct Listener *listener)
    * The client's destroy callback will destroy the listener again. */
   if (NULL != listener->client)
   {
-    struct GNUNET_SERVER_Client *client = listener->client;
+    struct GNUNET_SERVICE_Client *client = listener->client;
 
     listener->client = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Disconnecting listener client\n");
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   if (NULL != listener->client_mq)
@@ -526,10 +526,10 @@ set_destroy (struct Set *set)
      * callback will call `set_destroy()` again in this case.  We do
      * this so that the channel end handler still has a valid set handle
      * to destroy. */
-    struct GNUNET_SERVER_Client *client = set->client;
+    struct GNUNET_SERVICE_Client *client = set->client;
 
     set->client = NULL;
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_assert (NULL != set->state);
@@ -609,14 +609,33 @@ set_destroy (struct Set *set)
 
 
 /**
+ * Callback called when a client connects to the service.
+ *
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  return c;
+}
+
+
+/**
  * Clean up after a client has disconnected
  *
  * @param cls closure, unused
  * @param client the client to clean up after
+ * @param internal_cls our client-specific internal data structure
  */
 static void
-handle_client_disconnect (void *cls,
-                          struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *internal_cls)
 {
   struct Listener *listener;
   struct Set *set;
@@ -1004,15 +1023,14 @@ again:
  * can right now start an iteration. If all checks out, starts
  * sending the elements of the set to the client.
  *
- * @param cls unused
- * @param client client that sent the message
+ * @param cls client that sent the message
  * @param m message sent by the client
  */
 static void
 handle_client_iterate (void *cls,
-                       struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *m)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
 
   set = set_get (client);
@@ -1020,14 +1038,14 @@ handle_client_iterate (void *cls,
   {
     /* attempt to iterate over a non existing set */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   if (NULL != set->iter)
   {
     /* Only one concurrent iterate-action allowed per set */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1035,8 +1053,7 @@ handle_client_iterate (void *cls,
               (void *) set,
               set->current_generation,
               GNUNET_CONTAINER_multihashmap_size (set->content->elements));
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
   set->content->iterator_count += 1;
   set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->content->elements);
   set->iter_generation = set->current_generation;
@@ -1049,19 +1066,16 @@ handle_client_iterate (void *cls,
  * the first request from a client, and includes the type of set
  * operation to be performed.
  *
- * @param cls unused
- * @param client client that sent the message
+ * @param cls client that sent the message
  * @param m message sent by the client
  */
 static void
 handle_client_create_set (void *cls,
-                          struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *m)
+                          const struct GNUNET_SET_CreateMessage *msg)
 {
-  const struct GNUNET_SET_CreateMessage *msg;
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
 
-  msg = (const struct GNUNET_SET_CreateMessage *) m;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client created new set (operation %u)\n",
               ntohl (msg->operation));
@@ -1069,7 +1083,7 @@ handle_client_create_set (void *cls,
   {
     /* There can only be one set per client */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   set = GNUNET_new (struct Set);
@@ -1084,7 +1098,7 @@ handle_client_create_set (void *cls,
   default:
     GNUNET_free (set);
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   set->operation = ntohl (msg->operation);
@@ -1093,19 +1107,18 @@ handle_client_create_set (void *cls,
   {
     /* initialization failed (i.e. out of memory) */
     GNUNET_free (set);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   set->content = GNUNET_new (struct SetContent);
   set->content->refcount = 1;
   set->content->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set->client = client;
-  set->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  set->client_mq = GNUNET_SERVICE_client_get_mq (client);
   GNUNET_CONTAINER_DLL_insert (sets_head,
                                sets_tail,
                                set);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1161,18 +1174,14 @@ handle_incoming_disconnect (struct Operation *op)
  *
  * @param cls closure
  * @param channel new handle to the channel
- * @param initiator peer that started the channel
- * @param port Port this channel is for.
- * @param options Unused.
+ * @param source peer that started the channel
  * @return initial channel context for the channel
  *         returns NULL on error
  */
 static void *
 channel_new_cb (void *cls,
                 struct GNUNET_CADET_Channel *channel,
-                const struct GNUNET_PeerIdentity *initiator,
-                const struct GNUNET_HashCode *port,
-                enum GNUNET_CADET_ChannelOption options)
+                const struct GNUNET_PeerIdentity *source)
 {
   static const struct SetVT incoming_vt = {
     .msg_handler = &handle_incoming_msg,
@@ -1186,7 +1195,7 @@ channel_new_cb (void *cls,
   incoming = GNUNET_new (struct Operation);
   incoming->listener = listener;
   incoming->is_incoming = GNUNET_YES;
-  incoming->peer = *initiator;
+  incoming->peer = *source;
   incoming->channel = channel;
   incoming->mq = GNUNET_CADET_mq_create (incoming->channel);
   incoming->vt = &incoming_vt;
@@ -1204,46 +1213,217 @@ channel_new_cb (void *cls,
 
 
 /**
+ * Function called whenever a channel is destroyed.  Should clean up
+ * any associated state.  It must NOT call
+ * GNUNET_CADET_channel_destroy() on the channel.
+ *
+ * The peer_disconnect function is part of a a virtual table set initially either
+ * when a peer creates a new channel with us, or once we create
+ * a new channel ourselves (evaluate).
+ *
+ * Once we know the exact type of operation (union/intersection), the vt is
+ * replaced with an operation specific instance (_GSS_[op]_vt).
+ *
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ */
+static void
+channel_end_cb (void *channel_ctx,
+                const struct GNUNET_CADET_Channel *channel)
+{
+  struct Operation *op = channel_ctx;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_end_cb called\n");
+  op->channel = NULL;
+  op->keep++;
+  /* the vt can be null if a client already requested canceling op. */
+  if (NULL != op->vt)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "calling peer disconnect due to channel end\n");
+    op->vt->peer_disconnect (op);
+  }
+  op->keep--;
+  if (0 == op->keep)
+  {
+    /* cadet will never call us with the context again! */
+    GNUNET_free (op);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_end_cb finished\n");
+}
+
+
+/**
+ * Function called whenever an MQ-channel's transmission window size changes.
+ *
+ * The first callback in an outgoing channel will be with a non-zero value
+ * and will mean the channel is connected to the destination.
+ *
+ * For an incoming channel it will be called immediately after the
+ * #GNUNET_CADET_ConnectEventHandler, also with a non-zero value.
+ *
+ * @param cls Channel closure.
+ * @param channel Connection to the other end (henceforth invalid).
+ * @param window_size New window size. If the is more messages than buffer size
+ *                    this value will be negative..
+ */
+static void
+channel_window_cb (void *cls,
+                   const struct GNUNET_CADET_Channel *channel,
+                   int window_size)
+{
+  /* FIXME: not implemented, we could do flow control here... */
+}
+
+/**
+ * FIXME: hack-job. Migrate to proper handler array use!
+ *
+ * @param cls local state associated with the channel.
+ * @param message The actual message.
+ */
+static int
+check_p2p_message (void *cls,
+                   const struct GNUNET_MessageHeader *message)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * FIXME: hack-job. Migrate to proper handler array use!
+ *
+ * Functions with this signature are called whenever a message is
+ * received via a cadet channel.
+ *
+ * The msg_handler is a virtual table set in initially either when a peer
+ * creates a new channel with us, or once we create a new channel
+ * ourselves (evaluate).
+ *
+ * Once we know the exact type of operation (union/intersection), the vt is
+ * replaced with an operation specific instance (_GSS_[op]_vt).
+ *
+ * @param cls local state associated with the channel.
+ * @param message The actual message.
+ */
+static void
+handle_p2p_message (void *cls,
+                    const struct GNUNET_MessageHeader *message)
+{
+  struct Operation *op = cls;
+  int ret;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Dispatching cadet message (type: %u)\n",
+              ntohs (message->type));
+  /* do this before the handler, as the handler might kill the channel */
+  GNUNET_CADET_receive_done (op->channel);
+  if (NULL != op->vt)
+    ret = op->vt->msg_handler (op,
+                               message);
+  else
+    ret = GNUNET_SYSERR;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Handled cadet message (type: %u)\n",
+              ntohs (message->type));
+  if (GNUNET_OK != ret)
+    GNUNET_CADET_channel_destroy (op->channel);
+}
+
+
+/**
  * Called when a client wants to create a new listener.
  *
- * @param cls unused
- * @param client client that sent the message
- * @param m message sent by the client
+ * @param cls client that sent the message
+ * @param msg message sent by the client
  */
 static void
 handle_client_listen (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *m)
+                      const struct GNUNET_SET_ListenMessage *msg)
 {
-  const struct GNUNET_SET_ListenMessage *msg;
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
   struct Listener *listener;
   struct Operation *op;
 
-  msg = (const struct GNUNET_SET_ListenMessage *) m;
   if (NULL != listener_get (client))
   {
     /* max. one active listener per client! */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   listener = GNUNET_new (struct Listener);
   listener->client = client;
-  listener->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  listener->client_mq = GNUNET_SERVICE_client_get_mq (client);
   listener->app_id = msg->app_id;
   listener->operation = ntohl (msg->operation);
   GNUNET_CONTAINER_DLL_insert_tail (listeners_head,
                                     listeners_tail,
                                     listener);
-  listener->open_port = GNUNET_CADET_open_port (cadet,
-                                                &msg->app_id,
-                                                &channel_new_cb,
-                                                listener);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "New listener created (op %u, port %s)\n",
               listener->operation,
               GNUNET_h2s (&listener->app_id));
-
+  listener->open_port = GNUNET_CADET_open_porT (cadet,
+                                                &msg->app_id,
+                                                &channel_new_cb,
+                                                listener,
+                                                &channel_window_cb,
+                                                &channel_end_cb,
+                                                cadet_handlers);
   /* check for existing incoming requests the listener might be interested in */
   for (op = incoming_head; NULL != op; op = op->next)
   {
@@ -1261,8 +1441,7 @@ handle_client_listen (void *cls,
     incoming_suggest (op,
                       listener);
   }
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1270,26 +1449,22 @@ handle_client_listen (void *cls,
  * Called when the listening client rejects an operation
  * request by another peer.
  *
- * @param cls unused
- * @param client client that sent the message
- * @param m message sent by the client
+ * @param cls client that sent the message
+ * @param msg message sent by the client
  */
 static void
 handle_client_reject (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *m)
+                      const struct GNUNET_SET_RejectMessage *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Operation *incoming;
-  const struct GNUNET_SET_RejectMessage *msg;
 
-  msg = (const struct GNUNET_SET_RejectMessage *) m;
   incoming = get_incoming (ntohl (msg->accept_reject_id));
   if (NULL == incoming)
   {
     /* no matching incoming operation for this reject */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1297,24 +1472,36 @@ handle_client_reject (void *cls,
               incoming->spec->operation,
               GNUNET_h2s (&incoming->spec->app_id));
   GNUNET_CADET_channel_destroy (incoming->channel);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
-
 
 
 /**
  * Called when a client wants to add or remove an element to a set it inhabits.
  *
- * @param cls unused
- * @param client client that sent the message
+ * @param cls client that sent the message
+ * @param m message sent by the client
+ */
+static int
+check_client_mutation (void *cls,
+                       const struct GNUNET_MessageHeader *m)
+{
+  /* FIXME: any check we might want to do here? */
+  return GNUNET_OK;
+}
+
+
+/**
+ * Called when a client wants to add or remove an element to a set it inhabits.
+ *
+ * @param cls client that sent the message
  * @param m message sent by the client
  */
 static void
 handle_client_mutation (void *cls,
-                        struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *m)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
 
   set = set_get (client);
@@ -1322,12 +1509,11 @@ handle_client_mutation (void *cls,
   {
     /* client without a set requested an operation */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 
   if (0 != set->content->iterator_count)
   {
@@ -1344,7 +1530,6 @@ handle_client_mutation (void *cls,
                                  pm);
     return;
   }
-
   execute_mutation (set, m);
 }
 
@@ -1386,29 +1571,97 @@ advance_generation (struct Set *set)
  * peer.  Initiates the CADET connection to the listener and sends the
  * request.
  *
- * @param cls unused
- * @param client client that sent the message
- * @param m message sent by the client
+ * @param cls client that sent the message
+ * @param msg message sent by the client
+ * @return #GNUNET_OK if the message is well-formed
+ */
+static int
+check_client_evaluate (void *cls,
+                        const struct GNUNET_SET_EvaluateMessage *msg)
+{
+  /* FIXME: suboptimal, even if the context below could be NULL,
+     there are malformed messages this does not check for... */
+  return GNUNET_OK;
+}
+
+
+/**
+ * Called when a client wants to initiate a set operation with another
+ * peer.  Initiates the CADET connection to the listener and sends the
+ * request.
+ *
+ * @param cls client that sent the message
+ * @param msg message sent by the client
  */
 static void
 handle_client_evaluate (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *m)
+                        const struct GNUNET_SET_EvaluateMessage *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct Operation *op = GNUNET_new (struct Operation);
+  const struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_handler_end ()
+  };
   struct Set *set;
-  const struct GNUNET_SET_EvaluateMessage *msg;
   struct OperationSpecification *spec;
-  struct Operation *op;
   const struct GNUNET_MessageHeader *context;
 
   set = set_get (client);
   if (NULL == set)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_free (op);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
-  msg = (const struct GNUNET_SET_EvaluateMessage *) m;
   spec = GNUNET_new (struct OperationSpecification);
   spec->operation = set->operation;
   spec->app_id = msg->app_id;
@@ -1419,7 +1672,6 @@ handle_client_evaluate (void *cls,
   spec->result_mode = ntohl (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
   context = GNUNET_MQ_extract_nested_mh (msg);
-  op = GNUNET_new (struct Operation);
   op->spec = spec;
 
   // Advance generation values, so that
@@ -1434,16 +1686,18 @@ handle_client_evaluate (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new CADET channel to port %s\n",
               GNUNET_h2s (&msg->app_id));
-  op->channel = GNUNET_CADET_channel_create (cadet,
+  op->channel = GNUNET_CADET_channel_creatE (cadet,
                                              op,
                                              &msg->target_peer,
                                              &msg->app_id,
-                                             GNUNET_CADET_OPTION_RELIABLE);
+                                             GNUNET_CADET_OPTION_RELIABLE,
+                                             &channel_window_cb,
+                                             &channel_end_cb,
+                                             cadet_handlers);
   op->mq = GNUNET_CADET_mq_create (op->channel);
   set->vt->evaluate (op,
                      context);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1452,16 +1706,14 @@ handle_client_evaluate (void *cls,
  * that we only expect acks for set elements, not after the
  * #GNUNET_MESSAGE_TYPE_SET_ITER_DONE message.
  *
- * @param cls unused
- * @param client the client
- * @param m the message
+ * @param cls client the client
+ * @param ack the message
  */
 static void
 handle_client_iter_ack (void *cls,
-                        struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *m)
+                        const struct GNUNET_SET_IterAckMessage *ack)
 {
-  const struct GNUNET_SET_IterAckMessage *ack;
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
 
   set = set_get (client);
@@ -1469,7 +1721,7 @@ handle_client_iter_ack (void *cls,
   {
     /* client without a set acknowledged receiving a value */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   if (NULL == set->iter)
@@ -1477,12 +1729,10 @@ handle_client_iter_ack (void *cls,
     /* client sent an ack, but we were not expecting one (as
        set iteration has finished) */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
-  ack = (const struct GNUNET_SET_IterAckMessage *) m;
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
   if (ntohl (ack->send_more))
   {
     send_client_element (set);
@@ -1497,18 +1747,16 @@ handle_client_iter_ack (void *cls,
 
 
 /**
- * Handle a request from the client to
- * copy a set.
+ * Handle a request from the client to copy a set.
  *
- * @param cls unused
- * @param client the client
+ * @param cls the client
  * @param mh the message
  */
 static void
 handle_client_copy_lazy_prepare (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *mh)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
   struct LazyCopyRequest *cr;
   struct GNUNET_MQ_Envelope *ev;
@@ -1519,7 +1767,7 @@ handle_client_copy_lazy_prepare (void *cls,
   {
     /* client without a set requested an operation */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
@@ -1540,8 +1788,7 @@ handle_client_copy_lazy_prepare (void *cls,
   GNUNET_MQ_send (set->client_mq, ev);
 
 
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client requested lazy copy\n");
@@ -1549,21 +1796,17 @@ handle_client_copy_lazy_prepare (void *cls,
 
 
 /**
- * Handle a request from the client to
- * connect to a copy of a set.
+ * Handle a request from the client to connect to a copy of a set.
  *
- * @param cls unused
- * @param client the client
- * @param mh the message
+ * @param cls the client
+ * @param msg the message
  */
 static void
 handle_client_copy_lazy_connect (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *mh)
+                                 const struct GNUNET_SET_CopyLazyConnectMessage *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct LazyCopyRequest *cr;
-  const struct GNUNET_SET_CopyLazyConnectMessage *msg =
-      (const struct GNUNET_SET_CopyLazyConnectMessage *) mh;
   struct Set *set;
   int found;
 
@@ -1571,7 +1814,7 @@ handle_client_copy_lazy_connect (void *cls,
   {
     /* There can only be one set per client */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
@@ -1590,7 +1833,7 @@ handle_client_copy_lazy_connect (void *cls,
   {
     /* client asked for copy with cookie we don't know */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
@@ -1619,7 +1862,7 @@ handle_client_copy_lazy_connect (void *cls,
     GNUNET_break (0);
     GNUNET_free (set);
     GNUNET_free (cr);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
@@ -1639,15 +1882,14 @@ handle_client_copy_lazy_connect (void *cls,
 
 
   set->client = client;
-  set->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  set->client_mq = GNUNET_SERVICE_client_get_mq (client);
   GNUNET_CONTAINER_DLL_insert (sets_head,
                                sets_tail,
                                set);
 
   GNUNET_free (cr);
 
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client connected to lazy set\n");
@@ -1655,20 +1897,16 @@ handle_client_copy_lazy_connect (void *cls,
 
 
 /**
- * Handle a request from the client to
- * cancel a running set operation.
+ * Handle a request from the client to cancel a running set operation.
  *
- * @param cls unused
- * @param client the client
- * @param mh the message
+ * @param cls the client
+ * @param msg the message
  */
 static void
 handle_client_cancel (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *mh)
+                      const struct GNUNET_SET_CancelMessage *msg)
 {
-  const struct GNUNET_SET_CancelMessage *msg =
-      (const struct GNUNET_SET_CancelMessage *) mh;
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
   struct Operation *op;
   int found;
@@ -1678,7 +1916,7 @@ handle_client_cancel (void *cls,
   {
     /* client without a set requested an operation */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1708,8 +1946,7 @@ handle_client_cancel (void *cls,
     _GSS_operation_destroy (op,
                             GNUNET_YES);
   }
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1718,28 +1955,25 @@ handle_client_cancel (void *cls,
  * came from a remote peer.  We forward the accept to the associated
  * operation for handling
  *
- * @param cls unused
- * @param client the client
- * @param mh the message
+ * @param cls the client
+ * @param msg the message
  */
 static void
 handle_client_accept (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *mh)
+                      const struct GNUNET_SET_AcceptMessage *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   struct Set *set;
-  const struct GNUNET_SET_AcceptMessage *msg;
   struct Operation *op;
   struct GNUNET_SET_ResultMessage *result_message;
   struct GNUNET_MQ_Envelope *ev;
 
-  msg = (const struct GNUNET_SET_AcceptMessage *) mh;
   set = set_get (client);
   if (NULL == set)
   {
     /* client without a set requested to accept */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
   op = get_incoming (ntohl (msg->accept_reject_id));
@@ -1755,7 +1989,7 @@ handle_client_accept (void *cls,
     result_message->element_type = 0;
     result_message->result_status = htons (GNUNET_SET_STATUS_FAILURE);
     GNUNET_MQ_send (set->client_mq, ev);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVICE_client_continue (client);
     return;
   }
 
@@ -1781,8 +2015,7 @@ handle_client_accept (void *cls,
 
   op->vt = set->vt;
   op->vt->accept (op);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1815,202 +2048,91 @@ shutdown_task (void *cls)
 
 
 /**
- * Function called whenever a channel is destroyed.  Should clean up
- * any associated state.  It must NOT call
- * GNUNET_CADET_channel_destroy() on the channel.
- *
- * The peer_disconnect function is part of a a virtual table set initially either
- * when a peer creates a new channel with us, or once we create
- * a new channel ourselves (evaluate).
- *
- * Once we know the exact type of operation (union/intersection), the vt is
- * replaced with an operation specific instance (_GSS_[op]_vt).
- *
- * @param cls closure (set from GNUNET_CADET_connect())
- * @param channel connection to the other end (henceforth invalid)
- * @param channel_ctx place where local state associated
- *                   with the channel is stored
- */
-static void
-channel_end_cb (void *cls,
-                const struct GNUNET_CADET_Channel *channel,
-                void *channel_ctx)
-{
-  struct Operation *op = channel_ctx;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "channel_end_cb called\n");
-  op->channel = NULL;
-  op->keep++;
-  /* the vt can be null if a client already requested canceling op. */
-  if (NULL != op->vt)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "calling peer disconnect due to channel end\n");
-    op->vt->peer_disconnect (op);
-  }
-  op->keep--;
-  if (0 == op->keep)
-  {
-    /* cadet will never call us with the context again! */
-    GNUNET_free (op);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "channel_end_cb finished\n");
-}
-
-
-/**
- * Functions with this signature are called whenever a message is
- * received via a cadet channel.
- *
- * The msg_handler is a virtual table set in initially either when a peer
- * creates a new channel with us, or once we create a new channel
- * ourselves (evaluate).
- *
- * Once we know the exact type of operation (union/intersection), the vt is
- * replaced with an operation specific instance (_GSS_[op]_vt).
- *
- * @param cls Closure (set from GNUNET_CADET_connect()).
- * @param channel Connection to the other end.
- * @param channel_ctx Place to store local state associated with the channel.
- * @param message The actual message.
- * @return #GNUNET_OK to keep the channel open,
- *         #GNUNET_SYSERR to close it (signal serious error).
- */
-static int
-dispatch_p2p_message (void *cls,
-                      struct GNUNET_CADET_Channel *channel,
-                      void **channel_ctx,
-                      const struct GNUNET_MessageHeader *message)
-{
-  struct Operation *op = *channel_ctx;
-  int ret;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Dispatching cadet message (type: %u)\n",
-              ntohs (message->type));
-  /* do this before the handler, as the handler might kill the channel */
-  GNUNET_CADET_receive_done (channel);
-  if (NULL != op->vt)
-    ret = op->vt->msg_handler (op,
-                               message);
-  else
-    ret = GNUNET_SYSERR;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Handled cadet message (type: %u)\n",
-              ntohs (message->type));
-  return ret;
-}
-
-
-/**
  * Function called by the service's run
  * method to run service-specific setup code.
  *
  * @param cls closure
- * @param server the initialized server
  * @param cfg configuration to use
+ * @param service the initialized service
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    { &handle_client_accept, NULL,
-      GNUNET_MESSAGE_TYPE_SET_ACCEPT,
-      sizeof (struct GNUNET_SET_AcceptMessage)},
-    { &handle_client_iter_ack, NULL,
-      GNUNET_MESSAGE_TYPE_SET_ITER_ACK,
-      sizeof (struct GNUNET_SET_IterAckMessage) },
-    { &handle_client_mutation, NULL,
-      GNUNET_MESSAGE_TYPE_SET_ADD,
-      0},
-    { &handle_client_create_set, NULL,
-      GNUNET_MESSAGE_TYPE_SET_CREATE,
-      sizeof (struct GNUNET_SET_CreateMessage)},
-    { &handle_client_iterate, NULL,
-      GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST,
-      sizeof (struct GNUNET_MessageHeader)},
-    { &handle_client_evaluate, NULL,
-      GNUNET_MESSAGE_TYPE_SET_EVALUATE,
-      0},
-    { &handle_client_listen, NULL,
-      GNUNET_MESSAGE_TYPE_SET_LISTEN,
-      sizeof (struct GNUNET_SET_ListenMessage)},
-    { &handle_client_reject, NULL,
-      GNUNET_MESSAGE_TYPE_SET_REJECT,
-      sizeof (struct GNUNET_SET_RejectMessage)},
-    { &handle_client_mutation, NULL,
-      GNUNET_MESSAGE_TYPE_SET_REMOVE,
-      0},
-    { &handle_client_cancel, NULL,
-      GNUNET_MESSAGE_TYPE_SET_CANCEL,
-      sizeof (struct GNUNET_SET_CancelMessage)},
-    { &handle_client_copy_lazy_prepare, NULL,
-      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE,
-      sizeof (struct GNUNET_MessageHeader)},
-    { &handle_client_copy_lazy_connect, NULL,
-      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT,
-      sizeof (struct GNUNET_SET_CopyLazyConnectMessage)},
-    { NULL, NULL, 0, 0}
-  };
-  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF, 0},
-    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE, 0},
-    {NULL, 0, 0}
-  };
-
   configuration = cfg;
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &handle_client_disconnect,
-                                   NULL);
-  GNUNET_SERVER_add_handlers (server,
-                              server_handlers);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 NULL);
   _GSS_statistics = GNUNET_STATISTICS_create ("set", cfg);
-  cadet = GNUNET_CADET_connect (cfg,
-                                NULL,
-                                &channel_end_cb,
-                                cadet_handlers);
+  cadet = GNUNET_CADET_connecT (cfg);
   if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not connect to cadet service\n"));
+                _("Could not connect to CADET service\n"));
     return;
   }
 }
 
 
 /**
- * The main function for the set service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * Define "main" method using service macro.
  */
-int
-main (int argc,
-      char *const *argv)
-{
-  int ret;
+GNUNET_SERVICE_MAIN
+("set",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (client_accept,
+                          GNUNET_MESSAGE_TYPE_SET_ACCEPT,
+                          struct GNUNET_SET_AcceptMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_iter_ack,
+                          GNUNET_MESSAGE_TYPE_SET_ITER_ACK,
+                          struct GNUNET_SET_IterAckMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_mutation,
+                        GNUNET_MESSAGE_TYPE_SET_ADD,
+                        struct GNUNET_MessageHeader,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (client_create_set,
+                          GNUNET_MESSAGE_TYPE_SET_CREATE,
+                          struct GNUNET_SET_CreateMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_iterate,
+                          GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST,
+                          struct GNUNET_MessageHeader,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_evaluate,
+                        GNUNET_MESSAGE_TYPE_SET_EVALUATE,
+                        struct GNUNET_SET_EvaluateMessage,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (client_listen,
+                          GNUNET_MESSAGE_TYPE_SET_LISTEN,
+                          struct GNUNET_SET_ListenMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_reject,
+                          GNUNET_MESSAGE_TYPE_SET_REJECT,
+                          struct GNUNET_SET_RejectMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_mutation,
+                        GNUNET_MESSAGE_TYPE_SET_REMOVE,
+                        struct GNUNET_MessageHeader,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (client_cancel,
+                          GNUNET_MESSAGE_TYPE_SET_CANCEL,
+                          struct GNUNET_SET_CancelMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_copy_lazy_prepare,
+                          GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE,
+                          struct GNUNET_MessageHeader,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_copy_lazy_connect,
+                          GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT,
+                          struct GNUNET_SET_CopyLazyConnectMessage,
+                          NULL),
+ GNUNET_MQ_handler_end ());
 
-  ret = GNUNET_SERVICE_run (argc, argv, "set",
-                            GNUNET_SERVICE_OPTION_NONE,
-                            &run, NULL);
-  return (GNUNET_OK == ret) ? 0 : 1;
-}
 
 /* end of gnunet-service-set.c */

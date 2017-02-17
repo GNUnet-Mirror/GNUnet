@@ -28,7 +28,7 @@
 #include "gnunet_nat_auto_service.h"
 #include "nat-auto.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "nat-auto", __VA_ARGS__)
 
 #define NAT_SERVER_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -508,19 +508,21 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     nh->lsock
       = GNUNET_NETWORK_socket_create (AF_INET,
-                                      proto,
-                                      0);
+                                      (IPPROTO_UDP == proto)
+                                      ? SOCK_DGRAM
+                                      : SOCK_STREAM,
+                                      proto);
     if ( (NULL == nh->lsock) ||
          (GNUNET_OK !=
           GNUNET_NETWORK_socket_bind (nh->lsock,
                                       (const struct sockaddr *) &sa,
                                       sizeof (sa))))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
-                  GNUNET_a2s ((const struct sockaddr *) &sa,
-                              sizeof (sa)),
-                  STRERROR (errno));
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Failed to create socket bound to `%s' for NAT test: %s\n"),
+           GNUNET_a2s ((const struct sockaddr *) &sa,
+                       sizeof (sa)),
+           STRERROR (errno));
       if (NULL != nh->lsock)
       {
         GNUNET_NETWORK_socket_close (nh->lsock);
@@ -551,7 +553,7 @@ GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          nh);
     }
     LOG (GNUNET_ERROR_TYPE_INFO,
-	 "NAT test listens on port %u (%s)\n",
+	 "NAT test listens on port %llu (%s)\n",
 	 bnd_port,
 	 (IPPROTO_TCP == proto) ? "tcp" : "udp");
     nh->nat = GNUNET_NAT_register (cfg,

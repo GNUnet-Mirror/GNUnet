@@ -264,6 +264,17 @@ GSC_handle_remote_channel_destroy (struct CadetClient *c,
                                    struct GNUNET_CADET_ClientChannelNumber ccn,
                                    struct CadetChannel *ch);
 
+/**
+ * A client that created a loose channel that was not bound to a port
+ * disconnected, drop it from the #loose_channels list.
+ *
+ * @param port the port the channel was trying to bind to
+ * @param ch the channel that was lost
+ */
+void
+GSC_drop_loose_channel (const struct GNUNET_HashCode *port,
+                        struct CadetChannel *ch);
+
 
 /**
  * Bind incoming channel to this client, and notify client
