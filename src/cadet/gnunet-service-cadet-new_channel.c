@@ -1043,13 +1043,25 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     channel_destroy (ch);
     return;
   }
-  if ( (NULL != ch->head_sent) ||
-       (NULL != ch->owner) ||
-       (NULL != ch->dest) )
+  if ( (NULL != ch->head_sent) &&
+       ( (NULL != ch->owner) ||
+         (NULL != ch->dest) ) )
   {
     /* Wait for other end to destroy us as well,
        and otherwise allow send queue to be transmitted first */
     ch->destroy = GNUNET_YES;
+    return;
+  }
+  if (GNUNET_YES == ch->is_loopback)
+  {
+    struct CadetChannelClient *ccc;
+
+    /* Find which end is left... */
+    ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
+    GSC_handle_remote_channel_destroy (ccc->c,
+                                       ccc->ccn,
+                                       ch);
+    channel_destroy (ch);
     return;
   }
   /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */

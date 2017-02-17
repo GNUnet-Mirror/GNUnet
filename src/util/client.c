@@ -510,6 +510,8 @@ try_unixpath (const char *service_name,
       GNUNET_free (unixpath);
       return sock;
     }
+    if (NULL != sock)
+      GNUNET_NETWORK_socket_close (sock);
   }
   GNUNET_free_non_null (unixpath);
 #endif

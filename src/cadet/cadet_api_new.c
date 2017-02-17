@@ -346,6 +346,8 @@ destroy_channel (struct GNUNET_CADET_Channel *ch)
   if (NULL != ch->disconnects)
     ch->disconnects (ch->ctx,
                      ch);
+  if (NULL != ch->pending_env)
+    GNUNET_MQ_discard (ch->pending_env);
   GNUNET_MQ_destroy (ch->mq);
   GNUNET_free (ch);
 }
