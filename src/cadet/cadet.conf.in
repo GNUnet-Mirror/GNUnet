@@ -4,7 +4,7 @@ AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2096
 HOSTNAME = localhost
 BINARY = gnunet-service-cadet-new
-PREFIX = valgrind --leak-check=yes
+# PREFIX = valgrind --leak-check=yes
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-cadet.sock
