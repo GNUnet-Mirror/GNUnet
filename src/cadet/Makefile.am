@@ -58,7 +58,7 @@ libgnunetcadetnew_la_LDFLAGS = \
 gnunet_cadet_SOURCES = \
   gnunet-cadet.c
 gnunet_cadet_LDADD = \
-  libgnunetcadet.la \
+  libgnunetcadetnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_cadet_new_SOURCES = \
@@ -175,7 +175,7 @@ test_cadet_local_LDADD = $(ld_cadet_test_lib)
 test_cadet_local_mq_SOURCES = \
   test_cadet_local_mq.c
 test_cadet_local_mq_LDADD = \
-  libgnunetcadet.la \
+  libgnunetcadetnew.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
