@@ -30,7 +30,9 @@ bin_PROGRAMS = \
  gnunet-cadet
 
 lib_LTLIBRARIES = \
-  libgnunetcadet.la $(EXP_LIB)
+  libgnunetcadetnew.la \
+  libgnunetcadet.la \
+  $(EXP_LIB)
 
 libgnunetcadet_la_SOURCES = \
   cadet_api.c cadet_common.c
@@ -41,6 +43,17 @@ libgnunetcadet_la_LIBADD = \
 libgnunetcadet_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 5:0:0
+
+
+libgnunetcadetnew_la_SOURCES = \
+  cadet_api_new.c
+libgnunetcadetnew_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) \
+  $(LTLIBINTL)
+libgnunetcadetnew_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 6:0:0
 
 gnunet_cadet_SOURCES = \
   gnunet-cadet.c
