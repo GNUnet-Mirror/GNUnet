@@ -1197,7 +1197,7 @@ channel_new_cb (void *cls,
   incoming->is_incoming = GNUNET_YES;
   incoming->peer = *source;
   incoming->channel = channel;
-  incoming->mq = GNUNET_CADET_mq_create (incoming->channel);
+  incoming->mq = GNUNET_CADET_get_mq (incoming->channel);
   incoming->vt = &incoming_vt;
   incoming->timeout_task
     = GNUNET_SCHEDULER_add_delayed (INCOMING_CHANNEL_TIMEOUT,
@@ -1694,7 +1694,7 @@ handle_client_evaluate (void *cls,
                                              &channel_window_cb,
                                              &channel_end_cb,
                                              cadet_handlers);
-  op->mq = GNUNET_CADET_mq_create (op->channel);
+  op->mq = GNUNET_CADET_get_mq (op->channel);
   set->vt->evaluate (op,
                      context);
   GNUNET_SERVICE_client_continue (client);
