@@ -660,7 +660,8 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
       cont (cont_cls);
     return GNUNET_SYSERR;
   }
-  mqm = GNUNET_MQ_msg_extra (msg, element->size,
+  mqm = GNUNET_MQ_msg_extra (msg,
+                             element->size,
                              GNUNET_MESSAGE_TYPE_SET_ADD);
   msg->element_type = htons (element->element_type);
   GNUNET_memcpy (&msg[1],
