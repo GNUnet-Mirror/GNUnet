@@ -368,6 +368,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
                                       ev);
     return;
   }
+  GNUNET_assert (NULL == mq->envelope_head);
   mq->current_envelope = ev;
   mq->send_impl (mq,
 		 ev->mh,
@@ -960,20 +961,16 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
 
   if (mq->current_envelope == ev)
   {
-    // complex case, we already started with transmitting
-    // the message
+    /* complex case, we already started with transmitting
+       the message using the callbacks. */
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
     mq->cancel_impl (mq,
 		     mq->impl_state);
-    // continue sending the next message, if any
-    if (NULL == mq->envelope_head)
+    /* continue sending the next message, if any */
+    mq->current_envelope = mq->envelope_head;
+    if (NULL != mq->current_envelope)
     {
-      mq->current_envelope = NULL;
-    }
-    else
-    {
-      mq->current_envelope = mq->envelope_head;
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
@@ -984,7 +981,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   }
   else
   {
-    // simple case, message is still waiting in the queue
+    /* simple case, message is still waiting in the queue */
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 				 mq->envelope_tail,
 				 ev);
