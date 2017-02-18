@@ -117,6 +117,7 @@ check_count_iter (void *cls,
                   ci_cls->what,
                   ci_cls->expected_count, ci_cls->ongoing_count);
       ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
       return GNUNET_NO;
     }
     ci_cls->cont (ci_cls->cont_cls);
