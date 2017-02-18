@@ -1398,10 +1398,17 @@ GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
   if (NULL != last_env)
   {
     if (NULL != cp->core_mq)
+    {
+      GNUNET_MQ_notify_sent (last_env,
+                             &mqm_send_done,
+                             cp);
       GNUNET_MQ_send (cp->core_mq,
                       last_env);
+    }
     else
+    {
       GNUNET_MQ_discard (last_env);
+    }
   }
   if (cp->mqm_ready_ptr == mqm)
     cp->mqm_ready_ptr = mqm->next;
@@ -1433,6 +1440,9 @@ GCP_send_ooo (struct CadetPeer *cp,
     GNUNET_MQ_discard (env);
     return;
   }
+  GNUNET_MQ_notify_sent (env,
+                         &mqm_send_done,
+                         cp);
   GNUNET_MQ_send (cp->core_mq,
                   env);
 }
