@@ -1363,7 +1363,6 @@ do_reconnect (void *cls)
 static void
 try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 {
-
   if (NULL != dc->mq)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1380,7 +1379,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
               "Will try to reconnect in %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (dc->reconnect_backoff,
                                                       GNUNET_YES));
-  GNUNET_assert (NULL == dc->job_queue);
+  GNUNET_break (NULL != dc->job_queue);
   dc->task =
     GNUNET_SCHEDULER_add_delayed (dc->reconnect_backoff,
 				  &do_reconnect,
@@ -2211,8 +2210,8 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_assert (NULL == dc->job_queue);
   GNUNET_assert (NULL == dc->task);
   GNUNET_assert (NULL != dc->active);
-  dc->job_queue =
-      GNUNET_FS_queue_ (dc->h,
+  dc->job_queue
+    = GNUNET_FS_queue_ (dc->h,
                         &activate_fs_download,
                         &deactivate_fs_download,
                         dc,
@@ -2252,14 +2251,14 @@ GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_FS_download_make_status_ (&pi, dc);
 
   GNUNET_assert (NULL == dc->task);
-  dc->job_queue =
-    GNUNET_FS_queue_ (dc->h,
-                      &activate_fs_download,
-                      &deactivate_fs_download,
-                      dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
-                      (0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
-                      ? GNUNET_FS_QUEUE_PRIORITY_NORMAL
-                      : GNUNET_FS_QUEUE_PRIORITY_PROBE);
+  dc->job_queue
+    = GNUNET_FS_queue_ (dc->h,
+                        &activate_fs_download,
+                        &deactivate_fs_download,
+                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
+                        (0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+                        ? GNUNET_FS_QUEUE_PRIORITY_NORMAL
+                        : GNUNET_FS_QUEUE_PRIORITY_PROBE);
 
 }
 

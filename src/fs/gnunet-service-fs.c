@@ -1177,7 +1177,6 @@ handle_client_unindex (void *cls,
 static void
 shutdown_task (void *cls)
 {
-  GSF_cadet_stop_client ();
   GSF_cadet_stop_server ();
   if (NULL != GSF_core)
   {
@@ -1320,7 +1319,6 @@ main_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   GSF_cadet_start_server ();
-  GSF_cadet_start_client ();
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   return GNUNET_OK;

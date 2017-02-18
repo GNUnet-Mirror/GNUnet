@@ -661,11 +661,8 @@ GCCH_channel_local_new (struct CadetClient *owner,
     }
     else
     {
-      ch->dest = GNUNET_new (struct CadetChannelClient);
-      ch->dest->c = c;
-      ch->dest->client_ready = GNUNET_YES;
       GCCH_bind (ch,
-                 ch->dest->c);
+                 c);
     }
   }
   else
@@ -962,6 +959,7 @@ GCCH_bind (struct CadetChannel *ch,
   if (ch->out_of_order)
     options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   cccd = GNUNET_new (struct CadetChannelClient);
+  GNUNET_assert (NULL == ch->dest);
   ch->dest = cccd;
   cccd->c = c;
   cccd->client_ready = GNUNET_YES;
@@ -996,6 +994,28 @@ GCCH_bind (struct CadetChannel *ch,
   for (unsigned int i=0;i<ch->max_pending_messages;i++)
     send_ack_to_client (ch,
                         GNUNET_NO);
+}
+
+
+/**
+ * One of our clients has disconnected, tell the other one that we
+ * are finished. Done asynchronously to avoid concurrent modification
+ * issues if this is the same client.
+ *
+ * @param cls the `struct CadetChannel` where one of the ends is now dead
+ */
+static void
+signal_remote_destroy_cb (void *cls)
+{
+  struct CadetChannel *ch = cls;
+  struct CadetChannelClient *ccc;
+
+  /* Find which end is left... */
+  ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
+  GSC_handle_remote_channel_destroy (ccc->c,
+                                     ccc->ccn,
+                                     ch);
+  channel_destroy (ch);
 }
 
 
@@ -1043,29 +1063,43 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     channel_destroy (ch);
     return;
   }
-  if ( (NULL != ch->head_sent) ||
-       (NULL != ch->owner) ||
-       (NULL != ch->dest) )
+  if ( (NULL != ch->head_sent) &&
+       ( (NULL != ch->owner) ||
+         (NULL != ch->dest) ) )
   {
     /* Wait for other end to destroy us as well,
        and otherwise allow send queue to be transmitted first */
     ch->destroy = GNUNET_YES;
     return;
   }
-  /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
-  switch (ch->state)
+  if ( (GNUNET_YES == ch->is_loopback) &&
+       ( (NULL != ch->owner) ||
+         (NULL != ch->dest) ) )
   {
-  case CADET_CHANNEL_NEW:
-    /* We gave up on a channel that we created as a client to a remote
-       target, but that never went anywhere. Nothing to do here. */
-    break;
-  case CADET_CHANNEL_LOOSE:
-    GSC_drop_loose_channel (&ch->port,
-                            ch);
-    break;
-  default:
-    GCT_send_channel_destroy (ch->t,
-                              ch->ctn);
+    if (NULL != ch->retry_control_task)
+      GNUNET_SCHEDULER_cancel (ch->retry_control_task);
+    ch->retry_control_task
+      = GNUNET_SCHEDULER_add_now (&signal_remote_destroy_cb,
+                                  ch);
+    return;
+  }
+  if (GNUNET_NO == ch->is_loopback)
+  {
+    /* If the we ever sent the CHANNEL_CREATE, we need to send a destroy message. */
+    switch (ch->state)
+    {
+    case CADET_CHANNEL_NEW:
+      /* We gave up on a channel that we created as a client to a remote
+         target, but that never went anywhere. Nothing to do here. */
+      break;
+    case CADET_CHANNEL_LOOSE:
+      GSC_drop_loose_channel (&ch->port,
+                              ch);
+      break;
+    default:
+      GCT_send_channel_destroy (ch->t,
+                                ch->ctn);
+    }
   }
   /* Nothing left to do, just finish destruction */
   channel_destroy (ch);

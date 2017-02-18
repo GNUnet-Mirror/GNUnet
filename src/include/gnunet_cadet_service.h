@@ -456,7 +456,7 @@ typedef void
                         int tunnel,
                         int neighbor,
                         unsigned int n_paths,
-                        struct GNUNET_PeerIdentity *paths);
+                        const struct GNUNET_PeerIdentity *paths);
 
 
 /**

@@ -530,7 +530,7 @@ handle_client_set_error (void *cls,
   struct GNUNET_SET_Handle *set = cls;
   GNUNET_SET_ElementIterator iter = set->iterator;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_ERROR,
        "Handling client set error %d\n",
        error);
   while (NULL != set->ops_head)
@@ -543,16 +543,10 @@ handle_client_set_error (void *cls,
   }
   set->iterator = NULL;
   set->iteration_id++;
+  set->invalid = GNUNET_YES;
   if (NULL != iter)
     iter (set->iterator_cls,
           NULL);
-  set->invalid = GNUNET_YES;
-  if (GNUNET_YES == set->destroy_requested)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Destroying set after operation failure\n");
-    GNUNET_SET_destroy (set);
-  }
 }
 
 
