@@ -3008,8 +3008,21 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   case CADET_TUNNEL_KEY_UNINITIALIZED:
   case CADET_TUNNEL_KEY_AX_RECV:
     /* We did not even SEND our KX, how can the other peer
-       send us encrypted data? */
-    GNUNET_break_op (0);
+       send us encrypted data? Must have been that we went
+       down and the other peer still things we are up.
+       Let's send it KX back. */
+    GNUNET_STATISTICS_update (stats,
+                              "# received encrypted without any KX",
+                              1,
+                              GNUNET_NO);
+    if (NULL != t->kx_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_task);
+      t->kx_task = NULL;
+    }
+    send_kx (t,
+             ct,
+             &t->ax);
     return;
   case CADET_TUNNEL_KEY_AX_SENT_AND_RECV:
     /* We send KX, and other peer send KX to us at the same time.
