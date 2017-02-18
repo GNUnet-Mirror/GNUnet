@@ -617,12 +617,15 @@ handle_channel_destroy (void *cls,
                        msg->ccn);
   if (NULL == ch)
   {
-    /* Client attempted to destroy unknown channel */
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c->client);
+    /* Client attempted to destroy unknown channel.
+       Can happen if the other side went down at the same time.*/
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%s tried to destroy unknown channel %X\n",
+         GSC_2s(c),
+         ntohl (msg->ccn.channel_of_client));
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s is destroying %s\n",
        GSC_2s(c),
        GCCH_2s (ch));

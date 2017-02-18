@@ -749,6 +749,7 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
                                               port,
                                               ch,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    GNUNET_assert (NULL == ch->retry_control_task);
     ch->retry_control_task
       = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
                                       &timeout_closed_cb,
@@ -834,10 +835,10 @@ send_open_ack (void *cls)
   struct CadetChannel *ch = cls;
   struct GNUNET_CADET_ChannelManageMessage msg;
 
+  ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CHANNEL_OPEN_ACK on %s\n",
        GCCH_2s (ch));
-  ch->retry_control_task = NULL;
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.reserved = htonl (0);
@@ -1011,6 +1012,7 @@ signal_remote_destroy_cb (void *cls)
   struct CadetChannelClient *ccc;
 
   /* Find which end is left... */
+  ch->retry_control_task = NULL;
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
   GSC_handle_remote_channel_destroy (ccc->c,
                                      ccc->ccn,
@@ -1780,7 +1782,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     struct CadetChannelClient *receiver;
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_CADET_LocalData *ld;
-    int to_owner;
+    int ack_to_owner;
 
     env = GNUNET_MQ_msg_extra (ld,
                                buf_len,
@@ -1790,14 +1792,14 @@ GCCH_handle_local_data (struct CadetChannel *ch,
           ch->owner->ccn.channel_of_client) )
     {
       receiver = ch->dest;
-      to_owner = GNUNET_NO;
+      ack_to_owner = GNUNET_YES;
     }
     else if ( (NULL != ch->dest) &&
               (sender_ccn.channel_of_client ==
                ch->dest->ccn.channel_of_client) )
     {
       receiver = ch->owner;
-      to_owner = GNUNET_YES;
+      ack_to_owner = GNUNET_NO;
     }
     else
     {
@@ -1810,10 +1812,11 @@ GCCH_handle_local_data (struct CadetChannel *ch,
                    buf_len);
     if (GNUNET_YES == receiver->client_ready)
     {
+      ch->pending_messages--;
       GSC_send_to_client (receiver->c,
                           env);
       send_ack_to_client (ch,
-                          to_owner);
+                          ack_to_owner);
     }
     else
     {
