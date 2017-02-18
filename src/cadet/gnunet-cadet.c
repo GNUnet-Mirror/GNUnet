@@ -332,8 +332,8 @@ channel_incoming (void *cls,
                   struct GNUNET_CADET_Channel *channel,
                   const struct GNUNET_PeerIdentity *initiator)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Incomming connection from %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Incoming connection from %s\n",
               GNUNET_i2s_full (initiator));
   GNUNET_assert (NULL == ch);
   GNUNET_assert (NULL != lp);
