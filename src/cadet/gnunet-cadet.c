@@ -24,11 +24,12 @@
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
 #include "cadet.h"
-
 
 /**
  * Option -P.
@@ -69,6 +70,36 @@ static char *listen_port;
  * Request echo service
  */
 static int echo;
+
+/**
+ * Do round-trip time measurement
+ */
+static int measure_rtt;
+
+/**
+ * the number of RTT measurements to be done
+ */
+static unsigned int number_rtt;
+
+/**
+ * the time span we are waiting for a ping response before sending the next ping
+ */
+static struct GNUNET_TIME_Relative ping_timeout;
+
+/**
+ * ping timeout task
+ */
+static struct GNUNET_SCHEDULER_Task *timeout_task;
+
+/**
+ * are we waiting for an echo reply?
+ */
+static int waiting_for_pong;
+
+/**
+ * identifier of the last ping we sent
+ */
+static uint16_t ping_count;
 
 /**
  * Request a debug dump
@@ -132,6 +163,8 @@ static struct GNUNET_SCHEDULER_Task *job;
 static void
 listen_stdio (void);
 
+static void
+send_ping (void *cls);
 
 /**
  * Convert encryption status to human readable string.
@@ -347,23 +380,46 @@ channel_incoming (void *cls,
 
 
 /**
- * @brief Send an echo request to the remote peer.
- *
- * @param cls Closure (NULL).
+ * Send ping packet in order to measure the round-trip time to a remote peer
  */
 static void
-send_echo (void *cls)
+send_ping (void *cls)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
-  echo_task = NULL;
-  if (NULL == ch)
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+  }
+
+  if (number_rtt != 0 && ping_count == number_rtt)
+  {
+    GNUNET_SCHEDULER_shutdown ();
     return;
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_CLI);
+  }
+
+  echo_time = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_AbsoluteNBO payload = GNUNET_TIME_absolute_hton (echo_time);
+  env = GNUNET_MQ_msg_extra (msg,
+                             sizeof (payload),
+                             GNUNET_MESSAGE_TYPE_CADET_CLI);
+  GNUNET_memcpy (&msg[1],
+                 &payload,
+                 sizeof (payload));
   GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
                   env);
+  ping_count++;
+  waiting_for_pong = GNUNET_YES;
+
+  if (ping_timeout.rel_value_us != 0)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task =
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
+  }
 }
 
 
@@ -423,35 +479,59 @@ handle_data (void *cls,
   GNUNET_CADET_receive_done (ch);
   if (GNUNET_YES == echo)
   {
-    if (NULL != listen_port)
-    {
-      struct GNUNET_MQ_Envelope *env;
-      struct GNUNET_MessageHeader *msg;
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_MessageHeader *msg;
 
-      env = GNUNET_MQ_msg_extra (msg,
-                                 payload_size,
-                                 GNUNET_MESSAGE_TYPE_CADET_CLI);
-      GNUNET_memcpy (&msg[1],
-                     &message[1],
-                     payload_size);
-      GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
-                      env);
+    env = GNUNET_MQ_msg_extra (msg,
+                               payload_size,
+                               GNUNET_MESSAGE_TYPE_CADET_CLI);
+    GNUNET_memcpy (&msg[1],
+                   &message[1],
+                   payload_size);
+    GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
+                    env);
+    return;
+  }
+
+  if (GNUNET_YES == measure_rtt)
+  {
+    struct GNUNET_TIME_AbsoluteNBO *payload_nbo;
+    struct GNUNET_TIME_Absolute payload;
+    struct GNUNET_TIME_Relative rtt;
+    size_t expected_size = sizeof (*message) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
+
+    if (! waiting_for_pong)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "received unexpected echo response, dropping.\n");
       return;
     }
-    else
-    {
-      struct GNUNET_TIME_Relative latency;
 
-      latency = GNUNET_TIME_absolute_get_duration (echo_time);
-      echo_time = GNUNET_TIME_UNIT_FOREVER_ABS;
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "time: %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (latency,
-                                                          GNUNET_NO));
-      echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                &send_echo,
-                                                NULL);
+    if (ntohs (message->size) != expected_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "received invalid ping response, dropping.\n");
+      return;
     }
+
+    payload_nbo = (struct GNUNET_TIME_AbsoluteNBO *) &message[1];
+    payload = GNUNET_TIME_absolute_ntoh (*payload_nbo);
+
+    if (! payload.abs_value_us != echo_time.abs_value_us)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "received echo response after timeout, dropping.\n");
+      return;
+    }
+
+    waiting_for_pong = GNUNET_NO;
+    rtt = GNUNET_TIME_absolute_get_duration (payload);
+    FPRINTF (stdout,
+             "%d,%" PRId64 "\n",
+             ping_count,
+             rtt.rel_value_us);
+    send_ping (NULL);
+    return;
   }
 
   len = ntohs (message->size) - sizeof (*message);
@@ -888,15 +968,22 @@ run (void *cls,
                                       NULL /* window changes */,
                                       &channel_ended,
                                       handlers);
-    if (GNUNET_YES == echo)
+    listen_stdio ();
+  }
+  if (GNUNET_YES == echo)
+  {
+    if (NULL == listen_port || GNUNET_YES == measure_rtt || NULL != target_id)
     {
-      echo_task = GNUNET_SCHEDULER_add_now (&send_echo,
-                                            NULL);
+      FPRINTF (stderr,
+               _("echo service only allowed in combination with -o PORT option.\n"));
+      return;
     }
-    else
-    {
-      listen_stdio ();
-    }
+  }
+  if (GNUNET_YES == measure_rtt)
+  {
+    ping_count = 0;
+    waiting_for_pong = GNUNET_NO;
+    send_ping (NULL);
   }
 
   if ( (NULL == lp) &&
@@ -943,6 +1030,12 @@ main (int argc,
     {'P', "peers", NULL,
       gettext_noop ("provide information about all peers"),
       GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
+    {'r', "measure-rtt", NULL,
+     gettext_noop ("measure round trip time by sending packets to an echo-mode enabled peer"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt},
+    {'n', "number", NULL,
+     gettext_noop ("number of RTT measurements"),
+     GNUNET_YES, &GNUNET_GETOPT_set_ulong, &number_rtt},
     {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
@@ -957,6 +1050,9 @@ main (int argc,
       GNUNET_STRINGS_get_utf8_args (argc, argv,
                                     &argc, &argv))
     return 2;
+
+  // TODO: get ping_timeout from command line option
+  ping_timeout = GNUNET_TIME_UNIT_ZERO;
 
   res = GNUNET_PROGRAM_run (argc, argv,
                             "gnunet-cadet (OPTIONS | TARGET PORT)",
