@@ -1418,7 +1418,7 @@ create_session (struct Plugin *plugin,
     GNUNET_assert (NULL == client);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new session for peer `%4s' at address %s\n",
+       "Creating new session for peer `%s' at address %s\n",
        GNUNET_i2s (&address->peer),
        tcp_plugin_address_to_string (plugin,
                                      address->address,
@@ -1522,7 +1522,7 @@ do_transmit (void *cls,
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
+         "Timeout trying to transmit to peer `%s', discarding message queue.\n",
          GNUNET_i2s (&session->target));
     /* timeout; cancel all messages that have already expired */
     hd = NULL;
@@ -1540,7 +1540,7 @@ do_transmit (void *cls,
       GNUNET_assert (pos->message_size <= session->bytes_in_queue);
       session->bytes_in_queue -= pos->message_size;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Failed to transmit %u byte message to `%4s'.\n",
+           "Failed to transmit %u byte message to `%s'.\n",
            pos->message_size,
            GNUNET_i2s (&session->target));
       ret += pos->message_size;
@@ -1729,10 +1729,10 @@ tcp_plugin_send (void *cls,
   pm->transmit_cont = cont;
   pm->transmit_cont_cls = cont_cls;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Asked to transmit %u bytes to `%s', added message to list.\n",
-      msgbuf_size,
-      GNUNET_i2s (&session->target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to transmit %u bytes to `%s', added message to list.\n",
+       msgbuf_size,
+       GNUNET_i2s (&session->target));
 
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
@@ -1997,6 +1997,13 @@ tcp_plugin_get_session (void *cls,
                                          address->address_length));
       return session;
     }
+    /* This is a bit of a hack, limiting TCP to never allow more than
+       one TCP connection to any given peer at the same time.
+       Without this, peers sometimes disagree about which of the TCP
+       connections they should use, causing one side to believe that
+       they transmit successfully, while the other receives nothing. */
+    return NULL; /* Refuse to have more than one TCP connection per
+                    peer pair at the same time. */
   }
 
   if (addrlen == sizeof(struct IPv6TcpAddress))
@@ -2078,7 +2085,7 @@ tcp_plugin_get_session (void *cls,
                                                 &address->peer)))
   {
     struct sockaddr_in local_sa;
-    
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found valid IPv4 NAT address (creating session)!\n");
     session = create_session (plugin,
@@ -2168,13 +2175,13 @@ tcp_plugin_get_session (void *cls,
   if (NULL == sa)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failed to create connection to `%4s' at `%s'\n",
+         "Failed to create connection to `%s' at `%s'\n",
          GNUNET_i2s (&address->peer),
          GNUNET_a2s (sb, sbs));
     return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
+       "Asked to transmit to `%s', creating fresh session using address `%s'.\n",
        GNUNET_i2s (&address->peer),
        GNUNET_a2s (sb, sbs));
 
@@ -2246,7 +2253,7 @@ tcp_plugin_disconnect (void *cls,
   struct Plugin *plugin = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnecting peer `%4s'\n",
+       "Disconnecting peer `%s'\n",
        GNUNET_i2s (target));
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap,
                                               target,
@@ -2446,7 +2453,7 @@ tcp_plugin_check_address (void *cls,
   if (addrlen == sizeof(struct IPv4TcpAddress))
   {
     struct sockaddr_in s4;
-    
+
     v4 = (const struct IPv4TcpAddress *) addr;
     if (0 != memcmp (&v4->options,
                      &plugin->myoptions,
@@ -2462,7 +2469,7 @@ tcp_plugin_check_address (void *cls,
 #endif
     s4.sin_port = v4->t4_port;
     s4.sin_addr.s_addr = v4->ipv4_addr;
-    
+
     if (GNUNET_OK !=
 	GNUNET_NAT_test_address (plugin->nat,
 				 &s4,
@@ -2472,7 +2479,7 @@ tcp_plugin_check_address (void *cls,
   else
   {
     struct sockaddr_in6 s6;
-    
+
     v6 = (const struct IPv6TcpAddress *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
     {
@@ -2686,27 +2693,37 @@ handle_tcp_welcome (void *cls,
                                           &alen))
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
-           "Received WELCOME message from my own identity `%4s' on address `%s'\n",
+           "Received WELCOME message from my own identity `%s' on address `%s'\n",
            GNUNET_i2s (&wm->clientIdentity),
            GNUNET_a2s (vaddr, alen));
-      GNUNET_free(vaddr);
+      GNUNET_free (vaddr);
     }
     return;
   }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received WELCOME message from `%4s' %p\n",
-      GNUNET_i2s (&wm->clientIdentity),
-      client);
+  if (GNUNET_OK ==
+      GNUNET_SERVER_client_get_address (client,
+                                        &vaddr,
+                                        &alen))
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Received WELCOME message from `%s' on address `%s'\n",
+        GNUNET_i2s (&wm->clientIdentity),
+        GNUNET_a2s (vaddr, alen));
+    GNUNET_free (vaddr);
+  }
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP WELCOME messages received"),
                             1,
                             GNUNET_NO);
-  session = lookup_session_by_client (plugin, client);
+  session = lookup_session_by_client (plugin,
+                                      client);
   if (NULL != session)
   {
     if (GNUNET_OK ==
-        GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+        GNUNET_SERVER_client_get_address (client,
+                                          &vaddr,
+                                          &alen))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Found existing session %p for peer `%s'\n",
@@ -2795,12 +2812,11 @@ handle_tcp_welcome (void *cls,
     }
   }
 
-  if (session->expecting_welcome != GNUNET_YES)
+  if (GNUNET_YES != session->expecting_welcome)
   {
-    GNUNET_break_op(0);
+    GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
-    GNUNET_break(0);
     return;
   }
   session->last_activity = GNUNET_TIME_absolute_get ();
@@ -2869,7 +2885,9 @@ handle_tcp_data (void *cls,
     void *vaddr;
     size_t alen;
 
-    GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
+    GNUNET_SERVER_client_get_address (client,
+                                      &vaddr,
+                                      &alen);
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Received unexpected %u bytes of type %u from `%s'\n",
          (unsigned int) ntohs (message->size),
@@ -2883,11 +2901,21 @@ handle_tcp_data (void *cls,
   }
 
   session->last_activity = GNUNET_TIME_absolute_get ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Passing %u bytes of type %u from `%4s' to transport service.\n",
-       (unsigned int) ntohs (message->size),
-       (unsigned int) ntohs (message->type),
-       GNUNET_i2s (&session->target));
+  {
+    void *vaddr;
+    size_t alen;
+
+    GNUNET_SERVER_client_get_address (client,
+                                      &vaddr,
+                                      &alen);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Passing %u bytes of type %u from `%s' at %s to transport service.\n",
+         (unsigned int) ntohs (message->size),
+         (unsigned int) ntohs (message->type),
+         GNUNET_i2s (&session->target),
+         GNUNET_a2s (vaddr, alen));
+    GNUNET_free_non_null (vaddr);
+  }
 
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes received via TCP"),
@@ -2984,7 +3012,7 @@ disconnect_notify (void *cls,
   if (NULL == session)
     return; /* unknown, nothing to do */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying session of `%4s' with %s due to network-level disconnect.\n",
+       "Destroying session of `%s' with %s due to network-level disconnect.\n",
        GNUNET_i2s (&session->target),
        tcp_plugin_address_to_string (session->plugin,
                                      session->address->address,
