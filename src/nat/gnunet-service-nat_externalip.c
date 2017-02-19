@@ -23,14 +23,11 @@
  *
  * This can be implemented using different methods, and we allow
  * the main service to be notified about changes to what we believe
- * is our external IPv4 address.  
+ * is our external IPv4 address.
  *
  * Note that this is explicitly only about NATed systems; if one
  * of our network interfaces has a global IP address this does
  * not count as "external".
- *
- * TODO:
- * - implement NEW logic for external IP detection based on traceroute!
  *
  * @file nat/gnunet-service-nat_externalip.c
  * @brief Functions for monitoring external IPv4 addresses
@@ -86,7 +83,7 @@ struct GN_ExternalIPMonitor
    * Kept in DLL.
    */
   struct GN_ExternalIPMonitor *prev;
-  
+
   /**
    * Function to call when we believe our external IPv4 address changed.
    */
@@ -131,7 +128,7 @@ static struct in_addr mini_external_ipv4;
 /**
  * Tell relevant clients about a change in our external
  * IPv4 address.
- * 
+ *
  * @param add #GNUNET_YES to add, #GNUNET_NO to remove
  * @param v4 the external address that changed
  */
@@ -162,7 +159,7 @@ run_external_ip (void *cls);
  * We learn our current external IP address.  If it changed,
  * notify all of our applicable clients. Also re-schedule
  * #run_external_ip with an appropriate timeout.
- * 
+ *
  * @param cls NULL
  * @param addr the address, NULL on errors
  * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
@@ -173,7 +170,7 @@ handle_external_ip (void *cls,
 		    enum GNUNET_NAT_StatusCode result)
 {
   char buf[INET_ADDRSTRLEN];
-  
+
   probe_external_ip_op = NULL;
   GNUNET_SCHEDULER_cancel (probe_external_ip_task);
   probe_external_ip_task
@@ -204,7 +201,7 @@ handle_external_ip (void *cls,
     if (0 != mini_external_ipv4.s_addr)
       notify_monitors_external_ipv4_change (GNUNET_NO,
 					    &mini_external_ipv4);
-    mini_external_ipv4.s_addr = 0; 
+    mini_external_ipv4.s_addr = 0;
     break;
   }
 }
@@ -254,7 +251,7 @@ GN_nat_status_changed (int have_nat)
 				  NULL);
     return;
   }
-  if (GNUNET_NO == have_nat) 
+  if (GNUNET_NO == have_nat)
   {
     if (NULL != probe_external_ip_task)
     {

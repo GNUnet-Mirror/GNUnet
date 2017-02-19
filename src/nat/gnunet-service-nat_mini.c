@@ -123,7 +123,7 @@ read_external_ipv4 (void *cls)
   {
     /* try to read more */
     eh->off += ret;
-    eh->task 
+    eh->task
       = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 					eh->r,
                                         &read_external_ipv4,
@@ -233,7 +233,7 @@ GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
 			      GNUNET_DISK_PIPE_END_WRITE);
   eh->r = GNUNET_DISK_pipe_handle (eh->opipe,
 				   GNUNET_DISK_PIPE_END_READ);
-  eh->task 
+  eh->task
     = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                       eh->r,
                                       &read_external_ipv4,
@@ -254,6 +254,8 @@ GNUNET_NAT_mini_get_external_ipv4_cancel_ (struct GNUNET_NAT_ExternalHandle *eh)
   {
     (void) GNUNET_OS_process_kill (eh->eip,
 				   SIGKILL);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_OS_process_wait (eh->eip));
     GNUNET_OS_process_destroy (eh->eip);
   }
   if (NULL != eh->opipe)
@@ -372,7 +374,7 @@ run_upnpc_r (struct GNUNET_NAT_MiniHandle *mini)
                    sizeof (pstr),
                    "%u",
                    (unsigned int) mini->port);
-  mini->map_cmd 
+  mini->map_cmd
     = GNUNET_OS_command_run (&process_map_output,
 			     mini,
 			     MAP_TIMEOUT,
@@ -516,7 +518,7 @@ do_refresh (void *cls)
   struct GNUNET_NAT_MiniHandle *mini = cls;
   int ac;
 
-  mini->refresh_task 
+  mini->refresh_task
     = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
 				    &do_refresh,
 				    mini);
@@ -538,7 +540,7 @@ do_refresh (void *cls)
     mini->refresh_cmd = NULL;
     ac = GNUNET_YES;
   }
-  mini->refresh_cmd 
+  mini->refresh_cmd
     = GNUNET_OS_command_run (&process_refresh_output,
 			     mini,
 			     MAP_TIMEOUT,
@@ -582,7 +584,7 @@ process_map_output (void *cls,
 		0,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (NULL == mini->refresh_task)
-      mini->refresh_task 
+      mini->refresh_task
         = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
 					&do_refresh,
 					mini);
@@ -747,7 +749,7 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Unmapping port %u with UPnP\n",
        ntohs (mini->current_addr.sin_port));
-  mini->unmap_cmd 
+  mini->unmap_cmd
     = GNUNET_OS_command_run (&process_unmap_output,
 			     mini,
 			     UNMAP_TIMEOUT,

@@ -381,7 +381,8 @@ GNUNET_OS_process_current (void);
  * @return 0 on success, -1 on error
  */
 int
-GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
+GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc,
+                        int sig);
 
 
 /**
