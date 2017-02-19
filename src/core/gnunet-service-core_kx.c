@@ -261,7 +261,7 @@ struct GSC_KeyExchangeInfo
    * Message queue for sending messages to @a peer.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * PING message we transmit to the other peer.
    */
@@ -777,7 +777,7 @@ handle_transport_notify_disconnect (void *cls,
 				    void *handler_cls)
 {
   struct GSC_KeyExchangeInfo *kx = handler_cls;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' disconnected from us.\n",
               GNUNET_i2s (peer));
@@ -814,7 +814,7 @@ static void
 send_ping (struct GSC_KeyExchangeInfo *kx)
 {
   struct GNUNET_MQ_Envelope *env;
-  
+
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# PING messages transmitted"),
                             1,
@@ -1332,7 +1332,7 @@ static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
   struct GNUNET_MQ_Envelope *env;
-  
+
   GNUNET_assert (GNUNET_CORE_KX_STATE_DOWN != kx->status);
   if (NULL != kx->retry_set_key_task)
   {
@@ -1520,7 +1520,7 @@ handle_encrypted (void *cls,
                    sizeof (struct GNUNET_HashCode)))
   {
     /* checksum failed */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		"Failed checksum validation for a message from `%s'\n",
 		GNUNET_i2s (kx->peer));
     return;
@@ -1536,7 +1536,10 @@ handle_encrypted (void *cls,
                   &m->sequence_number,
                   &buf[ENCRYPTED_HEADER_SIZE],
                   size - ENCRYPTED_HEADER_SIZE))
+  {
+    GNUNET_break_op (0);
     return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from %s\n",
               (unsigned int) (size - ENCRYPTED_HEADER_SIZE),
@@ -1642,7 +1645,7 @@ handle_transport_notify_excess_bw (void *cls,
                                    const struct GNUNET_PeerIdentity *pid,
 				   void *connect_cls)
 {
-  struct GSC_KeyExchangeInfo *kx = connect_cls;  
+  struct GSC_KeyExchangeInfo *kx = connect_cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %s has excess bandwidth available\n",
@@ -1668,6 +1671,10 @@ deliver_message (void *cls,
 {
   struct DeliverMessageContext *dmc = client;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted message of type %d from %s\n",
+              ntohs (m->type),
+              GNUNET_i2s (dmc->peer));
   if (GNUNET_CORE_KX_STATE_UP != dmc->kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
@@ -1824,7 +1831,7 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
                                              NULL);
   mst = GNUNET_SERVER_mst_create (&deliver_message,
 				  NULL);
-  transport 
+  transport
     = GNUNET_TRANSPORT_core_connect (GSC_cfg,
 				     &GSC_my_identity,
 				     handlers,
@@ -1927,7 +1934,7 @@ GSC_KX_handle_client_monitor_peers (struct GNUNET_MQ_Handle *mq)
   {
     struct GNUNET_MQ_Envelope *env;
     struct MonitorNotifyMessage *msg;
-    
+
     env = GNUNET_MQ_msg (msg,
 			 GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
     msg->state = htonl ((uint32_t) kx->status);

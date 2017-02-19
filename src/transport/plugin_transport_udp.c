@@ -1271,10 +1271,7 @@ udp_plugin_check_address (void *cls,
 
     v6 = (const struct IPv6UdpAddress *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
+      return GNUNET_OK; /* plausible, if unlikely... */
     memset (&s6, 0, sizeof (s6));
     s6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1338,10 +1335,7 @@ udp_nat_port_map_callback (void *cls,
       GNUNET_assert (sizeof(struct sockaddr_in) == addrlen);
       i4 = (const struct sockaddr_in *) addr;
       if (0 == ntohs (i4->sin_port))
-      {
-        GNUNET_break (0);
-        return;
-      }
+        return; /* Port = 0 means unmapped, ignore these for UDP. */
       memset (&u4,
               0,
               sizeof(u4));
@@ -1359,10 +1353,7 @@ udp_nat_port_map_callback (void *cls,
       GNUNET_assert (sizeof(struct sockaddr_in6) == addrlen);
       i6 = (const struct sockaddr_in6 *) addr;
       if (0 == ntohs (i6->sin6_port))
-      {
-        GNUNET_break (0);
-        return;
-      }
+        return; /* Port = 0 means unmapped, ignore these for UDP. */
       memset (&u6,
               0,
               sizeof(u6));

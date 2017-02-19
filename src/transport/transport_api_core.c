@@ -447,7 +447,8 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_MQ_send (h->mq,
                   n->env);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queued message for neighbour `%s'.\n",
+       "Queued message of type %u for neighbour `%s'.\n",
+       ntohs (msg->type),
        GNUNET_i2s (&n->id));
 }
 
