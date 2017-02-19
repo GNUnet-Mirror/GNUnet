@@ -2576,6 +2576,10 @@ GCT_consider_path (struct CadetTunnel *t,
                    struct CadetPeerPath *p,
                    unsigned int off)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Considering %s for %s\n",
+       GCPP_2s (p),
+       GCT_2s (t));
   (void) consider_path_cb (t,
                            p,
                            off);

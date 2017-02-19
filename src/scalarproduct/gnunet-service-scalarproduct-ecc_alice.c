@@ -260,16 +260,22 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->intersection_listen)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Set intersection, listen still up!\n");
     GNUNET_SET_listen_cancel (s->intersection_listen);
     s->intersection_listen = NULL;
   }
   if (NULL != s->intersection_op)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Set intersection, op still ongoing!\n");
     GNUNET_SET_operation_cancel (s->intersection_op);
     s->intersection_op = NULL;
   }
   if (NULL != s->intersection_set)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Set intersection, set still there!\n");
     GNUNET_SET_destroy (s->intersection_set);
     s->intersection_set = NULL;
   }
@@ -769,6 +775,9 @@ cb_intersection_request_alice (void *cls,
 {
   struct AliceServiceSession *s = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received intersection request from %s!\n",
+              GNUNET_i2s (other_peer));
   if (0 != memcmp (other_peer,
                    &s->peer,
                    sizeof (struct GNUNET_PeerIdentity)))
@@ -947,8 +956,12 @@ handle_alice_client_message_multipart (void *cls,
   if (s->total != s->client_received_element_count)
   {
     /* more to come */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received client multipart data, waiting for more!\n");
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Launching computation\n");
   client_request_complete_alice (s);
 }
 
@@ -1053,8 +1066,12 @@ handle_alice_client_message (void *cls,
   if (s->total != s->client_received_element_count)
   {
     /* wait for multipart msg */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received partial client request, waiting for more!\n");
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Launching computation\n");
   client_request_complete_alice (s);
 }
 

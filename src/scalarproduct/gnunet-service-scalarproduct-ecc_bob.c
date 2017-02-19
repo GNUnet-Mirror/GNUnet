@@ -699,8 +699,15 @@ handle_alices_computation_request (void *cls,
   struct BobServiceSession *s = cls;
 
   s->session_id = msg->session_id; // ??
-  if (s->client_received_element_count == s->total)
-    start_intersection (s);
+  if (s->client_received_element_count < s->total)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Alice ready, still waiting for Bob client data!\n");
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Both ready, launching intersection!\n");
+  start_intersection (s);
 }
 
 
@@ -811,13 +818,19 @@ handle_bob_client_message_multipart (void *cls,
   if (s->total != s->client_received_element_count)
   {
     /* more to come */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Request still partial, waiting for more client data!\n");
     return;
   }
   if (NULL == s->channel)
   {
     /* no Alice waiting for this request, wait for Alice */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client ready, still waiting for Alice!\n");
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Both ready, launching intersection!\n");
   start_intersection (s);
 }
 
@@ -931,6 +944,9 @@ handle_bob_client_message (void *cls,
     s->used_element_count++;
   }
   GNUNET_SERVICE_client_continue (s->client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received client request, opening port %s!\n",
+              GNUNET_h2s (&msg->session_key));
   s->port = GNUNET_CADET_open_porT (my_cadet,
                                     &msg->session_key,
                                     &cb_channel_incoming,

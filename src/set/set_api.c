@@ -297,9 +297,9 @@ check_iter_element (void *cls,
  * @param cls the `struct GNUNET_SET_Handle *`
  * @param mh the message
  */
- static void
- handle_iter_element (void *cls,
-                      const struct GNUNET_SET_IterResponseMessage *msg)
+static void
+handle_iter_element (void *cls,
+                     const struct GNUNET_SET_IterResponseMessage *msg)
 {
   struct GNUNET_SET_Handle *set = cls;
   GNUNET_SET_ElementIterator iter = set->iterator;
@@ -773,6 +773,9 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_EvaluateMessage *msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client prepares set operation (%d)\n",
+       result_mode);
   oh = GNUNET_new (struct GNUNET_SET_OperationHandle);
   oh->result_cb = result_cb;
   oh->result_cls = result_cls;
@@ -1011,6 +1014,9 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   struct GNUNET_SET_AcceptMessage *msg;
 
   GNUNET_assert (GNUNET_NO == request->accepted);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client accepts set operation (%d)\n",
+       result_mode);
   request->accepted = GNUNET_YES;
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->accept_reject_id = htonl (request->accept_id);
@@ -1050,14 +1056,18 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
   }
   if (GNUNET_YES == set->invalid)
     return GNUNET_SYSERR;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client commits to SET\n");
   GNUNET_assert (NULL != oh->conclude_mqm);
   oh->set = set;
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
                                oh);
-  oh->request_id = GNUNET_MQ_assoc_add (set->mq, oh);
+  oh->request_id = GNUNET_MQ_assoc_add (set->mq,
+                                        oh);
   *oh->request_id_addr = htonl (oh->request_id);
-  GNUNET_MQ_send (set->mq, oh->conclude_mqm);
+  GNUNET_MQ_send (set->mq,
+                  oh->conclude_mqm);
   oh->conclude_mqm = NULL;
   oh->request_id_addr = NULL;
   return GNUNET_OK;
