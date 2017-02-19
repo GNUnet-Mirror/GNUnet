@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013-2015 GNUnet e.V.
+     Copyright (C) 2013-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -59,22 +59,11 @@ struct MpiElement
 
 
 /**
- * An incoming session from CADET.
- */
-struct CadetIncomingSession;
-
-
-/**
  * A scalarproduct session which tracks an offer for a
  * multiplication service by a local client.
  */
 struct BobServiceSession
 {
-
-  /**
-   * (hopefully) unique transaction ID
-   */
-  struct GNUNET_HashCode session_id;
 
   /**
    * The client this request is related to.
@@ -124,12 +113,6 @@ struct BobServiceSession
   gcry_mpi_point_t prod_h_i_b_i;
 
   /**
-   * Handle for our associated incoming CADET session, or NULL
-   * if we have not gotten one yet.
-   */
-  struct CadetIncomingSession *cadet;
-
-  /**
    * How many elements will be supplied in total from the client.
    */
   uint32_t total;
@@ -166,20 +149,6 @@ struct BobServiceSession
    */
   int in_destroy;
 
-};
-
-
-/**
- * An incoming session from CADET.
- */
-struct CadetIncomingSession
-{
-
-  /**
-   * Associated client session, or NULL.
-   */
-  struct BobServiceSession *s;
-
   /**
    * The CADET channel.
    */
@@ -200,18 +169,6 @@ struct CadetIncomingSession
    */
   struct GNUNET_MQ_Handle *cadet_mq;
 
-  /**
-   * Has this CADET session been added to the map yet?
-   * #GNUNET_YES if so, in which case @e session_id is
-   * the key.
-   */
-  int in_map;
-
-  /**
-   * Are we already in #destroy_cadet_session()?
-   */
-  int in_destroy;
-
 };
 
 
@@ -219,16 +176,6 @@ struct CadetIncomingSession
  * GNUnet configuration handle
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * Map of `struct BobServiceSession`, by session keys.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *client_sessions;
-
-/**
- * Map of `struct CadetIncomingSession`, by session keys.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *cadet_sessions;
 
 /**
  * Handle to the CADET service.
@@ -239,35 +186,6 @@ static struct GNUNET_CADET_Handle *my_cadet;
  * Context for DLOG operations on a curve.
  */
 static struct GNUNET_CRYPTO_EccDlogContext *edc;
-
-
-/**
- * Finds a not terminated client session in the respective map based on
- * session key.
- *
- * @param key the session key we want to search for
- * @return the matching session, or NULL for none
- */
-static struct BobServiceSession *
-find_matching_client_session (const struct GNUNET_HashCode *key)
-{
-  return GNUNET_CONTAINER_multihashmap_get (client_sessions,
-                                            key);
-}
-
-
-/**
- * Finds a CADET session in the respective map based on session key.
- *
- * @param key the session key we want to search for
- * @return the matching session, or NULL for none
- */
-static struct CadetIncomingSession *
-find_matching_cadet_session (const struct GNUNET_HashCode *key)
-{
-  return GNUNET_CONTAINER_multihashmap_get (cadet_sessions,
-                                            key);
-}
 
 
 /**
@@ -295,39 +213,20 @@ free_element_cb (void *cls,
  * @param session the session to free elements from
  */
 static void
-destroy_cadet_session (struct CadetIncomingSession *s);
-
-
-/**
- * Destroy session state, we are done with it.
- *
- * @param session the session to free elements from
- */
-static void
 destroy_service_session (struct BobServiceSession *s)
 {
-  struct CadetIncomingSession *in;
   unsigned int i;
 
   if (GNUNET_YES == s->in_destroy)
     return;
   s->in_destroy = GNUNET_YES;
-  if (NULL != (in = s->cadet))
-  {
-    s->cadet = NULL;
-    destroy_cadet_session (in);
-  }
   if (NULL != s->client)
   {
     struct GNUNET_SERVICE_Client *c = s->client;
-    
+
     s->client = NULL;
     GNUNET_SERVICE_client_drop (c);
   }
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (client_sessions,
-                                                       &s->session_id,
-                                                       s));
   if (NULL != s->intersected_elements)
   {
     GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
@@ -363,48 +262,17 @@ destroy_service_session (struct BobServiceSession *s)
     gcry_mpi_point_release (s->prod_h_i_b_i);
     s->prod_h_i_b_i = NULL;
   }
-  GNUNET_CADET_close_port (s->port);
+  if (NULL != s->port)
+  {
+    GNUNET_CADET_close_port (s->port);
+    s->port = NULL;
+  }
+  if (NULL != s->channel)
+  {
+    GNUNET_CADET_channel_destroy (s->channel);
+    s->channel = NULL;
+  }
   GNUNET_free (s);
-}
-
-
-/**
- * Destroy incoming CADET session state, we are done with it.
- *
- * @param in the session to free elements from
- */
-static void
-destroy_cadet_session (struct CadetIncomingSession *in)
-{
-  struct BobServiceSession *s;
-
-  if (GNUNET_YES == in->in_destroy)
-    return;
-  in->in_destroy = GNUNET_YES;
-  if (NULL != (s = in->s))
-  {
-    in->s = NULL;
-    destroy_service_session (s);
-  }
-  if (GNUNET_YES == in->in_map)
-  {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (cadet_sessions,
-                                                         &in->session_id,
-                                                         in));
-    in->in_map = GNUNET_NO;
-  }
-  if (NULL != in->cadet_mq)
-  {
-    GNUNET_MQ_destroy (in->cadet_mq);
-    in->cadet_mq = NULL;
-  }
-  if (NULL != in->channel)
-  {
-    GNUNET_CADET_channel_destroy (in->channel);
-    in->channel = NULL;
-  }
-  GNUNET_free (in);
 }
 
 
@@ -443,38 +311,28 @@ prepare_client_end_notification (struct BobServiceSession *session)
  *
  * It must NOT call #GNUNET_CADET_channel_destroy() on the channel.
  *
- * @param cls closure (set from #GNUNET_CADET_connect())
+ * @param cls the `struct BobServiceSession`
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
 cb_channel_destruction (void *cls,
-                        const struct GNUNET_CADET_Channel *channel,
-                        void *channel_ctx)
+                        const struct GNUNET_CADET_Channel *channel)
 {
-  struct CadetIncomingSession *in = channel_ctx;
-  struct BobServiceSession *s;
+  struct BobServiceSession *s = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer disconnected, terminating session %s with peer %s\n",
-              GNUNET_h2s (&in->session_id),
-              GNUNET_i2s (&in->peer));
-  if (NULL != in->cadet_mq)
+              GNUNET_h2s (&s->session_id),
+              GNUNET_i2s (&s->peer));
+  s->channel = NULL;
+  if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
   {
-    GNUNET_MQ_destroy (in->cadet_mq);
-    in->cadet_mq = NULL;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
+    prepare_client_end_notification (s);
   }
-  in->channel = NULL;
-  if (NULL != (s = in->s))
-  {
-    if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
-    {
-      s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
-      prepare_client_end_notification (s);
-    }
-  }
-  destroy_cadet_session (in);
+  destroy_service_session (s);
 }
 
 
@@ -519,7 +377,7 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
   GNUNET_MQ_notify_sent (e,
                          &bob_cadet_done_cb,
                          s);
-  GNUNET_MQ_send (s->cadet->cadet_mq,
+  GNUNET_MQ_send (s->cadet_mq,
                   e);
 }
 
@@ -577,74 +435,30 @@ element_cmp (const void *a,
 
 
 /**
- * Handle a multipart-chunk of a request from another service to
+ * Check a multipart-chunk of a request from another service to
  * calculate a scalarproduct with us.
  *
  * @param cls closure (set from #GNUNET_CADET_connect)
- * @param channel connection to the other end
- * @param channel_ctx place to store local state associated with the @a channel
- * @param message the actual message
+ * @param msg the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_alices_cryptodata_message (void *cls,
-                                  struct GNUNET_CADET_Channel *channel,
-                                  void **channel_ctx,
-                                  const struct GNUNET_MessageHeader *message)
+check_alices_cryptodata_message (void *cls,
+                                 const struct EccAliceCryptodataMessage *msg)
 {
-  struct CadetIncomingSession *in = *channel_ctx;
-  struct BobServiceSession *s;
-  const struct EccAliceCryptodataMessage *msg;
-  const struct GNUNET_CRYPTO_EccPoint *payload;
+  struct BobServiceSession *s = cls;
   uint32_t contained_elements;
   size_t msg_length;
   uint16_t msize;
   unsigned int max;
-  unsigned int i;
-  const struct MpiElement *b_i;
-  gcry_mpi_point_t tmp;
-  gcry_mpi_point_t g_i;
-  gcry_mpi_point_t h_i;
-  gcry_mpi_point_t g_i_b_i;
-  gcry_mpi_point_t h_i_b_i;
 
-  /* sanity checks */
-  if (NULL == in)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  s = in->s;
-  if (NULL == s)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  /* sort our vector for the computation */
-  if (NULL == s->sorted_elements)
-  {
-    s->sorted_elements
-      = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
-                       sizeof (struct MpiElement));
-    s->used_element_count = 0;
-    GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
-                                           &copy_element_cb,
-                                           s);
-    qsort (s->sorted_elements,
-           s->used_element_count,
-           sizeof (struct MpiElement),
-           &element_cmp);
-  }
-
-  /* parse message */
-  msize = ntohs (message->size);
+  msize = ntohs (msg->header.size);
   if (msize <= sizeof (struct EccAliceCryptodataMessage))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  msg = (const struct EccAliceCryptodataMessage *) message;
   contained_elements = ntohl (msg->contained_element_count);
   /* Our intersection may still be ongoing, but this is nevertheless
      an upper bound on the required array size */
@@ -659,6 +473,51 @@ handle_alices_cryptodata_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a multipart-chunk of a request from another service to
+ * calculate a scalarproduct with us.
+ *
+ * @param cls closure (set from #GNUNET_CADET_connect)
+ * @param msg the actual message
+ */
+static void
+handle_alices_cryptodata_message (void *cls,
+                                  const struct EccAliceCryptodataMessage *msg)
+{
+  struct BobServiceSession *s = cls;
+  const struct GNUNET_CRYPTO_EccPoint *payload;
+  uint32_t contained_elements;
+  unsigned int max;
+  unsigned int i;
+  const struct MpiElement *b_i;
+  gcry_mpi_point_t tmp;
+  gcry_mpi_point_t g_i;
+  gcry_mpi_point_t h_i;
+  gcry_mpi_point_t g_i_b_i;
+  gcry_mpi_point_t h_i_b_i;
+
+  contained_elements = ntohl (msg->contained_element_count);
+  max = GNUNET_CONTAINER_multihashmap_size (s->intersected_elements);
+  /* sort our vector for the computation */
+  if (NULL == s->sorted_elements)
+  {
+    s->sorted_elements
+      = GNUNET_new_array (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements),
+                          struct MpiElement);
+    s->used_element_count = 0;
+    GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
+                                           &copy_element_cb,
+                                           s);
+    qsort (s->sorted_elements,
+           s->used_element_count,
+           sizeof (struct MpiElement),
+           &element_cmp);
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u crypto values from Alice\n",
               (unsigned int) contained_elements);
@@ -711,8 +570,7 @@ handle_alices_cryptodata_message (void *cls,
        CADET response(s) */
     transmit_bobs_cryptodata_message (s);
   }
-  GNUNET_CADET_receive_done (s->cadet->channel);
-  return GNUNET_OK;
+  GNUNET_CADET_receive_done (s->channel);
 }
 
 
@@ -752,7 +610,7 @@ cb_intersection_element_removed (void *cls,
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
     GNUNET_break (NULL == s->intersection_set);
-    GNUNET_CADET_receive_done (s->cadet->channel);
+    GNUNET_CADET_receive_done (s->channel);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Finished intersection, %d items remain\n",
          GNUNET_CONTAINER_multihashmap_size (s->intersected_elements));
@@ -808,7 +666,7 @@ start_intersection (struct BobServiceSession *s)
               (unsigned int) s->total);
 
   s->intersection_op
-    = GNUNET_SET_prepare (&s->cadet->peer,
+    = GNUNET_SET_prepare (&s->peer,
                           &set_sid,
                           NULL,
                           GNUNET_SET_RESULT_REMOVED,
@@ -832,53 +690,17 @@ start_intersection (struct BobServiceSession *s)
  * Handle a request from Alice to calculate a scalarproduct with us (Bob).
  *
  * @param cls closure (set from #GNUNET_CADET_connect)
- * @param channel connection to the other end
- * @param channel_ctx place to store the `struct CadetIncomingSession *`
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
+ * @param msg the actual message
  */
-static int
+static void
 handle_alices_computation_request (void *cls,
-                                   struct GNUNET_CADET_Channel *channel,
-                                   void **channel_ctx,
-                                   const struct GNUNET_MessageHeader *message)
+                                   const struct EccServiceRequestMessage *msg)
 {
-  struct CadetIncomingSession *in = *channel_ctx;
-  struct BobServiceSession *s;
-  const struct EccServiceRequestMessage *msg;
+  struct BobServiceSession *s = cls;
 
-  msg = (const struct EccServiceRequestMessage *) message;
-  if (GNUNET_YES == in->in_map)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  if (NULL != find_matching_cadet_session (&msg->session_id))
-  {
-    /* not unique, got one like this already */
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  in->session_id = msg->session_id;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_put (cadet_sessions,
-                                                    &in->session_id,
-                                                    in,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  s = find_matching_client_session (&in->session_id);
-  if (NULL == s)
-  {
-    /* no client waiting for this request, wait for client */
-    return GNUNET_OK;
-  }
-  GNUNET_assert (NULL == s->cadet);
-  /* pair them up */
-  in->s = s;
-  s->cadet = in;
+  s->session_id = msg->session_id; // ??
   if (s->client_received_element_count == s->total)
     start_intersection (s);
-  return GNUNET_OK;
 }
 
 
@@ -887,30 +709,27 @@ handle_alices_computation_request (void *cls,
  * preliminary initialization, more happens after we get Alice's first
  * message.
  *
- * @param cls closure
+ * @param cls our `struct BobServiceSession`
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
- * @param port unused
- * @param options unused
  * @return session associated with the channel
  */
 static void *
 cb_channel_incoming (void *cls,
                      struct GNUNET_CADET_Channel *channel,
-                     const struct GNUNET_PeerIdentity *initiator,
-                     const struct GNUNET_HashCode *port,
-                     enum GNUNET_CADET_ChannelOption options)
+                     const struct GNUNET_PeerIdentity *initiator)
 {
-  struct CadetIncomingSession *in;
+  struct BobServiceSession *s = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "New incoming channel from peer %s.\n",
               GNUNET_i2s (initiator));
-  in = GNUNET_new (struct CadetIncomingSession);
-  in->peer = *initiator;
-  in->channel = channel;
-  in->cadet_mq = GNUNET_CADET_mq_create (in->channel);
-  return in;
+  GNUNET_CADET_close_port (s->port);
+  s->port = NULL;
+  s->peer = *initiator;
+  s->channel = channel;
+  s->cadet_mq = GNUNET_CADET_get_mq (s->channel);
+  return s;
 }
 
 
@@ -994,7 +813,7 @@ handle_bob_client_message_multipart (void *cls,
     /* more to come */
     return;
   }
-  if (NULL == s->cadet)
+  if (NULL == s->channel)
   {
     /* no Alice waiting for this request, wait for Alice */
     return;
@@ -1037,11 +856,6 @@ check_bob_client_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (NULL != find_matching_client_session (&msg->session_key))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   return GNUNET_OK;
 }
 
@@ -1059,7 +873,17 @@ handle_bob_client_message (void *cls,
 			   const struct BobComputationMessage *msg)
 {
   struct BobServiceSession *s = cls;
-  struct CadetIncomingSession *in;
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (alices_computation_request,
+                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION,
+                             struct EccServiceRequestMessage,
+                             s),
+    GNUNET_MQ_hd_var_size (alices_cryptodata_message,
+                           GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA,
+                           struct EccAliceCryptodataMessage,
+                           s),
+    GNUNET_MQ_handler_end ()
+  };
   uint32_t contained_count;
   uint32_t total_count;
   const struct GNUNET_SCALARPRODUCT_Element *elements;
@@ -1073,21 +897,6 @@ handle_bob_client_message (void *cls,
   s->total = total_count;
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
-  s->port = GNUNET_CADET_open_port (my_cadet,
-                                    &msg->session_key,
-                                    &cb_channel_incoming,
-                                    s);
-  if (NULL == s->port)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (s->client);
-    return;
-  }
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_put (client_sessions,
-                                                   &s->session_id,
-                                                   s,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
   s->intersected_elements
     = GNUNET_CONTAINER_multihashmap_create (s->total,
@@ -1122,22 +931,19 @@ handle_bob_client_message (void *cls,
     s->used_element_count++;
   }
   GNUNET_SERVICE_client_continue (s->client);
-  if (s->total != s->client_received_element_count)
+  s->port = GNUNET_CADET_open_porT (my_cadet,
+                                    &msg->session_key,
+                                    &cb_channel_incoming,
+                                    s,
+                                    NULL,
+                                    &cb_channel_destruction,
+                                    cadet_handlers);
+  if (NULL == s->port)
   {
-    /* multipart msg */
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (s->client);
     return;
   }
-  in = find_matching_cadet_session (&s->session_id);
-  if (NULL == in)
-  {
-    /* nothing yet, wait for Alice */
-    return;
-  }
-  GNUNET_assert (NULL == in->s);
-  /* pair them up */
-  in->s = s;
-  s->cadet = in;
-  start_intersection (s);
 }
 
 
@@ -1162,10 +968,6 @@ shutdown_task (void *cls)
     GNUNET_CRYPTO_ecc_dlog_release (edc);
     edc = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_destroy (client_sessions);
-  client_sessions = NULL;
-  GNUNET_CONTAINER_multihashmap_destroy (cadet_sessions);
-  cadet_sessions = NULL;
 }
 
 
@@ -1229,28 +1031,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    { &handle_alices_computation_request,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION,
-      sizeof (struct EccServiceRequestMessage) },
-    { &handle_alices_cryptodata_message,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA,
-      0},
-    { NULL, 0, 0}
-  };
-
   cfg = c;
   /* We don't really do DLOG, so we can setup with very minimal resources */
   edc = GNUNET_CRYPTO_ecc_dlog_prepare (4 /* max value */,
                                         2 /* RAM */);
-  client_sessions = GNUNET_CONTAINER_multihashmap_create (128,
-                                                          GNUNET_YES);
-  cadet_sessions = GNUNET_CONTAINER_multihashmap_create (128,
-                                                         GNUNET_YES);
-  my_cadet = GNUNET_CADET_connect (cfg, 
-				   NULL,
-                                   &cb_channel_destruction,
-                                   cadet_handlers);
+  my_cadet = GNUNET_CADET_connecT (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   if (NULL == my_cadet)
@@ -1277,10 +1062,10 @@ GNUNET_SERVICE_MAIN
 			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB,
 			struct BobComputationMessage,
 			NULL),
-GNUNET_MQ_hd_var_size (bob_client_message_multipart,
-		       GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_BOB,
-		       struct ComputationBobCryptodataMultipartMessage,
-		       NULL),
+ GNUNET_MQ_hd_var_size (bob_client_message_multipart,
+                        GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_BOB,
+                        struct ComputationBobCryptodataMultipartMessage,
+                        NULL),
  GNUNET_MQ_handler_end ());
 
 

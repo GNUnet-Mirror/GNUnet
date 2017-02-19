@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013-2016 GNUnet e.V.
+     Copyright (C) 2013-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -238,15 +238,10 @@ destroy_service_session (struct AliceServiceSession *s)
   if (GNUNET_YES == s->in_destroy)
     return;
   s->in_destroy = GNUNET_YES;
-  if (NULL != s->cadet_mq)
-  {
-    GNUNET_MQ_destroy (s->cadet_mq);
-    s->cadet_mq = NULL;
-  }
   if (NULL != s->client)
   {
     struct GNUNET_SERVICE_Client *c = s->client;
-    
+
     s->client = NULL;
     GNUNET_SERVICE_client_drop (c);
   }
@@ -401,34 +396,25 @@ transmit_client_response (struct AliceServiceSession *s)
 }
 
 
-
 /**
  * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.
  *
  * It must NOT call #GNUNET_CADET_channel_destroy() on the channel.
  *
- * @param cls closure (set from #GNUNET_CADET_connect())
+ * @param cls the `struct AliceServiceSession`
  * @param channel connection to the other end (henceforth invalid)
- * @param channel_ctx place where local state associated
- *                   with the channel is stored
  */
 static void
 cb_channel_destruction (void *cls,
-                        const struct GNUNET_CADET_Channel *channel,
-                        void *channel_ctx)
+                        const struct GNUNET_CADET_Channel *channel)
 {
-  struct AliceServiceSession *s = channel_ctx;
+  struct AliceServiceSession *s = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer disconnected, terminating session %s with peer %s\n",
               GNUNET_h2s (&s->session_id),
               GNUNET_i2s (&s->peer));
-  if (NULL != s->cadet_mq)
-  {
-    GNUNET_MQ_destroy (s->cadet_mq);
-    s->cadet_mq = NULL;
-  }
   s->channel = NULL;
   if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
   {
@@ -492,56 +478,40 @@ compute_scalar_product (struct AliceServiceSession *session,
  * Handle a response we got from another service we wanted to
  * calculate a scalarproduct with.
  *
- * @param cls closure (set from #GNUNET_CADET_connect)
- * @param channel connection to the other end
- * @param channel_ctx place to store local state associated with the channel
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (we are done)
+ * @param cls the `struct AliceServiceSession *`
+ * @param msg the actual message
  */
-static int
+static void
 handle_bobs_cryptodata_message (void *cls,
-                                struct GNUNET_CADET_Channel *channel,
-                                void **channel_ctx,
-                                const struct GNUNET_MessageHeader *message)
+                                const struct EccBobCryptodataMessage *msg)
 {
-  struct AliceServiceSession *s = *channel_ctx;
-  const struct EccBobCryptodataMessage *msg;
-  uint32_t contained;
-  uint16_t msg_size;
+  struct AliceServiceSession *s = cls;
   gcry_mpi_point_t prod_g_i_b_i;
   gcry_mpi_point_t prod_h_i_b_i;
+  uint32_t contained;
 
-  if (NULL == s)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  msg_size = ntohs (message->size);
-  if (sizeof (struct EccBobCryptodataMessage) > msg_size)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  msg = (const struct EccBobCryptodataMessage *) message;
   contained = ntohl (msg->contained_element_count);
   if (2 != contained)
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    destroy_service_session (s);
+    return;
   }
   if (NULL == s->sorted_elements)
   {
     /* we're not ready yet, how can Bob be? */
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    destroy_service_session (s);
+    return;
   }
   if (s->total != s->client_received_element_count)
   {
     /* we're not ready yet, how can Bob be? */
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    destroy_service_session (s);
+    return;
   }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u crypto values from Bob\n",
               (unsigned int) contained);
@@ -556,7 +526,6 @@ handle_bobs_cryptodata_message (void *cls,
   gcry_mpi_point_release (prod_g_i_b_i);
   gcry_mpi_point_release (prod_h_i_b_i);
   transmit_client_response (s);
-  return GNUNET_OK;
 }
 
 
@@ -636,8 +605,8 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
   unsigned int todo_count;
 
   s->sorted_elements
-    = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
-                     sizeof (struct MpiElement));
+    = GNUNET_new_array (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements),
+                        struct MpiElement);
   s->used_element_count = 0;
   GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
                                          &copy_element_cb,
@@ -843,6 +812,13 @@ cb_intersection_request_alice (void *cls,
 static void
 client_request_complete_alice (struct AliceServiceSession *s)
 {
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (bobs_cryptodata_message,
+                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA,
+                             struct EccBobCryptodataMessage,
+                             s),
+    GNUNET_MQ_handler_end ()
+  };
   struct EccServiceRequestMessage *msg;
   struct GNUNET_MQ_Envelope *e;
   struct GNUNET_HashCode set_sid;
@@ -854,18 +830,21 @@ client_request_complete_alice (struct AliceServiceSession *s)
               "Creating new channel for session with key %s.\n",
               GNUNET_h2s (&s->session_id));
   s->channel
-    = GNUNET_CADET_channel_create (my_cadet,
+    = GNUNET_CADET_channel_creatE (my_cadet,
                                    s,
                                    &s->peer,
                                    &s->session_id,
-                                   GNUNET_CADET_OPTION_RELIABLE);
+                                   GNUNET_CADET_OPTION_RELIABLE,
+                                   NULL,
+                                   &cb_channel_destruction,
+                                   cadet_handlers);
   if (NULL == s->channel)
   {
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   }
-  s->cadet_mq = GNUNET_CADET_mq_create (s->channel);
+  s->cadet_mq = GNUNET_CADET_get_mq (s->channel);
   s->intersection_listen
     = GNUNET_SET_listen (cfg,
                          GNUNET_SET_OPERATION_INTERSECTION,
@@ -890,7 +869,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
 
 
 /**
- * We're receiving additional set data. Check if 
+ * We're receiving additional set data. Check if
  * @a msg is well-formed.
  *
  * @param cls client identification of the client
@@ -898,7 +877,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_alice_client_message_multipart (void *cls,				       
+check_alice_client_message_multipart (void *cls,
 				      const struct ComputationBobCryptodataMultipartMessage *msg)
 {
   struct AliceServiceSession *s = cls;
@@ -928,7 +907,7 @@ check_alice_client_message_multipart (void *cls,
  * @param msg the actual message
  */
 static void
-handle_alice_client_message_multipart (void *cls,				       
+handle_alice_client_message_multipart (void *cls,
 				       const struct ComputationBobCryptodataMultipartMessage *msg)
 {
   struct AliceServiceSession *s = cls;
@@ -983,7 +962,7 @@ handle_alice_client_message_multipart (void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_alice_client_message (void *cls,			     
+check_alice_client_message (void *cls,
 			    const struct AliceComputationMessage *msg)
 {
   struct AliceServiceSession *s = cls;
@@ -1012,7 +991,7 @@ check_alice_client_message (void *cls,
   return GNUNET_OK;
 }
 
-  
+
 /**
  * Handler for Alice's client request message.
  * We are doing request-initiation to compute a scalar product with a peer.
@@ -1021,7 +1000,7 @@ check_alice_client_message (void *cls,
  * @param msg the actual message
  */
 static void
-handle_alice_client_message (void *cls,			     
+handle_alice_client_message (void *cls,
 			     const struct AliceComputationMessage *msg)
 {
   struct AliceServiceSession *s = cls;
@@ -1167,13 +1146,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    { &handle_bobs_cryptodata_message,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA,
-      0},
-    { NULL, 0, 0}
-  };
-
   cfg = c;
   edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT,
                                         MAX_RAM);
@@ -1181,10 +1153,7 @@ run (void *cls,
   GNUNET_CRYPTO_ecc_rnd_mpi (edc,
                              &my_privkey,
                              &my_privkey_inv);
-  my_cadet = GNUNET_CADET_connect (cfg,
-				   NULL,
-                                   &cb_channel_destruction,
-                                   cadet_handlers);
+  my_cadet = GNUNET_CADET_connecT (cfg);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1216,7 +1185,7 @@ GNUNET_SERVICE_MAIN
 			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE,
 			struct ComputationBobCryptodataMultipartMessage,
 			NULL),
-  GNUNET_MQ_handler_end ());
+ GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-scalarproduct-ecc_alice.c */
