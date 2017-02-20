@@ -27,9 +27,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#if HAVE_EXTRACTOR_H
-
 #define ABORT(m) { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (m != NULL) GNUNET_CONTAINER_meta_data_destroy(m); return 1; }
+
 
 static int
 testMeta (int i)
@@ -106,10 +105,15 @@ testMeta (int i)
     ABORT (m);
   for (j = 0; j < i; j++)
   {
-    GNUNET_snprintf (val, sizeof (val), "%s.%d",
-                     "A teststring that should compress well.", j);
+    GNUNET_snprintf (val,
+                     sizeof (val),
+                     "%s.%d",
+                     "A teststring that should compress well.",
+                     j);
     if (GNUNET_OK !=
-        GNUNET_CONTAINER_meta_data_delete (m, EXTRACTOR_METATYPE_UNKNOWN, val,
+        GNUNET_CONTAINER_meta_data_delete (m,
+                                           EXTRACTOR_METATYPE_UNKNOWN,
+                                           val,
                                            strlen (val) + 1))
     {
       ABORT (m);
@@ -121,7 +125,8 @@ testMeta (int i)
   return 0;
 }
 
-int
+
+static int
 testMetaMore (int i)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -135,7 +140,7 @@ testMetaMore (int i)
   {
     GNUNET_snprintf (txt, 128, "%u -- %u\n", i, q);
     GNUNET_CONTAINER_meta_data_insert (meta, "<test>",
-                                       q % EXTRACTOR_metatype_get_max (),
+                                       q % 42 /* EXTRACTOR_metatype_get_max () */,
                                        EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                        txt, strlen (txt) + 1);
   }
@@ -152,6 +157,7 @@ testMetaMore (int i)
   GNUNET_free (data);
   return 0;
 }
+
 
 static int
 testMetaLink ()
@@ -188,7 +194,8 @@ testMetaLink ()
   return 0;
 }
 
-int
+
+static int
 check ()
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -345,16 +352,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-#else
-
-int
-main (int argc, char *argv[])
-{
-  fprintf (stderr,
-           "GNU libextractor not found, skipping test.\n");
-  return 0;
-}
-
-#endif
 
 /* end of test_container_meta_data.c */

@@ -407,7 +407,7 @@ test_container_dll_LDADD = \
 test_container_meta_data_SOURCES = \
  test_container_meta_data.c
 test_container_meta_data_LDADD = \
- libgnunetutil.la -lextractor
+ libgnunetutil.la
 
 test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
