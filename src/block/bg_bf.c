@@ -56,6 +56,7 @@ struct BfGroupInternals
  * Serialize state of a block group.
  *
  * @param bg group to serialize
+ * @param[out] nonce set to the nonce of the @a bg
  * @param[out] raw_data set to the serialized state
  * @param[out] raw_data_size set to the number of bytes in @a raw_data
  * @return #GNUNET_OK on success, #GNUNET_NO if serialization is not
@@ -63,6 +64,7 @@ struct BfGroupInternals
  */
 static int
 bf_group_serialize_cb (struct GNUNET_BLOCK_Group *bg,
+                       uint32_t *nonce,
                        void **raw_data,
                        size_t *raw_data_size)
 {
@@ -78,8 +80,63 @@ bf_group_serialize_cb (struct GNUNET_BLOCK_Group *bg,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  *nonce = gi->bf_mutator;
   *raw_data = raw;
   *raw_data_size = gi->bf_size;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Mark elements as "seen" using a hash of the element. Not supported
+ * by all block plugins.
+ *
+ * @param bg group to update
+ * @param seen_results results already seen
+ * @param seen_results_count number of entries in @a seen_results
+ */
+static void
+bf_group_mark_seen_cb (struct GNUNET_BLOCK_Group *bg,
+                       const struct GNUNET_HashCode *seen_results,
+                       unsigned int seen_results_count)
+{
+  struct BfGroupInternals *gi = bg->internal_cls;
+
+  for (unsigned int i=0;i<seen_results_count;i++)
+  {
+    struct GNUNET_HashCode mhash;
+
+    GNUNET_BLOCK_mingle_hash (&seen_results[i],
+                              gi->bf_mutator,
+                              &mhash);
+    GNUNET_CONTAINER_bloomfilter_add (gi->bf,
+                                      &mhash);
+  }
+}
+
+
+/**
+ * Merge two groups, if possible. Not supported by all block plugins,
+ * can also fail if the nonces were different.
+ *
+ * @param bg1 group to update
+ * @param bg2 group to merge into @a bg1
+ * @return #GNUNET_OK on success, #GNUNET_NO if the nonces were different and thus
+ *         we failed.
+ */
+static int
+bf_group_merge_cb (struct GNUNET_BLOCK_Group *bg1,
+                   const struct GNUNET_BLOCK_Group *bg2)
+{
+  struct BfGroupInternals *gi1 = bg1->internal_cls;
+  struct BfGroupInternals *gi2 = bg2->internal_cls;
+
+  if (gi1->bf_mutator != gi2->bf_mutator)
+    return GNUNET_NO;
+  if (gi1->bf_size != gi2->bf_size)
+    return GNUNET_NO;
+  GNUNET_CONTAINER_bloomfilter_or2 (gi1->bf,
+                                    gi2->bf);
   return GNUNET_OK;
 }
 
@@ -134,6 +191,8 @@ GNUNET_BLOCK_GROUP_bf_create (void *cls,
   bg = GNUNET_new (struct GNUNET_BLOCK_Group);
   bg->type = type;
   bg->serialize_cb = &bf_group_serialize_cb;
+  bg->mark_seen_cb = &bf_group_mark_seen_cb;
+  bg->merge_cb = &bf_group_merge_cb;
   bg->destroy_cb = &bf_group_destroy_cb;
   bg->internal_cls = gi;
   return bg;
@@ -154,9 +213,12 @@ int
 GNUNET_BLOCK_GROUP_bf_test_and_set (struct GNUNET_BLOCK_Group *bg,
                                     const struct GNUNET_HashCode *hc)
 {
-  struct BfGroupInternals *gi = bg->internal_cls;
+  struct BfGroupInternals *gi;
   struct GNUNET_HashCode mhash;
 
+  if (NULL == bg)
+    return GNUNET_NO;
+  gi = bg->internal_cls;
   GNUNET_BLOCK_mingle_hash (hc,
                             gi->bf_mutator,
                             &mhash);

@@ -40,9 +40,38 @@
 
 
 /**
+ * Mark elements as "seen" using a hash of the element. Not supported
+ * by all block plugins.
+ *
+ * @param bg group to update
+ * @param seen_results results already seen
+ * @param seen_results_count number of entries in @a seen_results
+ */
+typedef void
+(*GNUNET_BLOCK_GroupMarkSeenFunction)(struct GNUNET_BLOCK_Group *bg,
+                                      const struct GNUNET_HashCode *seen_results,
+                                      unsigned int seen_results_count);
+
+
+/**
+ * Merge two groups, if possible. Not supported by all block plugins,
+ * can also fail if the nonces were different.
+ *
+ * @param bg1 group to update
+ * @param bg2 group to merge into @a bg1
+ * @return #GNUNET_OK on success, #GNUNET_NO if the nonces were different and thus
+ *         we failed.
+ */
+typedef int
+(*GNUNET_BLOCK_GroupMergeFunction)(struct GNUNET_BLOCK_Group *bg1,
+                                   const struct GNUNET_BLOCK_Group *bg2);
+
+
+/**
  * Serialize state of a block group.
  *
  * @param bg group to serialize
+ * @param[out] nonce set to the nonce of the @a bg
  * @param[out] raw_data set to the serialized state
  * @param[out] raw_data_size set to the number of bytes in @a raw_data
  * @return #GNUNET_OK on success, #GNUNET_NO if serialization is not
@@ -50,6 +79,7 @@
  */
 typedef int
 (*GNUNET_BLOCK_GroupSerializeFunction)(struct GNUNET_BLOCK_Group *bg,
+                                       uint32_t *nonce,
                                        void **raw_data,
                                        size_t *raw_data_size);
 
@@ -87,6 +117,18 @@ struct GNUNET_BLOCK_Group
   GNUNET_BLOCK_GroupSerializeFunction serialize_cb;
 
   /**
+   * Function to call to mark elements as seen in the group.
+   * Can be NULL if not supported.
+   */
+  GNUNET_BLOCK_GroupMarkSeenFunction mark_seen_cb;
+
+  /**
+   * Function to call to merge two groups.
+   * Can be NULL if not supported.
+   */
+  GNUNET_BLOCK_GroupMergeFunction merge_cb;
+
+  /**
    * Function to call to destroy the block group.
    * Must not be NULL.
    */
@@ -108,6 +150,7 @@ struct GNUNET_BLOCK_Group
  * @param nonce random value used to seed the group creation
  * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
  * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @param va variable arguments specific to @a type
  * @return block group handle, NULL if block groups are not supported
  *         by this @a type of block (this is not an error)
  */
@@ -116,7 +159,8 @@ typedef struct GNUNET_BLOCK_Group *
                                     enum GNUNET_BLOCK_Type type,
                                     uint32_t nonce,
                                     const void *raw_data,
-                                    size_t raw_data_size);
+                                    size_t raw_data_size,
+                                    va_list va);
 
 
 /**
@@ -128,10 +172,9 @@ typedef struct GNUNET_BLOCK_Group *
  *
  * @param cls closure
  * @param type block type
+ * @param group which block group to use for evaluation
  * @param eo evaluation options to control evaluation
  * @param query original query (hash)
- * @param bf pointer to bloom filter associated with query; possibly updated (!)
- * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
@@ -141,10 +184,9 @@ typedef struct GNUNET_BLOCK_Group *
 typedef enum GNUNET_BLOCK_EvaluationResult
 (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
 				    enum GNUNET_BLOCK_Type type,
+                                    struct GNUNET_BLOCK_Group *group,
                                     enum GNUNET_BLOCK_EvaluationOptions eo,
 				    const struct GNUNET_HashCode *query,
-				    struct GNUNET_CONTAINER_BloomFilter **bf,
-				    int32_t bf_mutator,
 				    const void *xquery,
 				    size_t xquery_size,
 				    const void *reply_block,

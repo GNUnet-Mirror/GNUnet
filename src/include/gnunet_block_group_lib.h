@@ -66,6 +66,20 @@ GNUNET_BLOCK_GROUP_bf_create (void *cls,
                               size_t raw_data_size);
 
 
+/**
+ * Test if @a hc is contained in the Bloom filter of @a bg.  If so,
+ * return #GNUNET_YES.  If not, add @a hc to the Bloom filter and
+ * return #GNUNET_NO.
+ *
+ * @param bg block group to use for testing
+ * @param hc hash of element to evaluate
+ * @return #GNUNET_YES if @a hc is (likely) a duplicate
+ *         #GNUNET_NO if @a hc was definitively not in @bg (but now is)
+ */
+int
+GNUNET_BLOCK_GROUP_bf_test_and_set (struct GNUNET_BLOCK_Group *bg,
+                                    const struct GNUNET_HashCode *hc);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

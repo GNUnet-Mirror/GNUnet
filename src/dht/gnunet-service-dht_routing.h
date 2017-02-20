@@ -67,21 +67,20 @@ GDS_ROUTING_process (void *cls,
  *
  * @param sender peer that originated the request
  * @param type type of the block
+ * @param bg block group to evaluate replies, henceforth owned by routing
  * @param options options for processing
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
 */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,
+                 struct GNUNET_BLOCK_Group *bg,
                  enum GNUNET_DHT_RouteOption options,
-                 const struct GNUNET_HashCode * key, const void *xquery,
-                 size_t xquery_size,
-                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                 uint32_t reply_bf_mutator);
+                 const struct GNUNET_HashCode * key,
+                 const void *xquery,
+                 size_t xquery_size);
 
 
 /**

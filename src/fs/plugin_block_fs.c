@@ -28,6 +28,7 @@
 #include "gnunet_fs_service.h"
 #include "block_fs.h"
 #include "gnunet_signatures.h"
+#include "gnunet_constants.h"
 #include "gnunet_block_group_lib.h"
 
 
@@ -37,10 +38,36 @@
  */
 #define BLOOMFILTER_K 16
 
+
 /**
- * How big is the BF we use for FS blocks?
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Note that #GNUNET_CONSTANTS_BLOOMFILTER_K
+ * gives us the number of bits set per entry.  Furthermore, we should
+ * not re-size the filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @param entry_count expected number of entries in the Bloom filter
+ * @return must be a power of two and smaller or equal to 2^15.
  */
-#define FS_BF_SIZE 8
+static size_t
+compute_bloomfilter_size (unsigned int entry_count)
+{
+  size_t size;
+  unsigned int ideal = (entry_count * GNUNET_CONSTANTS_BLOOMFILTER_K) / 4;
+  uint16_t max = 1 << 15;
+
+  if (entry_count > max)
+    return max;
+  size = 8;
+  while ((size < max) && (size < ideal))
+    size *= 2;
+  if (size > max)
+    return max;
+  return size;
+}
 
 
 /**
@@ -51,16 +78,21 @@
  * @param nonce random value used to seed the group creation
  * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
  * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @param va variable arguments specific to @a type
  * @return block group handle, NULL if block groups are not supported
  *         by this @a type of block (this is not an error)
  */
 static struct GNUNET_BLOCK_Group *
 block_plugin_fs_create_group (void *cls,
-                               enum GNUNET_BLOCK_Type type,
-                               uint32_t nonce,
-                               const void *raw_data,
-                               size_t raw_data_size)
+                              enum GNUNET_BLOCK_Type type,
+                              uint32_t nonce,
+                              const void *raw_data,
+                              size_t raw_data_size,
+                              va_list va)
 {
+  unsigned int size;
+  const char *guard;
+
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_FS_DBLOCK:
@@ -68,8 +100,23 @@ block_plugin_fs_create_group (void *cls,
   case GNUNET_BLOCK_TYPE_FS_IBLOCK:
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    guard = va_arg (va, const char *);
+    if (0 != memcmp (guard,
+                     "fs-seen-set-size",
+                     strlen ("fs-seen-set-size")))
+    {
+      /* va-args invalid! bad bug, complain! */
+      GNUNET_break (0);
+      size = 8;
+    }
+    else
+    {
+      size = compute_bloomfilter_size (va_arg (va, unsigned int));
+    }
+    if (0 == size)
+      size = raw_data_size; /* not for us to determine, use what we got! */
     return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                         FS_BF_SIZE,
+                                         size,
                                          BLOOMFILTER_K,
                                          type,
                                          nonce,
@@ -91,10 +138,9 @@ block_plugin_fs_create_group (void *cls,
  *
  * @param cls closure
  * @param type block type
+ * @param bg group to use for evaluation
  * @param eo control flags
  * @param query original query (hash)
- * @param bf pointer to bloom filter associated with query; possibly updated (!)
- * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
@@ -104,10 +150,9 @@ block_plugin_fs_create_group (void *cls,
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_fs_evaluate (void *cls,
                           enum GNUNET_BLOCK_Type type,
+                          struct GNUNET_BLOCK_Group *bg,
                           enum GNUNET_BLOCK_EvaluationOptions eo,
                           const struct GNUNET_HashCode *query,
-                          struct GNUNET_CONTAINER_BloomFilter **bf,
-                          int32_t bf_mutator,
                           const void *xquery,
                           size_t xquery_size,
                           const void *reply_block,
@@ -116,7 +161,6 @@ block_plugin_fs_evaluate (void *cls,
   const struct UBlock *ub;
   struct GNUNET_HashCode hc;
   struct GNUNET_HashCode chash;
-  struct GNUNET_HashCode mhash;
 
   switch (type)
   {
@@ -170,26 +214,13 @@ block_plugin_fs_evaluate (void *cls,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-    if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block,
-                          reply_block_size,
-                          &chash);
-      GNUNET_BLOCK_mingle_hash (&chash,
-                                bf_mutator,
-                                &mhash);
-      if (NULL != *bf)
-      {
-        if (GNUNET_YES ==
-            GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-      }
-      else
-      {
-        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
-      }
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-    }
+    GNUNET_CRYPTO_hash (reply_block,
+                        reply_block_size,
+                        &chash);
+    if (GNUNET_YES ==
+        GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
+                                            &chash))
+      return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
   default:
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
