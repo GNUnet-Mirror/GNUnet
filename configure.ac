@@ -811,13 +811,15 @@ AM_CONDITIONAL(HAVE_SQLITE, test x$sqlite = xtrue)
 AC_SUBST(SQLITE_CPPFLAGS)
 AC_SUBST(SQLITE_LDFLAGS)
 
+LDFLAGS=$SAVE_LDFLAGS
+CPPFLAGS=$SAVE_CPPFLAGS
+
 # test for postgres
 postgres=false
 # even running the check for postgres breaks emscripten ...
 if test "$taler_only" != yes; then
   AX_LIB_POSTGRESQL([])
   if test "$found_postgresql" = "yes"; then
-    CFLAGS="$CFLAGS $POSTGRESQL_CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
     AC_CHECK_HEADERS([libpq-fe.h],
       postgres=true)

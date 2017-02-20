@@ -94,7 +94,10 @@ libgnunet_plugin_psycstore_postgres_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
   $(LTLIBINTL)
 libgnunet_plugin_psycstore_postgres_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
+  $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
+libgnunet_plugin_psycstore_postgres_la_CPPFLAGS = \
+  $(POSTGRESQL_CPPFLAGS) $(AM_CPPFLAGS)
+
 
 libgnunet_plugin_psycstore_sqlite_la_SOURCES = \
   plugin_psycstore_sqlite.c
