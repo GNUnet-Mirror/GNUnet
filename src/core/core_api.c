@@ -784,7 +784,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CORE_Handle *h;
-  unsigned int hcnt;
 
   h = GNUNET_new (struct GNUNET_CORE_Handle);
   h->cfg = cfg;
@@ -794,18 +793,9 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->disconnects = disconnects;
   h->peers = GNUNET_CONTAINER_multipeermap_create (128,
 						   GNUNET_NO);
-  hcnt = 0;
-  if (NULL != handlers)
-    while (NULL != handlers[hcnt].cb)
-      hcnt++;
-  h->handlers = GNUNET_new_array (hcnt + 1,
-                                  struct GNUNET_MQ_MessageHandler);
-  if (NULL != handlers)
-    GNUNET_memcpy (h->handlers,
-		   handlers,
-		   hcnt * sizeof (struct GNUNET_MQ_MessageHandler));
-  h->hcnt = hcnt;
-  GNUNET_assert (hcnt <
+  h->handlers = GNUNET_MQ_copy_handlers (handlers);
+  h->hcnt = GNUNET_MQ_count_handlers (handlers);
+  GNUNET_assert (h->hcnt <
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
   LOG (GNUNET_ERROR_TYPE_DEBUG,

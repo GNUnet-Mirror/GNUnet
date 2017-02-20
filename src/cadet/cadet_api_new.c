@@ -1635,17 +1635,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
-  if (NULL != handlers)
-  {
-    unsigned int i;
-
-    for (i=0;NULL != handlers[i].cb; i++) ;
-    p->handlers = GNUNET_new_array (i + 1,
-                                    struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy ((struct GNUNET_MQ_MessageHandler *) p->handlers,
-                   handlers,
-                   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
+  p->handlers = GNUNET_MQ_copy_handlers (handlers);
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (h->ports,

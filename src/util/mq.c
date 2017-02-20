@@ -515,21 +515,12 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
                                void *error_handler_cls)
 {
   struct GNUNET_MQ_Handle *mq;
-  unsigned int i;
 
   mq = GNUNET_new (struct GNUNET_MQ_Handle);
   mq->send_impl = send;
   mq->destroy_impl = destroy;
   mq->cancel_impl = cancel;
-  if (NULL != handlers)
-  {
-    for (i=0;NULL != handlers[i].cb; i++) ;
-    mq->handlers = GNUNET_new_array (i + 1,
-				     struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy (mq->handlers,
-	    handlers,
-	    i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
+  mq->handlers = GNUNET_MQ_copy_handlers (handlers);
   mq->error_handler = error_handler;
   mq->error_handler_cls = error_handler_cls;
   mq->impl_state = impl_state;
@@ -1182,6 +1173,56 @@ GNUNET_MQ_dll_remove (struct GNUNET_MQ_Envelope **env_head,
                                *env_tail,
                                env);
 }
+
+
+/**
+ * Copy an array of handlers.
+ *
+ * Useful if the array has been delared in local memory and needs to be
+ * persisted for future use.
+ *
+ * @param handlers Array of handlers to be copied. Can be NULL (nothing done).
+ * @return A newly allocated array of handlers.
+ *         Needs to be freed with #GNUNET_free.
+ */
+struct GNUNET_MQ_MessageHandler *
+GNUNET_MQ_copy_handlers (const struct GNUNET_MQ_MessageHandler *handlers)
+{
+  struct GNUNET_MQ_MessageHandler *copy;
+  unsigned int count;
+
+  if (NULL == handlers)
+    return NULL;
+
+  count = GNUNET_MQ_count_handlers (handlers);
+  copy = GNUNET_new_array (count + 1,
+                           struct GNUNET_MQ_MessageHandler);
+  GNUNET_memcpy (copy,
+                 handlers,
+                 count * sizeof (struct GNUNET_MQ_MessageHandler));
+  return copy;
+}
+
+
+/**
+ * Count the handlers in a handler array.
+ *
+ * @param handlers Array of handlers to be counted.
+ * @return The number of handlers in the array.
+ */
+unsigned int
+GNUNET_MQ_count_handlers (const struct GNUNET_MQ_MessageHandler *handlers)
+{
+  unsigned int i;
+
+  if (NULL == handlers)
+    return 0;
+
+  for (i=0; NULL != handlers[i].cb; i++) ;
+
+  return i;
+}
+
 
 
 /* end of mq.c */
