@@ -268,9 +268,7 @@ typedef void
  * @param cls closure
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -280,7 +278,7 @@ typedef void
 typedef void
 (*PluginUpdate) (void *cls,
 		 uint64_t uid,
-		 int delta,
+		 uint32_t delta,
 		 struct GNUNET_TIME_Absolute expire,
 		 PluginUpdateCont cont,
 		 void *cont_cls);

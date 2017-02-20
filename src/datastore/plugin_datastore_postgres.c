@@ -76,6 +76,11 @@ init_connection (struct Plugin *plugin)
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
 
+  /* FIXME: PostgreSQL does not have unsigned integers! This is ok for the type column because
+   * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
+   * we do math or inequality tests, so we can't handle the entire range of uint32_t.
+   * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
+   */
   ret =
       PQexec (plugin->dbh,
               "CREATE TABLE IF NOT EXISTS gn090 ("
@@ -869,9 +874,7 @@ postgres_plugin_get_expiration (void *cls,
  * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -881,16 +884,15 @@ postgres_plugin_get_expiration (void *cls,
 static void
 postgres_plugin_update (void *cls,
 			uint64_t uid,
-			int delta,
+			uint32_t delta,
                         struct GNUNET_TIME_Absolute expire,
                         PluginUpdateCont cont,
 			void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t idelta = delta;
   uint32_t oid = (uint32_t) uid;
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_uint32 (&idelta),
+    GNUNET_PQ_query_param_uint32 (&delta),
     GNUNET_PQ_query_param_absolute_time (&expire),
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end

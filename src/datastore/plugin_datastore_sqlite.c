@@ -291,6 +291,12 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
          sq_prepare (plugin->dbh,
                      "SELECT 1 FROM sqlite_master WHERE tbl_name = 'gn090'",
                      &stmt));
+
+  /* FIXME: SQLite does not have unsigned integers! This is ok for the type column because
+   * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
+   * we do math or inequality tests, so we can't handle the entire range of uint32_t.
+   * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
+   */
   if ((sqlite3_step (stmt) == SQLITE_DONE) &&
       (sqlite3_exec
        (plugin->dbh,
@@ -593,9 +599,7 @@ sqlite_plugin_put (void *cls,
  * @param cls the plugin context (state for this module)
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -605,7 +609,7 @@ sqlite_plugin_put (void *cls,
 static void
 sqlite_plugin_update (void *cls,
                       uint64_t uid,
-                      int delta,
+                      uint32_t delta,
                       struct GNUNET_TIME_Absolute expire,
                       PluginUpdateCont cont,
                       void *cont_cls)

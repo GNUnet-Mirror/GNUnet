@@ -889,7 +889,7 @@ check_present (void *cls,
          expiration.abs_value_us))
       plugin->api->update (plugin->api->cls,
 			   uid,
-                           (int32_t) ntohl (dm->priority),
+                           ntohl (dm->priority),
                            GNUNET_TIME_absolute_ntoh (dm->expiration),
                            &check_present_continuation,
 			   pc->client);
