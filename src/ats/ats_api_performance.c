@@ -816,7 +816,7 @@ GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandl
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_preference_type (uint32_t type)
+GNUNET_ATS_print_preference_type (enum GNUNET_ATS_PreferenceKind type)
 {
   const char *prefs[] = GNUNET_ATS_PreferenceTypeString;
 
