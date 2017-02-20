@@ -3135,14 +3135,21 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   if (-1 == decrypted_size)
   {
     /* Decryption failed for good, complain. */
-    GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "%s failed to decrypt and validate encrypted data\n",
+         "%s failed to decrypt and validate encrypted data, retrying KX\n",
          GCT_2s (t));
     GNUNET_STATISTICS_update (stats,
                               "# unable to decrypt",
                               1,
                               GNUNET_NO);
+    if (NULL != t->kx_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_task);
+      t->kx_task = NULL;
+    }
+    send_kx (t,
+             ct,
+             &t->ax);
     return;
   }
 
