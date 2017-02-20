@@ -11,7 +11,9 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage
 endif
 
-lib_LTLIBRARIES = libgnunetblock.la
+lib_LTLIBRARIES = \
+  libgnunetblock.la \
+  libgnunetblockgroup.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_test.la
@@ -47,5 +49,16 @@ libgnunetblock_la_LIBADD = \
 libgnunetblock_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblock_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
+
+
+libgnunetblockgroup_la_SOURCES = \
+  bg_bf.c
+libgnunetblockgroup_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+libgnunetblockgroup_la_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la
+libgnunetblockgroup_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0

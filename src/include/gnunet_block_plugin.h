@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2010,2013 GNUnet e.V.
+     Copyright (C) 2010,2013,2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -37,6 +37,86 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
+
+
+/**
+ * Serialize state of a block group.
+ *
+ * @param bg group to serialize
+ * @param[out] raw_data set to the serialized state
+ * @param[out] raw_data_size set to the number of bytes in @a raw_data
+ * @return #GNUNET_OK on success, #GNUNET_NO if serialization is not
+ *         supported, #GNUNET_SYSERR on error
+ */
+typedef int
+(*GNUNET_BLOCK_GroupSerializeFunction)(struct GNUNET_BLOCK_Group *bg,
+                                       void **raw_data,
+                                       size_t *raw_data_size);
+
+
+/**
+ * Destroy resources used by a block group.
+ *
+ * @param bg group to destroy, NULL is allowed
+ */
+typedef void
+(*GNUNET_BLOCK_GroupDestroyFunction)(struct GNUNET_BLOCK_Group *bg);
+
+
+/**
+ * Block group data.  The plugin must initialize the callbacks
+ * and can use the @e internal_cls as it likes.
+ */
+struct GNUNET_BLOCK_Group
+{
+
+  /**
+   * Context owning the block group. Set by the main block library.
+   */
+  struct GNUENT_BLOCK_Context *ctx;
+
+  /**
+   * Type for the block group.  Set by the main block library.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Serialize the block group data, can be NULL if
+   * not supported.
+   */
+  GNUNET_BLOCK_GroupSerializeFunction serialize_cb;
+
+  /**
+   * Function to call to destroy the block group.
+   * Must not be NULL.
+   */
+  GNUNET_BLOCK_GroupDestroyFunction destroy_cb;
+
+  /**
+   * Internal data structure of the plugin.
+   */
+  void *internal_cls;
+
+};
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+typedef struct GNUNET_BLOCK_Group *
+(*GNUNET_BLOCK_GroupCreateFunction)(void *cls,
+                                    enum GNUNET_BLOCK_Type type,
+                                    uint32_t nonce,
+                                    const void *raw_data,
+                                    size_t raw_data_size);
 
 
 /**
@@ -121,6 +201,11 @@ struct GNUNET_BLOCK_PluginFunctions
    */
   GNUNET_BLOCK_GetKeyFunction get_key;
 
+  /**
+   * Create a block group to process a bunch of blocks in a shared
+   * context (i.e. to detect duplicates).
+   */
+  GNUNET_BLOCK_GroupCreateFunction create_group;
 };
 
 #endif

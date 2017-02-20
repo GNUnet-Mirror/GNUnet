@@ -40,6 +40,7 @@ libgnunet_plugin_block_dht_la_SOURCES = \
 libgnunet_plugin_block_dht_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_block_dht_la_LDFLAGS = \

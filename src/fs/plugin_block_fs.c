@@ -23,12 +23,12 @@
  * @brief blocks used for file-sharing
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_block_plugin.h"
 #include "gnunet_fs_service.h"
 #include "block_fs.h"
 #include "gnunet_signatures.h"
+#include "gnunet_block_group_lib.h"
 
 
 /**
@@ -36,6 +36,51 @@
  * Do not change!
  */
 #define BLOOMFILTER_K 16
+
+/**
+ * How big is the BF we use for FS blocks?
+ */
+#define FS_BF_SIZE 8
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+static struct GNUNET_BLOCK_Group *
+block_plugin_fs_create_group (void *cls,
+                               enum GNUNET_BLOCK_Type type,
+                               uint32_t nonce,
+                               const void *raw_data,
+                               size_t raw_data_size)
+{
+  switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    return NULL;
+  case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    return NULL;
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                         FS_BF_SIZE,
+                                         BLOOMFILTER_K,
+                                         type,
+                                         nonce,
+                                         raw_data,
+                                         raw_data_size);
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
+}
+
 
 /**
  * Function called to validate a reply or a request.  For
@@ -214,6 +259,7 @@ libgnunet_plugin_block_fs_init (void *cls)
   api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_fs_evaluate;
   api->get_key = &block_plugin_fs_get_key;
+  api->create_group = &block_plugin_fs_create_group;
   api->types = types;
   return api;
 }

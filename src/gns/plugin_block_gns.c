@@ -22,9 +22,11 @@
  * @file gns/plugin_block_gns.c
  * @brief blocks used for GNS records
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
+#include "gnunet_block_group_lib.h"
 #include "gnunet_block_plugin.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_signatures.h"
@@ -34,6 +36,40 @@
  * Do not change! -from fs
  */
 #define BLOOMFILTER_K 16
+
+/**
+ * How big is the BF we use for GNS blocks?
+ */
+#define GNS_BF_SIZE 8
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+static struct GNUNET_BLOCK_Group *
+block_plugin_gns_create_group (void *cls,
+                               enum GNUNET_BLOCK_Type type,
+                               uint32_t nonce,
+                               const void *raw_data,
+                               size_t raw_data_size)
+{
+  return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                       GNS_BF_SIZE,
+                                       BLOOMFILTER_K,
+                                       type,
+                                       nonce,
+                                       raw_data,
+                                       raw_data_size);
+}
+
 
 /**
  * Function called to validate a reply or a request.  For
@@ -141,9 +177,11 @@ block_plugin_gns_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                         const void *reply_block, size_t reply_block_size,
-                         struct GNUNET_HashCode *key)
+block_plugin_gns_get_key (void *cls,
+                          enum GNUNET_BLOCK_Type type,
+                          const void *reply_block,
+                          size_t reply_block_size,
+                          struct GNUNET_HashCode *key)
 {
   const struct GNUNET_GNSRECORD_Block *block;
 
@@ -178,6 +216,7 @@ libgnunet_plugin_block_gns_init (void *cls)
   api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_gns_evaluate;
   api->get_key = &block_plugin_gns_get_key;
+  api->create_group = &block_plugin_gns_create_group;
   api->types = types;
   return api;
 }

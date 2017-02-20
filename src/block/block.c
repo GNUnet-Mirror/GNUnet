@@ -159,6 +159,46 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
 
 
 /**
+ * Serialize state of a block group.
+ *
+ * @param bg group to serialize
+ * @param[out] raw_data set to the serialized state
+ * @param[out] raw_data_size set to the number of bytes in @a raw_data
+ * @return #GNUNET_OK on success, #GNUNET_NO if serialization is not
+ *         supported, #GNUNET_SYSERR on error
+ */
+int
+GNUNET_BLOCK_group_serialize (struct GNUNET_BLOCK_Group *bg,
+                              void **raw_data,
+                              size_t *raw_data_size)
+{
+  *raw_data = NULL;
+  *raw_data_size = 0;
+  if (NULL == bg)
+    return GNUNET_NO;
+  if (NULL == bg->serialize_cb)
+    return GNUNET_NO;
+  return bg->serialize_cb (bg,
+                           raw_data,
+                           raw_data_size);
+}
+
+
+/**
+ * Destroy resources used by a block group.
+ *
+ * @param bg group to destroy, NULL is allowed
+ */
+void
+GNUNET_BLOCK_group_destroy (struct GNUNET_BLOCK_Group *bg)
+{
+  if (NULL == bg)
+    return;
+  bg->destroy_cb (bg);
+}
+
+
+/**
  * Find a plugin for the given type.
  *
  * @param ctx context to search
@@ -185,6 +225,38 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
     }
   }
   return NULL;
+}
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+struct GNUNET_BLOCK_Group *
+GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
+                           enum GNUNET_BLOCK_Type type,
+                           uint32_t nonce,
+                           const void *raw_data,
+                           size_t raw_data_size)
+{
+  struct GNUNET_BLOCK_PluginFunctions *plugin;
+
+  plugin = find_plugin (ctx,
+                        type);
+  if (NULL == plugin->create_group)
+    return NULL;
+  return plugin->create_group (plugin->cls,
+                               type,
+                               nonce,
+                               raw_data,
+                               raw_data_size);
 }
 
 
