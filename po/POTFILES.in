@@ -36,6 +36,7 @@ src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/cadet/cadet_api.c
+src/cadet/cadet_api_new.c
 src/cadet/cadet_common.c
 src/cadet/cadet_path.c
 src/cadet/cadet_test_lib.c
