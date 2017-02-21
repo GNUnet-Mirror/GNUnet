@@ -611,9 +611,7 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -623,7 +621,7 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 static void
 heap_plugin_update (void *cls,
 		    uint64_t uid,
-		    int delta,
+		    uint32_t delta,
 		    struct GNUNET_TIME_Absolute expire,
 		    PluginUpdateCont cont,
 		    void *cont_cls)
@@ -638,8 +636,9 @@ heap_plugin_update (void *cls,
     GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
 				       expire.abs_value_us);
   }
-  if ( (delta < 0) && (value->priority < - delta) )
-    value->priority = 0;
+  /* Saturating add, don't overflow */
+  if (value->priority > UINT32_MAX - delta)
+    value->priority = UINT32_MAX;
   else
     value->priority += delta;
   cont (cont_cls, GNUNET_OK, NULL);

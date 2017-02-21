@@ -395,9 +395,7 @@ mysql_plugin_put (void *cls,
  * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -407,13 +405,12 @@ mysql_plugin_put (void *cls,
 static void
 mysql_plugin_update (void *cls,
                      uint64_t uid,
-                     int delta,
+                     uint32_t delta,
                      struct GNUNET_TIME_Absolute expire,
                      PluginUpdateCont cont,
                      void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t idelta = (uint32_t) delta;
   uint64_t lexpire = expire.abs_value_us;
   int ret;
 
@@ -424,7 +421,7 @@ mysql_plugin_update (void *cls,
 	      GNUNET_STRINGS_absolute_time_to_string (expire));
 
   struct GNUNET_MY_QueryParam params_update[] = {
-    GNUNET_MY_query_param_uint32 (&idelta),
+    GNUNET_MY_query_param_uint32 (&delta),
     GNUNET_MY_query_param_uint64 (&lexpire),
     GNUNET_MY_query_param_uint64 (&lexpire),
     GNUNET_MY_query_param_uint64 (&uid),

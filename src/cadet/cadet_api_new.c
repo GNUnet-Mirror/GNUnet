@@ -1182,6 +1182,7 @@ destroy_port_cb (void *cls,
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Port *port = value;
 
+  /* This is a warning, the app should have cleanly closed all open ports */
   GNUNET_break (0);
   GNUNET_CADET_close_port (port);
   return GNUNET_OK;
@@ -1244,7 +1245,7 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
                  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports,
                                                        &p->id,
                                                        p));
-  GNUNET_free (p->handlers);
+  GNUNET_free_non_null (p->handlers);
   GNUNET_free (p);
 }
 
@@ -1635,17 +1636,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
-  if (NULL != handlers)
-  {
-    unsigned int i;
-
-    for (i=0;NULL != handlers[i].cb; i++) ;
-    p->handlers = GNUNET_new_array (i + 1,
-                                    struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy ((struct GNUNET_MQ_MessageHandler *) p->handlers,
-                   handlers,
-                   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
+  p->handlers = GNUNET_MQ_copy_handlers (handlers);
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (h->ports,

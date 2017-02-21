@@ -87,8 +87,7 @@ typedef void
  * @param type requested data type
  * @param xquery extended query
  * @param xquery_size number of bytes in xquery
- * @param reply_bf where the reply bf is (to be) stored, possibly updated!, can be NULL
- * @param reply_bf_mutator mutation value for reply_bf
+ * @param bg block group to use for evaluation of replies
  * @param gc function to call on the results
  * @param gc_cls closure for @a gc
  * @return evaluation result for the local replies
@@ -98,8 +97,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,
                           size_t xquery_size,
-                          struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-                          uint32_t reply_bf_mutator,
+                          struct GNUNET_BLOCK_Group *bg,
                           GDS_DATACACHE_GetCallback gc,
                           void *gc_cls);
 

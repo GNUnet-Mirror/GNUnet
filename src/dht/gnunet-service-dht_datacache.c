@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011, 2015 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2015, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -109,29 +109,14 @@ struct GetRequestContext
   const void *xquery;
 
   /**
-   * Bloomfilter to filter out duplicate replies (updated)
-   */
-  struct GNUNET_CONTAINER_BloomFilter **reply_bf;
-
-  /**
    * The key this request was about
    */
   struct GNUNET_HashCode key;
 
   /**
-   * Number of bytes in xquery.
+   * Block group to use to evaluate replies (updated)
    */
-  size_t xquery_size;
-
-  /**
-   * Mutator value for the @e reply_bf, see gnunet_block_lib.h
-   */
-  uint32_t reply_bf_mutator;
-
-  /**
-   * Return value to give back.
-   */
-  enum GNUNET_BLOCK_EvaluationResult eval;
+  struct GNUNET_BLOCK_Group *bg;
 
   /**
    * Function to call on results.
@@ -142,6 +127,16 @@ struct GetRequestContext
    * Closure for @e gc.
    */
   void *gc_cls;
+
+  /**
+   * Number of bytes in xquery.
+   */
+  size_t xquery_size;
+
+  /**
+   * Return value to give back.
+   */
+  enum GNUNET_BLOCK_EvaluationResult eval;
 
 };
 
@@ -181,10 +176,9 @@ datacache_get_iterator (void *cls,
   eval
     = GNUNET_BLOCK_evaluate (GDS_block_context,
                              type,
+                             ctx->bg,
                              GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO,
                              key,
-                             ctx->reply_bf,
-                             ctx->reply_bf_mutator,
                              ctx->xquery,
                              ctx->xquery_size,
                              data,
@@ -256,8 +250,7 @@ datacache_get_iterator (void *cls,
  * @param type requested data type
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
- * @param reply_bf where the reply bf is (to be) stored, possibly updated, can be NULL
- * @param reply_bf_mutator mutation value for @a reply_bf
+ * @param bg block group to use for reply evaluation
  * @param gc function to call on the results
  * @param gc_cls closure for @a gc
  * @return evaluation result for the local replies
@@ -267,8 +260,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,
                           size_t xquery_size,
-                          struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-                          uint32_t reply_bf_mutator,
+                          struct GNUNET_BLOCK_Group *bg,
                           GDS_DATACACHE_GetCallback gc,
                           void *gc_cls)
 {
@@ -285,8 +277,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
   ctx.key = *key;
   ctx.xquery = xquery;
   ctx.xquery_size = xquery_size;
-  ctx.reply_bf = reply_bf;
-  ctx.reply_bf_mutator = reply_bf_mutator;
+  ctx.bg = bg;
   ctx.gc = gc;
   ctx.gc_cls = gc_cls;
   r = GNUNET_DATACACHE_get (datacache,

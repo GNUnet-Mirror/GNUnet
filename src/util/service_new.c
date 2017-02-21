@@ -1624,20 +1624,10 @@ GNUNET_SERVICE_starT (const char *service_name,
   sh->connect_cb = connect_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->cb_cls = cls;
-  if (NULL != handlers)
-  {
-    unsigned int i;
-
-    for (i=0;NULL != handlers[i].cb; i++) ;
-    sh->handlers = GNUNET_new_array (i + 1,
-				     struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy (sh->handlers,
-                   handlers,
-                   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
+  sh->handlers = GNUNET_MQ_copy_handlers (handlers);
   if (GNUNET_OK != setup_service (sh))
   {
-    GNUNET_free (sh->handlers);
+    GNUNET_free_non_null (sh->handlers);
     GNUNET_free (sh);
     return NULL;
   }
@@ -1660,7 +1650,7 @@ GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv)
   while (NULL != (client = srv->clients_head))
     GNUNET_SERVICE_client_drop (client);
   teardown_service (srv);
-  GNUNET_free (srv->handlers);
+  GNUNET_free_non_null (srv->handlers);
   GNUNET_free (srv);
 }
 
@@ -1762,17 +1752,7 @@ GNUNET_SERVICE_ruN_ (int argc,
   sh.connect_cb = connect_cb;
   sh.disconnect_cb = disconnect_cb;
   sh.cb_cls = cls;
-  if (NULL != handlers)
-  {
-    unsigned int i;
-
-    for (i=0;NULL != handlers[i].cb; i++) ;
-    sh.handlers = GNUNET_new_array (i + 1,
-				     struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy (sh.handlers,
-                   handlers,
-                   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
+  sh.handlers = GNUNET_MQ_copy_handlers (handlers);
   sh.service_name = service_name;
 
   /* setup subsystems */
@@ -1903,7 +1883,7 @@ shutdown:
   }
 #endif
   teardown_service (&sh);
-  GNUNET_free (sh.handlers);
+  GNUNET_free_non_null (sh.handlers);
   GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (logfile);

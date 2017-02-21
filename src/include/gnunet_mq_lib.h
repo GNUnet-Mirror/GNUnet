@@ -305,6 +305,30 @@ GNUNET_MQ_dll_remove (struct GNUNET_MQ_Envelope **env_head,
 
 
 /**
+ * Copy an array of handlers.
+ *
+ * Useful if the array has been delared in local memory and needs to be
+ * persisted for future use.
+ *
+ * @param handlers Array of handlers to be copied.
+ * @return A newly allocated array of handlers.
+ *         Needs to be freed with #GNUNET_free.
+ */
+struct GNUNET_MQ_MessageHandler *
+GNUNET_MQ_copy_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
+ * Count the handlers in a handler array.
+ *
+ * @param handlers Array of handlers to be counted.
+ * @return The number of handlers in the array.
+ */
+unsigned int
+GNUNET_MQ_count_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
  * Message handler for a specific message type.
  */
 struct GNUNET_MQ_MessageHandler

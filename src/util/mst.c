@@ -130,7 +130,7 @@ GNUNET_MST_from_buffer (struct GNUNET_MessageStreamTokenizer *mst,
   GNUNET_assert (mst->off <= mst->pos);
   GNUNET_assert (mst->pos <= mst->curr_buf);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Server-mst receives %u bytes with %u bytes already in private buffer\n",
+       "MST receives %u bytes with %u bytes already in private buffer\n",
        (unsigned int) size,
        (unsigned int) (mst->pos - mst->off));
   ret = GNUNET_OK;
@@ -151,7 +151,7 @@ do_align:
     }
     if (mst->pos - mst->off < sizeof (struct GNUNET_MessageHeader))
     {
-      delta 
+      delta
 	= GNUNET_MIN (sizeof (struct GNUNET_MessageHeader)
 		      - (mst->pos - mst->off),
 		      size);
@@ -229,8 +229,8 @@ do_align:
     if (one_shot == GNUNET_YES)
       one_shot = GNUNET_SYSERR;
     mst->off += want;
-    if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
-                                  hdr))
+  if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
+                                hdr))
       return GNUNET_SYSERR;
     if (mst->off == mst->pos)
     {

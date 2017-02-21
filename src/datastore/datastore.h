@@ -180,35 +180,6 @@ struct GetZeroAnonymityMessage
 
 
 /**
- * Message to the datastore service requesting an update
- * to the priority or expiration for some content.
- */
-struct UpdateMessage
-{
-  /**
-   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Desired priority increase.
-   */
-  int32_t priority GNUNET_PACKED;
-
-  /**
-   * Desired new expiration time.
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
-
-  /**
-   * Unique ID for the content.
-   */
-  uint64_t uid;
-
-};
-
-
-/**
  * Message transmitting content from or to the datastore
  * service.
  */

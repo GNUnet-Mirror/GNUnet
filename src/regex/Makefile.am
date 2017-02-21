@@ -80,6 +80,7 @@ libgnunet_plugin_block_regex_la_SOURCES = \
 libgnunet_plugin_block_regex_la_LIBADD = \
  libgnunetregexblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/block/libgnunetblockgroup.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_block_regex_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)

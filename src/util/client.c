@@ -879,4 +879,4 @@ GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return cstate->mq;
 }
 
-/* end of client_new.c */
+/* end of client.c */

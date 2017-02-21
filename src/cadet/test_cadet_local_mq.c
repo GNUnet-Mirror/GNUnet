@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011 GNUnet e.V.
+     Copyright (C) 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -168,8 +168,8 @@ disconnected (void *cls,
               const struct GNUNET_CADET_Channel *channel)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnected cls: %p\n",
-              cls);
+              "disconnected channel %p, cls: %p\n",
+              channel, cls);
   if (channel == ch)
     ch = NULL;
 }
@@ -189,7 +189,7 @@ handle_data_received (void *cls,
 
   payload = GNUNET_ntohll (msg->payload);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Data callback payload %llu with cls: %p! Shutting down.\n",
+              "Data callback payload %llu with cls: %p! Shutting down.\n",
               (unsigned long long) payload,
               cls);
   GNUNET_assert (42 == payload);
@@ -266,29 +266,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_TIME_Relative start_delay;
-  me = peer;
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
-  abort_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 15),
-				    &do_abort,
-                                    (void *) (long) __LINE__);
-  cadet_peer_1 = GNUNET_CADET_connecT (cfg);
-  cadet_peer_2 = GNUNET_CADET_connecT (cfg);
-
-  if ( (NULL == cadet_peer_1) ||
-       (NULL == cadet_peer_2) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Couldn't connect to cadet\n");
-    result = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 1: %p\n", cadet_peer_1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 2: %p\n", cadet_peer_2);
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (data_received,
                              TEST_MESSAGE_TYPE,
@@ -296,6 +273,29 @@ run (void *cls,
                              cadet_peer_2),
     GNUNET_MQ_handler_end ()
   };
+  struct GNUNET_TIME_Relative delay;
+
+  me = peer;
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15);
+  abort_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                             &do_abort,
+                                             (void *) (long) __LINE__);
+  cadet_peer_1 = GNUNET_CADET_connecT (cfg);
+  cadet_peer_2 = GNUNET_CADET_connecT (cfg);
+
+  if ( (NULL == cadet_peer_1) ||
+       (NULL == cadet_peer_2) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Couldn't connect to cadet\n");
+    result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 1: %p\n", cadet_peer_1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 2: %p\n", cadet_peer_2);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handlers 2: %p\n", handlers);
   GNUNET_CADET_open_porT (cadet_peer_2,          /* cadet handle */
                           GC_u2h (TEST_PORT_ID), /* port id */
@@ -304,9 +304,9 @@ run (void *cls,
                           NULL,                  /* window size handler */
                           &disconnected,         /* disconnect handler */
                           handlers);             /* traffic handlers */
-  start_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2);
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2);
   if (NULL == connect_task)
-    connect_task = GNUNET_SCHEDULER_add_delayed (start_delay,
+    connect_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                  &do_connect,
                                                  NULL);
 }

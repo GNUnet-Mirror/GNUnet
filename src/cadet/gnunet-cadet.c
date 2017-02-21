@@ -361,8 +361,8 @@ channel_incoming (void *cls,
                   struct GNUNET_CADET_Channel *channel,
                   const struct GNUNET_PeerIdentity *initiator)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Incomming connection from %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Incoming connection from %s\n",
               GNUNET_i2s_full (initiator));
   GNUNET_assert (NULL == ch);
   GNUNET_assert (NULL != lp);
@@ -433,14 +433,10 @@ request_dump (void *cls)
 
 
 /**
- * Function called whenever a message is received.
+ * Check data message sanity. Does nothing so far (all messages are OK).
  *
- * Each time the function must call #GNUNET_CADET_receive_done on the channel
- * in order to receive the next message. This doesn't need to be immediate:
- * can be delayed if some processing is done on the message.
- *
- * @param cls should match #ch
- * @param message The actual message.
+ * @param cls Closure (unused).
+ * @param message The message to check.
  * @return #GNUNET_OK to keep the channel open,
  *         #GNUNET_SYSERR to close it (signal serious error).
  */

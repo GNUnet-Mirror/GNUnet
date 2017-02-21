@@ -424,11 +424,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DATASTORE_PUT 95
 
 /**
- * Message sent by datastore client to update data.
- */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE 96
-
-/**
  * Message sent by datastore client to get data.
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_GET 97

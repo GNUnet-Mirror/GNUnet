@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2016, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -362,21 +362,22 @@ client_disconnect_cb (void *cls,
 static void
 transmit_request (struct ClientQueryRecord *cqr)
 {
-  int32_t reply_bf_mutator;
-  struct GNUNET_CONTAINER_BloomFilter *reply_bf;
+  struct GNUNET_BLOCK_Group *bg;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
 
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# GET requests from clients injected"),
                             1,
                             GNUNET_NO);
-  reply_bf_mutator =
-      (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                          UINT32_MAX);
-  reply_bf
-    = GNUNET_BLOCK_construct_bloomfilter (reply_bf_mutator,
-                                          cqr->seen_replies,
-                                          cqr->seen_replies_count);
+  bg = GNUNET_BLOCK_group_create (GDS_block_context,
+                                  cqr->type,
+                                  GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                            UINT32_MAX),
+                                  NULL,
+                                  0);
+  GNUNET_BLOCK_group_set_seen (bg,
+                               cqr->seen_replies,
+                               cqr->seen_replies_count);
   peer_bf
     = GNUNET_CONTAINER_bloomfilter_init (NULL,
                                          DHT_BLOOM_SIZE,
@@ -393,10 +394,9 @@ transmit_request (struct ClientQueryRecord *cqr)
                              &cqr->key,
                              cqr->xquery,
                              cqr->xquery_size,
-                             reply_bf,
-                             reply_bf_mutator,
+                             bg,
                              peer_bf);
-  GNUNET_CONTAINER_bloomfilter_free (reply_bf);
+  GNUNET_BLOCK_group_destroy (bg);
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
 
   /* exponential back-off for retries.
@@ -668,7 +668,6 @@ handle_dht_local_get (void *cls,
 			    cqr->xquery,
 			    xquery_size,
                             NULL,
-			    0,
                             &handle_local_result,
                             ch);
   GNUNET_SERVICE_client_continue (ch->client);
@@ -1052,10 +1051,9 @@ forward_reply (void *cls,
   eval
     = GNUNET_BLOCK_evaluate (GDS_block_context,
                              record->type,
+                             NULL,
                              GNUNET_BLOCK_EO_NONE,
                              key,
-                             NULL,
-                             0,
                              record->xquery,
                              record->xquery_size,
                              frc->data,

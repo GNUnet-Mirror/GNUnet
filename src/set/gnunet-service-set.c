@@ -805,16 +805,16 @@ execute_add (struct Set *set,
   el.data = &msg[1];
   el.element_type = ntohs (msg->element_type);
   GNUNET_SET_element_hash (&el, &hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client inserts element %s of size %u\n",
-              GNUNET_h2s (&hash),
-              el.size);
 
   ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
                                           &hash);
 
   if (NULL == ee)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client inserts element %s of size %u\n",
+                GNUNET_h2s (&hash),
+                el.size);
     ee = GNUNET_malloc (el.size + sizeof *ee);
     ee->element.size = el.size;
     GNUNET_memcpy (&ee[1],
@@ -834,6 +834,11 @@ execute_add (struct Set *set,
   }
   else if (GNUNET_YES == _GSS_is_element_of_set (ee, set))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client inserted element %s of size %u twice (ignored)\n",
+                GNUNET_h2s (&hash),
+                el.size);
+
     /* same element inserted twice */
     return;
   }
@@ -843,7 +848,9 @@ execute_add (struct Set *set,
       .generation = set->current_generation,
       .added = GNUNET_YES
     };
-    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+    GNUNET_array_append (ee->mutations,
+                         ee->mutations_size,
+                         mut);
   }
 
   set->vt->add (set->state, ee);
@@ -863,9 +870,6 @@ execute_remove (struct Set *set,
 
   msg = (const struct GNUNET_SET_ElementMessage *) m;
   el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client removes element of size %u\n",
-              el.size);
   el.data = &msg[1];
   el.element_type = ntohs (msg->element_type);
   GNUNET_SET_element_hash (&el, &hash);
@@ -874,11 +878,17 @@ execute_remove (struct Set *set,
   if (NULL == ee)
   {
     /* Client tried to remove non-existing element. */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client removes non-existing element of size %u\n",
+                el.size);
     return;
   }
   if (GNUNET_NO == _GSS_is_element_of_set (ee, set))
   {
     /* Client tried to remove element twice */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client removed element of size %u twice (ignored)\n",
+                el.size);
     return;
   }
   else
@@ -887,7 +897,14 @@ execute_remove (struct Set *set,
       .generation = set->current_generation,
       .added = GNUNET_NO
     };
-    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client removes element of size %u\n",
+                el.size);
+
+    GNUNET_array_append (ee->mutations,
+                         ee->mutations_size,
+                         mut);
   }
   set->vt->remove (set->state, ee);
 }
@@ -1505,9 +1522,9 @@ handle_client_mutation (void *cls,
     pm = GNUNET_new (struct PendingMutation);
     pm->mutation_message = GNUNET_copy_message (m);
     pm->set = set;
-    GNUNET_CONTAINER_DLL_insert (set->content->pending_mutations_head,
-                                 set->content->pending_mutations_tail,
-                                 pm);
+    GNUNET_CONTAINER_DLL_insert_tail (set->content->pending_mutations_head,
+                                      set->content->pending_mutations_tail,
+                                      pm);
     return;
   }
   execute_mutation (set, m);

@@ -696,6 +696,11 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   new_match = GSC_TYPEMAP_test_match (tmap_new,
 				      client->types,
 				      client->tcnt);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying client about neighbour %s (%d/%d)\n",
+              GNUNET_i2s (neighbour),
+              old_match,
+              new_match);
   if (old_match == new_match)
   {
     GNUNET_assert (old_match ==
@@ -720,7 +725,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 			 GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
     cnm->reserved = htonl (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending NOTIFY_CONNECT message to client.\n");
+                "Sending NOTIFY_CONNECT message about peer %s to client.\n",
+                GNUNET_i2s (neighbour));
     cnm->peer = *neighbour;
     GNUNET_MQ_send (client->mq,
 		    env);
@@ -740,6 +746,9 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     env = GNUNET_MQ_msg (dcm,
 			 GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
     dcm->reserved = htonl (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending NOTIFY_DISCONNECT message about peer %s to client.\n",
+                GNUNET_i2s (neighbour));
     dcm->peer = *neighbour;
     GNUNET_MQ_send (client->mq,
 		    env);

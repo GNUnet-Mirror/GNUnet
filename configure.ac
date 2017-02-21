@@ -811,13 +811,15 @@ AM_CONDITIONAL(HAVE_SQLITE, test x$sqlite = xtrue)
 AC_SUBST(SQLITE_CPPFLAGS)
 AC_SUBST(SQLITE_LDFLAGS)
 
+LDFLAGS=$SAVE_LDFLAGS
+CPPFLAGS=$SAVE_CPPFLAGS
+
 # test for postgres
 postgres=false
 # even running the check for postgres breaks emscripten ...
 if test "$taler_only" != yes; then
   AX_LIB_POSTGRESQL([])
   if test "$found_postgresql" = "yes"; then
-    CFLAGS="$CFLAGS $POSTGRESQL_CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
     AC_CHECK_HEADERS([libpq-fe.h],
       postgres=true)
@@ -1788,9 +1790,11 @@ then
   AC_MSG_NOTICE([NOTICE: Mac OS X framework build enabled.])
 fi
 
-if test "x$SUDO_BINARY" = "x" -a ! -w /
+if test "x$install_nss" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: --with-sudo not specified and not running as 'root', will not install GNS NSS library])
+else
+  AC_MSG_NOTICE([NOTICE: Will to install GNS NSS library to $NSS_DIR])
 fi
 
 

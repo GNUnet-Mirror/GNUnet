@@ -889,7 +889,7 @@ check_present (void *cls,
          expiration.abs_value_us))
       plugin->api->update (plugin->api->cls,
 			   uid,
-                           (int32_t) ntohl (dm->priority),
+                           ntohl (dm->priority),
                            GNUNET_TIME_absolute_ntoh (dm->expiration),
                            &check_present_continuation,
 			   pc->client);
@@ -1075,55 +1075,6 @@ handle_get_key (void *cls,
                         ntohl (msg->type),
                         &transmit_item,
                         client);
-  GNUNET_SERVICE_client_continue (client);
-}
-
-
-/**
- * Function called with the result of an update operation.
- *
- * @param cls closure
- * @param status #GNUNET_OK or #GNUNET_SYSERR
- * @param msg error message on error
- */
-static void
-update_continuation (void *cls,
-		     int status,
-		     const char *msg)
-{
-  struct GNUNET_SERVICE_Client *client = cls;
-
-  transmit_status (client,
-                   status,
-                   msg);
-}
-
-
-/**
- * Handle UPDATE-message.
- *
- * @param cls client identification of the client
- * @param message the actual message
- */
-static void
-handle_update (void *cls,
-               const struct UpdateMessage *msg)
-{
-  struct GNUNET_SERVICE_Client *client = cls;
-
-  GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# UPDATE requests received"),
-                            1,
-                            GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing UPDATE request for %llu\n",
-              (unsigned long long) GNUNET_ntohll (msg->uid));
-  plugin->api->update (plugin->api->cls,
-                       GNUNET_ntohll (msg->uid),
-                       (int32_t) ntohl (msg->priority),
-                       GNUNET_TIME_absolute_ntoh (msg->expiration),
-                       &update_continuation,
-                       client);
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -1857,10 +1808,6 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_DATASTORE_PUT,
                         struct DataMessage,
                         NULL),
- GNUNET_MQ_hd_fixed_size (update,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
-                          struct UpdateMessage,
-                          NULL),
  GNUNET_MQ_hd_fixed_size (get,
                           GNUNET_MESSAGE_TYPE_DATASTORE_GET,
                           struct GetMessage,

@@ -58,9 +58,9 @@ struct RecentRequest
   struct GNUNET_CONTAINER_HeapNode *heap_node;
 
   /**
-   * Bloomfilter for replies to drop.
+   * Block group for filtering replies.
    */
-  struct GNUNET_CONTAINER_BloomFilter *reply_bf;
+  struct GNUNET_BLOCK_Group *bg;
 
   /**
    * Type of the requested block.
@@ -77,11 +77,6 @@ struct RecentRequest
    * Number of bytes in xquery.
    */
   size_t xquery_size;
-
-  /**
-   * Mutator value for the reply_bf, see gnunet_block_lib.h
-   */
-  uint32_t reply_bf_mutator;
 
   /**
    * Request options.
@@ -207,10 +202,9 @@ process (void *cls,
   eval
     = GNUNET_BLOCK_evaluate (GDS_block_context,
                              pc->type,
+                             rr->bg,
                              GNUNET_BLOCK_EO_NONE,
                              eval_key,
-                             &rr->reply_bf,
-                             rr->reply_bf_mutator,
                              rr->xquery,
                              rr->xquery_size,
                              pc->data,
@@ -343,7 +337,7 @@ expire_oldest_entry ()
   recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
   GNUNET_assert (recent_req != NULL);
   GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
-  GNUNET_CONTAINER_bloomfilter_free (recent_req->reply_bf);
+  GNUNET_BLOCK_group_destroy (recent_req->bg);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (recent_map,
 						       &recent_req->key,
@@ -379,18 +373,10 @@ try_combine_recent (void *cls,
 		     rr->xquery,
 		     in->xquery_size)) )
     return GNUNET_OK;
-  if (in->reply_bf_mutator != rr->reply_bf_mutator)
-  {
-    rr->reply_bf_mutator = in->reply_bf_mutator;
-    GNUNET_CONTAINER_bloomfilter_free (rr->reply_bf);
-    rr->reply_bf = in->reply_bf;
-  }
-  else
-  {
-    GNUNET_CONTAINER_bloomfilter_or2 (rr->reply_bf,
-				      in->reply_bf);
-    GNUNET_CONTAINER_bloomfilter_free (in->reply_bf);
-  }
+  GNUNET_break (GNUNET_SYSERR !=
+                GNUNET_BLOCK_group_merge (in->bg,
+                                          rr->bg));
+  rr->bg = in->bg;
   GNUNET_free (in);
   return GNUNET_SYSERR;
 }
@@ -411,12 +397,11 @@ try_combine_recent (void *cls,
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,
+                 struct GNUNET_BLOCK_Group *bg,
                  enum GNUNET_DHT_RouteOption options,
                  const struct GNUNET_HashCode *key,
                  const void *xquery,
-                 size_t xquery_size,
-                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                 uint32_t reply_bf_mutator)
+                 size_t xquery_size)
 {
   struct RecentRequest *recent_req;
 
@@ -424,17 +409,19 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
     expire_oldest_entry ();
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# Entries added to routing table"),
-                            1, GNUNET_NO);
+                            1,
+                            GNUNET_NO);
   recent_req = GNUNET_malloc (sizeof (struct RecentRequest) + xquery_size);
   recent_req->peer = *sender;
   recent_req->key = *key;
-  recent_req->reply_bf = GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
+  recent_req->bg = bg;
   recent_req->type = type;
   recent_req->options = options;
   recent_req->xquery = &recent_req[1];
-  GNUNET_memcpy (&recent_req[1], xquery, xquery_size);
+  GNUNET_memcpy (&recent_req[1],
+                 xquery,
+                 xquery_size);
   recent_req->xquery_size = xquery_size;
-  recent_req->reply_bf_mutator = reply_bf_mutator;
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_get_multiple (recent_map,
                                                   key,
@@ -447,13 +434,14 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                               1, GNUNET_NO);
     return;
   }
-  recent_req->heap_node =
-      GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
+  recent_req->heap_node
+    = GNUNET_CONTAINER_heap_insert (recent_heap,
+                                    recent_req,
                                     GNUNET_TIME_absolute_get ().abs_value_us);
-  GNUNET_CONTAINER_multihashmap_put (recent_map, key, recent_req,
+  GNUNET_CONTAINER_multihashmap_put (recent_map,
+                                     key,
+                                     recent_req,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-
 }
 
 

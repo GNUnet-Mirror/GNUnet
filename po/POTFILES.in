@@ -32,10 +32,12 @@ src/auction/gnunet-auction-create.c
 src/auction/gnunet-auction-info.c
 src/auction/gnunet-auction-join.c
 src/auction/gnunet-service-auction.c
+src/block/bg_bf.c
 src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/cadet/cadet_api.c
+src/cadet/cadet_api_new.c
 src/cadet/cadet_common.c
 src/cadet/cadet_path.c
 src/cadet/cadet_test_lib.c

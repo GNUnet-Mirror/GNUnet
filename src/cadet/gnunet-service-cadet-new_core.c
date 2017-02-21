@@ -596,7 +596,6 @@ send_broken (struct RouteDirection *target,
     bm->peer1 = *peer1;
   if (NULL != peer2)
     bm->peer2 = *peer2;
-
   GCP_request_mq_cancel (target->mqm,
                          env);
   target->mqm = NULL;

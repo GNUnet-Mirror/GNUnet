@@ -164,9 +164,7 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -174,7 +172,7 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param cons_cls continuation closure
  */
 static void
-template_plugin_update (void *cls, uint64_t uid, int delta,
+template_plugin_update (void *cls, uint64_t uid, uint32_t delta,
                         struct GNUNET_TIME_Absolute expire,
                         PluginUpdateCont cont, void *cont_cls)
 {
