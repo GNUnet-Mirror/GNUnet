@@ -835,7 +835,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_MQ_destroy (handle->mq);
     handle->mq = NULL;
   }
-  GNUNET_free (handle->handlers);
+  GNUNET_free_non_null (handle->handlers);
   GNUNET_free (handle);
 }
 
