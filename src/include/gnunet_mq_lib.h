@@ -777,7 +777,7 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
  * try to send the next message until #gnunet_mq_impl_send_continue
  * is called.
  *
- * only useful for implementing message queues, results in undefined
+ * Only useful for implementing message queues, results in undefined
  * behavior if not used carefully.
  *
  * @param mq message queue to send the next message with

@@ -442,22 +442,6 @@ notify_window_size (struct GNUNET_CADET_Channel *ch)
 
 
 /**
- * Allow the MQ implementation to send the next message.
- *
- * @param cls Closure (channel whose mq to activate).
- */
-static void
-cadet_mq_send_continue (void *cls)
-{
-  struct GNUNET_CADET_Channel *ch = cls;
-
-  ch->mq_cont = NULL;
-  GNUNET_assert (NULL == ch->pending_env);
-  GNUNET_MQ_impl_send_continue (ch->mq);
-}
-
-
-/**
  * Transmit the next message from our queue.
  *
  * @param cls Closure (channel whose mq to activate).
@@ -482,13 +466,10 @@ cadet_mq_send_now (void *cls)
     return;
   }
   ch->allow_send--;
-  GNUNET_MQ_impl_send_in_flight (ch->mq);
   ch->pending_env = NULL;
-  GNUNET_MQ_notify_sent (env,
-                         &cadet_mq_send_continue,
-                         ch);
   GNUNET_MQ_send (ch->cadet->mq,
                   env);
+  GNUNET_MQ_impl_send_continue (ch->mq);
 }
 
 
@@ -604,6 +585,11 @@ cadet_mq_cancel_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL != ch->pending_env);
   GNUNET_MQ_discard (ch->pending_env);
   ch->pending_env = NULL;
+  if (NULL != ch->mq_cont)
+  {
+    GNUNET_SCHEDULER_cancel (ch->mq_cont);
+    ch->mq_cont = NULL;
+  }
 }
 
 
