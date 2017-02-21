@@ -729,33 +729,32 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
  * It should clean up any associated state, including cancelling any pending
  * transmission on this channel.
  *
- * @param cls Channel closure.
+ * @param cls Channel closure (channel wrapper).
  * @param channel Connection to the other end (henceforth invalid).
  */
 static void
 disconnect_handler (void *cls, const struct GNUNET_CADET_Channel *channel)
 {
-  long i = (long) cls;
+  struct CadetTestChannelWrapper *ch_w = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Channel disconnected at %p\n", cls);
-  if (peers_running - 1 == i)
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Channel disconnected\n");
+  GNUNET_assert (ch_w->ch == channel);
+  if (channel == incoming_ch)
   {
     ok++;
-    GNUNET_break (channel == incoming_ch);
     incoming_ch = NULL;
   }
-  else if (0L == i)
+  else if (outgoing_ch == channel
+  )
   {
     if (P2P_SIGNAL == test)
     {
       ok++;
     }
-    GNUNET_break (channel == outgoing_ch);
     outgoing_ch = NULL;
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unknown peer! %d\n", (int) i);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unknown channel! %p\n", channel);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
 
   if (NULL != disconnect_task)
