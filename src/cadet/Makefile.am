@@ -125,6 +125,22 @@ if HAVE_TESTING
 check_PROGRAMS = \
   test_cadet_local_mq \
   test_cadet_2_forward_new \
+  test_cadet_2_forward_new \
+  test_cadet_2_signal_new \
+  test_cadet_2_keepalive_new \
+  test_cadet_2_speed_new \
+  test_cadet_2_speed_ack_new \
+  test_cadet_2_speed_backwards_new \
+  test_cadet_2_speed_reliable_new \
+  test_cadet_2_speed_reliable_backwards_new \
+  test_cadet_5_forward_new \
+  test_cadet_5_signal_new \
+  test_cadet_5_keepalive_new \
+  test_cadet_5_speed_new \
+  test_cadet_5_speed_ack_new \
+  test_cadet_5_speed_reliable_new \
+  test_cadet_5_speed_reliable_backwards_new \
+  test_cadet_5_speed_backwards_new \
   test_cadet_single \
   test_cadet_local \
   test_cadet_2_forward \
@@ -269,6 +285,67 @@ dep_cadet_test_lib_new = \
 test_cadet_2_forward_new_SOURCES = \
   test_cadet_new.c
 test_cadet_2_forward_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_signal_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_signal_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_keepalive_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_keepalive_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_speed_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_speed_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_speed_ack_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_speed_ack_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_speed_backwards_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_speed_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_speed_reliable_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_speed_reliable_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_2_speed_reliable_backwards_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_speed_reliable_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+
+
+test_cadet_5_forward_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_forward_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_signal_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_signal_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_keepalive_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_keepalive_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_speed_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_speed_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_speed_ack_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_speed_ack_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_speed_backwards_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_speed_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_speed_reliable_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_speed_reliable_new_LDADD = $(ld_cadet_test_lib_new)
+
+test_cadet_5_speed_reliable_backwards_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_5_speed_reliable_backwards_new_LDADD = $(ld_cadet_test_lib_new)
 
 
 if ENABLE_TEST_RUN
