@@ -110,7 +110,7 @@ endif
 
 
 if HAVE_TESTING
- noinst_LIBRARIES = libgnunetcadettest.a $(noinst_LIB_EXP)
+ noinst_LIBRARIES = libgnunetcadettest.a libgnunetcadettestnew.a $(noinst_LIB_EXP)
  noinst_PROGRAMS = gnunet-cadet-profiler
 endif
 
@@ -124,6 +124,7 @@ libgnunetcadettest_a_LIBADD = \
 if HAVE_TESTING
 check_PROGRAMS = \
   test_cadet_local_mq \
+  test_cadet_2_forward_new \
   test_cadet_single \
   test_cadet_local \
   test_cadet_2_forward \
@@ -243,6 +244,31 @@ test_cadet_5_speed_reliable_LDADD = $(ld_cadet_test_lib)
 test_cadet_5_speed_reliable_backwards_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
+
+
+# NEW TESTS
+libgnunetcadettestnew_a_SOURCES = \
+  cadet_test_lib_new.c cadet_test_lib_new.h
+libgnunetcadettestnew_a_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ libgnunetcadetnew.la
+
+ld_cadet_test_lib_new = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  libgnunetcadetnew.la \
+  libgnunetcadettestnew.a \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+dep_cadet_test_lib_new = \
+  libgnunetcadetnew.la \
+  libgnunetcadettestnew.a \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+
+test_cadet_2_forward_new_SOURCES = \
+  test_cadet_new.c
+test_cadet_2_forward_new_LDADD = $(ld_cadet_test_lib_new)
 
 
 if ENABLE_TEST_RUN

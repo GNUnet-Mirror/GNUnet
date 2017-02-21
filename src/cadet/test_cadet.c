@@ -593,8 +593,8 @@ tmt_rdy (void *cls, size_t size, void *buf)
                 "sending initializer\n");
     msg_size = size_payload + 1000;
     msg->size = htons (msg_size);
-  if (SPEED_ACK == test)
-      data_sent++;
+    if (SPEED_ACK == test)
+        data_sent++;
   }
   else if ( (SPEED == test) ||
             (SPEED_ACK == test) )
