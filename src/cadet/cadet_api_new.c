@@ -1182,6 +1182,7 @@ destroy_port_cb (void *cls,
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Port *port = value;
 
+  /* This is a warning, the app should have cleanly closed all open ports */
   GNUNET_break (0);
   GNUNET_CADET_close_port (port);
   return GNUNET_OK;
