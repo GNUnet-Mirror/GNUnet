@@ -126,7 +126,7 @@ enum GNUNET_SET_Status
 
   /**
    * Element should be added to the result set
-   * of the remove peer, i.e. the remote peer is
+   * of the remote peer, i.e. the remote peer is
    * missing an element.
    *
    * Only applies to #GNUNET_SET_RESULT_SYMMETRIC
