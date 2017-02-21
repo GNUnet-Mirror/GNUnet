@@ -80,12 +80,13 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param cls closure
  * @param issuer the issuer chain
  * @param issuer_len length of issuer chain
- * @param rd the records in reply
+ * @param value the value returned
  */
-typedef void (*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
-						  struct GNUNET_IDENTITY_Ego *issuer,
-              uint16_t issuer_len,
-						  const struct GNUNET_CREDENTIAL_Value *value);
+typedef void
+(*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
+                                            struct GNUNET_IDENTITY_Ego *issuer,
+                                            uint16_t issuer_len,
+                                            const struct GNUNET_CREDENTIAL_Value *value);
 
 
 /**
@@ -100,10 +101,10 @@ typedef void (*GNUNET_CREDENTIAL_LookupResultProcessor) (void *cls,
  */
 struct GNUNET_CREDENTIAL_LookupRequest *
 GNUNET_CREDENTIAL_lookup (struct GNUNET_CREDENTIAL_Handle *handle,
-		   const char *credential,
-		   const struct GNUNET_IDENTITY_Ego *subject,
-		   GNUNET_CREDENTIAL_LookupResultProcessor proc,
-		   void *proc_cls);
+                          const char *credential,
+                          const struct GNUNET_IDENTITY_Ego *subject,
+                          GNUNET_CREDENTIAL_LookupResultProcessor proc,
+                          void *proc_cls);
 
 
 /**

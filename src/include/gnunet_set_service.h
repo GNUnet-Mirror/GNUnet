@@ -181,7 +181,7 @@ enum GNUNET_SET_ResultMode
   GNUNET_SET_RESULT_REMOVED,
 
   /**
-   * Client gets only elements that have been removed from the set.
+   * Client gets only elements that have been added to the set.
    *
    * Only supported for set union.
    */

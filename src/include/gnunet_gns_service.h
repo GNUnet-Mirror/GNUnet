@@ -90,19 +90,20 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * @param rd_count number of records in @a rd
  * @param rd the records in reply
  */
-typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
-						  uint32_t rd_count,
-						  const struct GNUNET_GNSRECORD_Data *rd);
+typedef void
+(*GNUNET_GNS_LookupResultProcessor) (void *cls,
+                                     uint32_t rd_count,
+                                     const struct GNUNET_GNSRECORD_Data *rd);
 
 /**
  * Iterator called on obtained result for a GNS lookup.
  *
  * @param cls closure
- * @param rd_count number of records in @a rd
- * @param rd the records in reply
+ * @param name result of the reverse lookup
  */
-typedef void (*GNUNET_GNS_ReverseLookupResultProcessor) (void *cls,
-						  const char* name);
+typedef void
+(*GNUNET_GNS_ReverseLookupResultProcessor) (void *cls,
+                                            const char* name);
 
 
 /**
@@ -166,7 +167,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param proc_cls closure for @a proc
  * @return handle to the request
  */
-struct GNUNET_GNS_ReverseLookupRequest*
+struct GNUNET_GNS_ReverseLookupRequest *
 GNUNET_GNS_reverse_lookup (struct GNUNET_GNS_Handle *handle,
                            const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
                            const struct GNUNET_CRYPTO_EcdsaPublicKey *root_key,

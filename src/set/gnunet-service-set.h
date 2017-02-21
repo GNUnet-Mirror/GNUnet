@@ -493,8 +493,8 @@ struct PendingMutation
 
   /**
    * Message that describes the desired mutation.
-   * May only be a GNUNET_MESSAGE_TYPE_SET_ADD or
-   * GNUNET_MESSAGE_TYPE_SET_REMOVE.
+   * May only be a #GNUNET_MESSAGE_TYPE_SET_ADD or
+   * #GNUNET_MESSAGE_TYPE_SET_REMOVE.
    */
   struct GNUNET_MessageHeader *mutation_message;
 };
