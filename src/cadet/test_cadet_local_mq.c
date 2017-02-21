@@ -168,8 +168,8 @@ disconnected (void *cls,
               const struct GNUNET_CADET_Channel *channel)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnected cls: %p\n",
-              cls);
+              "disconnected channel %p, cls: %p\n",
+              channel, cls);
   if (channel == ch)
     ch = NULL;
 }
