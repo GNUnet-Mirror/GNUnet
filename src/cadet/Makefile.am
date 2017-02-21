@@ -149,12 +149,12 @@ ld_cadet_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetcadettest.a \
-  libgnunetcadet.la \
+  libgnunetcadetnew.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 dep_cadet_test_lib = \
-  libgnunetcadet.la \
+  libgnunetcadetnew.la \
   libgnunetcadettest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 

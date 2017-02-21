@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2013, 2016 GNUnet e.V.
+  Copyright (C) 2013, 2016, 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -226,9 +226,9 @@ static struct Channel *
 find_channel_by_line (struct Line *line,
                       uint32_t cid)
 {
-  struct Channel *ch;
-
-  for (ch = line->channel_head; NULL != ch; ch = ch->next)
+  for (struct Channel *ch = line->channel_head;
+       NULL != ch;
+       ch = ch->next)
     if (cid == ch->cid)
       return ch;
   return NULL;
@@ -314,11 +314,6 @@ destroy_line_cadet_channels (struct Channel *ch)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Destroying cadet channels\n");
-  if (NULL != ch->mq)
-  {
-    GNUNET_MQ_destroy (ch->mq);
-    ch->mq = NULL;
-  }
   if (NULL != ch->channel)
     GNUNET_CADET_channel_destroy (ch->channel);
 }
@@ -586,59 +581,6 @@ handle_client_resume_message (void *cls,
 
 
 /**
- * Function to handle call request from the client
- *
- * @param cls the `struct Line` the message is about
- * @param msg the message from the client
- */
-static void
-handle_client_call_message (void *cls,
-                            const struct ClientCallMessage *msg)
-{
-  struct Line *line = cls;
-  struct Channel *ch;
-  struct GNUNET_MQ_Envelope *e;
-  struct CadetPhoneRingMessage *ring;
-  struct CadetPhoneRingInfoPS rs;
-
-  line->line_port = msg->line_port;
-  rs.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
-  rs.purpose.size = htonl (sizeof (struct CadetPhoneRingInfoPS));
-  rs.line_port = line->line_port;
-  rs.target_peer = msg->target;
-  rs.expiration_time
-    = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
-
-  ch = GNUNET_new (struct Channel);
-  ch->line = line;
-  GNUNET_CONTAINER_DLL_insert (line->channel_head,
-                               line->channel_tail,
-                               ch);
-  ch->status = CS_CALLER_CALLING;
-  ch->channel = GNUNET_CADET_channel_create (cadet,
-                                             ch,
-                                             &msg->target,
-                                             &msg->line_port,
-                                             GNUNET_CADET_OPTION_RELIABLE);
-  ch->mq = GNUNET_CADET_mq_create (ch->channel);
-  e = GNUNET_MQ_msg (ring,
-                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
-  GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id,
-                                      &ring->caller_id);
-  ring->expiration_time = rs.expiration_time;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
-                                           &rs.purpose,
-                                           &ring->signature));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending RING message via CADET\n");
-  GNUNET_MQ_send (ch->mq,
-                  e);
-  GNUNET_SERVICE_client_continue (line->client);
-}
-
-
-/**
  * Transmission of audio data via cadet channel finished.
  *
  * @param cls the `struct Channel` we are transmitting for
@@ -750,26 +692,18 @@ handle_client_audio_message (void *cls,
  * Function to handle a ring message incoming over cadet
  *
  * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
- * @param message the incoming message
- * @return #GNUNET_OK
+ * @param msg the incoming message
  */
-static int
+static void
 handle_cadet_ring_message (void *cls,
-                           struct GNUNET_CADET_Channel *channel,
-                           void **channel_ctx,
-                           const struct GNUNET_MessageHeader *message)
+                           const struct CadetPhoneRingMessage *msg)
 {
-  struct Channel *ch = *channel_ctx;
+  struct Channel *ch = cls;
   struct Line *line = ch->line;
-  const struct CadetPhoneRingMessage *msg;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneRingMessage *cring;
   struct CadetPhoneRingInfoPS rs;
 
-  msg = (const struct CadetPhoneRingMessage *) message;
   rs.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
   rs.purpose.size = htonl (sizeof (struct CadetPhoneRingInfoPS));
   rs.line_port = line->line_port;
@@ -783,7 +717,8 @@ handle_cadet_ring_message (void *cls,
                                   &msg->caller_id))
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    destroy_line_cadet_channels (ch);
+    return;
   }
   if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (msg->expiration_time)).rel_value_us)
   {
@@ -792,14 +727,16 @@ handle_cadet_ring_message (void *cls,
     /* Note that our reliance on time here is awkward; better would be
        to use a more complex challenge-response protocol against
        replay attacks.  Left for future work ;-). */
-    return GNUNET_SYSERR;
+    destroy_line_cadet_channels (ch);
+    return;
   }
   if (CS_CALLEE_INIT != ch->status)
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    destroy_line_cadet_channels (ch);
+    return;
   }
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   ch->status = CS_CALLEE_RINGING;
   env = GNUNET_MQ_msg (cring,
                        GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
@@ -810,34 +747,27 @@ handle_cadet_ring_message (void *cls,
               (unsigned int) ch->cid);
   GNUNET_MQ_send (line->mq,
                   env);
-  return GNUNET_OK;
 }
 
 
 /**
  * Function to handle a hangup message incoming over cadet
  *
- * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
+ * @param cls closure, our `struct Channel *`
  * @param message the incoming message
- * @return #GNUNET_OK
  */
-static int
+static void
 handle_cadet_hangup_message (void *cls,
-                             struct GNUNET_CADET_Channel *channel,
-                             void **channel_ctx,
-                             const struct GNUNET_MessageHeader *message)
+                             const struct CadetPhoneHangupMessage *message)
 {
-  struct Channel *ch = *channel_ctx;
+  struct Channel *ch = cls;
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneHangupMessage *hup;
   enum ChannelStatus status;
   uint32_t cid;
 
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   cid = ch->cid;
   status = ch->status;
   destroy_line_cadet_channels (ch);
@@ -845,17 +775,18 @@ handle_cadet_hangup_message (void *cls,
   {
   case CS_CALLEE_INIT:
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    destroy_line_cadet_channels (ch);
+    return;
   case CS_CALLEE_RINGING:
   case CS_CALLEE_CONNECTED:
     break;
   case CS_CALLEE_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   case CS_CALLER_CALLING:
   case CS_CALLER_CONNECTED:
     break;
   case CS_CALLER_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending HANG UP message to client\n");
@@ -864,33 +795,25 @@ handle_cadet_hangup_message (void *cls,
   hup->cid = cid;
   GNUNET_MQ_send (line->mq,
                   env);
-  return GNUNET_OK;
 }
 
 
 /**
  * Function to handle a pickup message incoming over cadet
  *
- * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
+ * @param cls closure, our `struct Channel *`
  * @param message the incoming message
- * @return #GNUNET_OK if message was OK,
- *         #GNUNET_SYSERR if message violated the protocol
  */
-static int
+static void
 handle_cadet_pickup_message (void *cls,
-                             struct GNUNET_CADET_Channel *channel,
-                             void **channel_ctx,
-                             const struct GNUNET_MessageHeader *message)
+                             const struct CadetPhonePickupMessage *message)
 {
-  struct Channel *ch = *channel_ctx;
+  struct Channel *ch = cls;
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhonePickedupMessage *pick;
 
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   switch (ch->status)
   {
   case CS_CALLEE_INIT:
@@ -898,21 +821,21 @@ handle_cadet_pickup_message (void *cls,
   case CS_CALLEE_CONNECTED:
     GNUNET_break_op (0);
     destroy_line_cadet_channels (ch);
-    return GNUNET_SYSERR;
+    return;
   case CS_CALLEE_SHUTDOWN:
     GNUNET_break_op (0);
     destroy_line_cadet_channels (ch);
-    return GNUNET_SYSERR;
+    return;
   case CS_CALLER_CALLING:
     ch->status = CS_CALLER_CONNECTED;
     break;
   case CS_CALLER_CONNECTED:
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return;
   case CS_CALLER_SHUTDOWN:
     GNUNET_break_op (0);
     mq_done_finish_caller_shutdown (ch);
-    return GNUNET_SYSERR;
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending PICKED UP message to client\n");
@@ -921,32 +844,25 @@ handle_cadet_pickup_message (void *cls,
   pick->cid = ch->cid;
   GNUNET_MQ_send (line->mq,
                   env);
-  return GNUNET_OK;
 }
 
 
 /**
  * Function to handle a suspend message incoming over cadet
  *
- * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
+ * @param cls closure, our `struct Channel *`
  * @param message the incoming message
- * @return #GNUNET_OK
  */
-static int
+static void
 handle_cadet_suspend_message (void *cls,
-                              struct GNUNET_CADET_Channel *channel,
-                              void **channel_ctx,
-                              const struct GNUNET_MessageHeader *message)
+                              const struct CadetPhoneSuspendMessage *message)
 {
-  struct Channel *ch = *channel_ctx;
+  struct Channel *ch = cls;
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneSuspendMessage *suspend;
 
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suspending channel CID: %u\n",
               ch->cid);
@@ -962,7 +878,7 @@ handle_cadet_suspend_message (void *cls,
     ch->suspended_remote = GNUNET_YES;
     break;
   case CS_CALLEE_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   case CS_CALLER_CALLING:
     GNUNET_break_op (0);
     break;
@@ -970,51 +886,39 @@ handle_cadet_suspend_message (void *cls,
     ch->suspended_remote = GNUNET_YES;
     break;
   case CS_CALLER_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   }
   env = GNUNET_MQ_msg (suspend,
                        GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend->cid = ch->cid;
   GNUNET_MQ_send (line->mq,
                   env);
-  return GNUNET_OK;
 }
 
 
 /**
  * Function to handle a resume message incoming over cadet
  *
- * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
- * @param message the incoming message
- * @return #GNUNET_OK
+ * @param cls closure, our `struct Channel *`
+ * @param msg the incoming message
  */
-static int
+static void
 handle_cadet_resume_message (void *cls,
-                             struct GNUNET_CADET_Channel *channel,
-                             void **channel_ctx,
-                             const struct GNUNET_MessageHeader *message)
+                             const struct CadetPhoneResumeMessage *msg)
 {
-  struct Channel *ch = *channel_ctx;
+  struct Channel *ch = cls;
   struct Line *line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneResumeMessage *resume;
 
-  if (NULL == ch)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "RESUME message received for non-existing line, dropping channel.\n");
-    return GNUNET_SYSERR;
-  }
   line = ch->line;
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   if (GNUNET_YES != ch->suspended_remote)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "RESUME message received for non-suspended channel, dropping channel.\n");
-    return GNUNET_SYSERR;
+    destroy_line_cadet_channels (ch);
+    return;
   }
   switch (ch->status)
   {
@@ -1028,7 +932,7 @@ handle_cadet_resume_message (void *cls,
     ch->suspended_remote = GNUNET_NO;
     break;
   case CS_CALLEE_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   case CS_CALLER_CALLING:
     GNUNET_break (0);
     break;
@@ -1036,41 +940,47 @@ handle_cadet_resume_message (void *cls,
     ch->suspended_remote = GNUNET_NO;
     break;
   case CS_CALLER_SHUTDOWN:
-    return GNUNET_OK;
+    return;
   }
   env = GNUNET_MQ_msg (resume,
                        GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
   resume->cid = ch->cid;
   GNUNET_MQ_send (line->mq,
                   env);
-  return GNUNET_OK;
+}
+
+
+/**
+ * Function to check an audio message incoming over cadet
+ *
+ * @param cls closure, our `struct Channel *`
+ * @param msg the incoming message
+ * @return #GNUNET_OK (always)
+ */
+static int
+check_cadet_audio_message (void *cls,
+                           const struct CadetAudioMessage *msg)
+{
+  return GNUNET_OK; /* any payload is fine */
 }
 
 
 /**
  * Function to handle an audio message incoming over cadet
  *
- * @param cls closure, NULL
- * @param channel the channel over which the message arrived
- * @param channel_ctx the channel context, can be NULL
- *                    or point to the `struct Channel`
- * @param message the incoming message
- * @return #GNUNET_OK
+ * @param cls closure, our `struct Channel *`
+ * @param msg the incoming message
  */
-static int
+static void
 handle_cadet_audio_message (void *cls,
-                            struct GNUNET_CADET_Channel *channel,
-                            void **channel_ctx,
-                            const struct GNUNET_MessageHeader *message)
+                            const struct CadetAudioMessage *msg)
 {
-  struct Channel *ch = *channel_ctx;
-  const struct CadetAudioMessage *msg;
-  size_t msize = ntohs (message->size) - sizeof (struct CadetAudioMessage);
+  struct Channel *ch = cls;
+  size_t msize = ntohs (msg->header.size) - sizeof (struct CadetAudioMessage);
   struct GNUNET_MQ_Envelope *env;
   struct ClientAudioMessage *cam;
 
-  msg = (const struct CadetAudioMessage *) message;
-  GNUNET_CADET_receive_done (channel);
+  GNUNET_CADET_receive_done (ch->channel);
   if ( (GNUNET_YES == ch->suspended_local) ||
        (GNUNET_YES == ch->suspended_remote) )
   {
@@ -1078,7 +988,7 @@ handle_cadet_audio_message (void *cls,
                 "Received %u bytes of AUDIO data on suspended channel CID %u; dropping\n",
                 (unsigned int) msize,
                 ch->cid);
-    return GNUNET_OK;
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarding %u bytes of AUDIO data to client CID %u\n",
@@ -1093,44 +1003,6 @@ handle_cadet_audio_message (void *cls,
                  msize);
   GNUNET_MQ_send (ch->line->mq,
                   env);
-  return GNUNET_OK;
-}
-
-
-/**
- * Method called whenever another peer has added us to a channel
- * the other peer initiated.
- *
- * @param cls the `struct Line` receiving a connection
- * @param channel new handle to the channel
- * @param initiator peer that started the channel
- * @param port port
- * @param options channel option flags
- * @return initial channel context for the channel
- */
-static void *
-inbound_channel (void *cls,
-                 struct GNUNET_CADET_Channel *channel,
-                 const struct GNUNET_PeerIdentity *initiator,
-                 const struct GNUNET_HashCode *port,
-                 enum GNUNET_CADET_ChannelOption options)
-{
-  struct Line *line = cls;
-  struct Channel *ch;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received incoming cadet channel on line %p\n",
-              line);
-  ch = GNUNET_new (struct Channel);
-  ch->status = CS_CALLEE_INIT;
-  ch->line = line;
-  ch->channel = channel;
-  ch->mq = GNUNET_CADET_mq_create (ch->channel);
-  ch->cid = line->cid_gen++;
-  GNUNET_CONTAINER_DLL_insert (line->channel_head,
-                               line->channel_tail,
-                               ch);
-  return ch;
 }
 
 
@@ -1140,26 +1012,16 @@ inbound_channel (void *cls,
  *
  * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
- * @param channel_ctx place where local state associated
- *                   with the channel is stored;
- *                   may point to the `struct Channel`
  */
 static void
 inbound_end (void *cls,
-             const struct GNUNET_CADET_Channel *channel,
-	     void *channel_ctx)
+             const struct GNUNET_CADET_Channel *channel)
 {
-  struct Channel *ch = channel_ctx;
-  struct Line *line;
+  struct Channel *ch = cls;
+  struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneHangupMessage *hup;
 
-  if (NULL == ch)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  line = ch->line;
   GNUNET_assert (channel == ch->channel);
   ch->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1185,12 +1047,121 @@ inbound_end (void *cls,
     }
     break;
   }
-  destroy_line_cadet_channels (ch);
   if (NULL != line)
     GNUNET_CONTAINER_DLL_remove (line->channel_head,
                                  line->channel_tail,
                                  ch);
   GNUNET_free (ch);
+}
+
+
+/**
+ * Function to handle call request from the client
+ *
+ * @param cls the `struct Line` the message is about
+ * @param msg the message from the client
+ */
+static void
+handle_client_call_message (void *cls,
+                            const struct ClientCallMessage *msg)
+{
+  struct Line *line = cls;
+  struct Channel *ch = GNUNET_new (struct Channel);
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (cadet_hangup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
+                             struct CadetPhoneHangupMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_pickup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
+                             struct CadetPhonePickupMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_suspend_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
+                             struct CadetPhoneSuspendMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_resume_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
+                             struct CadetPhoneResumeMessage,
+                             ch),
+    GNUNET_MQ_hd_var_size (cadet_audio_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
+                           struct CadetAudioMessage,
+                           ch),
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Envelope *e;
+  struct CadetPhoneRingMessage *ring;
+  struct CadetPhoneRingInfoPS rs;
+
+  line->line_port = msg->line_port;
+  rs.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
+  rs.purpose.size = htonl (sizeof (struct CadetPhoneRingInfoPS));
+  rs.line_port = line->line_port;
+  rs.target_peer = msg->target;
+  rs.expiration_time
+    = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
+  ch->line = line;
+  GNUNET_CONTAINER_DLL_insert (line->channel_head,
+                               line->channel_tail,
+                               ch);
+  ch->status = CS_CALLER_CALLING;
+  ch->channel = GNUNET_CADET_channel_creatE (cadet,
+                                             ch,
+                                             &msg->target,
+                                             &msg->line_port,
+                                             GNUNET_CADET_OPTION_RELIABLE,
+                                             NULL,
+                                             &inbound_end,
+                                             cadet_handlers);
+  ch->mq = GNUNET_CADET_get_mq (ch->channel);
+  e = GNUNET_MQ_msg (ring,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id,
+                                      &ring->caller_id);
+  ring->expiration_time = rs.expiration_time;
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
+                                           &rs.purpose,
+                                           &ring->signature));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending RING message via CADET\n");
+  GNUNET_MQ_send (ch->mq,
+                  e);
+  GNUNET_SERVICE_client_continue (line->client);
+}
+
+
+/**
+ * Method called whenever another peer has added us to a channel
+ * the other peer initiated.
+ *
+ * @param cls the `struct Line` receiving a connection
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
+ * @return initial channel context for the channel
+ */
+static void *
+inbound_channel (void *cls,
+                 struct GNUNET_CADET_Channel *channel,
+                 const struct GNUNET_PeerIdentity *initiator)
+{
+  struct Line *line = cls;
+  struct Channel *ch;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received incoming cadet channel on line %p\n",
+              line);
+  ch = GNUNET_new (struct Channel);
+  ch->status = CS_CALLEE_INIT;
+  ch->line = line;
+  ch->channel = channel;
+  ch->mq = GNUNET_CADET_get_mq (ch->channel);
+  ch->cid = line->cid_gen++;
+  GNUNET_CONTAINER_DLL_insert (line->channel_head,
+                               line->channel_tail,
+                               ch);
+  return ch;
 }
 
 
@@ -1260,12 +1231,42 @@ handle_client_register_message (void *cls,
                                 const struct ClientPhoneRegisterMessage *msg)
 {
   struct Line *line = cls;
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (cadet_ring_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING,
+                             struct CadetPhoneRingMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_hangup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
+                             struct CadetPhoneHangupMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_pickup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
+                             struct CadetPhonePickupMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_suspend_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
+                             struct CadetPhoneSuspendMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_resume_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
+                             struct CadetPhoneResumeMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (cadet_audio_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
+                           struct CadetAudioMessage,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
 
   line->line_port = msg->line_port;
-  line->port = GNUNET_CADET_open_port (cadet,
+  line->port = GNUNET_CADET_open_porT (cadet,
                                        &msg->line_port,
                                        &inbound_channel,
-                                       line);
+                                       line,
+                                       NULL,
+                                       &inbound_end,
+                                       cadet_handlers);
   GNUNET_SERVICE_client_continue (line->client);
 }
 
@@ -1298,35 +1299,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {&handle_cadet_ring_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING,
-     sizeof (struct CadetPhoneRingMessage)},
-    {&handle_cadet_hangup_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
-     sizeof (struct CadetPhoneHangupMessage)},
-    {&handle_cadet_pickup_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
-     sizeof (struct CadetPhonePickupMessage)},
-    {&handle_cadet_suspend_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
-     sizeof (struct CadetPhoneSuspendMessage)},
-    {&handle_cadet_resume_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
-     sizeof (struct CadetPhoneResumeMessage)},
-    {&handle_cadet_audio_message, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
-     0},
-    {NULL, 0, 0}
-  };
-
   cfg = c;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_get_peer_identity (cfg,
                                                   &my_identity));
-  cadet = GNUNET_CADET_connect (cfg,
-                                NULL,
-                                &inbound_end,
-                                cadet_handlers);
+  cadet = GNUNET_CADET_connecT (cfg);
   if (NULL == cadet)
   {
     GNUNET_break (0);
@@ -1336,7 +1313,6 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
 }
-
 
 
 /**
@@ -1353,26 +1329,26 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER,
                           struct ClientPhoneRegisterMessage,
                           NULL),
-  GNUNET_MQ_hd_fixed_size (client_pickup_message,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP,
-                           struct ClientPhonePickupMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (client_suspend_message,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
-                           struct ClientPhoneSuspendMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (client_resume_message,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
-                           struct ClientPhoneResumeMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (client_hangup_message,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
-                           struct ClientPhoneHangupMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (client_call_message,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL,
-                           struct ClientCallMessage,
-                           NULL),
+ GNUNET_MQ_hd_fixed_size (client_pickup_message,
+                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP,
+                          struct ClientPhonePickupMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_suspend_message,
+                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
+                          struct ClientPhoneSuspendMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_resume_message,
+                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
+                          struct ClientPhoneResumeMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_hangup_message,
+                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+                          struct ClientPhoneHangupMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (client_call_message,
+                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL,
+                          struct ClientCallMessage,
+                          NULL),
  GNUNET_MQ_hd_var_size (client_audio_message,
                         GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
                         struct ClientAudioMessage,
