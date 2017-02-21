@@ -902,7 +902,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct GNUNET_CONFIGURA
       un->sun_path[0] = '\0';
   }
 #endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
+#if HAVE_SOCKADDR_UN_SUN_LEN
   un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
@@ -1012,7 +1012,7 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
     return NULL;
   }
   return GNUNET_CONNECTION_connect_socket (s,
-					   serv_addr, 
+					   serv_addr,
 					   addrlen);
 }
 

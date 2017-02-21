@@ -519,7 +519,7 @@ add_unixpath (struct sockaddr **saddrs,
   if (GNUNET_YES == abstract)
     un->sun_path[0] = '\0';
 #endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
+#if HAVE_SOCKADDR_UN_SUN_LEN
   un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   *saddrs = (struct sockaddr *) un;

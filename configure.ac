@@ -1032,6 +1032,16 @@ AC_CHECK_MEMBER([struct sockaddr_in.sin_len],
       #include <netinet/in.h>
    ])
 
+AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
+   [ AC_DEFINE(HAVE_SOCKADDR_UN_SUN_LEN, 1, [Do we have sockaddr_un.sun_len?])
+   ],
+   [],
+   [
+      #include <sys/types.h>
+      #include <sys/socket.h>
+      #include <sys/un.h>
+   ])
+
 
 
 # Checks for library functions.

@@ -123,7 +123,7 @@ task (void *cls)
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
   strncpy(un.sun_path, unixpath, sizeof (un.sun_path) - 1);
-#if HAVE_SOCKADDR_IN_SIN_LEN
+#if HAVE_SOCKADDR_UN_SUN_LEN
   un.sun_len = (u_char) sizeof (un);
 #endif
 

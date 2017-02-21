@@ -491,8 +491,8 @@ try_unixpath (const char *service_name,
         s_un.sun_path[0] = '\0';
     }
 #endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    un.sun_len = (u_char) sizeof (struct sockaddr_un);
+#if HAVE_SOCKADDR_UN_SUN_LEN
+    s_un.sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
     sock = GNUNET_NETWORK_socket_create (AF_UNIX,
                                          SOCK_STREAM,
