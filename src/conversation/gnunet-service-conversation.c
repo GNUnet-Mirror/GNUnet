@@ -620,7 +620,7 @@ handle_client_audio_message (void *cls,
                              const struct ClientAudioMessage *msg)
 {
   struct Line *line = cls;
-  struct ClientAudioMessage *mam;
+  struct CadetAudioMessage *mam;
   struct Channel *ch;
   size_t size;
 
@@ -672,6 +672,10 @@ handle_client_audio_message (void *cls,
     ch->env = NULL;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u bytes of AUDIO data from client CID %u\n",
+              (unsigned int) size,
+              msg->cid);
   ch->env = GNUNET_MQ_msg_extra (mam,
                                  size,
                                  GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO);
