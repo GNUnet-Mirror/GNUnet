@@ -1244,7 +1244,7 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
                  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports,
                                                        &p->id,
                                                        p));
-  GNUNET_free (p->handlers);
+  GNUNET_free_non_null (p->handlers);
   GNUNET_free (p);
 }
 
