@@ -1627,7 +1627,7 @@ GNUNET_SERVICE_starT (const char *service_name,
   sh->handlers = GNUNET_MQ_copy_handlers (handlers);
   if (GNUNET_OK != setup_service (sh))
   {
-    GNUNET_free (sh->handlers);
+    GNUNET_free_non_null (sh->handlers);
     GNUNET_free (sh);
     return NULL;
   }
