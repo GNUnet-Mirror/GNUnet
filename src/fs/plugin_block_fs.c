@@ -28,7 +28,6 @@
 #include "gnunet_fs_service.h"
 #include "block_fs.h"
 #include "gnunet_signatures.h"
-#include "gnunet_constants.h"
 #include "gnunet_block_group_lib.h"
 
 
@@ -56,7 +55,7 @@ static size_t
 compute_bloomfilter_size (unsigned int entry_count)
 {
   size_t size;
-  unsigned int ideal = (entry_count * GNUNET_CONSTANTS_BLOOMFILTER_K) / 4;
+  unsigned int ideal = (entry_count * BLOOMFILTER_K) / 4;
   uint16_t max = 1 << 15;
 
   if (entry_count > max)

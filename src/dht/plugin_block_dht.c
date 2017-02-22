@@ -34,9 +34,41 @@
 #define DEBUG_DHT GNUNET_EXTRA_LOGGING
 
 /**
- * How big is the BF we use for DHT blocks?
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
  */
-#define DHT_BF_SIZE 8
+#define BLOOMFILTER_K 16
+
+
+/**
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Note that #GNUNET_CONSTANTS_BLOOMFILTER_K
+ * gives us the number of bits set per entry.  Furthermore, we should
+ * not re-size the filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @param entry_count expected number of entries in the Bloom filter
+ * @return must be a power of two and smaller or equal to 2^15.
+ */
+static size_t
+compute_bloomfilter_size (unsigned int entry_count)
+{
+  size_t size;
+  unsigned int ideal = (entry_count * BLOOMFILTER_K) / 4;
+  uint16_t max = 1 << 15;
+
+  if (entry_count > max)
+    return max;
+  size = 8;
+  while ((size < max) && (size < ideal))
+    size *= 2;
+  if (size > max)
+    return max;
+  return size;
+}
 
 
 /**
@@ -59,9 +91,26 @@ block_plugin_dht_create_group (void *cls,
                                size_t raw_data_size,
                                va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 != memcmp (guard,
+                   "seen-set-size",
+                   strlen ("seen-set-size")))
+    bf_size = compute_bloomfilter_size (va_arg (va, unsigned int));
+  else if (0 == memcmp (va_arg (va, const char *),
+                        "filter-size",
+                        strlen ("filter-size")))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = 8;
+  }
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       DHT_BF_SIZE,
-                                       GNUNET_CONSTANTS_BLOOMFILTER_K,
+                                       bf_size,
+                                       BLOOMFILTER_K,
                                        type,
                                        nonce,
                                        raw_data,

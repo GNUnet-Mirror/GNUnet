@@ -374,7 +374,9 @@ transmit_request (struct ClientQueryRecord *cqr)
                                   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                             UINT32_MAX),
                                   NULL,
-                                  0);
+                                  0,
+                                  "seen-set-size",
+                                  cqr->seen_replies_count);
   GNUNET_BLOCK_group_set_seen (bg,
                                cqr->seen_replies,
                                cqr->seen_replies_count);
