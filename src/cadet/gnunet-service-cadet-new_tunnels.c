@@ -1820,7 +1820,10 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   {
     /* This KX_AUTH is not using the latest KX/KX_AUTH data
        we transmitted to the sender, refuse it, try KX again. */
-    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (stats,
+                              "# KX_AUTH not using our last KX received (auth failure)",
+                              1,
+                              GNUNET_NO);
     send_kx (t,
              NULL,
              &t->ax);
