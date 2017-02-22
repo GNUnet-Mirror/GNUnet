@@ -100,13 +100,11 @@ block_plugin_regex_create_group (void *cls,
   const char *guard;
 
   guard = va_arg (va, const char *);
-  if (0 == memcmp (guard,
-                   "seen-set-size",
-                   strlen ("seen-set-size")))
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
     bf_size = compute_bloomfilter_size (va_arg (va, unsigned int));
-  else if (0 == memcmp (guard,
-                        "filter-size",
-                        strlen ("filter-size")))
+  else if (0 == strcmp (guard,
+                        "filter-size"))
     bf_size = va_arg (va, unsigned int);
   else
   {

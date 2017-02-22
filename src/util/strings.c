@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2005-2013 GNUnet e.V.
+     Copyright (C) 2005-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file util/strings.c
  * @brief string functions
@@ -86,6 +85,37 @@ GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
   }
   va_end (ap);
   return needed;
+}
+
+
+/**
+ * Convert a peer path to a human-readable string.
+ *
+ * @param pids array of PIDs to convert to a string
+ * @param num_pids length of the @a pids array
+ * @return string representing the array of @a pids
+ */
+char *
+GNUNET_STRINGS_pp2s (const struct GNUNET_PeerIdentity *pids,
+                     unsigned int num_pids)
+{
+  char *buf;
+  size_t off;
+  size_t plen = num_pids * 5 + 1;
+
+  off = 0;
+  buf = GNUNET_malloc (plen);
+  for (unsigned int i = 0;
+       i < num_pids;
+       i++)
+  {
+    off += GNUNET_snprintf (&buf[off],
+                            plen - off,
+                            "%s%s",
+                            GNUNET_i2s (&pids[i]),
+                            (i == num_pids -1) ? "" : "-");
+  }
+  return buf;
 }
 
 

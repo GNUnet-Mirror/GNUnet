@@ -360,6 +360,18 @@ GNUNET_STRINGS_base64_decode (const char *data,
 
 
 /**
+ * Convert a peer path to a human-readable string.
+ *
+ * @param pids array of PIDs to convert to a string
+ * @param num_pids length of the @a pids array
+ * @return string representing the array of @a pids
+ */
+char *
+GNUNET_STRINGS_pp2s (const struct GNUNET_PeerIdentity *pids,
+                     unsigned int num_pids);
+
+
+/**
  * Parse a path that might be an URI.
  *
  * @param path path to parse. Must be NULL-terminated.
@@ -477,7 +489,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 
 
 /**
- * Parse an address given as a string into a 
+ * Parse an address given as a string into a
  * `struct sockaddr`.
  *
  * @param addr the address

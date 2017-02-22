@@ -102,9 +102,8 @@ block_plugin_fs_create_group (void *cls,
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_UBLOCK:
     guard = va_arg (va, const char *);
-    if (0 != memcmp (guard,
-                     "seen-set-size",
-                     strlen ("seen-set-size")))
+    if (0 != strcmp (guard,
+                     "seen-set-size"))
     {
       /* va-args invalid! bad bug, complain! */
       GNUNET_break (0);

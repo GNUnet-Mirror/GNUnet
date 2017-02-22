@@ -1665,10 +1665,13 @@ handle_dht_p2p_put (void *cls,
   if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
+    char *pp;
 
+    pp = GNUNET_STRINGS_pp2s (put_path,
+                              putlen);
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
     LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-                 "R5N PUT %s: %s->%s (%u, %u=>%u)\n",
+                 "R5N PUT %s: %s->%s (%u, %u=>%u, PP: %s)\n",
                  GNUNET_h2s (&put->key),
                  GNUNET_i2s (peer->id),
                  tmp,
@@ -1676,8 +1679,9 @@ handle_dht_p2p_put (void *cls,
                  GNUNET_CRYPTO_hash_matching_bits (&peer->phash,
                                                    &put->key),
                  GNUNET_CRYPTO_hash_matching_bits (&my_identity_hash,
-                                                   &put->key)
-                );
+                                                   &put->key),
+                 pp);
+    GNUNET_free (pp);
     GNUNET_free (tmp);
   }
   switch (GNUNET_BLOCK_get_key
@@ -1965,6 +1969,15 @@ handle_local_result (void *cls,
                      const void *data,
                      size_t data_size)
 {
+  char *pp;
+
+  pp = GNUNET_STRINGS_pp2s (put_path,
+                            put_path_length);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found local result for %s (PP: %s)\n",
+       GNUNET_h2s (key),
+       pp);
+  GNUNET_free (pp);
   // FIXME: we can probably do better here by
   // passing the peer that did the query in the closure...
   GDS_ROUTING_process (NULL,
@@ -2243,14 +2256,23 @@ handle_dht_p2p_result (void *cls,
   if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
+    char *pp;
+    char *gp;
 
+    gp = GNUNET_STRINGS_pp2s (get_path,
+                              get_path_length);
+    pp = GNUNET_STRINGS_pp2s (put_path,
+                              put_path_length);
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
     LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-                 "R5N RESULT %s: %s->%s (%u)\n",
+                 "R5N RESULT %s: %s->%s (GP: %s, PP: %s)\n",
                  GNUNET_h2s (&prm->key),
                  GNUNET_i2s (peer->id),
                  tmp,
-                 get_path_length + 1);
+                 gp,
+                 pp);
+    GNUNET_free (gp);
+    GNUNET_free (pp);
     GNUNET_free (tmp);
   }
   /* if we got a HELLO, consider it for our own routing table */
