@@ -377,6 +377,28 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
 
 
 /**
+ * Remove the first envelope that has not yet been sent from the message
+ * queue and return it.
+ *
+ * @param mq queue to remove envelope from
+ * @return NULL if queue is empty (or has no envelope that is not under transmission)
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq)
+{
+  struct GNUNET_MQ_Envelope *env;
+
+  env = mq->envelope_head;
+  GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
+                               mq->envelope_tail,
+                               env);
+  mq->queue_length--;
+  env->parent_queue = NULL;
+  return env;
+}
+
+
+/**
  * Function to copy an envelope.  The envelope must not yet
  * be in any queue or have any options or callbacks set.
  *

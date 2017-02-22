@@ -558,6 +558,17 @@ GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
 
 
 /**
+ * Remove the first envelope that has not yet been sent from the message
+ * queue and return it.
+ *
+ * @param mq queue to remove envelope from
+ * @return NULL if queue is empty (or has no envelope that is not under transmission)
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq);
+
+
+/**
  * Set application-specific options for this queue.
  *
  * @param mq message queue to set options for
