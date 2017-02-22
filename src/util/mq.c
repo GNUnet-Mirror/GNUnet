@@ -377,6 +377,24 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
 
 
 /**
+ * Function to copy an envelope.  The envelope must not yet
+ * be in any queue or have any options or callbacks set.
+ *
+ * @param env envelope to copy
+ * @return copy of @a env
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_assert (NULL == env->next);
+  GNUNET_assert (NULL == env->parent_queue);
+  GNUNET_assert (NULL == env->sent_cb);
+  GNUNET_assert (GNUNET_NO == env->have_custom_options);
+  return GNUNET_MQ_msg_copy (env->mh);
+}
+
+
+/**
  * Send a copy of a message with the given message queue.
  * Can be called repeatedly on the same envelope.
  *

@@ -740,9 +740,9 @@ typedef void
  * #GNUNET_CADET_ConnectEventHandler, also with a non-zero value.
  *
  * @param cls Channel closure.
- * @param channel Connection to the other end (henceforth invalid).
+ * @param channel Connection to the other end --- FIXME: drop?
  * @param window_size New window size. If the is more messages than buffer size
- *                    this value will be negative..
+ *                    this value will be negative. -- FIXME: make unsigned, we never call negative?
  */
 typedef void
 (*GNUNET_CADET_WindowSizeEventHandler) (void *cls,

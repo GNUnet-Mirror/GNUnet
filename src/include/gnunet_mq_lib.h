@@ -473,7 +473,6 @@ struct GNUNET_MQ_MessageHandler
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
-
                 uint16_t size,
                 uint16_t type);
 
@@ -508,6 +507,17 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ * Function to copy an envelope.  The envelope must not yet
+ * be in any queue or have any options or callbacks set.
+ *
+ * @param env envelope to copy
+ * @return copy of @a env
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env);
 
 
 /**
