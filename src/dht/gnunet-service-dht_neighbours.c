@@ -663,7 +663,8 @@ send_find_peer_message (void *cls)
                                   NULL,
                                   0,
                                   "filter-size",
-                                  DHT_BLOOM_SIZE);
+                                  DHT_BLOOM_SIZE,
+                                  NULL);
   GNUNET_CONTAINER_multipeermap_iterate (all_connected_peers,
                                          &add_known_to_bloom,
                                          bg);
@@ -2091,7 +2092,8 @@ handle_dht_p2p_get (void *cls,
                                   &xquery[xquery_size],
                                   reply_bf_size,
                                   "filter-size",
-                                  reply_bf_size);
+                                  reply_bf_size,
+                                  NULL);
   /* remember request for routing replies */
   GDS_ROUTING_add (peer->id,
 		   type,

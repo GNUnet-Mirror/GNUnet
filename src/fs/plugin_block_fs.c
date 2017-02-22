@@ -95,14 +95,16 @@ block_plugin_fs_create_group (void *cls,
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_UBLOCK:
     guard = va_arg (va, const char *);
     if (0 != memcmp (guard,
-                     "fs-seen-set-size",
-                     strlen ("fs-seen-set-size")))
+                     "seen-set-size",
+                     strlen ("seen-set-size")))
     {
       /* va-args invalid! bad bug, complain! */
       GNUNET_break (0);
@@ -114,6 +116,7 @@ block_plugin_fs_create_group (void *cls,
     }
     if (0 == size)
       size = raw_data_size; /* not for us to determine, use what we got! */
+    GNUNET_break (NULL == va_arg (va, const char *));
     return GNUNET_BLOCK_GROUP_bf_create (cls,
                                          size,
                                          BLOOMFILTER_K,
@@ -122,6 +125,7 @@ block_plugin_fs_create_group (void *cls,
                                          raw_data,
                                          raw_data_size);
   default:
+    GNUNET_break (NULL == va_arg (va, const char *));
     GNUNET_break (0);
     return NULL;
   }

@@ -108,6 +108,7 @@ block_plugin_dht_create_group (void *cls,
     GNUNET_break (0);
     bf_size = 8;
   }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
                                        bf_size,
                                        BLOOMFILTER_K,

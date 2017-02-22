@@ -42,6 +42,37 @@
 
 
 /**
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Note that #GNUNET_CONSTANTS_BLOOMFILTER_K
+ * gives us the number of bits set per entry.  Furthermore, we should
+ * not re-size the filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @param entry_count expected number of entries in the Bloom filter
+ * @return must be a power of two and smaller or equal to 2^15.
+ */
+static size_t
+compute_bloomfilter_size (unsigned int entry_count)
+{
+  size_t size;
+  unsigned int ideal = (entry_count * BLOOMFILTER_K) / 4;
+  uint16_t max = 1 << 15;
+
+  if (entry_count > max)
+    return max;
+  size = 8;
+  while ((size < max) && (size < ideal))
+    size *= 2;
+  if (size > max)
+    return max;
+  return size;
+}
+
+
+/**
  * Create a new block group.
  *
  * @param ctx block context in which the block group is created
@@ -61,8 +92,26 @@ block_plugin_test_create_group (void *cls,
                                 size_t raw_data_size,
                                 va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == memcmp (guard,
+                   "seen-set-size",
+                   strlen ("seen-set-size")))
+    bf_size = compute_bloomfilter_size (va_arg (va, unsigned int));
+  else if (0 == memcmp (guard,
+                        "filter-size",
+                        strlen ("filter-size")))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = TEST_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       TEST_BF_SIZE,
+                                       bf_size,
                                        BLOOMFILTER_K,
                                        type,
                                        nonce,

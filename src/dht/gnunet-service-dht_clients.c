@@ -376,7 +376,8 @@ transmit_request (struct ClientQueryRecord *cqr)
                                   NULL,
                                   0,
                                   "seen-set-size",
-                                  cqr->seen_replies_count);
+                                  cqr->seen_replies_count,
+                                  NULL);
   GNUNET_BLOCK_group_set_seen (bg,
                                cqr->seen_replies,
                                cqr->seen_replies_count);

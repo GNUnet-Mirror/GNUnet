@@ -41,6 +41,7 @@ src/cadet/cadet_api_new.c
 src/cadet/cadet_common.c
 src/cadet/cadet_path.c
 src/cadet/cadet_test_lib.c
+src/cadet/cadet_test_lib_new.c
 src/cadet/desirability_table.c
 src/cadet/gnunet-cadet.c
 src/cadet/gnunet-cadet-profiler.c
