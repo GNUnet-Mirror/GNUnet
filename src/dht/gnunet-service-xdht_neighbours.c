@@ -2301,8 +2301,7 @@ get_cb (void *cls,
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
+ * @param bg group to filter duplicates
  * @param peer_bf filter for peers not to select (again, updated)
  * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
@@ -2312,9 +2311,9 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
                            uint32_t desired_replication_level,
                            uint32_t hop_count,
                            const struct GNUNET_HashCode *key,
-                           const void *xquery, size_t xquery_size,
-                           const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                           uint32_t reply_bf_mutator,
+                           const void *xquery,
+                           size_t xquery_size,
+                           struct GNUNET_BLOCK_Group *bg,
                            struct GNUNET_CONTAINER_BloomFilter *peer_bf)
 {
   struct Closest_Peer successor;
@@ -2339,8 +2338,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
 			      block_type,
 			      NULL,
 			      0,
-                              NULL,
-			      0,
+                              bg,
                               &get_cb,
                               NULL);
     return GNUNET_NO;
@@ -3565,9 +3563,9 @@ handle_dht_p2p_put (void *cls,
   {
     switch (GNUNET_BLOCK_evaluate (GDS_block_context,
                                    ntohl (put->block_type),
+                                   NULL,
                                    GNUNET_BLOCK_EO_NONE,
                                    NULL,    /* query */
-                                   NULL, 0, /* bloom filer */
                                    NULL, 0, /* xquery */
                                    payload,
 				   payload_size))
@@ -3806,7 +3804,6 @@ handle_dht_p2p_get (void *cls,
 				NULL,
 				0,
                                 NULL,
-				0,
 				&get_cb,
                                 NULL);
     }
@@ -3817,7 +3814,6 @@ handle_dht_p2p_get (void *cls,
 				NULL,
 				0,
 				NULL,
-				0,
                                 &get_cb,
                                 &gp[get_length - 2]);
     }

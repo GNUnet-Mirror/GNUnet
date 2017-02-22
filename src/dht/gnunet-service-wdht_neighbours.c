@@ -642,8 +642,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
+ * @param bg block group to filter duplicates
  * @param peer_bf filter for peers not to select (again, updated)
  * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
@@ -654,8 +653,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                            uint32_t hop_count,
                            const struct GNUNET_HashCode *key,
                            const void *xquery, size_t xquery_size,
-                           const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                           uint32_t reply_bf_mutator,
+                           struct GNUNET_BLOCK_Group *bg,
                            struct GNUNET_CONTAINER_BloomFilter *peer_bf)
 {
   // find closest finger(s) on all layers

@@ -1969,6 +1969,7 @@ do_send (void *cls)
   client->msg_pos += ret;
   if (left > ret)
   {
+    GNUNET_assert (NULL == client->drop_task);
     client->send_task
       = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					client->sock,
@@ -1996,6 +1997,7 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
   struct GNUNET_SERVICE_Client *client = impl_state;
 
   GNUNET_assert (NULL == client->send_task);
+  GNUNET_assert (NULL == client->drop_task);
   client->msg = msg;
   client->msg_pos = 0;
   client->send_task
