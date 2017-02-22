@@ -2500,7 +2500,7 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
   if (NULL != c->drop_task)
   {
     /* asked to drop twice! */
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   GNUNET_CONTAINER_DLL_remove (sh->clients_head,
