@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
-#include "gnunet_block_group_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
@@ -622,8 +621,9 @@ add_known_to_bloom (void *cls,
   GNUNET_CRYPTO_hash (key,
                       sizeof (struct GNUNET_PeerIdentity),
                       &key_hash);
-  GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
-                                      &key_hash);
+  GNUNET_BLOCK_group_set_seen (bg,
+                               &key_hash,
+                               1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding known peer (%s) to bloomfilter for FIND PEER\n",
               GNUNET_i2s (key));
@@ -656,14 +656,12 @@ send_find_peer_message (void *cls)
     newly_found_peers = 0;
     return;
   }
-  bg = GNUNET_BLOCK_GROUP_bf_create (NULL,
-                                     DHT_BLOOM_SIZE,
-                                     GNUNET_CONSTANTS_BLOOMFILTER_K,
-                                     GNUNET_BLOCK_TYPE_DHT_HELLO,
-                                     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                               UINT32_MAX),
-                                     NULL,
-                                     0);
+  bg = GNUNET_BLOCK_group_create (GDS_block_context,
+                                  GNUNET_BLOCK_TYPE_DHT_HELLO,
+                                  GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                            UINT32_MAX),
+                                  NULL,
+                                  0);
   GNUNET_CONTAINER_multipeermap_iterate (all_connected_peers,
                                          &add_known_to_bloom,
                                          bg);
@@ -1839,22 +1837,26 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   struct PeerInfo *peer;
   unsigned int choice;
   const struct GNUNET_HELLO_Message *hello;
+  size_t hello_size;
 
   /* first, check about our own HELLO */
   if (NULL != GDS_my_hello)
   {
-    if (GNUNET_YES !=
-        GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
-                                            &my_identity_hash))
+    hello_size = GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) GDS_my_hello);
+    GNUNET_break (hello_size >= sizeof (struct GNUNET_MessageHeader));
+    if (GNUNET_BLOCK_EVALUATION_OK_MORE ==
+        GNUNET_BLOCK_evaluate (GDS_block_context,
+                               GNUNET_BLOCK_TYPE_DHT_HELLO,
+                               bg,
+                               GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO,
+                               &my_identity_hash,
+                               NULL, 0,
+                               GDS_my_hello,
+                               hello_size))
     {
-      size_t hello_size;
-
-      hello_size = GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) GDS_my_hello);
-      GNUNET_break (hello_size >= sizeof (struct GNUNET_MessageHeader));
       GDS_NEIGHBOURS_handle_reply (sender,
 				   GNUNET_BLOCK_TYPE_DHT_HELLO,
-                                   GNUNET_TIME_relative_to_absolute
-                                   (hello_expiration),
+                                   GNUNET_TIME_relative_to_absolute (hello_expiration),
                                    key,
 				   0,
 				   NULL,
@@ -1910,10 +1912,17 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
     if (NULL == peer)
       peer = bucket->head;
     hello = GDS_HELLO_get (peer->id);
+    hello_size = GNUNET_HELLO_size (hello);
   } while ( (NULL == hello) ||
-            (GNUNET_YES ==
-             GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
-                                                 &peer->phash)) );
+            (GNUNET_BLOCK_EVALUATION_OK_MORE !=
+             GNUNET_BLOCK_evaluate (GDS_block_context,
+                                    GNUNET_BLOCK_TYPE_DHT_HELLO,
+                                    bg,
+                                    GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO,
+                                    &peer->phash,
+                                    NULL, 0,
+                                    hello,
+                                    hello_size)) );
   GDS_NEIGHBOURS_handle_reply (sender,
 			       GNUNET_BLOCK_TYPE_DHT_HELLO,
                                GNUNET_TIME_relative_to_absolute
@@ -1924,7 +1933,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 			       0,
 			       NULL,
 			       hello,
-                               GNUNET_HELLO_size (hello));
+                               hello_size);
 }
 
 
@@ -2052,15 +2061,10 @@ handle_dht_p2p_get (void *cls,
 		 xquery);
     GNUNET_free (tmp);
   }
-  bg = GNUNET_BLOCK_group_create (GDS_block_context,
-                                  type,
-                                  get->bf_mutator,
-                                  &xquery[xquery_size],
-                                  reply_bf_size);
   eval
     = GNUNET_BLOCK_evaluate (GDS_block_context,
                              type,
-                             bg,
+                             NULL,
                              GNUNET_BLOCK_EO_NONE,
                              &get->key,
                              xquery,
@@ -2071,7 +2075,6 @@ handle_dht_p2p_get (void *cls,
   {
     /* request invalid or block type not supported */
     GNUNET_break_op (eval == GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED);
-    GNUNET_BLOCK_group_destroy (bg);
     return;
   }
   peer_bf = GNUNET_CONTAINER_bloomfilter_init (get->bloomfilter,
@@ -2080,6 +2083,11 @@ handle_dht_p2p_get (void *cls,
   GNUNET_break_op (GNUNET_YES ==
                    GNUNET_CONTAINER_bloomfilter_test (peer_bf,
                                                       &peer->phash));
+  bg = GNUNET_BLOCK_group_create (GDS_block_context,
+                                  type,
+                                  get->bf_mutator,
+                                  &xquery[xquery_size],
+                                  reply_bf_size);
   /* remember request for routing replies */
   GDS_ROUTING_add (peer->id,
 		   type,
