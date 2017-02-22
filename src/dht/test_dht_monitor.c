@@ -107,12 +107,12 @@ static unsigned int monitor_counter;
  * Terminates active get operations and shuts down
  * the testbed.
  *
- * @param cls the `struct GNUNET_DHT_TestContext`
+ * @param cls the `struct GNUNET_DHT_TEST_Context`
  */
 static void
 shutdown_task (void *cls)
 {
-  struct GNUNET_DHT_TestContext *ctx = cls;
+  struct GNUNET_DHT_TEST_Context *ctx = cls;
   unsigned int i;
   struct GetOperation *get_op;
 
@@ -183,7 +183,6 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   struct GetOperation *get_op = cls;
   struct GNUNET_HashCode want;
-  struct GNUNET_DHT_TestContext *ctx;
 
   if (sizeof (struct GNUNET_HashCode) != size)
   {
