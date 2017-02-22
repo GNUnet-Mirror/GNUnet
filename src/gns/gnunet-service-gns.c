@@ -29,14 +29,11 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namecache_service.h"
-#include "gnunet_namestore_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
-#include "gnunet-service-gns_reverser.h"
-#include "gnunet-service-gns_shorten.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gnunet_protocols.h"
 
@@ -114,11 +111,6 @@ static struct GNUNET_DHT_Handle *dht_handle;
 static struct GNUNET_NAMECACHE_Handle *namecache_handle;
 
 /**
- * Our handle to the namestore service
- */
-static struct GNUNET_NAMESTORE_Handle *namestore_handle;
-
-/**
  * Our handle to the identity service
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
@@ -173,11 +165,6 @@ shutdown_task (void *cls)
     GNUNET_STATISTICS_destroy (statistics,
                                GNUNET_NO);
     statistics = NULL;
-  }
-  if (NULL != namestore_handle)
-  {
-    GNUNET_NAMESTORE_disconnect (namestore_handle);
-    namestore_handle = NULL;
   }
   if (NULL != namecache_handle)
   {
@@ -447,15 +434,7 @@ run (void *cls,
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
   v4_enabled = GNUNET_NETWORK_test_pf (PF_INET);
-  namestore_handle = GNUNET_NAMESTORE_connect (c);
-  if (NULL == namestore_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to the namestore!\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
- namecache_handle = GNUNET_NAMECACHE_connect (c);
+  namecache_handle = GNUNET_NAMECACHE_connect (c);
   if (NULL == namecache_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

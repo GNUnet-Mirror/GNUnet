@@ -30,7 +30,6 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namecache_service.h"
-#include "gnunet_namestore_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_revocation_service.h"
@@ -39,7 +38,6 @@
 #include "gnunet_gns_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
-#include "gnunet-service-gns_shorten.h"
 #include "gnunet_vpn_service.h"
 
 

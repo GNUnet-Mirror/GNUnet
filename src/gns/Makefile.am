@@ -113,7 +113,6 @@ gnunet_gns_SOURCES = \
 gnunet_gns_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -133,7 +132,6 @@ gnunet_dns2gns_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(GN_LIBINTL)
@@ -197,7 +195,6 @@ gnunet_service_gns_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/namecache/libgnunetnamecache.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(USE_VPN) \
   $(GN_LIBINTL)
 
