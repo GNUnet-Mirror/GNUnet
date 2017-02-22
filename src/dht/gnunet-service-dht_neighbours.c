@@ -2380,8 +2380,7 @@ handle_dht_p2p_result (void *cls,
                                 data);
     }
     /* forward to other peers */
-    GDS_ROUTING_process (NULL,
-                         type,
+    GDS_ROUTING_process (type,
                          GNUNET_TIME_absolute_ntoh (prm->expiration_time),
                          &prm->key,
                          put_path_length,

@@ -276,7 +276,6 @@ process (void *cls,
  * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
  * request recently.
  *
- * @param cls NULL (why have it?)
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
@@ -288,8 +287,7 @@ process (void *cls,
  * @param data_size number of bytes in data
  */
 void
-GDS_ROUTING_process (void *cls,
-                     enum GNUNET_BLOCK_Type type,
+GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute expiration_time,
                      const struct GNUNET_HashCode *key,
                      unsigned int put_path_length,
