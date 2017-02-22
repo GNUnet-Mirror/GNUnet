@@ -1915,7 +1915,6 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
     if (NULL == peer)
       peer = bucket->head;
     hello = GDS_HELLO_get (peer->id);
-    hello_size = GNUNET_HELLO_size (hello);
   } while ( (NULL == hello) ||
             (GNUNET_BLOCK_EVALUATION_OK_MORE !=
              GNUNET_BLOCK_evaluate (GDS_block_context,
@@ -1925,7 +1924,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
                                     &peer->phash,
                                     NULL, 0,
                                     hello,
-                                    hello_size)) );
+                                    (hello_size = GNUNET_HELLO_size (hello)))) );
   GDS_NEIGHBOURS_handle_reply (sender,
 			       GNUNET_BLOCK_TYPE_DHT_HELLO,
                                GNUNET_TIME_relative_to_absolute
