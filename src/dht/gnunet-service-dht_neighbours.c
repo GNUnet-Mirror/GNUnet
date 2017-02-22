@@ -678,7 +678,7 @@ send_find_peer_message (void *cls)
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
   // FIXME: pass priority!?
   GDS_NEIGHBOURS_handle_get (GNUNET_BLOCK_TYPE_DHT_HELLO,
-                             GNUNET_DHT_RO_FIND_PEER,
+                             GNUNET_DHT_RO_FIND_PEER | GNUNET_DHT_RO_RECORD_ROUTE,
                              FIND_PEER_REPLICATION_LEVEL,
                              0,
                              &my_identity_hash,
