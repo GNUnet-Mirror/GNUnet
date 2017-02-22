@@ -209,6 +209,11 @@ process (void *cls,
                              rr->xquery_size,
                              pc->data,
                              pc->data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Result for %s of type %d was evaluated as %d\n",
+              GNUNET_h2s (key),
+              pc->type,
+              eval);
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
@@ -271,6 +276,7 @@ process (void *cls,
  * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
  * request recently.
  *
+ * @param cls NULL (why have it?)
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content

@@ -38,7 +38,7 @@
  * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
  * request recently.
  *
- * @param cls closure
+ * @param cls NULL (why have it?)
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
@@ -72,7 +72,7 @@ GDS_ROUTING_process (void *cls,
  * @param key key for the content
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
-*/
+ */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,

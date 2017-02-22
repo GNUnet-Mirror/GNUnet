@@ -1023,10 +1023,10 @@ select_peer (const struct GNUNET_HashCode *key,
       count = 0;
       while ((pos != NULL) && (count < bucket_size))
       {
-        if ((bloom == NULL) ||
-            (GNUNET_NO ==
-             GNUNET_CONTAINER_bloomfilter_test (bloom,
-                                                &pos->phash)))
+        if ( (NULL == bloom) ||
+             (GNUNET_NO ==
+              GNUNET_CONTAINER_bloomfilter_test (bloom,
+                                                 &pos->phash)))
         {
           dist = get_distance (key,
                                &pos->phash);
@@ -1060,8 +1060,14 @@ select_peer (const struct GNUNET_HashCode *key,
     }
     if (NULL == chosen)
       GNUNET_STATISTICS_update (GDS_stats,
-                                gettext_noop ("# Peer selection failed"), 1,
+                                gettext_noop ("# Peer selection failed"),
+                                1,
                                 GNUNET_NO);
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Selected peer `%s' in greedy routing for %s\n",
+                  GNUNET_i2s (chosen->id),
+                  GNUNET_h2s (key));
     return chosen;
   }
 
@@ -1071,12 +1077,12 @@ select_peer (const struct GNUNET_HashCode *key,
   for (bc = 0; bc <= closest_bucket; bc++)
   {
     pos = k_buckets[bc].head;
-    while ((pos != NULL) && (count < bucket_size))
+    while ( (NULL != pos) && (count < bucket_size) )
     {
-      if ((bloom != NULL) &&
-          (GNUNET_YES ==
-           GNUNET_CONTAINER_bloomfilter_test (bloom,
-                                              &pos->phash)))
+      if ( (NULL != bloom) &&
+           (GNUNET_YES ==
+            GNUNET_CONTAINER_bloomfilter_test (bloom,
+                                               &pos->phash)) )
       {
         GNUNET_STATISTICS_update (GDS_stats,
                                   gettext_noop
@@ -1116,7 +1122,13 @@ select_peer (const struct GNUNET_HashCode *key,
         continue;               /* Ignore bloomfiltered peers */
       }
       if (0 == selected--)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Selected peer `%s' in random routing for %s\n",
+                    GNUNET_i2s (pos->id),
+                    GNUNET_h2s (key));
         return pos;
+      }
     }
   }
   GNUNET_break (0);
@@ -1161,7 +1173,9 @@ get_target_peers (const struct GNUNET_HashCode *key,
 			       struct PeerInfo *);
   for (off = 0; off < ret; off++)
   {
-    nxt = select_peer (key, bloom, hop_count);
+    nxt = select_peer (key,
+                       bloom,
+                       hop_count);
     if (NULL == nxt)
       break;
     rtargets[off] = nxt;
@@ -1242,7 +1256,8 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
               "Adding myself (%s) to PUT bloomfilter for %s\n",
               GNUNET_i2s (&my_identity),
               GNUNET_h2s (key));
-  GNUNET_CONTAINER_bloomfilter_add (bf, &my_identity_hash);
+  GNUNET_CONTAINER_bloomfilter_add (bf,
+                                    &my_identity_hash);
   GNUNET_STATISTICS_update (GDS_stats,
 			    gettext_noop ("# PUT requests routed"),
                             1,
@@ -1946,7 +1961,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
 /**
  * Handle a result from local datacache for a GET operation.
  *
- * @param cls the `struct ClientHandle` of the client doing the query
+ * @param cls the `struct PeerInfo` for which this is a reply
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
@@ -1969,6 +1984,7 @@ handle_local_result (void *cls,
                      const void *data,
                      size_t data_size)
 {
+  struct PeerInfo *peer = cls;
   char *pp;
 
   pp = GNUNET_STRINGS_pp2s (put_path,
@@ -1978,15 +1994,13 @@ handle_local_result (void *cls,
               GNUNET_h2s (key),
               pp);
   GNUNET_free (pp);
-  // FIXME: we can probably do better here by
-  // passing the peer that did the query in the closure...
-  GDS_ROUTING_process (NULL,
-                       type,
-                       expiration_time,
-                       key,
-                       put_path_length, put_path,
-                       0, NULL,
-                       data, data_size);
+  GDS_NEIGHBOURS_handle_reply (peer->id,
+                               type,
+                               expiration_time,
+                               key,
+                               put_path_length, put_path,
+                               get_path_length, get_path,
+                               data, data_size);
 }
 
 
@@ -2037,11 +2051,6 @@ handle_dht_p2p_get (void *cls,
   const char *xquery;
   int forwarded;
 
-  if (NULL == peer)
-  {
-    GNUNET_break (0);
-    return;
-  }
   /* parse and validate message */
   msize = ntohs (get->header.size);
   xquery_size = ntohl (get->xquery_size);
@@ -2106,14 +2115,6 @@ handle_dht_p2p_get (void *cls,
                                   "filter-size",
                                   reply_bf_size,
                                   NULL);
-  /* remember request for routing replies */
-  GDS_ROUTING_add (peer->id,
-		   type,
-                   bg, /* bg now owned by routing, but valid at least until end of this function! */
-		   options,
-		   &get->key,
-		   xquery,
-		   xquery_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GET for %s at %s after %u hops\n",
               GNUNET_h2s (&get->key),
@@ -2142,7 +2143,7 @@ handle_dht_p2p_get (void *cls,
 				       xquery_size,
                                        bg,
                                        &handle_local_result,
-                                       NULL);
+                                       peer);
     }
   }
   else
@@ -2152,6 +2153,15 @@ handle_dht_p2p_get (void *cls,
                               1,
 			      GNUNET_NO);
   }
+
+  /* remember request for routing replies */
+  GDS_ROUTING_add (peer->id,
+                        type,
+                        bg, /* bg now owned by routing, but valid at least until end of this function! */
+                        options,
+                        &get->key,
+                        xquery,
+                        xquery_size);
 
   /* P2P forwarding */
   forwarded = GNUNET_NO;
