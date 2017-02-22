@@ -95,7 +95,7 @@ block_plugin_dht_create_group (void *cls,
   const char *guard;
 
   guard = va_arg (va, const char *);
-  if (0 != memcmp (guard,
+  if (0 == memcmp (guard,
                    "seen-set-size",
                    strlen ("seen-set-size")))
     bf_size = compute_bloomfilter_size (va_arg (va, unsigned int));
