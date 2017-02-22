@@ -1973,10 +1973,10 @@ handle_local_result (void *cls,
 
   pp = GNUNET_STRINGS_pp2s (put_path,
                             put_path_length);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Found local result for %s (PP: %s)\n",
-       GNUNET_h2s (key),
-       pp);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Found local result for %s (PP: %s)\n",
+              GNUNET_h2s (key),
+              pp);
   GNUNET_free (pp);
   // FIXME: we can probably do better here by
   // passing the peer that did the query in the closure...
