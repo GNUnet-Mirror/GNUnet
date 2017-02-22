@@ -90,7 +90,7 @@ static unsigned int NUM_PEERS = 3;
 /**
  * Task called to disconnect peers.
  */
-static struct GNUNET_SCHEDULER_Task * timeout_task;
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Task to do DHT_puts
@@ -107,12 +107,12 @@ static unsigned int monitor_counter;
  * Terminates active get operations and shuts down
  * the testbed.
  *
- * @param cls the 'struct GNUNET_DHT_TestContext'
+ * @param cls the `struct GNUNET_DHT_TestContext`
  */
 static void
 shutdown_task (void *cls)
 {
-  struct GNUNET_DHT_TEST_Context *ctx = cls;
+  struct GNUNET_DHT_TestContext *ctx = cls;
   unsigned int i;
   struct GetOperation *get_op;
 
@@ -146,10 +146,10 @@ shutdown_task (void *cls)
  * Terminates active get operations and shuts down
  * the testbed.
  *
- * @param cls the 'struct GNUNET_DHT_TestContext'
+ * @param cls NULL
  */
 static void
-timeout_task (void *cls)
+timeout_task_cb (void *cls)
 {
   timeout_task = NULL;
   GNUNET_SCHEDULER_shutdown ();
@@ -412,8 +412,8 @@ run (void *cls,
     }
   }
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-					       &timeout_task,
-                                               ctx);
+					       &timeout_task_cb,
+                                               NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  ctx);
 }
