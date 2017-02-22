@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2012-2014 GNUnet e.V.
+      Copyright (C) 2012-2014, 2017 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -95,16 +95,6 @@ typedef void
                                      uint32_t rd_count,
                                      const struct GNUNET_GNSRECORD_Data *rd);
 
-/**
- * Iterator called on obtained result for a GNS lookup.
- *
- * @param cls closure
- * @param name result of the reverse lookup
- */
-typedef void
-(*GNUNET_GNS_ReverseLookupResultProcessor) (void *cls,
-                                            const char* name);
-
 
 /**
  * Options for the GNS lookup.
@@ -138,13 +128,8 @@ enum GNUNET_GNS_LocalOptions
  * @param zone zone to look in
  * @param type the GNS record type to look for
  * @param options local options for the lookup
- * @param shorten_zone_key the private key of the shorten zone (can be NULL);
- *                    specify to enable automatic shortening (given a PSEU
- *                    record, if a given pseudonym is not yet used in the
- *                    shorten zone, we automatically add the respective zone
- *                    under that name)
  * @param proc function to call on result
- * @param proc_cls closure for processor
+ * @param proc_cls closure for @a proc
  * @return handle to the queued request
  */
 struct GNUNET_GNS_LookupRequest *
@@ -153,26 +138,8 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		   uint32_t type,
 		   enum GNUNET_GNS_LocalOptions options,
-		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls);
-
-/**
- * Perform an asynchronous reverse lookup operation on the GNS.
- *
- * @param handle handle to the GNS service
- * @param zone_key zone to find a name for
- * @param root_key our zone
- * @param proc processor to call on result
- * @param proc_cls closure for @a proc
- * @return handle to the request
- */
-struct GNUNET_GNS_ReverseLookupRequest *
-GNUNET_GNS_reverse_lookup (struct GNUNET_GNS_Handle *handle,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *root_key,
-                           GNUNET_GNS_ReverseLookupResultProcessor proc,
-                           void *proc_cls);
 
 
 /**

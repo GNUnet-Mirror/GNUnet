@@ -61,7 +61,7 @@ struct ClientLookupHandle
    * We keep these in a DLL.
    */
   struct ClientLookupHandle *prev;
-  
+
   /**
    * Client handle
    */
@@ -71,11 +71,6 @@ struct ClientLookupHandle
    * Active handle for the lookup.
    */
   struct GNS_ResolverHandle *lookup;
-
-  /**
-   * Active handle for a reverse lookup
-   */
-  struct GNS_ReverserHandle *rev_lookup;
 
   /**
    * request id
@@ -173,8 +168,6 @@ shutdown_task (void *cls)
     identity_handle = NULL;
   }
   GNS_resolver_done ();
-  GNS_reverse_done ();
-  GNS_shorten_done ();
   if (NULL != statistics)
   {
     GNUNET_STATISTICS_destroy (statistics,
@@ -221,15 +214,13 @@ client_disconnect_cb (void *cls,
   {
     if (NULL != clh->lookup)
       GNS_resolver_lookup_cancel (clh->lookup);
-    if (NULL != clh->rev_lookup)
-      GNS_reverse_lookup_cancel (clh->rev_lookup);
     GNUNET_CONTAINER_DLL_remove (gc->clh_head,
                                  gc->clh_tail,
                                  clh);
     GNUNET_free (clh);
   }
 
-  GNUNET_free (gc); 
+  GNUNET_free (gc);
 }
 
 
@@ -288,7 +279,9 @@ send_lookup_response (void* cls,
                                       (char*) &rmsg[1]);
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(clh->gc->client),
                   env);
-  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head, clh->gc->clh_tail, clh);
+  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head,
+                               clh->gc->clh_tail,
+                               clh);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
                             "Completed lookups", 1,
@@ -296,47 +289,6 @@ send_lookup_response (void* cls,
   GNUNET_STATISTICS_update (statistics,
                             "Records resolved",
                             rd_count,
-                            GNUNET_NO);
-}
-
-/**
- * Reply to client with the result from our reverse lookup.
- *
- * @param cls the closure (our client lookup handle)
- * @param rd_count the number of records in @a rd
- * @param rd the record data
- */
-static void
-send_reverse_lookup_response (void* cls,
-                              const char *name)
-{
-  struct ClientLookupHandle *clh = cls;
-  struct GNUNET_MQ_Envelope *env;
-  struct ReverseLookupResultMessage *rmsg;
-  size_t len;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending LOOKUP_RESULT message with %s\n",
-              name);
-
-  if (NULL == name)
-    len = 1;
-  else
-    len = strlen (name) + 1;
-  env = GNUNET_MQ_msg_extra (rmsg,
-                             len,
-                             GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP_RESULT);
-  rmsg->id = clh->request_id;
-  if (1 < len)
-    GNUNET_memcpy ((char*) &rmsg[1],
-                   name,
-                   strlen (name));
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(clh->gc->client),
-                  env);
-  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head, clh->gc->clh_tail, clh);
-  GNUNET_free (clh);
-  GNUNET_STATISTICS_update (statistics,
-                            "Completed reverse lookups", 1,
                             GNUNET_NO);
 }
 
@@ -371,6 +323,7 @@ check_lookup (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Handle lookup requests from client
  *
@@ -387,20 +340,17 @@ handle_lookup (void *cls,
   struct ClientLookupHandle *clh;
   char *nameptr = name;
   const char *utf_in;
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *key;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received LOOKUP message\n");
   GNUNET_SERVICE_client_continue (gc->client);
-  if (GNUNET_YES == ntohs (sh_msg->have_key))
-    key = &sh_msg->shorten_key;
-  else
-    key = NULL;
   utf_in = (const char *) &sh_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, nameptr);
 
   clh = GNUNET_new (struct ClientLookupHandle);
-  GNUNET_CONTAINER_DLL_insert (gc->clh_head, gc->clh_tail, clh);
+  GNUNET_CONTAINER_DLL_insert (gc->clh_head,
+                               gc->clh_tail,
+                               clh);
   clh->gc = gc;
   clh->request_id = sh_msg->id;
   if ( (GNUNET_DNSPARSER_TYPE_A == ntohl (sh_msg->type)) &&
@@ -422,88 +372,11 @@ handle_lookup (void *cls,
   clh->lookup = GNS_resolver_lookup (&sh_msg->zone,
                                      ntohl (sh_msg->type),
                                      name,
-                                     key,
                                      (enum GNUNET_GNS_LocalOptions) ntohs (sh_msg->options),
                                      &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",
                             1, GNUNET_NO);
-}
-
-/**
- * Handle reverse lookup requests from client
- *
- * @param cls the closure
- * @param client the client
- * @param message the message
- */
-static void
-handle_rev_lookup (void *cls,
-                   const struct ReverseLookupMessage *sh_msg)
-{
-  struct GnsClient *gc = cls;
-  struct ClientLookupHandle *clh;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received REVERSE_LOOKUP message\n");
-  GNUNET_SERVICE_client_continue (gc->client);
-
-  clh = GNUNET_new (struct ClientLookupHandle);
-  GNUNET_CONTAINER_DLL_insert (gc->clh_head, gc->clh_tail, clh);
-  clh->gc = gc;
-  clh->request_id = sh_msg->id;
-  clh->rev_lookup = GNS_reverse_lookup (&sh_msg->zone_pkey,
-                                        &sh_msg->root_pkey,
-                                        &send_reverse_lookup_response,
-                                        clh);
-  GNUNET_STATISTICS_update (statistics,
-                            "Reverse lookup attempts",
-                            1, GNUNET_NO);
-}
-
-
-/**
- * Method called to inform about the ego to be used for the master zone
- * for DNS interceptions.
- *
- * This function is only called ONCE, and 'NULL' being passed in
- * @a ego does indicate that interception is not configured.
- * If @a ego is non-NULL, we should start to intercept DNS queries
- * and resolve ".gnu" queries using the given ego as the master zone.
- *
- * @param cls closure, our `const struct GNUNET_CONFIGURATION_Handle *c`
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_reverse_cb (void *cls,
-                       struct GNUNET_IDENTITY_Ego *ego,
-                       void **ctx,
-                       const char *name)
-{
-  identity_op = NULL;
-
-  if (NULL == ego)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("No ego configured for `%s`\n"),
-                "gns-master");
-
-    return;
-  }
-  if (GNUNET_SYSERR ==
-      GNS_reverse_init (namestore_handle,
-                        GNUNET_IDENTITY_ego_get_private_key (ego),
-                        name))
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-    return;
-  }
 }
 
 
@@ -532,16 +405,10 @@ identity_intercept_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
-  identity_op = NULL;
 
+  identity_op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Looking for gns-intercept ego\n");
-  identity_op = GNUNET_IDENTITY_get (identity_handle,
-                                     "gns-reverse",
-                                     &identity_reverse_cb,
-                                     (void*)cfg);
-
-
   if (NULL == ego)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -553,10 +420,12 @@ identity_intercept_cb (void *cls,
   GNUNET_IDENTITY_ego_get_public_key (ego,
                                       &dns_root);
   if (GNUNET_SYSERR ==
-      GNS_interceptor_init (&dns_root, cfg))
+      GNS_interceptor_init (&dns_root,
+                            cfg))
   {
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_now (&shutdown_task,
+                              NULL);
     return;
   }
 }
@@ -577,7 +446,7 @@ run (void *cls,
   unsigned long long max_parallel_bg_queries = 16;
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
-  v4_enabled = GNUNET_NETWORK_test_pf (PF_INET); 
+  v4_enabled = GNUNET_NETWORK_test_pf (PF_INET);
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
@@ -635,11 +504,9 @@ run (void *cls,
                      dht_handle,
                      c,
                      max_parallel_bg_queries);
-  GNS_shorten_init (namestore_handle,
-                    namecache_handle,
-                    dht_handle);
   statistics = GNUNET_STATISTICS_create ("gns", c);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 NULL);
 }
 
 
@@ -657,10 +524,6 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_GNS_LOOKUP,
                         struct LookupMessage,
                         NULL),
- GNUNET_MQ_hd_fixed_size (rev_lookup,
-                          GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP,
-                          struct ReverseLookupMessage,
-                          NULL),
  GNUNET_MQ_handler_end());
 
 

@@ -12,7 +12,6 @@ SUBDIRS = . $(NSS_SUBDIR)
 EXTRA_DIST = \
   test_gns_defaults.conf \
   test_gns_lookup.conf \
-  test_gns_nick_shorten.conf \
   test_gns_proxy.conf \
   test_gns_simple_lookup.conf \
   gns-helper-service-w32.conf \
@@ -184,8 +183,6 @@ w32nsp_resolve_LDADD = -lws2_32
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
- gnunet-service-gns_reverser.c gnunet-service-gns_reverser.h \
- gnunet-service-gns_shorten.c gnunet-service-gns_shorten.h \
  gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h
 gnunet_service_gns_LDADD = \
   -lm \
@@ -254,14 +251,12 @@ check_SCRIPTS = \
   test_gns_gns2dns_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_delegated_lookup.sh \
-  test_gns_nick_shorten.sh\
   test_gns_plus_lookup.sh\
   test_gns_zkey_lookup.sh\
   test_gns_rel_expiration.sh\
   test_gns_soa_lookup.sh\
   test_gns_revocation.sh\
-  test_gns_cname_lookup.sh \
-	test_gns_reverse_lookup.sh
+  test_gns_cname_lookup.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE

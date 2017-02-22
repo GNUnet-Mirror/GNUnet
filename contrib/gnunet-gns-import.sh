@@ -39,9 +39,8 @@ while getopts "c:" opt; do
   esac
 done
 
-# By default, we create three GNS zones:
+# By default, we create two GNS zones:
 gnunet-identity -C master-zone $options
-gnunet-identity -C short-zone $options
 gnunet-identity -C private-zone $options
 
 # Additionally, we create the FS SKS zone

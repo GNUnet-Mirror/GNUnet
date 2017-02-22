@@ -483,7 +483,6 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 					 &my_zone,
 					 type,
 					 GNUNET_NO,
-					 NULL /* no shorten */,
 					 &result_processor,
 					 request);
   }
@@ -618,7 +617,7 @@ run_dnsd ()
   if (NULL != listen_socket4)
   {
     struct sockaddr_in v4;
-    
+
     memset (&v4, 0, sizeof (v4));
     v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -641,7 +640,7 @@ run_dnsd ()
   if (NULL != listen_socket6)
   {
     struct sockaddr_in6 v6;
-    
+
     memset (&v6, 0, sizeof (v6));
     v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
