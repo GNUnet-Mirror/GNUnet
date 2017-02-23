@@ -1795,6 +1795,13 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT 596
 
+/**
+ * Request all missing elements from the other peer,
+ * based on their sets and the elements we previously sent
+ * with #GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_GET_MISSING 597
+
 
 /*******************************************************************************
  * TESTBED LOGGER message types

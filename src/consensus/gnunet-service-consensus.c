@@ -2013,6 +2013,7 @@ task_start_reconcile (struct TaskEntry *task)
                                     &session->global_id,
                                     &rcm.header,
                                     GNUNET_SET_RESULT_SYMMETRIC,
+                                    (struct GNUNET_SET_Option[]) { 0 },
                                     set_result_cb,
                                     task);
 
@@ -2439,6 +2440,7 @@ set_listen_cb (void *cls,
 
   task->cls.setop.op = GNUNET_SET_accept (request,
                                           GNUNET_SET_RESULT_SYMMETRIC,
+                                          (struct GNUNET_SET_Option[]) { 0 },
                                           set_result_cb,
                                           task);
 

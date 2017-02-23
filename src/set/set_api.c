@@ -766,6 +766,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
                     const struct GNUNET_HashCode *app_id,
                     const struct GNUNET_MessageHeader *context_msg,
                     enum GNUNET_SET_ResultMode result_mode,
+                    struct GNUNET_SET_Option options[],
                     GNUNET_SET_ResultIterator result_cb,
                     void *result_cls)
 {
@@ -1006,6 +1007,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
+                   struct GNUNET_SET_Option options[],
                    GNUNET_SET_ResultIterator result_cb,
                    void *result_cls)
 {
