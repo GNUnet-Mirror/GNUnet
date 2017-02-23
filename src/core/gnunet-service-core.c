@@ -32,11 +32,11 @@
 #include "gnunet-service-core_typemap.h"
 
 /**
- * How many messages do we queue up at most for optional
- * notifications to a client?  (this can cause notifications
- * about outgoing messages to be dropped).
+ * How many messages do we queue up at most for any client? This can
+ * cause messages to be dropped if clients do not process them fast
+ * enough!
  */
-#define MAX_NOTIFY_QUEUE 1024
+#define MAX_QUEUE 128
 
 
 /**
@@ -834,6 +834,24 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND)) &&
 	 (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND)) )
       continue;
+    if (MAX_QUEUE < GNUNET_MQ_get_length (c->mq))
+    {
+      char buf[1024];
+
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                  "Dropping decrypted message of type %u as client is too busy (queue full)\n",
+                  (unsigned int) ntohs (msg->type));
+      GNUNET_snprintf (buf,
+                       sizeof (buf),
+                       gettext_noop ("# messages of type %u discarded (client busy)"),
+                       (unsigned int) ntohs (msg->type));
+      GNUNET_STATISTICS_update (GSC_stats,
+                                buf,
+                                1,
+                                GNUNET_NO);
+      continue;
+    }
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending %u message with %u bytes to client interested in messages of type %u.\n",
 		options,
