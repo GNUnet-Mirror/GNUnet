@@ -148,7 +148,7 @@ struct OperationState
   struct InvertibleBloomFilter *local_ibf;
 
   /**
-   * Maps IBF-Keys (specific to the current salt) to elements.
+   * Maps unsalted IBF-Keys to elements.
    * Used as a multihashmap, the keys being the lower 32bit of the IBF-Key.
    * Colliding IBF-Keys are linked.
    */
@@ -1379,7 +1379,11 @@ handle_p2p_inquiry (void *cls,
 
 
 /**
- * FIXME
+ * Handle a demand by the other peer for elements based on a list
+ * of GNUNET_HashCode-s.
+ *
+ * @parem cls closure, a set union operation
+ * @param mh the demand message
  */
 static void
 handle_p2p_demand (void *cls,
