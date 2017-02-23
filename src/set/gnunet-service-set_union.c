@@ -183,6 +183,17 @@ struct OperationState
    * Salt for the IBF we've received and that we're currently decoding.
    */
   uint32_t salt_receive;
+
+  /**
+   * Number of elements we received from the other peer
+   * that were not in the local set yet.
+   */
+  uint32_t received_fresh;
+
+  /**
+   * Total number of elements received from the other peer.
+   */
+  uint32_t received_total;
 };
 
 
@@ -1210,6 +1221,8 @@ maybe_finish (struct Operation *op)
 
 /**
  * Handle an element message from a remote peer.
+ * Sent by the other peer either because we decoded an IBF and placed a demand,
+ * or because the other peer switched to full set transmission.
  *
  * @param cls the union operation
  * @param mh the message
@@ -1273,6 +1286,8 @@ handle_p2p_elements (void *cls,
                             1,
                             GNUNET_NO);
 
+  op->state->received_total += 1;
+
   if (GNUNET_YES == op_has_element (op, &ee->element_hash))
   {
     /* Got repeated element.  Should not happen since
@@ -1287,6 +1302,7 @@ handle_p2p_elements (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Registering new element from remote peer\n");
+    op->state->received_fresh += 1;
     op_register_element (op, ee);
     /* only send results immediately if the client wants it */
     switch (op->spec->result_mode)
@@ -1302,6 +1318,14 @@ handle_p2p_elements (void *cls,
         GNUNET_break (0);
         break;
     }
+  }
+
+  if (op->state->received_total > 8 && op->state->received_fresh < op->state->received_total / 3)
+  {
+    /* The other peer gave us lots of old elements, there's something wrong. */
+    GNUNET_break_op (0);
+    fail_union_operation (op);
+    return;
   }
 
   maybe_finish (op);
