@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2014 GNUnet e.V.
+     Copyright (C) 2012-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -358,6 +358,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == ev->parent_queue);
 
   mq->queue_length++;
+  GNUNET_break (mq->queue_length < 10000); /* This would seem like a bug... */
   ev->parent_queue = mq;
   /* is the implementation busy? queue it! */
   if ( (NULL != mq->current_envelope) ||
