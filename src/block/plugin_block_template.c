@@ -111,7 +111,7 @@ block_plugin_template_create_group (void *cls,
   }
   GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       TEMPLATE_BF_SIZE,
+                                       bf_size,
                                        BLOOMFILTER_K,
                                        type,
                                        nonce,
