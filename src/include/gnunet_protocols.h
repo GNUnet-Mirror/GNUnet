@@ -1800,7 +1800,13 @@ extern "C"
  * based on their sets and the elements we previously sent
  * with #GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS.
  */
-#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_GET_MISSING 597
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE 597
+
+/**
+ * Send a set element, not as response to a demand but because
+ * we're sending the full set.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT 598
 
 
 /*******************************************************************************
