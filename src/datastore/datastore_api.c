@@ -498,6 +498,17 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *pos;
   unsigned int c;
 
+  if ( (h->queue_size == max_queue_size) &&
+       (h->queue_tail->priority >= queue_priority) )
+  {
+    GNUNET_STATISTICS_update (h->stats,
+                              gettext_noop ("# queue overflows"),
+                              1,
+                              GNUNET_NO);
+    GNUNET_MQ_discard (env);
+    return NULL;
+  }
+
   c = 0;
   pos = h->queue_head;
   while ( (NULL != pos) &&
