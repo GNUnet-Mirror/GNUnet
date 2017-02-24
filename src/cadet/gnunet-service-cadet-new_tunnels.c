@@ -1319,7 +1319,8 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (NULL == ct)
+  if ( (NULL == ct) ||
+       (GNUNET_NO == ct->is_ready) )
     ct = get_ready_connection (t);
   if (NULL == ct)
   {
@@ -1829,7 +1830,7 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               1,
                               GNUNET_NO);
     send_kx (t,
-             NULL,
+             ct,
              &t->ax);
     return;
   }
