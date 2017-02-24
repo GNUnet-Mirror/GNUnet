@@ -674,6 +674,9 @@ client_send_origin (struct GNUNET_HashCode *pub_key_hash,
 static void
 client_send_ack (struct GNUNET_HashCode *pub_key_hash)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Sending message ACK to client.\n");
+
   static struct GNUNET_MessageHeader *msg = NULL;
   if (NULL == msg)
   {
@@ -713,6 +716,9 @@ cadet_send_channel (struct Channel *chn, const struct GNUNET_MessageHeader *msg)
   else
   {
     chn->msgs_pending++;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "%p Queuing message. Pending messages: %u\n",
+                chn, chn->msgs_pending);
   }
 }
 
@@ -859,6 +865,11 @@ cadet_notify_window_change (void *cls,
                             int window_size)
 {
   struct Channel *chn = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%p Window size changed to %d.  Pending messages: %u\n",
+              chn, window_size, chn->msgs_pending);
+
   chn->is_connected = GNUNET_YES;
   chn->window_size = (int32_t) window_size;
 
@@ -867,7 +878,7 @@ cadet_notify_window_change (void *cls,
     if (0 < chn->msgs_pending)
     {
       client_send_ack (&chn->group_pub_hash);
-      --chn->msgs_pending;
+      chn->msgs_pending--;
     }
     else
     {
@@ -1680,10 +1691,8 @@ handle_client_multicast_message (void *cls,
   }
 
   client_send_all (&grp->pub_key_hash, &out->header);
-  if (0 == cadet_send_children (&grp->pub_key_hash, &out->header))
-  {
-    client_send_ack (&grp->pub_key_hash);
-  }
+  cadet_send_children (&grp->pub_key_hash, &out->header);
+  client_send_ack (&grp->pub_key_hash);
   GNUNET_free (out);
 
   GNUNET_SERVICE_client_continue (client);

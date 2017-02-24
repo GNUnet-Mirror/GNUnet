@@ -484,6 +484,10 @@ member_recv_message (void *cls,
 
   switch (test)
   {
+  case TEST_ORIGIN_TO_ALL:
+    test = TEST_ORIGIN_TO_ALL_RECV;
+    break;
+
   case TEST_ORIGIN_TO_ALL_RECV:
     // Test 6 starts here
     member_to_origin ();
@@ -521,6 +525,11 @@ origin_recv_message (void *cls,
   case TEST_ORIGIN_TO_ALL:
     // Prepare to execute test 5
     test = TEST_ORIGIN_TO_ALL_RECV;
+    break;
+
+  case TEST_ORIGIN_TO_ALL_RECV:
+    // Test 6 starts here
+    member_to_origin ();
     break;
 
   default:
