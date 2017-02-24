@@ -28,9 +28,9 @@
 #include "gnunet_crypto_lib.h"
 #include <gcrypt.h>
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-random", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-crypto-random", syscall)
 
 
 /* TODO: ndurner, move this to plibc? */

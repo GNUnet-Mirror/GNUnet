@@ -30,7 +30,7 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-crc", __VA_ARGS__)
 
 /* Avoid wasting space on 8-byte longs. */
 #if UINT_MAX >= 0xffffffff

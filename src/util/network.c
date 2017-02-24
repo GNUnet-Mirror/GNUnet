@@ -28,9 +28,9 @@
 #include "gnunet_util_lib.h"
 #include "disk.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-network", __VA_ARGS__)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-network", syscall, filename)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-network", syscall)
 
 #define DEBUG_NETWORK GNUNET_EXTRA_LOGGING
 

@@ -33,7 +33,7 @@
 #include "gnunet_socks.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-client",__VA_ARGS__)
 
 
 /**
@@ -298,6 +298,11 @@ recv_message (void *cls,
 
   if (GNUNET_YES == cstate->in_destroy)
     return GNUNET_SYSERR;
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received message of type %u and size %u from %s\n",
+       ntohs (msg->type), ntohs (msg->size), cstate->service_name);
+
   GNUNET_MQ_inject_message (cstate->mq,
                             msg);
   if (GNUNET_YES == cstate->in_destroy)

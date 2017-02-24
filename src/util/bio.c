@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-bio",__VA_ARGS__)
 
 #ifndef PATH_MAX
 /**

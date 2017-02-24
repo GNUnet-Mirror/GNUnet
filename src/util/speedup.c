@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "speedup.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-speedup", __VA_ARGS__)
 
 
 static struct GNUNET_TIME_Relative interval;
