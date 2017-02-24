@@ -603,6 +603,7 @@ GCT_count_any_connections (const struct CadetTunnel *t)
 static struct CadetTConnection *
 get_ready_connection (struct CadetTunnel *t)
 {
+  GNUNET_assert (GNUNET_YES == t->connection_ready_head->is_ready);
   return t->connection_ready_head;
 }
 
@@ -1971,13 +1972,19 @@ GCT_connection_lost (struct CadetTConnection *ct)
   struct CadetTunnel *t = ct->t;
 
   if (GNUNET_YES == ct->is_ready)
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_ready_head,
                                  t->connection_ready_tail,
                                  ct);
+    t->num_ready_connections--;
+  }
   else
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_busy_head,
                                  t->connection_busy_tail,
                                  ct);
+    t->num_busy_connections--;
+  }
   GNUNET_free (ct);
 }
 

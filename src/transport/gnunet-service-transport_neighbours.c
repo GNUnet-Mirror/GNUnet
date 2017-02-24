@@ -1150,17 +1150,18 @@ set_incoming_quota (struct NeighbourMapEntry *n,
     sqm.header.size = htons (sizeof (struct GNUNET_ATS_SessionQuotaMessage));
     sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
     sqm.quota = quota.value__;
-    (void) send_with_session (n,
-                              &sqm,
-                              sizeof (sqm),
-                              UINT32_MAX - 1,
-                              GNUNET_TIME_UNIT_FOREVER_REL,
-                              GNUNET_NO,
-                              NULL, NULL);
+    if (NULL != n->primary_address.session)
+      (void) send_with_session (n,
+                                &sqm,
+                                sizeof (sqm),
+                                UINT32_MAX - 1,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                GNUNET_NO,
+                                NULL, NULL);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Disconnecting peer `%4s' due to SET_QUOTA\n",
+              "Disconnecting peer `%s' due to SET_QUOTA\n",
               GNUNET_i2s (&n->id));
   if (GNUNET_YES == test_connected (n))
     GNUNET_STATISTICS_update (GST_stats,
