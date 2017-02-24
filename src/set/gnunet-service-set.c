@@ -1683,6 +1683,10 @@ handle_client_evaluate (void *cls,
   spec->set = set;
   spec->result_mode = ntohl (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
+  spec->byzantine = msg->byzantine;
+  spec->byzantine_lower_bound = msg->byzantine_lower_bound;
+  spec->force_full = msg->force_full;
+  spec->force_delta = msg->force_delta;
   context = GNUNET_MQ_extract_nested_mh (msg);
   op->spec = spec;
 
@@ -2019,6 +2023,10 @@ handle_client_accept (void *cls,
                                op);
   op->spec->client_request_id = ntohl (msg->request_id);
   op->spec->result_mode = ntohl (msg->result_mode);
+  op->spec->byzantine = msg->byzantine;
+  op->spec->byzantine_lower_bound = msg->byzantine_lower_bound;
+  op->spec->force_full = msg->force_full;
+  op->spec->force_delta = msg->force_delta;
 
   // Advance generation values, so that
   // mutations won't interfer with the running operation.

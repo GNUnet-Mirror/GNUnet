@@ -102,6 +102,30 @@ struct GNUNET_SET_AcceptMessage
    * See `enum GNUNET_SET_ResultMode`.
    */
   uint32_t result_mode GNUNET_PACKED;
+
+  /**
+   * Always use delta operation instead of sending full sets,
+   * even it it's less efficient.
+   */
+  uint8_t force_delta;
+
+  /**
+   * Always send full sets, even if delta operations would
+   * be more efficient.
+   */
+  uint8_t force_full;
+
+  /**
+   * #GNUNET_YES to fail operations where Byzantine faults
+   * are suspected
+   */
+  uint8_t byzantine;
+
+  /**
+   * Lower bound for the set size, used only when
+   * byzantine mode is enabled.
+   */
+  uint8_t byzantine_lower_bound;
 };
 
 
@@ -183,6 +207,30 @@ struct GNUNET_SET_EvaluateMessage
    * calls #GNUNET_SET_commit().
    */
   uint32_t request_id GNUNET_PACKED;
+
+  /**
+   * Always use delta operation instead of sending full sets,
+   * even it it's less efficient.
+   */
+  uint8_t force_delta;
+
+  /**
+   * Always send full sets, even if delta operations would
+   * be more efficient.
+   */
+  uint8_t force_full;
+
+  /**
+   * #GNUNET_YES to fail operations where Byzantine faults
+   * are suspected
+   */
+  uint8_t byzantine;
+
+  /**
+   * Lower bound for the set size, used only when
+   * byzantine mode is enabled.
+   */
+  uint8_t byzantine_lower_bound;
 
   /* rest: context message, that is, application-specific
      message to convince listener to pick up */
