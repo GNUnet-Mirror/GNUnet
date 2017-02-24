@@ -58,6 +58,10 @@ static struct GNUNET_PeerIdentity local_peer;
 
 static struct GNUNET_SET_ListenHandle *set_listener;
 
+static int byzantine;
+static int force_delta;
+static int force_full;
+
 /**
  * Handle to the statistics service.
  */
@@ -215,6 +219,10 @@ set_listen_cb (void *cls,
                const struct GNUNET_MessageHeader *context_msg,
                struct GNUNET_SET_Request *request)
 {
+  /* max. 2 options plus terminator */
+  struct GNUNET_SET_Option opts[3] = {0};
+  unsigned int n_opts = 0;
+
   if (NULL == request)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -224,8 +232,24 @@ set_listen_cb (void *cls,
   GNUNET_assert (NULL == info2.oh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "set listen cb called\n");
+  if (byzantine)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_BYZANTINE };
+  }
+  GNUNET_assert (!(force_full && force_delta));
+  if (force_full)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_FORCE_FULL };
+  }
+  if (force_delta)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_FORCE_DELTA };
+  }
+
+  opts[n_opts].type = 0;
   info2.oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_SYMMETRIC,
-                               set_result_cb, &info2);
+                                opts,
+                                set_result_cb, &info2);
   GNUNET_SET_commit (info2.oh, info2.set);
 }
 
@@ -291,6 +315,9 @@ run (void *cls,
 {
   unsigned int i;
   struct GNUNET_HashCode hash;
+  /* max. 2 options plus terminator */
+  struct GNUNET_SET_Option opts[3] = {0};
+  unsigned int n_opts = 0;
 
   config = cfg;
 
@@ -350,8 +377,26 @@ run (void *cls,
   set_listener = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                     &app_id, set_listen_cb, NULL);
 
+
+  if (byzantine)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_BYZANTINE };
+  }
+  GNUNET_assert (!(force_full && force_delta));
+  if (force_full)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_FORCE_FULL };
+  }
+  if (force_delta)
+  {
+    opts[n_opts++] = (struct GNUNET_SET_Option) { .type = GNUNET_SET_OPTION_FORCE_DELTA };
+  }
+
+  opts[n_opts].type = 0;
+
   info1.oh = GNUNET_SET_prepare (&local_peer, &app_id, NULL,
                                  GNUNET_SET_RESULT_SYMMETRIC,
+                                 opts,
                                  set_result_cb, &info1);
   GNUNET_SET_commit (info1.oh, info1.set);
   GNUNET_SET_destroy (info1.set);
@@ -380,6 +425,15 @@ main (int argc, char **argv)
       { 'B', "num-second", NULL,
         gettext_noop ("number of values"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_b },
+      { 'b', "byzantine", NULL,
+        gettext_noop ("use byzantine mode"),
+        GNUNET_NO, &GNUNET_GETOPT_set_one, &byzantine },
+      { 'f', "force-full", NULL,
+        gettext_noop ("force sending full set"),
+        GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_full },
+      { 'd', "force-delta", NULL,
+        gettext_noop ("number delta operation"),
+        GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_delta },
       { 'C', "num-common", NULL,
         gettext_noop ("number of values"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_c },

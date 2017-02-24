@@ -36,7 +36,7 @@ MAX_PENDING_REQUESTS = 65536
 
 # How many requests do we have at most waiting in the queue towards
 # the datastore? (important for memory consumption)
-DATASTORE_QUEUE_SIZE = 1024
+DATASTORE_QUEUE_SIZE = 32
 
 # Maximum frequency we're allowed to poll the datastore
 # for content for migration (can be used to reduce

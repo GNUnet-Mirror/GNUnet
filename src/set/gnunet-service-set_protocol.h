@@ -208,6 +208,20 @@ struct IntersectionDoneMessage
   struct GNUNET_HashCode element_xor_hash;
 };
 
+
+/**
+ * Strata estimator together with the peer's overall set size.
+ */
+struct StrataEstimatorMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE(C)
+   */
+  struct GNUNET_MessageHeader header;
+
+  uint64_t set_size;
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

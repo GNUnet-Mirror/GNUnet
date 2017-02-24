@@ -864,14 +864,13 @@ handle_dns_response (void *cls,
                      const struct DnsResponseMessage *msg)
 {
   struct CadetExit *exit = cls;
-  struct GNUNET_TUN_DnsHeader dns;
   size_t mlen;
   struct RequestContext *rc;
 
   mlen = ntohs (msg->header.size) - sizeof (*msg);
   for (rc = exit->receive_queue_head; NULL != rc; rc = rc->next)
   {
-    if (dns.id == rc->dns_id)
+    if (msg->dns.id == rc->dns_id)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# DNS replies received"),

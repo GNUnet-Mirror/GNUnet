@@ -1022,6 +1022,7 @@ cb_intersection_request_alice (void *cls,
   s->intersection_op
     = GNUNET_SET_accept (request,
                          GNUNET_SET_RESULT_REMOVED,
+                         (struct GNUNET_SET_Option[]) { 0 },
                          &cb_intersection_element_removed,
                          s);
   if (NULL == s->intersection_op)

@@ -1371,11 +1371,23 @@ handle_client_listen (void *cls,
                            struct GNUNET_MessageHeader,
                            NULL),
     GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE,
                            struct GNUNET_MessageHeader,
                            NULL),
     GNUNET_MQ_hd_var_size (p2p_message,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT,
                            struct GNUNET_MessageHeader,
                            NULL),
     GNUNET_MQ_hd_var_size (p2p_message,
@@ -1393,7 +1405,6 @@ handle_client_listen (void *cls,
     GNUNET_MQ_handler_end ()
   };
   struct Listener *listener;
-  struct Operation *op;
 
   if (NULL != listener_get (client))
   {
@@ -1422,7 +1433,7 @@ handle_client_listen (void *cls,
                                                 &channel_end_cb,
                                                 cadet_handlers);
   /* check for existing incoming requests the listener might be interested in */
-  for (op = incoming_head; NULL != op; op = op->next)
+  for (struct Operation *op = incoming_head; NULL != op; op = op->next)
   {
     if (NULL == op->spec)
       continue; /* no details available yet */
@@ -1634,6 +1645,18 @@ handle_client_evaluate (void *cls,
                            struct GNUNET_MessageHeader,
                            op),
     GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
+                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT,
+                           struct GNUNET_MessageHeader,
+                           op),
+    GNUNET_MQ_hd_var_size (p2p_message,
                            GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
                            struct GNUNET_MessageHeader,
                            op),
@@ -1668,6 +1691,10 @@ handle_client_evaluate (void *cls,
   spec->set = set;
   spec->result_mode = ntohl (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
+  spec->byzantine = msg->byzantine;
+  spec->byzantine_lower_bound = msg->byzantine_lower_bound;
+  spec->force_full = msg->force_full;
+  spec->force_delta = msg->force_delta;
   context = GNUNET_MQ_extract_nested_mh (msg);
   op->spec = spec;
 
@@ -2004,6 +2031,10 @@ handle_client_accept (void *cls,
                                op);
   op->spec->client_request_id = ntohl (msg->request_id);
   op->spec->result_mode = ntohl (msg->result_mode);
+  op->spec->byzantine = msg->byzantine;
+  op->spec->byzantine_lower_bound = msg->byzantine_lower_bound;
+  op->spec->force_full = msg->force_full;
+  op->spec->force_delta = msg->force_delta;
 
   // Advance generation values, so that
   // mutations won't interfer with the running operation.

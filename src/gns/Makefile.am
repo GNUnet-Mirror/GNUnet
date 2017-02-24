@@ -69,8 +69,8 @@ endif
 
 libexec_PROGRAMS = \
   gnunet-service-gns \
-  $(DO_W32_HELPER) \
   gnunet-dns2gns \
+  $(DO_W32_HELPER) \
   $(DO_PROXY)
 
 bin_PROGRAMS = \
@@ -135,6 +135,14 @@ gnunet_dns2gns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(GN_LIBINTL)
+
+if LINUX
+HIJACKBIN = gnunet-dns2gns
+install-exec-hook:
+	$(SUDO_BINARY) setcap 'cap_net_bind_service=+ep' $(DESTDIR)$(libexecdir)/gnunet-dns2gns || true
+else
+install-exec-hook:
+endif
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c

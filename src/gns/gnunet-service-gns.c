@@ -328,11 +328,12 @@ handle_lookup (void *cls,
   char *nameptr = name;
   const char *utf_in;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received LOOKUP message\n");
   GNUNET_SERVICE_client_continue (gc->client);
   utf_in = (const char *) &sh_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, nameptr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received LOOKUP `%s' message\n",
+              name);
 
   clh = GNUNET_new (struct ClientLookupHandle);
   GNUNET_CONTAINER_DLL_insert (gc->clh_head,

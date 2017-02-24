@@ -1633,7 +1633,9 @@ GNUNET_TESTING_service_run (const char *testdir,
   char *binary;
   char *libexec_binary;
 
-  GNUNET_log_setup (testdir, "WARNING", NULL);
+  GNUNET_log_setup (testdir,
+                    "WARNING",
+                    NULL);
   system = GNUNET_TESTING_system_create (testdir, "127.0.0.1", NULL, NULL);
   if (NULL == system)
     return 1;

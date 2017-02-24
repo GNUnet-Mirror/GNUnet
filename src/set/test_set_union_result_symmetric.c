@@ -184,6 +184,7 @@ listen_cb (void *cls,
   listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
                            GNUNET_SET_RESULT_SYMMETRIC,
+                           (struct GNUNET_SET_Option[]) { 0 },
                            &result_cb_set2,
                            NULL);
   GNUNET_SET_commit (oh2,
@@ -212,6 +213,7 @@ start (void *cls)
                             &app_id,
                             &context_msg,
                             GNUNET_SET_RESULT_SYMMETRIC,
+                            (struct GNUNET_SET_Option[]) { 0 },
                             &result_cb_set1, NULL);
   GNUNET_SET_commit (oh1, set1);
 }

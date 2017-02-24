@@ -18,3 +18,4 @@ test_namestore_api_zone_iteration_specific_zone.nc
 test_namestore_api_zone_iteration_stop.nc
 test_plugin_namestore_postgres
 test_plugin_namestore_sqlite
+test_plugin_namestore_flat

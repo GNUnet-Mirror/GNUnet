@@ -138,7 +138,7 @@ static char *dns_ip;
 /**
  * UDP Port we listen on for inbound DNS requests.
  */
-static unsigned int listen_port = 2853;
+static unsigned int listen_port = 53;
 
 /**
  * Which GNS zone do we translate incoming DNS requests to?
@@ -796,13 +796,17 @@ main (int argc,
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
-						 &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
-  GNUNET_log_setup ("gnunet-dns2gns", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-dns2gns",
+                    "WARNING",
+                    NULL);
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-dns2gns",
+       GNUNET_PROGRAM_run (argc, argv,
+                           "gnunet-dns2gns",
                            _("GNUnet DNS-to-GNS proxy (a DNS server)"),
 			   options,
                            &run, NULL)) ? 0 : 1;

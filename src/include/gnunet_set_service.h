@@ -153,6 +153,7 @@ enum GNUNET_SET_Status
 };
 
 
+
 /**
  * The way results are given to the client.
  */
@@ -208,6 +209,54 @@ struct GNUNET_SET_Element
    * Actual data of the element
    */
   const void *data;
+};
+
+
+/**
+ * Possible options to pass to a set operation.
+ *
+ * Used as tag for struct #GNUNET_SET_Option.
+ */
+enum GNUNET_SET_OptionType
+{
+  /**
+   * Fail set operations when the other peer shows weird behavior
+   * that might by a Byzantine fault.
+   *
+   * For set union, 'v.num' is a lower bound on elements
+   * that the other peer must have in common with us.
+   */
+  GNUNET_SET_OPTION_BYZANTINE=1,
+  /**
+   * Do not use the optimized set operation, but send full sets.
+   * Might trigger Byzantine fault detection.
+   */
+  GNUNET_SET_OPTION_FORCE_FULL=2,
+  /**
+   * Only use optimized set operations, even though for this
+   * particular set operation they might be much slower.
+   * Might trigger Byzantine fault detection.
+   */
+  GNUNET_SET_OPTION_FORCE_DELTA=4,
+};
+
+
+/**
+ * Option for set operations.
+ */
+struct GNUNET_SET_Option
+{
+  /**
+   * Type of the option.
+   */
+  enum GNUNET_SET_OptionType type;
+
+  /**
+   * Value for the option, only used with some options.
+   */
+  union {
+    uint64_t num;
+  } v;
 };
 
 
@@ -367,6 +416,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
                     const struct GNUNET_HashCode *app_id,
                     const struct GNUNET_MessageHeader *context_msg,
                     enum GNUNET_SET_ResultMode result_mode,
+                    struct GNUNET_SET_Option options[],
                     GNUNET_SET_ResultIterator result_cb,
                     void *result_cls);
 
@@ -420,6 +470,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
+                   struct GNUNET_SET_Option options[],
                    GNUNET_SET_ResultIterator result_cb,
                    void *result_cls);
 

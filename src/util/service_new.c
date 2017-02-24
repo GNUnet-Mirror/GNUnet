@@ -1996,8 +1996,9 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = impl_state;
 
+  if (NULL != client->drop_task)
+    return; /* we're going down right now, do not try to send */
   GNUNET_assert (NULL == client->send_task);
-  GNUNET_assert (NULL == client->drop_task);
   client->msg = msg;
   client->msg_pos = 0;
   client->send_task
@@ -2466,6 +2467,10 @@ finish_client_drop (void *cls)
   struct GNUNET_SERVICE_Client *c = cls;
   struct GNUNET_SERVICE_Handle *sh = c->sh;
 
+  c->drop_task = NULL;
+  GNUNET_assert (NULL == c->send_task);
+  GNUNET_assert (NULL == c->recv_task);
+  GNUNET_assert (NULL == c->warn_task);
   GNUNET_MST_destroy (c->mst);
   GNUNET_MQ_destroy (c->mq);
   if (GNUNET_NO == c->persist)

@@ -603,7 +603,11 @@ GCT_count_any_connections (const struct CadetTunnel *t)
 static struct CadetTConnection *
 get_ready_connection (struct CadetTunnel *t)
 {
-  return t->connection_ready_head;
+  struct CadetTConnection *hd = t->connection_ready_head;
+
+  GNUNET_assert ( (NULL == hd) ||
+                  (GNUNET_YES == hd->is_ready) );
+  return hd;
 }
 
 
@@ -1315,7 +1319,8 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (NULL == ct)
+  if ( (NULL == ct) ||
+       (GNUNET_NO == ct->is_ready) )
     ct = get_ready_connection (t);
   if (NULL == ct)
   {
@@ -1825,7 +1830,7 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               1,
                               GNUNET_NO);
     send_kx (t,
-             NULL,
+             ct,
              &t->ax);
     return;
   }
@@ -1971,13 +1976,19 @@ GCT_connection_lost (struct CadetTConnection *ct)
   struct CadetTunnel *t = ct->t;
 
   if (GNUNET_YES == ct->is_ready)
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_ready_head,
                                  t->connection_ready_tail,
                                  ct);
+    t->num_ready_connections--;
+  }
   else
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_busy_head,
                                  t->connection_busy_tail,
                                  ct);
+    t->num_busy_connections--;
+  }
   GNUNET_free (ct);
 }
 

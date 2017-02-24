@@ -766,12 +766,14 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
                     const struct GNUNET_HashCode *app_id,
                     const struct GNUNET_MessageHeader *context_msg,
                     enum GNUNET_SET_ResultMode result_mode,
+                    struct GNUNET_SET_Option options[],
                     GNUNET_SET_ResultIterator result_cb,
                     void *result_cls)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_EvaluateMessage *msg;
+  struct GNUNET_SET_Option *opt;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client prepares set operation (%d)\n",
@@ -785,6 +787,25 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   msg->app_id = *app_id;
   msg->result_mode = htonl (result_mode);
   msg->target_peer = *other_peer;
+  for (opt = options; opt->type != 0; opt++)
+  {
+    switch (opt->type)
+    {
+      case GNUNET_SET_OPTION_BYZANTINE:
+        msg->byzantine = GNUNET_YES;
+        msg->byzantine_lower_bound = opt->v.num;
+        break;
+      case GNUNET_SET_OPTION_FORCE_FULL:
+        msg->force_full = GNUNET_YES;
+        break;
+      case GNUNET_SET_OPTION_FORCE_DELTA:
+        msg->force_delta = GNUNET_YES;
+        break;
+      default:
+        LOG (GNUNET_ERROR_TYPE_ERROR, 
+             "Option with type %d not recognized\n", (int) opt->type);
+    }
+  }
   oh->conclude_mqm = mqm;
   oh->request_id_addr = &msg->request_id;
 
@@ -1006,6 +1027,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
+                   struct GNUNET_SET_Option options[],
                    GNUNET_SET_ResultIterator result_cb,
                    void *result_cls)
 {

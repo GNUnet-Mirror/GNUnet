@@ -63,7 +63,7 @@ gnunet-identity -e master-zone -s gns-proxy $options
 
 # Use master-zone for intercepted DNS queries
 # (remove this entry to disable DNS interception by GNS service)
-gnunet-identity -e master-zone -s gns-intercept $options
+gnunet-identity -e master-zone -s dns2gns $options
 
 # 'gns-private' is not yet used (!)
 gnunet-identity -e private-zone -s gns-private $options
