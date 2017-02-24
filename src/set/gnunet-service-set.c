@@ -1401,7 +1401,6 @@ handle_client_listen (void *cls,
     GNUNET_MQ_handler_end ()
   };
   struct Listener *listener;
-  struct Operation *op;
 
   if (NULL != listener_get (client))
   {
@@ -1430,7 +1429,7 @@ handle_client_listen (void *cls,
                                                 &channel_end_cb,
                                                 cadet_handlers);
   /* check for existing incoming requests the listener might be interested in */
-  for (op = incoming_head; NULL != op; op = op->next)
+  for (struct Operation *op = incoming_head; NULL != op; op = op->next)
   {
     if (NULL == op->spec)
       continue; /* no details available yet */

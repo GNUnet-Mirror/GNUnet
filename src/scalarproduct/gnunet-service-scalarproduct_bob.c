@@ -1173,11 +1173,11 @@ handle_bob_client_message (void *cls,
     GNUNET_MQ_hd_fixed_size (alices_computation_request,
                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION,
                              struct ServiceRequestMessage,
-                             s),
+                             NULL),
     GNUNET_MQ_hd_var_size (alices_cryptodata_message,
                            GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA,
                            struct AliceCryptodataMessage,
-                           s),
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   uint32_t contained_count;
