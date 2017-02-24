@@ -603,8 +603,11 @@ GCT_count_any_connections (const struct CadetTunnel *t)
 static struct CadetTConnection *
 get_ready_connection (struct CadetTunnel *t)
 {
-  GNUNET_assert (GNUNET_YES == t->connection_ready_head->is_ready);
-  return t->connection_ready_head;
+  struct CadetTConnection *hd = t->connection_ready_head;
+
+  GNUNET_assert ( (NULL == hd) ||
+                  (GNUNET_YES == hd->is_ready) );
+  return hd;
 }
 
 
