@@ -838,7 +838,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     {
       char buf[1024];
 
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                   "Dropping decrypted message of type %u as client is too busy (queue full)\n",
                   (unsigned int) ntohs (msg->type));
       GNUNET_snprintf (buf,
