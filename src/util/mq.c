@@ -764,7 +764,7 @@ server_client_send_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL != mq);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting message of type %u and size %u\n",
+       "Sending message of type %u and size %u\n",
        ntohs (msg->type), ntohs (msg->size));
 
   struct ServerClientSocketState *state = impl_state;

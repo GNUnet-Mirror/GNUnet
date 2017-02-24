@@ -945,9 +945,9 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
 
   type = ntohs (message->type);
   size = ntohs (message->size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Server schedules transmission of %u-byte message of type %u to client.\n",
-       size, type);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received message of type %u and size %u from client\n",
+       type, size);
   found = GNUNET_NO;
   for (pos = server->handlers; NULL != pos; pos = pos->next)
   {
@@ -1240,8 +1240,8 @@ client_message_tokenizer_callback (void *cls,
   int ret;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tokenizer gives server message of type %u from client\n",
-       ntohs (message->type));
+       "Tokenizer gives server message of type %u and size %u from client\n",
+       ntohs (message->type), ntohs (message->size));
   sender->in_process_client_buffer = GNUNET_YES;
   ret = GNUNET_SERVER_inject (server, sender, message);
   sender->in_process_client_buffer = GNUNET_NO;
