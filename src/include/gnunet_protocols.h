@@ -1640,6 +1640,12 @@ extern "C"
  * Demand the whole element from the other
  * peer, given only the hash code.
  */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL 565
+
+/**
+ * Demand the whole element from the other
+ * peer, given only the hash code.
+ */
 #define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND 566
 
 /**
