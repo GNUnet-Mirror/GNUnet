@@ -34,9 +34,17 @@
 /**
  * How many messages do we queue up at most for any client? This can
  * cause messages to be dropped if clients do not process them fast
- * enough!
+ * enough!  Note that this is a soft limit; we try
+ * to keep a few larger messages above the limit.
  */
-#define MAX_QUEUE 128
+#define SOFT_MAX_QUEUE 128
+
+/**
+ * How many messages do we queue up at most for any client? This can
+ * cause messages to be dropped if clients do not process them fast
+ * enough!  Note that this is the hard limit.
+ */
+#define HARD_MAX_QUEUE 256
 
 
 /**
@@ -819,6 +827,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     struct GNUNET_MQ_Envelope *env;
     struct NotifyTrafficMessage *ntm;
     uint16_t mtype;
+    unsigned int qlen;
     int tm;
 
     tm = type_match (ntohs (msg->type),
@@ -834,7 +843,28 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND)) &&
 	 (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND)) )
       continue;
-    if (MAX_QUEUE < GNUNET_MQ_get_length (c->mq))
+
+    /* Drop messages if:
+       1) We are above the hard limit, or
+       2) We are above the soft limit, and a coin toss limited
+          to the message size (giving larger messages a
+          proportionally higher chance of being queued) falls
+          below the threshold. The threshold is based on where
+          we are between the soft and the hard limit, scaled
+          to match the range of message sizes we usually encounter
+          (i.e. up to 32k); so a 64k message has a 50% chance of
+          being kept if we are just barely below the hard max,
+          and a 99% chance of being kept if we are at the soft max.
+       The reason is to make it more likely to drop control traffic
+       (ACK, queries) which may be cummulative or highly redundant,
+       and cheap to drop than data traffic.  */
+    qlen = GNUNET_MQ_get_length (c->mq);
+    if ( (qlen >= HARD_MAX_QUEUE) ||
+         ( (qlen > SOFT_MAX_QUEUE) &&
+           ( (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                        ntohs (msg->size)) ) <
+             (qlen - SOFT_MAX_QUEUE) * 0x8000 /
+             (HARD_MAX_QUEUE - SOFT_MAX_QUEUE) ) ) )
     {
       char buf[1024];
 
