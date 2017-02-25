@@ -1840,6 +1840,8 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     {
       if (0 != ResetEvent (osfh))
         ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
+      else
+        return NULL;
     }
     else
       return NULL;
