@@ -670,7 +670,7 @@ start_intersection (struct BobServiceSession *s)
                           &set_sid,
                           NULL,
                           GNUNET_SET_RESULT_REMOVED,
-                          (struct GNUNET_SET_Option[]) { 0 },
+                          (struct GNUNET_SET_Option[]) {{ 0 }},
                           &cb_intersection_element_removed,
                           s);
   if (GNUNET_OK !=

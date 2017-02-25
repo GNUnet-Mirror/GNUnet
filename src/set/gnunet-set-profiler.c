@@ -220,7 +220,7 @@ set_listen_cb (void *cls,
                struct GNUNET_SET_Request *request)
 {
   /* max. 2 options plus terminator */
-  struct GNUNET_SET_Option opts[3] = {0};
+  struct GNUNET_SET_Option opts[3] = {{0}};
   unsigned int n_opts = 0;
 
   if (NULL == request)
@@ -316,7 +316,7 @@ run (void *cls,
   unsigned int i;
   struct GNUNET_HashCode hash;
   /* max. 2 options plus terminator */
-  struct GNUNET_SET_Option opts[3] = {0};
+  struct GNUNET_SET_Option opts[3] = {{0}};
   unsigned int n_opts = 0;
 
   config = cfg;

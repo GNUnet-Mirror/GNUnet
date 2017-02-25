@@ -448,7 +448,7 @@ op_get_element (struct Operation *op,
 {
   int ret;
   struct IBF_Key ibf_key;
-  struct GetElementContext ctx = { 0 };
+  struct GetElementContext ctx = {{{ 0 }} , 0};
 
   ctx.hash = *element_hash;
 

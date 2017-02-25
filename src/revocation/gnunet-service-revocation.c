@@ -509,7 +509,7 @@ transmit_task_cb (void *cls)
                                        &revocation_set_union_app_id,
                                        NULL,
                                        GNUNET_SET_RESULT_ADDED,
-                                       (struct GNUNET_SET_Option[]) { 0 },
+                                       (struct GNUNET_SET_Option[]) {{ 0 }},
                                        &add_revocation,
                                        peer_entry);
   if (GNUNET_OK !=
@@ -756,7 +756,7 @@ handle_revocation_union_request (void *cls,
   }
   peer_entry->so = GNUNET_SET_accept (request,
                                       GNUNET_SET_RESULT_ADDED,
-                                      (struct GNUNET_SET_Option[]) { 0 },
+                                      (struct GNUNET_SET_Option[]) {{ 0 }},
                                       &add_revocation,
                                       peer_entry);
   if (GNUNET_OK !=
