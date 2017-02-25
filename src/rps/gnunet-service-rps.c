@@ -2241,8 +2241,8 @@ client_connect_cb (void *cls,
  */
 static void
 client_disconnect_cb (void *cls,
-		                  struct GNUNET_SERVICE_Client *client,
-		                  void *internal_cls)
+                      struct GNUNET_SERVICE_Client *client,
+                      void *internal_cls)
 {
   struct ClientContext *cli_ctx = internal_cls;
 
