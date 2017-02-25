@@ -473,7 +473,7 @@ process_lookup_result (void *cls,
   if ((char *) ptr - (char *) msg != size || size_recalc != size || size_recalc != ((char *) ptr - (char *) msg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error in WSAQUERYSETW size calc: expected %lu, got %lu (recalc %lu)\n",
+                "Error in WSAQUERYSETW size calc: expected %u, got %lu (recalc %u)\n",
                 size,
                 (unsigned long) ((char *) ptr - (char *) msg),
                 size_recalc);
@@ -528,7 +528,7 @@ get_ip_from_hostname (struct GNUNET_SERVICE_Client *client,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Unknown GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+                "Unknown GUID: %08lX-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
                 sc.Data1,
                 sc.Data2,
                 sc.Data3,
@@ -674,7 +674,7 @@ handle_get (void *cls,
   for (int i = 0; i < 8; i++)
     sc.Data4[i] = msg->sc_data4[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+              "Got GUID: %08lX-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
               sc.Data1,
               sc.Data2,
               sc.Data3,

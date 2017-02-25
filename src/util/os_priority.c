@@ -1229,7 +1229,7 @@ start_process (int pipe_control,
     if (sizeof (count) != wrote)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to write %u count bytes to the child: %u\n",
+		  "Failed to write %u count bytes to the child: %lu\n",
 		  sizeof (count), GetLastError ());
       break;
     }
@@ -1240,7 +1240,7 @@ start_process (int pipe_control,
       if (SOCKET_ERROR == WSADuplicateSocketA (lsocks[i], gnunet_proc->pid, &pi))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to duplicate an socket[%llu]: %u\n", i,
+		    "Failed to duplicate an socket[%u]: %lu\n", i,
 		    GetLastError ());
         break;
       }
@@ -1257,7 +1257,7 @@ start_process (int pipe_control,
       if (sizeof (size) != wrote)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to write %u size[%llu] bytes to the child: %u\n",
+		    "Failed to write %u size[%u] bytes to the child: %lu\n",
 		    sizeof (size), i, GetLastError ());
         break;
       }
@@ -1266,7 +1266,7 @@ start_process (int pipe_control,
       if (sizeof (pi) != wrote)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to write %u socket[%llu] bytes to the child: %u\n",
+		    "Failed to write %u socket[%u] bytes to the child: %lu\n",
 		    sizeof (pi), i, GetLastError ());
         break;
       }
