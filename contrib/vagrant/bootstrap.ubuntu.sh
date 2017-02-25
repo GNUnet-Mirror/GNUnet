@@ -1,4 +1,4 @@
-#/bin/bash
+#/bin/sh
 # Source https://gnunet.org/dependencies and README
 
 apt-get update
