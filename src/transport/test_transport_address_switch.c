@@ -301,7 +301,7 @@ notify_receive (void *cls,
                 "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
                 receiver->no,
                 ps,
-                ntohl (hdr->num),
+                (uint32_t) ntohl (hdr->num),
                 ntohs (hdr->header.size),
                 GNUNET_i2s (sender));
     GNUNET_free (ps);
