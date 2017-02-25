@@ -283,6 +283,9 @@ run (void *cls,
       return;
     }
   }
+
+  remote_len = 0;
+
   if (NULL != remote_addr)
   {
     remote_len = GNUNET_STRINGS_parse_socket_addr (remote_addr,
