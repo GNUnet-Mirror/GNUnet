@@ -1091,7 +1091,10 @@ start_process (int pipe_control,
                                        &lsocks_read, sizeof (HANDLE));
   }
   else
+  {
     lsocks_pipe = NULL;
+    lsocks_write_fd = NULL;
+  }
 
   env_off = 0;
   if (GNUNET_YES == pipe_control)
