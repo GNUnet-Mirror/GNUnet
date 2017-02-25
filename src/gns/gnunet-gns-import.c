@@ -224,45 +224,52 @@ zone_iterator (void *cls,
     else if (0 == strcmp (rname, "pin"))
       check_pkey (rd_len, rd, pin_zone_pkey, &found_pin_rec);
   }
-  if (NULL == rname && 0 == rd_len && NULL == rd)
-  {
-    enum GNUNET_OS_ProcessStatusType st;
-    unsigned long code;
-    if (!found_private_rec)
-    {
-      if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-          "gnunet-namestore",
-          "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "private", "-p", "-t", "PKEY", "-V", private_zone_pkey, NULL))
-      {
-        ret = 8;
-        return;
-      }
-    }
-    if (!found_short_rec)
-    {
-      if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-          "gnunet-namestore",
-          "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "short", "-p", "-t", "PKEY", "-V", short_zone_pkey, NULL))
-      {
-        ret = 9;
-        return;
-      }
-    }
-    if (!found_pin_rec)
-    {
-      if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-          "gnunet-namestore",
-          "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "pin", "-p", "-t", "PKEY", "-V", pin_zone_pkey, NULL))
-      {
-        ret = 10;
-        return;
-      }
-    }
-    list_it = NULL;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
+}
+
+static void
+zone_iteration_error (void *cls)
+{
+  enum GNUNET_OS_ProcessStatusType st;
+  unsigned long code;
+  if (!found_private_rec)
+  {
+    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
+        "gnunet-namestore",
+        "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "private", "-p", "-t", "PKEY", "-V", private_zone_pkey, NULL))
+    {
+      ret = 8;
+      return;
+    }
+  }
+  if (!found_short_rec)
+  {
+    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
+        "gnunet-namestore",
+        "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "short", "-p", "-t", "PKEY", "-V", short_zone_pkey, NULL))
+    {
+      ret = 9;
+      return;
+    }
+  }
+  if (!found_pin_rec)
+  {
+    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
+        "gnunet-namestore",
+        "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "pin", "-p", "-t", "PKEY", "-V", pin_zone_pkey, NULL))
+    {
+      ret = 10;
+      return;
+    }
+  }
+  list_it = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+static void
+zone_iteration_finished (void *cls)
+{
 }
 
 
@@ -317,7 +324,7 @@ get_ego (void *cls,
       return;
     }
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-        &master_pk, &zone_iterator, NULL);
+        &master_pk, &zone_iteration_error, NULL, &zone_iterator, NULL, &zone_iteration_finished, NULL);
     if (NULL == list_it)
     {
       ret = 12;
