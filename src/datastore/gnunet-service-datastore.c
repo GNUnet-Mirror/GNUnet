@@ -949,7 +949,7 @@ handle_put (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing PUT request for `%s' of type %u\n",
               GNUNET_h2s (&dm->key),
-              ntohl (dm->type));
+              (uint32_t) ntohl (dm->type));
   rid = ntohl (dm->rid);
   size = ntohl (dm->size);
   if (rid > 0)
@@ -1012,7 +1012,7 @@ handle_get (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing GET request of type %u\n",
-              ntohl (msg->type));
+              (uint32_t) ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET requests received"),
                             1,
@@ -1043,7 +1043,7 @@ handle_get_key (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing GET request for `%s' of type %u\n",
               GNUNET_h2s (&msg->key),
-              ntohl (msg->type));
+              (uint32_t) ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET KEY requests received"),
                             1,
@@ -1238,7 +1238,7 @@ handle_remove (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing REMOVE request for `%s' of type %u\n",
               GNUNET_h2s (&dm->key),
-              ntohl (dm->type));
+              (uint32_t) ntohl (dm->type));
   plugin->api->get_key (plugin->api->cls,
                         0,
                         &dm->key,

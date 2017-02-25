@@ -306,8 +306,8 @@ GSC_bind (struct CadetClient *c,
        GCCH_2s (ch),
        GCP_2s (dest),
        GNUNET_h2s (port),
-       ntohl (options),
-       ntohl (ccn.channel_of_client));
+       (uint32_t) ntohl (options),
+       (uint32_t) ntohl (ccn.channel_of_client));
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (cm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
@@ -622,7 +622,7 @@ handle_channel_destroy (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s tried to destroy unknown channel %X\n",
          GSC_2s(c),
-         ntohl (msg->ccn.channel_of_client));
+         (uint32_t) ntohl (msg->ccn.channel_of_client));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,

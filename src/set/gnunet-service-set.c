@@ -781,7 +781,7 @@ handle_incoming_msg (struct Operation *op,
   listener = op->listener;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received P2P operation request (op %u, port %s) for active listener\n",
-              ntohl (msg->operation),
+              (uint32_t) ntohl (msg->operation),
               GNUNET_h2s (&listener->app_id));
   incoming_suggest (op,
                     listener);
@@ -1075,7 +1075,7 @@ handle_client_create_set (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client created new set (operation %u)\n",
-              ntohl (msg->operation));
+              (uint32_t) ntohl (msg->operation));
   if (NULL != set_get (client))
   {
     /* There can only be one set per client */
@@ -1945,7 +1945,7 @@ handle_client_cancel (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client requested cancel for op %u\n",
-              ntohl (msg->request_id));
+              (uint32_t) ntohl (msg->request_id));
   found = GNUNET_NO;
   for (op = set->ops_head; NULL != op; op = op->next)
   {
@@ -2019,7 +2019,7 @@ handle_client_accept (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client accepting request %u\n",
-              ntohl (msg->accept_reject_id));
+              (uint32_t) ntohl (msg->accept_reject_id));
   GNUNET_assert (GNUNET_YES == op->is_incoming);
   op->is_incoming = GNUNET_NO;
   GNUNET_CONTAINER_DLL_remove (incoming_head,
