@@ -154,27 +154,6 @@ do_shutdown (void *cls)
 }
 
 
-/**
- * Transmit the given message to the client.
- *
- * @param client target of the message
- * @param msg message to transmit, will be freed!
- */
-static void
-transmit (struct GNUNET_SERVICE_Client *client,
-	  struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_MQ_Handle *mq = GNUNET_SERVICE_client_get_mq (client);
-  struct GNUNET_MQ_Envelope *env;
-
-  /* NOTE: small hack here, should have constructed and
-     passed an 'env' in the first place... */
-  env = GNUNET_MQ_msg_copy (msg);
-  GNUNET_MQ_send (mq,
-                  env);
-}
-
-
 #define MarshallPtr(ptr, base, type) \
   if (ptr) \
     ptr = (type *) ((char *) ptr - (char *) base)
@@ -222,7 +201,9 @@ process_lookup_result (void *cls,
   struct request *rq = cls;
   int i, j, csanum;
   struct GNUNET_W32RESOLVER_GetMessage *msg;
+  struct GNUNET_MQ_Envelope *msg_env;
   struct GNUNET_MessageHeader *msgend;
+  struct GNUNET_MQ_Envelope *msgend_env;
   WSAQUERYSETW *qs;
   size_t size;
   size_t size_recalc;
@@ -239,11 +220,9 @@ process_lookup_result (void *cls,
 
   if (0 == rd_count)
   {
-    msg = GNUNET_new (struct GNUNET_MessageHeader);
-    msg->header.size = htons (sizeof (struct GNUNET_MessageHeader));
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
-    transmit (rq->client,
-              &msg->header);
+    msgend_env = GNUNET_MQ_msg (msgend, GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                    msgend_env);
     GNUNET_CONTAINER_DLL_remove (rq_head,
                                  rq_tail,
                                  rq);
@@ -304,9 +283,9 @@ process_lookup_result (void *cls,
     size += blobsize;
   }
   size_recalc = sizeof (struct GNUNET_W32RESOLVER_GetMessage) + sizeof (WSAQUERYSETW);
-  msg = GNUNET_malloc (size);
-  msg->header.size = htons (size - sizeof (struct GNUNET_MessageHeader));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
+  msg_env = GNUNET_MQ_msg_extra (msg,
+                                 size - sizeof (struct GNUNET_MessageHeader),
+                                 GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
   msg->af = htonl (rq->af);
   msg->sc_data1 = htonl (rq->sc.Data1);
   msg->sc_data2 = htons (rq->sc.Data2);
@@ -465,10 +444,7 @@ process_lookup_result (void *cls,
     }
     he->h_addr_list[j] = NULL;
   }
-  msgend = GNUNET_new (struct GNUNET_MessageHeader);
-
-  msgend->type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
-  msgend->size = htons (sizeof (struct GNUNET_MessageHeader));
+  msgend_env = GNUNET_MQ_msg (msgend, GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
 
   if ((char *) ptr - (char *) msg != size || size_recalc != size || size_recalc != ((char *) ptr - (char *) msg))
   {
@@ -479,10 +455,10 @@ process_lookup_result (void *cls,
                 size_recalc);
   }
   MarshallWSAQUERYSETW (qs, &rq->sc);
-  transmit (rq->client,
-            &msg->header);
-  transmit (rq->client,
-            msgend);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                  msg_env);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                  msgend_env);
   GNUNET_CONTAINER_DLL_remove (rq_head,
                                rq_tail,
                                rq);
