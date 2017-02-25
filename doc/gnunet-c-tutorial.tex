@@ -714,7 +714,7 @@ The complete MQ API can be found in {\tt gnunet\_mq\_lib.h}.
 The {\tt hanlders} array in the example above is incomplete.
 Here is where you will define which messages you expect to
 receive from the service, and which functions handle them.
-The {\tt error_cb} is a function that is to be called whenever
+The {\tt error\_cb} is a function that is to be called whenever
 there are errors communicating with the service.
 
 \subsubsection{Sending messages}
@@ -780,8 +780,8 @@ or variable size.  Variable size messages are managed using two
 callbacks, one to check that the message is well-formed, the other
 to actually process the message.  Fixed size messages are fully
 checked by the MQ-logic, and thus only need to provide the handler
-to process the message.  Note that the prefixes {\tt check_}
-and {\tt handle_} are mandatory.
+to process the message.  Note that the prefixes {\tt check\_}
+and {\tt handle\_} are mandatory.
 
 \lstset{language=c}
 \begin{lstlisting}
