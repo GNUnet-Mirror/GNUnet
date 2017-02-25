@@ -155,53 +155,6 @@ do_shutdown (void *cls)
 
 
 /**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-transmit_callback (void *cls, size_t size, void *buf)
-{
-  struct TransmitCallbackContext *tcc = cls;
-  size_t msize;
-
-  tcc->th = NULL;
-  GNUNET_CONTAINER_DLL_remove (tcc_head, tcc_tail, tcc);
-  msize = ntohs (tcc->msg->size);
-  if (size == 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Transmission to client failed!\n"));
-    GNUNET_free (tcc->msg);
-    GNUNET_free (tcc);
-    return 0;
-  }
-  GNUNET_assert (size >= msize);
-  GNUNET_memcpy (buf, tcc->msg, msize);
-  GNUNET_free (tcc->msg);
-  GNUNET_free (tcc);
-  for (tcc = tcc_head; tcc; tcc = tcc->next)
-  {
-    if (NULL == tcc->th)
-    {
-      tcc->th = GNUNET_SERVER_notify_transmit_ready (tcc->client,
-          ntohs (tcc->msg->size),
-          GNUNET_TIME_UNIT_FOREVER_REL,
-          &transmit_callback, tcc);
-      break;
-    }
-  }
-  return msize;
-}
-
-
-/**
  * Transmit the given message to the client.
  *
  * @param client target of the message
