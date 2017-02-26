@@ -93,6 +93,7 @@ block_plugin_test_create_group (void *cls,
  * request evaluation, simply pass "NULL" for the reply_block.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param group group to check against
  * @param eo control flags
@@ -105,6 +106,7 @@ block_plugin_test_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_test_evaluate (void *cls,
+                            struct GNUNET_BLOCK_Context *ctx,
                             enum GNUNET_BLOCK_Type type,
                             struct GNUNET_BLOCK_Group *group,
                             enum GNUNET_BLOCK_EvaluationOptions eo,

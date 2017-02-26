@@ -92,6 +92,7 @@ block_plugin_dht_create_group (void *cls,
  * request evaluation, simply pass "NULL" for the @a reply_block.
  *
  * @param cls closure
+ * @param ctx context
  * @param type block type
  * @param group block group to check against
  * @param eo control flags
@@ -104,6 +105,7 @@ block_plugin_dht_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_dht_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
                            struct GNUNET_BLOCK_Group *group,
                            enum GNUNET_BLOCK_EvaluationOptions eo,

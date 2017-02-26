@@ -5,6 +5,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 pkgcfg_DATA = \
   set.conf
 
@@ -111,6 +113,20 @@ test_set_union_copy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetset.la
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_set_test.la
+
+libgnunet_plugin_block_set_test_la_SOURCES = \
+  plugin_block_set_test.c
+libgnunet_plugin_block_set_test_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_block_set_test_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 EXTRA_DIST = \
   test_set.conf

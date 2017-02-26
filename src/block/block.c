@@ -351,6 +351,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
   if (NULL == plugin)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   return plugin->evaluate (plugin->cls,
+                           ctx,
                            type,
                            group,
                            eo,

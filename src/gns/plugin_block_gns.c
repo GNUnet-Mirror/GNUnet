@@ -98,6 +98,7 @@ block_plugin_gns_create_group (void *cls,
  * be done with the "get_key" function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg block group to use for evaluation
  * @param eo control flags
@@ -110,6 +111,7 @@ block_plugin_gns_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_gns_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
                            struct GNUNET_BLOCK_Group *bg,
                            enum GNUNET_BLOCK_EvaluationOptions eo,

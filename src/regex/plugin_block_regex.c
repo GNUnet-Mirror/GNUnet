@@ -269,6 +269,7 @@ evaluate_block_regex_accept (void *cls,
  * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg group to evaluate against
  * @param eo control flags
@@ -281,6 +282,7 @@ evaluate_block_regex_accept (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_regex_evaluate (void *cls,
+                             struct GNUNET_BLOCK_Context *ctx,
                              enum GNUNET_BLOCK_Type type,
                              struct GNUNET_BLOCK_Group *bg,
                              enum GNUNET_BLOCK_EvaluationOptions eo,

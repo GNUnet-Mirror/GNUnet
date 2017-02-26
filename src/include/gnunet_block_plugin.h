@@ -171,6 +171,7 @@ typedef struct GNUNET_BLOCK_Group *
  * be done with the "get_key" function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param group which block group to use for evaluation
  * @param eo evaluation options to control evaluation
@@ -183,6 +184,7 @@ typedef struct GNUNET_BLOCK_Group *
  */
 typedef enum GNUNET_BLOCK_EvaluationResult
 (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
+                                    struct GNUNET_BLOCK_Context *ctx,
 				    enum GNUNET_BLOCK_Type type,
                                     struct GNUNET_BLOCK_Group *group,
                                     enum GNUNET_BLOCK_EvaluationOptions eo,

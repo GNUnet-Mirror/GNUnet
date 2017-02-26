@@ -35,6 +35,7 @@
  * request evaluation, simply pass "NULL" for the reply_block.
  *
  * @param cls closure
+ * @param ctx context
  * @param type block type
  * @param group block group to use
  * @param eo control flags
@@ -47,6 +48,7 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_consensus_evaluate (void *cls,
+                                 struct GNUNET_BLOCK_Context *ctx,
                                  enum GNUNET_BLOCK_Type type,
                                  struct GNUNET_BLOCK_Group *group,
                                  enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -57,10 +59,23 @@ block_plugin_consensus_evaluate (void *cls,
                                  size_t reply_block_size)
 {
   if (reply_block_size < sizeof (struct ConsensusElement))
-  {
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-  }
-  return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+  const struct ConsensusElement *ce = reply_block;
+
+  if ( (GNUNET_YES == ce->is_contested_marker) ||
+       (0 == ce->payload_type ) )
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+  return GNUNET_BLOCK_evaluate (ctx,
+                                type,
+                                group,
+                                eo,
+                                query,
+                                xquery,
+                                xquery_size,
+                                &ce[1],
+                                reply_block_size - sizeof (struct ConsensusElement));
 }
 
 
