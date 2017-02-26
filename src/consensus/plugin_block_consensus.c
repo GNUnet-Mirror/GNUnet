@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "consensus_protocol.h"
 #include "gnunet_block_plugin.h"
 #include "gnunet_block_group_lib.h"
 
@@ -55,6 +56,10 @@ block_plugin_consensus_evaluate (void *cls,
                                  const void *reply_block,
                                  size_t reply_block_size)
 {
+  if (reply_block_size < sizeof (struct ConsensusElement))
+  {
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 

@@ -29,6 +29,7 @@
 #define GNUNET_CONSENSUS_PROTOCOL_H
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
 
