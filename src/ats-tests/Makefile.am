@@ -140,7 +140,7 @@ perf_ats_proportional_transport_bandwidth_LDADD = \
 perf_ats_proportional_transport_bandwidth_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 perf_ats_proportional_core_latency_SOURCES = \
   perf_ats.c
 perf_ats_proportional_core_latency_LDADD = \

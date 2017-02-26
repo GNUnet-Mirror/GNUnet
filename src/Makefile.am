@@ -6,18 +6,13 @@
 if HAVE_TESTING
  TESTING = testing
  TESTBED = testbed-logger testbed
- CONSENSUS = consensus
- SECRETSHARING = secretsharing
  ATS_TESTS = ats-tests
 endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   dv \
-  rps \
-  $(CONSENSUS) \
-  $(SECRETSHARING)
-
+  rps
 endif
 
 if HAVE_JSON
@@ -111,6 +106,7 @@ SUBDIRS = \
   peerstore \
   cadet \
   set \
+  consensus \
   scalarproduct \
   revocation \
   vpn \
@@ -120,6 +116,7 @@ SUBDIRS = \
   fs \
   exit \
   pt \
+  secretsharing \
   integration-tests \
   multicast \
   psycutil \
