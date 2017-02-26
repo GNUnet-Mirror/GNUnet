@@ -1145,7 +1145,7 @@ schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc)
                                              &build_result_set,
                                              &mbc);
       search_request_map_offset += todo;
-      GNUNET_assert (0 == mbc.put_cnt);
+      GNUNET_assert (0 == mbc.put_cnt); /* #4608 reports this fails? */
       GNUNET_assert (total_seen_results >= search_request_map_offset);
       if (total_seen_results != search_request_map_offset)
       {
