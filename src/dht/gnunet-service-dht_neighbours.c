@@ -2225,6 +2225,81 @@ check_dht_p2p_result (void *cls,
 
 
 /**
+ * Process a reply, after the @a get_path has been updated.
+ *
+ * @param expiration_time when does the reply expire
+ * @param key key matching the query
+ * @param get_path_length number of entries in @a get_path
+ * @param get_path path the reply has taken
+ * @param put_path_length number of entries in @a put_path
+ * @param put_path path the PUT has taken
+ * @param type type of the block
+ * @param data_size number of bytes in @a data
+ * @param data payload of the reply
+ */
+static void
+process_reply_with_path (struct GNUNET_TIME_Absolute expiration_time,
+                         const struct GNUNET_HashCode *key,
+                         unsigned int get_path_length,
+                         const struct GNUNET_PeerIdentity *get_path,
+                         unsigned int put_path_length,
+                         const struct GNUNET_PeerIdentity *put_path,
+                         enum GNUNET_BLOCK_Type type,
+                         size_t data_size,
+                         const void *data)
+{
+  /* forward to local clients */
+  GDS_CLIENTS_handle_reply (expiration_time,
+                            key,
+                            get_path_length,
+                            get_path,
+                            put_path_length,
+                            put_path,
+                            type,
+                            data_size,
+                            data);
+  GDS_CLIENTS_process_get_resp (type,
+                                get_path,
+                                get_path_length,
+                                put_path,
+                                put_path_length,
+                                expiration_time,
+                                key,
+                                data,
+                                data_size);
+  if (GNUNET_YES == cache_results)
+  {
+    struct GNUNET_PeerIdentity xput_path[get_path_length + 1 + put_path_length];
+
+    GNUNET_memcpy (xput_path,
+                   put_path,
+                   put_path_length * sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_memcpy (&xput_path[put_path_length],
+                   get_path,
+                   get_path_length * sizeof (struct GNUNET_PeerIdentity));
+
+    GDS_DATACACHE_handle_put (expiration_time,
+                              key,
+                              get_path_length + put_path_length,
+                              xput_path,
+                              type,
+                              data_size,
+                              data);
+  }
+  /* forward to other peers */
+  GDS_ROUTING_process (type,
+                       expiration_time,
+                       key,
+                       put_path_length,
+                       put_path,
+                       get_path_length,
+                       get_path,
+                       data,
+                       data_size);
+}
+
+
+/**
  * Core handler for p2p result messages.
  *
  * @param cls closure
@@ -2318,77 +2393,44 @@ handle_dht_p2p_result (void *cls,
                    h);
   }
 
-  /* append 'peer' to 'get_path' */
+
+  /* First, check if 'peer' is already on the path, and if
+     so, truncate it instead of expanding. */
+  for (unsigned int i=0;i<=get_path_length;i++)
+    if (0 == memcmp (&get_path[i],
+                     peer->id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      process_reply_with_path (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
+                               &prm->key,
+                               i,
+                               get_path,
+                               put_path_length,
+                               put_path,
+                               type,
+                               data_size,
+                               data);
+      return;
+    }
+
+  /* Need to append 'peer' to 'get_path' (normal case) */
   {
     struct GNUNET_PeerIdentity xget_path[get_path_length + 1];
 
-#if SANITY_CHECKS
-    for (unsigned int i=0;i<=get_path_length;i++)
-    {
-      for (unsigned int j=0;j<i;j++)
-      {
-	GNUNET_break (0 != memcmp (&get_path[i],
-				   &get_path[j],
-				   sizeof (struct GNUNET_PeerIdentity)));
-      }
-      GNUNET_break (0 != memcmp (&get_path[i],
-				 peer->id,
-				 sizeof (struct GNUNET_PeerIdentity)));
-    }
-#endif
     GNUNET_memcpy (xget_path,
 		   get_path,
 		   get_path_length * sizeof (struct GNUNET_PeerIdentity));
     xget_path[get_path_length] = *peer->id;
-    get_path_length++;
 
-    /* forward to local clients */
-    GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
-                              &prm->key,
-                              get_path_length,
-                              xget_path,
-                              put_path_length,
-                              put_path,
-                              type,
-                              data_size,
-                              data);
-    GDS_CLIENTS_process_get_resp (type,
-                                  xget_path,
-                                  get_path_length,
-                                  put_path, put_path_length,
-                                  GNUNET_TIME_absolute_ntoh (prm->expiration_time),
-                                  &prm->key,
-                                  data,
-                                  data_size);
-    if (GNUNET_YES == cache_results)
-    {
-      struct GNUNET_PeerIdentity xput_path[get_path_length + 1 + put_path_length];
-
-      GNUNET_memcpy (xput_path,
-		     put_path,
-		     put_path_length * sizeof (struct GNUNET_PeerIdentity));
-      GNUNET_memcpy (&xput_path[put_path_length],
-		     xget_path,
-		     get_path_length * sizeof (struct GNUNET_PeerIdentity));
-
-      GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
-				&prm->key,
-				get_path_length + put_path_length,
-                                xput_path,
-				type,
-                                data_size,
-                                data);
-    }
-    /* forward to other peers */
-    GDS_ROUTING_process (type,
-                         GNUNET_TIME_absolute_ntoh (prm->expiration_time),
-                         &prm->key,
-                         put_path_length,
-                         put_path,
-                         get_path_length,
-                         xget_path,
-                         data,
-                         data_size);
+    process_reply_with_path (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
+                             &prm->key,
+                             get_path_length + 1,
+                             xget_path,
+                             put_path_length,
+                             put_path,
+                             type,
+                             data_size,
+                             data);
   }
 }
 
