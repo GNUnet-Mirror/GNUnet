@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_set_service.h"
@@ -33,8 +34,6 @@
 #include "gnunet_consensus_service.h"
 #include "consensus_protocol.h"
 #include "consensus.h"
-
-#define ELEMENT_TYPE_CONTESTED_MARKER (GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX + 1)
 
 
 enum ReferendumVote
@@ -64,11 +63,6 @@ enum EarlyStoppingPhase
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
-
-struct ContestedPayload
-{
-};
 
 /**
  * Tuple of integers that together
@@ -669,16 +663,22 @@ send_to_client_iter (void *cls,
   if (NULL != element)
   {
     struct GNUNET_CONSENSUS_ElementMessage *m;
+    const struct ConsensusElement *ce;
+
+    GNUNET_assert (GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT == element->element_type);
+    ce = element->data;
+
+    GNUNET_assert (GNUNET_NO == ce->is_contested_marker);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%d: sending element %s to client\n",
                 session->local_peer_idx,
                 debug_str_element (element));
 
-    ev = GNUNET_MQ_msg_extra (m, element->size,
+    ev = GNUNET_MQ_msg_extra (m, element->size - sizeof (struct ConsensusElement),
                               GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
-    m->element_type = htons (element->element_type);
-    GNUNET_memcpy (&m[1], element->data, element->size);
+    m->element_type = ce->payload_type;
+    GNUNET_memcpy (&m[1], &ce[1], element->size - sizeof (struct ConsensusElement));
     GNUNET_MQ_send (session->client_mq, ev);
   }
   else
@@ -878,6 +878,13 @@ set_result_cb (void *cls,
   struct ReferendumEntry *output_rfn = NULL;
   unsigned int other_idx;
   struct SetOpCls *setop;
+  const struct ConsensusElement *consensus_element = NULL;
+
+  if (NULL != element)
+  {
+    GNUNET_assert (GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT == element->element_type);
+    consensus_element = element->data;
+  }
 
   setop = &task->cls.setop;
 
@@ -932,7 +939,8 @@ set_result_cb (void *cls,
 
   if ( (GNUNET_SET_STATUS_ADD_LOCAL == status) || (GNUNET_SET_STATUS_ADD_REMOTE == status) )
   {
-    if ( (GNUNET_YES == setop->transceive_contested) && (ELEMENT_TYPE_CONTESTED_MARKER == element->element_type) )
+    if ( (GNUNET_YES == setop->transceive_contested) &&
+         (GNUNET_YES == consensus_element->is_contested_marker) )
     {
       GNUNET_assert (NULL != output_rfn);
       rfn_contest (output_rfn, task_other_peer (task));
@@ -943,6 +951,7 @@ set_result_cb (void *cls,
   switch (status)
   {
     case GNUNET_SET_STATUS_ADD_LOCAL:
+      GNUNET_assert (NULL != consensus_element);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding element in Task {%s}\n",
                   debug_str_task_key (&task->key));
@@ -989,9 +998,10 @@ set_result_cb (void *cls,
       // XXX: add result to structures in task
       break;
     case GNUNET_SET_STATUS_ADD_REMOTE:
+      GNUNET_assert (NULL != consensus_element);
       if (GNUNET_YES == setop->do_not_remove)
         break;
-      if (ELEMENT_TYPE_CONTESTED_MARKER == element->element_type)
+      if (GNUNET_YES == consensus_element->is_contested_marker)
         break;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Removing element in Task {%s}\n",
@@ -1318,10 +1328,11 @@ commit_set (struct ConsensusSession *session,
   if ( (GNUNET_YES == setop->transceive_contested) && (GNUNET_YES == set->is_contested) )
   {
     struct GNUNET_SET_Element element;
-    struct ContestedPayload payload;
-    element.data = &payload;
-    element.size = sizeof (struct ContestedPayload);
-    element.element_type = ELEMENT_TYPE_CONTESTED_MARKER;
+    struct ConsensusElement ce = { 0 };
+    ce.is_contested_marker = GNUNET_YES;
+    element.data = &ce;
+    element.size = sizeof (struct ConsensusElement);
+    element.element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT;
     GNUNET_SET_add_element (set->h, &element, NULL, NULL);
   }
   if (GNUNET_NO == session->peers_blacklisted[task_other_peer (task)])
@@ -3041,9 +3052,9 @@ handle_client_insert (void *cls,
                       const struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   struct ConsensusSession *session = cls;
-  struct GNUNET_SET_Element *element;
   ssize_t element_size;
   struct GNUNET_SET_Handle *initial_set;
+  struct ConsensusElement *ce;
 
   if (GNUNET_YES == session->conclude_started)
   {
@@ -3051,12 +3062,18 @@ handle_client_insert (void *cls,
     GNUNET_SERVICE_client_drop (session->client);
     return;
   }
+
   element_size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
-  element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
-  element->element_type = msg->element_type;
-  element->size = element_size;
-  GNUNET_memcpy (&element[1], &msg[1], element_size);
-  element->data = &element[1];
+  ce = GNUNET_malloc (sizeof (struct ConsensusElement) + element_size);
+  GNUNET_memcpy (&ce[1], &msg[1], element_size);
+  ce->payload_type = msg->element_type;
+
+  struct GNUNET_SET_Element element = {
+    .element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT,
+    .size = sizeof (struct ConsensusElement) + element_size,
+    .data = ce,
+  };
+
   {
     struct SetKey key = { SET_KIND_CURRENT, 0, 0 };
     struct SetEntry *entry;
@@ -3066,26 +3083,22 @@ handle_client_insert (void *cls,
     GNUNET_assert (NULL != entry);
     initial_set = entry->h;
   }
+
   session->num_client_insert_pending++;
   GNUNET_SET_add_element (initial_set,
-                          element,
+                          &element,
                           &client_insert_done,
                           session);
 
 #ifdef GNUNET_EXTRA_LOGGING
   {
-    struct GNUNET_HashCode hash;
-
-    GNUNET_SET_element_hash (element,
-                             &hash);
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%u: element %s added\n",
                 session->local_peer_idx,
-                GNUNET_h2s (&hash));
+                debug_str_element (&element));
   }
 #endif
-  GNUNET_free (element);
+  GNUNET_free (ce);
   GNUNET_SERVICE_client_continue (session->client);
 }
 

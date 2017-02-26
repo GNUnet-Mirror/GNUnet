@@ -5,6 +5,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 pkgcfg_DATA = \
   consensus.conf
 
@@ -66,6 +68,22 @@ libgnunetconsensus_la_LIBADD = \
   $(LTLIBINTL)
 libgnunetconsensus_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
+
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_consensus.la
+
+libgnunet_plugin_block_consensus_la_SOURCES = \
+  plugin_block_consensus.c
+libgnunet_plugin_block_consensus_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_block_consensus_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 
 if HAVE_TESTING
 check_PROGRAMS = \

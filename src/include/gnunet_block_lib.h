@@ -119,7 +119,19 @@ enum GNUNET_BLOCK_Type
   /**
    * Block to store a cadet regex accepting state
    */
-  GNUNET_BLOCK_TYPE_REGEX_ACCEPT = 23
+  GNUNET_BLOCK_TYPE_REGEX_ACCEPT = 23,
+
+  /**
+   * Block for testing set/consensus.  If first byte of the block
+   * is non-zero, the block is considered invalid.
+   */
+  GNUNET_BLOCK_TYPE_SET_TEST = 24,
+
+  /**
+   * Block type for consensus elements.
+   * Contains either special marker elements or a nested block.
+   */
+  GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT = 25,
 };
 
 

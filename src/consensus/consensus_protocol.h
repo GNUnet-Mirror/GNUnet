@@ -87,6 +87,27 @@ struct GNUNET_CONSENSUS_RoundContextMessage
   uint16_t is_contested;
 };
 
+
+/**
+ * Consensus element, either marker or payload.
+ */
+struct ConsensusElement
+{
+  /**
+   * Payload element_type, only valid
+   * if this is not a marker element.
+   */
+  uint16_t payload_type;
+
+  /**
+   * Is this a marker element?
+   */
+  uint8_t is_contested_marker;
+
+  /* rest: element data */
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
