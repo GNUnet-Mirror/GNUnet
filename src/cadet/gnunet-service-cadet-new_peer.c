@@ -157,9 +157,9 @@ struct CadetPeer
   struct GCD_search_handle *search_h;
 
   /**
-   * Task to stop the DHT search for paths to this peer
+   * Task to clean up @e path_heap asynchronously.
    */
-  struct GNUNET_SCHEDULER_Task *search_delayedXXX;
+  struct GNUNET_SCHEDULER_Task *heap_cleanup_task;
 
   /**
    * Task to destroy this entry.
@@ -360,6 +360,11 @@ destroy_peer (void *cls)
   {
     GNUNET_CONTAINER_heap_destroy (cp->path_heap);
     cp->path_heap = NULL;
+  }
+  if (NULL != cp->heap_cleanup_task)
+  {
+    GNUNET_SCHEDULER_cancel (cp->heap_cleanup_task);
+    cp->heap_cleanup_task = NULL;
   }
   GNUNET_free_non_null (cp->hello);
   /* Peer should not be freed if paths exist; if there are no paths,
@@ -892,6 +897,41 @@ GCP_path_entry_remove (struct CadetPeer *cp,
 
 
 /**
+ * Prune down the number of paths to this peer, we seem to
+ * have way too many.
+ *
+ * @param cls the `struct CadetPeer` to maintain the path heap for
+ */
+static void
+path_heap_cleanup (void *cls)
+{
+  struct CadetPeer *cp = cls;
+  struct CadetPeerPath *root;
+
+  cp->heap_cleanup_task = NULL;
+  while (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
+         2 * DESIRED_CONNECTIONS_PER_TUNNEL)
+  {
+    /* Now we have way too many, drop least desirable UNLESS it is in use!
+       (Note that this intentionally keeps highly desireable, but currently
+       unused paths around in the hope that we might be able to switch, even
+       if the number of paths exceeds the threshold.) */
+    root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
+    if (NULL !=
+        GCPP_get_connection (root,
+                             cp,
+                             GCPP_get_length (root) - 1))
+      break; /* can't fix */
+    /* Got plenty of paths to this destination, and this is a low-quality
+       one that we don't care about. Allow it to die. */
+    GNUNET_assert (root ==
+                   GNUNET_CONTAINER_heap_remove_root (cp->path_heap));
+    GCPP_release (root);
+  }
+}
+
+
+/**
  * Try adding a @a path to this @a peer.  If the peer already
  * has plenty of paths, return NULL.
  *
@@ -958,27 +998,11 @@ GCP_attach_path (struct CadetPeer *cp,
                                      desirability);
 
   /* Consider maybe dropping other paths because of the new one */
-  if (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
-      2 * DESIRED_CONNECTIONS_PER_TUNNEL)
-  {
-    /* Now we have way too many, drop least desirable UNLESS it is in use!
-       (Note that this intentionally keeps highly desireable, but currently
-       unused paths around in the hope that we might be able to switch, even
-       if the number of paths exceeds the threshold.) */
-    root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
-    if ( (path != root) &&
-         (NULL ==
-          GCPP_get_connection (root,
-                               cp,
-                               GCPP_get_length (root) - 1)) )
-    {
-      /* Got plenty of paths to this destination, and this is a low-quality
-         one that we don't care about. Allow it to die. */
-      GNUNET_assert (root ==
-                     GNUNET_CONTAINER_heap_remove_root (cp->path_heap));
-      GCPP_release (root);
-    }
-  }
+  if ( (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
+        2 * DESIRED_CONNECTIONS_PER_TUNNEL) &&
+       (NULL != cp->heap_cleanup_task) )
+    cp->heap_cleanup_task = GNUNET_SCHEDULER_add_now (&path_heap_cleanup,
+                                                      cp);
   return hn;
 }
 
