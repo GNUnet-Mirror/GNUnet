@@ -32,8 +32,8 @@
  *
  * @{
  */
-#ifndef GNUNET_MQ_H
-#define GNUNET_MQ_H
+#ifndef GNUNET_MQ_LIB_H
+#define GNUNET_MQ_LIB_H
 
 
 /**

@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2016 GNUnet e.V.
+  Copyright (C) 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -14,14 +14,14 @@
   GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
 */
 /**
- * @file include/gnunet_pq_lib.h
- * @brief helper functions for Postgres DB interactions
+ * @file include/gnunet_sq_lib.h
+ * @brief helper functions for Sqlite3 DB interactions
  * @author Christian Grothoff
  */
-#ifndef GNUNET_PQ_LIB_H
-#define GNUNET_PQ_LIB_H
+#ifndef GNUNET_SQ_LIB_H
+#define GNUNET_SQ_LIB_H
 
-#include <libpq-fe.h>
+#include <sqlite/sqlite3.h>
 #include "gnunet_util_lib.h"
 
 
@@ -31,36 +31,29 @@
  * @param cls closure
  * @param data pointer to input argument
  * @param data_len number of bytes in @a data (if applicable)
- * @param[out] param_values SQL data to set
- * @param[out] param_lengths SQL length data to set
- * @param[out] param_formats SQL format data to set
- * @param param_length number of entries available in the @a param_values, @a param_lengths and @a param_formats arrays
- * @param[out] scratch buffer for dynamic allocations (to be done via #GNUNET_malloc()
- * @param scratch_length number of entries left in @a scratch
- * @return -1 on error, number of offsets used in @a scratch otherwise
+ * @param stmt sqlite statement to bind parameters for
+ * @param off offset of the argument to bind in @a stmt, numbered from 1,
+ *            so immediately suitable for passing to `sqlite3_bind`-functions.
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 typedef int
-(*GNUNET_PQ_QueryConverter)(void *cls,
+(*GNUNET_SQ_QueryConverter)(void *cls,
 			    const void *data,
 			    size_t data_len,
-			    void *param_values[],
-			    int param_lengths[],
-			    int param_formats[],
-			    unsigned int param_length,
-			    void *scratch[],
-			    unsigned int scratch_length);
+			    sqlite3_stmt *stmt,
+                            unsigned int off);
 
 
 /**
  * @brief Description of a DB query parameter.
  */
-struct GNUNET_PQ_QueryParam
+struct GNUNET_SQ_QueryParam
 {
 
   /**
    * Function for how to handle this type of entry.
    */
-  GNUNET_PQ_QueryConverter conv;
+  GNUNET_SQ_QueryConverter conv;
 
   /**
    * Closure for @e conv.
@@ -87,7 +80,7 @@ struct GNUNET_PQ_QueryParam
 /**
  * End of query parameter specification.
  */
-#define GNUNET_PQ_query_param_end { NULL, NULL, NULL, 0, 0 }
+#define GNUNET_SQ_query_param_end { NULL, NULL, NULL, 0, 0 }
 
 
 /**
@@ -97,8 +90,8 @@ struct GNUNET_PQ_QueryParam
  * @param ptr pointer to the query parameter to pass
  * @oaran ptr_size number of bytes in @a ptr
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_fixed_size (const void *ptr,
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_fixed_size (const void *ptr,
 				  size_t ptr_size);
 
 
@@ -108,8 +101,8 @@ GNUNET_PQ_query_param_fixed_size (const void *ptr,
  *
  * @param ptr pointer to the string query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_string (const char *ptr);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_string (const char *ptr);
 
 
 /**
@@ -118,7 +111,7 @@ GNUNET_PQ_query_param_string (const char *ptr);
  *
  * @param x pointer to the query parameter to pass.
  */
-#define GNUNET_PQ_query_param_auto_from_type(x) GNUNET_PQ_query_param_fixed_size ((x), sizeof (*(x)))
+#define GNUNET_SQ_query_param_auto_from_type(x) GNUNET_SQ_query_param_fixed_size ((x), sizeof (*(x)))
 
 
 /**
@@ -127,8 +120,8 @@ GNUNET_PQ_query_param_string (const char *ptr);
  *
  * @param x the query parameter to pass.
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x);
 
 
 /**
@@ -137,8 +130,8 @@ GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
  *
  * @param x the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
 
 
 /**
@@ -147,8 +140,8 @@ GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
  *
  * @param x pointer to the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
 
 
 /**
@@ -157,8 +150,8 @@ GNUNET_PQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
  *
  * @param x pointer to the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x);
 
 
 /**
@@ -166,8 +159,8 @@ GNUNET_PQ_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x
  *
  * @param x pointer to the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint16 (const uint16_t *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_uint16 (const uint16_t *x);
 
 
 /**
@@ -175,8 +168,8 @@ GNUNET_PQ_query_param_uint16 (const uint16_t *x);
  *
  * @param x pointer to the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint32 (const uint32_t *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_uint32 (const uint32_t *x);
 
 
 /**
@@ -184,8 +177,8 @@ GNUNET_PQ_query_param_uint32 (const uint32_t *x);
  *
  * @param x pointer to the query parameter to pass
  */
-struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint64 (const uint64_t *x);
+struct GNUNET_SQ_QueryParam
+GNUNET_SQ_query_param_uint64 (const uint64_t *x);
 
 
 /**
@@ -194,7 +187,6 @@ GNUNET_PQ_query_param_uint64 (const uint64_t *x);
  * @param cls closure
  * @param result where to extract data from
  * @param int row to extract data from
- * @param fname name (or prefix) of the fields to extract from
  * @param[in,out] dst_size where to store size of result, may be NULL
  * @param[out] dst where to store the result
  * @return
@@ -202,42 +194,41 @@ GNUNET_PQ_query_param_uint64 (const uint64_t *x);
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 typedef int
-(*GNUNET_PQ_ResultConverter)(void *cls,
-			     PGresult *result,
+(*GNUNET_SQ_ResultConverter)(void *cls,
+			     sqlite3_stmt *result,
 			     int row,
-			     const char *fname,
 			     size_t *dst_size,
 			     void *dst);
 
 
 /**
  * Function called to clean up memory allocated
- * by a #GNUNET_PQ_ResultConverter.
+ * by a #GNUNET_SQ_ResultConverter.
  *
  * @param cls closure
  * @param rd result data to clean up
  */
 typedef void
-(*GNUNET_PQ_ResultCleanup)(void *cls,
+(*GNUNET_SQ_ResultCleanup)(void *cls,
 			   void *rd);
 
 
 /**
  * @brief Description of a DB result cell.
  */
-struct GNUNET_PQ_ResultSpec
+struct GNUNET_SQ_ResultSpec
 {
 
   /**
    * What is the format of the result?
    */
-  GNUNET_PQ_ResultConverter conv;
+  GNUNET_SQ_ResultConverter conv;
 
   /**
    * Function to clean up result data, NULL if cleanup is
    * not necessary.
    */
-  GNUNET_PQ_ResultCleanup cleaner;
+  GNUNET_SQ_ResultCleanup cleaner;
 
   /**
    * Closure for @e conv and @e cleaner.
@@ -257,11 +248,6 @@ struct GNUNET_PQ_ResultSpec
   size_t dst_size;
 
   /**
-   * Field name of the desired result.
-   */
-  const char *fname;
-
-  /**
    * Where to store actual size of the result.
    */
   size_t *result_size;
@@ -274,170 +260,144 @@ struct GNUNET_PQ_ResultSpec
  *
  * @return array last entry for the result specification to use
  */
-#define GNUNET_PQ_result_spec_end { NULL, NULL, NULL, NULL, 0, NULL, NULL }
+#define GNUNET_SQ_result_spec_end { NULL, NULL, NULL, NULL, 0, NULL }
 
 
 /**
  * Variable-size result expected.
  *
- * @param name name of the field in the table
  * @param[out] dst where to store the result, allocated
  * @param[out] sptr where to store the size of @a dst
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size (const char *name,
-				     void **dst,
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_variable_size (void **dst,
 				     size_t *sptr);
 
 
 /**
  * Fixed-size result expected.
  *
- * @param name name of the field in the table
  * @param[out] dst where to store the result
  * @param dst_size number of bytes in @a dst
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_fixed_size (const char *name,
-				  void *dst,
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_fixed_size (void *dst,
 				  size_t dst_size);
-
 
 
 /**
  * We expect a fixed-size result, with size determined by the type of `* dst`
  *
- * @param name name of the field in the table
  * @param dst point to where to store the result, type fits expected result size
  * @return array entry for the result specification to use
  */
-#define GNUNET_PQ_result_spec_auto_from_type(name, dst) GNUNET_PQ_result_spec_fixed_size (name, (dst), sizeof (*(dst)))
+#define GNUNET_SQ_result_spec_auto_from_type(dst) GNUNET_SQ_result_spec_fixed_size (name, (dst), sizeof (*(dst)))
 
 
 /**
  * Variable-size result expected.
  *
- * @param name name of the field in the table
  * @param[out] dst where to store the result, allocated
  * @param[out] sptr where to store the size of @a dst
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size (const char *name,
-				     void **dst,
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_variable_size (void **dst,
 				     size_t *sptr);
 
 
 /**
  * 0-terminated string expected.
  *
- * @param name name of the field in the table
  * @param[out] dst where to store the result, allocated
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_string (const char *name,
-                              char **dst);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_string (char **dst);
 
 
 /**
  * RSA public key expected.
  *
- * @param name name of the field in the table
  * @param[out] rsa where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_public_key (const char *name,
-				      struct GNUNET_CRYPTO_RsaPublicKey **rsa);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa);
 
 
 /**
  * RSA signature expected.
  *
- * @param name name of the field in the table
  * @param[out] sig where to store the result;
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_signature (const char *name,
-				     struct GNUNET_CRYPTO_RsaSignature **sig);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /**
  * Absolute time expected.
  *
- * @param name name of the field in the table
  * @param[out] at where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time (const char *name,
-				     struct GNUNET_TIME_Absolute *at);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at);
 
 
 /**
  * Absolute time expected.
  *
- * @param name name of the field in the table
  * @param[out] at where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time_nbo (const char *name,
-					 struct GNUNET_TIME_AbsoluteNBO *at);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at);
 
 
 /**
  * uint16_t expected.
  *
- * @param name name of the field in the table
  * @param[out] u16 where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint16 (const char *name,
-			      uint16_t *u16);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_uint16 (uint16_t *u16);
 
 
 /**
  * uint32_t expected.
  *
- * @param name name of the field in the table
  * @param[out] u32 where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint32 (const char *name,
-			      uint32_t *u32);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_uint32 (uint32_t *u32);
 
 
 /**
  * uint64_t expected.
  *
- * @param name name of the field in the table
  * @param[out] u64 where to store the result
  * @return array entry for the result specification to use
  */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint64 (const char *name,
-			      uint64_t *u64);
+struct GNUNET_SQ_ResultSpec
+GNUNET_SQ_result_spec_uint64 (uint64_t *u64);
 
 
 /**
  * Execute a prepared statement.
  *
  * @param db_conn database connection
- * @param name name of the prepared statement
  * @param params parameters to the statement
- * @return postgres result
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
-PGresult *
-GNUNET_PQ_exec_prepared (PGconn *db_conn,
-			 const char *name,
-			 const struct GNUNET_PQ_QueryParam *params);
+int
+GNUNET_SQ_bind (sqlite3_stmt *stmt,
+                const struct GNUNET_SQ_QueryParam *params);
 
 
 /**
@@ -451,21 +411,21 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
-GNUNET_PQ_extract_result (PGresult *result,
-			  struct GNUNET_PQ_ResultSpec *rs,
+GNUNET_SQ_extract_result (sqlite3_stmt *result,
+			  struct GNUNET_SQ_ResultSpec *rs,
 			  int row);
 
 
 /**
  * Free all memory that was allocated in @a rs during
- * #GNUNET_PQ_extract_result().
+ * #GNUNET_SQ_extract_result().
  *
  * @param rs reult specification to clean up
  */
 void
-GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
+GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs);
 
 
-#endif  /* GNUNET_PQ_LIB_H_ */
+#endif  /* GNUNET_SQ_LIB_H_ */
 
-/* end of include/gnunet_pq_lib.h */
+/* end of include/gnunet_sq_lib.h */
