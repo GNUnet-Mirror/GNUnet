@@ -899,6 +899,7 @@ handle_p2p_strata_estimator (void *cls,
     else
     {
       struct GNUNET_MQ_Envelope *ev;
+      op->state->phase = PHASE_EXPECT_IBF;
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL);
       GNUNET_MQ_send (op->mq, ev);
     }
