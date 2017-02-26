@@ -1,3 +1,5 @@
 gnunet-service-ats
 test_ats_api_proportional
 test_ats_reservation_api_proportional
+test_ats_api_mlp
+test_ats_api_ril
