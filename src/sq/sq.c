@@ -63,15 +63,13 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
  *
  * @param result result to process
  * @param[in,out] rs result specification to extract for
- * @param row row from the result to extract
  * @return
  *   #GNUNET_OK if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
 GNUNET_SQ_extract_result (sqlite3_stmt *result,
-			  struct GNUNET_SQ_ResultSpec *rs,
-			  int row)
+			  struct GNUNET_SQ_ResultSpec *rs)
 {
   unsigned int j = 0;
 
@@ -80,7 +78,6 @@ GNUNET_SQ_extract_result (sqlite3_stmt *result,
     if (GNUNET_OK !=
         rs[i].conv (rs[i].cls,
                     result,
-                    row,
                     j,
                     rs[i].result_size,
                     rs[i].dst))

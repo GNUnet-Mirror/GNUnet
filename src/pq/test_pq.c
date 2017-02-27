@@ -218,8 +218,8 @@ run_queries (PGconn *conn)
 
 
 int
-main(int argc,
-     const char *const argv[])
+main (int argc,
+      const char *const argv[])
 {
   PGconn *conn;
   PGresult *result;
@@ -236,7 +236,7 @@ main(int argc,
 	     PQerrorMessage (conn));
     GNUNET_break (0);
     PQfinish (conn);
-    return 0; /* We ignore this type of error... */
+    return 77; /* signal test was skipped */
   }
 
   result = PQexec (conn,

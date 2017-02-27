@@ -186,7 +186,6 @@ GNUNET_SQ_query_param_uint64 (const uint64_t *x);
  *
  * @param cls closure
  * @param result where to extract data from
- * @param row row to extract data from
  * @param column column to extract data from
  * @param[in,out] dst_size where to store size of result, may be NULL
  * @param[out] dst where to store the result
@@ -197,7 +196,6 @@ GNUNET_SQ_query_param_uint64 (const uint64_t *x);
 typedef int
 (*GNUNET_SQ_ResultConverter)(void *cls,
 			     sqlite3_stmt *result,
-			     int row,
                              unsigned int column,
 			     size_t *dst_size,
 			     void *dst);
@@ -304,7 +302,7 @@ GNUNET_SQ_result_spec_fixed_size (void *dst,
  * @param dst point to where to store the result, type fits expected result size
  * @return array entry for the result specification to use
  */
-#define GNUNET_SQ_result_spec_auto_from_type(dst) GNUNET_SQ_result_spec_fixed_size (name, (dst), sizeof (*(dst)))
+#define GNUNET_SQ_result_spec_auto_from_type(dst) GNUNET_SQ_result_spec_fixed_size ((dst), sizeof (*(dst)))
 
 
 /**
@@ -416,15 +414,13 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
  *
  * @param result result to process
  * @param[in,out] rs result specification to extract for
- * @param row row from the result to extract
  * @return
  *   #GNUNET_OK if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
 GNUNET_SQ_extract_result (sqlite3_stmt *result,
-			  struct GNUNET_SQ_ResultSpec *rs,
-			  int row);
+			  struct GNUNET_SQ_ResultSpec *rs);
 
 
 /**
