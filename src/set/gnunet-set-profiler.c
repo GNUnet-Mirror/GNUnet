@@ -162,6 +162,7 @@ check_all_done (void)
 static void
 set_result_cb (void *cls,
                const struct GNUNET_SET_Element *element,
+               uint64_t current_size,
                enum GNUNET_SET_Status status)
 {
   struct SetInfo *info = cls;

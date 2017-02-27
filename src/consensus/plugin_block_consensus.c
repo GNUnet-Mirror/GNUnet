@@ -63,7 +63,7 @@ block_plugin_consensus_evaluate (void *cls,
 
   const struct ConsensusElement *ce = reply_block;
 
-  if ( (GNUNET_YES == ce->is_contested_marker) ||
+  if ( (0 != ce->marker) ||
        (0 == ce->payload_type ) )
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
 

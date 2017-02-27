@@ -432,6 +432,7 @@ do_final:
   {
     oh->result_cb (oh->result_cls,
                    NULL,
+                   GNUNET_ntohll (msg->current_size),
                    result_status);
   }
   else
@@ -453,6 +454,7 @@ do_element:
   if (NULL != oh->result_cb)
     oh->result_cb (oh->result_cls,
                    &e,
+                   GNUNET_ntohll (msg->current_size),
                    result_status);
 }
 
@@ -538,6 +540,7 @@ handle_client_set_error (void *cls,
     if (NULL != set->ops_head->result_cb)
       set->ops_head->result_cb (set->ops_head->result_cls,
                                 NULL,
+                                0,
                                 GNUNET_SET_STATUS_FAILURE);
     set_operation_destroy (set->ops_head);
   }

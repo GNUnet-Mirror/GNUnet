@@ -77,6 +77,7 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
 static void
 result_cb_set1 (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t current_size,
                 enum GNUNET_SET_Status status)
 {
   switch (status)

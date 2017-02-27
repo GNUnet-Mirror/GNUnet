@@ -251,6 +251,11 @@ struct GNUNET_SET_ResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Current set size.
+   */
+  uint64_t current_size;
+
+  /**
    * id the result belongs to
    */
   uint32_t request_id GNUNET_PACKED;

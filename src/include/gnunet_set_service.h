@@ -275,11 +275,13 @@ typedef void
  *
  * @param cls closure
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status see `enum GNUNET_SET_Status`
  */
 typedef void
 (*GNUNET_SET_ResultIterator) (void *cls,
                               const struct GNUNET_SET_Element *element,
+                              uint64_t current_size,
                               enum GNUNET_SET_Status status);
 
 /**

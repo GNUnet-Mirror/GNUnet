@@ -879,11 +879,13 @@ handle_alices_cryptodata_message (void *cls,
  *
  * @param cls closure with the `struct BobServiceSession`
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status what has happened with the set intersection?
  */
 static void
 cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
+                                 uint64_t current_size,
                                  enum GNUNET_SET_Status status)
 {
   struct BobServiceSession *s = cls;

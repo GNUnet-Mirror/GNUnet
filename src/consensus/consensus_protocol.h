@@ -89,6 +89,12 @@ struct GNUNET_CONSENSUS_RoundContextMessage
 };
 
 
+enum {
+  CONSENSUS_MARKER_CONTESTED,
+  CONSENSUS_MARKER_SIZE,
+};
+
+
 /**
  * Consensus element, either marker or payload.
  */
@@ -103,7 +109,7 @@ struct ConsensusElement
   /**
    * Is this a marker element?
    */
-  uint8_t is_contested_marker;
+  uint8_t marker;
 
   /* rest: element data */
 };

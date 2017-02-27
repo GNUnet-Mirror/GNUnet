@@ -1285,6 +1285,7 @@ send_client_element (struct Operation *op,
   rm->result_status = htons (status);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
+  rm->current_size = GNUNET_htonll (GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element));
   GNUNET_memcpy (&rm[1], element->data, element->size);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
 }
@@ -1307,6 +1308,7 @@ send_done_and_destroy (void *cls)
   rm->request_id = htonl (op->spec->client_request_id);
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
   rm->element_type = htons (0);
+  rm->current_size = GNUNET_htonll (GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element));
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
   /* Will also call the union-specific cancel function. */
   _GSS_operation_destroy (op, GNUNET_YES);
@@ -1969,8 +1971,8 @@ union_evaluate (struct Operation *op,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "sent op request without context message\n");
 
-  op->state->initial_size = GNUNET_CONTAINER_multihashmap_size (op->spec->set->content->elements);
   initialize_key_to_element (op);
+  op->state->initial_size = GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element);
 }
 
 
@@ -2000,8 +2002,8 @@ union_accept (struct Operation *op)
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   op->state->demanded_hashes = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   op->state->salt_receive = op->state->salt_send = 42;
-  op->state->initial_size = GNUNET_CONTAINER_multihashmap_size (op->spec->set->content->elements);
   initialize_key_to_element (op);
+  op->state->initial_size = GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element);
   /* kick off the operation */
   send_strata_estimator (op);
 }

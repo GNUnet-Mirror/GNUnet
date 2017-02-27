@@ -141,6 +141,7 @@ GNUNET_NETWORK_STRUCT_END
 enum PhaseKind
 {
   PHASE_KIND_ALL_TO_ALL,
+  PHASE_KIND_ALL_TO_ALL_2,
   PHASE_KIND_GRADECAST_LEADER,
   PHASE_KIND_GRADECAST_ECHO,
   PHASE_KIND_GRADECAST_ECHO_GRADE,
@@ -528,6 +529,7 @@ phasename (uint16_t phase)
   switch (phase)
   {
     case PHASE_KIND_ALL_TO_ALL: return "ALL_TO_ALL";
+    case PHASE_KIND_ALL_TO_ALL_2: return "ALL_TO_ALL_2";
     case PHASE_KIND_FINISH: return "FINISH";
     case PHASE_KIND_GRADECAST_LEADER: return "GRADECAST_LEADER";
     case PHASE_KIND_GRADECAST_ECHO: return "GRADECAST_ECHO";
@@ -668,7 +670,7 @@ send_to_client_iter (void *cls,
     GNUNET_assert (GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT == element->element_type);
     ce = element->data;
 
-    GNUNET_assert (GNUNET_NO == ce->is_contested_marker);
+    GNUNET_assert (0 == ce->marker);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%d: sending element %s to client\n",
@@ -864,11 +866,13 @@ task_other_peer (struct TaskEntry *task)
  *
  * @param cls closure
  * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status see enum GNUNET_SET_Status
  */
 static void
 set_result_cb (void *cls,
                const struct GNUNET_SET_Element *element,
+               uint64_t current_size,
                enum GNUNET_SET_Status status)
 {
   struct TaskEntry *task = cls;
@@ -940,7 +944,7 @@ set_result_cb (void *cls,
   if ( (GNUNET_SET_STATUS_ADD_LOCAL == status) || (GNUNET_SET_STATUS_ADD_REMOTE == status) )
   {
     if ( (GNUNET_YES == setop->transceive_contested) &&
-         (GNUNET_YES == consensus_element->is_contested_marker) )
+         (CONSENSUS_MARKER_CONTESTED == consensus_element->marker) )
     {
       GNUNET_assert (NULL != output_rfn);
       rfn_contest (output_rfn, task_other_peer (task));
@@ -1001,7 +1005,7 @@ set_result_cb (void *cls,
       GNUNET_assert (NULL != consensus_element);
       if (GNUNET_YES == setop->do_not_remove)
         break;
-      if (GNUNET_YES == consensus_element->is_contested_marker)
+      if (CONSENSUS_MARKER_CONTESTED == consensus_element->marker)
         break;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Removing element in Task {%s}\n",
@@ -1325,11 +1329,19 @@ commit_set (struct ConsensusSession *session,
     }
   }
 #else
+
+  if (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind)
+  {
+    struct GNUNET_SET_Element element;
+    struct ConsensusElement ce = { 0 };
+  }
+
+
   if ( (GNUNET_YES == setop->transceive_contested) && (GNUNET_YES == set->is_contested) )
   {
     struct GNUNET_SET_Element element;
     struct ConsensusElement ce = { 0 };
-    ce.is_contested_marker = GNUNET_YES;
+    ce.marker = CONSENSUS_MARKER_CONTESTED;
     element.data = &ce;
     element.size = sizeof (struct ConsensusElement);
     element.element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT;
@@ -2847,10 +2859,41 @@ construct_task_graph (struct ConsensusSession *session)
     put_task (session->taskmap, &task);
   }
 
+  round += 1;
+  prev_step = step;
+  step = create_step (session, round, GNUNET_NO);;
+#ifdef GNUNET_EXTRA_LOGGING
+  step->debug_name = GNUNET_strdup ("all to all 2");
+#endif
+  step_depend_on (step, prev_step);
+
+
+  for (i = 0; i < n; i++)
+  {
+    uint16_t p1;
+    uint16_t p2;
+
+    p1 = me;
+    p2 = i;
+    arrange_peers (&p1, &p2, n);
+    task = ((struct TaskEntry) {
+      .key = (struct TaskKey) { PHASE_KIND_ALL_TO_ALL_2, p1, p2, -1, -1 },
+      .step = step,
+      .start = task_start_reconcile,
+      .cancel = task_cancel_reconcile,
+    });
+    task.cls.setop.input_set = (struct SetKey) { SET_KIND_CURRENT, 0 };
+    task.cls.setop.output_set = task.cls.setop.input_set;
+    task.cls.setop.do_not_remove = GNUNET_YES;
+    put_task (session->taskmap, &task);
+  }
+
+  round += 1;
+
   prev_step = step;
   step = NULL;
 
-  round += 1;
+
 
   /* Byzantine union */
 

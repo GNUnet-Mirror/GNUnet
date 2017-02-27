@@ -55,6 +55,7 @@ static struct GNUNET_SCHEDULER_Task *tt;
 static void
 result_cb_set1 (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t size,
                 enum GNUNET_SET_Status status)
 {
   switch (status)
