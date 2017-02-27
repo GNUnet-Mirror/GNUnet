@@ -220,6 +220,10 @@ struct GNUNET_SET_Element
 enum GNUNET_SET_OptionType
 {
   /**
+   * List terminator.
+   */
+  GNUNET_SET_OPTION_END=0,
+  /**
    * Fail set operations when the other peer shows weird behavior
    * that might by a Byzantine fault.
    *

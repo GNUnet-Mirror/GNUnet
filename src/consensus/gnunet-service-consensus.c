@@ -915,6 +915,11 @@ set_result_cb (void *cls,
 
   if (NULL != element)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "P%u: got element of type %u, status %u\n",
+                session->local_peer_idx,
+                (unsigned) element->element_type,
+                (unsigned) status);
     GNUNET_assert (GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT == element->element_type);
     consensus_element = element->data;
   }
@@ -1371,21 +1376,21 @@ commit_set (struct ConsensusSession *session,
         }
         for (i = 0; i < evil.num; i++)
         {
-          struct GNUNET_HashCode hash;
           struct GNUNET_SET_Element element;
-          element.data = &hash;
-          element.size = sizeof (struct GNUNET_HashCode);
-          element.element_type = 0;
+          struct ConsensusStuffedElement se = { 0 };
+          element.data = &se;
+          element.size = sizeof (struct ConsensusStuffedElement);
+          element.element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT;
 
           if (EVILNESS_SUB_REPLACEMENT == evil.subtype)
           {
             /* Always generate a new element. */
-            GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &hash);
+            GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &se.rand);
           }
           else if (EVILNESS_SUB_NO_REPLACEMENT == evil.subtype)
           {
             /* Always cram the same elements, derived from counter. */
-            GNUNET_CRYPTO_hash (&i, sizeof (i), &hash);
+            GNUNET_CRYPTO_hash (&i, sizeof (i), &se.rand);
           }
           else
           {
@@ -2103,8 +2108,8 @@ task_start_reconcile (struct TaskEntry *task)
                 session->local_peer_idx, task->key.peer2, debug_str_set_key (&setop->input_set));
 
     struct GNUNET_SET_Option opts[] = {
-      {GNUNET_SET_OPTION_BYZANTINE, { .num = session->lower_bound } },
-      {0},
+      { GNUNET_SET_OPTION_BYZANTINE, { .num = session->lower_bound } },
+      { GNUNET_SET_OPTION_END },
     };
 
     // XXX: maybe this should be done while
@@ -2539,8 +2544,8 @@ set_listen_cb (void *cls,
                     (task->key.peer2 == session->local_peer_idx)));
 
   struct GNUNET_SET_Option opts[] = {
-    {GNUNET_SET_OPTION_BYZANTINE, { .num = session->lower_bound } },
-    {0},
+    { GNUNET_SET_OPTION_BYZANTINE, { .num = session->lower_bound } },
+    { GNUNET_SET_OPTION_END },
   };
 
   task->cls.setop.op = GNUNET_SET_accept (request,

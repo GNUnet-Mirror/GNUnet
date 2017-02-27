@@ -123,6 +123,12 @@ struct ConsensusSizeElement
   uint8_t sender_index;
 };
 
+struct ConsensusStuffedElement
+{
+  struct ConsensusElement ce GNUNET_PACKED;
+  struct GNUNET_HashCode rand GNUNET_PACKED;
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 

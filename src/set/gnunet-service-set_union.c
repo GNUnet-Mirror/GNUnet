@@ -785,8 +785,9 @@ send_element_iterator (void *cls,
   struct GNUNET_SET_Element *el = &ee->element;
   struct GNUNET_MQ_Envelope *ev;
 
+
   ev = GNUNET_MQ_msg_extra (emsg, el->size, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT);
-  emsg->element_type = htonl (el->element_type);
+  emsg->element_type = htons (el->element_type);
   GNUNET_memcpy (&emsg[1], el->data, el->size);
   GNUNET_MQ_send (op->mq, ev);
   return GNUNET_YES;
