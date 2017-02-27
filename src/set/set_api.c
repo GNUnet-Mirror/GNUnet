@@ -657,6 +657,8 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "adding element of type %u\n", (unsigned) element->element_type);
+
   if (GNUNET_YES == set->invalid)
   {
     if (NULL != cont)

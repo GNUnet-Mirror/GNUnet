@@ -90,6 +90,7 @@ result_cb_set1 (void *cls,
 static void
 result_cb_set2 (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t current_size,
                 enum GNUNET_SET_Status status)
 {
   static int count;

@@ -781,7 +781,8 @@ send_element_iterator (void *cls,
 {
   struct Operation *op = cls;
   struct GNUNET_SET_ElementMessage *emsg;
-  struct GNUNET_SET_Element *el = value;
+  struct ElementEntry *ee = value;
+  struct GNUNET_SET_Element *el = &ee->element;
   struct GNUNET_MQ_Envelope *ev;
 
   ev = GNUNET_MQ_msg_extra (emsg, el->size, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT);
@@ -1553,7 +1554,9 @@ handle_p2p_full_element (void *cls,
     }
   }
 
-  if (op->state->received_total > 8 && op->state->received_fresh < op->state->received_total / 3)
+  if ( (GNUNET_YES == op->spec->byzantine) && 
+       (op->state->received_total > 8) && 
+       (op->state->received_fresh < op->state->received_total / 3) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
     GNUNET_break_op (0);
