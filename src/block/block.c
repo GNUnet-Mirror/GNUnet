@@ -136,7 +136,7 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
   ctx = GNUNET_new (struct GNUNET_BLOCK_Context);
   ctx->cfg = cfg;
   GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_",
-                          NULL,
+                          (void *) cfg,
                           &add_plugin,
                           ctx);
   return ctx;

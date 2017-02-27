@@ -1,6 +1,8 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+plugindir = $(libdir)/gnunet
+
 if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
@@ -19,6 +21,20 @@ pkgcfg_DATA = \
 
 bin_PROGRAMS = \
  gnunet-revocation
+
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_revocation.la
+
+libgnunet_plugin_block_revocation_la_SOURCES = \
+  plugin_block_revocation.c
+libgnunet_plugin_block_revocation_la_LIBADD = \
+  libgnunetrevocation.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
+  $(top_builddir)/src/util/libgnunetutil.la  \
+  $(LTLIBINTL)
+libgnunet_plugin_block_revocation_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 
 gnunet_revocation_SOURCES = \
@@ -86,4 +102,3 @@ test_local_revocation.py: test_local_revocation.py.in Makefile
 
 EXTRA_DIST = test_revocation.conf \
 	test_local_revocation.py.in
-
