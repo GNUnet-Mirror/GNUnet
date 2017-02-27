@@ -487,6 +487,11 @@ struct ConsensusSession
    * State of our early stopping scheme.
    */
   int early_stopping;
+
+  /**
+   * Our set size from the first round.
+   */
+  uint64_t first_size;
 };
 
 /**
@@ -1060,6 +1065,10 @@ set_result_cb (void *cls,
       if (NULL != output_rfn)
       {
         rfn_commit (output_rfn, task_other_peer (task));
+      }
+      if (PHASE_KIND_ALL_TO_ALL == task->key->phase)
+      {
+        session->first_size = current_size;
       }
       finish_task (task);
       break;
