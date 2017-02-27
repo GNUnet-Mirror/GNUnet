@@ -1,0 +1,68 @@
+/*
+  This file is part of GNUnet
+  Copyright (C) 2017 GNUnet e.V.
+
+  GNUnet is free software; you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation; either version 3, or (at your option) any later version.
+
+  GNUnet is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
+*/
+/**
+ * @file sq/sq.c
+ * @brief helper functions for Sqlite3 DB interactions
+ * @author Christian Grothoff
+ */
+#include "platform.h"
+#include "gnunet_sq_lib.h"
+
+
+/**
+ * Execute a prepared statement.
+ *
+ * @param db_conn database connection
+ * @param params parameters to the statement
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+int
+GNUNET_SQ_bind (sqlite3_stmt *stmt,
+                const struct GNUNET_SQ_QueryParam *params)
+{
+}
+
+
+/**
+ * Extract results from a query result according to the given specification.
+ *
+ * @param result result to process
+ * @param[in,out] rs result specification to extract for
+ * @param row row from the result to extract
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field)
+ */
+int
+GNUNET_SQ_extract_result (sqlite3_stmt *result,
+			  struct GNUNET_SQ_ResultSpec *rs,
+			  int row)
+{
+}
+
+
+/**
+ * Free all memory that was allocated in @a rs during
+ * #GNUNET_SQ_extract_result().
+ *
+ * @param rs reult specification to clean up
+ */
+void
+GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs)
+{
+}
+
+/* end of sq.c */

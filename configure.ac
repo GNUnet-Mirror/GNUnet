@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2016 GNUnet e.V.
+# (C) 2001--2017 GNUnet e.V.
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -1631,6 +1631,7 @@ src/set/Makefile
 src/set/set.conf
 src/social/Makefile
 src/social/social.conf
+src/sq/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/template/Makefile
