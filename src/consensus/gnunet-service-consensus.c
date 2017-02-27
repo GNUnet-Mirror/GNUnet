@@ -1066,7 +1066,7 @@ set_result_cb (void *cls,
       {
         rfn_commit (output_rfn, task_other_peer (task));
       }
-      if (PHASE_KIND_ALL_TO_ALL == task->key->phase)
+      if (PHASE_KIND_ALL_TO_ALL == task->key.kind)
       {
         session->first_size = current_size;
       }
@@ -1339,11 +1339,11 @@ commit_set (struct ConsensusSession *session,
   }
 #else
 
-  if (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind)
-  {
-    struct GNUNET_SET_Element element;
-    struct ConsensusElement ce = { 0 };
-  }
+  //if (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind)
+  //{
+  //  struct GNUNET_SET_Element element;
+  //  struct ConsensusElement ce = { 0 };
+  //}
 
 
   if ( (GNUNET_YES == setop->transceive_contested) && (GNUNET_YES == set->is_contested) )
