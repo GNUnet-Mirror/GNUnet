@@ -65,6 +65,7 @@ src/cadet/gnunet-service-cadet_tunnel.c
 src/consensus/consensus_api.c
 src/consensus/gnunet-consensus-profiler.c
 src/consensus/gnunet-service-consensus.c
+src/consensus/plugin_block_consensus.c
 src/conversation/conversation_api.c
 src/conversation/conversation_api_call.c
 src/conversation/gnunet-conversation.c
@@ -114,13 +115,6 @@ src/dht/gnunet-service-dht_hello.c
 src/dht/gnunet-service-dht_neighbours.c
 src/dht/gnunet-service-dht_nse.c
 src/dht/gnunet-service-dht_routing.c
-src/dht/gnunet-service-wdht.c
-src/dht/gnunet-service-wdht_clients.c
-src/dht/gnunet-service-wdht_neighbours.c
-src/dht/gnunet-service-xdht.c
-src/dht/gnunet-service-xdht_hello.c
-src/dht/gnunet-service-xdht_neighbours.c
-src/dht/gnunet-service-xdht_routing.c
 src/dht/plugin_block_dht.c
 src/dns/dns_api.c
 src/dns/dnsparser.c
@@ -349,6 +343,9 @@ src/set/set_api.c
 src/social/gnunet-service-social.c
 src/social/gnunet-social.c
 src/social/social_api.c
+src/sq/sq.c
+src/sq/sq_query_helper.c
+src/sq/sq_result_helper.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c
 src/statistics/statistics_api.c

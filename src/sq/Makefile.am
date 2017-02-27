@@ -17,7 +17,7 @@ libgnunetsq_la_SOURCES = \
   sq.c \
   sq_query_helper.c \
   sq_result_helper.c
-libgnunetsq_la_LIBADD = -lsq \
+libgnunetsq_la_LIBADD = -lsqlite3 \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetsq_la_LDFLAGS = \
  $(POSTGRESQL_LDFLAGS) \

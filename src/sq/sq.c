@@ -33,6 +33,28 @@ int
 GNUNET_SQ_bind (sqlite3_stmt *stmt,
                 const struct GNUNET_SQ_QueryParam *params)
 {
+  unsigned int j;
+
+  j = 1;
+  for (unsigned int i=0;NULL != params[i].conv; i++)
+  {
+    if (GNUNET_OK !=
+        params[i].conv (params[i].conv_cls,
+                        params[i].data,
+                        params[i].size,
+                        stmt,
+                        j))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                       "sq",
+                       _("Failure to bind %u-th SQL parameter\n"),
+                       i);
+      return GNUNET_SYSERR;
+    }
+    GNUNET_assert (0 != params[i].num_params);
+    j += params[i].num_params;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -43,7 +65,7 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
  * @param[in,out] rs result specification to extract for
  * @param row row from the result to extract
  * @return
- *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_OK if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
@@ -51,6 +73,22 @@ GNUNET_SQ_extract_result (sqlite3_stmt *result,
 			  struct GNUNET_SQ_ResultSpec *rs,
 			  int row)
 {
+  unsigned int j = 0;
+
+  for (unsigned int i=0;NULL != rs[i].conv; i++)
+  {
+    if (GNUNET_OK !=
+        rs[i].conv (rs[i].cls,
+                    result,
+                    row,
+                    j,
+                    rs[i].result_size,
+                    rs[i].dst))
+      return GNUNET_SYSERR;
+    GNUNET_assert (0 != rs[i].num_params);
+    j += rs[i].num_params;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -63,6 +101,9 @@ GNUNET_SQ_extract_result (sqlite3_stmt *result,
 void
 GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs)
 {
+  for (unsigned int i=0;NULL != rs[i].conv; i++)
+    if (NULL != rs[i].cleaner)
+      rs[i].cleaner (rs[i].cls);
 }
 
 /* end of sq.c */

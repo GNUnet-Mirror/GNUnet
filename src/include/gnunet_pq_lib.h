@@ -317,20 +317,6 @@ GNUNET_PQ_result_spec_fixed_size (const char *name,
 
 
 /**
- * Variable-size result expected.
- *
- * @param name name of the field in the table
- * @param[out] dst where to store the result, allocated
- * @param[out] sptr where to store the size of @a dst
- * @return array entry for the result specification to use
- */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size (const char *name,
-				     void **dst,
-				     size_t *sptr);
-
-
-/**
  * 0-terminated string expected.
  *
  * @param name name of the field in the table

@@ -21,7 +21,7 @@
 #ifndef GNUNET_SQ_LIB_H
 #define GNUNET_SQ_LIB_H
 
-#include <sqlite/sqlite3.h>
+#include <sqlite3.h>
 #include "gnunet_util_lib.h"
 
 
@@ -186,7 +186,8 @@ GNUNET_SQ_query_param_uint64 (const uint64_t *x);
  *
  * @param cls closure
  * @param result where to extract data from
- * @param int row to extract data from
+ * @param row row to extract data from
+ * @param column column to extract data from
  * @param[in,out] dst_size where to store size of result, may be NULL
  * @param[out] dst where to store the result
  * @return
@@ -197,8 +198,15 @@ typedef int
 (*GNUNET_SQ_ResultConverter)(void *cls,
 			     sqlite3_stmt *result,
 			     int row,
+                             unsigned int column,
 			     size_t *dst_size,
 			     void *dst);
+
+
+/**
+ * @brief Description of a DB result cell.
+ */
+struct GNUNET_SQ_ResultSpec;
 
 
 /**
@@ -206,11 +214,9 @@ typedef int
  * by a #GNUNET_SQ_ResultConverter.
  *
  * @param cls closure
- * @param rd result data to clean up
  */
 typedef void
-(*GNUNET_SQ_ResultCleanup)(void *cls,
-			   void *rd);
+(*GNUNET_SQ_ResultCleanup)(void *cls);
 
 
 /**
@@ -251,6 +257,11 @@ struct GNUNET_SQ_ResultSpec
    * Where to store actual size of the result.
    */
   size_t *result_size;
+
+  /**
+   * Number of parameters (columns) eaten by this operation.
+   */
+  unsigned int num_params;
 
 };
 
@@ -407,7 +418,7 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
  * @param[in,out] rs result specification to extract for
  * @param row row from the result to extract
  * @return
- *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_OK if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int

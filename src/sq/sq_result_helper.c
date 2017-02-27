@@ -24,6 +24,30 @@
 
 
 /**
+ * Extract fixed-sized binary data from a Postgres database @a result at row @a row.
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param row row to extract data from
+ * @param column column to extract data from
+ * @param[in,out] dst_size where to store size of result, may be NULL
+ * @param[out] dst where to store the result
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+ */
+static int
+extract_fixed_blob (void *cls,
+                    sqlite3_stmt *result,
+                    int row,
+                    unsigned int column,
+                    size_t *dst_size,
+                    void *dst)
+{
+}
+
+
+/**
  * Variable-size result expected.
  *
  * @param[out] dst where to store the result, allocated
@@ -47,20 +71,6 @@ GNUNET_SQ_result_spec_variable_size (void **dst,
 struct GNUNET_SQ_ResultSpec
 GNUNET_SQ_result_spec_fixed_size (void *dst,
 				  size_t dst_size)
-{
-}
-
-
-/**
- * Variable-size result expected.
- *
- * @param[out] dst where to store the result, allocated
- * @param[out] sptr where to store the size of @a dst
- * @return array entry for the result specification to use
- */
-struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_variable_size (void **dst,
-				     size_t *sptr)
 {
 }
 
