@@ -90,8 +90,8 @@ struct GNUNET_CONSENSUS_RoundContextMessage
 
 
 enum {
-  CONSENSUS_MARKER_CONTESTED,
-  CONSENSUS_MARKER_SIZE,
+  CONSENSUS_MARKER_CONTESTED = 1,
+  CONSENSUS_MARKER_SIZE = 2,
 };
 
 
@@ -112,6 +112,15 @@ struct ConsensusElement
   uint8_t marker;
 
   /* rest: element data */
+};
+
+
+struct ConsensusSizeElement
+{
+  struct ConsensusElement ce GNUNET_PACKED;
+
+  uint64_t size GNUNET_PACKED;
+  uint8_t sender_index;
 };
 
 
