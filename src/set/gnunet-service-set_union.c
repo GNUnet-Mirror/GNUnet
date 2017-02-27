@@ -1284,7 +1284,7 @@ send_client_element (struct Operation *op,
   }
   rm->result_status = htons (status);
   rm->request_id = htonl (op->spec->client_request_id);
-  rm->element_type = element->element_type;
+  rm->element_type = htons (element->element_type);
   rm->current_size = GNUNET_htonll (GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element));
   GNUNET_memcpy (&rm[1], element->data, element->size);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
