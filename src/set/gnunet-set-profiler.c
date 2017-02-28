@@ -274,7 +274,6 @@ set_insert_iterator (void *cls,
   el.data = payload;
   el.size = element_length;
   GNUNET_SET_add_element (set, &el, NULL, NULL);
-  GNUNET_free (el);
   return GNUNET_YES;
 }
 
@@ -436,7 +435,7 @@ main (int argc, char **argv)
       { 'f', "force-full", NULL,
         gettext_noop ("force sending full set"),
         GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_full },
-      { 'l', "element-length", NULL,
+      { 'w', "element-length", NULL,
         gettext_noop ("element length in byte"),
         GNUNET_NO, &GNUNET_GETOPT_set_uint, &element_length },
       { 'd', "force-delta", NULL,
