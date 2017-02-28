@@ -873,6 +873,10 @@ handle_p2p_strata_estimator (void *cls,
   GNUNET_assert (NULL != op->state->se);
   diff = strata_estimator_difference (remote_se,
                                       op->state->se);
+
+  if (diff > 200)
+    diff = diff * 3 / 2; 
+
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (op->state->se);
   op->state->se = NULL;
@@ -1565,7 +1569,7 @@ handle_p2p_full_element (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->byzantine) && 
-       (op->state->received_total > 128 + op->state->received_fresh * 4) && 
+       (op->state->received_total > 384 + op->state->received_fresh * 4) && 
        (op->state->received_fresh < op->state->received_total / 6) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
