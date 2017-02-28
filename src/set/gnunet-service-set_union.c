@@ -1556,7 +1556,7 @@ handle_p2p_full_element (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->byzantine) && 
-       (op->state->received_total > 8) && 
+       (op->state->received_total > 150) && 
        (op->state->received_fresh < op->state->received_total / 3) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
