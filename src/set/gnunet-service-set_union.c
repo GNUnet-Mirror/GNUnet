@@ -892,8 +892,8 @@ handle_p2p_strata_estimator (void *cls,
     set_debug = getenv ("GNUNET_SET_BENCHMARK");
     if ( (NULL != set_debug) && (0 == strcmp (set_debug, "1")) )
     {
-      FILE *f = fopen ("set.log\n", "a");
-      fprintf (f, "%llu", (unsigned long long) diff);
+      FILE *f = fopen ("set.log", "a");
+      fprintf (f, "%llu\n", (unsigned long long) diff);
       fclose (f);
     }
   }
