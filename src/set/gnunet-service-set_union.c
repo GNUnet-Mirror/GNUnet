@@ -1560,6 +1560,10 @@ handle_p2p_full_element (void *cls,
        (op->state->received_fresh < op->state->received_total / 3) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Other peer sent only %llu/%llu fresh elements, failing operation\n",
+         (unsigned long long) op->state->received_fresh,
+         (unsigned long long) op->state->received_total);
     GNUNET_break_op (0);
     fail_union_operation (op);
     return;
