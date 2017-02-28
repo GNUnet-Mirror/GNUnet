@@ -889,7 +889,7 @@ handle_p2p_strata_estimator (void *cls,
   }
 
 
-  if ( (GNUNET_YES == op->spec->force_full) || (diff > op->state->initial_size / 2))
+  if ( (GNUNET_YES == op->spec->force_full) || (diff > op->state->initial_size / 4))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Sending full set (diff=%d, own set=%u)\n",
@@ -1565,8 +1565,8 @@ handle_p2p_full_element (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->byzantine) && 
-       (op->state->received_total > 128) && 
-       (op->state->received_fresh < op->state->received_total / 3) )
+       (op->state->received_total > 128 + op->state->received_fresh * 4) && 
+       (op->state->received_fresh < op->state->received_total / 6) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
     LOG (GNUNET_ERROR_TYPE_ERROR,
