@@ -107,7 +107,6 @@ shutdown_task (void *cls)
 static void
 timeout_task (void *cls)
 {
-  timeout_tid = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      "Timeout!\n");
   result = GNUNET_SYSERR;
@@ -126,6 +125,23 @@ member_join_request (void *cls,
   
 }
 
+int notify (void *cls,
+            size_t *data_size,
+            void *data)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "Member sents message to origin.\n");
+
+  char text[] = "ping";
+  *data_size = strlen(text);
+  GNUNET_memcpy(data, text, *data_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "len: %i.\n", strlen(text));
+
+  return GNUNET_YES;
+}
+
 
 static void 
 member_join_decision (void *cls,
@@ -135,11 +151,18 @@ member_join_decision (void *cls,
                       const struct GNUNET_PeerIdentity *relays,
                       const struct GNUNET_MessageHeader *join_msg)
 {
+  struct GNUNET_MULTICAST_MemberTransmitHandle *req;
+  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
               "Member received a decision from origin: %s\n", (GNUNET_YES == is_admitted)?"accepted":"rejected");
   
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown ();
+  if (GNUNET_YES == is_admitted)
+  {
+    req = GNUNET_MULTICAST_member_to_origin (member,
+                                             0,
+                                             notify,
+                                             NULL);
+  }
 }
 
 static void 
@@ -174,13 +197,11 @@ origin_join_request (void *cls,
   uint8_t data_size = ntohs (join_msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Dizzy: Mh, got a join request...\n");
+              "origin: got a join request...\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "'%s'\n", (char *)&join_msg[1]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Dizzy: Oh, it's Bird! Let's get him in.\n");
+              "member to origin: '%s'\n", (char *)&join_msg[1]);
 
-  char data[] = "Hi, Bird. Come in!";
+  char data[] = "Come in!";
   data_size = strlen (data) + 1;
   join_resp = GNUNET_malloc (sizeof (join_resp) + data_size);
   join_resp->size = htons (sizeof (join_resp) + data_size);
@@ -198,21 +219,21 @@ origin_join_request (void *cls,
 
 static void 
 origin_replay_frag (void *cls,
-                const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
-                uint64_t fragment_id,
-                uint64_t flags,
-                struct GNUNET_MULTICAST_ReplayHandle *rh)
+                    const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
+                    uint64_t fragment_id,
+                    uint64_t flags,
+                    struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay fraq msg\n");
 }
 
 static void 
 origin_replay_msg (void *cls,
-               const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
-               uint64_t message_id,
-               uint64_t fragment_offset,
-               uint64_t flags,
-               struct GNUNET_MULTICAST_ReplayHandle *rh) 
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
+                   uint64_t message_id,
+                   uint64_t fragment_offset,
+                   uint64_t flags,
+                   struct GNUNET_MULTICAST_ReplayHandle *rh) 
 {
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay msg\n");
@@ -220,15 +241,21 @@ origin_replay_msg (void *cls,
 
 static void
 origin_request (void *cls,
-            const struct GNUNET_MULTICAST_RequestHeader *req)
+                const struct GNUNET_MULTICAST_RequestHeader *req)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin request msg\n");
   
+  //FIXME: get req content and send a pong
+  //GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  //            "Member sent: '%s'\n", req);
+
+  result = GNUNET_OK;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 static void
 origin_message (void *cls,
-            const struct GNUNET_MULTICAST_MessageHeader *msg) 
+                const struct GNUNET_MULTICAST_MessageHeader *msg) 
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin message msg\n");
 }
@@ -269,7 +296,7 @@ multicast_ca1 (void *cls,
   member_key = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_CRYPTO_ecdsa_key_get_public (member_key, &member_pub_key);
   
-  char data[] = "Whut's up, Dizzy!";
+  char data[] = "Hi, can I enter?";
   uint8_t data_size = strlen (data) + 1;
   join_msg = GNUNET_malloc (sizeof (join_msg) + data_size);
   join_msg->size = htons (sizeof (join_msg) + data_size);
