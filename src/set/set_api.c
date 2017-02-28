@@ -349,6 +349,9 @@ handle_iter_done (void *cls,
   set->iteration_id++;
   iter (set->iterator_cls,
         NULL);
+
+  if (GNUNET_YES == set->destroy_requested)
+    GNUNET_SET_destroy (set);
 }
 
 
@@ -733,8 +736,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   /* destroying set while iterator is active is currently
      not supported; we should expand the API to allow
      clients to explicitly cancel the iteration! */
-  GNUNET_assert (NULL == set->iterator);
-  if (NULL != set->ops_head)
+  if ( (NULL != set->ops_head) || (NULL != set->iterator) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Set operations are pending, delaying set destruction\n");
