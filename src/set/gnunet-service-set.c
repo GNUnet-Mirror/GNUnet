@@ -614,42 +614,6 @@ client_connect_cb (void *cls,
 
 
 /**
- * Clean up after a client has disconnected
- *
- * @param cls closure, unused
- * @param client the client to clean up after
- * @param internal_cls our client-specific internal data structure
- */
-static void
-client_disconnect_cb (void *cls,
-                      struct GNUNET_SERVICE_Client *client,
-                      void *internal_cls)
-{
-  struct Listener *listener;
-  struct Set *set;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "client disconnected, cleaning up\n");
-  set = set_get (client);
-  if (NULL != set)
-  {
-    set->client = NULL;
-    set_destroy (set);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Client's set destroyed\n");
-  }
-  listener = listener_get (client);
-  if (NULL != listener)
-  {
-    listener->client = NULL;
-    listener_destroy (listener);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Client's listener destroyed\n");
-  }
-}
-
-
-/**
  * Destroy an incoming request from a remote peer
  *
  * @param incoming remote request to destroy
@@ -679,6 +643,52 @@ incoming_destroy (struct Operation *incoming)
   {
     incoming->channel = NULL;
     GNUNET_CADET_channel_destroy (channel);
+  }
+}
+
+
+/**
+ * Clean up after a client has disconnected
+ *
+ * @param cls closure, unused
+ * @param client the client to clean up after
+ * @param internal_cls our client-specific internal data structure
+ */
+static void
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *internal_cls)
+{
+  struct Set *set;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "client disconnected, cleaning up\n");
+  set = set_get (client);
+  if (NULL != set)
+  {
+    set->client = NULL;
+    set_destroy (set);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client's set destroyed\n");
+  }
+  struct Listener *listener = listener_get (client);
+  struct Operation *op = incoming_head;
+  if (NULL != listener)
+  {
+    /* destroy all incoming operations whose client just
+     * got destroyed */
+    while (NULL != op)
+    {
+      struct Operation *curr = op;
+      op = op->next;
+      if ( (GNUNET_YES == curr->is_incoming) && 
+           (curr->listener == listener) )
+        incoming_destroy (curr);
+    }
+    listener->client = NULL;
+    listener_destroy (listener);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client's listener destroyed\n");
   }
 }
 

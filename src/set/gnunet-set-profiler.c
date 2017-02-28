@@ -62,6 +62,8 @@ static int byzantine;
 static int force_delta;
 static int force_full;
 
+static unsigned int element_length = 32;
+
 /**
  * Handle to the statistics service.
  */
@@ -261,15 +263,17 @@ set_insert_iterator (void *cls,
                      void *value)
 {
   struct GNUNET_SET_Handle *set = cls;
-  struct GNUNET_SET_Element *el;
+  struct GNUNET_SET_Element el;
 
-  el = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) +
-                      sizeof (struct GNUNET_HashCode));
-  el->element_type = 0;
-  GNUNET_memcpy (&el[1], key, sizeof *key);
-  el->data = &el[1];
-  el->size = sizeof *key;
-  GNUNET_SET_add_element (set, el, NULL, NULL);
+  GNUNET_assert (element_length > 0);
+  char payload[element_length];
+
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, payload, element_length);
+
+  el.element_type = 0;
+  el.data = payload;
+  el.size = element_length;
+  GNUNET_SET_add_element (set, &el, NULL, NULL);
   GNUNET_free (el);
   return GNUNET_YES;
 }
@@ -432,6 +436,9 @@ main (int argc, char **argv)
       { 'f', "force-full", NULL,
         gettext_noop ("force sending full set"),
         GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_full },
+      { 'l', "element-length", NULL,
+        gettext_noop ("element length in byte"),
+        GNUNET_NO, &GNUNET_GETOPT_set_uint, &element_length },
       { 'd', "force-delta", NULL,
         gettext_noop ("number delta operation"),
         GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_delta },
