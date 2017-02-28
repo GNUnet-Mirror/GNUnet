@@ -110,6 +110,7 @@ GNUNET_SQ_result_spec_variable_size (void **dst,
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_var_blob,
     .cleaner = &clean_var_blob,
+    .dst = dst,
     .cls = dst,
     .result_size = sptr,
     .num_params = 1

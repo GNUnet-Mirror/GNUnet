@@ -40,6 +40,10 @@ CONVERSATION_DIR = conversation
 endif
 endif
 
+if HAVE_SQLITE
+ SQLITE_DIR = sq
+endif
+
 if HAVE_MYSQL
  MYSQL_DIR = mysql my
 endif
@@ -78,6 +82,7 @@ SUBDIRS = \
   arm \
   $(TESTING) \
   peerinfo \
+  $(SQLITE_DIR) \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
   datacache \
