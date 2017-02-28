@@ -223,6 +223,9 @@ listener_destroy (struct Listener *listener)
   {
     struct GNUNET_SERVICE_Client *client = listener->client;
 
+    GNUNET_MQ_destroy (listener->client_mq);
+    listener->client_mq = NULL;
+
     listener->client = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Disconnecting listener client\n");
@@ -233,7 +236,6 @@ listener_destroy (struct Listener *listener)
   GNUNET_CONTAINER_DLL_remove (listeners_head,
                                listeners_tail,
                                listener);
-  *listener = (struct Listener) { 0 };
   GNUNET_free (listener);
 }
 
