@@ -464,6 +464,9 @@ replay_key_hash (uint64_t fragment_id, uint64_t message_id,
 static int
 replay_req_remove_cadet (struct Channel *chn)
 {
+  if (NULL == chn || NULL == chn->group)
+    return GNUNET_SYSERR;
+
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,
                                                         &chn->group->pub_key_hash);
