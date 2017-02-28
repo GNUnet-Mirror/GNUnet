@@ -761,7 +761,8 @@ get_order_from_difference (unsigned int diff)
     ibf_order++;
   if (ibf_order > MAX_IBF_ORDER)
     ibf_order = MAX_IBF_ORDER;
-  return ibf_order;
+  // add one for correction
+  return ibf_order + 1;
 }
 
 
@@ -1556,7 +1557,7 @@ handle_p2p_full_element (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->byzantine) && 
-       (op->state->received_total > 150) && 
+       (op->state->received_total > 128) && 
        (op->state->received_fresh < op->state->received_total / 3) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
