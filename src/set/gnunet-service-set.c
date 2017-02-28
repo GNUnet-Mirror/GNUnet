@@ -233,6 +233,7 @@ listener_destroy (struct Listener *listener)
   GNUNET_CONTAINER_DLL_remove (listeners_head,
                                listeners_tail,
                                listener);
+  *listener = (struct Listener) { 0 };
   GNUNET_free (listener);
 }
 
