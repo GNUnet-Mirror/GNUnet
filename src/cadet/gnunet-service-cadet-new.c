@@ -716,9 +716,11 @@ handle_local_data (void *cls,
                        msg->ccn);
   if (NULL == ch)
   {
-    /* Channel does not exist! */
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c->client);
+    /* Channel does not exist (anymore) */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Dropping payload for channel %u from client (channel unknown, other endpoint may have disconnected)\n",
+         (unsigned int) ntohl (msg->ccn.channel_of_client));
+    GNUNET_SERVICE_client_continue (c->client);
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
