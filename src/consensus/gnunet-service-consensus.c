@@ -1153,6 +1153,7 @@ enum EvilnessType
   EVILNESS_CRAM_LEAD,
   EVILNESS_CRAM_ECHO,
   EVILNESS_SLACK,
+  EVILNESS_SLACK_A2A,
 };
 
 enum EvilnessSubType
@@ -1244,6 +1245,10 @@ get_evilness (struct ConsensusSession *session, struct Evilness *evil)
       if (0 == strcmp ("slack", evil_type_str))
       {
         evil->type = EVILNESS_SLACK;
+      }
+      if (0 == strcmp ("slack-a2a", evil_type_str))
+      {
+        evil->type = EVILNESS_SLACK_A2A;
       }
       else if (0 == strcmp ("cram-all", evil_type_str))
       {
@@ -1417,6 +1422,19 @@ commit_set (struct ConsensusSession *session,
                     "P%u: evil peer: slacking\n",
                     (unsigned int) session->local_peer_idx);
         /* Do nothing. */
+      case EVILNESS_SLACK_A2A:
+        if ( (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind ) ||
+             (PHASE_KIND_ALL_TO_ALL == task->key.kind) )
+        {
+          struct GNUNET_SET_Handle *empty_set;
+          empty_set = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+          GNUNET_SET_commit (setop->op, empty_set);
+          GNUNET_SET_destroy (empty_set);
+        }
+        else
+        {
+          GNUNET_SET_commit (setop->op, set->h);
+        }
         break;
       case EVILNESS_NONE:
         GNUNET_SET_commit (setop->op, set->h);
