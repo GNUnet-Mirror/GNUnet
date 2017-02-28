@@ -724,6 +724,10 @@ handle_local_data (void *cls,
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
+  GNUNET_STATISTICS_update (stats,
+                            "# payload received from clients",
+                            payload_size,
+                            GNUNET_NO);
   buf = (const char *) &msg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %u bytes payload from %s for %s\n",
