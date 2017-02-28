@@ -252,7 +252,9 @@ struct GNUNET_SQ_ResultSpec
   size_t dst_size;
 
   /**
-   * Where to store actual size of the result.
+   * Where to store actual size of the result.  If left at
+   * NULL, will be made to point to @e dst_size before
+   * @a conv is called.
    */
   size_t *result_size;
 

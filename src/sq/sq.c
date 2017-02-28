@@ -75,6 +75,8 @@ GNUNET_SQ_extract_result (sqlite3_stmt *result,
 
   for (unsigned int i=0;NULL != rs[i].conv; i++)
   {
+    if (NULL == rs[i].result_size)
+      rs[i].result_size = &rs[i].dst_size;
     if (GNUNET_OK !=
         rs[i].conv (rs[i].cls,
                     result,

@@ -77,9 +77,7 @@ extract_varsize_blob (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -156,9 +154,7 @@ extract_fixed_blob (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -173,11 +169,7 @@ extract_fixed_blob (void *cls,
 		     fnum);
   if (*dst_size != len)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' has wrong size (got %u, expected %u)\n",
-		fname,
-		(unsigned int) len,
-		(unsigned int) *dst_size);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   res = PQgetvalue (result,
@@ -243,9 +235,7 @@ extract_rsa_public_key (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -265,9 +255,7 @@ extract_rsa_public_key (void *cls,
 					     len);
   if (NULL == *pk)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' contains bogus value (fails to decode)\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -346,9 +334,7 @@ extract_rsa_signature (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -368,9 +354,7 @@ extract_rsa_signature (void *cls,
 					     len);
   if (NULL == *sig)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' contains bogus value (fails to decode)\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -449,9 +433,7 @@ extract_string (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -471,9 +453,7 @@ extract_string (void *cls,
                          len);
   if (NULL == *str)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' contains bogus value (fails to decode)\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -583,9 +563,7 @@ extract_uint16 (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -655,9 +633,7 @@ extract_uint32 (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
@@ -727,9 +703,7 @@ extract_uint64 (void *cls,
 		    fname);
   if (fnum < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Field `%s' does not exist in result\n",
-		fname);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (PQgetisnull (result,
