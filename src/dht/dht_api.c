@@ -754,12 +754,25 @@ process_client_result (void *cls,
   meta_length =
       sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
   data_length = msize - meta_length;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Giving %u byte reply for %s to application\n",
-       (unsigned int) data_length,
-       GNUNET_h2s (key));
   put_path = (const struct GNUNET_PeerIdentity *) &crm[1];
   get_path = &put_path[put_path_length];
+  {
+    char *pp;
+    char *gp;
+
+    gp = GNUNET_STRINGS_pp2s (get_path,
+                              get_path_length);
+    pp = GNUNET_STRINGS_pp2s (put_path,
+                              put_path_length);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Giving %u byte reply for %s to application (GP: %s, PP: %s)\n",
+         (unsigned int) data_length,
+         GNUNET_h2s (key),
+         gp,
+         pp);
+    GNUNET_free (gp);
+    GNUNET_free (pp);
+  }
   data = &get_path[get_path_length];
   /* remember that we've seen this result */
   GNUNET_CRYPTO_hash (data,

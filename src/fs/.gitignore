@@ -40,3 +40,4 @@ test_plugin_block_fs
 perf_gnunet_service_fs_p2p
 perf_gnunet_service_fs_p2p_index
 perf_gnunet_service_fs_p2p_respect
+rdir.gnd

@@ -333,7 +333,6 @@ handle_dns_request (void *cls,
     ilh->lookup = GNS_resolver_lookup (&zone,
 				       p->queries[0].type,
 				       p->queries[0].name,
-				       NULL /* FIXME: enable shorten for DNS intercepts? */,
 				       GNUNET_NO,
 				       &reply_to_dns, ilh);
     return;

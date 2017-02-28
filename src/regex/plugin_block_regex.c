@@ -28,8 +28,14 @@
 #include "gnunet_block_group_lib.h"
 #include "block_regex.h"
 #include "regex_block_lib.h"
-#include "gnunet_constants.h"
 #include "gnunet_signatures.h"
+
+
+/**
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
+ */
+#define BLOOMFILTER_K 16
 
 
 /**
@@ -58,9 +64,26 @@ block_plugin_regex_create_group (void *cls,
                                  size_t raw_data_size,
                                  va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = REGEX_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       REGEX_BF_SIZE,
-                                       GNUNET_CONSTANTS_BLOOMFILTER_K,
+                                       bf_size,
+                                       BLOOMFILTER_K,
                                        type,
                                        nonce,
                                        raw_data,
@@ -246,6 +269,7 @@ evaluate_block_regex_accept (void *cls,
  * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg group to evaluate against
  * @param eo control flags
@@ -258,6 +282,7 @@ evaluate_block_regex_accept (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_regex_evaluate (void *cls,
+                             struct GNUNET_BLOCK_Context *ctx,
                              enum GNUNET_BLOCK_Type type,
                              struct GNUNET_BLOCK_Group *bg,
                              enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -370,7 +395,7 @@ libgnunet_plugin_block_regex_init (void *cls)
 void *
 libgnunet_plugin_block_regex_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

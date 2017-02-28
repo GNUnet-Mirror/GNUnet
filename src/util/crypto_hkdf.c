@@ -36,7 +36,7 @@
  * - Matthias Wachs (08.10.2010)
  */
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-hkdf", __VA_ARGS__)
 
 /**
  * Set this to 0 if you compile this code outside of GNUnet.

@@ -50,12 +50,6 @@ libgnunet_plugin_block_dht_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-dht
 
-if HAVE_EXPERIMENTAL
-libexec_PROGRAMS += \
- gnunet-service-dht-xvine \
- gnunet-service-dht-whanau
-endif
-
 noinst_PROGRAMS = \
  gnunet-dht-monitor \
  gnunet-dht-get \
@@ -82,47 +76,6 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/block/libgnunetblockgroup.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -lm
-
-gnunet_service_dht_xvine_SOURCES = \
- gnunet-service-xdht.c gnunet-service-dht.h \
- gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
- gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
- gnunet-service-xdht_neighbours.c gnunet-service-xdht_neighbours.h \
- gnunet-service-xdht_routing.c gnunet-service-xdht_routing.h
-
-gnunet_service_dht_xvine_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/nse/libgnunetnse.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/block/libgnunetblockgroup.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -lm
-
-gnunet_service_dht_whanau_SOURCES = \
- gnunet-service-wdht.c gnunet-service-wdht.h \
- gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
- gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
- gnunet-service-wdht_neighbours.c gnunet-service-dht_neighbours.h
-gnunet_service_dht_whanau_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/nse/libgnunetnse.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/block/libgnunetblockgroup.la \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lm

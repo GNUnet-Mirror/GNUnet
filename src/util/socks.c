@@ -29,9 +29,9 @@
 #include "gnunet_util_lib.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "socks", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-socks", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "socks", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-socks", syscall)
 
 
 /* SOCKS5 authentication methods */

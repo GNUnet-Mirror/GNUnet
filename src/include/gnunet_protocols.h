@@ -1640,6 +1640,12 @@ extern "C"
  * Demand the whole element from the other
  * peer, given only the hash code.
  */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL 565
+
+/**
+ * Demand the whole element from the other
+ * peer, given only the hash code.
+ */
 #define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND 566
 
 /**
@@ -1794,6 +1800,19 @@ extern "C"
  * lazily copied set.
  */
 #define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT 596
+
+/**
+ * Request all missing elements from the other peer,
+ * based on their sets and the elements we previously sent
+ * with #GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE 597
+
+/**
+ * Send a set element, not as response to a demand but because
+ * we're sending the full set.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT 598
 
 
 /*******************************************************************************

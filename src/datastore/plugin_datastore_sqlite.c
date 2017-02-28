@@ -229,35 +229,41 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   sqlite3_stmt *stmt;
   char *afsdir;
-
 #if ENULL_DEFINED
   char *e;
 #endif
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "datastore-sqlite",
-                                               "FILENAME", &afsdir))
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "datastore-sqlite",
+                                               "FILENAME",
+                                               &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "datastore-sqlite", "FILENAME");
+			       "datastore-sqlite",
+                               "FILENAME");
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))
   {
-    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
+    if (GNUNET_OK !=
+        GNUNET_DISK_directory_create_for_file (afsdir))
     {
       GNUNET_break (0);
       GNUNET_free (afsdir);
       return GNUNET_SYSERR;
     }
     /* database is new or got deleted, reset payload to zero! */
-    plugin->env->duc (plugin->env->cls, 0);
+    if (NULL != plugin->env->duc)
+      plugin->env->duc (plugin->env->cls,
+                        0);
   }
   /* afsdir should be UTF-8-encoded. If it isn't, it's a bug */
   plugin->fn = afsdir;
 
   /* Open database and precompile statements */
-  if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)
+  if (SQLITE_OK !=
+      sqlite3_open (plugin->fn, &plugin->dbh))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "sqlite",
                      _("Unable to initialize SQLite: %s.\n"),
@@ -265,25 +271,32 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA temp_store=MEMORY", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA temp_store=MEMORY", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA synchronous=OFF", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA synchronous=OFF", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA legacy_file_format=OFF", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL", NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA auto_vacuum=INCREMENTAL", NULL,
                        NULL, ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA page_size=4092", NULL, NULL,
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA page_size=4092", NULL, NULL,
                        ENULL));
 
-  CHECK (SQLITE_OK == sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS));
+  CHECK (SQLITE_OK ==
+         sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS));
 
 
   /* We have to do it here, because otherwise precompiling SQL might fail */
@@ -552,7 +565,9 @@ sqlite_plugin_put (void *cls,
   switch (n)
   {
   case SQLITE_DONE:
-    plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
+    if (NULL != plugin->env->duc)
+      plugin->env->duc (plugin->env->cls,
+                        size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                      "Stored new entry (%u bytes)\n",
                      size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
@@ -694,7 +709,8 @@ execute_get (struct Plugin *plugin,
         LOG_SQLITE (plugin,
                     GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_reset");
-      if (GNUNET_OK == delete_by_rowid (plugin, rowid))
+      if ( (GNUNET_OK == delete_by_rowid (plugin, rowid)) &&
+           (NULL != plugin->env->duc) )
         plugin->env->duc (plugin->env->cls,
                           -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
       break;
@@ -713,7 +729,9 @@ execute_get (struct Plugin *plugin,
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
-    if ((GNUNET_NO == ret) && (GNUNET_OK == delete_by_rowid (plugin, rowid)))
+    if ( (GNUNET_NO == ret) &&
+         (GNUNET_OK == delete_by_rowid (plugin, rowid)) &&
+         (NULL != plugin->env->duc) )
       plugin->env->duc (plugin->env->cls,
                         -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
     return;

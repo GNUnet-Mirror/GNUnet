@@ -42,6 +42,7 @@ TEST_REVOCATION_EGO = "revoc_test"
 
 get_clean = subprocess.Popen ([config, '-c', TEST_CONFIGURATION, '-s', 'PATHS', '-o', 'GNUNET_HOME', '-f'], stdout=subprocess.PIPE)
 cleandir, x = get_clean.communicate ()
+cleandir = cleandir.decode("utf-8")
 cleandir = cleandir.rstrip ('\n').rstrip ('\r')
 
 if os.path.isdir (cleandir):
@@ -64,6 +65,7 @@ try:
   sys.stderr.flush ()
   idd = subprocess.Popen ([ident, '-d'], stdout=subprocess.PIPE)
   rev_key, x = idd.communicate ()
+  rev_key = rev_key.decode("utf-8")
   if len (rev_key.split ()) < 3:
     raise Exception ("can't get revocation key out of `" + rev_key + "'")
   rev_key = rev_key.split ()[2]
@@ -73,6 +75,7 @@ try:
   sys.stderr.flush ()
   tst = subprocess.Popen ([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
   output_not_revoked, x = tst.communicate ()
+  output_not_revoked = output_not_revoked.decode("utf-8")
   if tst.returncode != 0:
     raise Exception ("gnunet-revocation failed to test a key - " + str (tst.returncode) + ": " + output_not_revoked)
   if 'valid' not in output_not_revoked:
@@ -94,6 +97,7 @@ try:
   sys.stderr.flush ()
   tst = subprocess.Popen ([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
   output_revoked, x = tst.communicate ()
+  output_revoked = output_revoked.decode("utf-8")
   if tst.returncode != 0:
     raise Exception ("gnunet-revocation failed to test a revoked key")
   if 'revoked' not in output_revoked:

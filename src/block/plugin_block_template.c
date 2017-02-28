@@ -63,8 +63,25 @@ block_plugin_template_create_group (void *cls,
                                     size_t raw_data_size,
                                     va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = TEMPLATE_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       TEMPLATE_BF_SIZE,
+                                       bf_size,
                                        BLOOMFILTER_K,
                                        type,
                                        nonce,
@@ -78,6 +95,7 @@ block_plugin_template_create_group (void *cls,
  * request evaluation, simply pass "NULL" for the reply_block.
  *
  * @param cls closure
+ * @param ctx context
  * @param type block type
  * @param group block group to use
  * @param eo control flags
@@ -90,6 +108,7 @@ block_plugin_template_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_template_evaluate (void *cls,
+                                struct GNUNET_BLOCK_Context *ctx,
                                 enum GNUNET_BLOCK_Type type,
                                 struct GNUNET_BLOCK_Group *group,
                                 enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -138,6 +157,8 @@ block_plugin_template_get_key (void *cls,
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls a `const struct GNUNET_CONFIGURATION_Handle`
  */
 void *
 libgnunet_plugin_block_template_init (void *cls)
@@ -164,7 +185,7 @@ libgnunet_plugin_block_template_init (void *cls)
 void *
 libgnunet_plugin_block_template_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

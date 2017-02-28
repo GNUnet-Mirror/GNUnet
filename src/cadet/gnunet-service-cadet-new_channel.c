@@ -1618,7 +1618,8 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch,
     return;
   }
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
-  if (NULL != ccc->head_recv)
+  if ( (NULL != ccc) &&
+       (NULL != ccc->head_recv) )
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Lost end of transmission due to remote shutdown on %s\n",
@@ -1626,9 +1627,10 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch,
     /* FIXME: change API to notify client about truncated transmission! */
   }
   ch->destroy = GNUNET_YES;
-  GSC_handle_remote_channel_destroy (ccc->c,
-                                     ccc->ccn,
-                                     ch);
+  if (NULL != ccc)
+    GSC_handle_remote_channel_destroy (ccc->c,
+                                       ccc->ccn,
+                                       ch);
   channel_destroy (ch);
 }
 

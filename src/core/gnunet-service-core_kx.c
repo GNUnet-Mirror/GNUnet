@@ -319,7 +319,7 @@ struct GSC_KeyExchangeInfo
    * last were received (good for accepting out-of-order packets and
    * estimating reliability of the connection)
    */
-  unsigned int last_packets_bitmap;
+  uint32_t last_packets_bitmap;
 
   /**
    * last sequence number received on this connection (highest)
@@ -1573,7 +1573,7 @@ handle_encrypted (void *cls,
   }
   if (kx->last_sequence_number_received > snum)
   {
-    unsigned int rotbit = 1 << (kx->last_sequence_number_received - snum - 1);
+    uint32_t rotbit = 1U << (kx->last_sequence_number_received - snum - 1);
 
     if ((kx->last_packets_bitmap & rotbit) != 0)
     {

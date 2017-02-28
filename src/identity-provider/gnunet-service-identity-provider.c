@@ -714,7 +714,7 @@ attribute_collect (void *cls,
       GNUNET_CONTAINER_DLL_insert (attr->val_head,
                                    attr->val_tail,
                                    val);
-      GNUNET_assert (GNUNET_OK == 
+      GNUNET_assert (GNUNET_OK ==
                      GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
                                                         &key,
                                                         attr,
@@ -949,7 +949,7 @@ create_issue_result_message (const char* label,
   struct IssueResultMessage *irm;
   char *tmp_str;
   size_t len;
-  
+
   GNUNET_asprintf (&tmp_str, "%s,%s,%s", label, ticket, token);
   len = strlen (tmp_str) + 1;
   env = GNUNET_MQ_msg_extra (irm,
@@ -1279,7 +1279,7 @@ check_exchange_message (void *cls,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
-} 
+}
 
 /**
  *
@@ -1326,7 +1326,6 @@ handle_exchange_message (void *cls,
                          &xchange_handle->ticket->payload->identity_key,
                          GNUNET_GNSRECORD_TYPE_ID_TOKEN,
                          GNUNET_GNS_LO_LOCAL_MASTER,
-                         NULL,
                          &process_lookup_result,
                          xchange_handle);
   GNUNET_free (lookup_query);

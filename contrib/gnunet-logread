@@ -85,7 +85,7 @@ sub perform {
     if (fileno O) {
         my ($time, $type, $size, $from, $to, $level, $msg);
         if (($time, $type, $size, $from, $to) =
-            /^([A-Z][a-z]{2}\ .[0-9]\ [0-9:]{8}(?:-[0-9]{6})?)\ util-.*\b
+            /^([A-Z][a-z]{2}\ .[0-9]\ [0-9:]{8}(?:-[0-9]{6})?)\ util-client-.*\b
              (?: Received | Transmitting )\ message \b.*?\b
              type \s+ (\d+) \b.*?\b
              size \s+ (\d+) \b.*?\b
@@ -172,7 +172,7 @@ gnunet-logread - a GNUnet log analyzer, colorizer and aggregator
 
 =head1 MOTIVATION
 
-GNUnet debug logs are a tedious read, but given a complex system that we 
+GNUnet debug logs are a tedious read, but given a complex system that we
 cannot run all parts of in a debugger all the time, some gathering and
 structuring of events and message passing is useful.
 
@@ -196,4 +196,3 @@ instead, but that is still subject to further consideration.
 =head1 AUTHORS
 
 tg & lynX
-

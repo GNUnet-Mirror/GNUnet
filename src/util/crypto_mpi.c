@@ -29,7 +29,7 @@
 #include "gnunet_crypto_lib.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-mpi", __VA_ARGS__)
 
 /**
  * Log an error message at log-level 'level' that indicates

@@ -687,11 +687,13 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
  *
  * @param cls closure with the `struct AliceServiceSession`
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status what has happened with the set intersection?
  */
 static void
 cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
+                                 uint64_t current_size,
                                  enum GNUNET_SET_Status status)
 {
   struct AliceServiceSession *s = cls;
@@ -788,6 +790,7 @@ cb_intersection_request_alice (void *cls,
   s->intersection_op
     = GNUNET_SET_accept (request,
                          GNUNET_SET_RESULT_REMOVED,
+                         (struct GNUNET_SET_Option[]) {{ 0 }},
                          &cb_intersection_element_removed,
                          s);
   if (NULL == s->intersection_op)

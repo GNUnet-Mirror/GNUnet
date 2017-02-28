@@ -32,8 +32,8 @@
  *
  * @{
  */
-#ifndef GNUNET_MQ_H
-#define GNUNET_MQ_H
+#ifndef GNUNET_MQ_LIB_H
+#define GNUNET_MQ_LIB_H
 
 
 /**
@@ -473,7 +473,6 @@ struct GNUNET_MQ_MessageHandler
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
-
                 uint16_t size,
                 uint16_t type);
 
@@ -511,6 +510,17 @@ GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
 
 
 /**
+ * Function to copy an envelope.  The envelope must not yet
+ * be in any queue or have any options or callbacks set.
+ *
+ * @param env envelope to copy
+ * @return copy of @a env
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env);
+
+
+/**
  * Function to obtain the last envelope in the queue.
  *
  * @param mq message queue to interrogate
@@ -545,6 +555,17 @@ GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
 const void *
 GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
 			   uint64_t *flags);
+
+
+/**
+ * Remove the first envelope that has not yet been sent from the message
+ * queue and return it.
+ *
+ * @param mq queue to remove envelope from
+ * @return NULL if queue is empty (or has no envelope that is not under transmission)
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq);
 
 
 /**

@@ -298,7 +298,21 @@ run (void *cls,
 
 
 /**
- * check if plugin is actually working 
+ * Function called when disk utilization changes, does nothing.
+ *
+ * @param cls closure
+ * @param delta change in utilization
+ */
+static void
+ignore_payload_cb (void *cls,
+                   int delta)
+{
+  /* do nothing */
+}
+
+
+/**
+ * check if plugin is actually working
  */
 static int
 test_plugin (const char *cfg_name)
@@ -307,7 +321,7 @@ test_plugin (const char *cfg_name)
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct GNUNET_DATASTORE_PluginEnvironment env;
-  
+
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_load (cfg,
@@ -321,6 +335,7 @@ test_plugin (const char *cfg_name)
   }
   memset (&env, 0, sizeof (env));
   env.cfg = cfg;
+  env.duc = &ignore_payload_cb;
   GNUNET_snprintf (libname,
 		   sizeof (libname),
                    "libgnunet_plugin_datastore_%s",

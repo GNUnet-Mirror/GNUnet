@@ -31,6 +31,9 @@ endif
 
 if !MINGW
  SERVER_CLIENT_UNIX = test_server_with_client_unix
+ TEST_CLIENT_UNIC_NC = test_client_unix.nc
+else
+ TEST_CLIENT_UNIC_NC =
 endif
 
 if USE_COVERAGE
@@ -266,7 +269,7 @@ endif
 check_PROGRAMS = \
  test_bio \
  test_client.nc \
- test_client_unix.nc \
+ $(TEST_CLIENT_UNIX_NC) \
  $(SSH_USING_TESTS) \
  test_common_allocation \
  test_common_endian \

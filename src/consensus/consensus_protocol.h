@@ -29,6 +29,7 @@
 #define GNUNET_CONSENSUS_PROTOCOL_H
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
 
@@ -86,6 +87,48 @@ struct GNUNET_CONSENSUS_RoundContextMessage
    */
   uint16_t is_contested;
 };
+
+
+enum {
+  CONSENSUS_MARKER_CONTESTED = 1,
+  CONSENSUS_MARKER_SIZE = 2,
+};
+
+
+/**
+ * Consensus element, either marker or payload.
+ */
+struct ConsensusElement
+{
+  /**
+   * Payload element_type, only valid
+   * if this is not a marker element.
+   */
+  uint16_t payload_type;
+
+  /**
+   * Is this a marker element?
+   */
+  uint8_t marker;
+
+  /* rest: element data */
+};
+
+
+struct ConsensusSizeElement
+{
+  struct ConsensusElement ce GNUNET_PACKED;
+
+  uint64_t size GNUNET_PACKED;
+  uint8_t sender_index;
+};
+
+struct ConsensusStuffedElement
+{
+  struct ConsensusElement ce GNUNET_PACKED;
+  struct GNUNET_HashCode rand GNUNET_PACKED;
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 

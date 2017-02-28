@@ -42,6 +42,8 @@
  * - Nathan Evans
  */
 #define _GNU_SOURCE
+/* Instead of including gnunet_common.h */
+#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
 
 #define FD_SETSIZE 1024
 #include <winsock2.h>

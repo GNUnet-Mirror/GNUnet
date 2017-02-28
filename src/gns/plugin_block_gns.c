@@ -63,8 +63,25 @@ block_plugin_gns_create_group (void *cls,
                                size_t raw_data_size,
                                va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = GNS_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       GNS_BF_SIZE,
+                                       bf_size,
                                        BLOOMFILTER_K,
                                        type,
                                        nonce,
@@ -81,6 +98,7 @@ block_plugin_gns_create_group (void *cls,
  * be done with the "get_key" function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg block group to use for evaluation
  * @param eo control flags
@@ -93,6 +111,7 @@ block_plugin_gns_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_gns_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
                            struct GNUNET_BLOCK_Group *bg,
                            enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -219,7 +238,7 @@ libgnunet_plugin_block_gns_init (void *cls)
 void *
 libgnunet_plugin_block_gns_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

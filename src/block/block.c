@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010 GNUnet e.V.
+     Copyright (C) 2010, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -84,8 +84,12 @@ GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
 {
   struct GNUNET_HashCode m;
 
-  GNUNET_CRYPTO_hash (&mingle_number, sizeof (uint32_t), &m);
-  GNUNET_CRYPTO_hash_xor (&m, in, hc);
+  GNUNET_CRYPTO_hash (&mingle_number,
+                      sizeof (uint32_t),
+                      &m);
+  GNUNET_CRYPTO_hash_xor (&m,
+                          in,
+                          hc);
 }
 
 
@@ -111,7 +115,9 @@ add_plugin (void *cls,
   plugin = GNUNET_new (struct Plugin);
   plugin->api = api;
   plugin->library_name = GNUNET_strdup (library_name);
-  GNUNET_array_append (ctx->plugins, ctx->num_plugins, plugin);
+  GNUNET_array_append (ctx->plugins,
+                       ctx->num_plugins,
+                       plugin);
 }
 
 
@@ -129,7 +135,10 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   ctx = GNUNET_new (struct GNUNET_BLOCK_Context);
   ctx->cfg = cfg;
-  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_", NULL, &add_plugin, ctx);
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_",
+                          (void *) cfg,
+                          &add_plugin,
+                          ctx);
   return ctx;
 }
 
@@ -149,7 +158,8 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
   {
     plugin = ctx->plugins[i];
     GNUNET_break (NULL ==
-                  GNUNET_PLUGIN_unload (plugin->library_name, plugin->api));
+                  GNUNET_PLUGIN_unload (plugin->library_name,
+                                        plugin->api));
     GNUNET_free (plugin->library_name);
     GNUNET_free (plugin);
   }
@@ -249,10 +259,9 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
 	     enum GNUNET_BLOCK_Type type)
 {
   struct Plugin *plugin;
-  unsigned int i;
   unsigned int j;
 
-  for (i = 0; i < ctx->num_plugins; i++)
+  for (unsigned i = 0; i < ctx->num_plugins; i++)
   {
     plugin = ctx->plugins[i];
     j = 0;
@@ -294,7 +303,8 @@ GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
                         type);
   if (NULL == plugin->create_group)
     return NULL;
-  va_start (ap, raw_data_size);
+  va_start (ap,
+            raw_data_size);
   bg = plugin->create_group (plugin->cls,
                              type,
                              nonce,
@@ -341,6 +351,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
   if (NULL == plugin)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   return plugin->evaluate (plugin->cls,
+                           ctx,
                            type,
                            group,
                            eo,
@@ -375,7 +386,11 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->get_key (plugin->cls, type, block, block_size, key);
+  return plugin->get_key (plugin->cls,
+                          type,
+                          block,
+                          block_size,
+                          key);
 }
 
 

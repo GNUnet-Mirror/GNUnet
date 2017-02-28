@@ -114,6 +114,7 @@ gnunetinclude_HEADERS = \
   gnunet_signatures.h \
   gnunet_social_service.h \
   gnunet_speaker_lib.h \
+  gnunet_sq_lib.h \
   gnunet_statistics_service.h \
   gnunet_strings_lib.h \
   gnunet_testbed_service.h \

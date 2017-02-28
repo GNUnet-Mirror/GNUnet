@@ -28,9 +28,9 @@
 #include "gnunet_strings_lib.h"
 #include <gcrypt.h>
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-hash", __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-crypto-hash", syscall, filename)
 
 /**
  * Hash block of given size.

@@ -27,11 +27,11 @@
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-ecc", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-crypto-ecc", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-crypto-ecc", syscall, filename)
 
 /**
  * Log an error message at log-level 'level' that indicates

@@ -37,11 +37,11 @@
 #endif
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-service", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-service", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-service", syscall, filename)
 
 
 /**
@@ -1969,6 +1969,7 @@ do_send (void *cls)
   client->msg_pos += ret;
   if (left > ret)
   {
+    GNUNET_assert (NULL == client->drop_task);
     client->send_task
       = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					client->sock,
@@ -1995,7 +1996,14 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = impl_state;
 
+  if (NULL != client->drop_task)
+    return; /* we're going down right now, do not try to send */
   GNUNET_assert (NULL == client->send_task);
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Sending message of type %u and size %u to client\n",
+       ntohs (msg->type), ntohs (msg->size));
+
   client->msg = msg;
   client->msg_pos = 0;
   client->send_task
@@ -2093,6 +2101,10 @@ service_client_mst_cb (void *cls,
                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received message of type %u and size %u from client\n",
+       ntohs (message->type), ntohs (message->size));
 
   GNUNET_assert (GNUNET_NO == client->needs_continue);
   client->needs_continue = GNUNET_YES;
@@ -2390,8 +2402,8 @@ resume_client_receive (void *cls)
 			 GNUNET_YES);
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c);
+    if (NULL != c->drop_task)
+      GNUNET_SERVICE_client_drop (c);
     return;
   }
   if (GNUNET_NO == ret)
@@ -2464,6 +2476,10 @@ finish_client_drop (void *cls)
   struct GNUNET_SERVICE_Client *c = cls;
   struct GNUNET_SERVICE_Handle *sh = c->sh;
 
+  c->drop_task = NULL;
+  GNUNET_assert (NULL == c->send_task);
+  GNUNET_assert (NULL == c->recv_task);
+  GNUNET_assert (NULL == c->warn_task);
   GNUNET_MST_destroy (c->mst);
   GNUNET_MQ_destroy (c->mq);
   if (GNUNET_NO == c->persist)
@@ -2500,7 +2516,7 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
   if (NULL != c->drop_task)
   {
     /* asked to drop twice! */
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   GNUNET_CONTAINER_DLL_remove (sh->clients_head,

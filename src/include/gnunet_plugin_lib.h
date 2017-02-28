@@ -87,7 +87,7 @@ GNUNET_PLUGIN_load (const char *library_name,
 
 
 /**
- * Signature of a function called by 'GNUNET_PLUGIN_load_all'.
+ * Signature of a function called by #GNUNET_PLUGIN_load_all().
  *
  * @param cls closure
  * @param library_name full name of the library (to be used with

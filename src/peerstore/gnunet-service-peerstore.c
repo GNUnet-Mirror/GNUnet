@@ -523,11 +523,11 @@ handle_store (void *cls,
 
   record = PEERSTORE_parse_record_message (srm);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request. Sub system `%s' Peer `%s Key `%s' Options: %d.\n",
+              "Received a store request. Sub system `%s' Peer `%s Key `%s' Options: %u.\n",
 	      record->sub_system,
               GNUNET_i2s (record->peer),
 	      record->key,
-              ntohl (srm->options));
+              (uint32_t) ntohl (srm->options));
   record->client = client;
   if (GNUNET_OK !=
       db->store_record (db->cls,

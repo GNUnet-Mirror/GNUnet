@@ -29,11 +29,11 @@
 #include "disk.h"
 #include <unistr.h>
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-os-priority", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-os-priority", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-os-priority", syscall, filename)
 
 #define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
@@ -1091,7 +1091,10 @@ start_process (int pipe_control,
                                        &lsocks_read, sizeof (HANDLE));
   }
   else
+  {
     lsocks_pipe = NULL;
+    lsocks_write_fd = NULL;
+  }
 
   env_off = 0;
   if (GNUNET_YES == pipe_control)
@@ -1229,7 +1232,7 @@ start_process (int pipe_control,
     if (sizeof (count) != wrote)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to write %u count bytes to the child: %u\n",
+		  "Failed to write %u count bytes to the child: %lu\n",
 		  sizeof (count), GetLastError ());
       break;
     }
@@ -1240,7 +1243,7 @@ start_process (int pipe_control,
       if (SOCKET_ERROR == WSADuplicateSocketA (lsocks[i], gnunet_proc->pid, &pi))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to duplicate an socket[%llu]: %u\n", i,
+		    "Failed to duplicate an socket[%u]: %lu\n", i,
 		    GetLastError ());
         break;
       }
@@ -1257,7 +1260,7 @@ start_process (int pipe_control,
       if (sizeof (size) != wrote)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to write %u size[%llu] bytes to the child: %u\n",
+		    "Failed to write %u size[%u] bytes to the child: %lu\n",
 		    sizeof (size), i, GetLastError ());
         break;
       }
@@ -1266,7 +1269,7 @@ start_process (int pipe_control,
       if (sizeof (pi) != wrote)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to write %u socket[%llu] bytes to the child: %u\n",
+		    "Failed to write %u socket[%u] bytes to the child: %lu\n",
 		    sizeof (pi), i, GetLastError ());
         break;
       }

@@ -119,6 +119,30 @@ struct OperationSpecification
    * When are elements sent to the client, and which elements are sent?
    */
   enum GNUNET_SET_ResultMode result_mode;
+
+  /**
+   * Always use delta operation instead of sending full sets,
+   * even it it's less efficient.
+   */
+  int force_delta;
+
+  /**
+   * Always send full sets, even if delta operations would
+   * be more efficient.
+   */
+  int force_full;
+
+  /**
+   * #GNUNET_YES to fail operations where Byzantine faults
+   * are suspected
+   */
+  int byzantine;
+
+  /**
+   * Lower bound for the set size, used only when
+   * byzantine mode is enabled.
+   */
+  int byzantine_lower_bound;
 };
 
 

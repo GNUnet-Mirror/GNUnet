@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2016 GNUnet e.V.
+# (C) 2001--2017 GNUnet e.V.
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -1336,15 +1336,6 @@ AC_ARG_ENABLE([experimental],
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
-# FTBFS right now...
-AC_MSG_CHECKING(whether to compile ATS test code)
-AC_ARG_ENABLE([wachs],
-   [AS_HELP_STRING([--enable-wachs], [enable compiling ATS test code])],
-   [enable_wachs=${enableval}],
-   [enable_wachs=no])
-AC_MSG_RESULT($enable_wachs)
-AM_CONDITIONAL([HAVE_WACHS], [test "x$enable_wachs" = "xyes"])
-
 # should malicious code be compiled (should only be used for testing)?
 AC_MSG_CHECKING(whether to compile malicious code)
 AC_ARG_ENABLE([malicious],
@@ -1640,6 +1631,7 @@ src/set/Makefile
 src/set/set.conf
 src/social/Makefile
 src/social/social.conf
+src/sq/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/template/Makefile

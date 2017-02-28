@@ -35,9 +35,9 @@
 #include "gnunet_resolver_service.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-connection", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-connection", syscall)
 
 
 /**
@@ -335,11 +335,16 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
   struct sockaddr_in6 *v6;
   struct sockaddr *sa;
   void *uaddr;
-  struct GNUNET_CONNECTION_Credentials *gcp;
-  struct GNUNET_CONNECTION_Credentials gc;
 #ifdef SO_PEERCRED
   struct ucred uc;
   socklen_t olen;
+#endif
+  struct GNUNET_CONNECTION_Credentials *gcp;
+#if HAVE_GETPEEREID || defined(SO_PEERCRED) || HAVE_GETPEERUCRED
+  struct GNUNET_CONNECTION_Credentials gc;
+
+  gc.uid = 0;
+  gc.gid = 0;
 #endif
 
   addrlen = sizeof (addr);
@@ -386,8 +391,6 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
     GNUNET_memcpy (uaddr, addr, addrlen);
   }
   gcp = NULL;
-  gc.uid = 0;
-  gc.gid = 0;
   if (AF_UNIX == sa->sa_family)
   {
 #if HAVE_GETPEEREID

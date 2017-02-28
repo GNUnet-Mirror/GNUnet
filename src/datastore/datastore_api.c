@@ -498,8 +498,17 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *pos;
   unsigned int c;
 
-  c = 0;
-  pos = h->queue_head;
+  if ( (NULL != h->queue_tail) &&
+       (h->queue_tail->priority >= queue_priority) )
+  {
+    c = h->queue_size;
+    pos = NULL;
+  }
+  else
+  {
+    c = 0;
+    pos = h->queue_head;
+  }
   while ( (NULL != pos) &&
           (c < max_queue_size) &&
           (pos->priority >= queue_priority) )

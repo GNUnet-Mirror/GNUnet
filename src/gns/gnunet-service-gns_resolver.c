@@ -30,7 +30,6 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namecache_service.h"
-#include "gnunet_namestore_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_revocation_service.h"
@@ -39,7 +38,6 @@
 #include "gnunet_gns_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
-#include "gnunet-service-gns_shorten.h"
 #include "gnunet_vpn_service.h"
 
 
@@ -325,11 +323,6 @@ struct GNS_ResolverHandle
    * DLL to store the authority chain
    */
   struct AuthorityChain *ac_tail;
-
-  /**
-   * Private key of the shorten zone, NULL to not shorten.
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key;
 
   /**
    * ID of a task associated with the resolution process.
@@ -1750,23 +1743,6 @@ handle_gns_resolution_result (void *cls,
       } /* end: switch */
     } /* end: for rd_count */
 
-    /* trigger shortening */
-    if ((NULL != rh->shorten_key) &&
-        (NULL != shorten_ac) &&
-        (GNUNET_NO == shorten_ac->shortening_started) &&
-        (NULL != shorten_ac->suggested_shortening_label))
-    {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Start shortening for label `%s' based on nick `%s'\n",
-                    shorten_ac->label,
-                    shorten_ac->suggested_shortening_label);
-        shorten_ac->shortening_started = GNUNET_YES;
-        GNS_shorten_start (shorten_ac->label,
-                         shorten_ac->suggested_shortening_label,
-                         &shorten_ac->authority_info.gns_authority,
-                         rh->shorten_key);
-    }
-
     /* yes, we are done, return result */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Returning GNS response for `%s' with %u answers\n",
@@ -2374,7 +2350,6 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
  * @param zone the zone to perform the lookup in
  * @param record_type the record type to look up
  * @param name the name to look up
- * @param shorten_key a private key for use with PSEU import (can be NULL)
  * @param options local options to control local lookup
  * @param proc the processor to call on result
  * @param proc_cls the closure to pass to @a proc
@@ -2384,16 +2359,13 @@ struct GNS_ResolverHandle *
 GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
-		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key,
 		     enum GNUNET_GNS_LocalOptions options,
 		     GNS_ResultProcessor proc, void *proc_cls)
 {
   struct GNS_ResolverHandle *rh;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      (NULL == shorten_key)
-	      ? "Starting lookup for `%s' with shortening disabled\n"
-	      : "Starting lookup for `%s' with shortening enabled\n",
+              "Starting lookup for `%s'\n",
 	      name);
   rh = GNUNET_new (struct GNS_ResolverHandle);
   GNUNET_CONTAINER_DLL_insert (rlh_head,
@@ -2406,11 +2378,6 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
   rh->record_type = record_type;
   rh->name = GNUNET_strdup (name);
   rh->name_resolution_pos = strlen (name);
-  if (NULL != shorten_key)
-  {
-    rh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-    *rh->shorten_key = *shorten_key;
-  }
   start_resolver_lookup (rh);
   return rh;
 }
@@ -2507,7 +2474,6 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
 				 dr);
     GNUNET_free (dr);
   }
-  GNUNET_free_non_null (rh->shorten_key);
   GNUNET_free (rh->name);
   GNUNET_free (rh);
 }

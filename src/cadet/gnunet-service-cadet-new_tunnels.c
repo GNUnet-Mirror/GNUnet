@@ -603,7 +603,11 @@ GCT_count_any_connections (const struct CadetTunnel *t)
 static struct CadetTConnection *
 get_ready_connection (struct CadetTunnel *t)
 {
-  return t->connection_ready_head;
+  struct CadetTConnection *hd = t->connection_ready_head;
+
+  GNUNET_assert ( (NULL == hd) ||
+                  (GNUNET_YES == hd->is_ready) );
+  return hd;
 }
 
 
@@ -1315,7 +1319,8 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (NULL == ct)
+  if ( (NULL == ct) ||
+       (GNUNET_NO == ct->is_ready) )
     ct = get_ready_connection (t);
   if (NULL == ct)
   {
@@ -1820,9 +1825,12 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   {
     /* This KX_AUTH is not using the latest KX/KX_AUTH data
        we transmitted to the sender, refuse it, try KX again. */
-    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (stats,
+                              "# KX_AUTH not using our last KX received (auth failure)",
+                              1,
+                              GNUNET_NO);
     send_kx (t,
-             NULL,
+             ct,
              &t->ax);
     return;
   }
@@ -1968,13 +1976,19 @@ GCT_connection_lost (struct CadetTConnection *ct)
   struct CadetTunnel *t = ct->t;
 
   if (GNUNET_YES == ct->is_ready)
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_ready_head,
                                  t->connection_ready_tail,
                                  ct);
+    t->num_ready_connections--;
+  }
   else
+  {
     GNUNET_CONTAINER_DLL_remove (t->connection_busy_head,
                                  t->connection_busy_tail,
                                  ct);
+    t->num_busy_connections--;
+  }
   GNUNET_free (ct);
 }
 
@@ -3068,10 +3082,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     break;
   }
 
-  GNUNET_STATISTICS_update (stats,
-                            "# received encrypted",
-                            1,
-                            GNUNET_NO);
   decrypted_size = -1;
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
@@ -3152,6 +3162,10 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
              &t->ax);
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+                            "# decrypted bytes",
+                            decrypted_size,
+                            GNUNET_NO);
 
   /* The MST will ultimately call #handle_decrypted() on each message. */
   t->current_ct = ct;
@@ -3203,6 +3217,10 @@ GCT_send (struct CadetTunnel *t,
                 &ax_msg[1],
                 message,
                 payload_size);
+  GNUNET_STATISTICS_update (stats,
+                            "# encrypted bytes",
+                            payload_size,
+                            GNUNET_NO);
   ax_msg->ax_header.Ns = htonl (t->ax.Ns++);
   ax_msg->ax_header.PNs = htonl (t->ax.PNs);
   /* FIXME: we should do this once, not once per message;

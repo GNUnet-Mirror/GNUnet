@@ -28,11 +28,11 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-server", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-server", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-server", syscall, filename)
 
 
 /**
@@ -945,9 +945,9 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
 
   type = ntohs (message->type);
   size = ntohs (message->size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Server schedules transmission of %u-byte message of type %u to client.\n",
-       size, type);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received message of type %u and size %u from client\n",
+       type, size);
   found = GNUNET_NO;
   for (pos = server->handlers; NULL != pos; pos = pos->next)
   {
@@ -1240,8 +1240,8 @@ client_message_tokenizer_callback (void *cls,
   int ret;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tokenizer gives server message of type %u from client\n",
-       ntohs (message->type));
+       "Tokenizer gives server message of type %u and size %u from client\n",
+       ntohs (message->type), ntohs (message->size));
   sender->in_process_client_buffer = GNUNET_YES;
   ret = GNUNET_SERVER_inject (server, sender, message);
   sender->in_process_client_buffer = GNUNET_NO;

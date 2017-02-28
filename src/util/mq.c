@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2014 GNUnet e.V.
+     Copyright (C) 2012-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "mq",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-mq",__VA_ARGS__)
 
 
 struct GNUNET_MQ_Envelope
@@ -235,24 +235,29 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
 {
   const struct GNUNET_MQ_MessageHandler *handler;
   int handled = GNUNET_NO;
-  uint16_t ms = ntohs (mh->size);
+  uint16_t msize = ntohs (mh->size);
+  uint16_t mtype = ntohs (mh->type);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message of type %u and size %u\n",
+       mtype, msize);
 
   if (NULL == mq->handlers)
     goto done;
   for (handler = mq->handlers; NULL != handler->cb; handler++)
   {
-    if (handler->type == ntohs (mh->type))
+    if (handler->type == mtype)
     {
       handled = GNUNET_YES;
-      if ( (handler->expected_size > ms) ||
-	   ( (handler->expected_size != ms) &&
+      if ( (handler->expected_size > msize) ||
+	   ( (handler->expected_size != msize) &&
 	     (NULL == handler->mv) ) )
       {
 	/* Too small, or not an exact size and
 	   no 'mv' handler to check rest */
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Received malformed message of type %u\n",
-                    (unsigned int) handler->type);
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             "Received malformed message of type %u\n",
+             (unsigned int) handler->type);
 	GNUNET_MQ_inject_error (mq,
 				GNUNET_MQ_ERROR_MALFORMED);
 	break;
@@ -267,9 +272,9 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
       else
       {
 	/* Message rejected by check routine */
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Received malformed message of type %u\n",
-                    (unsigned int) handler->type);
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             "Received malformed message of type %u\n",
+             (unsigned int) handler->type);
 	GNUNET_MQ_inject_error (mq,
 				GNUNET_MQ_ERROR_MALFORMED);
       }
@@ -279,9 +284,8 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
  done:
   if (GNUNET_NO == handled)
     LOG (GNUNET_ERROR_TYPE_INFO,
-         "No handler for message of type %d and size %d\n",
-         ntohs (mh->type),
-         ntohs (mh->size));
+         "No handler for message of type %u and size %u\n",
+         mtype, msize);
 }
 
 
@@ -358,6 +362,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == ev->parent_queue);
 
   mq->queue_length++;
+  GNUNET_break (mq->queue_length < 10000); /* This would seem like a bug... */
   ev->parent_queue = mq;
   /* is the implementation busy? queue it! */
   if ( (NULL != mq->current_envelope) ||
@@ -373,6 +378,46 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   mq->send_impl (mq,
 		 ev->mh,
 		 mq->impl_state);
+}
+
+
+/**
+ * Remove the first envelope that has not yet been sent from the message
+ * queue and return it.
+ *
+ * @param mq queue to remove envelope from
+ * @return NULL if queue is empty (or has no envelope that is not under transmission)
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq)
+{
+  struct GNUNET_MQ_Envelope *env;
+
+  env = mq->envelope_head;
+  GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
+                               mq->envelope_tail,
+                               env);
+  mq->queue_length--;
+  env->parent_queue = NULL;
+  return env;
+}
+
+
+/**
+ * Function to copy an envelope.  The envelope must not yet
+ * be in any queue or have any options or callbacks set.
+ *
+ * @param env envelope to copy
+ * @return copy of @a env
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env)
+{
+  GNUNET_assert (NULL == env->next);
+  GNUNET_assert (NULL == env->parent_queue);
+  GNUNET_assert (NULL == env->sent_cb);
+  GNUNET_assert (GNUNET_NO == env->have_custom_options);
+  return GNUNET_MQ_msg_copy (env->mh);
 }
 
 
@@ -716,9 +761,13 @@ server_client_send_impl (struct GNUNET_MQ_Handle *mq,
                          const struct GNUNET_MessageHeader *msg,
                          void *impl_state)
 {
-  struct ServerClientSocketState *state = impl_state;
-
   GNUNET_assert (NULL != mq);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending message of type %u and size %u\n",
+       ntohs (msg->type), ntohs (msg->size));
+
+  struct ServerClientSocketState *state = impl_state;
   state->th = GNUNET_SERVER_notify_transmit_ready (state->client,
 						   ntohs (msg->size),
 						   GNUNET_TIME_UNIT_FOREVER_REL,

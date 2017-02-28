@@ -264,8 +264,9 @@ refresh_bloomfilter (enum GNUNET_BLOCK_Type type,
                                                            UINT32_MAX),
                                  NULL,
                                  0,
-                                 "fs-seen-set-size",
-                                 pr->replies_seen_count);
+                                 "seen-set-size",
+                                 pr->replies_seen_count,
+                                 NULL);
   if (NULL == pr->bg)
     return;
   GNUNET_break (GNUNET_OK ==
@@ -383,8 +384,9 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                                     mingle,
                                     bf_data,
                                     bf_size,
-                                    "fs-seen-set-size",
-                                    0);
+                                    "seen-set-size",
+                                    0,
+                                    NULL);
   }
   else if ((replies_seen_count > 0) &&
            (0 != (options & GSF_PRO_BLOOMFILTER_FULL_REFRESH)))

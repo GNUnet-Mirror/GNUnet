@@ -306,8 +306,8 @@ GSC_bind (struct CadetClient *c,
        GCCH_2s (ch),
        GCP_2s (dest),
        GNUNET_h2s (port),
-       ntohl (options),
-       ntohl (ccn.channel_of_client));
+       (uint32_t) ntohl (options),
+       (uint32_t) ntohl (ccn.channel_of_client));
   /* notify local client about incoming connection! */
   env = GNUNET_MQ_msg (cm,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
@@ -622,7 +622,7 @@ handle_channel_destroy (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s tried to destroy unknown channel %X\n",
          GSC_2s(c),
-         ntohl (msg->ccn.channel_of_client));
+         (uint32_t) ntohl (msg->ccn.channel_of_client));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -716,12 +716,18 @@ handle_local_data (void *cls,
                        msg->ccn);
   if (NULL == ch)
   {
-    /* Channel does not exist! */
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c->client);
+    /* Channel does not exist (anymore) */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Dropping payload for channel %u from client (channel unknown, other endpoint may have disconnected)\n",
+         (unsigned int) ntohl (msg->ccn.channel_of_client));
+    GNUNET_SERVICE_client_continue (c->client);
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
+  GNUNET_STATISTICS_update (stats,
+                            "# payload received from clients",
+                            payload_size,
+                            GNUNET_NO);
   buf = (const char *) &msg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %u bytes payload from %s for %s\n",
@@ -758,9 +764,11 @@ handle_local_ack (void *cls,
                        msg->ccn);
   if (NULL == ch)
   {
-    /* Channel does not exist! */
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c->client);
+    /* Channel does not exist (anymore) */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Ignoring local ACK for channel %u from client (channel unknown, other endpoint may have disconnected)\n",
+         (unsigned int) ntohl (msg->ccn.channel_of_client));
+    GNUNET_SERVICE_client_continue (c->client);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,

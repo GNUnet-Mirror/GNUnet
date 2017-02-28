@@ -879,11 +879,13 @@ handle_alices_cryptodata_message (void *cls,
  *
  * @param cls closure with the `struct BobServiceSession`
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status what has happened with the set intersection?
  */
 static void
 cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
+                                 uint64_t current_size,
                                  enum GNUNET_SET_Status status)
 {
   struct BobServiceSession *s = cls;
@@ -964,6 +966,7 @@ start_intersection (struct BobServiceSession *s)
                           &s->session_id,
                           NULL,
                           GNUNET_SET_RESULT_REMOVED,
+                          (struct GNUNET_SET_Option[]) {{ 0 }},
                           &cb_intersection_element_removed,
                           s);
   if (GNUNET_OK !=
@@ -1172,11 +1175,11 @@ handle_bob_client_message (void *cls,
     GNUNET_MQ_hd_fixed_size (alices_computation_request,
                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION,
                              struct ServiceRequestMessage,
-                             s),
+                             NULL),
     GNUNET_MQ_hd_var_size (alices_cryptodata_message,
                            GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA,
                            struct AliceCryptodataMessage,
-                           s),
+                           NULL),
     GNUNET_MQ_handler_end ()
   };
   uint32_t contained_count;

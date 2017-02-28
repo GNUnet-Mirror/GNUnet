@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-container-multishortmap", __VA_ARGS__)
 
 /**
  * An entry in the hash map with the full key.

@@ -47,9 +47,10 @@ various operating systems and a detailed list of all dependencies can be found o
 
 
 \section{Installing GNUnet}
+
 First of all you have to install a current version of GNUnet. You can download a
 tarball of a stable version from GNU FTP mirrors or obtain the latest development
-version from our Subversion repository.
+version from our Git repository.
 
 Most of the time you should prefer to download the stable version since with the
 latest development version things can be broken, functionality can be changed or tests
@@ -57,6 +58,7 @@ can fail. You should only use the development version if you know that you requi
 certain feature or a certain issue has been fixed since the last release.
 
 \subsection{Obtaining a stable version}
+
 You can download the latest stable version of GNUnet from GNU FTP mirrors:
 \begin{center}
 \url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
@@ -80,23 +82,26 @@ $ mv gnunet-0.10.x gnunet		# we will use the directory "gnunet" in the remainder
 $ cd gnunet
 \end{lstlisting}
 
+
 \subsection{Installing Build Tool Chain and Dependencies}
+
 To successfully compile GNUnet you need the tools to build GNUnet and the required dependencies.
 Please have a look at \url{https://gnunet.org/dependencies} for a list of required dependencies
 and \url{https://gnunet.org/generic_installation} for specific instructions for your operating system.
 
 Please check the notes at the end of the configure process about required dependencies.
 
-For GNUNet bootstrapping support and the http(s) plugin you should install \texttt{libcurl}.
+For GNUnet bootstrapping support and the http(s) plugin you should install \texttt{libgnurl}.
 For the filesharing service you should install at least one of the datastore backends \texttt{mysql},
 \texttt{sqlite} or \texttt{postgresql}.
 
-\subsection{Obtaining the latest version from Subversion}
-The latest development version can obtained from our Subversion (\textit{svn}) repository. To obtain
-the code you need Subversion installed and checkout the repository using:
+\subsection{Obtaining the latest version from Git}
+
+The latest development version can obtained from our Git repository. To obtain
+the code you need Git installed and checkout the repository using:
 \lstset{language=bash}
 \begin{lstlisting}
-$ svn checkout https://gnunet.org/svn/gnunet
+$ git clone https://gnunet.org/git/gnunet
 \end{lstlisting}
 After cloning the repository you have to execute
 \lstset{language=bash}
@@ -105,7 +110,8 @@ $ cd gnunet
 $ ./bootstrap
 \end{lstlisting}
 
-The remainder of this tutorial assumes that you have SVN HEAD checked out.
+The remainder of this tutorial assumes that you have Git Master checked out.
+
 
 \subsection{Compiling and Installing GNUnet}
 
@@ -152,7 +158,7 @@ $ make install
 \end{lstlisting}
 
 After installing GNUnet you have to add your GNUnet installation to your path
-environmental variable. In addition you have to create the \lstinline|.gnunet|
+environmental variable. In addition you have to create the \lstinline|.config|
 directory in your home directory where GNUnet stores its data and an empty
 GNUnet configuration file:
 
@@ -160,12 +166,13 @@ GNUnet configuration file:
 \begin{lstlisting}
 $ export PATH=$PATH:$PREFIX/bin
 $ echo export PATH=$PREFIX/bin:\\$PATH >> ~/.bashrc
-$ mkdir ~/.gnunet/
-$ touch ~/.gnunet/gnunet.conf
+$ mkdir ~/.config/
+$ touch ~/.config/gnunet.conf
 \end{lstlisting}
 % $
 
 \subsection{Common Issues - Check your GNUnet installation}
+
 You should check your installation to ensure that installing GNUnet
 was successful up to this point. You should be able to access GNUnet's
 binaries and run GNUnet's self check.
@@ -189,7 +196,7 @@ to execute tests for all components. {\tt make check} traverses all subdirectori
 For every subdirectory you should get a message like this:
 
 \begin{lstlisting}
-make[2]: Entering directory `/home/mwachs/gnunet/contrib'
+make[2]: Entering directory `/home/$USER/gnunet/contrib'
 PASS: test_gnunet_prefix
 =============
 1 test passed
@@ -206,7 +213,9 @@ FAIL: test_program
 \end{lstlisting}
 double check the steps performed in ~\ref{sub:install}
 
+
 \section{Background: GNUnet Architecture}
+
 GNUnet is organized in layers and services. Each service is composed of a
 main service implementation and a client library for other programs to use
 the service's functionality, described by an API. This approach is shown in
@@ -244,9 +253,11 @@ client do not affect the service process or other clients. The service and the
 clients communicate via a message protocol to be defined and implemented by
 the programmer.
 
+
 \section{First Steps with GNUnet}
 
 \subsection{Configure your peer}
+
 First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and its services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
 
 Since we want to start additional peers later, we need
@@ -266,6 +277,7 @@ GNUNET_HOME = ~/gnunet1/		# Use this directory to store GNUnet data
 [hostlist]
 SERVERS =				# prevent bootstrapping
 \end{lstlisting}
+
 
 \subsection{Start a peer}
 Each GNUnet instance (called peer) has an identity (\textit{peer ID}) based on a
@@ -295,6 +307,7 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 
 
 \subsection{Monitor a peer}
+
 In this section, we will monitor the behaviour of our peer's DHT service with respect to a
 specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
 to monitor the PUT and GET commands we issue ussing the \lstinline|gnunet-dht-put| and
@@ -317,7 +330,10 @@ $ gnunet-statistics -c ~/peer1.conf		# print statistics about current GNUnet sta
 $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 \end{lstlisting}
 % $
+
+
 \subsection{Starting Two Peers by Hand}
+
 \subsubsection{Setup a second peer}
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
@@ -364,6 +380,7 @@ as needed.  Also, make sure the output is different from the {\tt
 error in the configuration).
 
 \subsubsection{Start the second peer and connect the peers}
+
 Then, you can start a second peer using:
 \lstset{language=bash}
 \begin{lstlisting}
@@ -403,6 +420,7 @@ likely observe traffic and behaviors that are not explicitly controlled
 by you.
 
 \subsubsection{How to connect manually}
+
 If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
 \begin{itemize}
 \itemsep0em
@@ -447,8 +465,8 @@ With the testbed API, a sample test case can be structured as follows:
 % <lynX> Is there a way to pick a more readable font for this include?
 \lstinputlisting[language=C]{testbed_test.c}
 The source code for the above listing can be found at
-\url{https://gnunet.org/svn/gnunet/doc/testbed_test.c}
-or in the doc folder of your repository check-out.
+\url{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
+or in the {\tt doc/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
 \lstset{language=bash}
 \begin{lstlisting}
@@ -504,7 +522,9 @@ disconnect from the service with the provided service handle (\texttt{op\_result
   Then use the DHT API to store and retrieve values in the
   network.}
 
+
 \section{Developing Applications}
+
 \subsection{gnunet-ext}
 To develop a new peer-to-peer application or to extend GNUnet we provide
 a template build system for writing GNUnet extensions in C. It can be
@@ -512,7 +532,7 @@ obtained as follows:
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ svn checkout https://gnunet.org/svn/gnunet-ext/
+$ git clone https://gnunet.org/git/gnunet-ext
 $ cd gnunet-ext/
 $ ./bootstrap
 $ ./configure --prefix=$PREFIX --with-gnunet=$PREFIX
@@ -678,15 +698,26 @@ with the service, a connection must be created:
 
 \lstset{language=c}
 \begin{lstlisting}
-  struct GNUNET_CLIENT_Connection *client;
-  client = GNUNET_CLIENT_connect ("service-name", cfg);
+  struct GNUNET_MQ_MessageHandlers handlers[] = {
+    // ...
+    GNUNET_MQ_handler_end ()
+  };
+  struct GNUNET_MQ_Handle *mq;
+
+  mq = GNUNET_CLIENT_connect (cfg, "service-name", handlers, &error_cb, NULL);
 \end{lstlisting}
 
-As a result a {\tt GNUNET\_CLIENT\_Connection} handle is returned
-which has to used in later API calls related to this service.
-The complete client API can be found in {\tt gnunet\_client\_lib.h}
+As a result a {\tt GNUNET\_MQ\_Handle} is returned
+which can to used henceforth to transmit messages to
+the service.
+The complete MQ API can be found in {\tt gnunet\_mq\_lib.h}.
+The {\tt hanlders} array in the example above is incomplete.
+Here is where you will define which messages you expect to
+receive from the service, and which functions handle them.
+The {\tt error\_cb} is a function that is to be called whenever
+there are errors communicating with the service.
 
-\subsubsection{GNUnet Messages}
+\subsubsection{Sending messages}
 
 In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_MessageHeader}
 in big endian format. This header defines the size and the type of the
@@ -712,16 +743,17 @@ struct GNUNET_MessageHeader
 \end{lstlisting}
 
 Existing message types are defined in {\tt gnunet\_protocols.h}\\
-A common way to create a message is:
+A common way to create a message is with an envelope:
 
 \lstset{language=c}
 \begin{lstlisting}
-struct GNUNET_MessageHeader *msg =
-  GNUNET_malloc(payload_size + sizeof(struct GNUNET_MessageHeader));
-msg->size = htons(payload_size + sizeof(struct GNUNET_MessageHeader));
-msg->type = htons(GNUNET_MY_MESSAGE_TYPE);
-memcpy(&msg[1], &payload, payload_size);
-// use 'msg'
+struct GNUNET_MQ_Envelope *env;
+struct GNUNET_MessageHeader *msg;
+
+env = GNUNET_MQ_msg_extra (msg, payload_size, GNUNET_MY_MESSAGE_TYPE);
+memcpy (&msg[1], &payload, payload_size);
+/* Send message via message queue 'mq': */
+GNUNET_mq_send (mq, env);
 \end{lstlisting}
 
 \exercise{Define a message struct that includes a 32-bit
@@ -729,52 +761,9 @@ unsigned integer in addition to the standard GNUnet MessageHeader.
 Add a C struct and define a fresh protocol number for your message.
 (Protocol numbers in gnunet-ext are defined in \lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)}
 
+\exercise{Find out how you can determine the number of messages in a message queue.}
 
-\subsubsection{Sending Requests to the Service}
-
-Any client-service protocol must start with the client sending the
-first message to the service, since services are only notified about
-(new) clients upon receiving a the first message.
-
-Clients can transmit messages to the service using the
-{\tt GNUNET\_CLIENT\_notify\_transmit\_ready} API:
-\lstset{language=c}
-\begin{lstlisting}
-static size_t
-transmit_cb (void *cls, size_t size, void *buf)
-{
-  // ...
-  if (NULL == buf) { /* handle error here */; return 0; }
-  GNUNET_assert (size >= msg_size);
-  memcpy (buf, my_msg, msg_size);
-  // ...
-  return msg_size;
-}
-
-// ...
-th = GNUNET_CLIENT_notify_transmit_ready (client,
-					  msg_size,
- 				    timeout,
-					  GNUNET_YES,
-					  &transmit_cb, cls);
-// ...
-\end{lstlisting}
-
-The client-service protocoll calls {\tt GNUNET\_CLIENT\_notify\_transmit\_ready}
-to be notified when the client is ready to send data to the service.
-Besides other arguments, you have to pass the client returned
-from the {\tt connect} call, the message size and the callback function to
-call when the client is ready to send.
-
-Only a single transmission request can be queued per client at the
-same time using this API.  The handle {\tt th} can be used to cancel
-the request if necessary (for example, during shutdown).
-
-When {\tt transmit\_cb} is called the message is copied in the buffer provided and
-the number of bytes copied into the buffer is returned. {\tt transmit\_cb}
-could also return 0 if for some reason no message
-could be constructed; this is not an error and the connection to the
-service will persist in this case.
+\exercise{Find out how you can determine when a message you have queued was actually transmitted.}
 
 \exercise{Define a helper function to transmit a 32-bit
 unsigned integer (as payload) to a service using some given client
@@ -783,42 +772,77 @@ handle.}
 
 \subsubsection{Receiving Replies from the Service}
 
-Clients can receive messages from the service using the
-{\tt GNUNET\_CLIENT\_receive} API:
+Clients can receive messages from the service using the handlers
+specified in the {\tt handlers} array we specified when connecting
+to the service.  Entries in the the array are usually created using
+one of two macros, depending on whether the message is fixed size
+or variable size.  Variable size messages are managed using two
+callbacks, one to check that the message is well-formed, the other
+to actually process the message.  Fixed size messages are fully
+checked by the MQ-logic, and thus only need to provide the handler
+to process the message.  Note that the prefixes {\tt check\_}
+and {\tt handle\_} are mandatory.
 
 \lstset{language=c}
 \begin{lstlisting}
 /**
- * Function called with messages from stats service.
+ * Function called with MyMessage messages from service.
  *
  * @param cls closure
- * @param msg message received, NULL on timeout or fatal error
+ * @param msg message received
  */
 static void
-receive_message (void *cls, const struct GNUNET_MessageHeader *msg)
+handle_fix (void *cls, const struct MyMessage *msg)
 {
-  struct MyArg *arg = cls;
-
   // process 'msg'
 }
 
-// ...
-  GNUNET_CLIENT_receive (client,
-                         &receive_message,
-                         arg,
-                         timeout);
-// ...
+/**
+ * Function called with MyVarMessage messages from service.
+ *
+ * @param cls closure
+ * @param msg message received
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_var (void *cls, const struct MyVarMessage *msg)
+{
+  // check 'msg' is well-formed
+  return GNUNET_OK; /* suppose yes */
+}
+
+/**
+ * Function called with MyMessage messages from service.
+ *
+ * @param cls closure
+ * @param msg message received
+ */
+static void
+handle_var (void *cls, const struct MyVarMessage *msg)
+{
+  // process 'msg'
+}
+
+struct GNUNET_MQ_MessageHandler handlers[] = {
+  GNUNET_MQ_hd_fixed_size (fix,
+                          GNUNET_MESSAGE_TYPE_MY_FIX,
+                          struct MyMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size (var,
+                          GNUNET_MESSAGE_TYPE_MY_VAR,
+                          struct MyVarMessage,
+                          NULL),
+
+  GNUNET_MQ_handler_end ()
+};
 \end{lstlisting}
 
-It should be noted that this receive call only receives a single
-message.  To receive additional messages, {\tt
-  GNUNET\_CLIENT\_receive} must be called again.
+\exercise{Expand your helper function to receive a response message
+  (for example, containing just the {\tt struct GNUnet MessageHeader}
+  without any payload).  Upon receiving the service's response, you
+  should call a callback provided to your helper function's API.}
 
-\exercise{Expand your helper function to receive a
-response message (for example, containing just the GNUnet MessageHeader
-without any payload).  Upon receiving the service's response, you should
-call a callback provided to your helper function's API.  You'll need to
-define a new 'struct' to hold your local context (``closure'').}
+\exercise{Figure out where you can pass values to the closures ({\tt cls}).}
 
 
 \subsection{Writing a user interface}
@@ -827,10 +851,10 @@ Given a client library, all it takes to access a service now is to
 combine calls to the client library with parsing command-line
 options.
 
-\exercise{Call your client API from your {\tt run} method
-in your client application to send a request to the service.
-For example, send a 32-bit integer value based on a number given
-at the command-line to the service.}
+\exercise{Call your client API from your {\tt run()} method in your
+  client application to send a request to the service.  For example,
+  send a 32-bit integer value based on a number given at the
+  command-line to the service.}
 
 
 
@@ -851,141 +875,102 @@ and configuration files.
 
 \subsection{Starting a Service}
 
-The key API definitions for starting services are:
+The key API definition for creating a service is the {\tt GNUNET\_SERVICE\_MAIN} macro:
 \lstset{language=C}
 \begin{lstlisting}
-typedef void (*GNUNET_SERVICE_Main) (void *cls,
-                                     struct GNUNET_SERVER_Handle *server,
-                                     const struct GNUNET_CONFIGURATION_Handle *cfg);
-int GNUNET_SERVICE_run (int argc,
-                        char *const *argv,
-                        const char *serviceName,
-                       	enum GNUNET_SERVICE_Options opt,
-                        GNUNET_SERVICE_Main task,
-                        void *task_cls);
+GNUNET_SERVICE_MAIN
+("service-name",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (...),
+ GNUNET_MQ_hd_var_size (...),
+ GNUNET_MQ_handler_end ());
 \end{lstlisting}
 
-Here is a starting point for your main function for your service:
+In addition to the service name and flags, the macro takes three
+functions, typically called {\tt run}, {\tt client\_connect\_cb} and
+{\tt client\_disconnect\_cb} as well as an array of message handlers
+that will be called for incoming messages from clients.
+
+A minimal version of the three central service funtions would look
+like this:
 
 \lstset{language=c}
 \begin{lstlisting}
-static void my_main (void *cls,
-                     struct GNUNET_SERVER_Handle *server,
-                     const struct GNUNET_CONFIGURATION_Handle *cfg)
+/**
+ * Launch service.
+ *
+ * @param cls closure
+ * @param c configuration to use
+ * @param service the initialized service
+ */
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-   /* do work */
 }
 
-int main (int argc, char *const*argv)
+/**
+ * Callback called when a client connects to the service.
+ *
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
 {
-  if (GNUNET_OK !=
-      GNUNET_SERVICE_run (argc, argv, "my",
-                          GNUNET_SERVICE_OPTION_NONE,
-                          &my_main, NULL);
-    return 1;
-  return 0;
+  return c;
+}
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  GNUNET_assert (c == internal_cls);
 }
 \end{lstlisting}
 
 \exercise{Write a stub service that processes no messages at all
-in your code.  Create a default configuration for it, integrate it
-with the build system and start the service from {\tt
+  in your code.  Create a default configuration for it, integrate it
+  with the build system and start the service from {\tt
   gnunet-service-arm} using {\tt gnunet-arm -i NAME}.}
 
+\exercise{Figure out how to set the closure ({\tt cls}) for handlers
+  of a service.}
 
-\subsection{Receiving Requests from Clients}
+\exercise{Figure out how to send messages from the service back to the
+  client.}
 
-Inside of the {\tt my\_main} method, a service typically registers for
-the various message types from clients that it supports by providing
-a handler function, the message type itself and possibly a fixed
-message size (or 0 for variable-size messages):
-
-\lstset{language=c}
-\begin{lstlisting}
-static void
-handle_set (void *cls,
-	    struct GNUNET_SERVER_Client *client,
-	    const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-static void
-handle_get (void *cls,
-	    struct GNUNET_SERVER_Client *client,
-	    const struct GNUNET_MessageHeader *message)
-{
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-static void my_main (void *cls,
-                     struct GNUNET_SERVER_Handle *server,
-                     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_set, NULL, GNUNET_MESSAGE_TYPE_MYNAME_SET, 0},
-    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_MYNAME_GET, 0},
-    {NULL, NULL, 0, 0}
-  };
-  GNUNET_SERVER_add_handlers (server, handlers);
-   /* do more setup work */
-}
-\end{lstlisting}
-
-Each handler function {\bf must} eventually (possibly in some
-asynchronous continuation) call {\tt GNUNET\_SERVER\_receive\_done}.
+Each handler function in the service {\bf must} eventually (possibly in some
+asynchronous continuation) call {\tt GNUNET\_SERVICE\_client\_continue()}.
 Only after this call additional messages from the same client may
 be processed. This way, the service can throttle processing messages
-from the same client.  By passing {\tt GNUNET\_SYSERR}, the service
-can close the connection to the client, indicating an error.
-
-Services must check that client requests are well-formed and must not
-crash on protocol violations by the clients.  Similarly, client
-libraries must check replies from servers and should gracefully report
-errors via their API.
-
+from the same client.
 
 \exercise{Change the service to ``handle'' the message from your
-client (for now, by printing a message).  What happens if you
-forget to call {\tt GNUNET\_SERVER\_receive\_done}?}
+  client (for now, by printing a message).  What happens if you
+  forget to call {\tt GNUNET\_SERVICE\_client\_continue()}?}
 
-
-\subsection{Responding to Clients}
-
-Servers can send messages to clients using the
-{\tt GNUNET\_SERVER\_notify\_transmit\_ready} API:
-
-\lstset{language=c}
-\begin{lstlisting}
-static size_t
-transmit_cb (void *cls, size_t size, void *buf)
-{
-  // ...
-  if (NULL == buf) { handle_error(); return 0; }
-  GNUNET_assert (size >= msg_size);
-  memcpy (buf, my_msg, msg_size);
-  // ...
-  return msg_size;
-}
-
-// ...
-struct GNUNET_SERVER_TransmitHandle *th;
-th = GNUNET_SERVER_notify_transmit_ready (client,
-					  msg_size,
- 				          timeout,
-					  &transmit_cb, cls);
-// ...
-\end{lstlisting}
-
-Only a single transmission request can be queued per client
-at the same time using this API.
-Additional APIs for sending messages to clients can be found
-in the {\tt gnunet\_server\_lib.h} header.
-
-
-\exercise{Change the service respond to the request from your
-client.  Make sure you handle malformed messages in both directions.}
 
 \section{Interacting directly with other Peers using the CORE Service}
+
+FIXME: This section still needs to be updated to the lastest API!
 
 One of the most important services in GNUnet is the \texttt{CORE} service
 managing connections between peers and handling encryption between peers.
@@ -1241,7 +1226,9 @@ If the \lstinline|sync_first| flag is set to \lstinline|GNUNET_YES|, the API wil
 disconnection until all store requests are received by the PEERSTORE service. Otherwise,
 it will disconnect immediately.
 
+
 \section{Using the DHT}
+
 The DHT allows to store data so other peers in the P2P network can
 access it and retrieve data stored by any peers in the network.
 This section will explain how to use the DHT. Of course, the first
@@ -1279,7 +1266,7 @@ message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 struct GNUNET_DHT_PutHandle *
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const struct GNUNET_HashCode * key,
+                const struct GNUNET_HashCode *key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options, /* Route options, see next call */
                 enum GNUNET_BLOCK_Type type, size_t size, const void *data,
@@ -1311,7 +1298,7 @@ path and on the GET path.
 \begin{lstlisting}
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute expiration,
-                     const struct GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode *key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
@@ -1360,31 +1347,30 @@ requests.  Note that depending on how {\tt evaluate} is called, only
 some of the possible return values are valid.  The specific meaning of
 the {\tt xquery} argument is application-specific.  Applications that
 do not use an extended query should check that the {\tt xquery\_size}
-is zero.  The Bloom filter is typically used to filter duplicate
+is zero.  The block group is typically used to filter duplicate
 replies.
 
 \lstset{language=C}
 \begin{lstlisting}
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_SERVICE_evaluate (void *cls,
-                               enum GNUNET_BLOCK_Type type,
-			       const GNUNET_HashCode * query,
-			       struct GNUNET_CONTAINER_BloomFilter **bf,
-			       int32_t bf_mutator,
-			       const void *xquery,
-			       size_t xquery_size,
-			       const void *reply_block,
-			       size_t reply_block_size)
+                              enum GNUNET_BLOCK_Type type,
+                              struct GNUNET_BlockGroup *bg,
+			      const GNUNET_HashCode *query,
+			      const void *xquery,
+			      size_t xquery_size,
+			      const void *reply_block,
+			      size_t reply_block_size)
 {
-  /* Verify type, block and bloomfilter */
+  /* Verify type, block and bg */
 }
 \end{lstlisting}
 
-Note that it is mandatory to detect duplicate replies in this
-function and return the respective status code.  Duplicate
-detection should be done by setting the respective bits in
-the Bloom filter {\tt bf}.  Failure to do so may cause replies
-to circle in the network.
+Note that it is mandatory to detect duplicate replies in this function
+and return the respective status code.  Duplicate detection is
+typically done using the Bloom filter block group provided by {\tt
+  libgnunetblockgroup.so}.  Failure to do so may cause replies to
+circle in the network.
 
 \subsubsection{Deriving a key from a reply}
 
@@ -1400,7 +1386,7 @@ just fine with such blocks).
 static int
 block_plugin_SERVICE_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                               const void *block, size_t block_size,
-                              GNUNET_HashCode * key)
+                              struct GNUNET_HashCode *key)
 {
     /* Store the key in the key argument, return GNUNET_OK on success. */
 }
@@ -1426,7 +1412,7 @@ libgnunet_plugin_block_SERVICE_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_SERICE_evaluate;
   api->get_key = &block_plugin_SERVICE_get_key;
   api->types = types;

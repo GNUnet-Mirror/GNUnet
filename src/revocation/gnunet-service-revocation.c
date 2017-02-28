@@ -38,6 +38,7 @@
 #include "platform.h"
 #include <math.h>
 #include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
@@ -215,7 +216,7 @@ client_connect_cb (void *cls,
  * @param client the new client
  * @param app_cls must alias @a client
  */
-static void 
+static void
 client_disconnect_cb (void *cls,
 		      struct GNUNET_SERVICE_Client *client,
 		      void *app_cls)
@@ -352,7 +353,7 @@ publicize_rm (const struct RevokeMessage *rm)
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   /* add to set for future connections */
   e.size = htons (rm->header.size);
-  e.element_type = 0;
+  e.element_type = GNUNET_BLOCK_TYPE_REVOCATION;
   e.data = rm;
   if (GNUNET_OK !=
       GNUNET_SET_add_element (revocation_set,
@@ -432,11 +433,13 @@ handle_p2p_revoke (void *cls,
  *
  * @param cls closure
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status see `enum GNUNET_SET_Status`
  */
 static void
 add_revocation (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t current_size,
                 enum GNUNET_SET_Status status)
 {
   struct PeerEntry *peer_entry = cls;
@@ -450,11 +453,12 @@ add_revocation (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    if (0 != element->element_type)
+    if (GNUNET_BLOCK_TYPE_REVOCATION != element->element_type)
     {
       GNUNET_STATISTICS_update (stats,
                                 gettext_noop ("# unsupported revocations received via set union"),
-                                1, GNUNET_NO);
+                                1,
+                                GNUNET_NO);
       return;
     }
     rm = element->data;
@@ -509,6 +513,7 @@ transmit_task_cb (void *cls)
                                        &revocation_set_union_app_id,
                                        NULL,
                                        GNUNET_SET_RESULT_ADDED,
+                                       (struct GNUNET_SET_Option[]) {{ 0 }},
                                        &add_revocation,
                                        peer_entry);
   if (GNUNET_OK !=
@@ -601,12 +606,12 @@ handle_core_disconnect (void *cls,
 			void *internal_cls)
 {
   struct PeerEntry *peer_entry = internal_cls;
-  
+
   if (0 == memcmp (peer,
                    &my_identity,
                    sizeof (my_identity)))
     return;
-  GNUNET_assert (NULL != peer_entry);  
+  GNUNET_assert (NULL != peer_entry);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
@@ -755,6 +760,7 @@ handle_revocation_union_request (void *cls,
   }
   peer_entry->so = GNUNET_SET_accept (request,
                                       GNUNET_SET_RESULT_ADDED,
+                                      (struct GNUNET_SET_Option[]) {{ 0 }},
                                       &add_revocation,
                                       peer_entry);
   if (GNUNET_OK !=
@@ -779,7 +785,7 @@ handle_revocation_union_request (void *cls,
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
-     struct GNUNET_SERVICE_Handle *service)     
+     struct GNUNET_SERVICE_Handle *service)
 {
   struct GNUNET_MQ_MessageHandler core_handlers[] = {
     GNUNET_MQ_hd_fixed_size (p2p_revoke,

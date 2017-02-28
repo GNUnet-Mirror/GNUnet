@@ -1,2 +1,10 @@
 gnunet_testing.py
 gnunet_pyexpect.py
+gnunet_pyexpect.pyc
+gnunet_testing.pyc
+test_integration_bootstrap_and_connect.py
+test_integration_clique.py
+test_integration_disconnect_nat.py
+test_integration_disconnect.py
+test_integration_reconnect_nat.py
+test_integration_reconnect.py

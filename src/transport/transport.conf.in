@@ -4,6 +4,8 @@ AUTOSTART = @AUTOSTART@
 HOSTNAME = localhost
 BINARY = gnunet-service-transport
 # PREFIX = valgrind
+
+# Maximum number of neighbours PER PLUGIN (not in total).
 NEIGHBOUR_LIMIT = 50
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
