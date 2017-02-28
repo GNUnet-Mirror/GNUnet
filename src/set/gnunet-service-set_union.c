@@ -895,6 +895,10 @@ handle_p2p_strata_estimator (void *cls,
          "Sending full set (diff=%d, own set=%u)\n",
          diff,
          op->state->initial_size);
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# of full sends",
+                              1,
+                              GNUNET_NO);
     if (op->state->initial_size <= other_size)
     {
       send_full_set (op);
@@ -909,6 +913,10 @@ handle_p2p_strata_estimator (void *cls,
   }
   else
   {
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# of ibf sends",
+                              1,
+                              GNUNET_NO);
     if (GNUNET_OK !=
         send_ibf (op,
                   get_order_from_difference (diff)))
