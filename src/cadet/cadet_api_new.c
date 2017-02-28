@@ -626,7 +626,6 @@ handle_channel_created (void *cls,
     struct GNUNET_CADET_LocalChannelDestroyMessage *d_msg;
     struct GNUNET_MQ_Envelope *env;
 
-    GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "No handler for incoming channel %X (on port %s, recently closed?)\n",
          ntohl (ccn.channel_of_client),
@@ -682,16 +681,18 @@ handle_channel_destroy (void *cls,
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received channel destroy for channel %X from CADET service\n",
-       ntohl (msg->ccn.channel_of_client));
   ch = find_channel (h,
                      msg->ccn);
   if (NULL == ch)
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received channel destroy for unknown channel %X from CADET service\n",
+         ntohl (msg->ccn.channel_of_client));
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received channel destroy for channel %X from CADET service\n",
+       ntohl (msg->ccn.channel_of_client));
   destroy_channel (ch);
 }
 
