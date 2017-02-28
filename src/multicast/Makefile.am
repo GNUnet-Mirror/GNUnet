@@ -33,7 +33,8 @@ bin_PROGRAMS = \
  gnunet-multicast
 
 libexec_PROGRAMS = \
- gnunet-service-multicast
+ gnunet-service-multicast \
+ $(EXP_LIBEXEC)
 
 gnunet_multicast_SOURCES = \
  gnunet-multicast.c
@@ -48,7 +49,6 @@ gnunet_service_multicast_LDADD = \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
-
 
 check_PROGRAMS = \
  test_multicast \
