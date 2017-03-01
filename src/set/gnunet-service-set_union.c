@@ -877,6 +877,8 @@ handle_p2p_strata_estimator (void *cls,
   if (diff > 200)
     diff = diff * 3 / 2; 
 
+
+
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (op->state->se);
   op->state->se = NULL;
@@ -884,6 +886,17 @@ handle_p2p_strata_estimator (void *cls,
        "got se diff=%d, using ibf size %d\n",
        diff,
        1<<get_order_from_difference (diff));
+
+  {
+    char *set_debug;
+    set_debug = getenv ("GNUNET_SET_BENCHMARK");
+    if ( (NULL != set_debug) && (0 == strcmp (set_debug, "1")) )
+    {
+      FILE *f = fopen ("set.log", "a");
+      fprintf (f, "%llu\n", (unsigned long long) diff);
+      fclose (f);
+    }
+  }
 
   if ((GNUNET_YES == op->spec->byzantine) && (other_size < op->spec->byzantine_lower_bound))
   {

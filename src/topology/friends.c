@@ -58,14 +58,20 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   if ( (GNUNET_OK != GNUNET_DISK_file_test (fn)) &&
-       (GNUNET_OK != GNUNET_DISK_fn_write (fn, NULL, 0,
+       (GNUNET_OK != GNUNET_DISK_fn_write (fn,
+                                           NULL,
+                                           0,
 					   GNUNET_DISK_PERM_USER_READ |
-					   GNUNET_DISK_PERM_USER_WRITE)) )
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+					   GNUNET_DISK_PERM_USER_WRITE |
+                                           GNUNET_DISK_OPEN_CREATE)) )
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "write",
+                              fn);
   if ( (GNUNET_OK !=
         GNUNET_DISK_file_size (fn,
                                &fsize,
-                               GNUNET_NO, GNUNET_YES)) ||
+                               GNUNET_NO,
+                               GNUNET_YES)) ||
        (0 == fsize) )
   {
     GNUNET_free (fn);
@@ -93,8 +99,8 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
       pos++;
     if (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_public_key_from_string (&data[start],
-						       pos - start,
-						       &pid.public_key))
+                                                    pos - start,
+                                                    &pid.public_key))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Syntax error in FRIENDS file at offset %llu, skipping bytes `%.*s'.\n"),

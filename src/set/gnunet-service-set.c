@@ -672,11 +672,12 @@ client_disconnect_cb (void *cls,
                 "Client's set destroyed\n");
   }
   struct Listener *listener = listener_get (client);
-  struct Operation *op = incoming_head;
   if (NULL != listener)
   {
     /* destroy all incoming operations whose client just
      * got destroyed */
+    //struct Operation *op = incoming_head;
+    /*
     while (NULL != op)
     {
       struct Operation *curr = op;
@@ -685,6 +686,7 @@ client_disconnect_cb (void *cls,
            (curr->listener == listener) )
         incoming_destroy (curr);
     }
+    */
     listener->client = NULL;
     listener_destroy (listener);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

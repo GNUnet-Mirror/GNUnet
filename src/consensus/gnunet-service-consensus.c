@@ -393,6 +393,14 @@ struct DiffEntry
   struct GNUNET_CONTAINER_MultiHashMap *changes;
 };
 
+struct SetHandle
+{
+  struct SetHandle *prev;
+  struct SetHandle *next;
+
+  struct GNUNET_SET_Handle *h;
+};
+
 
 
 /**
@@ -499,6 +507,9 @@ struct ConsensusSession
    * Bounded Eppstein lower bound.
    */
   uint64_t lower_bound;
+
+  struct SetHandle *set_handles_head;
+  struct SetHandle *set_handles_tail;
 };
 
 /**
@@ -1663,6 +1674,12 @@ set_copy_cb (void *cls, struct GNUNET_SET_Handle *copy)
   struct TaskEntry *task = scc->task;
   struct SetKey dst_set_key = scc->dst_set_key;
   struct SetEntry *set;
+  struct SetHandle *sh = GNUNET_new (struct SetHandle);
+
+  sh->h = copy;
+  GNUNET_CONTAINER_DLL_insert (task->step->session->set_handles_head,
+                               task->step->session->set_handles_tail,
+                               sh);
 
   GNUNET_free (scc);
   set = GNUNET_new (struct SetEntry);
@@ -3152,6 +3169,11 @@ handle_client_join (void *cls,
     client_set = GNUNET_new (struct SetEntry);
     client_set->h = GNUNET_SET_create (cfg,
                                        GNUNET_SET_OPERATION_UNION);
+    struct SetHandle *sh = GNUNET_new (struct SetHandle);
+    sh->h = client_set->h;
+    GNUNET_CONTAINER_DLL_insert (session->set_handles_head,
+                                 session->set_handles_tail,
+                                 sh);
     client_set->key = ((struct SetKey) { SET_KIND_CURRENT, 0, 0 });
     put_set (session,
              client_set);
@@ -3370,6 +3392,14 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (sessions_head,
                                sessions_tail,
                                session);
+
+  while (session->set_handles_head)
+  {
+    struct SetHandle *sh = session->set_handles_head;
+    session->set_handles_head = sh->next;
+    GNUNET_SET_destroy (sh->h);
+    GNUNET_free (sh);
+  }
   GNUNET_free (session);
 }
 
