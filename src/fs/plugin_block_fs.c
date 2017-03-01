@@ -276,7 +276,7 @@ libgnunet_plugin_block_fs_init (void *cls)
 void *
 libgnunet_plugin_block_fs_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

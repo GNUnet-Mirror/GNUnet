@@ -112,6 +112,11 @@ enum GNUNET_BLOCK_Type
   GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11,
 
   /**
+   * Block type for a revocation message by which a key is revoked.
+   */
+  GNUNET_BLOCK_TYPE_REVOCATION = 12,
+
+  /**
    * Block to store a cadet regex state
    */
   GNUNET_BLOCK_TYPE_REGEX = 22,

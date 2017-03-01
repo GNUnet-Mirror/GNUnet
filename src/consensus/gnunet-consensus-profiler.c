@@ -55,6 +55,8 @@ static struct GNUNET_HashCode session_id;
 
 static unsigned int peers_done = 0;
 
+static int dist_static;
+
 static unsigned *results_for_peer;
 
 /**
@@ -217,26 +219,45 @@ do_consensus ()
 {
   int unique_indices[replication];
   unsigned int i;
+  unsigned int j;
+  struct GNUNET_HashCode val;
+  struct GNUNET_SET_Element element;
 
-  for (i = 0; i < num_values; i++)
+  if (dist_static)
   {
-    unsigned int j;
-    struct GNUNET_HashCode val;
-    struct GNUNET_SET_Element element;
-
-    generate_indices (unique_indices);
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
-
-    element.data = &val;
-    element.size = sizeof (val);
-    for (j = 0; j < replication; j++)
+    for (i = 0; i < num_values; i++)
     {
-      int cid;
 
-      cid = unique_indices[j];
-      GNUNET_CONSENSUS_insert (consensus_handles[cid],
-                               &element,
-                               NULL, NULL);
+      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
+
+      element.data = &val;
+      element.size = sizeof (val);
+      for (j = 0; j < replication; j++)
+      {
+        GNUNET_CONSENSUS_insert (consensus_handles[j],
+                                 &element,
+                                 NULL, NULL);
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < num_values; i++)
+    {
+      generate_indices (unique_indices);
+      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
+
+      element.data = &val;
+      element.size = sizeof (val);
+      for (j = 0; j < replication; j++)
+      {
+        int cid;
+
+        cid = unique_indices[j];
+        GNUNET_CONSENSUS_insert (consensus_handles[cid],
+                                 &element,
+                                 NULL, NULL);
+      }
     }
   }
 
@@ -513,6 +534,9 @@ main (int argc, char **argv)
       { 's', "statistics", NULL,
         gettext_noop ("write statistics to file"),
         GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
+      { 'S', "dist-static", NULL,
+        gettext_noop ("distribute elements to a static subset of good peers"),
+        GNUNET_YES, &GNUNET_GETOPT_set_one, &dist_static },
       { 'V', "verbose", NULL,
         gettext_noop ("be more verbose (print received values)"),
         GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },

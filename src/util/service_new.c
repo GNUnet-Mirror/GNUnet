@@ -2402,8 +2402,8 @@ resume_client_receive (void *cls)
 			 GNUNET_YES);
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (c);
+    if (NULL != c->drop_task)
+      GNUNET_SERVICE_client_drop (c);
     return;
   }
   if (GNUNET_NO == ret)

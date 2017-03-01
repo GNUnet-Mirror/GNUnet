@@ -518,7 +518,7 @@ replay_req_remove_client (struct Group *grp, struct GNUNET_SERVICE_Client *clien
   {
     if (c == client)
     {
-      GNUNET_CONTAINER_multihashmap_remove (replay_req_client, &key, client);
+      GNUNET_CONTAINER_multihashmap_remove (grp_replay_req, &key, client);
       GNUNET_CONTAINER_multihashmap_iterator_destroy (it);
       return GNUNET_YES;
     }

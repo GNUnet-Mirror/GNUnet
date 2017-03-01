@@ -761,7 +761,8 @@ get_order_from_difference (unsigned int diff)
     ibf_order++;
   if (ibf_order > MAX_IBF_ORDER)
     ibf_order = MAX_IBF_ORDER;
-  return ibf_order;
+  // add one for correction
+  return ibf_order + 1;
 }
 
 
@@ -872,6 +873,12 @@ handle_p2p_strata_estimator (void *cls,
   GNUNET_assert (NULL != op->state->se);
   diff = strata_estimator_difference (remote_se,
                                       op->state->se);
+
+  if (diff > 200)
+    diff = diff * 3 / 2; 
+
+
+
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (op->state->se);
   op->state->se = NULL;
@@ -879,6 +886,17 @@ handle_p2p_strata_estimator (void *cls,
        "got se diff=%d, using ibf size %d\n",
        diff,
        1<<get_order_from_difference (diff));
+
+  {
+    char *set_debug;
+    set_debug = getenv ("GNUNET_SET_BENCHMARK");
+    if ( (NULL != set_debug) && (0 == strcmp (set_debug, "1")) )
+    {
+      FILE *f = fopen ("set.log", "a");
+      fprintf (f, "%llu\n", (unsigned long long) diff);
+      fclose (f);
+    }
+  }
 
   if ((GNUNET_YES == op->spec->byzantine) && (other_size < op->spec->byzantine_lower_bound))
   {
@@ -888,12 +906,16 @@ handle_p2p_strata_estimator (void *cls,
   }
 
 
-  if ( (GNUNET_YES == op->spec->force_full) || (diff > op->state->initial_size / 2))
+  if ( (GNUNET_YES == op->spec->force_full) || (diff > op->state->initial_size / 4))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Sending full set (diff=%d, own set=%u)\n",
          diff,
          op->state->initial_size);
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# of full sends",
+                              1,
+                              GNUNET_NO);
     if (op->state->initial_size <= other_size)
     {
       send_full_set (op);
@@ -908,6 +930,10 @@ handle_p2p_strata_estimator (void *cls,
   }
   else
   {
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# of ibf sends",
+                              1,
+                              GNUNET_NO);
     if (GNUNET_OK !=
         send_ibf (op,
                   get_order_from_difference (diff)))
@@ -1556,10 +1582,14 @@ handle_p2p_full_element (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->byzantine) && 
-       (op->state->received_total > 8) && 
-       (op->state->received_fresh < op->state->received_total / 3) )
+       (op->state->received_total > 384 + op->state->received_fresh * 4) && 
+       (op->state->received_fresh < op->state->received_total / 6) )
   {
     /* The other peer gave us lots of old elements, there's something wrong. */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Other peer sent only %llu/%llu fresh elements, failing operation\n",
+         (unsigned long long) op->state->received_fresh,
+         (unsigned long long) op->state->received_total);
     GNUNET_break_op (0);
     fail_union_operation (op);
     return;

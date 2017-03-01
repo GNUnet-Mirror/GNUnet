@@ -3082,10 +3082,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     break;
   }
 
-  GNUNET_STATISTICS_update (stats,
-                            "# received encrypted",
-                            1,
-                            GNUNET_NO);
   decrypted_size = -1;
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
@@ -3166,6 +3162,10 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
              &t->ax);
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+                            "# decrypted bytes",
+                            decrypted_size,
+                            GNUNET_NO);
 
   /* The MST will ultimately call #handle_decrypted() on each message. */
   t->current_ct = ct;
@@ -3217,6 +3217,10 @@ GCT_send (struct CadetTunnel *t,
                 &ax_msg[1],
                 message,
                 payload_size);
+  GNUNET_STATISTICS_update (stats,
+                            "# encrypted bytes",
+                            payload_size,
+                            GNUNET_NO);
   ax_msg->ax_header.Ns = htonl (t->ax.Ns++);
   ax_msg->ax_header.PNs = htonl (t->ax.PNs);
   /* FIXME: we should do this once, not once per message;
