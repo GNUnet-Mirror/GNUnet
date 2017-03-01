@@ -604,6 +604,7 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
   int *counter;
 
   ok++;
+  GNUNET_CADET_receive_done (channel);
   counter = get_target_channel () == channel ? &data_received : &ack_received;
 
   reschedule_timeout_task ((long) __LINE__);
