@@ -460,7 +460,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
   uint32_t *data;
-  int *counter;
+  int payload;
   int size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -471,25 +471,47 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending INITIALIZER\n");
     size += 1000;
-    counter = &data_sent;
+    payload = data_sent;
     if (SPEED_ACK == test) // FIXME unify SPEED_ACK with an initializer
         data_sent++;
   }
   else if (SPEED == test || SPEED_ACK == test)
   {
-    counter = get_target_channel() == channel ? &ack_sent : &data_sent;
-    size += *counter;
-    *counter = *counter + 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending message %u\n", *counter);
+    if (get_target_channel() == channel)
+    {
+      payload = ack_sent;
+      size += ack_sent;
+      ack_sent++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending ACK %u [%d bytes]\n",
+                  payload, size);
+    }
+    else
+    {
+      payload = data_sent;
+      size += data_sent;
+      data_sent++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending DATA %u [%d bytes]\n",
+                  data_sent, size);
+    }
+  }
+  else if (FORWARD == test)
+  {
+    payload = ack_sent;
+  }
+  else if (P2P_SIGNAL == test)
+  {
+    payload = data_sent;
   }
   else
   {
-    counter =  &ack_sent;
+    GNUNET_assert (0);
   }
   env = GNUNET_MQ_msg_extra (msg, size, GNUNET_MESSAGE_TYPE_DUMMY);
 
   data = (uint32_t *) &msg[1];
-  *data = htonl (*counter);
+  *data = htonl (payload);
   GNUNET_MQ_send (GNUNET_CADET_get_mq (channel), env);
 }
 
@@ -517,7 +539,10 @@ send_next_msg (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling message %d\n",
                 data_sent + 1);
-    send_next_msg_task = GNUNET_SCHEDULER_add_now (&send_next_msg, NULL);
+    send_next_msg_task =
+        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                     &send_next_msg,
+                                     NULL);
   }
 }
 
@@ -585,7 +610,7 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
 
   if (channel == outgoing_ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message.\n");
   }
   else if (channel == incoming_ch)
   {
@@ -685,8 +710,9 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   struct CadetTestChannelWrapper *ch;
   long peer = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Incoming channel from %s to peer %ld\n",
-              GNUNET_i2s (source), peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Incoming channel from %s to %ld: %p\n",
+              GNUNET_i2s (source), peer, channel);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if (peer == peers_requested - 1)
@@ -708,9 +734,9 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &gather_stats_and_exit,
-                                      (void *) __LINE__);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                    &gather_stats_and_exit,
+                                                    (void *) __LINE__);
   }
 
   /* TODO: cannot return channel as-is, in order to unify the data handlers */
@@ -811,6 +837,7 @@ start_test (void *cls)
                                              NULL,
                                              &disconnect_handler,
                                              handlers);
+
   ch->ch = outgoing_ch;
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -824,7 +851,9 @@ start_test (void *cls)
   data_sent = 0;
   ack_received = 0;
   ack_sent = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending data initializer on channel %p...\n",
+              outgoing_ch);
   send_test_message (outgoing_ch);
 }
 
