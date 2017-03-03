@@ -43,7 +43,7 @@ struct CadetTestChannelWrapper
 };
 
 /**
- * How many messages to send
+ * How many messages to send by default.
  */
 #define TOTAL_PACKETS 500       /* Cannot exceed 64k! */
 
@@ -53,7 +53,7 @@ struct CadetTestChannelWrapper
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 /**
- * Time to wait for stuff that should be rather fast
+ * Time to wait by default  for stuff that should be rather fast.
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
@@ -82,6 +82,16 @@ static char *test_name;
  * Flag to send traffic leaf->root in speed tests to test BCK_ACK logic.
  */
 static int test_backwards = GNUNET_NO;
+
+/**
+ * How many packets to send.
+ */
+static unsigned int total_packets;
+
+/**
+ * Time to wait for fast operations.
+ */
+static struct GNUNET_TIME_Relative short_time;
 
 /**
  * How many events have happened
@@ -262,10 +272,10 @@ show_end_data (void)
   FPRINTF (stderr, "\nResults of test \"%s\"\n", test_name);
   FPRINTF (stderr, "Test time %s\n",
            GNUNET_STRINGS_relative_time_to_string (total_time, GNUNET_YES));
-  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", 4 * TOTAL_PACKETS * 1.0 / (total_time.rel_value_us / 1000));    // 4bytes * ms
-  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000));     // packets * ms
+  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", 4 * total_packets * 1.0 / (total_time.rel_value_us / 1000));    // 4bytes * ms
+  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", total_packets * 1000.0 / (total_time.rel_value_us / 1000));     // packets * ms
   GAUGER ("CADET", test_name,
-          TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000),
+          total_packets * 1000.0 / (total_time.rel_value_us / 1000),
           "packets/s");
 }
 
@@ -460,7 +470,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
   uint32_t *data;
-  int *counter;
+  int payload;
   int size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -471,25 +481,47 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending INITIALIZER\n");
     size += 1000;
-    counter = &data_sent;
+    payload = data_sent;
     if (SPEED_ACK == test) // FIXME unify SPEED_ACK with an initializer
         data_sent++;
   }
   else if (SPEED == test || SPEED_ACK == test)
   {
-    counter = get_target_channel() == channel ? &ack_sent : &data_sent;
-    size += *counter;
-    *counter = *counter + 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending message %u\n", *counter);
+    if (get_target_channel() == channel)
+    {
+      payload = ack_sent;
+      size += ack_sent;
+      ack_sent++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending ACK %u [%d bytes]\n",
+                  payload, size);
+    }
+    else
+    {
+      payload = data_sent;
+      size += data_sent;
+      data_sent++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending DATA %u [%d bytes]\n",
+                  data_sent, size);
+    }
+  }
+  else if (FORWARD == test)
+  {
+    payload = ack_sent;
+  }
+  else if (P2P_SIGNAL == test)
+  {
+    payload = data_sent;
   }
   else
   {
-    counter =  &ack_sent;
+    GNUNET_assert (0);
   }
   env = GNUNET_MQ_msg_extra (msg, size, GNUNET_MESSAGE_TYPE_DUMMY);
 
   data = (uint32_t *) &msg[1];
-  *data = htonl (*counter);
+  *data = htonl (payload);
   GNUNET_MQ_send (GNUNET_CADET_get_mq (channel), env);
 }
 
@@ -511,13 +543,16 @@ send_next_msg (void *cls)
   GNUNET_assert (NULL != channel);
   GNUNET_assert (SPEED == test);
   send_test_message (channel);
-  if (data_sent < TOTAL_PACKETS)
+  if (data_sent < total_packets)
   {
     /* SPEED test: Send all messages as soon as possible */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling message %d\n",
                 data_sent + 1);
-    send_next_msg_task = GNUNET_SCHEDULER_add_now (&send_next_msg, NULL);
+    send_next_msg_task =
+        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                     &send_next_msg,
+                                     NULL);
   }
 }
 
@@ -538,7 +573,7 @@ reschedule_timeout_task (long line)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " reschedule timeout every 10 messages\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+      disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                       &gather_stats_and_exit,
                                                       (void *) line);
     }
@@ -579,13 +614,14 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
   int *counter;
 
   ok++;
+  GNUNET_CADET_receive_done (channel);
   counter = get_target_channel () == channel ? &data_received : &ack_received;
 
   reschedule_timeout_task ((long) __LINE__);
 
   if (channel == outgoing_ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message.\n");
   }
   else if (channel == incoming_ch)
   {
@@ -635,7 +671,7 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
     }
     else
     {
-      if (data_received < TOTAL_PACKETS)
+      if (data_received < total_packets)
         return;
     }
   }
@@ -646,7 +682,7 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", ack_received);
       /* Send more data */
       send_test_message (channel);
-      if (ack_received < TOTAL_PACKETS && SPEED != test)
+      if (ack_received < total_packets && SPEED != test)
         return;
       if (ok == 2 && SPEED == test)
         return;
@@ -685,8 +721,9 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   struct CadetTestChannelWrapper *ch;
   long peer = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Incoming channel from %s to peer %ld\n",
-              GNUNET_i2s (source), peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Incoming channel from %s to %ld: %p\n",
+              GNUNET_i2s (source), peer, channel);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if (peer == peers_requested - 1)
@@ -708,9 +745,9 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &gather_stats_and_exit,
-                                      (void *) __LINE__);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
+                                                    &gather_stats_and_exit,
+                                                    (void *) __LINE__);
   }
 
   /* TODO: cannot return channel as-is, in order to unify the data handlers */
@@ -811,9 +848,10 @@ start_test (void *cls)
                                              NULL,
                                              &disconnect_handler,
                                              handlers);
+
   ch->ch = outgoing_ch;
 
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                   &gather_stats_and_exit,
                                                   (void *) __LINE__);
   if (KEEPALIVE == test)
@@ -824,7 +862,9 @@ start_test (void *cls)
   data_sent = 0;
   ack_received = 0;
   ack_sent = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending data initializer on channel %p...\n",
+              outgoing_ch);
   send_test_message (outgoing_ch);
 }
 
@@ -886,7 +926,7 @@ tmain (void *cls,
   testbed_peers = peers;
   h1 = cadets[0];
   h2 = cadets[num_peers - 1];
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                   &disconnect_cadet_peers,
                                                   (void *) __LINE__);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
@@ -921,12 +961,29 @@ main (int argc, char *argv[])
   const char *config_file;
   char port_id[] = "test port";
 
-  GNUNET_CRYPTO_hash (port_id, sizeof (port_id), &port);
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'t', "time", "short_time",
+     gettext_noop ("set short timeout"),
+     GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &short_time},
+    {'m', "messages", "NUM_MESSAGES",
+     gettext_noop ("set number of messages to send"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &total_packets},
+
+    GNUNET_GETOPT_OPTION_END
+  };
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
-  config_file = "test_cadet.conf";
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
+  total_packets = TOTAL_PACKETS;
+  short_time = SHORT_TIME;
+  if (-1 == GNUNET_GETOPT_run (argv[0], options, argc, argv))
+  {
+    FPRINTF (stderr, "test failed: problem with CLI parameters\n");
+    exit (1);
+  }
+
+  config_file = "test_cadet.conf";
+  GNUNET_CRYPTO_hash (port_id, sizeof (port_id), &port);
 
   /* Find out requested size */
   if (strstr (argv[0], "_2_") != NULL)
@@ -964,11 +1021,11 @@ main (int argc, char *argv[])
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
-     * TOTAL_PACKETS received data packet (@dest)
-     * TOTAL_PACKETS received data packet (@orig)
+     * total_packets received data packet (@dest)
+     * total_packets received data packet (@orig)
      * 1 received channel destroy (@dest)
      */
-    ok_goal = TOTAL_PACKETS * 2 + 2;
+    ok_goal = total_packets * 2 + 2;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
@@ -978,11 +1035,11 @@ main (int argc, char *argv[])
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
      * 1 initial packet (@dest)
-     * TOTAL_PACKETS received data packet (@dest)
+     * total_packets received data packet (@dest)
      * 1 received data packet (@orig)
      * 1 received channel destroy (@dest)
      */
-    ok_goal = TOTAL_PACKETS + 4;
+    ok_goal = total_packets + 4;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     if (strstr (argv[0], "_reliable") != NULL)
     {
