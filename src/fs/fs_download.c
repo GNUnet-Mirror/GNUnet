@@ -378,8 +378,7 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
   struct GNUNET_FS_DownloadContext *pos;
 
   /* first, check if we need to download children */
-  if ( (NULL == dc->child_head) &&
-       (is_recursive_download (dc)) )
+  if (is_recursive_download (dc))
     full_recursive_download (dc);
   /* then, check if children are done already */
   for (pos = dc->child_head; NULL != pos; pos = pos->next)
