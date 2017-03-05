@@ -309,7 +309,8 @@ uri_ksk_parse (const char *s,
   }
   iret = max;
   dup = GNUNET_strdup (s);
-  keywords = GNUNET_malloc (max * sizeof (char *));
+  keywords = GNUNET_new_array (max,
+                               char *);
   for (i = slen - 1; i >= (int) pos; i--)
   {
     if ((s[i] == '%') && (&s[i] == strstr (&s[i], "%22")))
@@ -937,7 +938,8 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
     return NULL;
   }
   kc = u1->data.ksk.keywordCount;
-  kl = GNUNET_malloc ((kc + u2->data.ksk.keywordCount) * sizeof (char *));
+  kl = GNUNET_new_array (kc + u2->data.ksk.keywordCount,
+                         char *);
   for (i = 0; i < u1->data.ksk.keywordCount; i++)
     kl[i] = GNUNET_strdup (u1->data.ksk.keywords[i]);
   for (i = 0; i < u2->data.ksk.keywordCount; i++)
@@ -991,8 +993,9 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
     }
     if (ret->data.ksk.keywordCount > 0)
     {
-      ret->data.ksk.keywords =
-          GNUNET_malloc (ret->data.ksk.keywordCount * sizeof (char *));
+      ret->data.ksk.keywords
+        = GNUNET_new_array (ret->data.ksk.keywordCount,
+                            char *);
       for (i = 0; i < ret->data.ksk.keywordCount; i++)
         ret->data.ksk.keywords[i] = GNUNET_strdup (uri->data.ksk.keywords[i]);
     }
@@ -1078,7 +1081,8 @@ GNUNET_FS_uri_ksk_create (const char *keywords,
     *emsg = GNUNET_strdup (_("Number of double-quotes not balanced!\n"));
     return NULL;
   }
-  keywordarr = GNUNET_malloc (num_Words * sizeof (char *));
+  keywordarr = GNUNET_new_array (num_Words,
+                                 char *);
   num_Words = 0;
   inWord = 0;
   pos = searchString;
@@ -1151,7 +1155,8 @@ GNUNET_FS_uri_ksk_create_from_args (unsigned int argc,
   uri = GNUNET_new (struct GNUNET_FS_Uri);
   uri->type = GNUNET_FS_URI_KSK;
   uri->data.ksk.keywordCount = argc;
-  uri->data.ksk.keywords = GNUNET_malloc (argc * sizeof (char *));
+  uri->data.ksk.keywords = GNUNET_new_array (argc,
+                                             char *);
   for (i = 0; i < argc; i++)
   {
     keyword = argv[i];
@@ -1766,8 +1771,9 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData 
     }
     /* x3 because there might be a normalized variant of every keyword,
        plus theoretically one more for mime... */
-    ret->data.ksk.keywords = GNUNET_malloc
-      (sizeof (char *) * (ent + tok_keywords + paren_keywords) * 3);
+    ret->data.ksk.keywords
+      = GNUNET_new_array ((ent + tok_keywords + paren_keywords) * 3,
+                          char *);
     GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
   }
   if (tok_keywords > 0)

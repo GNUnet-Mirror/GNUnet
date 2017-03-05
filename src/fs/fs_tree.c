@@ -285,9 +285,9 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
   te->progress = progress;
   te->cont = cont;
   te->chk_tree_depth = GNUNET_FS_compute_depth (size);
-  te->chk_tree =
-      GNUNET_malloc (te->chk_tree_depth * CHK_PER_INODE *
-                     sizeof (struct ContentHashKey));
+  te->chk_tree
+    = GNUNET_new_array (te->chk_tree_depth * CHK_PER_INODE,
+                        struct ContentHashKey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Created tree encoder for file with %llu bytes and depth %u\n",
 	      (unsigned long long) size,
