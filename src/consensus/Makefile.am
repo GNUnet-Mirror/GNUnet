@@ -18,8 +18,6 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-bin_PROGRAMS = \
- gnunet-consensus-profiler
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -86,6 +84,9 @@ libgnunet_plugin_block_consensus_la_LDFLAGS = \
 
 
 if HAVE_TESTING
+bin_PROGRAMS = \
+ gnunet-consensus-profiler
+
 check_PROGRAMS = \
  test_consensus_api
 

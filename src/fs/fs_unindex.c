@@ -454,7 +454,8 @@ continue_after_remove (void *cls,
  * Function called from datastore with result from us looking for
  * a UBlock.  There are four cases:
  * 1) no result, means we move on to the next keyword
- * 2) UID is the same as the first UID, means we move on to next keyword
+ * 2) data hash is the same as an already seen data hash, means we move on to
+ *    next keyword
  * 3) UBlock for a different CHK, means we keep looking for more
  * 4) UBlock is for our CHK, means we remove the block and then move
  *           on to the next keyword
