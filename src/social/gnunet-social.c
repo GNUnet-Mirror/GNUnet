@@ -563,7 +563,7 @@ slicer_recv_method (void *cls,
               "%s (flags: %x)\n",
               message_id, method_name, ntohl (meth->flags));
   /* routing header is missing, so we just print double newline */
-  printf(".\n\n");
+  printf("\n");
   /* we output . instead of | to indicate that this is not proper PSYC syntax */
   /* FIXME: use libpsyc here */
 }
@@ -588,10 +588,11 @@ slicer_recv_modifier (void *cls,
               "Received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               message_id, oper, name, value_size, (const char *) value, value_size);
-#endif
+#else
   /* obviously not binary safe */
   printf("%c%s\t%.*s\n",
               oper, name, value_size, (const char *) value);
+#endif
 }
 
 
@@ -611,10 +612,11 @@ slicer_recv_data (void *cls,
               "Received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               message_id, data_size, (const char *) data);
-#endif
+#else
   /* obviously not binary safe */
   printf("%s\n%.*s\n",
               method_received, data_size, (const char *) data);
+#endif
 }
 
 
@@ -1016,6 +1018,7 @@ app_connected (void *cls)
       guest_enter (&place_pub_key, &peer);
     }
   }
+  printf(".\n");
 }
 
 
@@ -1161,6 +1164,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("--place missing or invalid.\n"));
+    /* FIXME: why does it segfault here? */
     exit_fail ();
     return;
   }
@@ -1350,8 +1354,8 @@ main (int argc, char *const *argv)
     "gnunet-social --guest-leave --place <PUBKEY>\n"
     "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE_BODY>\n"
     "\n"
-    "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
-    "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
     "\n"
     "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
     "gnunet-social --look-for --place <PUBKEY> --name <NAME_PREFIX>\n";
