@@ -37,14 +37,14 @@ static int
 is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
 {
   return (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-      ((GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
-       ((NULL == dc->meta) &&
-        ((NULL == dc->filename) ||
-         ((strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
-          (NULL !=
-           strstr (dc->filename + strlen (dc->filename) -
-                   strlen (GNUNET_FS_DIRECTORY_EXT),
-                   GNUNET_FS_DIRECTORY_EXT))))));
+      ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
+        ( (NULL == dc->meta) &&
+          ( (NULL == dc->filename) ||
+            ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
+              (NULL !=
+               strstr (dc->filename + strlen (dc->filename) -
+                       strlen (GNUNET_FS_DIRECTORY_EXT),
+                       GNUNET_FS_DIRECTORY_EXT)) ) ) ) );
 }
 
 
@@ -278,10 +278,12 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc);
  * @param data contents of the file (or NULL if they were not inlined)
  */
 static void
-trigger_recursive_download (void *cls, const char *filename,
+trigger_recursive_download (void *cls,
+                            const char *filename,
                             const struct GNUNET_FS_Uri *uri,
                             const struct GNUNET_CONTAINER_MetaData *meta,
-                            size_t length, const void *data);
+                            size_t length,
+                            const void *data);
 
 
 /**
@@ -304,24 +306,28 @@ full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
   if (size64 != (uint64_t) size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Recursive downloads of directories larger than 4 GB are not supported on 32-bit systems\n"));
+                _("Recursive downloads of directories larger than 4 GB are not supported on 32-bit systems\n"));
     return;
   }
   if (NULL != dc->filename)
   {
-    h = GNUNET_DISK_file_open (dc->filename, GNUNET_DISK_OPEN_READ,
+    h = GNUNET_DISK_file_open (dc->filename,
+                               GNUNET_DISK_OPEN_READ,
                                GNUNET_DISK_PERM_NONE);
   }
   else
   {
     GNUNET_assert (NULL != dc->temp_filename);
-    h = GNUNET_DISK_file_open (dc->temp_filename, GNUNET_DISK_OPEN_READ,
+    h = GNUNET_DISK_file_open (dc->temp_filename,
+                               GNUNET_DISK_OPEN_READ,
                                GNUNET_DISK_PERM_NONE);
   }
   if (NULL == h)
     return;                     /* oops */
-  data = GNUNET_DISK_file_map (h, &m, GNUNET_DISK_MAP_TYPE_READ, size);
+  data = GNUNET_DISK_file_map (h,
+                               &m,
+                               GNUNET_DISK_MAP_TYPE_READ,
+                               size);
   if (NULL == data)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -329,15 +335,25 @@ full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
   }
   else
   {
-    GNUNET_FS_directory_list_contents (size, data, 0,
-                                       &trigger_recursive_download, dc);
+    if (GNUNET_OK !=
+        GNUNET_FS_directory_list_contents (size,
+                                           data,
+                                           0,
+                                           &trigger_recursive_download,
+                                           dc))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to access full directroy contents of `%s' for recursive download\n"),
+                  dc->filename);
+    }
     GNUNET_DISK_file_unmap (m);
   }
   GNUNET_DISK_file_close (h);
   if (NULL == dc->filename)
   {
     if (0 != UNLINK (dc->temp_filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                "unlink",
                                 dc->temp_filename);
     GNUNET_free (dc->temp_filename);
     dc->temp_filename = NULL;
@@ -362,14 +378,16 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
   struct GNUNET_FS_DownloadContext *pos;
 
   /* first, check if we need to download children */
-  if ((NULL == dc->child_head) && (is_recursive_download (dc)))
+  if (is_recursive_download (dc))
     full_recursive_download (dc);
   /* then, check if children are done already */
   for (pos = dc->child_head; NULL != pos; pos = pos->next)
   {
-    if ((pos->emsg == NULL) && (pos->completed < pos->length))
+    if ( (NULL == pos->emsg) &&
+         (pos->completed < pos->length) )
       return;                   /* not done yet */
-    if ((pos->child_head != NULL) && (pos->has_finished != GNUNET_YES))
+    if ( (NULL != pos->child_head) &&
+         (pos->has_finished != GNUNET_YES) )
       return;                   /* not transitively done yet */
   }
   /* All of our children are done, so mark this download done */
@@ -471,7 +489,11 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
   }
   GNUNET_CRYPTO_hash (&data[dr->offset], dlen, &in_chk.key);
   GNUNET_CRYPTO_hash_to_aes_key (&in_chk.key, &sk, &iv);
-  if (-1 == GNUNET_CRYPTO_symmetric_encrypt (&data[dr->offset], dlen, &sk, &iv, enc))
+  if (-1 == GNUNET_CRYPTO_symmetric_encrypt (&data[dr->offset],
+                                             dlen,
+                                             &sk,
+                                             &iv,
+                                             enc))
   {
     GNUNET_break (0);
     return;
@@ -484,7 +506,9 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     dr->state = BRS_RECONSTRUCT_META_UP;
     break;
   case BRS_CHK_SET:
-    if (0 != memcmp (&in_chk, &dr->chk, sizeof (struct ContentHashKey)))
+    if (0 != memcmp (&in_chk,
+                     &dr->chk,
+                     sizeof (struct ContentHashKey)))
     {
       /* other peer provided bogus meta data */
       GNUNET_break_op (0);
@@ -591,7 +615,10 @@ match_full_data (void *cls, const char *plugin_name,
     GNUNET_break_op (0);
     return 1;                   /* bogus meta data */
   }
-  try_match_block (dc, dc->top_request, data, data_len);
+  try_match_block (dc,
+                   dc->top_request,
+                   data,
+                   data_len);
   return 1;
 }
 
@@ -820,10 +847,12 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
  * @param data contents of the file (or NULL if they were not inlined)
  */
 static void
-trigger_recursive_download (void *cls, const char *filename,
+trigger_recursive_download (void *cls,
+                            const char *filename,
                             const struct GNUNET_FS_Uri *uri,
                             const struct GNUNET_CONTAINER_MetaData *meta,
-                            size_t length, const void *data)
+                            size_t length,
+                            const void *data)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_DownloadContext *cpos;
@@ -936,9 +965,17 @@ trigger_recursive_download (void *cls, const char *filename,
               (unsigned long long) GNUNET_FS_uri_chk_get_file_size (uri),
               (unsigned int)
               GNUNET_CONTAINER_meta_data_get_serialized_size (meta));
-  GNUNET_FS_download_start (dc->h, uri, meta, full_name, temp_name, 0,
+  GNUNET_FS_download_start (dc->h,
+                            uri,
+                            meta,
+                            full_name,
+                            temp_name,
+                            0,
                             GNUNET_FS_uri_chk_get_file_size (uri),
-                            dc->anonymity, dc->options, NULL, dc);
+                            dc->anonymity,
+                            dc->options,
+                            NULL,
+                            dc);
   GNUNET_free_non_null (full_name);
   GNUNET_free_non_null (temp_name);
   GNUNET_free_non_null (fn);
@@ -953,11 +990,9 @@ trigger_recursive_download (void *cls, const char *filename,
 void
 GNUNET_FS_free_download_request_ (struct DownloadRequest *dr)
 {
-  unsigned int i;
-
   if (NULL == dr)
     return;
-  for (i = 0; i < dr->num_children; i++)
+  for (unsigned int i = 0; i < dr->num_children; i++)
     GNUNET_FS_free_download_request_ (dr->children[i]);
   GNUNET_free_non_null (dr->children);
   GNUNET_free (dr);
@@ -1509,13 +1544,17 @@ create_download_request (struct DownloadRequest *parent,
   GNUNET_assert (dr->num_children > 0);
 
   dr->children =
-    GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
+    GNUNET_new_array (dr->num_children,
+                      struct DownloadRequest *);
   for (i = 0; i < dr->num_children; i++)
   {
     dr->children[i] =
-      create_download_request (dr, i + head_skip, depth - 1,
+      create_download_request (dr,
+                               i + head_skip,
+                               depth - 1,
 			       dr_offset + (i + head_skip) * child_block_size,
-			       file_start_offset, desired_length);
+			       file_start_offset,
+                               desired_length);
   }
   return dr;
 }

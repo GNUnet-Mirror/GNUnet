@@ -1383,9 +1383,10 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
     GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
     anon = GNUNET_CRYPTO_ecdsa_key_get_anonymous ();
     GNUNET_CRYPTO_ecdsa_key_get_public (anon, &anon_pub);
-    sc->requests =
-        GNUNET_malloc (sizeof (struct SearchRequestEntry) *
-                       sc->uri->data.ksk.keywordCount);
+    sc->requests
+      = GNUNET_new_array (sc->uri->data.ksk.keywordCount,
+                          struct SearchRequestEntry);
+
     for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
     {
       keyword = &sc->uri->data.ksk.keywords[i][1];

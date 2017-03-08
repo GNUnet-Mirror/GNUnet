@@ -220,14 +220,8 @@ req_string (enum GNUNET_ARM_RequestStatus rs)
   {
   case GNUNET_ARM_REQUEST_SENT_OK:
     return _("Message was sent successfully");
-  case GNUNET_ARM_REQUEST_CONFIGURATION_ERROR:
-    return _("Misconfiguration (can not connect to the ARM service)");
   case GNUNET_ARM_REQUEST_DISCONNECTED:
     return _("We disconnected from ARM before we could send a request");
-  case GNUNET_ARM_REQUEST_BUSY:
-    return _("ARM API is busy");
-  case GNUNET_ARM_REQUEST_TIMEOUT:
-    return _("Request timed out");
   }
   return _("Unknown request status");
 }
@@ -245,27 +239,27 @@ ret_string (enum GNUNET_ARM_Result result)
   switch (result)
   {
   case GNUNET_ARM_RESULT_STOPPED:
-    return _("%s is stopped");
+    return _("is stopped");
   case GNUNET_ARM_RESULT_STARTING:
-    return _("%s is starting");
+    return _("is starting");
   case GNUNET_ARM_RESULT_STOPPING:
-    return _("%s is stopping");
+    return _("is stopping");
   case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
-    return _("%s is starting already");
+    return _("is starting already");
   case GNUNET_ARM_RESULT_IS_STOPPING_ALREADY:
-    return _("%s is stopping already");
+    return _("is stopping already");
   case GNUNET_ARM_RESULT_IS_STARTED_ALREADY:
-    return _("%s is started already");
+    return _("is started already");
   case GNUNET_ARM_RESULT_IS_STOPPED_ALREADY:
-    return _("%s is stopped already");
+    return _("is stopped already");
   case GNUNET_ARM_RESULT_IS_NOT_KNOWN:
-    return _("%s service is not known to ARM");
+    return _("service is not known to ARM");
   case GNUNET_ARM_RESULT_START_FAILED:
-    return _("%s service failed to start");
+    return _("service failed to start");
   case GNUNET_ARM_RESULT_IN_SHUTDOWN:
-    return _("%s service cannot be started because ARM is shutting down");
+    return _("service cannot be manipulated because ARM is shutting down");
   }
-  return _("%.s Unknown result code.");
+  return _("Unknown result code.");
 }
 
 
@@ -378,10 +372,9 @@ stop_callback (void *cls,
       (GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
   {
-    GNUNET_asprintf (&msg, "%s",
-		     _("Failed to stop the ARM service: %s\n"));
-    FPRINTF (stdout, msg, ret_string (result));
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to stop the ARM service: %s\n"),
+             ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -476,11 +469,10 @@ term_callback (void *cls,
   if ((GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
   {
-    GNUNET_asprintf (&msg,
-		     _("Failed to kill the `%s' service: %s\n"),
-                     term, ret_string (result));
-    FPRINTF (stdout, "%s", msg);
-    GNUNET_free (msg);
+    FPRINTF (stdout,
+             _("Failed to kill the `%s' service: %s\n"),
+             term,
+             ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
