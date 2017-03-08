@@ -129,15 +129,13 @@ int notify (void *cls,
             size_t *data_size,
             void *data)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Member sents message to origin.\n");
 
   char text[] = "ping";
-  *data_size = strlen(text);
+  *data_size = strlen(text)+1;
   GNUNET_memcpy(data, text, *data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "len: %i.\n", strlen(text));
+              "Member sents message to origin: %s\n", text);
 
   return GNUNET_YES;
 }
@@ -162,6 +160,7 @@ member_join_decision (void *cls,
                                              0,
                                              notify,
                                              NULL);
+    
   }
 }
 
@@ -184,6 +183,10 @@ member_message ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "member message...\n");
+
+  // FIXME: not finished here
+  result = GNUNET_YES;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 static void
@@ -197,9 +200,9 @@ origin_join_request (void *cls,
   uint8_t data_size = ntohs (join_msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "origin: got a join request...\n");
+              "origin got a join request...\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "member to origin: '%s'\n", (char *)&join_msg[1]);
+              "origin receives: '%s'\n", (char *)&join_msg[1]);
 
   char data[] = "Come in!";
   data_size = strlen (data) + 1;
@@ -207,6 +210,9 @@ origin_join_request (void *cls,
   join_resp->size = htons (sizeof (join_resp) + data_size);
   join_resp->type = htons (123);
   GNUNET_memcpy (&join_resp[1], data, data_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "origin sends: '%s'\n", data);
 
   GNUNET_MULTICAST_join_decision (jh,
                                   GNUNET_YES,
@@ -239,18 +245,37 @@ origin_replay_msg (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay msg\n");
 }
 
+
+int
+origin_notify (void *cls, 
+               size_t *data_size, 
+               void *data)
+{
+  char text[] = "pong";
+  *data_size = strlen(text)+1;
+  memcpy(data, text, *data_size); 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends (to all): %s\n", text);
+
+  return GNUNET_YES; 
+}
+
+
 static void
 origin_request (void *cls,
                 const struct GNUNET_MULTICAST_RequestHeader *req)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin request msg\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin receives: %s\n", (char *)&req[1]);
   
-  //FIXME: get req content and send a pong
-  //GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-  //            "Member sent: '%s'\n", req);
+  if (0 != strncmp ("ping", (char *)&req[1], 4)) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "origin didn't reveice a correct request");
+  }
 
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_MULTICAST_origin_to_all (origin,
+                                  0,
+                                  0,
+                                  origin_notify,
+                                  NULL);
 }
 
 static void
@@ -480,7 +505,7 @@ testbed_master (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
 
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40),
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 48),
 					      &timeout_task, NULL);
 }
 
