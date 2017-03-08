@@ -311,6 +311,7 @@ src/rest/gnunet-rest-server.c
 src/rest/rest.c
 src/revocation/gnunet-revocation.c
 src/revocation/gnunet-service-revocation.c
+src/revocation/plugin_block_revocation.c
 src/revocation/revocation_api.c
 src/rps/gnunet-rps.c
 src/rps/gnunet-service-rps.c
@@ -339,6 +340,7 @@ src/set/gnunet-set-ibf-profiler.c
 src/set/gnunet-set-profiler.c
 src/set/ibf.c
 src/set/ibf_sim.c
+src/set/plugin_block_set_test.c
 src/set/set_api.c
 src/social/gnunet-service-social.c
 src/social/gnunet-social.c

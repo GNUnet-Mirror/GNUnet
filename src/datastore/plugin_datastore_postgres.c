@@ -114,13 +114,17 @@ init_connection (struct Plugin *plugin)
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
   {
     if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
                                "CREATE INDEX IF NOT EXISTS idx_prio_anon ON gn090 (prio,anonLevel)")) ||
@@ -128,9 +132,11 @@ init_connection (struct Plugin *plugin)
          GNUNET_POSTGRES_exec (plugin->dbh,
                                "CREATE INDEX IF NOT EXISTS idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
     {
       PQclear (ret);
       PQfinish (plugin->dbh);
