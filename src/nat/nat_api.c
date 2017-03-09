@@ -52,7 +52,7 @@ struct AddrEntry
    * Address class of the address.
    */
   enum GNUNET_NAT_AddressClass ac;
-  
+
   /**
    * Number of bytes that follow.
    */
@@ -70,7 +70,7 @@ struct GNUNET_NAT_Handle
    * Configuration we use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Message queue for communicating with the NAT service.
    */
@@ -80,7 +80,7 @@ struct GNUNET_NAT_Handle
    * Our registration message.
    */
   struct GNUNET_MessageHeader *reg;
-  
+
   /**
    * Head of address DLL.
    */
@@ -95,12 +95,12 @@ struct GNUNET_NAT_Handle
    * Function to call when our addresses change.
    */
   GNUNET_NAT_AddressCallback address_callback;
-  
+
   /**
    * Function to call when another peer requests connection reversal.
    */
   GNUNET_NAT_ReversalCallback reversal_callback;
-  
+
   /**
    * Closure for the various callbacks.
    */
@@ -136,7 +136,7 @@ static void
 reconnect (struct GNUNET_NAT_Handle *nh)
 {
   struct AddrEntry *ae;
-  
+
   if (NULL != nh->mq)
   {
     GNUNET_MQ_destroy (nh->mq);
@@ -184,7 +184,7 @@ check_connection_reversal_request (void *cls,
   return GNUNET_OK;
 }
 
-  
+
 /**
  * Handle connection reversal request.
  *
@@ -247,7 +247,7 @@ check_address_change_notification (void *cls,
   return GNUNET_OK;
 }
 
-  
+
 /**
  * Handle connection reversal request.
  *
@@ -264,6 +264,8 @@ handle_address_change_notification (void *cls,
   enum GNUNET_NAT_AddressClass ac;
   struct AddrEntry *ae;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received address change notification\n");
   ac = (enum GNUNET_NAT_AddressClass) ntohl (acn->addr_class);
   if (GNUNET_YES == ntohl (acn->add_remove))
   {
@@ -395,7 +397,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t len;
   size_t str_len;
   char *off;
-  
+
   len = 0;
   for (unsigned int i=0;i<num_addrs;i++)
     len += addrlens[i];
@@ -569,7 +571,7 @@ test_stun_packet (const void *data,
  *
  * The function does some basic sanity checks on packet size and
  * content, try to extract a bit of information.
- * 
+ *
  * At the moment this only processes BIND requests, and returns the
  * externally visible address of the request to the rest of the
  * NAT logic.
@@ -663,7 +665,7 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
  * @param nh handle (used for configuration)
  * @param local_sa our local address of the peer (IPv4-only)
  * @param remote_sa the remote address of the peer (IPv4-only)
- * @return #GNUNET_SYSERR on error, 
+ * @return #GNUNET_SYSERR on error,
  *         #GNUNET_NO if connection reversal is unavailable,
  *         #GNUNET_OK otherwise (presumably in progress)
  */

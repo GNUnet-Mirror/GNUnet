@@ -34,9 +34,9 @@
 static int global_ret;
 
 /**
- * Name of section in configuration file to use for 
+ * Name of section in configuration file to use for
  * additional options.
- */ 
+ */
 static char *section_name;
 
 /**
@@ -81,7 +81,7 @@ static struct GNUNET_NAT_Handle *nh;
 
 /**
  * Listen socket for STUN processing.
- */ 
+ */
 static struct GNUNET_NETWORK_Handle *ls;
 
 /**
@@ -110,7 +110,7 @@ test_finished ()
  * a function to call whenever our set of 'valid' addresses changes.
  *
  * @param cls closure, NULL
- * @param add_remove #GNUNET_YES to add a new public IP address, 
+ * @param add_remove #GNUNET_YES to add a new public IP address,
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
@@ -123,12 +123,12 @@ address_cb (void *cls,
 	    const struct sockaddr *addr,
 	    socklen_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-	      "%s %s (%d)\n",
-	      add_remove ? "+" : "-",
-	      GNUNET_a2s (addr,
-			  addrlen),
-	      (int) ac);
+  fprintf (stdout,
+           "%s %s (%d)\n",
+           add_remove ? "+" : "-",
+           GNUNET_a2s (addr,
+                       addrlen),
+           (int) ac);
 }
 
 
@@ -186,7 +186,7 @@ static void
 stun_read_task (void *cls)
 {
   ssize_t size;
-  
+
   rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					 ls,
 					 &stun_read_task,
@@ -204,7 +204,7 @@ stun_read_task (void *cls)
     struct sockaddr_storage sa;
     socklen_t salen = sizeof (sa);
     ssize_t ret;
-    
+
     ret = GNUNET_NETWORK_socket_recvfrom (ls,
 					  buf,
 					  size + 1,
@@ -318,7 +318,7 @@ run (void *cls,
   else if (listen_reversal)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		"Use of `-W` only effective in combination with `-i`\n");    
+		"Use of `-W` only effective in combination with `-i`\n");
     global_ret = 1;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -327,7 +327,7 @@ run (void *cls,
   if (NULL != remote_addr)
   {
     int ret;
-    
+
     if ( (NULL == nh) ||
 	 (sizeof (struct sockaddr_in) != local_len) )
     {
@@ -365,7 +365,7 @@ run (void *cls,
       break;
     }
   }
-  
+
   if (do_stun)
   {
     if (NULL == local_addr)
