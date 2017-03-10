@@ -269,6 +269,8 @@ run (void *cls,
     global_ret = 1;
     return;
   }
+  local_len = 0; /* make compilers happy */
+  local_sa = NULL;
   if (NULL != local_addr)
   {
     local_len = (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr,
