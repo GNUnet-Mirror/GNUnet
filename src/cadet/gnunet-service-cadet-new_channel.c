@@ -1808,6 +1808,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    GNUNET_assert (NULL != receiver);
     ld->ccn = receiver->ccn;
     GNUNET_memcpy (&ld[1],
                    buf,
