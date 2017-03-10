@@ -917,6 +917,7 @@ path_heap_cleanup (void *cls)
        unused paths around in the hope that we might be able to switch, even
        if the number of paths exceeds the threshold.) */
     root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
+    GNUNET_assert (NULL != root);
     if (NULL !=
         GCPP_get_connection (root,
                              cp,
