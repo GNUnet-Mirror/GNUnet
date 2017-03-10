@@ -955,4 +955,4 @@ main (int argc, char *argv[])
 
   return 0;
 }
-/* end of file ats-testing-experiment.c*/
+/* end of file gnunet-solver-eval.c*/
