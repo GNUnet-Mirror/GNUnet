@@ -569,17 +569,25 @@ GNUNET_SOCKS_check_service (const char *service_name,
  */
 struct GNUNET_CONNECTION_Handle *
 GNUNET_SOCKS_do_connect (const char *service_name,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg)
+                         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_SOCKS_Handshake *ih;
   struct GNUNET_CONNECTION_Handle *socks5; /* *proxied */
-  char *host0,*host1,*user,*pass;
-  unsigned long long port0,port1;
+  char *host0;
+  char *host1;
+  char *user;
+  char *pass;
+  unsigned long long port0;
+  unsigned long long port1;
 
-  if (GNUNET_YES != GNUNET_SOCKS_check_service (service_name, cfg))
+  if (GNUNET_YES !=
+      GNUNET_SOCKS_check_service (service_name, cfg))
     return NULL;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "SOCKSPORT", &port0))
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             service_name,
+                                             "SOCKSPORT",
+                                             &port0))
     port0 = 9050;
   /* A typical Tor client should usually try port 9150 for the TBB too, but
    * GNUnet can probably assume a system Tor installation. */
@@ -591,16 +599,23 @@ GNUNET_SOCKS_do_connect (const char *service_name,
          service_name);
     return NULL;
   }
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port1))
-      || (port1 > 65535) || (port1 <= 0) ||
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg,
+                                               service_name,
+                                               "PORT",
+                                               &port1)) ||
+       (port1 > 65535) ||
+       (port1 <= 0) ||
        (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME", &host1)))
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               service_name,
+                                               "HOSTNAME",
+                                               &host1)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _
-	 ("Attempting to proxy service `%s' to invalid port %d or hostname `%s'.\n"),
-	 service_name,port1,host1);
+	 _("Attempting to proxy service `%s' to invalid port %d or hostname.\n"),
+	 service_name,
+         port1);
     return NULL;
   }
   /* Appeared to still work after host0 corrupted, so either test case is broken, or
@@ -608,20 +623,32 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))
     host0 = NULL;
-  socks5 = GNUNET_CONNECTION_create_from_connect (cfg, (host0 != NULL)? host0:"127.0.0.1", port0);
+  socks5 = GNUNET_CONNECTION_create_from_connect (cfg,
+                                                  (host0 != NULL)
+                                                  ? host0
+                                                  :"127.0.0.1",
+                                                  port0);
   GNUNET_free_non_null (host0);
 
   /* Sets to NULL if they do not exist */
-  (void) GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
-  (void) GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
+  (void) GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                service_name,
+                                                "SOCKSUSER",
+                                                &user);
+  (void) GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                service_name,
+                                                "SOCKSPASS",
+                                                &pass);
   ih = GNUNET_SOCKS_init_handshake(user,pass);
-  if (NULL != user) GNUNET_free (user);
-  if (NULL != pass) GNUNET_free (pass);
+  GNUNET_free_non_null (user);
+  GNUNET_free_non_null (pass);
 
-  GNUNET_SOCKS_set_handshake_destination (ih,host1,port1);
+  GNUNET_SOCKS_set_handshake_destination (ih,
+                                          host1,
+                                          port1);
   GNUNET_free (host1);
-
-  return GNUNET_SOCKS_run_handshake(ih,socks5);
+  return GNUNET_SOCKS_run_handshake (ih,
+                                     socks5);
 }
 
 /* socks.c */
