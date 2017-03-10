@@ -186,7 +186,7 @@ run (void *cls,
                   query_type,
                   strlen (data),
                   data,
-                  expiration,
+                  GNUNET_TIME_relative_to_absolute (expiration),
                   &message_sent_cont,
                   NULL);
 }
