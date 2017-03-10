@@ -182,6 +182,18 @@ GNUNET_SQ_query_param_uint64 (const uint64_t *x);
 
 
 /**
+ * Execute binding operations for a prepared statement.
+ *
+ * @param db_conn database connection
+ * @param params parameters to the statement
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+int
+GNUNET_SQ_bind (sqlite3_stmt *stmt,
+                const struct GNUNET_SQ_QueryParam *params);
+
+
+/**
  * Extract data from a Postgres database @a result at row @a row.
  *
  * @param cls closure
@@ -397,18 +409,6 @@ GNUNET_SQ_result_spec_uint32 (uint32_t *u32);
  */
 struct GNUNET_SQ_ResultSpec
 GNUNET_SQ_result_spec_uint64 (uint64_t *u64);
-
-
-/**
- * Execute a prepared statement.
- *
- * @param db_conn database connection
- * @param params parameters to the statement
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-int
-GNUNET_SQ_bind (sqlite3_stmt *stmt,
-                const struct GNUNET_SQ_QueryParam *params);
 
 
 /**

@@ -905,7 +905,7 @@ cmp_uint64_t (const void *pa, const void *pb)
  * in the result set.
  *
  * @param cls closure
- * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
+ * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
  * @param current_size current set size
  * @param status see enum GNUNET_SET_Status
  */
@@ -1022,6 +1022,7 @@ set_result_cb (void *cls,
                     "P%u: lower bound %llu\n",
                     session->local_peer_idx,
                     (long long) session->lower_bound);
+        GNUNET_free (copy);
       }
       return;
     }

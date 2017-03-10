@@ -1015,7 +1015,7 @@ cadet_channel_end_cb (void *cls,
     GNUNET_CONTAINER_DLL_insert (alt->receive_queue_head,
                                  alt->receive_queue_tail,
                                  rc);
-    GNUNET_MQ_send (GNUNET_CADET_get_mq (exit->cadet_channel),
+    GNUNET_MQ_send (GNUNET_CADET_get_mq (alt->cadet_channel),
                     GNUNET_MQ_env_copy (rc->env));
   }
   try_open_exit ();

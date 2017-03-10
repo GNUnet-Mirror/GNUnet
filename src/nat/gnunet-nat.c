@@ -269,6 +269,10 @@ run (void *cls,
     global_ret = 1;
     return;
   }
+  local_len = 0;
+  local_sa = NULL;
+  remote_len = 0;
+  remote_sa = NULL;
   if (NULL != local_addr)
   {
     local_len = (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr,
@@ -279,12 +283,9 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "Invalid socket address `%s'\n",
 		  local_addr);
-      global_ret = 1;
-      return;
+      goto fail_and_shutdown;
     }
   }
-
-  remote_len = 0;
 
   if (NULL != remote_addr)
   {
@@ -296,8 +297,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "Invalid socket address `%s'\n",
 		  remote_addr);
-      global_ret = 1;
-      return;
+      goto fail_and_shutdown;
     }
   }
 
@@ -319,9 +319,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		"Use of `-W` only effective in combination with `-i`\n");
-    global_ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    goto fail_and_shutdown;
   }
 
   if (NULL != remote_addr)
@@ -333,17 +331,13 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "Require IPv4 local address to initiate connection reversal\n");
-      global_ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      goto fail_and_shutdown;
     }
     if (sizeof (struct sockaddr_in) != remote_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "Require IPv4 reversal target address\n");
-      global_ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      goto fail_and_shutdown;
     }
     GNUNET_assert (AF_INET == local_sa->sa_family);
     GNUNET_assert (AF_INET == remote_sa->sa_family);
@@ -372,17 +366,13 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "Require local address to support STUN requests\n");
-      global_ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      goto fail_and_shutdown;
     }
     if (IPPROTO_UDP != proto)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 		  "STUN only supported over UDP\n");
-      global_ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      goto fail_and_shutdown;
     }
     ls = GNUNET_NETWORK_socket_create (af,
 				       SOCK_DGRAM,
@@ -397,17 +387,22 @@ run (void *cls,
 		  GNUNET_a2s (local_sa,
 			      local_len),
 		  STRERROR (errno));
-      global_ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      goto fail_and_shutdown;
     }
     rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					   ls,
 					   &stun_read_task,
 					   NULL);
   }
-
+  GNUNET_free_non_null (remote_sa);
+  GNUNET_free_non_null (local_sa);
   test_finished ();
+  return;
+ fail_and_shutdown:
+  global_ret = 1;
+  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_free_non_null (remote_sa);
+  GNUNET_free_non_null (local_sa);
 }
 
 

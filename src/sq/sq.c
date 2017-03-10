@@ -49,7 +49,14 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
                        "sq",
                        _("Failure to bind %u-th SQL parameter\n"),
                        i);
-      return GNUNET_SYSERR;
+      if (SQLITE_OK !=
+          sqlite3_reset (stmt))
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                         "sq",
+                         _("Failure in sqlite3_reset (!)\n"));
+        return GNUNET_SYSERR;
+      }
     }
     GNUNET_assert (0 != params[i].num_params);
     j += params[i].num_params;

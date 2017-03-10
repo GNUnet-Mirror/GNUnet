@@ -1808,6 +1808,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    GNUNET_assert (NULL != receiver);
     ld->ccn = receiver->ccn;
     GNUNET_memcpy (&ld[1],
                    buf,
@@ -1916,15 +1917,17 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
     GSC_send_to_client (ccc->c,
                         com->env);
     /* Notify sender that we can receive more */
-    if (ccc->ccn.channel_of_client ==
-        ch->owner->ccn.channel_of_client)
+    if ( (NULL != ch->owner) &&
+         (ccc->ccn.channel_of_client ==
+          ch->owner->ccn.channel_of_client) )
     {
       to_owner = GNUNET_NO;
     }
     else
     {
-      GNUNET_assert (ccc->ccn.channel_of_client ==
-                     ch->dest->ccn.channel_of_client);
+      GNUNET_assert ( (NULL != ch->dest) &&
+                      (ccc->ccn.channel_of_client ==
+                       ch->dest->ccn.channel_of_client) );
       to_owner = GNUNET_YES;
     }
     send_ack_to_client (ch,

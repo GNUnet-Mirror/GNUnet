@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 GNUnet e.V.
+     Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -148,7 +148,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Absolute expiration;
   enum GNUNET_DHT_RouteOption ro;
 
   cfg = c;
@@ -187,7 +186,7 @@ run (void *cls,
                   query_type,
                   strlen (data),
                   data,
-                  expiration,
+                  GNUNET_TIME_relative_to_absolute (expiration),
                   &message_sent_cont,
                   NULL);
 }

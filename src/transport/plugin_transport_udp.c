@@ -1623,7 +1623,7 @@ enqueue (struct Plugin *plugin,
     GNUNET_break (0);
     return;
   }
-  if (plugin->bytes_in_buffer + udpw->msg_size > INT64_MAX)
+  if (plugin->bytes_in_buffer > INT64_MAX - udpw->msg_size)
   {
     GNUNET_break (0);
   }

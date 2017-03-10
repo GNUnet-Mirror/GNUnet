@@ -49,7 +49,7 @@ find_peer_context (struct GNUNET_TRANSPORT_TESTING_Handle *tth,
  *
  * @param p1 first peer
  * @param p2 second peer
- * @param cb function to call 
+ * @param cb function to call
  * @param cb_cls closure for @a cb
  */
 void
@@ -66,7 +66,7 @@ GNUNET_TRANSPORT_TESTING_find_connecting_context (struct GNUNET_TRANSPORT_TESTIN
   {
     ccn = cc->next;
     if ( (cc->p1 == p1) &&
-	 (cc->p2 == p2) ) 
+	 (cc->p2 == p2) )
       cb (cb_cls,
 	  cc);
   }
@@ -74,7 +74,7 @@ GNUNET_TRANSPORT_TESTING_find_connecting_context (struct GNUNET_TRANSPORT_TESTIN
 
 
 static void
-set_p1c (void *cls,   
+set_p1c (void *cls,
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   int *found = cls;
@@ -86,7 +86,7 @@ set_p1c (void *cls,
 
 
 static void
-set_mq (void *cls,   
+set_mq (void *cls,
 	struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   struct GNUNET_MQ_Handle *mq = cls;
@@ -96,7 +96,7 @@ set_mq (void *cls,
 
 
 static void
-set_p2c (void *cls,   
+set_p2c (void *cls,
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   int *found = cls;
@@ -108,7 +108,7 @@ set_p2c (void *cls,
 
 
 static void
-clear_p1c (void *cls,   
+clear_p1c (void *cls,
 	   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   int *found = cls;
@@ -120,7 +120,7 @@ clear_p1c (void *cls,
 
 
 static void
-clear_p2c (void *cls,   
+clear_p2c (void *cls,
 	 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   int *found = cls;
@@ -154,7 +154,7 @@ notify_connect (void *cls,
   else
     ret = NULL;
 
-  if (p2 != NULL)
+  if (NULL != p2)
     GNUNET_asprintf (&p2_s,
                      "%u (`%s')",
                      p2->no,
@@ -267,7 +267,7 @@ notify_disconnect (void *cls,
   int no = 0;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2 = NULL;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
-  
+
   p2 = find_peer_context (p->tth,
 			  peer);
   no = p->no;
@@ -386,7 +386,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
   struct GNUNET_PeerIdentity *dummy;
   unsigned int i;
-  
+
   if (GNUNET_NO == GNUNET_DISK_file_test (cfgname))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -407,7 +407,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
     GNUNET_memcpy (p->handlers,
 		   handlers,
 		   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }    
+  }
   if (NULL != cb_cls)
     p->cb_cls = cb_cls;
   else
@@ -532,7 +532,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_PeerConte
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *ccn;
- 
+
   /* shutdown */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Stopping peer %u (`%s')\n",
@@ -770,7 +770,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_PeerCont
       break;
     }
   }
-	  
+
   cc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequest);
   cc->p1 = p1;
   cc->p2 = p2;

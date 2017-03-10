@@ -331,12 +331,14 @@ load_episode (struct Experiment *e,
             o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
           else
           {
-              fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
-                  op_counter, op, cur->id);
+              fprintf (stderr,
+                       "Invalid preference in operation %u `%s' in episode %u\n",
+                       op_counter,
+                       op,
+                       cur->id);
               GNUNET_free (type);
               GNUNET_free (op_name);
               GNUNET_free (op);
-              GNUNET_free (pref);
               GNUNET_free (sec_name);
               GNUNET_free_non_null (pref);
               GNUNET_free (o);
@@ -943,8 +945,14 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc,
+                          argv, argv[0],
+                          NULL,
+                          options,
+                          &run, argv[0]))
+    return 1;
 
   return 0;
 }
-/* end of file ats-testing-experiment.c*/
+/* end of file gnunet-solver-eval.c*/

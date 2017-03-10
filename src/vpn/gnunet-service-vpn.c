@@ -2061,6 +2061,7 @@ route_packet (struct DestinationEntry *destination,
       void *payload;
       uint8_t new_type;
 
+      new_type = icmp->type;
       /* Perform ICMP protocol-translation (depending on destination AF and source AF)
 	 and throw away ICMP payload depending on ICMP message type */
       switch (af)
@@ -2111,8 +2112,8 @@ route_packet (struct DestinationEntry *destination,
 	switch (icmp->type)
 	  {
 	  case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
-	    if (destination->details.exit_destination.af == AF_INET6)
-	      new_type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+	    if (destination->details.exit_destination.af == AF_INET)
+	      new_type = GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE;
 	    /* throw away IP-payload, exit will have to make it up anyway */
 	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
 	    break;

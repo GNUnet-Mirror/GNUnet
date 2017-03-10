@@ -1733,6 +1733,7 @@ GNUNET_SERVICE_ruN_ (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
+  err = 1;
   memset (&sh,
 	  0,
 	  sizeof (sh));

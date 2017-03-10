@@ -174,6 +174,9 @@ auto_config_cb (void *cls,
 	      GNUNET_NAT_AUTO_status2string (result),
 	      nat_type);
 
+  if (NULL == diff)
+    return;
+
   /* Shortcut: if there are no changes suggested, bail out early. */
   if (GNUNET_NO ==
       GNUNET_CONFIGURATION_is_dirty (diff))
@@ -186,20 +189,16 @@ auto_config_cb (void *cls,
      to the user */
   new_cfg = write_cfg ? GNUNET_CONFIGURATION_dup (cfg) : NULL;
 
-  if (NULL != diff)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		_("Suggested configuration changes:\n"));
-    GNUNET_CONFIGURATION_iterate_section_values (diff,
-						 "nat",
-						 &auto_conf_iter,
-						 new_cfg);
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              _("Suggested configuration changes:\n"));
+  GNUNET_CONFIGURATION_iterate_section_values (diff,
+                                               "nat",
+                                               &auto_conf_iter,
+                                               new_cfg);
 
   /* If desired, write configuration to file; we write only the
      changes to the defaults to keep things compact. */
-  if ( (write_cfg) &&
-       (NULL != diff) )
+  if (write_cfg)
   {
     struct GNUNET_CONFIGURATION_Handle *def_cfg;
 
@@ -298,8 +297,8 @@ run (void *cls,
   if (do_auto)
   {
     ah = GNUNET_NAT_AUTO_autoconfig_start (c,
-				      &auto_config_cb,
-				      NULL);
+                                           &auto_config_cb,
+                                           NULL);
   }
 
   if (use_tcp && use_udp)

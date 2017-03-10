@@ -429,6 +429,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       if (sizeof (struct sockaddr_in) != addrlens[i])
       {
 	GNUNET_break (0);
+        GNUNET_free (rm);
 	return NULL;
       }
       break;
@@ -436,6 +437,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       if (sizeof (struct sockaddr_in6) != addrlens[i])
       {
 	GNUNET_break (0);
+        GNUNET_free (rm);
 	return NULL;
       }
       break;
@@ -444,12 +446,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       if (sizeof (struct sockaddr_un) != addrlens[i])
       {
 	GNUNET_break (0);
+        GNUNET_free (rm);
 	return NULL;
       }
       break;
 #endif
     default:
       GNUNET_break (0);
+      GNUNET_free (rm);
       return NULL;
     }
     GNUNET_memcpy (off,

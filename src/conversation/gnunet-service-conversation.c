@@ -779,7 +779,6 @@ handle_cadet_hangup_message (void *cls,
   {
   case CS_CALLEE_INIT:
     GNUNET_break_op (0);
-    destroy_line_cadet_channels (ch);
     return;
   case CS_CALLEE_RINGING:
   case CS_CALLEE_CONNECTED:
