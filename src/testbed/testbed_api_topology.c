@@ -1147,9 +1147,11 @@ gen_topo_from_file (struct TopologyContext *tc,
              other_peer_id);
       while (('\n' != data[offset]) && ('|' != data[offset]) && (offset < fs))
         offset++;
-      if ('\n' == data[offset])
+      if ( (offset < fs) &&
+           ('\n' == data[offset]) )
         state = PEER_INDEX;
-      else if ('|' == data[offset])
+      else if ( (offset < fs) &&
+                ('|' == data[offset]) )
       {
         state = OTHER_PEER_INDEX;
         offset++;
