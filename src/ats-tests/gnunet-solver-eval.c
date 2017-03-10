@@ -331,12 +331,14 @@ load_episode (struct Experiment *e,
             o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
           else
           {
-              fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
-                  op_counter, op, cur->id);
+              fprintf (stderr,
+                       "Invalid preference in operation %u `%s' in episode %u\n",
+                       op_counter,
+                       op,
+                       cur->id);
               GNUNET_free (type);
               GNUNET_free (op_name);
               GNUNET_free (op);
-              GNUNET_free (pref);
               GNUNET_free (sec_name);
               GNUNET_free_non_null (pref);
               GNUNET_free (o);
