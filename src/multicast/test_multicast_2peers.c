@@ -19,8 +19,9 @@
  */
 
 /**
- * @file multicast/test_multicast_multipeers.c
- * @brief Tests for the Multicast API with multiple peers.
+ * @file multicast/test_multicast_2peers.c
+ * @brief Tests for the Multicast API with two peers doing the ping 
+ *        pong test.
  * @author xrs
  */
 
