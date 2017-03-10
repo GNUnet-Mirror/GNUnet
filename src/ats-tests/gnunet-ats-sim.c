@@ -81,15 +81,19 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
 
 
   duration = (duration_total.rel_value_us / (1000 * 1000));
+  if (0 == duration)
+    duration = 1;
   for (c_m = 0; c_m < e->num_masters; c_m++)
   {
     mp = &masters_p[c_m];
     fprintf (stderr,
-        _("Master [%u]: sent: %u KiB in %u sec. = %u KiB/s, received: %u KiB in %u sec. = %u KiB/s\n"),
-        mp->no, mp->total_bytes_sent / 1024, duration,
-        (mp->total_bytes_sent / 1024) / duration,
-        mp->total_bytes_received / 1024, duration,
-        (mp->total_bytes_received / 1024) / duration);
+             _("Master [%u]: sent: %u KiB in %u sec. = %u KiB/s, received: %u KiB in %u sec. = %u KiB/s\n"),
+             mp->no, mp->total_bytes_sent / 1024,
+             duration,
+             (mp->total_bytes_sent / 1024) / duration,
+             mp->total_bytes_received / 1024,
+             duration,
+             (mp->total_bytes_received / 1024) / duration);
 
     for (c_s = 0; c_s < e->num_slaves; c_s++)
     {
