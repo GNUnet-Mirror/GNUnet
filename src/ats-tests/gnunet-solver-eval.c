@@ -945,7 +945,13 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc,
+                          argv, argv[0],
+                          NULL,
+                          options,
+                          &run, argv[0]))
+    return 1;
 
   return 0;
 }
