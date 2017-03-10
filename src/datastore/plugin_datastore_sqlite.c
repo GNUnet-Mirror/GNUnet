@@ -128,6 +128,46 @@ struct Plugin
   sqlite3_stmt *insertContent;
 
   /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *count_key;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *count_key_vhash;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *count_key_type;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *count_key_vhash_type;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *get_key;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *get_key_vhash;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *get_key_type;
+
+  /**
+   * Precompiled SQL for selection
+   */
+  sqlite3_stmt *get_key_vhash_type;
+
+  /**
    * Should the database be dropped on shutdown?
    */
   int drop_on_shutdown;
@@ -151,11 +191,17 @@ sq_prepare (sqlite3 *dbh,
   char *dummy;
   int result;
 
-  result =
-      sqlite3_prepare_v2 (dbh, zSql, strlen (zSql), ppStmt,
-                          (const char **) &dummy);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                   "Prepared `%s' / %p: %d\n", zSql, *ppStmt, result);
+  result = sqlite3_prepare_v2 (dbh,
+                               zSql,
+                               strlen (zSql),
+                               ppStmt,
+                               (const char **) &dummy);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "sqlite",
+                   "Prepared `%s' / %p: %d\n",
+                   zSql,
+                   *ppStmt,
+                   result);
   return result;
 }
 
@@ -311,80 +357,134 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
    * we do math or inequality tests, so we can't handle the entire range of uint32_t.
    * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
    */
-  if ((sqlite3_step (stmt) == SQLITE_DONE) &&
-      (sqlite3_exec
-       (plugin->dbh,
-        "CREATE TABLE gn090 (" "  repl INT4 NOT NULL DEFAULT 0,"
-        "  type INT4 NOT NULL DEFAULT 0," "  prio INT4 NOT NULL DEFAULT 0,"
-        "  anonLevel INT4 NOT NULL DEFAULT 0,"
-        "  expire INT8 NOT NULL DEFAULT 0," "  rvalue INT8 NOT NULL,"
-        "  hash TEXT NOT NULL DEFAULT ''," "  vhash TEXT NOT NULL DEFAULT '',"
-        "  value BLOB NOT NULL DEFAULT '')", NULL, NULL, NULL) != SQLITE_OK))
+  if ( (SQLITE_DONE ==
+        sqlite3_step (stmt)) &&
+       (SQLITE_OK !=
+        sqlite3_exec (plugin->dbh,
+                      "CREATE TABLE gn090 (" "  repl INT4 NOT NULL DEFAULT 0,"
+                      "  type INT4 NOT NULL DEFAULT 0," "  prio INT4 NOT NULL DEFAULT 0,"
+                      "  anonLevel INT4 NOT NULL DEFAULT 0,"
+                      "  expire INT8 NOT NULL DEFAULT 0," "  rvalue INT8 NOT NULL,"
+                      "  hash TEXT NOT NULL DEFAULT ''," "  vhash TEXT NOT NULL DEFAULT '',"
+                      "  value BLOB NOT NULL DEFAULT '')",
+                      NULL,
+                      NULL,
+                      NULL)) )
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR,
+                "sqlite3_exec");
     sqlite3_finalize (stmt);
     return GNUNET_SYSERR;
   }
   sqlite3_finalize (stmt);
   create_indices (plugin->dbh);
 
-  if ((sq_prepare
-       (plugin->dbh,
-        "UPDATE gn090 "
-        "SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
-        &plugin->updPrio) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "UPDATE gn090 " "SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
-        &plugin->updRepl) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
+  if ( (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "UPDATE gn090 "
+                    "SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
+                    &plugin->updPrio)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "UPDATE gn090 " "SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
+                    &plugin->updRepl)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-        "INDEXED BY idx_repl_rvalue "
+                    "INDEXED BY idx_repl_rvalue "
 #endif
-        "WHERE repl=?2 AND " " (rvalue>=?1 OR "
-        "  NOT EXISTS (SELECT 1 FROM gn090 "
+                    "WHERE repl=?2 AND " " (rvalue>=?1 OR "
+                    "  NOT EXISTS (SELECT 1 FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-        "INDEXED BY idx_repl_rvalue "
+                    "INDEXED BY idx_repl_rvalue "
 #endif
-        "WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
-        "ORDER BY rvalue ASC LIMIT 1", &plugin->selRepl) != SQLITE_OK) ||
-      (sq_prepare (plugin->dbh, "SELECT MAX(repl) FROM gn090"
+                    "WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
+                    "ORDER BY rvalue ASC LIMIT 1",
+                    &plugin->selRepl)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT MAX(repl) FROM gn090"
 #if SQLITE_VERSION_NUMBER >= 3007000
-                   " INDEXED BY idx_repl_rvalue"
+                    " INDEXED BY idx_repl_rvalue"
 #endif
-                   "", &plugin->maxRepl) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
+                    "",
+                    &plugin->maxRepl)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-        "INDEXED BY idx_expire "
+                    "INDEXED BY idx_expire "
 #endif
-        "WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
-        "ORDER BY expire ASC LIMIT 1", &plugin->selExpi) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
+                    "WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
+                    "ORDER BY expire ASC LIMIT 1",
+                    &plugin->selExpi)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ " "FROM gn090 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-        "INDEXED BY idx_anon_type_hash "
+                    "INDEXED BY idx_anon_type_hash "
 #endif
-        "WHERE (anonLevel = 0 AND type=?1) "
-        "ORDER BY hash DESC LIMIT 1 OFFSET ?2",
-        &plugin->selZeroAnon) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        &plugin->insertContent) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh, "DELETE FROM gn090 WHERE _ROWID_ = ?",
-        &plugin->delRow) != SQLITE_OK))
+                    "WHERE (anonLevel = 0 AND type=?1) "
+                    "ORDER BY hash DESC LIMIT 1 OFFSET ?2",
+                    &plugin->selZeroAnon)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    &plugin->insertContent)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT count(*) FROM gn090 WHERE hash=?",
+                    &plugin->count_key)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT count(*) FROM gn090 WHERE hash=? AND vhash=?",
+                    &plugin->count_key_vhash)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT count(*) FROM gn090 WHERE hash=? AND type=?",
+                    &plugin->count_key_type)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT count(*) FROM gn090 WHERE hash=? AND vhash=? AND type=?",
+                    &plugin->count_key_vhash_type)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ FROM gn090 "
+                    "WHERE hash=?"
+                    "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
+                    &plugin->get_key)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ FROM gn090 "
+                    "WHERE hash=? AND vhash=?"
+                    "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
+                    &plugin->get_key_vhash)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ FROM gn090 "
+                    "WHERE hash=? AND type=?"
+                    "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
+                    &plugin->get_key_type)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ FROM gn090 "
+                    "WHERE hash=? AND vhash=? AND type=?"
+                    "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
+                    &plugin->get_key_vhash_type)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "DELETE FROM gn090 WHERE _ROWID_ = ?",
+                    &plugin->delRow))
+       )
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "precompiling");
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR,
+                "precompiling");
     return GNUNET_SYSERR;
   }
-
   return GNUNET_OK;
 }
 
@@ -399,51 +499,74 @@ static void
 database_shutdown (struct Plugin *plugin)
 {
   int result;
-
 #if SQLITE_VERSION_NUMBER >= 3007000
   sqlite3_stmt *stmt;
 #endif
 
-  if (plugin->delRow != NULL)
+  if (NULL != plugin->delRow)
     sqlite3_finalize (plugin->delRow);
-  if (plugin->updPrio != NULL)
+  if (NULL != plugin->updPrio)
     sqlite3_finalize (plugin->updPrio);
-  if (plugin->updRepl != NULL)
+  if (NULL != plugin->updRepl)
     sqlite3_finalize (plugin->updRepl);
-  if (plugin->selRepl != NULL)
+  if (NULL != plugin->selRepl)
     sqlite3_finalize (plugin->selRepl);
-  if (plugin->maxRepl != NULL)
+  if (NULL != plugin->maxRepl)
     sqlite3_finalize (plugin->maxRepl);
-  if (plugin->selExpi != NULL)
+  if (NULL != plugin->selExpi)
     sqlite3_finalize (plugin->selExpi);
-  if (plugin->selZeroAnon != NULL)
+  if (NULL != plugin->selZeroAnon)
     sqlite3_finalize (plugin->selZeroAnon);
-  if (plugin->insertContent != NULL)
+  if (NULL != plugin->insertContent)
     sqlite3_finalize (plugin->insertContent);
+  if (NULL != plugin->count_key)
+    sqlite3_finalize (plugin->count_key);
+  if (NULL != plugin->count_key_vhash)
+    sqlite3_finalize (plugin->count_key_vhash);
+  if (NULL != plugin->count_key_type)
+    sqlite3_finalize (plugin->count_key_type);
+  if (NULL != plugin->count_key_vhash_type)
+    sqlite3_finalize (plugin->count_key_vhash_type);
+  if (NULL != plugin->count_key)
+    sqlite3_finalize (plugin->get_key);
+  if (NULL != plugin->count_key_vhash)
+    sqlite3_finalize (plugin->get_key_vhash);
+  if (NULL != plugin->count_key_type)
+    sqlite3_finalize (plugin->get_key_type);
+  if (NULL != plugin->count_key_vhash_type)
+    sqlite3_finalize (plugin->get_key_vhash_type);
   result = sqlite3_close (plugin->dbh);
 #if SQLITE_VERSION_NUMBER >= 3007000
   if (result == SQLITE_BUSY)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
-                     _
-                     ("Tried to close sqlite without finalizing all prepared statements.\n"));
-    stmt = sqlite3_next_stmt (plugin->dbh, NULL);
-    while (stmt != NULL)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                     "sqlite",
+                     _("Tried to close sqlite without finalizing all prepared statements.\n"));
+    stmt = sqlite3_next_stmt (plugin->dbh,
+                              NULL);
+    while (NULL != stmt)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                       "Closing statement %p\n", stmt);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "sqlite",
+                       "Closing statement %p\n",
+                       stmt);
       result = sqlite3_finalize (stmt);
       if (result != SQLITE_OK)
-        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
-                         "Failed to close statement %p: %d\n", stmt, result);
-      stmt = sqlite3_next_stmt (plugin->dbh, NULL);
+        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                         "sqlite",
+                         "Failed to close statement %p: %d\n",
+                         stmt,
+                         result);
+      stmt = sqlite3_next_stmt (plugin->dbh,
+                                NULL);
     }
     result = sqlite3_close (plugin->dbh);
   }
 #endif
   if (SQLITE_OK != result)
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_close");
-
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR,
+                "sqlite3_close");
   GNUNET_free_non_null (plugin->fn);
 }
 
@@ -515,9 +638,10 @@ sqlite_plugin_put (void *cls,
 {
   uint64_t rvalue;
   struct GNUNET_HashCode vhash;
+  uint32_t type32 = (uint32_t) type;
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint32 (&replication),
-    GNUNET_SQ_query_param_uint32 (&type),
+    GNUNET_SQ_query_param_uint32 (&type32),
     GNUNET_SQ_query_param_uint32 (&priority),
     GNUNET_SQ_query_param_uint32 (&anonymity),
     GNUNET_SQ_query_param_absolute_time (&expiration),
@@ -687,74 +811,88 @@ execute_get (struct Plugin *plugin,
 {
   int n;
   struct GNUNET_TIME_Absolute expiration;
-  unsigned long long rowid;
-  unsigned int size;
+  uint32_t type;
+  uint32_t priority;
+  uint32_t anonymity;
+  uint64_t rowid;
+  void *value;
+  size_t value_size;
+  struct GNUNET_HashCode key;
   int ret;
+  struct GNUNET_SQ_ResultSpec rs[] = {
+    GNUNET_SQ_result_spec_uint32 (&type),
+    GNUNET_SQ_result_spec_uint32 (&priority),
+    GNUNET_SQ_result_spec_uint32 (&anonymity),
+    GNUNET_SQ_result_spec_absolute_time (&expiration),
+    GNUNET_SQ_result_spec_auto_from_type (&key),
+    GNUNET_SQ_result_spec_variable_size (&value,
+                                         &value_size),
+    GNUNET_SQ_result_spec_uint64 (&rowid),
+    GNUNET_SQ_result_spec_end
+  };
 
   n = sqlite3_step (stmt);
   switch (n)
   {
   case SQLITE_ROW:
-    size = sqlite3_column_bytes (stmt, 5);
-    rowid = sqlite3_column_int64 (stmt, 6);
-    if (sqlite3_column_bytes (stmt, 4) != sizeof (struct GNUNET_HashCode))
+    if (GNUNET_OK !=
+        GNUNET_SQ_extract_result (stmt,
+                                  rs))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
-                       _("Invalid data in database.  Trying to fix (by deletion).\n"));
-      if (SQLITE_OK != sqlite3_reset (stmt))
-        LOG_SQLITE (plugin,
-                    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                    "sqlite3_reset");
-      if ( (GNUNET_OK == delete_by_rowid (plugin, rowid)) &&
-           (NULL != plugin->env->duc) )
-        plugin->env->duc (plugin->env->cls,
-                          -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
+      GNUNET_break (0);
       break;
     }
-    expiration.abs_value_us = sqlite3_column_int64 (stmt, 3);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "sqlite",
                      "Found reply in database with expiration %s\n",
                      GNUNET_STRINGS_absolute_time_to_string (expiration));
-    ret = proc (proc_cls, sqlite3_column_blob (stmt, 4) /* key */ ,
-                size, sqlite3_column_blob (stmt, 5) /* data */ ,
-                sqlite3_column_int (stmt, 0) /* type */ ,
-                sqlite3_column_int (stmt, 1) /* priority */ ,
-                sqlite3_column_int (stmt, 2) /* anonymity */ ,
-                expiration, rowid);
-    if (SQLITE_OK != sqlite3_reset (stmt))
+    ret = proc (proc_cls,
+                &key,
+                value_size,
+                value,
+                type,
+                priority,
+                anonymity,
+                expiration,
+                rowid);
+    if (SQLITE_OK !=
+        sqlite3_reset (stmt))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
     if ( (GNUNET_NO == ret) &&
-         (GNUNET_OK == delete_by_rowid (plugin, rowid)) &&
+         (GNUNET_OK == delete_by_rowid (plugin,
+                                        rowid)) &&
          (NULL != plugin->env->duc) )
       plugin->env->duc (plugin->env->cls,
-                        -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
+                        -(value_size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
     return;
   case SQLITE_DONE:
     /* database must be empty */
-    if (SQLITE_OK != sqlite3_reset (stmt))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
     break;
   case SQLITE_BUSY:
   case SQLITE_ERROR:
   case SQLITE_MISUSE:
   default:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
-    if (SQLITE_OK != sqlite3_reset (stmt))
+    if (SQLITE_OK !=
+        sqlite3_reset (stmt))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
     GNUNET_break (0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     database_shutdown (plugin);
-    database_setup (plugin->env->cfg, plugin);
-    break;
+    database_setup (plugin->env->cfg,
+                    plugin);
+    return;
   }
-  if (SQLITE_OK != sqlite3_reset (stmt))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+  if (SQLITE_OK !=
+      sqlite3_reset (stmt))
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
   proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
 }
@@ -774,7 +912,8 @@ execute_get (struct Plugin *plugin,
  * @param proc_cls closure for @a proc
  */
 static void
-sqlite_plugin_get_zero_anonymity (void *cls, uint64_t offset,
+sqlite_plugin_get_zero_anonymity (void *cls,
+                                  uint64_t offset,
                                   enum GNUNET_BLOCK_Type type,
                                   PluginDatumProcessor proc,
                                   void *proc_cls)
@@ -826,97 +965,130 @@ sqlite_plugin_get_key (void *cls,
                        void *proc_cls)
 {
   struct Plugin *plugin = cls;
+  uint32_t type32 = (uint32_t) type;
   int ret;
   int total;
-  int limit_off;
-  unsigned int sqoff;
-  sqlite3_stmt *stmt;
-  char scratch[256];
+  uint32_t limit_off;
+  struct GNUNET_SQ_QueryParam count_params_key[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam count_params_key_vhash[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_auto_from_type (vhash),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam count_params_key_type[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_uint32 (&type32),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam count_params_key_vhash_type[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_auto_from_type (vhash),
+    GNUNET_SQ_query_param_uint32 (&type32),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam get_params_key[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_uint32 (&limit_off),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam get_params_key_vhash[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_auto_from_type (vhash),
+    GNUNET_SQ_query_param_uint32 (&limit_off),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam get_params_key_type[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_uint32 (&type32),
+    GNUNET_SQ_query_param_uint32 (&limit_off),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam get_params_key_vhash_type[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_auto_from_type (vhash),
+    GNUNET_SQ_query_param_uint32 (&type32),
+    GNUNET_SQ_query_param_uint32 (&limit_off),
+    GNUNET_SQ_query_param_end
+  };
+  struct GNUNET_SQ_QueryParam *count_params;
+  sqlite3_stmt *count_stmt;
+  struct GNUNET_SQ_QueryParam *get_params;
+  sqlite3_stmt *get_stmt;
 
-  GNUNET_assert (proc != NULL);
-  GNUNET_assert (key != NULL);
-  GNUNET_snprintf (scratch, sizeof (scratch),
-                   "SELECT count(*) FROM gn090 WHERE hash=?%s%s",
-                   vhash == NULL ? "" : " AND vhash=?",
-                   type == 0 ? "" : " AND type=?");
-  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
+  if (NULL == vhash)
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite_prepare");
+    if (GNUNET_BLOCK_TYPE_ANY == type)
+    {
+      count_params = count_params_key;
+      count_stmt = plugin->count_key;
+      get_params = get_params_key;
+      get_stmt = plugin->get_key;
+    }
+    else
+    {
+      count_params = count_params_key_type;
+      count_stmt = plugin->count_key_type;
+      get_params = get_params_key_type;
+      get_stmt = plugin->get_key_type;
+    }
+  }
+  else
+  {
+    if (GNUNET_BLOCK_TYPE_ANY == type)
+    {
+      count_params = count_params_key_vhash;
+      count_stmt = plugin->count_key_vhash;
+      get_params = get_params_key_vhash;
+      get_stmt = plugin->get_key_vhash;
+    }
+    else
+    {
+      count_params = count_params_key_vhash_type;
+      count_stmt = plugin->count_key_vhash_type;
+      get_params = get_params_key_vhash_type;
+      get_stmt = plugin->get_key_vhash_type;
+    }
+  }
+  if (GNUNET_OK !=
+      GNUNET_SQ_bind (count_stmt,
+                      count_params))
+  {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  sqoff = 1;
-  ret =
-      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (struct GNUNET_HashCode),
-                         SQLITE_TRANSIENT);
-  if ((vhash != NULL) && (ret == SQLITE_OK))
-    ret =
-        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (struct GNUNET_HashCode),
-                           SQLITE_TRANSIENT);
-  if ((type != 0) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_int (stmt, sqoff++, type);
-  if (SQLITE_OK != ret)
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_bind");
-    sqlite3_finalize (stmt);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  ret = sqlite3_step (stmt);
+  ret = sqlite3_step (count_stmt);
   if (ret != SQLITE_ROW)
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite_step");
-    sqlite3_finalize (stmt);
+    sqlite3_reset (count_stmt);
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  total = sqlite3_column_int (stmt, 0);
-  sqlite3_finalize (stmt);
+  total = sqlite3_column_int (count_stmt,
+                              0);
+  sqlite3_reset (count_stmt);
   if (0 == total)
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  limit_off = (int) (offset % total);
-  if (limit_off < 0)
-    limit_off += total;
-  GNUNET_snprintf (scratch, sizeof (scratch),
-                   "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ "
-                   "FROM gn090 WHERE hash=?%s%s "
-                   "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
-                   vhash == NULL ? "" : " AND vhash=?",
-                   type == 0 ? "" : " AND type=?");
-  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
+  limit_off = (uint32_t) (offset % total);
+  if (GNUNET_OK !=
+      GNUNET_SQ_bind (get_stmt,
+                      get_params))
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite_prepare");
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  sqoff = 1;
-  ret = sqlite3_bind_blob (stmt, sqoff++, key,
-                           sizeof (struct GNUNET_HashCode),
-                           SQLITE_TRANSIENT);
-  if ((vhash != NULL) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_blob (stmt, sqoff++, vhash,
-                             sizeof (struct GNUNET_HashCode),
-                             SQLITE_TRANSIENT);
-  if ((type != 0) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_int (stmt, sqoff++, type);
-  if (ret == SQLITE_OK)
-    ret = sqlite3_bind_int64 (stmt, sqoff++, limit_off);
-  if (ret != SQLITE_OK)
-  {
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite_bind");
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  execute_get (plugin, stmt, proc, proc_cls);
-  sqlite3_finalize (stmt);
+  execute_get (plugin,
+               get_stmt,
+               proc,
+               proc_cls);
+  sqlite3_reset (get_stmt);
 }
 
 
@@ -980,13 +1152,17 @@ repl_proc (void *cls,
   struct ReplCtx *rc = cls;
   int ret;
 
+  if (GNUNET_SYSERR == rc->have_uid)
+    rc->have_uid = GNUNET_NO;
   ret = rc->proc (rc->proc_cls,
                   key,
-                  size, data,
+                  size,
+                  data,
                   type,
                   priority,
                   anonymity,
-                  expiration, uid);
+                  expiration,
+                  uid);
   if (NULL != key)
   {
     rc->uid = uid;
@@ -1007,7 +1183,8 @@ repl_proc (void *cls,
  * @param proc_cls closure for @a proc
  */
 static void
-sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
+sqlite_plugin_get_replication (void *cls,
+                               PluginDatumProcessor proc,
                                void *proc_cls)
 {
   struct Plugin *plugin = cls;
@@ -1027,12 +1204,11 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "datastore-sqlite",
                    "Getting random block based on replication order.\n");
-  rc.have_uid = GNUNET_NO;
-  rc.proc = proc;
-  rc.proc_cls = proc_cls;
-  if (SQLITE_ROW != sqlite3_step (plugin->maxRepl))
+  if (SQLITE_ROW !=
+      sqlite3_step (plugin->maxRepl))
   {
-    if (SQLITE_OK != sqlite3_reset (plugin->maxRepl))
+    if (SQLITE_OK !=
+        sqlite3_reset (plugin->maxRepl))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
@@ -1040,11 +1216,15 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  repl = sqlite3_column_int (plugin->maxRepl, 0);
-  if (SQLITE_OK != sqlite3_reset (plugin->maxRepl))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+  repl = sqlite3_column_int (plugin->maxRepl,
+                             0);
+  if (SQLITE_OK !=
+      sqlite3_reset (plugin->maxRepl))
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
-  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                     UINT64_MAX);
   if (GNUNET_OK !=
       GNUNET_SQ_bind (plugin->selRepl,
                       params_sel_repl))
@@ -1052,7 +1232,13 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  execute_get (plugin, plugin->selRepl, &repl_proc, &rc);
+  rc.have_uid = GNUNET_SYSERR;
+  rc.proc = proc;
+  rc.proc_cls = proc_cls;
+  execute_get (plugin,
+               plugin->selRepl,
+               &repl_proc,
+               &rc);
   if (GNUNET_YES == rc.have_uid)
   {
     if (GNUNET_OK !=
@@ -1062,14 +1248,21 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
       proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
-    if (SQLITE_DONE != sqlite3_step (plugin->updRepl))
+    if (SQLITE_DONE !=
+        sqlite3_step (plugin->updRepl))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_step");
-    if (SQLITE_OK != sqlite3_reset (plugin->updRepl))
+    if (SQLITE_OK !=
+        sqlite3_reset (plugin->updRepl))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
+  }
+  if (GNUNET_SYSERR == rc.have_uid)
+  {
+    /* proc was not called at all so far, do it now. */
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
   }
 }
 
@@ -1094,7 +1287,8 @@ sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
     GNUNET_SQ_query_param_end
   };
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "sqlite",
                    "Getting random block based on expiration and priority order.\n");
   now = GNUNET_TIME_absolute_get ();
   stmt = plugin->selExpi;
@@ -1131,11 +1325,17 @@ sqlite_plugin_get_keys (void *cls,
   int ret;
 
   GNUNET_assert (NULL != proc);
-  if (sq_prepare (plugin->dbh, "SELECT hash FROM gn090", &stmt) != SQLITE_OK)
+  if (SQLITE_OK !=
+      sq_prepare (plugin->dbh,
+                  "SELECT hash FROM gn090",
+                  &stmt))
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite_prepare");
-    proc (proc_cls, NULL, 0);
+    proc (proc_cls,
+          NULL,
+          0);
     return;
   }
   while (SQLITE_ROW == (ret = sqlite3_step (stmt)))
@@ -1143,14 +1343,20 @@ sqlite_plugin_get_keys (void *cls,
     if (GNUNET_OK ==
         GNUNET_SQ_extract_result (stmt,
                                   results))
-      proc (proc_cls, &key, 1);
+      proc (proc_cls,
+            &key,
+            1);
     else
       GNUNET_break (0);
   }
   if (SQLITE_DONE != ret)
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR,
+                "sqlite_step");
   sqlite3_finalize (stmt);
-  proc (proc_cls, NULL, 0);
+  proc (proc_cls,
+        NULL,
+        0);
 }
 
 
@@ -1176,7 +1382,8 @@ sqlite_plugin_drop (void *cls)
  * @return the size of the database on disk (estimate)
  */
 static void
-sqlite_plugin_estimate_size (void *cls, unsigned long long *estimate)
+sqlite_plugin_estimate_size (void *cls,
+                             unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
@@ -1191,29 +1398,45 @@ sqlite_plugin_estimate_size (void *cls, unsigned long long *estimate)
     return;
   if (SQLITE_VERSION_NUMBER < 3006000)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "datastore-sqlite",
-                     _
-                     ("sqlite version to old to determine size, assuming zero\n"));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                     "datastore-sqlite",
+                     _("sqlite version to old to determine size, assuming zero\n"));
     *estimate = 0;
     return;
   }
-  CHECK (SQLITE_OK == sqlite3_exec (plugin->dbh, "VACUUM", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL", NULL,
+         sqlite3_exec (plugin->dbh,
+                       "VACUUM",
+                       NULL,
+                       NULL,
+                       ENULL));
+  CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA auto_vacuum=INCREMENTAL",
+                       NULL,
                        NULL, ENULL));
-  CHECK (SQLITE_OK == sq_prepare (plugin->dbh, "PRAGMA page_count", &stmt));
+  CHECK (SQLITE_OK ==
+         sq_prepare (plugin->dbh,
+                     "PRAGMA page_count",
+                     &stmt));
   if (SQLITE_ROW == sqlite3_step (stmt))
-    pages = sqlite3_column_int64 (stmt, 0);
+    pages = sqlite3_column_int64 (stmt,
+                                  0);
   else
     pages = 0;
   sqlite3_finalize (stmt);
-  CHECK (SQLITE_OK == sq_prepare (plugin->dbh, "PRAGMA page_size", &stmt));
-  CHECK (SQLITE_ROW == sqlite3_step (stmt));
+  CHECK (SQLITE_OK ==
+         sq_prepare (plugin->dbh,
+                     "PRAGMA page_size",
+                     &stmt));
+  CHECK (SQLITE_ROW ==
+         sqlite3_step (stmt));
   page_size = sqlite3_column_int64 (stmt, 0);
   sqlite3_finalize (stmt);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Using sqlite page utilization to estimate payload (%llu pages of size %llu bytes)\n"),
-              (unsigned long long) pages, (unsigned long long) page_size);
+              (unsigned long long) pages,
+              (unsigned long long) page_size);
   *estimate = pages * page_size;
 }
 
@@ -1231,9 +1454,11 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   struct GNUNET_DATASTORE_PluginEnvironment *env = cls;
   struct GNUNET_DATASTORE_PluginFunctions *api;
 
-  if (plugin.env != NULL)
+  if (NULL != plugin.env)
     return NULL;                /* can only initialize once! */
-  memset (&plugin, 0, sizeof (struct Plugin));
+  memset (&plugin,
+          0,
+          sizeof (struct Plugin));
   plugin.env = env;
   if (GNUNET_OK != database_setup (env->cfg, &plugin))
   {
@@ -1251,7 +1476,8 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->get_zero_anonymity = &sqlite_plugin_get_zero_anonymity;
   api->get_keys = &sqlite_plugin_get_keys;
   api->drop = &sqlite_plugin_drop;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "sqlite",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                   "sqlite",
                    _("Sqlite database running\n"));
   return api;
 }
@@ -1270,13 +1496,12 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "sqlite",
                    "sqlite plugin is done\n");
   fn = NULL;
   if (plugin->drop_on_shutdown)
     fn = GNUNET_strdup (plugin->fn);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                   "Shutting down database\n");
   database_shutdown (plugin);
   plugin->env = NULL;
   GNUNET_free (api);
@@ -1288,9 +1513,6 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
                                 fn);
     GNUNET_free (fn);
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "sqlite",
-                   "sqlite plugin is finished\n");
   return NULL;
 }
 
