@@ -151,7 +151,6 @@ member_join_decision (void *cls,
                                              0,
                                              notify,
                                              NULL);
-    
   }
 }
 
@@ -159,7 +158,8 @@ static void
 member_message (void *cls, 
                 const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
-  if (0 != strncmp ("pong", (char *)&msg[1], 4)) {
+  if (0 != strncmp ("pong", (char *)&msg[1], 4)) 
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "member did not receive pong\n");
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
@@ -228,9 +228,8 @@ origin_request (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin receives: %s\n", (char *)&req[1]);
   
-  if (0 != strncmp ("ping", (char *)&req[1], 4)) {
+  if (0 != strncmp ("ping", (char *)&req[1], 4)) 
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "origin didn't reveice a correct request");
-  }
 
   GNUNET_MULTICAST_origin_to_all (origin,
                                   0,
@@ -255,10 +254,15 @@ service_connect1 (void *cls,
 {
   member = ca_result;
 
-  if (NULL != member)
+  if (NULL != member) 
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
+  }
   else
+  {
     result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 static void
@@ -316,7 +320,8 @@ peer_information_cb (void *cls,
 {
   int i = (int) (long) cls;
 
-  if (NULL == pinfo) {
+  if (NULL == pinfo) 
+  {
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
@@ -329,20 +334,21 @@ peer_information_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create member peer\n");
 
-  if (0 == i) {
-  /* connect to multicast service of member */
-  op1 = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
-                                        peers[1],                /* The peer whose service to connect to */
-                                        "multicast",             /* The name of the service */
-                                        service_connect1,   /* callback to call after a handle to service
-                                                               is opened */
-                                        NULL,                    /* closure for the above callback */
-                                        multicast_ca1,      /* callback to call with peer's configuration;
-                                                               this should open the needed service connection */
-                                        multicast_da1,     /* callback to be called when closing the
-                                                              opened service connection */
-                                        NULL);                   /* closure for the above two callbacks */
-  }
+  if (0 == i) 
+  {
+    /* connect to multicast service of member */
+    op1 = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
+                                          peers[1],                /* The peer whose service to connect to */
+                                          "multicast",             /* The name of the service */
+                                          service_connect1,   /* callback to call after a handle to service
+                                                                 is opened */
+                                          NULL,                    /* closure for the above callback */
+                                          multicast_ca1,      /* callback to call with peer's configuration;
+                                                                 this should open the needed service connection */
+                                          multicast_da1,     /* callback to be called when closing the
+                                                                opened service connection */
+                                          NULL);                   /* closure for the above two callbacks */
+    }
 }
 
 /**
