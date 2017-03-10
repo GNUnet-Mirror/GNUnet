@@ -1493,7 +1493,7 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
     {
       if (NULL != topology)
         *topology = (enum GNUNET_TESTBED_TopologyOption) cnt;
-      GNUNET_assert (GNUNET_TESTBED_TOPOLOGY_OPTION_END != *topology);
+      GNUNET_assert (GNUNET_TESTBED_TOPOLOGY_OPTION_END != (enum GNUNET_TESTBED_TopologyOption) cnt);
       return GNUNET_YES;
     }
   }
