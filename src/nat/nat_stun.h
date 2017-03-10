@@ -70,7 +70,7 @@ struct stun_addr
    * Port number.
    */
   uint16_t port;
-  
+
   /**
    * IPv4 address. Should this be "struct in_addr"?
    */
@@ -79,7 +79,7 @@ struct stun_addr
 
 
 /**
- * STUN message classes 
+ * STUN message classes
  */
 enum StunClasses {
   INVALID_CLASS = 0,
@@ -186,18 +186,19 @@ stun_msg2str (int msg)
   static char result[64];
   const char *msg_class = NULL;
   const char *method = NULL;
-  int value;
+  enum StunClasses cvalue;
+  enum StunMethods mvalue;
 
-  value = decode_class (msg);
+  cvalue = decode_class (msg);
   for (unsigned int i = 0; classes[i].name; i++)
-    if (classes[i].value == value)
+    if (classes[i].value == cvalue)
     {
       msg_class = classes[i].name;
       break;
     }
-  value = decode_method (msg);
+  mvalue = decode_method (msg);
   for (unsigned int i = 0; methods[i].name; i++)
-    if (methods[i].value == value)
+    if (methods[i].value == mvalue)
     {
       method = methods[i].name;
       break;
