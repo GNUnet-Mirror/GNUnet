@@ -33,6 +33,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datastore-api",__VA_ARGS__)
 
+#define DELAY_WARN_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
 /**
  * Collect an instane number of statistics?  May cause excessive IPC.
  */
@@ -136,6 +138,12 @@ struct GNUNET_DATASTORE_QueueEntry
    * transmission.
    */
   struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * Task we run if this entry stalls the queue and we
+   * need to warn the user.
+   */
+  struct GNUNET_SCHEDULER_Task *delay_warn_task;
 
   /**
    * Priority in the queue.
@@ -269,7 +277,32 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
   h->queue_size--;
   if (NULL != qe->env)
     GNUNET_MQ_discard (qe->env);
+  if (NULL != qe->delay_warn_task)
+    GNUNET_SCHEDULER_cancel (qe->delay_warn_task);
   GNUNET_free (qe);
+}
+
+
+/**
+ * Task that logs an error after some time.
+ *
+ * @param qe `struct GNUNET_DATASTORE_QueueEntry` about which the error is
+ */
+static void
+delay_warning (void *cls)
+{
+  struct GNUNET_DATASTORE_QueueEntry *qe = cls;
+
+  qe->delay_warn_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Request %p of type %u at head of datastore queue for more than %s\n",
+              qe,
+              (unsigned int) qe->response_type,
+              GNUNET_STRINGS_relative_time_to_string (DELAY_WARN_TIMEOUT,
+                                                      GNUNET_YES));
+  qe->delay_warn_task = GNUNET_SCHEDULER_add_delayed (DELAY_WARN_TIMEOUT,
+                                                      &delay_warning,
+                                                      qe);
 }
 
 
@@ -290,6 +323,12 @@ mq_error_handler (void *cls,
        "MQ error, reconnecting to DATASTORE\n");
   do_disconnect (h);
   qe = h->queue_head;
+  if (NULL != qe->delay_warn_task)
+  {
+    GNUNET_SCHEDULER_cancel (qe->delay_warn_task);
+    qe->delay_warn_task = NULL;
+  }
+
   if ( (NULL != qe) &&
        (NULL == qe->env) )
   {
@@ -594,6 +633,10 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
          "Not connected\n");
     return;
   }
+  GNUNET_assert (NULL == qe->delay_warn_task);
+  qe->delay_warn_task = GNUNET_SCHEDULER_add_delayed (DELAY_WARN_TIMEOUT,
+                                                      &delay_warning,
+                                                      qe);
   GNUNET_MQ_send (h->mq,
                   qe->env);
   qe->env = NULL;
