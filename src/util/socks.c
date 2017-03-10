@@ -372,15 +372,18 @@ transmit_ready (void *cls,
     return 0;
   }
 
-  GNUNET_assert (1024 >= size && size > 0);
-  GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
+  GNUNET_assert ( (1024 >= size) && (size > 0) );
+  GNUNET_assert ( (SOCKS5_step_done > ih->step) && (ih->step >= 0) );
   unsigned char * b = ih->outstep[ih->step];
   unsigned char * e = ih->outstep[ih->step+1];
   GNUNET_assert (e <= &ih->outbuf[1024]);
-  unsigned l = e - b;
-  GNUNET_assert (size >= l && l >= 0);
-  GNUNET_memcpy(buf, b, l);
-  register_reciever (ih, register_reciever_wants(ih));
+  unsigned int l = e - b;
+  GNUNET_assert (size >= l);
+  GNUNET_memcpy (buf,
+                 b,
+                 l);
+  register_reciever (ih,
+                     register_reciever_wants (ih));
   return l;
 }
 
