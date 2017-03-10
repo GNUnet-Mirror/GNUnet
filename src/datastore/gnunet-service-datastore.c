@@ -307,7 +307,7 @@ expired_processor (void *cls,
 {
   struct GNUNET_TIME_Absolute now;
 
-  if (key == NULL)
+  if (NULL == key)
   {
     expired_kill_task =
         GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,

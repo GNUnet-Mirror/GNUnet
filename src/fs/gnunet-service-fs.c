@@ -38,7 +38,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_lc.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"

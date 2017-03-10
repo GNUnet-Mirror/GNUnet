@@ -1669,8 +1669,8 @@ search_result_stop (void *cls,
   if (NULL != sr->download)
   {
     sr->download->search = NULL;
-    sr->download->top =
-        GNUNET_FS_make_top (sr->download->h,
+    sr->download->top
+      = GNUNET_FS_make_top (sr->download->h,
                             &GNUNET_FS_download_signal_suspend_,
                             sr->download);
     if (NULL != sr->download->serialization)
@@ -1682,7 +1682,8 @@ search_result_stop (void *cls,
       sr->download->serialization = NULL;
     }
     pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
-    GNUNET_FS_download_make_status_ (&pi, sr->download);
+    GNUNET_FS_download_make_status_ (&pi,
+                                     sr->download);
     GNUNET_FS_download_sync_ (sr->download);
     sr->download = NULL;
   }
@@ -1748,25 +1749,28 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   if (NULL != sc->top)
     GNUNET_FS_end_top (sc->h, sc->top);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
-                                         &search_result_stop, sc);
+                                         &search_result_stop,
+                                         sc);
   if (NULL != sc->psearch_result)
     sc->psearch_result->update_search = NULL;
   if (NULL != sc->serialization)
   {
     GNUNET_FS_remove_sync_file_ (sc->h,
-                                 (sc->psearch_result !=
-                                  NULL) ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH :
-                                 GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
+                                 (NULL != sc->psearch_result)
+                                 ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH
+                                 : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
                                  sc->serialization);
     GNUNET_FS_remove_sync_dir_ (sc->h,
-                                (sc->psearch_result !=
-                                 NULL) ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH :
-                                GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
+                                (NULL != sc->psearch_result)
+                                ? GNUNET_FS_SYNC_PATH_CHILD_SEARCH
+                                : GNUNET_FS_SYNC_PATH_MASTER_SEARCH,
                                 sc->serialization);
     GNUNET_free (sc->serialization);
   }
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
-  sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
+  sc->client_info = GNUNET_FS_search_make_status_ (&pi,
+                                                   sc->h,
+                                                   sc);
   GNUNET_break (NULL == sc->client_info);
   if (NULL != sc->task)
   {
