@@ -182,6 +182,7 @@ handle_external_ip (void *cls,
   switch (result)
   {
   case GNUNET_NAT_ERROR_SUCCESS:
+    GNUNET_assert (NULL != addr);
     if (addr->s_addr == mini_external_ipv4.s_addr)
       return; /* not change */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
