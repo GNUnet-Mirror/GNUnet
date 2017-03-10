@@ -323,14 +323,14 @@ mq_error_handler (void *cls,
        "MQ error, reconnecting to DATASTORE\n");
   do_disconnect (h);
   qe = h->queue_head;
+  if (NULL == qe)
+    return;
   if (NULL != qe->delay_warn_task)
   {
     GNUNET_SCHEDULER_cancel (qe->delay_warn_task);
     qe->delay_warn_task = NULL;
   }
-
-  if ( (NULL != qe) &&
-       (NULL == qe->env) )
+  if (NULL == qe->env)
   {
     union QueueContext qc = qe->qc;
     uint16_t rt = qe->response_type;
