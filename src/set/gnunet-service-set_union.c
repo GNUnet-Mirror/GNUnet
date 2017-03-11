@@ -787,11 +787,18 @@ send_element_iterator (void *cls,
   struct GNUNET_SET_Element *el = &ee->element;
   struct GNUNET_MQ_Envelope *ev;
 
-
-  ev = GNUNET_MQ_msg_extra (emsg, el->size, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Sending element %s\n",
+       GNUNET_h2s (key));
+  ev = GNUNET_MQ_msg_extra (emsg,
+                            el->size,
+                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT);
   emsg->element_type = htons (el->element_type);
-  GNUNET_memcpy (&emsg[1], el->data, el->size);
-  GNUNET_MQ_send (op->mq, ev);
+  GNUNET_memcpy (&emsg[1],
+                 el->data,
+                 el->size);
+  GNUNET_MQ_send (op->mq,
+                  ev);
   return GNUNET_YES;
 }
 
@@ -802,11 +809,14 @@ send_full_set (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
 
   op->state->phase = PHASE_FULL_SENDING;
-
+  /* FIXME: use a more memory-friendly way of doing this with an
+     iterator, just as we do in the non-full case! */
   (void) GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
-                                                &send_element_iterator, op);
+                                                &send_element_iterator,
+                                                op);
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE);
-  GNUNET_MQ_send (op->mq, ev);
+  GNUNET_MQ_send (op->mq,
+                  ev);
 }
 
 
@@ -922,17 +932,19 @@ handle_union_p2p_strata_estimator (void *cls,
   }
 
   if ( (GNUNET_YES == op->spec->force_full) ||
-       (diff > op->state->initial_size / 4))
+       (diff > op->state->initial_size / 4) ||
+       (0 == other_size) )
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         "Sending full set (diff=%d, own set=%u)\n",
+         "Deciding to go for full set transmission (diff=%d, own set=%u)\n",
          diff,
          op->state->initial_size);
     GNUNET_STATISTICS_update (_GSS_statistics,
                               "# of full sends",
                               1,
                               GNUNET_NO);
-    if (op->state->initial_size <= other_size)
+    if ( (op->state->initial_size <= other_size) ||
+         (0 == other_size) )
     {
       send_full_set (op);
     }
@@ -940,9 +952,12 @@ handle_union_p2p_strata_estimator (void *cls,
     {
       struct GNUNET_MQ_Envelope *ev;
 
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Telling other peer that we expect its full set\n");
       op->state->phase = PHASE_EXPECT_IBF;
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL);
-      GNUNET_MQ_send (op->mq, ev);
+      GNUNET_MQ_send (op->mq,
+                      ev);
     }
   }
   else
@@ -1773,6 +1788,8 @@ handle_union_p2p_request_full (void *cls,
 {
   struct Operation *op = cls;
 
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received request for full set transmission\n");
   if (OT_UNION != op->type)
   {
     GNUNET_break_op (0);
