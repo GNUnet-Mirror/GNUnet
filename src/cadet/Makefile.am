@@ -22,7 +22,6 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-cadet \
  gnunet-service-cadet-new \
  $(EXP_LIBEXEC)
 
@@ -81,31 +80,8 @@ gnunet_service_cadet_new_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
-
-gnunet_service_cadet_SOURCES = \
- gnunet-service-cadet_tunnel.c gnunet-service-cadet_tunnel.h \
- gnunet-service-cadet_connection.c gnunet-service-cadet_connection.h \
- gnunet-service-cadet_channel.c gnunet-service-cadet_channel.h \
- gnunet-service-cadet_local.c gnunet-service-cadet_local.h \
- gnunet-service-cadet_peer.c gnunet-service-cadet_peer.h \
- gnunet-service-cadet_dht.c gnunet-service-cadet_dht.h \
- gnunet-service-cadet_hello.c gnunet-service-cadet_hello.h \
- cadet_path.c cadet_path.h \
- cadet_common.c \
- gnunet-service-cadet.c
-gnunet_service_cadet_CFLAGS = $(AM_CFLAGS)
-gnunet_service_cadet_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
-  gnunet_service_cadet_LDFLAGS = -lrt
+  gnunet_service_cadet_new_LDFLAGS = -lrt
 endif
 
 
