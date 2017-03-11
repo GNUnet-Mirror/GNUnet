@@ -20,7 +20,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new_connection.h
+ * @file cadet/gnunet-service-cadet_connection.h
  * @brief A connection is a live end-to-end messaging mechanism
  *       where the peers are identified by a path and know how
  *       to forward along the route using a connection identifier
@@ -32,8 +32,8 @@
 #define GNUNET_SERVICE_CADET_CONNECTION_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_peer.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_peer.h"
 #include "cadet_protocol.h"
 
 

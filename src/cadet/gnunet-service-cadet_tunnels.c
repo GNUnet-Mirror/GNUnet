@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_tunnels.c
+ * @file cadet/gnunet-service-cadet_tunnels.c
  * @brief Information we track per tunnel.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -34,13 +34,12 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_signatures.h"
-#include "gnunet-service-cadet-new.h"
 #include "cadet_protocol.h"
-#include "gnunet-service-cadet-new_channel.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_tunnels.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnels.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
 
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-tun",__VA_ARGS__)

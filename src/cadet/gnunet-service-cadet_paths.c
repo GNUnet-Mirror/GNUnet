@@ -18,16 +18,16 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_paths.c
+ * @file cadet/gnunet-service-cadet_paths.c
  * @brief Information we track per path.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_tunnels.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnels.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
 
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-pat",__VA_ARGS__)

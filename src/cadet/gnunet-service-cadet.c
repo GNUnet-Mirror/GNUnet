@@ -19,7 +19,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new.c
+ * @file cadet/gnunet-service-cadet.c
  * @brief GNUnet CADET service with encryption
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -37,15 +37,15 @@
 #include "gnunet_util_lib.h"
 #include "cadet.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_channel.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_core.h"
-#include "gnunet-service-cadet-new_dht.h"
-#include "gnunet-service-cadet-new_hello.h"
-#include "gnunet-service-cadet-new_tunnels.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_core.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_hello.h"
+#include "gnunet-service-cadet_tunnels.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
 
 #define LOG(level, ...) GNUNET_log (level,__VA_ARGS__)
 

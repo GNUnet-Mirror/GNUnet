@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_hello.c
+ * @file cadet/gnunet-service-cadet_hello.c
  * @brief spread knowledge about how to contact other peers from PEERINFO
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -33,10 +33,10 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "cadet_protocol.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_dht.h"
-#include "gnunet-service-cadet-new_hello.h"
-#include "gnunet-service-cadet-new_peer.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_hello.h"
+#include "gnunet-service-cadet_peer.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-hll",__VA_ARGS__)
 

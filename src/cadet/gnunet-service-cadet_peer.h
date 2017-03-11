@@ -28,7 +28,7 @@
 #ifndef GNUNET_SERVICE_CADET_PEER_H
 #define GNUNET_SERVICE_CADET_PEER_H
 
-#include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet.h"
 #include "gnunet_hello_lib.h"
 
 

@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_dht.c
+ * @file cadet/gnunet-service-cadet_dht.c
  * @brief Information we track per peer.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -28,11 +28,11 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_dht.h"
-#include "gnunet-service-cadet-new_hello.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_hello.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
 
 /**
  * How long do we wait before first announcing our presence to the DHT.

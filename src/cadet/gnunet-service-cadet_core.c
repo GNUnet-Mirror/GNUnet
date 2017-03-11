@@ -30,11 +30,11 @@
  * - Optimization: given BROKEN messages, destroy paths (?)
  */
 #include "platform.h"
-#include "gnunet-service-cadet-new_core.h"
-#include "gnunet-service-cadet-new_paths.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_tunnels.h"
+#include "gnunet-service-cadet_core.h"
+#include "gnunet-service-cadet_paths.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnels.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"

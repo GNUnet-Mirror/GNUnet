@@ -59,7 +59,7 @@ extern "C"
 #include "gnunet_core_service.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_protocols.h"
-#include <gnunet_cadet_service.h>
+#include "gnunet_cadet_service.h"
 
 /******************************************************************************/
 /**************************       CONSTANTS      ******************************/

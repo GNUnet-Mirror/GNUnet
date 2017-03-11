@@ -19,19 +19,17 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new_connection.c
+ * @file cadet/gnunet-service-cadet_connection.c
  * @brief management of CORE-level end-to-end connections; establishes
  *        end-to-end routes and transmits messages along the route
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_channel.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_paths.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_tunnels.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_paths.h"
+#include "gnunet-service-cadet_tunnels.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"

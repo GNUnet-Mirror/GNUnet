@@ -18,14 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/test_cadet_mq.c
+ * @file cadet/test_cadet.c
  * @author Bart Polot
  * @author Christian Grothoff
  * @brief Test for the cadet service using mq API.
  */
 #include <stdio.h>
 #include "platform.h"
-#include "cadet_test_lib_new.h"
+#include "cadet_test_lib.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_statistics_service.h"
 #include <gauger.h>

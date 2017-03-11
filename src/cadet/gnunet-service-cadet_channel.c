@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_channel.c
+ * @file cadet/gnunet-service-cadet_channel.c
  * @brief logical links between CADET clients
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -34,15 +34,12 @@
  *   reserve more bits in 'options' to allow for buffer size control?
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
 #include "cadet.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_channel.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_tunnels.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnels.h"
+#include "gnunet-service-cadet_paths.h"
 
 #define LOG(level,...) GNUNET_log_from (level,"cadet-chn",__VA_ARGS__)
 

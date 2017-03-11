@@ -20,7 +20,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new_channel.h
+ * @file cadet/gnunet-service-cadet_channel.h
  * @brief GNUnet CADET service with encryption
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -28,8 +28,8 @@
 #ifndef GNUNET_SERVICE_CADET_CHANNEL_H
 #define GNUNET_SERVICE_CADET_CHANNEL_H
 
-#include "gnunet-service-cadet-new.h"
-#include "gnunet-service-cadet-new_peer.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_peer.h"
 #include "cadet_protocol.h"
 
 
