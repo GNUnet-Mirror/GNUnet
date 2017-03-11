@@ -86,37 +86,30 @@ endif
 
 
 if HAVE_TESTING
- noinst_LTLIBRARIES = libgnunetcadettest.la libgnunetcadettestnew.la $(noinst_LIB_EXP)
+ noinst_LTLIBRARIES = libgnunetcadettest.la $(noinst_LIB_EXP)
  noinst_PROGRAMS = gnunet-cadet-profiler
 endif
-
-libgnunetcadettest_la_SOURCES = \
-  cadet_test_lib.c cadet_test_lib.h
-libgnunetcadettest_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la \
- libgnunetcadet.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
   test_cadet_local_mq \
-  test_cadet_2_forward_new \
-  test_cadet_2_forward_new \
-  test_cadet_2_signal_new \
-  test_cadet_2_keepalive_new \
-  test_cadet_2_speed_new \
-  test_cadet_2_speed_ack_new \
-  test_cadet_2_speed_backwards_new \
-  test_cadet_2_speed_reliable_new \
-  test_cadet_2_speed_reliable_backwards_new \
-  test_cadet_5_forward_new \
-  test_cadet_5_signal_new \
-  test_cadet_5_keepalive_new \
-  test_cadet_5_speed_new \
-  test_cadet_5_speed_ack_new \
-  test_cadet_5_speed_reliable_new \
-  test_cadet_5_speed_reliable_backwards_new \
-  test_cadet_5_speed_backwards_new
+  test_cadet_2_forward \
+  test_cadet_2_forward \
+  test_cadet_2_signal \
+  test_cadet_2_keepalive \
+  test_cadet_2_speed \
+  test_cadet_2_speed_ack \
+  test_cadet_2_speed_backwards \
+  test_cadet_2_speed_reliable \
+  test_cadet_2_speed_reliable_backwards \
+  test_cadet_5_forward \
+  test_cadet_5_signal \
+  test_cadet_5_keepalive \
+  test_cadet_5_speed \
+  test_cadet_5_speed_ack \
+  test_cadet_5_speed_reliable \
+  test_cadet_5_speed_reliable_backwards \
+  test_cadet_5_speed_backwards
 endif
 
 ld_cadet_test_lib = \
@@ -146,89 +139,89 @@ test_cadet_local_mq_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 
-libgnunetcadettestnew_la_SOURCES = \
+libgnunetcadettest_la_SOURCES = \
   cadet_test_lib_new.c cadet_test_lib_new.h
-libgnunetcadettestnew_la_LIBADD = \
+libgnunetcadettest_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
  libgnunetcadetnew.la
 
-ld_cadet_test_lib_new = \
+ld_cadet_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetcadetnew.la \
-  libgnunetcadettestnew.la \
+  libgnunetcadettest.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
-dep_cadet_test_lib_new = \
+dep_cadet_test_lib = \
   libgnunetcadetnew.la \
-  libgnunetcadettestnew.la \
+  libgnunetcadettest.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
-test_cadet_2_forward_new_SOURCES = \
+test_cadet_2_forward_SOURCES = \
   test_cadet_new.c
-test_cadet_2_forward_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_forward_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_signal_new_SOURCES = \
+test_cadet_2_signal_SOURCES = \
   test_cadet_new.c
-test_cadet_2_signal_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_signal_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_keepalive_new_SOURCES = \
+test_cadet_2_keepalive_SOURCES = \
   test_cadet_new.c
-test_cadet_2_keepalive_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_keepalive_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_speed_new_SOURCES = \
+test_cadet_2_speed_SOURCES = \
   test_cadet_new.c
-test_cadet_2_speed_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_speed_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_speed_ack_new_SOURCES = \
+test_cadet_2_speed_ack_SOURCES = \
   test_cadet_new.c
-test_cadet_2_speed_ack_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_speed_ack_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_speed_backwards_new_SOURCES = \
+test_cadet_2_speed_backwards_SOURCES = \
   test_cadet_new.c
-test_cadet_2_speed_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_speed_backwards_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_speed_reliable_new_SOURCES = \
+test_cadet_2_speed_reliable_SOURCES = \
   test_cadet_new.c
-test_cadet_2_speed_reliable_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_speed_reliable_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_2_speed_reliable_backwards_new_SOURCES = \
+test_cadet_2_speed_reliable_backwards_SOURCES = \
   test_cadet_new.c
-test_cadet_2_speed_reliable_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_2_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
 
 
-test_cadet_5_forward_new_SOURCES = \
+test_cadet_5_forward_SOURCES = \
   test_cadet_new.c
-test_cadet_5_forward_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_forward_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_signal_new_SOURCES = \
+test_cadet_5_signal_SOURCES = \
   test_cadet_new.c
-test_cadet_5_signal_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_signal_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_keepalive_new_SOURCES = \
+test_cadet_5_keepalive_SOURCES = \
   test_cadet_new.c
-test_cadet_5_keepalive_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_keepalive_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_speed_new_SOURCES = \
+test_cadet_5_speed_SOURCES = \
   test_cadet_new.c
-test_cadet_5_speed_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_speed_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_speed_ack_new_SOURCES = \
+test_cadet_5_speed_ack_SOURCES = \
   test_cadet_new.c
-test_cadet_5_speed_ack_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_speed_ack_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_speed_backwards_new_SOURCES = \
+test_cadet_5_speed_backwards_SOURCES = \
   test_cadet_new.c
-test_cadet_5_speed_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_speed_backwards_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_speed_reliable_new_SOURCES = \
+test_cadet_5_speed_reliable_SOURCES = \
   test_cadet_new.c
-test_cadet_5_speed_reliable_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_speed_reliable_LDADD = $(ld_cadet_test_lib)
 
-test_cadet_5_speed_reliable_backwards_new_SOURCES = \
+test_cadet_5_speed_reliable_backwards_SOURCES = \
   test_cadet_new.c
-test_cadet_5_speed_reliable_backwards_new_LDADD = $(ld_cadet_test_lib_new)
+test_cadet_5_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
 
 
 if ENABLE_TEST_RUN
