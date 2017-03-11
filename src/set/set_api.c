@@ -76,6 +76,8 @@ struct GNUNET_SET_Handle
 
   /**
    * Should the set be destroyed once all operations are gone?
+   * #GNUNET_SYSERR if #GNUNET_SET_destroy() must raise this flag,
+   * #GNUNET_YES if #GNUNET_SET_destroy() did raise this flag.
    */
   int destroy_requested;
 
@@ -345,11 +347,13 @@ handle_iter_done (void *cls,
 
   if (NULL == iter)
     return;
+  set->destroy_requested = GNUNET_SYSERR;
   set->iterator = NULL;
   set->iteration_id++;
   iter (set->iterator_cls,
         NULL);
-
+  if (GNUNET_SYSERR == set->destroy_requested)
+    set->destroy_requested = GNUNET_NO;
   if (GNUNET_YES == set->destroy_requested)
     GNUNET_SET_destroy (set);
 }
@@ -736,7 +740,9 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   /* destroying set while iterator is active is currently
      not supported; we should expand the API to allow
      clients to explicitly cancel the iteration! */
-  if ( (NULL != set->ops_head) || (NULL != set->iterator) )
+  if ( (NULL != set->ops_head) ||
+       (NULL != set->iterator) ||
+       (GNUNET_SYSERR == set->destroy_requested) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Set operations are pending, delaying set destruction\n");
@@ -809,7 +815,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
         msg->force_delta = GNUNET_YES;
         break;
       default:
-        LOG (GNUNET_ERROR_TYPE_ERROR, 
+        LOG (GNUNET_ERROR_TYPE_ERROR,
              "Option with type %d not recognized\n", (int) opt->type);
     }
   }
