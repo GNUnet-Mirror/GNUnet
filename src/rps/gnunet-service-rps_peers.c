@@ -566,7 +566,7 @@ get_mq (const struct GNUNET_PeerIdentity *peer)
   if (NULL == peer_ctx->mq)
   {
     (void) get_channel (peer);
-    peer_ctx->mq = GNUNET_CADET_mq_create (peer_ctx->send_channel);
+    peer_ctx->mq = GNUNET_CADET_get_mq (peer_ctx->send_channel);
   }
   return peer_ctx->mq;
 }
@@ -663,9 +663,7 @@ remove_pending_message (struct PendingMessage *pending_msg)
   GNUNET_CONTAINER_DLL_remove (peer_ctx->pending_messages_head,
                                peer_ctx->pending_messages_tail,
                                pending_msg);
-  /* FIXME We are not able to cancel messages as #GNUNET_CADET_mq_create () does
-   * not set a #GNUNET_MQ_CancelImpl */
-  /* GNUNET_MQ_send_cancel (peer_ctx->pending_messages_head->ev); */
+  GNUNET_MQ_send_cancel (peer_ctx->pending_messages_head->ev);
   GNUNET_free (pending_msg);
 }
 
@@ -1688,12 +1686,7 @@ Peers_get_recv_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, own_identity))
-  {
-    return GNUNET_NO;
-  }
   GNUNET_assert (GNUNET_YES == Peers_check_peer_known (peer));
-
   peer_ctx = get_peer_ctx (peer);
   return peer_ctx->recv_channel;
 }
