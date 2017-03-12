@@ -1211,7 +1211,7 @@ check_union_p2p_ibf (void *cls,
   struct Operation *op = cls;
   unsigned int buckets_in_message;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1447,7 +1447,7 @@ check_union_p2p_elements (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1575,7 +1575,7 @@ check_union_p2p_full_element (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1690,7 +1690,7 @@ check_union_p2p_inquiry (void *cls,
   struct Operation *op = cls;
   unsigned int num_keys;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1790,7 +1790,7 @@ handle_union_p2p_request_full (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Received request for full set transmission\n");
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     fail_union_operation (op);
@@ -1880,7 +1880,7 @@ check_union_p2p_demand (void *cls,
   struct Operation *op = cls;
   unsigned int num_hashes;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1984,7 +1984,7 @@ check_union_p2p_offer (void *cls,
   struct Operation *op = cls;
   unsigned int num_hashes;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2079,7 +2079,7 @@ handle_union_p2p_done (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_UNION != op->type)
+  if (GNUNET_SET_OPERATION_UNION != op->operation)
   {
     GNUNET_break_op (0);
     fail_union_operation (op);

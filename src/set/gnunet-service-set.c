@@ -161,9 +161,7 @@ struct GNUNET_STATISTICS_Handle *_GSS_statistics;
 static struct Set *
 set_get (struct GNUNET_SERVICE_Client *client)
 {
-  struct Set *set;
-
-  for (set = sets_head; NULL != set; set = set->next)
+  for (struct Set *set = sets_head; NULL != set; set = set->next)
     if (set->client == client)
       return set;
   return NULL;
@@ -180,9 +178,9 @@ set_get (struct GNUNET_SERVICE_Client *client)
 static struct Listener *
 listener_get (struct GNUNET_SERVICE_Client *client)
 {
-  struct Listener *listener;
-
-  for (listener = listeners_head; NULL != listener; listener = listener->next)
+  for (struct Listener *listener = listeners_head;
+       NULL != listener;
+       listener = listener->next)
     if (listener->client == client)
       return listener;
   return NULL;
@@ -199,9 +197,7 @@ listener_get (struct GNUNET_SERVICE_Client *client)
 static struct Operation *
 get_incoming (uint32_t id)
 {
-  struct Operation *op;
-
-  for (op = incoming_head; NULL != op; op = op->next)
+  for (struct Operation *op = incoming_head; NULL != op; op = op->next)
     if (op->suggest_id == id)
     {
       GNUNET_assert (GNUNET_YES == op->is_incoming);
@@ -1117,11 +1113,9 @@ handle_client_create_set (void *cls,
   {
   case GNUNET_SET_OPERATION_INTERSECTION:
     set->vt = _GSS_intersection_vt ();
-    set->type = OT_INTERSECTION;
     break;
   case GNUNET_SET_OPERATION_UNION:
     set->vt = _GSS_union_vt ();
-    set->type = OT_UNION;
     break;
   default:
     GNUNET_free (set);
@@ -1129,7 +1123,7 @@ handle_client_create_set (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  set->operation = ntohl (msg->operation);
+  set->operation = (enum GNUNET_SET_OperationType) ntohl (msg->operation);
   set->state = set->vt->create ();
   if (NULL == set->state)
   {
@@ -1446,9 +1440,12 @@ handle_client_reject (void *cls,
   incoming = get_incoming (ntohl (msg->accept_reject_id));
   if (NULL == incoming)
   {
-    /* no matching incoming operation for this reject */
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (client);
+    /* no matching incoming operation for this reject;
+       could be that the other peer already disconnected... */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Client rejected unknown operation %u\n",
+                (unsigned int) ntohl (msg->accept_reject_id));
+    GNUNET_SERVICE_client_continue (client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1496,7 +1493,6 @@ handle_client_mutation (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-
   GNUNET_SERVICE_client_continue (client);
 
   if (0 != set->content->iterator_count)
@@ -1505,7 +1501,6 @@ handle_client_mutation (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling mutation on set\n");
-
     pm = GNUNET_new (struct PendingMutation);
     pm->mutation_message = GNUNET_copy_message (m);
     pm->set = set;
@@ -1514,7 +1509,10 @@ handle_client_mutation (void *cls,
                                       pm);
     return;
   }
-  execute_mutation (set, m);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Executing mutation on set\n");
+  execute_mutation (set,
+                    m);
 }
 
 
@@ -1531,8 +1529,8 @@ advance_generation (struct Set *set)
 
   if (set->current_generation == set->content->latest_generation)
   {
-    set->content->latest_generation += 1;
-    set->current_generation += 1;
+    set->content->latest_generation++;
+    set->current_generation++;
     return;
   }
 
@@ -1540,10 +1538,8 @@ advance_generation (struct Set *set)
 
   r.start = set->current_generation + 1;
   r.end = set->content->latest_generation + 1;
-
   set->content->latest_generation = r.end;
   set->current_generation = r.end;
-
   GNUNET_array_append (set->excluded_generations,
                        set->excluded_generations_size,
                        r);
@@ -1678,7 +1674,7 @@ handle_client_evaluate (void *cls,
   // mutations won't interfer with the running operation.
   op->generation_created = set->current_generation;
   advance_generation (set);
-  op->type = set->type;
+  op->operation = set->operation;
   op->vt = set->vt;
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
@@ -1847,11 +1843,9 @@ handle_client_copy_lazy_connect (void *cls,
   {
   case GNUNET_SET_OPERATION_INTERSECTION:
     set->vt = _GSS_intersection_vt ();
-    set->type = OT_INTERSECTION;
     break;
   case GNUNET_SET_OPERATION_UNION:
     set->vt = _GSS_union_vt ();
-    set->type = OT_UNION;
     break;
   default:
     GNUNET_assert (0);
@@ -2020,7 +2014,7 @@ handle_client_accept (void *cls,
   advance_generation (set);
 
   op->vt = set->vt;
-  op->type = set->type;
+  op->operation = set->operation;
   op->vt->accept (op);
   GNUNET_SERVICE_client_continue (client);
 }

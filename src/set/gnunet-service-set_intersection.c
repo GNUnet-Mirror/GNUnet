@@ -677,7 +677,7 @@ check_intersection_p2p_bf (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_INTERSECTION != op->type)
+  if (GNUNET_SET_OPERATION_INTERSECTION != op->operation)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -869,7 +869,7 @@ handle_intersection_p2p_element_info (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_INTERSECTION != op->type)
+  if (GNUNET_SET_OPERATION_INTERSECTION != op->operation)
   {
     GNUNET_break_op (0);
     fail_intersection_operation(op);
@@ -970,7 +970,7 @@ handle_intersection_p2p_done (void *cls,
 {
   struct Operation *op = cls;
 
-  if (OT_INTERSECTION != op->type)
+  if (GNUNET_SET_OPERATION_INTERSECTION != op->operation)
   {
     GNUNET_break_op (0);
     fail_intersection_operation(op);

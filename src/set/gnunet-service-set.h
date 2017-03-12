@@ -345,27 +345,6 @@ struct Listener;
 
 
 /**
- * Possible set operations.
- */
-enum OperationType {
-  /**
-   * Operation type unknown.
-   */
-  OT_UNKNOWN = 0,
-
-  /**
-   * We are performing a union.
-   */
-  OT_UNION,
-
-  /**
-   * We are performing an intersection.
-   */
-  OT_INTERSECTION
-};
-
-
-/**
  * Operation context used to execute a set operation.
  */
 struct Operation
@@ -429,9 +408,9 @@ struct Operation
   struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
-   * What type of operation is this?
+   * The type of the operation.
    */
-  enum OperationType type;
+  enum GNUNET_SET_OperationType operation;
 
   /**
    * Unique request id for the request from a remote peer, sent to the
@@ -587,11 +566,6 @@ struct Set
    * Evaluate operations are held in a linked list.
    */
   struct Operation *ops_tail;
-
-  /**
-   * What type of operation is this set for?
-   */
-  enum OperationType type;
 
   /**
    * Current generation, that is, number of previously executed
