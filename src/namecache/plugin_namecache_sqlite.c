@@ -537,6 +537,7 @@ namecache_sqlite_lookup_block (void *cls,
                sizeof (struct GNUNET_CRYPTO_EcdsaSignature) != block_size) )
     {
       GNUNET_break (0);
+      GNUNET_SQ_cleanup_result (rs);
       ret = GNUNET_SYSERR;
     }
     else
@@ -546,6 +547,7 @@ namecache_sqlite_lookup_block (void *cls,
 		  GNUNET_h2s_full (query));
       iter (iter_cls,
             block);
+      GNUNET_SQ_cleanup_result (rs);
       ret = GNUNET_YES;
     }
   }
