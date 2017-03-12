@@ -90,7 +90,12 @@ GNUNET_SQ_extract_result (sqlite3_stmt *result,
                     j,
                     rs[i].result_size,
                     rs[i].dst))
+    {
+      for (unsigned int k=0;k<i;k++)
+        if (NULL != rs[k].cleaner)
+          rs[k].cleaner (rs[k].cls);
       return GNUNET_SYSERR;
+    }
     GNUNET_assert (0 != rs[i].num_params);
     j += rs[i].num_params;
   }
@@ -111,5 +116,25 @@ GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs)
     if (NULL != rs[i].cleaner)
       rs[i].cleaner (rs[i].cls);
 }
+
+
+/**
+ * Reset @a stmt and log error.
+ *
+ * @param dbh database handle
+ * @param stmt statement to reset
+ */
+void
+GNUNET_SQ_reset (sqlite3 *dbh,
+                 sqlite3_stmt *stmt)
+{
+  if (SQLITE_OK !=
+      sqlite3_reset (stmt))
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                     "sqlite",
+                     _("Failed to reset sqlite statement with error: %s\n"),
+                     sqlite3_errmsg (dbh));
+}
+
 
 /* end of sq.c */

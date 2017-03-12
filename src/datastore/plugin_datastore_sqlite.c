@@ -855,11 +855,9 @@ execute_get (struct Plugin *plugin,
                 anonymity,
                 expiration,
                 rowid);
-    if (SQLITE_OK !=
-        sqlite3_reset (stmt))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
+    GNUNET_SQ_cleanup_result (rs);
+    GNUNET_SQ_reset (plugin->dbh,
+                     stmt);
     if ( (GNUNET_NO == ret) &&
          (GNUNET_OK == delete_by_rowid (plugin,
                                         rowid)) &&
