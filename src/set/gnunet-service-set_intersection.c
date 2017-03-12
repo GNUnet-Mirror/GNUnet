@@ -849,10 +849,6 @@ static void
 begin_bf_exchange (struct Operation *op)
 {
   op->state->phase = PHASE_BF_EXCHANGE;
-  GNUNET_assert (NULL == op->state->my_elements);
-  op->state->my_elements
-    = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count,
-                                            GNUNET_YES);
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
                                          &initialize_map_unfiltered,
                                          op);
@@ -1034,6 +1030,9 @@ intersection_evaluate (struct Operation *op,
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_INITIAL;
   op->state->my_element_count = op->spec->set->state->current_set_element_count;
+  op->state->my_elements
+    = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count,
+                                            GNUNET_YES);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Initiating intersection operation evaluation\n");
