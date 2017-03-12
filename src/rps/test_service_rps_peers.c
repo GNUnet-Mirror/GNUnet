@@ -59,25 +59,25 @@ check ()
   memset (&own_id, 1, sizeof (own_id));
 
   /* Do nothing */
-  Peers_initialise (FN_VALID_PEERS, NULL, &own_id);
+  Peers_initialise (FN_VALID_PEERS, NULL, NULL, NULL, &own_id);
   Peers_terminate ();
 
 
   /* Create peer */
-  Peers_initialise (FN_VALID_PEERS, NULL, &own_id);
+  Peers_initialise (FN_VALID_PEERS, NULL, NULL, NULL, &own_id);
   CHECK (GNUNET_YES == Peers_insert_peer (&k1));
   Peers_terminate ();
 
 
   /* Create peer */
-  Peers_initialise (FN_VALID_PEERS, NULL, &own_id);
+  Peers_initialise (FN_VALID_PEERS, NULL, NULL, NULL, &own_id);
   CHECK (GNUNET_YES == Peers_insert_peer (&k1));
   CHECK (GNUNET_YES == Peers_remove_peer (&k1));
   Peers_terminate ();
 
 
   /* Insertion and Removal */
-  Peers_initialise (FN_VALID_PEERS, NULL, &own_id);
+  Peers_initialise (FN_VALID_PEERS, NULL, NULL, NULL, &own_id);
   CHECK (GNUNET_NO  == Peers_check_peer_known (&k1));
 
   CHECK (GNUNET_YES == Peers_insert_peer (&k1));
