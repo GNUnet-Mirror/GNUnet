@@ -60,7 +60,7 @@ gnunet_service_rps_LDADD = \
   libgnunetrps.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/cadet/libgnunetcadet.la \
+  $(top_builddir)/src/cadet/libgnunetcadetnew.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -107,7 +107,7 @@ test_service_rps_view_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 test_service_rps_peers_SOURCES = gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
 																 test_service_rps_peers.c
 test_service_rps_peers_LDADD = $(top_builddir)/src/util/libgnunetutil.la \
-															 $(top_builddir)/src/cadet/libgnunetcadet.la
+															 $(top_builddir)/src/cadet/libgnunetcadetnew.la
 
 test_service_rps_custommap_SOURCES = gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
 																 test_service_rps_custommap.c
