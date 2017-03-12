@@ -24,7 +24,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "cadet_test_lib_new.h"
+#include "cadet_test_lib.h"
 #include "gnunet_cadet_service.h"
 
 
