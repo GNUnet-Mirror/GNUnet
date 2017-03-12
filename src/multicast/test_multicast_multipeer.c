@@ -345,7 +345,7 @@ multicast_ca (void *cls,
   else
   {
     // Get members keys
-    member_pub_key[mc_peer->peer] = GNUNET_new (struct GNUNET_CRYPTO_EddsaPublicKey);
+    member_pub_key[mc_peer->peer] = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
     member_key[mc_peer->peer] = GNUNET_CRYPTO_ecdsa_key_create ();
     GNUNET_CRYPTO_ecdsa_key_get_public (member_key[mc_peer->peer], member_pub_key[mc_peer->peer]);
     
@@ -517,7 +517,7 @@ testbed_master (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
 
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 48),
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
 					      &timeout_task, NULL);
 }
 
