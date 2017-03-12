@@ -595,15 +595,12 @@ delete_by_rowid (struct Plugin *plugin,
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
-    if (SQLITE_OK != sqlite3_reset (plugin->delRow))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->delRow);
     return GNUNET_SYSERR;
   }
-  if (SQLITE_OK != sqlite3_reset (plugin->delRow))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
+  GNUNET_SQ_reset (plugin->dbh,
+                   plugin->delRow);
   return GNUNET_OK;
 }
 
@@ -702,19 +699,16 @@ sqlite_plugin_put (void *cls,
   default:
     LOG_SQLITE_MSG (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_step");
-    if (SQLITE_OK != sqlite3_reset (stmt))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
+    GNUNET_SQ_reset (plugin->dbh,
+                     stmt);
     database_shutdown (plugin);
     database_setup (plugin->env->cfg, plugin);
     cont (cont_cls, key, size, GNUNET_SYSERR, msg);
     GNUNET_free_non_null(msg);
     return;
   }
-  if (SQLITE_OK != sqlite3_reset (stmt))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
+  GNUNET_SQ_reset (plugin->dbh,
+                   stmt);
   cont (cont_cls, key, size, ret, msg);
   GNUNET_free_non_null(msg);
 }
@@ -768,9 +762,8 @@ sqlite_plugin_update (void *cls,
     return;
   }
   n = sqlite3_step (plugin->updPrio);
-  if (SQLITE_OK != sqlite3_reset (plugin->updPrio))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
+  GNUNET_SQ_reset (plugin->dbh,
+                   plugin->updPrio);
   switch (n)
   {
   case SQLITE_DONE:
@@ -887,11 +880,8 @@ execute_get (struct Plugin *plugin,
                     plugin);
     return;
   }
-  if (SQLITE_OK !=
-      sqlite3_reset (stmt))
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
+  GNUNET_SQ_reset (plugin->dbh,
+                   stmt);
   proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
 }
 
@@ -1062,13 +1052,15 @@ sqlite_plugin_get_key (void *cls,
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite_step");
-    sqlite3_reset (count_stmt);
+    GNUNET_SQ_reset (plugin->dbh,
+                     count_stmt);
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   total = sqlite3_column_int (count_stmt,
                               0);
-  sqlite3_reset (count_stmt);
+  GNUNET_SQ_reset (plugin->dbh,
+                   count_stmt);
   if (0 == total)
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -1086,7 +1078,8 @@ sqlite_plugin_get_key (void *cls,
                get_stmt,
                proc,
                proc_cls);
-  sqlite3_reset (get_stmt);
+  GNUNET_SQ_reset (plugin->dbh,
+                   get_stmt);
 }
 
 
@@ -1205,22 +1198,16 @@ sqlite_plugin_get_replication (void *cls,
   if (SQLITE_ROW !=
       sqlite3_step (plugin->maxRepl))
   {
-    if (SQLITE_OK !=
-        sqlite3_reset (plugin->maxRepl))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->maxRepl);
     /* DB empty */
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   repl = sqlite3_column_int (plugin->maxRepl,
                              0);
-  if (SQLITE_OK !=
-      sqlite3_reset (plugin->maxRepl))
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
+  GNUNET_SQ_reset (plugin->dbh,
+                   plugin->maxRepl);
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                      UINT64_MAX);
   if (GNUNET_OK !=
@@ -1251,11 +1238,8 @@ sqlite_plugin_get_replication (void *cls,
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_step");
-    if (SQLITE_OK !=
-        sqlite3_reset (plugin->updRepl))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->updRepl);
   }
   if (GNUNET_SYSERR == rc.have_uid)
   {
