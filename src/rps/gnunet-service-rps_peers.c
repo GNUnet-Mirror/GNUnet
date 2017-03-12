@@ -1546,12 +1546,8 @@ void
 Peers_cleanup_destroyed_channel (void *cls,
                                  const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity *peer = cls;
   struct PeerContext *peer_ctx;
-
-  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
-      (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
-       // FIXME wait for cadet to change this function
 
   if (GNUNET_NO == Peers_check_peer_known (peer))
   {/* We don't want to implicitly create a context that we're about to kill */
