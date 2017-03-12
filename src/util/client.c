@@ -298,11 +298,11 @@ recv_message (void *cls,
 
   if (GNUNET_YES == cstate->in_destroy)
     return GNUNET_SYSERR;
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message of type %u and size %u from %s\n",
-       ntohs (msg->type), ntohs (msg->size), cstate->service_name);
-
+       ntohs (msg->type),
+       ntohs (msg->size),
+       cstate->service_name);
   GNUNET_MQ_inject_message (cstate->mq,
                             msg);
   if (GNUNET_YES == cstate->in_destroy)
