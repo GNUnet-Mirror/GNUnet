@@ -1,6 +1,7 @@
+
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2001-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,435 +20,16 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet_peer.h
- * @brief cadet service; dealing with remote peers
+ * @file cadet/gnunet-service-cadet-new_peer.h
+ * @brief Information we track per peer.
  * @author Bartlomiej Polot
- *
- * All functions in this file should use the prefix GMP (Gnunet Cadet Peer)
+ * @author Christian Grothoff
  */
-
 #ifndef GNUNET_SERVICE_CADET_PEER_H
 #define GNUNET_SERVICE_CADET_PEER_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
-#include "platform.h"
-#include "gnunet_util_lib.h"
-#include "cadet_path.h"
-
-/**
- * Struct containing all information regarding a given peer
- */
-struct CadetPeer;
-
-/**
- * Handle to queued messages on a peer level.
- */
-struct CadetPeerQueue;
-
-#include "gnunet-service-cadet_connection.h"
-
-
-/**
- * Callback called when a queued message is sent.
- *
- * @param cls Closure.
- * @param c Connection this message was on.
- * @param fwd Was this a FWD going message?
- * @param sent Was it really sent? (Could have been canceled)
- * @param type Type of message sent.
- * @param payload_type Type of payload, if applicable.
- * @param pid Message ID, or 0 if not applicable (create, destroy, etc).
- * @param size Size of the message.
- * @param wait Time spent waiting for core (only the time for THIS message)
- */
-typedef void
-(*GCP_sent) (void *cls,
-             struct CadetConnection *c,
-             int fwd,
-             int sent,
-             uint16_t type,
-             uint16_t payload_type,
-             struct CadetEncryptedMessageIdentifier pid,
-             size_t size,
-             struct GNUNET_TIME_Relative wait);
-
-/**
- * Peer path iterator.
- *
- * @param cls Closure.
- * @param peer Peer this path is towards.
- * @param path Path itself
- * @return #GNUNET_YES if should keep iterating.
- *         #GNUNET_NO otherwise.
- */
-typedef int
-(*GCP_path_iterator) (void *cls,
-                      struct CadetPeer *peer,
-                      struct CadetPeerPath *path);
-
-
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
-
-/**
- * Initialize peer subsystem.
- *
- * @param c Configuration.
- */
-void
-GCP_init (const struct GNUNET_CONFIGURATION_Handle *c);
-
-/**
- * Shut down the peer subsystem.
- */
-void
-GCP_shutdown (void);
-
-
-/**
- * Retrieve the CadetPeer stucture associated with the peer. Optionally create
- * one and insert it in the appropriate structures if the peer is not known yet.
- *
- * @param peer_id Full identity of the peer.
- * @param create #GNUNET_YES if a new peer should be created if unknown.
- *               #GNUNET_NO otherwise.
- *
- * @return Existing or newly created peer structure.
- *         NULL if unknown and not requested @a create
- */
-struct CadetPeer *
-GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
-
-
-/**
- * Retrieve the CadetPeer stucture associated with the peer. Optionally create
- * one and insert it in the appropriate structures if the peer is not known yet.
- *
- * @param peer Short identity of the peer.
- * @param create #GNUNET_YES if a new peer should be created if unknown.
- *               #GNUNET_NO otherwise.
- *
- * @return Existing or newly created peer structure.
- *         NULL if unknown and not requested @a create
- */
-struct CadetPeer *
-GCP_get_short (const GNUNET_PEER_Id peer, int create);
-
-
-/**
- * Try to establish a new connection to this peer (in its tunnel).
- * If the peer doesn't have any path to it yet, try to get one.
- * If the peer already has some path, send a CREATE CONNECTION towards it.
- *
- * @param peer Peer to connect to.
- */
-void
-GCP_connect (struct CadetPeer *peer);
-
-/**
- * @brief Send a message to another peer (using CORE).
- *
- * @param peer Peer towards which to queue the message.
- * @param message Message to send.
- * @param payload_type Type of the message's payload, for debug messages.
- *                     0 if the message is a retransmission (unknown payload).
- *                     UINT16_MAX if the message does not have payload.
- * @param payload_id ID of the payload (MID, ACK #, etc)
- * @param c Connection this message belongs to (can be NULL).
- * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param cont Continuation to be called once CORE has sent the message.
- * @param cont_cls Closure for @c cont.
- */
-struct CadetPeerQueue *
-GCP_send (struct CadetPeer *peer,
-          const struct GNUNET_MessageHeader *message,
-          uint16_t payload_type,
-          struct CadetEncryptedMessageIdentifier payload_id,
-          struct CadetConnection *c,
-          int fwd,
-          GCP_sent cont,
-          void *cont_cls);
-
-/**
- * Cancel sending a message. Message must have been sent with
- * #GCP_send before.  May not be called after the notify sent
- * callback has been called.
- *
- * It does NOT call the continuation given to #GCP_send.
- *
- * @param q Queue handle to cancel
- */
-void
-GCP_send_cancel (struct CadetPeerQueue *q);
-
-/**
- * Set tunnel.
- *
- * @param peer Peer.
- * @param t Tunnel.
- */
-void
-GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t);
-
-
-/**
- * Check whether there is a direct (core level)  connection to peer.
- *
- * @param peer Peer to check.
- *
- * @return #GNUNET_YES if there is a direct connection.
- */
-int
-GCP_is_neighbor (const struct CadetPeer *peer);
-
-
-/**
- * Create and initialize a new tunnel towards a peer, in case it has none.
- *
- * Does not generate any traffic, just creates the local data structures.
- *
- * @param peer Peer towards which to create the tunnel.
- */
-void
-GCP_add_tunnel (struct CadetPeer *peer);
-
-
-/**
- * Add a connection to a neighboring peer.
- *
- * Store that the peer is the first hop of the connection in one
- * direction and that on peer disconnect the connection must be
- * notified and destroyed, for it will no longer be valid.
- *
- * @param peer Peer to add connection to.
- * @param c Connection to add.
- * @param pred #GNUNET_YES if we are predecessor, #GNUNET_NO if we are successor
- */
-void
-GCP_add_connection (struct CadetPeer *peer,
-                    struct CadetConnection *c,
-                    int pred);
-
-
-/**
- * Add the path to the peer and update the path used to reach it in case this
- * is the shortest.
- *
- * @param peer Destination peer to add the path to.
- * @param path New path to add. Last peer must be the peer in arg 1.
- *             Path will be either used of freed if already known.
- * @param trusted Do we trust that this path is real?
- *
- * @return path if path was taken, pointer to existing duplicate if exists
- *         NULL on error.
- */
-struct CadetPeerPath *
-GCP_add_path (struct CadetPeer *peer,
-              struct CadetPeerPath *p,
-              int trusted);
-
-
-/**
- * Add the path to the origin peer and update the path used to reach it in case
- * this is the shortest.
- * The path is given in peer_info -> destination, therefore we turn the path
- * upside down first.
- *
- * @param peer Peer to add the path to, being the origin of the path.
- * @param path New path to add after being inversed.
- *             Path will be either used or freed.
- * @param trusted Do we trust that this path is real?
- *
- * @return path if path was taken, pointer to existing duplicate if exists
- *         NULL on error.
- */
-struct CadetPeerPath *
-GCP_add_path_to_origin (struct CadetPeer *peer,
-                        struct CadetPeerPath *path,
-                        int trusted);
-
-/**
- * Adds a path to the info of all the peers in the path
- *
- * @param p Path to process.
- * @param confirmed Whether we know if the path works or not.
- */
-void
-GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
-
-
-/**
- * Remove any path to the peer that has the extact same peers as the one given.
- *
- * @param peer Peer to remove the path from.
- * @param path Path to remove. Is always destroyed .
- */
-void
-GCP_remove_path (struct CadetPeer *peer,
-                 struct CadetPeerPath *path);
-
-
-/**
- * Check that we are aware of a connection from a neighboring peer.
- *
- * @param peer Peer to the connection is with
- * @param c Connection that should be in the map with this peer.
- */
-void
-GCP_check_connection (const struct CadetPeer *peer,
-                      const struct CadetConnection *c);
-
-
-/**
- * Remove a connection from a neighboring peer.
- *
- * @param peer Peer to remove connection from.
- * @param c Connection to remove.
- */
-void
-GCP_remove_connection (struct CadetPeer *peer,
-                       const struct CadetConnection *c);
-
-
-/**
- * Start the DHT search for new paths towards the peer: we don't have
- * enough good connections.
- *
- * @param peer Destination peer.
- */
-void
-GCP_start_search (struct CadetPeer *peer);
-
-
-/**
- * Stop the DHT search for new paths towards the peer: we already have
- * enough good connections.
- *
- * @param peer Destination peer.
- */
-void
-GCP_stop_search (struct CadetPeer *peer);
-
-
-/**
- * Get the Full ID of a peer.
- *
- * @param peer Peer to get from.
- *
- * @return Full ID of peer.
- */
-const struct GNUNET_PeerIdentity *
-GCP_get_id (const struct CadetPeer *peer);
-
-
-/**
- * Get the Short ID of a peer.
- *
- * @param peer Peer to get from.
- *
- * @return Short ID of peer.
- */
-GNUNET_PEER_Id
-GCP_get_short_id (const struct CadetPeer *peer);
-
-
-/**
- * Get the tunnel towards a peer.
- *
- * @param peer Peer to get from.
- *
- * @return Tunnel towards peer.
- */
-struct CadetTunnel *
-GCP_get_tunnel (const struct CadetPeer *peer);
-
-
-/**
- * Set the hello message.
- *
- * @param peer Peer whose message to set.
- * @param hello Hello message.
- */
-void
-GCP_set_hello (struct CadetPeer *peer,
-               const struct GNUNET_HELLO_Message *hello);
-
-
-/**
- * Get the hello message.
- *
- * @param peer Peer whose message to get.
- *
- * @return Hello message.
- */
-struct GNUNET_HELLO_Message *
-GCP_get_hello (struct CadetPeer *peer);
-
-
-/**
- * Try to connect to a peer on TRANSPORT level.
- *
- * @param peer Peer to whom to connect.
- */
-void
-GCP_try_connect (struct CadetPeer *peer);
-
-/**
- * Notify a peer that a link between two other peers is broken. If any path
- * used that link, eliminate it.
- *
- * @param peer Peer affected by the change.
- * @param peer1 Peer whose link is broken.
- * @param peer2 Peer whose link is broken.
- */
-void
-GCP_notify_broken_link (struct CadetPeer *peer,
-                        const struct GNUNET_PeerIdentity *peer1,
-                        const struct GNUNET_PeerIdentity *peer2);
-
-
-/**
- * Count the number of known paths toward the peer.
- *
- * @param peer Peer to get path info.
- *
- * @return Number of known paths.
- */
-unsigned int
-GCP_count_paths (const struct CadetPeer *peer);
-
-/**
- * Iterate over the paths to a peer.
- *
- * @param peer Peer to get path info.
- * @param callback Function to call for every path.
- * @param cls Closure for @a callback.
- *
- * @return Number of iterated paths.
- */
-unsigned int
-GCP_iterate_paths (struct CadetPeer *peer,
-                   GCP_path_iterator callback,
-                   void *cls);
-
-
-/**
- * Iterate all known peers.
- *
- * @param iter Iterator.
- * @param cls Closure for @c iter.
- */
-void
-GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
-                 void *cls);
+#include "gnunet-service-cadet.h"
+#include "gnunet_hello_lib.h"
 
 
 /**
@@ -462,22 +44,351 @@ GCP_2s (const struct CadetPeer *peer);
 
 
 /**
- * Log all kinds of info about a peer.
+ * Retrieve the CadetPeer stucture associated with the
+ * peer. Optionally create one and insert it in the appropriate
+ * structures if the peer is not known yet.
  *
- * @param peer Peer.
+ * @param peer_id Full identity of the peer.
+ * @param create #GNUNET_YES if a new peer should be created if unknown.
+ *               #GNUNET_NO to return NULL if peer is unknown.
+ * @return Existing or newly created peer structure.
+ *         NULL if unknown and not requested @a create
+ */
+struct CadetPeer *
+GCP_get (const struct GNUNET_PeerIdentity *peer_id,
+         int create);
+
+
+/**
+ * Calculate how desirable a path is for @a cp if
+ * @a cp is at offset @a off in the path.
+ *
+ * @param cp a peer reachable via a path
+ * @param off offset of @a cp in a path
+ * @return score how useful a path is to reach @a cp,
+ *         positive scores mean path is more desirable
+ */
+double
+GCP_get_desirability_of_path (struct CadetPeer *cp,
+                              unsigned int off);
+
+
+/**
+ * Obtain the peer identity for a `struct CadetPeer`.
+ *
+ * @param cp our peer handle
+ * @return the peer identity
+ */
+const struct GNUNET_PeerIdentity *
+GCP_get_id (struct CadetPeer *cp);
+
+
+/**
+ * Iterate over all known peers.
+ *
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
  */
 void
-GCP_debug (const struct CadetPeer *p,
-           enum GNUNET_ErrorType level);
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
+                 void *cls);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
+/**
+ * Count the number of known paths toward the peer.
+ *
+ * @param cp Peer to get path info.
+ * @return Number of known paths.
+ */
+unsigned int
+GCP_count_paths (const struct CadetPeer *cp);
 
-/* ifndef GNUNET_CADET_SERVICE_PEER_H */
+
+/**
+ * Drop all paths owned by this peer, and do not
+ * allow new ones to be added: We are shutting down.
+ *
+ * @param cp peer to drop paths to
+ */
+void
+GCP_drop_owned_paths (struct CadetPeer *cp);
+
+
+/**
+ * Peer path iterator.
+ *
+ * @param cls Closure.
+ * @param path Path itself
+ * @param off offset of the target peer in @a path
+ * @return #GNUNET_YES if should keep iterating.
+ *         #GNUNET_NO otherwise.
+ */
+typedef int
+(*GCP_PathIterator) (void *cls,
+                     struct CadetPeerPath *path,
+                     unsigned int off);
+
+
+/**
+ * Iterate over the paths to a peer.
+ *
+ * @param cp Peer to get path info.
+ * @param callback Function to call for every path.
+ * @param callback_cls Closure for @a callback.
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths (struct CadetPeer *cp,
+                   GCP_PathIterator callback,
+                   void *callback_cls);
+
+
+/**
+ * Iterate over the paths to @a peer where
+ * @a peer is at distance @a dist from us.
+ *
+ * @param cp Peer to get path info.
+ * @param dist desired distance of @a peer to us on the path
+ * @param callback Function to call for every path.
+ * @param callback_cls Closure for @a callback.
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths_at (struct CadetPeer *cp,
+                      unsigned int dist,
+                      GCP_PathIterator callback,
+                      void *callback_cls);
+
+
+/**
+ * Remove an entry from the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_remove (struct CadetPeer *cp,
+                       struct CadetPeerPathEntry *entry,
+                       unsigned int off);
+
+
+/**
+ * Add an entry to the DLL of all of the paths that this peer is on.
+ *
+ * @param cp peer to modify
+ * @param entry an entry on a path
+ * @param off offset of this peer on the path
+ */
+void
+GCP_path_entry_add (struct CadetPeer *cp,
+                    struct CadetPeerPathEntry *entry,
+                    unsigned int off);
+
+
+/**
+ * Get the tunnel towards a peer.
+ *
+ * @param cp Peer to get from.
+ * @param create #GNUNET_YES to create a tunnel if we do not have one
+ * @return Tunnel towards peer.
+ */
+struct CadetTunnel *
+GCP_get_tunnel (struct CadetPeer *cp,
+                int create);
+
+
+/**
+ * The tunnel to the given peer no longer exists, remove it from our
+ * data structures, and possibly clean up the peer itself.
+ *
+ * @param cp the peer affected
+ * @param t the dead tunnel
+ */
+void
+GCP_drop_tunnel (struct CadetPeer *cp,
+                 struct CadetTunnel *t);
+
+
+/**
+ * Try adding a @a path to this @a cp.  If the peer already
+ * has plenty of paths, return NULL.
+ *
+ * @param cp peer to which the @a path leads to
+ * @param path a path looking for an owner; may not be fully initialized yet!
+ * @param off offset of @a cp in @a path
+ * @param force for attaching the path
+ * @return NULL if this peer does not care to become a new owner,
+ *         otherwise the node in the peer's path heap for the @a path.
+ */
+struct GNUNET_CONTAINER_HeapNode *
+GCP_attach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 unsigned int off,
+                 int force);
+
+
+/**
+ * This peer can no longer own @a path as the path
+ * has been extended and a peer further down the line
+ * is now the new owner.
+ *
+ * @param cp old owner of the @a path
+ * @param path path where the ownership is lost
+ * @param hn note in @a cp's path heap that must be deleted
+ */
+void
+GCP_detach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 struct GNUNET_CONTAINER_HeapNode *hn);
+
+
+/**
+ * Add a @a connection to this @a cp.
+ *
+ * @param cp peer via which the @a connection goes
+ * @param cc the connection to add
+ */
+void
+GCP_add_connection (struct CadetPeer *cp,
+                    struct CadetConnection *cc);
+
+
+/**
+ * Remove a @a connection that went via this @a cp.
+ *
+ * @param cp peer via which the @a connection went
+ * @param cc the connection to remove
+ */
+void
+GCP_remove_connection (struct CadetPeer *cp,
+                       struct CadetConnection *cc);
+
+
+/**
+ * We got a HELLO for a @a cp, remember it, and possibly
+ * trigger adequate actions (like trying to connect).
+ *
+ * @param cp the peer we got a HELLO for
+ * @param hello the HELLO to remember
+ */
+void
+GCP_set_hello (struct CadetPeer *cp,
+               const struct GNUNET_HELLO_Message *hello);
+
+
+/**
+ * Clean up all entries about all peers.
+ * Must only be called after all tunnels, CORE-connections and
+ * connections are down.
+ */
+void
+GCP_destroy_all_peers (void);
+
+
+/**
+ * Data structure used to track whom we have to notify about changes
+ * in our ability to transmit to a given peer.
+ *
+ * All queue managers will be given equal chance for sending messages
+ * to @a cp.  This construct this guarantees fairness for access to @a
+ * cp among the different message queues.  Each connection or route
+ * will have its respective message queue managers for each direction.
+ */
+struct GCP_MessageQueueManager;
+
+
+/**
+ * Function to call with updated message queue object.
+ *
+ * @param cls closure
+ * @param available #GNUNET_YES if sending is now possible,
+ *                  #GNUNET_NO if sending is no longer possible
+ *                  #GNUNET_SYSERR if sending is no longer possible
+ *                                 and the last envelope was discarded
+ */
+typedef void
+(*GCP_MessageQueueNotificationCallback)(void *cls,
+                                        int available);
+
+
+/**
+ * Start message queue change notifications.  Will create a new slot
+ * to manage the message queue to the given @a cp.
+ *
+ * @param cp peer to notify for
+ * @param cb function to call if mq becomes available or unavailable
+ * @param cb_cls closure for @a cb
+ * @return handle to cancel request
+ */
+struct GCP_MessageQueueManager *
+GCP_request_mq (struct CadetPeer *cp,
+                GCP_MessageQueueNotificationCallback cb,
+                void *cb_cls);
+
+
+/**
+ * Test if @a cp has a core-level connection
+ *
+ * @param cp peer to test
+ * @return #GNUNET_YES if @a cp has a core-level connection
+ */
+int
+GCP_has_core_connection (struct CadetPeer *cp);
+
+
+/**
+ * Send the message in @a env via a @a mqm.  Must only be called at
+ * most once after the respective
+ * #GCP_MessageQueueNotificationCallback was called with `available`
+ * set to #GNUNET_YES, and not after the callback was called with
+ * `available` set to #GNUNET_NO or #GNUNET_SYSERR.
+ *
+ * @param mqm message queue manager for the transmission
+ * @param env envelope with the message to send; must NOT
+ *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
+ */
+void
+GCP_send (struct GCP_MessageQueueManager *mqm,
+          struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Send the message in @a env to @a cp, overriding queueing logic.
+ * This function should only be used to send error messages outside
+ * of flow and congestion control, similar to ICMP.  Note that
+ * the envelope may be silently discarded as well.
+ *
+ * @param cp peer to send the message to
+ * @param env envelope with the message to send
+ */
+void
+GCP_send_ooo (struct CadetPeer *cp,
+              struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Stops message queue change notifications and sends a last message.
+ * In practice, this is implemented by sending that @a last_env
+ * message immediately (if any), ignoring queue order.
+ *
+ * @param mqm handle matching request to cancel
+ * @param last_env final message to transmit, or NULL
+ */
+void
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
+                       struct GNUNET_MQ_Envelope *last_env);
+
+
+/**
+ * Set the message queue to @a mq for peer @a cp and notify watchers.
+ *
+ * @param cp peer to modify
+ * @param mq message queue to set (can be NULL)
+ */
+void
+GCP_set_mq (struct CadetPeer *cp,
+            struct GNUNET_MQ_Handle *mq);
+
+
 #endif
-/* end of gnunet-cadet-service_peer.h */

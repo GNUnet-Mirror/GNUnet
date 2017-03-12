@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2013, 2014 GNUnet e.V.
+      Copyright (C) 2013-2017 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -28,6 +28,7 @@
 #include "gnunet-service-set.h"
 #include "gnunet_block_lib.h"
 #include "gnunet-service-set_protocol.h"
+#include "gnunet-service-set_intersection.h"
 #include <gcrypt.h>
 
 
@@ -550,6 +551,8 @@ send_remaining_elements (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending done and destroy because iterator ran out\n");
     op->keep--;
+    GNUNET_CONTAINER_multihashmap_iterator_destroy (op->state->full_result_iter);
+    op->state->full_result_iter = NULL;
     send_client_done_and_destroy (op);
     return;
   }
@@ -627,9 +630,6 @@ process_bf (struct Operation *op)
   case PHASE_COUNT_SENT:
     /* This is the first BF being sent, build our initial map with
        filtering in place */
-    op->state->my_elements
-      = GNUNET_CONTAINER_multihashmap_create (op->spec->remote_element_count,
-                                              GNUNET_YES);
     op->state->my_element_count = 0;
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
                                            &filtered_map_initialization,
@@ -665,41 +665,53 @@ process_bf (struct Operation *op)
 
 
 /**
+ * Check an BF message from a remote peer.
+ *
+ * @param cls the intersection operation
+ * @param msg the header of the message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+int
+check_intersection_p2p_bf (void *cls,
+                           const struct BFMessage *msg)
+{
+  struct Operation *op = cls;
+
+  if (OT_INTERSECTION != op->type)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle an BF message from a remote peer.
  *
  * @param cls the intersection operation
- * @param mh the header of the message
+ * @param msg the header of the message
  */
-static void
-handle_p2p_bf (void *cls,
-               const struct GNUNET_MessageHeader *mh)
+void
+handle_intersection_p2p_bf (void *cls,
+                            const struct BFMessage *msg)
 {
   struct Operation *op = cls;
-  const struct BFMessage *msg;
   uint32_t bf_size;
   uint32_t chunk_size;
   uint32_t bf_bits_per_element;
-  uint16_t msize;
 
-  msize = htons (mh->size);
-  if (msize < sizeof (struct BFMessage))
-  {
-    GNUNET_break_op (0);
-    fail_intersection_operation (op);
-    return;
-  }
-  msg = (const struct BFMessage *) mh;
   switch (op->state->phase)
   {
   case PHASE_INITIAL:
     GNUNET_break_op (0);
     fail_intersection_operation (op);
-    break;
+    return;
   case PHASE_COUNT_SENT:
   case PHASE_BF_EXCHANGE:
     bf_size = ntohl (msg->bloomfilter_total_length);
     bf_bits_per_element = ntohl (msg->bits_per_element);
-    chunk_size = msize - sizeof (struct BFMessage);
+    chunk_size = htons (msg->header.size) - sizeof (struct BFMessage);
     op->state->other_xor = msg->element_xor_hash;
     if (bf_size == chunk_size)
     {
@@ -717,7 +729,7 @@ handle_p2p_bf (void *cls,
       op->state->salt = ntohl (msg->sender_mutator);
       op->spec->remote_element_count = ntohl (msg->sender_element_count);
       process_bf (op);
-      return;
+      break;
     }
     /* multipart chunk */
     if (NULL == op->state->bf_data)
@@ -764,8 +776,9 @@ handle_p2p_bf (void *cls,
   default:
     GNUNET_break_op (0);
     fail_intersection_operation (op);
-    break;
+    return;
   }
+  GNUNET_CADET_receive_done (op->channel);
 }
 
 
@@ -836,6 +849,7 @@ static void
 begin_bf_exchange (struct Operation *op)
 {
   op->state->phase = PHASE_BF_EXCHANGE;
+  GNUNET_assert (NULL == op->state->my_elements);
   op->state->my_elements
     = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count,
                                             GNUNET_YES);
@@ -853,20 +867,18 @@ begin_bf_exchange (struct Operation *op)
  * @param cls the intersection operation
  * @param mh the header of the message
  */
-static void
-handle_p2p_element_info (void *cls,
-                         const struct GNUNET_MessageHeader *mh)
+void
+handle_intersection_p2p_element_info (void *cls,
+                                      const struct IntersectionElementInfoMessage *msg)
 {
   struct Operation *op = cls;
-  const struct IntersectionElementInfoMessage *msg;
 
-  if (ntohs (mh->size) != sizeof (struct IntersectionElementInfoMessage))
+  if (OT_INTERSECTION != op->type)
   {
     GNUNET_break_op (0);
     fail_intersection_operation(op);
     return;
   }
-  msg = (const struct IntersectionElementInfoMessage *) mh;
   op->spec->remote_element_count = ntohl (msg->sender_element_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received remote element count (%u), I have %u\n",
@@ -884,6 +896,7 @@ handle_p2p_element_info (void *cls,
   }
   GNUNET_break (NULL == op->state->remote_bf);
   begin_bf_exchange (op);
+  GNUNET_CADET_receive_done (op->channel);
 }
 
 
@@ -955,13 +968,18 @@ filter_all (void *cls,
  * @param cls the intersection operation
  * @param mh the message
  */
-static void
-handle_p2p_done (void *cls,
-                 const struct GNUNET_MessageHeader *mh)
+void
+handle_intersection_p2p_done (void *cls,
+                              const struct IntersectionDoneMessage *idm)
 {
   struct Operation *op = cls;
-  const struct IntersectionDoneMessage *idm;
 
+  if (OT_INTERSECTION != op->type)
+  {
+    GNUNET_break_op (0);
+    fail_intersection_operation(op);
+    return;
+  }
   if (PHASE_BF_EXCHANGE != op->state->phase)
   {
     /* wrong phase to conclude? FIXME: Or should we allow this
@@ -970,13 +988,6 @@ handle_p2p_done (void *cls,
     fail_intersection_operation (op);
     return;
   }
-  if (ntohs (mh->size) != sizeof (struct IntersectionDoneMessage))
-  {
-    GNUNET_break_op (0);
-    fail_intersection_operation (op);
-    return;
-  }
-  idm = (const struct IntersectionDoneMessage *) mh;
   if (0 == ntohl (idm->final_element_count))
   {
     /* other peer determined empty set is the intersection,
@@ -1000,6 +1011,7 @@ handle_p2p_done (void *cls,
               op->state->my_element_count);
   op->state->phase = PHASE_FINISHED;
   finish_and_destroy (op);
+  GNUNET_CADET_receive_done (op->channel);
 }
 
 
@@ -1064,11 +1076,11 @@ intersection_accept (struct Operation *op)
   op->state->phase = PHASE_INITIAL;
   op->state->my_element_count
     = op->spec->set->state->current_set_element_count;
+  GNUNET_assert (NULL == op->state->my_elements);
   op->state->my_elements
-    = GNUNET_CONTAINER_multihashmap_create
-    (GNUNET_MIN (op->state->my_element_count,
-                 op->spec->remote_element_count),
-     GNUNET_YES);
+    = GNUNET_CONTAINER_multihashmap_create (GNUNET_MIN (op->state->my_element_count,
+                                                        op->spec->remote_element_count),
+                                            GNUNET_YES);
   if (op->spec->remote_element_count < op->state->my_element_count)
   {
     /* If the other peer (Alice) has fewer elements than us (Bob),
@@ -1079,43 +1091,6 @@ intersection_accept (struct Operation *op)
   }
   /* We have fewer elements, so we start with the BF */
   begin_bf_exchange (op);
-}
-
-
-/**
- * Dispatch messages for a intersection operation.
- *
- * @param op the state of the intersection evaluate operation
- * @param mh the received message
- * @return #GNUNET_SYSERR if the tunnel should be disconnected,
- *         #GNUNET_OK otherwise
- */
-static int
-intersection_handle_p2p_message (struct Operation *op,
-                                 const struct GNUNET_MessageHeader *mh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received p2p message (t: %u, s: %u)\n",
-              ntohs (mh->type), ntohs (mh->size));
-  switch (ntohs (mh->type))
-  {
-    /* this message handler is not active until after we received an
-     * operation request message, thus the ops request is not handled here
-     */
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO:
-    handle_p2p_element_info (op, mh);
-    break;
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF:
-    handle_p2p_bf (op, mh);
-    break;
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE:
-    handle_p2p_done (op, mh);
-    break;
-  default:
-    /* something wrong with cadet's message handlers? */
-    GNUNET_assert (0);
-  }
-  return GNUNET_OK;
 }
 
 
@@ -1167,6 +1142,11 @@ intersection_op_cancel (struct Operation *op)
   {
     GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
     op->state->my_elements = NULL;
+  }
+  if (NULL != op->state->full_result_iter)
+  {
+    GNUNET_CONTAINER_multihashmap_iterator_destroy (op->state->full_result_iter);
+    op->state->full_result_iter = NULL;
   }
   GNUNET_free (op->state);
   op->state = NULL;
@@ -1245,7 +1225,6 @@ _GSS_intersection_vt ()
 {
   static const struct SetVT intersection_vt = {
     .create = &intersection_set_create,
-    .msg_handler = &intersection_handle_p2p_message,
     .add = &intersection_add,
     .remove = &intersection_remove,
     .destroy_set = &intersection_set_destroy,

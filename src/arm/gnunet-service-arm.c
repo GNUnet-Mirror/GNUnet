@@ -812,6 +812,7 @@ start_process (struct ServiceList *sl,
                        "%s %s",
                        fin_options,
                        optpos);
+      GNUNET_free (fin_options);
       GNUNET_free (optpos);
     }
     else

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012 GNUnet e.V.
+     Copyright (C) 2012,2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -49,41 +49,41 @@ struct GNUNET_CADET_TEST_Context;
  * @param ctx Argument to give to GNUNET_CADET_TEST_cleanup on test end.
  * @param num_peers Number of peers that are running.
  * @param peers Array of peers.
- * @param cadetes Handle to each of the CADETs of the peers.
+ * @param cadets Handle to each of the CADETs of the peers.
  */
 typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
                                           struct GNUNET_CADET_TEST_Context *ctx,
                                           unsigned int num_peers,
                                           struct GNUNET_TESTBED_Peer **peers,
-                                          struct GNUNET_CADET_Handle **cadetes);
+                                          struct GNUNET_CADET_Handle **cadets);
 
 
 /**
- * Run a test using the given name, configuration file and number of
- * peers.
- * All cadet callbacks will receive the peer number as the closure.
+ * Run a test using the given name, configuration file and number of peers.
+ * All cadet callbacks will receive the peer number (long) as the closure.
  *
  * @param testname Name of the test (for logging).
- * @param cfgname Name of the configuration file.
+ * @param cfgfile Name of the configuration file.
  * @param num_peers Number of peers to start.
  * @param tmain Main function to run once the testbed is ready.
- * @param tmain_cls Closure for 'tmain'.
- * @param new_channel Handler for incoming tunnels.
- * @param cleaner Cleaner for destroyed incoming tunnels.
+ * @param tmain_cls Closure for @a tmain.
+ * @param connects Handler for incoming channels.
+ * @param window_changes Handler for the window size change notification.
+ * @param disconnects Cleaner for destroyed incoming channels.
  * @param handlers Message handlers.
  * @param ports Ports the peers offer, NULL-terminated.
  */
 void
-GNUNET_CADET_TEST_run (const char *testname,
-                      const char *cfgname,
-                      unsigned int num_peers,
-                      GNUNET_CADET_TEST_AppMain tmain,
-                      void *tmain_cls,
-                      GNUNET_CADET_InboundChannelNotificationHandler new_channel,
-                      GNUNET_CADET_ChannelEndHandler cleaner,
-                      struct GNUNET_CADET_MessageHandler* handlers,
-                      const struct GNUNET_HashCode **ports);
-
+GNUNET_CADET_TEST_ruN (const char *testname,
+                       const char *cfgfile,
+                       unsigned int num_peers,
+                       GNUNET_CADET_TEST_AppMain tmain,
+                       void *tmain_cls,
+                       GNUNET_CADET_ConnectEventHandler connects,
+                       GNUNET_CADET_WindowSizeEventHandler window_changes,
+                       GNUNET_CADET_DisconnectEventHandler disconnects,
+                       struct GNUNET_MQ_MessageHandler *handlers,
+                       const struct GNUNET_HashCode **ports);
 
 /**
  * Clean up the testbed.

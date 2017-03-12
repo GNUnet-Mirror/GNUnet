@@ -122,6 +122,7 @@ check_count_iter (void *cls,
       return GNUNET_NO;
     }
     ci_cls->cont (ci_cls->cont_cls);
+    GNUNET_free (ci_cls);
     return GNUNET_NO;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

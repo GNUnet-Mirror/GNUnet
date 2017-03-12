@@ -46,6 +46,15 @@ extract_var_blob (void *cls,
   const void *ret;
   void **rdst = (void **) dst;
 
+  if (SQLITE_NULL ==
+      sqlite3_column_type (result,
+                           column))
+  {
+    *rdst = NULL;
+    *dst_size = 0;
+    return GNUNET_YES;
+  }
+
   if (SQLITE_BLOB !=
       sqlite3_column_type (result,
                            column))
@@ -141,6 +150,14 @@ extract_fixed_blob (void *cls,
 {
   int have;
   const void *ret;
+
+  if ( (0 == *dst_size) &&
+       (SQLITE_NULL ==
+        sqlite3_column_type (result,
+                             column)) )
+  {
+    return GNUNET_YES;
+  }
 
   if (SQLITE_BLOB !=
       sqlite3_column_type (result,
@@ -459,6 +476,45 @@ GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
 
 
 /**
+ * Extract absolute time value from a Postgres database @a result at row @a row.
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param column column to extract data from
+ * @param[in,out] dst_size where to store size of result, may be NULL
+ * @param[out] dst where to store the result
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+ */
+static int
+extract_abs_time (void *cls,
+                  sqlite3_stmt *result,
+                  unsigned int column,
+                  size_t *dst_size,
+                  void *dst)
+{
+  struct GNUNET_TIME_Absolute *u = dst;
+  struct GNUNET_TIME_Absolute t;
+
+  GNUNET_assert (sizeof (uint64_t) == *dst_size);
+  if (SQLITE_INTEGER !=
+      sqlite3_column_type (result,
+                           column))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  t.abs_value_us = (uint64_t) sqlite3_column_int64 (result,
+                                                    column);
+  if (INT64_MAX == t.abs_value_us)
+    t = GNUNET_TIME_UNIT_FOREVER_ABS;
+  *u = t;
+  return GNUNET_OK;
+}
+
+
+/**
  * Absolute time expected.
  *
  * @param[out] at where to store the result
@@ -467,7 +523,14 @@ GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
 struct GNUNET_SQ_ResultSpec
 GNUNET_SQ_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
 {
-  return GNUNET_SQ_result_spec_uint64 (&at->abs_value_us);
+  struct GNUNET_SQ_ResultSpec rs = {
+    .conv = &extract_abs_time,
+    .dst = at,
+    .dst_size = sizeof (struct GNUNET_TIME_Absolute),
+    .num_params = 1
+  };
+
+  return rs;
 }
 
 
@@ -503,6 +566,8 @@ extract_abs_time_nbo (void *cls,
   }
   t.abs_value_us = (uint64_t) sqlite3_column_int64 (result,
                                                     column);
+  if (INT64_MAX == t.abs_value_us)
+    t = GNUNET_TIME_UNIT_FOREVER_ABS;
   *u = GNUNET_TIME_absolute_hton (t);
   return GNUNET_OK;
 }

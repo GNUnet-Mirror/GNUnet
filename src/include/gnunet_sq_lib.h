@@ -194,6 +194,17 @@ GNUNET_SQ_bind (sqlite3_stmt *stmt,
 
 
 /**
+ * Reset @a stmt and log error.
+ *
+ * @param dbh database handle
+ * @param stmt statement to reset
+ */
+void
+GNUNET_SQ_reset (sqlite3 *dbh,
+                 sqlite3_stmt *stmt);
+
+
+/**
  * Extract data from a Postgres database @a result at row @a row.
  *
  * @param cls closure

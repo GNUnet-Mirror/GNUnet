@@ -1,6 +1,7 @@
+
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2001-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,46 +21,49 @@
 
 /**
  * @file cadet/gnunet-service-cadet_channel.h
- * @brief cadet service; dealing with end-to-end channels
+ * @brief GNUnet CADET service with encryption
  * @author Bartlomiej Polot
- *
- * All functions in this file should use the prefix GMCH (Gnunet Cadet CHannel)
+ * @author Christian Grothoff
  */
-
 #ifndef GNUNET_SERVICE_CADET_CHANNEL_H
 #define GNUNET_SERVICE_CADET_CHANNEL_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
-#include "platform.h"
-#include "gnunet_util_lib.h"
-
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_peer.h"
 #include "cadet_protocol.h"
-#include "cadet.h"
+
 
 /**
- * Struct containing all information regarding a channel to a remote client.
+ * A channel is a bidirectional connection between two CADET
+ * clients.  Communiation can be reliable, unreliable, in-order
+ * or out-of-order.  One client is the "local" client, this
+ * one initiated the connection.   The other client is the
+ * "incoming" client, this one listened on a port to accept
+ * the connection from the "local" client.
  */
 struct CadetChannel;
 
 
-#include "gnunet-service-cadet_tunnel.h"
-#include "gnunet-service-cadet_local.h"
+/**
+ * Get the static string for identification of the channel.
+ *
+ * @param ch Channel.
+ *
+ * @return Static string with the channel IDs.
+ */
+const char *
+GCCH_2s (const struct CadetChannel *ch);
 
 
 /**
- * Destroy a channel and free all resources.
+ * Log channel info.
  *
- * @param ch Channel to destroy.
+ * @param ch Channel.
+ * @param level Debug level to use.
  */
 void
-GCCH_destroy (struct CadetChannel *ch);
+GCCH_debug (struct CadetChannel *ch,
+            enum GNUNET_ErrorType level);
 
 
 /**
@@ -74,290 +78,185 @@ GCCH_get_id (const struct CadetChannel *ch);
 
 
 /**
- * Get the channel tunnel.
+ * Create a new channel.
  *
- * @param ch Channel to get the tunnel from.
- *
- * @return tunnel of the channel.
+ * @param owner local client owning the channel
+ * @param owner_id local chid of this channel at the @a owner
+ * @param destination peer to which we should build the channel
+ * @param port desired port at @a destination
+ * @param options options for the channel
+ * @return handle to the new channel
  */
-struct CadetTunnel *
-GCCH_get_tunnel (const struct CadetChannel *ch);
+struct CadetChannel *
+GCCH_channel_local_new (struct CadetClient *owner,
+                        struct GNUNET_CADET_ClientChannelNumber owner_id,
+                        struct CadetPeer *destination,
+                        const struct GNUNET_HashCode *port,
+                        uint32_t options);
 
 
 /**
- * Get free buffer space towards the client on a specific channel.
+ * A client is bound to the port that we have a channel
+ * open to.  Send the acknowledgement for the connection
+ * request and establish the link with the client.
  *
- * @param ch Channel.
- * @param fwd Is query about FWD traffic?
- *
- * @return Free buffer space [0 - 64]
- */
-unsigned int
-GCCH_get_buffer (struct CadetChannel *ch, int fwd);
-
-
-/**
- * Get flow control status of end point: is client allow to send?
- *
- * @param ch Channel.
- * @param fwd Is query about FWD traffic? (Request root status).
- *
- * @return #GNUNET_YES if client is allowed to send us data.
- */
-int
-GCCH_get_allowed (struct CadetChannel *ch, int fwd);
-
-
-/**
- * Is the root client for this channel on this peer?
- *
- * @param ch Channel.
- * @param fwd Is this for fwd traffic?
- *
- * @return #GNUNET_YES in case it is.
- */
-int
-GCCH_is_origin (struct CadetChannel *ch, int fwd);
-
-/**
- * Is the destination client for this channel on this peer?
- *
- * @param ch Channel.
- * @param fwd Is this for fwd traffic?
- *
- * @return #GNUNET_YES in case it is.
- */
-int
-GCCH_is_terminal (struct CadetChannel *ch, int fwd);
-
-/**
- * Send an end-to-end ACK message for the most recent in-sequence payload.
- *
- * If channel is not reliable, do nothing.
- *
- * @param ch Channel this is about.
- * @param fwd Is for FWD traffic? (ACK dest->owner)
+ * @param ch open incoming channel
+ * @param c client listening on the respective port
  */
 void
-GCCH_send_data_ack (struct CadetChannel *ch, int fwd);
+GCCH_bind (struct CadetChannel *ch,
+           struct CadetClient *c);
+
 
 /**
- * Notify the destination client that a new incoming channel was created.
+ * Destroy locally created channel.  Called by the
+ * local client, so no need to tell the client.
  *
- * @param ch Channel that was created.
+ * @param ch channel to destroy
+ * @param c client that caused the destruction
+ * @param ccn client number of the client @a c
  */
 void
-GCCH_send_create (struct CadetChannel *ch);
+GCCH_channel_local_destroy (struct CadetChannel *ch,
+                            struct CadetClient *c,
+                            struct GNUNET_CADET_ClientChannelNumber ccn);
+
 
 /**
- * Allow a client to send us more data, in case it was choked.
+ * Function called once and only once after a channel was bound
+ * to its tunnel via #GCT_add_channel() is ready for transmission.
+ * Note that this is only the case for channels that this peer
+ * initiates, as for incoming channels we assume that they are
+ * ready for transmission immediately upon receiving the open
+ * message.  Used to bootstrap the #GCT_send() process.
  *
- * @param ch Channel.
- * @param fwd Is this about FWD traffic? (Root client).
+ * @param ch the channel for which the tunnel is now ready
  */
 void
-GCCH_allow_client (struct CadetChannel *ch, int fwd);
+GCCH_tunnel_up (struct CadetChannel *ch);
+
 
 /**
- * Log channel info.
+ * Create a new channel based on a request coming in over the network.
  *
- * @param ch Channel.
- * @param level Debug level to use.
+ * @param t tunnel to the remote peer
+ * @param chid identifier of this channel in the tunnel
+ * @param origin peer to who initiated the channel
+ * @param port desired local port
+ * @param options options for the channel
+ * @return handle to the new channel
  */
-void
-GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level);
+struct CadetChannel *
+GCCH_channel_incoming_new (struct CadetTunnel *t,
+                           struct GNUNET_CADET_ChannelTunnelNumber chid,
+                           const struct GNUNET_HashCode *port,
+                           uint32_t options);
+
 
 /**
- * Handle an ACK given by a client.
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN message again for
+ * this channel.  If the binding was successful, (re)transmit the
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
  *
- * Mark client as ready and send him any buffered data we could have for him.
- *
- * @param ch Channel.
- * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by root and go BCK)
+ * @param ch channel that got the duplicate open
+ * @param cti identifier of the connection that delivered the message
  */
 void
-GCCH_handle_local_ack (struct CadetChannel *ch, int fwd);
+GCCH_handle_duplicate_open (struct CadetChannel *ch,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+
+
+
+/**
+ * We got payload data for a channel.  Pass it on to the client.
+ *
+ * @param ch channel that got data
+ * @param cti identifier of the connection that delivered the message
+ * @param msg message that was received
+ */
+void
+GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
+                                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                                    const struct GNUNET_CADET_ChannelAppDataMessage *msg);
+
+
+/**
+ * We got an acknowledgement for payload data for a channel.
+ * Possibly resume transmissions.
+ *
+ * @param ch channel that got the ack
+ * @param cti identifier of the connection that delivered the message
+ * @param ack details about what was received
+ */
+void
+GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
+                                        const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                                        const struct GNUNET_CADET_ChannelDataAckMessage *ack);
+
+
+/**
+ * We got an acknowledgement for the creation of the channel
+ * (the port is open on the other side). Begin transmissions.
+ *
+ * @param ch channel to destroy
+ * @param cti identifier of the connection that delivered the message,
+ *        NULL if the ACK was inferred because we got payload or are on loopback
+ */
+void
+GCCH_handle_channel_open_ack (struct CadetChannel *ch,
+                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+
+
+/**
+ * Destroy channel, based on the other peer closing the
+ * connection.  Also needs to remove this channel from
+ * the tunnel.
+ *
+ * FIXME: need to make it possible to defer destruction until we have
+ * received all messages up to the destroy, and right now the destroy
+ * message (and this API) fails to give is the information we need!
+ *
+ * FIXME: also need to know if the other peer got a destroy from
+ * us before!
+ *
+ * @param ch channel to destroy
+ * @param cti identifier of the connection that delivered the message,
+ *            NULL during shutdown
+ */
+void
+GCCH_handle_remote_destroy (struct CadetChannel *ch,
+                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+
 
 /**
  * Handle data given by a client.
  *
- * Check whether the client is allowed to send in this tunnel, save if channel
- * is reliable and send an ACK to the client if there is still buffer space
- * in the tunnel.
+ * Check whether the client is allowed to send in this tunnel, save if
+ * channel is reliable and send an ACK to the client if there is still
+ * buffer space in the tunnel.
  *
  * @param ch Channel.
- * @param c Client which sent the data.
- * @param fwd Is this a FWD data?
- * @param message Data message.
- * @param size Size of data.
- *
- * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
+ * @param sender_ccn ccn of the sender
+ * @param buf payload to transmit.
+ * @param buf_len number of bytes in @a buf
+ * @return #GNUNET_OK if everything goes well,
+ *         #GNUNET_SYSERR in case of an error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        struct CadetClient *c, int fwd,
-                        const struct GNUNET_MessageHeader *message,
-                        size_t size);
+                        struct GNUNET_CADET_ClientChannelNumber sender_ccn,
+                        const char *buf,
+                        size_t buf_len);
+
 
 /**
- * Handle a channel destroy requested by a client.
+ * Handle ACK from client on local channel.
  *
- * Destroy the channel and the tunnel in case this was the last channel.
- *
- * @param ch Channel.
- * @param c Client that requested the destruction (to avoid notifying him).
- * @param is_root Is the request coming from root?
+ * @param ch channel to destroy
+ * @param client_ccn ccn of the client sending the ack
  */
 void
-GCCH_handle_local_destroy (struct CadetChannel *ch,
-                           struct CadetClient *c,
-                           int is_root);
+GCCH_handle_local_ack (struct CadetChannel *ch,
+                       struct GNUNET_CADET_ClientChannelNumber client_ccn);
 
-
-/**
- * Handle a channel create requested by a client.
- *
- * Create the channel and the tunnel in case this was the first0 channel.
- *
- * @param c Client that requested the creation (will be the root).
- * @param msg Create Channel message.
- *
- * @return #GNUNET_OK if everything went fine, #GNUNET_SYSERR otherwise.
- */
-int
-GCCH_handle_local_create (struct CadetClient *c,
-                          struct GNUNET_CADET_LocalChannelCreateMessage *msg);
-
-/**
- * Handler for cadet network payload traffic.
- *
- * @param ch Channel for the message.
- * @param msg Unencryted data message.
- * @param fwd Is this message fwd? This only is meaningful in loopback channels.
- *            #GNUNET_YES if message is FWD on the respective channel (loopback)
- *            #GNUNET_NO if message is BCK on the respective channel (loopback)
- *            #GNUNET_SYSERR if message on a one-ended channel (remote)
- */
-void
-GCCH_handle_data (struct CadetChannel *ch,
-                  const struct GNUNET_CADET_ChannelAppDataMessage *msg,
-                  int fwd);
-
-
-/**
- * Handler for cadet network traffic end-to-end ACKs.
- *
- * @param ch Channel on which we got this message.
- * @param msg Data message.
- * @param fwd Is this message fwd? This only is meaningful in loopback channels.
- *            #GNUNET_YES if message is FWD on the respective channel (loopback)
- *            #GNUNET_NO if message is BCK on the respective channel (loopback)
- *            #GNUNET_SYSERR if message on a one-ended channel (remote)
- */
-void
-GCCH_handle_data_ack (struct CadetChannel *ch,
-                      const struct GNUNET_CADET_ChannelDataAckMessage *msg,
-                      int fwd);
-
-
-/**
- * Handler for channel create messages.
- *
- * Does not have fwd parameter because it's always 'FWD': channel is incoming.
- *
- * @param t Tunnel this channel will be in.
- * @param msg Channel crate message.
- */
-struct CadetChannel *
-GCCH_handle_create (struct CadetTunnel *t,
-                    const struct GNUNET_CADET_ChannelOpenMessage *msg);
-
-
-/**
- * Handler for channel NACK messages.
- *
- * NACK messages always go dest -> root, no need for 'fwd' or 'msg' parameter.
- *
- * @param ch Channel.
- */
-void
-GCCH_handle_nack (struct CadetChannel *ch);
-
-
-/**
- * Handler for channel ack messages.
- *
- * @param ch Channel this channel is to be created in.
- * @param msg Message.
- * @param fwd Is this message fwd? This only is meaningful in loopback channels.
- *            #GNUNET_YES if message is FWD on the respective channel (loopback)
- *            #GNUNET_NO if message is BCK on the respective channel (loopback)
- *            #GNUNET_SYSERR if message on a one-ended channel (remote)
- */
-void
-GCCH_handle_ack (struct CadetChannel *ch,
-                 const struct GNUNET_CADET_ChannelManageMessage *msg,
-                 int fwd);
-
-
-/**
- * Handler for channel destroy messages.
- *
- * @param ch Channel this channel is to be destroyed of.
- * @param msg Message.
- * @param fwd Is this message fwd? This only is meaningful in loopback channels.
- *            #GNUNET_YES if message is FWD on the respective channel (loopback)
- *            #GNUNET_NO if message is BCK on the respective channel (loopback)
- *            #GNUNET_SYSERR if message on a one-ended channel (remote)
- */
-void
-GCCH_handle_destroy (struct CadetChannel *ch,
-                     const struct GNUNET_CADET_ChannelManageMessage *msg,
-                     int fwd);
-
-
-/**
- * Sends an already built message on a channel.
- *
- * If the channel is on a loopback tunnel, notifies the appropriate destination
- * client locally.
- *
- * On a normal channel passes the message to the tunnel for encryption and
- * sending on a connection.
- *
- * This function DOES NOT save the message for retransmission.
- *
- * @param message Message to send. Function makes a copy of it.
- * @param ch Channel on which this message is transmitted.
- * @param fwd Is this a fwd message?
- * @param existing_copy This is a retransmission, don't save a copy.
- */
-void
-GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                            struct CadetChannel *ch, int fwd,
-                            void *existing_copy);
-
-
-/**
- * Get the static string for identification of the channel.
- *
- * @param ch Channel.i
- *
- * @return Static string with the channel IDs.
- */
-const char *
-GCCH_2s (const struct CadetChannel *ch);
-
-
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
 #endif
-#ifdef __cplusplus
-}
-#endif
-
-/* ifndef GNUNET_SERVICE_CADET_CHANNEL_H */
-#endif
-/* end of gnunet-service-cadet_channel.h */

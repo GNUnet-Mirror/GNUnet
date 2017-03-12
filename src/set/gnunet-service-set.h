@@ -213,20 +213,6 @@ typedef void
 
 
 /**
- * Signature of functions that implement the message handling for
- * the different set operations.
- *
- * @param op operation state
- * @param msg received message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR to
- *         destroy the operation and the tunnel
- */
-typedef int
-(*MsgHandlerImpl) (struct Operation *op,
-                   const struct GNUNET_MessageHeader *msg);
-
-
-/**
  * Signature of functions that implement operation cancellation
  *
  * @param op operation state
@@ -274,11 +260,6 @@ struct SetVT
    * Callback for destruction of the set state.
    */
   DestroySetImpl destroy_set;
-
-  /**
-   * Callback for handling operation-specific messages.
-   */
-  MsgHandlerImpl msg_handler;
 
   /**
    * Callback for handling the remote peer's disconnect.
@@ -364,6 +345,27 @@ struct Listener;
 
 
 /**
+ * Possible set operations.
+ */
+enum OperationType {
+  /**
+   * Operation type unknown.
+   */
+  OT_UNKNOWN = 0,
+
+  /**
+   * We are performing a union.
+   */
+  OT_UNION,
+
+  /**
+   * We are performing an intersection.
+   */
+  OT_INTERSECTION
+};
+
+
+/**
  * Operation context used to execute a set operation.
  */
 struct Operation
@@ -425,6 +427,11 @@ struct Operation
    * after the timeout, it will be disconnected.
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * What type of operation is this?
+   */
+  enum OperationType type;
 
   /**
    * Unique request id for the request from a remote peer, sent to the
@@ -580,6 +587,11 @@ struct Set
    * Evaluate operations are held in a linked list.
    */
   struct Operation *ops_tail;
+
+  /**
+   * What type of operation is this set for?
+   */
+  enum OperationType type;
 
   /**
    * Current generation, that is, number of previously executed

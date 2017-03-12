@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  */
 #include "gnunet-service-set.h"
+#include "gnunet-service-set_union.h"
+#include "gnunet-service-set_intersection.h"
 #include "gnunet-service-set_protocol.h"
 #include "gnunet_statistics_service.h"
 
@@ -476,6 +478,7 @@ _GSS_operation_destroy (struct Operation *op,
     op->channel = NULL;
     GNUNET_CADET_channel_destroy (channel);
   }
+
   if (GNUNET_YES == gc)
     collect_generation_garbage (set);
   /* We rely on the channel end handler to free 'op'. When 'op->channel' was NULL,
@@ -682,7 +685,7 @@ client_disconnect_cb (void *cls,
     {
       struct Operation *curr = op;
       op = op->next;
-      if ( (GNUNET_YES == curr->is_incoming) && 
+      if ( (GNUNET_YES == curr->is_incoming) &&
            (curr->listener == listener) )
         incoming_destroy (curr);
     }
@@ -733,6 +736,38 @@ incoming_suggest (struct Operation *incoming,
 
 
 /**
+ * Check a request for a set operation from another peer.
+ *
+ * @param cls the operation state
+ * @param msg the received message
+ * @return #GNUNET_OK if the channel should be kept alive,
+ *         #GNUNET_SYSERR to destroy the channel
+ */
+static int
+check_incoming_msg (void *cls,
+                    const struct OperationRequestMessage *msg)
+{
+  struct Operation *op = cls;
+  const struct GNUNET_MessageHeader *nested_context;
+
+  /* double operation request */
+  if (NULL != op->spec)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  nested_context = GNUNET_MQ_extract_nested_mh (msg);
+  if ( (NULL != nested_context) &&
+       (ntohs (nested_context->size) > GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle a request for a set operation from another peer.  Checks if we
  * have a listener waiting for such a request (and in that case initiates
  * asking the listener about accepting the connection). If no listener
@@ -744,42 +779,23 @@ incoming_suggest (struct Operation *incoming,
  * our virtual table and subsequent msgs would be routed differently (as
  * we then know what type of operation this is).
  *
- * @param op the operation state
- * @param mh the received message
+ * @param cls the operation state
+ * @param msg the received message
  * @return #GNUNET_OK if the channel should be kept alive,
  *         #GNUNET_SYSERR to destroy the channel
  */
-static int
-handle_incoming_msg (struct Operation *op,
-                     const struct GNUNET_MessageHeader *mh)
+static void
+handle_incoming_msg (void *cls,
+                     const struct OperationRequestMessage *msg)
 {
-  const struct OperationRequestMessage *msg;
+  struct Operation *op = cls;
   struct Listener *listener = op->listener;
   struct OperationSpecification *spec;
   const struct GNUNET_MessageHeader *nested_context;
 
-  msg = (const struct OperationRequestMessage *) mh;
   GNUNET_assert (GNUNET_YES == op->is_incoming);
-  if (GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST != ntohs (mh->type))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  /* double operation request */
-  if (NULL != op->spec)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   spec = GNUNET_new (struct OperationSpecification);
   nested_context = GNUNET_MQ_extract_nested_mh (msg);
-  if ( (NULL != nested_context) &&
-       (ntohs (nested_context->size) > GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE) )
-  {
-    GNUNET_break_op (0);
-    GNUNET_free (spec);
-    return GNUNET_SYSERR;
-  }
   /* Make a copy of the nested_context (application-specific context
      information that is opaque to set) so we can pass it to the
      listener later on */
@@ -792,7 +808,6 @@ handle_incoming_msg (struct Operation *op,
   spec->peer = op->peer;
   spec->remote_element_count = ntohl (msg->element_count);
   op->spec = spec;
-
   listener = op->listener;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received P2P operation request (op %u, port %s) for active listener\n",
@@ -800,7 +815,6 @@ handle_incoming_msg (struct Operation *op,
               GNUNET_h2s (&listener->app_id));
   incoming_suggest (op,
                     listener);
-  return GNUNET_OK;
 }
 
 
@@ -1103,9 +1117,11 @@ handle_client_create_set (void *cls,
   {
   case GNUNET_SET_OPERATION_INTERSECTION:
     set->vt = _GSS_intersection_vt ();
+    set->type = OT_INTERSECTION;
     break;
   case GNUNET_SET_OPERATION_UNION:
     set->vt = _GSS_union_vt ();
+    set->type = OT_UNION;
     break;
   default:
     GNUNET_free (set);
@@ -1196,7 +1212,6 @@ channel_new_cb (void *cls,
                 const struct GNUNET_PeerIdentity *source)
 {
   static const struct SetVT incoming_vt = {
-    .msg_handler = &handle_incoming_msg,
     .peer_disconnect = &handle_incoming_disconnect
   };
   struct Listener *listener = cls;
@@ -1290,60 +1305,6 @@ channel_window_cb (void *cls,
   /* FIXME: not implemented, we could do flow control here... */
 }
 
-/**
- * FIXME: hack-job. Migrate to proper handler array use!
- *
- * @param cls local state associated with the channel.
- * @param message The actual message.
- */
-static int
-check_p2p_message (void *cls,
-                   const struct GNUNET_MessageHeader *message)
-{
-  return GNUNET_OK;
-}
-
-
-/**
- * FIXME: hack-job. Migrate to proper handler array use!
- *
- * Functions with this signature are called whenever a message is
- * received via a cadet channel.
- *
- * The msg_handler is a virtual table set in initially either when a peer
- * creates a new channel with us, or once we create a new channel
- * ourselves (evaluate).
- *
- * Once we know the exact type of operation (union/intersection), the vt is
- * replaced with an operation specific instance (_GSS_[op]_vt).
- *
- * @param cls local state associated with the channel.
- * @param message The actual message.
- */
-static void
-handle_p2p_message (void *cls,
-                    const struct GNUNET_MessageHeader *message)
-{
-  struct Operation *op = cls;
-  int ret;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Dispatching cadet message (type: %u)\n",
-              ntohs (message->type));
-  /* do this before the handler, as the handler might kill the channel */
-  GNUNET_CADET_receive_done (op->channel);
-  if (NULL != op->vt)
-    ret = op->vt->msg_handler (op,
-                               message);
-  else
-    ret = GNUNET_SYSERR;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Handled cadet message (type: %u)\n",
-              ntohs (message->type));
-  if (GNUNET_OK != ret)
-    GNUNET_CADET_channel_destroy (op->channel);
-}
-
 
 /**
  * Called when a client wants to create a new listener.
@@ -1357,66 +1318,66 @@ handle_client_listen (void *cls,
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (incoming_msg,
                            GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
-                           struct GNUNET_MessageHeader,
+                           struct OperationRequestMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_ibf,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF,
-                           struct GNUNET_MessageHeader,
+                           struct IBFMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_elements,
                            GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS,
-                           struct GNUNET_MessageHeader,
+                           struct GNUNET_SET_ElementMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_offer,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER,
                            struct GNUNET_MessageHeader,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_inquiry,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY,
-                           struct GNUNET_MessageHeader,
+                           struct InquiryMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_demand,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND,
                            struct GNUNET_MessageHeader,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_fixed_size (union_p2p_done,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (union_p2p_full_done,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (union_p2p_request_full,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_var_size (union_p2p_strata_estimator,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE,
-                           struct GNUNET_MessageHeader,
+                           struct StrataEstimatorMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_strata_estimator,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC,
-                           struct GNUNET_MessageHeader,
+                           struct StrataEstimatorMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_full_element,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT,
-                           struct GNUNET_MessageHeader,
+                           struct GNUNET_SET_ElementMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_fixed_size (intersection_p2p_element_info,
+                             GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
+                             struct IntersectionElementInfoMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (intersection_p2p_bf,
                            GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF,
-                           struct GNUNET_MessageHeader,
+                           struct BFMessage,
                            NULL),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
-                           struct GNUNET_MessageHeader,
-                           NULL),
+    GNUNET_MQ_hd_fixed_size (intersection_p2p_done,
+                             GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
+                             struct IntersectionDoneMessage,
+                             NULL),
     GNUNET_MQ_handler_end ()
   };
   struct Listener *listener;
@@ -1623,66 +1584,66 @@ handle_client_evaluate (void *cls,
   struct GNUNET_SERVICE_Client *client = cls;
   struct Operation *op = GNUNET_new (struct Operation);
   const struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (incoming_msg,
                            GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
-                           struct GNUNET_MessageHeader,
+                           struct OperationRequestMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_ibf,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF,
-                           struct GNUNET_MessageHeader,
+                           struct IBFMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_elements,
                            GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS,
-                           struct GNUNET_MessageHeader,
+                           struct GNUNET_SET_ElementMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_offer,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER,
                            struct GNUNET_MessageHeader,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_inquiry,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY,
-                           struct GNUNET_MessageHeader,
+                           struct InquiryMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_demand,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND,
                            struct GNUNET_MessageHeader,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
-                           struct GNUNET_MessageHeader,
-                           op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_fixed_size (union_p2p_done,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE,
+                             struct GNUNET_MessageHeader,
+                             op),
+    GNUNET_MQ_hd_fixed_size (union_p2p_full_done,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
+                             struct GNUNET_MessageHeader,
+                             op),
+    GNUNET_MQ_hd_fixed_size (union_p2p_request_full,
+                             GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
+                             struct GNUNET_MessageHeader,
+                             op),
+    GNUNET_MQ_hd_var_size (union_p2p_strata_estimator,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE,
-                           struct GNUNET_MessageHeader,
+                           struct StrataEstimatorMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_strata_estimator,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC,
-                           struct GNUNET_MessageHeader,
+                           struct StrataEstimatorMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE,
-                           struct GNUNET_MessageHeader,
-                           op),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL,
-                           struct GNUNET_MessageHeader,
-                           op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_var_size (union_p2p_full_element,
                            GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT,
-                           struct GNUNET_MessageHeader,
+                           struct GNUNET_SET_ElementMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
-                           struct GNUNET_MessageHeader,
-                           op),
-    GNUNET_MQ_hd_var_size (p2p_message,
+    GNUNET_MQ_hd_fixed_size (intersection_p2p_element_info,
+                             GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO,
+                             struct IntersectionElementInfoMessage,
+                             op),
+    GNUNET_MQ_hd_var_size (intersection_p2p_bf,
                            GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF,
-                           struct GNUNET_MessageHeader,
+                           struct BFMessage,
                            op),
-    GNUNET_MQ_hd_var_size (p2p_message,
-                           GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
-                           struct GNUNET_MessageHeader,
-                           op),
+    GNUNET_MQ_hd_fixed_size (intersection_p2p_done,
+                             GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE,
+                             struct IntersectionDoneMessage,
+                             op),
     GNUNET_MQ_handler_end ()
   };
   struct Set *set;
@@ -1717,7 +1678,7 @@ handle_client_evaluate (void *cls,
   // mutations won't interfer with the running operation.
   op->generation_created = set->current_generation;
   advance_generation (set);
-
+  op->type = set->type;
   op->vt = set->vt;
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
@@ -1886,9 +1847,11 @@ handle_client_copy_lazy_connect (void *cls,
   {
   case GNUNET_SET_OPERATION_INTERSECTION:
     set->vt = _GSS_intersection_vt ();
+    set->type = OT_INTERSECTION;
     break;
   case GNUNET_SET_OPERATION_UNION:
     set->vt = _GSS_union_vt ();
+    set->type = OT_UNION;
     break;
   default:
     GNUNET_assert (0);
@@ -2057,6 +2020,7 @@ handle_client_accept (void *cls,
   advance_generation (set);
 
   op->vt = set->vt;
+  op->type = set->type;
   op->vt->accept (op);
   GNUNET_SERVICE_client_continue (client);
 }

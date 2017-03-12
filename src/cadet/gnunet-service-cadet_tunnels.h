@@ -20,7 +20,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new_tunnels.h
+ * @file cadet/gnunet-service-cadet_tunnels.h
  * @brief Information we track per tunnel.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -28,7 +28,7 @@
 #ifndef GNUNET_SERVICE_CADET_TUNNELS_H
 #define GNUNET_SERVICE_CADET_TUNNELS_H
 
-#include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet.h"
 #include "cadet_protocol.h"
 
 

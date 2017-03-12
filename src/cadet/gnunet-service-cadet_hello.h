@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2014 GNUnet e.V.
+     Copyright (C) 2014, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,8 +22,9 @@
  * @file cadet/gnunet-service-cadet_hello.h
  * @brief cadet service; dealing with hello messages
  * @author Bartlomiej Polot
+ * @author Christian Grothoff
  *
- * All functions in this file should use the prefix GMH (Gnunet Cadet Hello)
+ * All functions in this file should use the prefix GCH (Gnunet Cadet Hello)
  */
 
 #ifndef GNUNET_SERVICE_CADET_HELLO_H

@@ -20,7 +20,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new.h
+ * @file cadet/gnunet-service-cadet.h
  * @brief Information we track per peer.
  * @author Bartlomiej Polot
  * @author Christian Grothoff

@@ -104,8 +104,8 @@ revocation_remote_cb (void *cls,
 
   if (GNUNET_NO == is_valid)
   {
-    fprintf (stderr,
-             "Local revocation successful\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Local revocation successful\n");
     ok = 0;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -118,8 +118,8 @@ revocation_remote_cb (void *cls,
                                   NULL);
     return;
   }
-  fprintf (stderr,
-           "Flooding of revocation failed\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Flooding of revocation failed\n");
   ok = 2;
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -141,8 +141,8 @@ revocation_cb (void *cls,
   testpeers[1].revok_handle = NULL;
   if (GNUNET_NO == is_valid)
   {
-    fprintf (stderr,
-             "Revocation successful\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Revocation successful\n");
     check_revocation (NULL);
   }
 }
@@ -386,8 +386,8 @@ test_connection (void *cls,
    /* We are generating a CLIQUE */
   if (NUM_TEST_PEERS * (NUM_TEST_PEERS -1) == links_succeeded)
   {
-    fprintf (stderr,
-             "Testbed connected peers, initializing test\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Testbed connected peers, initializing test\n");
     for (c = 0; c < num_peers; c++)
     {
       testpeers[c].p = peers[c];
@@ -403,8 +403,8 @@ test_connection (void *cls,
   }
   else
   {
-    fprintf (stderr,
-             "Testbed failed to connect peers\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testbed failed to connect peers\n");
     ok = 5;
     GNUNET_SCHEDULER_shutdown ();
     return;
