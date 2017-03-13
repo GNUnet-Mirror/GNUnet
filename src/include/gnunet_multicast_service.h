@@ -617,6 +617,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         data.  If 0 is returned in @a data_size the transmission is paused,
  *         and can be resumed with GNUNET_MULTICAST_origin_to_all_resume().
  *         #GNUNET_YES if this completes the transmission (all data supplied)
+ * @deprecated should move to MQ-style API!
  */
 typedef int
 (*GNUNET_MULTICAST_OriginTransmitNotify) (void *cls,
@@ -647,6 +648,7 @@ struct GNUNET_MULTICAST_OriginTransmitHandle;
  *        Closure for @a notify.
  *
  * @return NULL on error (i.e. request already pending).
+ * @deprecated should move to MQ-style API!
  */
 struct GNUNET_MULTICAST_OriginTransmitHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
@@ -854,6 +856,7 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member,
  *         data.  If 0 is returned in @a data_size the transmission is paused,
  *         and can be resumed with GNUNET_MULTICAST_member_to_origin_resume().
  *         #GNUNET_YES if this completes the transmission (all data supplied)
+ * @deprecated should move to MQ-style API!
  */
 typedef int
 (*GNUNET_MULTICAST_MemberTransmitNotify) (void *cls,
@@ -880,6 +883,7 @@ struct GNUNET_MULTICAST_MemberTransmitHandle;
  *        Closure for @a notify.
  *
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
+ * @deprecated should move to MQ-style API!
  */
 struct GNUNET_MULTICAST_MemberTransmitHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
