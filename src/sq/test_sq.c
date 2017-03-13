@@ -271,7 +271,8 @@ main(int argc,
 	     "Failed to drop table\n");
     ret = 1;
   }
-  sqlite3_close (dbh);
+  GNUNET_break (SQLITE_OK ==
+                sqlite3_close (dbh));
   if (0 != unlink ("test.db"))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                               "unlink",
