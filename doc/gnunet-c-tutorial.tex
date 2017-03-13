@@ -502,6 +502,8 @@ After installing GNUnet, the above source code can be compiled as:
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
 $ export LDFLAGS="-L/path/to/gnunet/libraries"
 $ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c  -lgnunettestbed -lgnunetdht -lgnunetutil
+$ touch template.conf # Generate (empty) configuration
+$ ./testbed-test  # run it (press CTRL-C to stop)
 \end{lstlisting}
 The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
 into a different directory other than \texttt{/usr/local}.
