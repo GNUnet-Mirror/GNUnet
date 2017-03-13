@@ -355,6 +355,11 @@ $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 
 \subsection{Starting Two Peers by Hand}
 
+This section describes how to start two peers on the same machine by hand.
+The process is rather painful, but the description is somewhat instructive.
+In practice, you might prefer the automated method described in
+Section~\ref{sec:testbed}.
+
 \subsubsection{Setup a second peer}
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
@@ -376,7 +381,7 @@ $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 Now you have to edit {\tt peer2.conf} and change:
 \begin{itemize}
   \itemsep0em
-  \item{\texttt{SERVICEHOME} under \texttt{PATHS}}
+  \item{\texttt{GNUNET\_TEST\_HOME} under \texttt{PATHS}}
   \item{Every (uncommented) value for ``\texttt{PORT}'' (add 10000) in any
         section (the option may be commented out if \texttt{PORT} is
         prefixed by "\#", in this case, UNIX domain sockets are used
@@ -460,7 +465,7 @@ $ gnunet-core -c peer1.conf
 Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
 \end{lstlisting}
 
-\subsection{Starting Peers Using the Testbed Service}
+\subsection{Starting Peers Using the Testbed Service} \label{sec:testbed}
 
 GNUnet's testbed service is used for testing scenarios where a number of peers
 are to be started.  The testbed can manage peers on a single host or on multiple
