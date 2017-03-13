@@ -811,22 +811,40 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
     mq->assoc_id = 1;
   }
   id = mq->assoc_id++;
-  GNUNET_CONTAINER_multihashmap32_put (mq->assoc_map, id, assoc_data,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap32_put (mq->assoc_map,
+                                                      id,
+                                                      assoc_data,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return id;
 }
 
 
+/**
+ * Get the data associated with a @a request_id in a queue
+ *
+ * @param mq the message queue with the association
+ * @param request_id the request id we are interested in
+ * @return the associated data
+ */
 void *
 GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
                      uint32_t request_id)
 {
   if (NULL == mq->assoc_map)
     return NULL;
-  return GNUNET_CONTAINER_multihashmap32_get (mq->assoc_map, request_id);
+  return GNUNET_CONTAINER_multihashmap32_get (mq->assoc_map,
+                                              request_id);
 }
 
 
+/**
+ * Remove the association for a @a request_id
+ *
+ * @param mq the message queue with the association
+ * @param request_id the request id we want to remove
+ * @return the associated data
+ */
 void *
 GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
                         uint32_t request_id)
