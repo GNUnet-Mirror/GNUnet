@@ -1041,7 +1041,8 @@ handle_local_data (void *cls,
          "injecting msg %s into mq %p\n",
          GC_m2s (ntohs (payload->type)),
          ch->mq);
-    GNUNET_MQ_inject_message (ch->mq, payload);
+    GNUNET_MQ_inject_message (ch->mq,
+                              payload);
     return;
   }
   /** @a deprecated */

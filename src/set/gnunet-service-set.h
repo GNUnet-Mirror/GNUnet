@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2013, 2014 GNUnet e.V.
+      Copyright (C) 2013-2017 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -68,92 +68,13 @@ struct Operation;
 
 
 /**
- * Detail information about an operation.
- */
-struct OperationSpecification
-{
-
-  /**
-   * The remove peer we evaluate the operation with.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Application ID for the operation, used to distinguish
-   * multiple operations of the same type with the same peer.
-   */
-  struct GNUNET_HashCode app_id;
-
-  /**
-   * Context message, may be NULL.
-   */
-  struct GNUNET_MessageHeader *context_msg;
-
-  /**
-   * Set associated with the operation, NULL until the spec has been
-   * associated with a set.
-   */
-  struct Set *set;
-
-  /**
-   * Salt to use for the operation.
-   */
-  uint32_t salt;
-
-  /**
-   * Remote peers element count
-   */
-  uint32_t remote_element_count;
-
-  /**
-   * ID used to identify an operation between service and client
-   */
-  uint32_t client_request_id;
-
-  /**
-   * The type of the operation.
-   */
-  enum GNUNET_SET_OperationType operation;
-
-  /**
-   * When are elements sent to the client, and which elements are sent?
-   */
-  enum GNUNET_SET_ResultMode result_mode;
-
-  /**
-   * Always use delta operation instead of sending full sets,
-   * even it it's less efficient.
-   */
-  int force_delta;
-
-  /**
-   * Always send full sets, even if delta operations would
-   * be more efficient.
-   */
-  int force_full;
-
-  /**
-   * #GNUNET_YES to fail operations where Byzantine faults
-   * are suspected
-   */
-  int byzantine;
-
-  /**
-   * Lower bound for the set size, used only when
-   * byzantine mode is enabled.
-   */
-  int byzantine_lower_bound;
-};
-
-
-/**
  * Signature of functions that create the implementation-specific
  * state for a set supporting a specific operation.
  *
  * @return a set state specific to the supported operation, NULL on error
  */
 typedef struct SetState *
-(*CreateImpl) (void);
+(*SetCreateImpl) (void);
 
 
 /**
@@ -164,18 +85,18 @@ typedef struct SetState *
  * @param ee element message from the client
  */
 typedef void
-(*AddRemoveImpl) (struct SetState *state,
+(*SetAddRemoveImpl) (struct SetState *state,
                   struct ElementEntry *ee);
 
 
 /**
- * Signature of functions that handle disconnection of the remote
- * peer.
+ * Make a copy of a set's internal state.
  *
- * @param op the set operation, contains implementation-specific data
+ * @param state set state to copy
+ * @return copy of the internal state
  */
-typedef void
-(*PeerDisconnectImpl) (struct Operation *op);
+typedef struct SetState *
+(*SetCopyStateImpl) (struct SetState *state);
 
 
 /**
@@ -185,7 +106,7 @@ typedef void
  * @param state the set state, contains implementation-specific data
  */
 typedef void
-(*DestroySetImpl) (struct SetState *state);
+(*SetDestroyImpl) (struct SetState *state);
 
 
 /**
@@ -193,8 +114,9 @@ typedef void
  *
  * @param op operation that is created by accepting the operation,
  *        should be initialized by the implementation
+ * @return operation-specific state to keep in @a op
  */
-typedef void
+typedef struct OperationState *
 (*OpAcceptImpl) (struct Operation *op);
 
 
@@ -206,23 +128,31 @@ typedef void
  *        begin the evaluation
  * @param opaque_context message to be transmitted to the listener
  *        to convince him to accept, may be NULL
+ * @return operation-specific state to keep in @a op
  */
-typedef void
+typedef struct OperationState *
 (*OpEvaluateImpl) (struct Operation *op,
                    const struct GNUNET_MessageHeader *opaque_context);
 
-
 /**
- * Signature of functions that implement operation cancellation
+ * Signature of functions that implement operation cancelation.
+ * This includes notifying the client about the operation's final
+ * state.
  *
  * @param op operation state
  */
 typedef void
-(*CancelImpl) (struct Operation *op);
+(*OpCancelImpl) (struct Operation *op);
 
 
-typedef struct SetState *
-(*CopyStateImpl) (struct Set *op);
+/**
+ * Signature of functions called when the CADET channel died.
+ *
+ * @param op operation state
+ */
+typedef void
+(*OpChannelDeathImpl) (struct Operation *op);
+
 
 
 /**
@@ -234,17 +164,27 @@ struct SetVT
   /**
    * Callback for the set creation.
    */
-  CreateImpl create;
+  SetCreateImpl create;
 
   /**
    * Callback for element insertion
    */
-  AddRemoveImpl add;
+  SetAddRemoveImpl add;
 
   /**
    * Callback for element removal.
    */
-  AddRemoveImpl remove;
+  SetAddRemoveImpl remove;
+
+  /**
+   * Callback for making a copy of a set's internal state.
+   */
+  SetCopyStateImpl copy_state;
+
+  /**
+   * Callback for destruction of the set state.
+   */
+  SetDestroyImpl destroy_set;
 
   /**
    * Callback for accepting a set operation request
@@ -257,21 +197,15 @@ struct SetVT
   OpEvaluateImpl evaluate;
 
   /**
-   * Callback for destruction of the set state.
+   * Callback for canceling an operation.
    */
-  DestroySetImpl destroy_set;
+  OpCancelImpl cancel;
 
   /**
-   * Callback for handling the remote peer's disconnect.
+   * Callback called in case the CADET channel died.
    */
-  PeerDisconnectImpl peer_disconnect;
+  OpChannelDeathImpl channel_death;
 
-  /**
-   * Callback for canceling an operation by its ID.
-   */
-  CancelImpl cancel;
-
-  CopyStateImpl copy_state;
 };
 
 
@@ -341,7 +275,39 @@ struct ElementEntry
 };
 
 
+/**
+ * A listener is inhabited by a client, and waits for evaluation
+ * requests from remote peers.
+ */
 struct Listener;
+
+
+/**
+ * State we keep per client.
+ */
+struct ClientState
+{
+  /**
+   * Set, if associated with the client, otherwise NULL.
+   */
+  struct Set *set;
+
+  /**
+   * Listener, if associated with the client, otherwise NULL.
+   */
+  struct Listener *listener;
+
+  /**
+   * Client handle.
+   */
+  struct GNUNET_SERVICE_Client *client;
+
+  /**
+   * Message queue.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+};
 
 
 /**
@@ -349,12 +315,16 @@ struct Listener;
  */
 struct Operation
 {
+
   /**
-   * V-Table for the operation belonging to the tunnel contest.
-   *
-   * Used for all operation specific operations after receiving the ops request
+   * Kept in a DLL of the listener, if @e listener is non-NULL.
    */
-  const struct SetVT *vt;
+  struct Operation *next;
+
+  /**
+   * Kept in a DLL of the listener, if @e listener is non-NULL.
+   */
+  struct Operation *prev;
 
   /**
    * Channel to the peer.
@@ -372,11 +342,15 @@ struct Operation
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * Detail information about the set operation, including the set to
-   * use.  When 'spec' is NULL, the operation is not yet entirely
-   * initialized.
+   * Context message, may be NULL.
    */
-  struct OperationSpecification *spec;
+  struct GNUNET_MessageHeader *context_msg;
+
+  /**
+   * Set associated with the operation, NULL until the spec has been
+   * associated with a set.
+   */
+  struct Set *set;
 
   /**
    * Operation-specific operation state.  Note that the exact
@@ -384,16 +358,6 @@ struct Operation
    * (and thus on @e vt).
    */
   struct OperationState *state;
-
-  /**
-   * Evaluate operations are held in a linked list.
-   */
-  struct Operation *next;
-
-  /**
-   * Evaluate operations are held in a linked list.
-   */
-  struct Operation *prev;
 
   /**
    * The identity of the requesting peer.  Needs to
@@ -408,9 +372,48 @@ struct Operation
   struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
-   * The type of the operation.
+   * Salt to use for the operation.
    */
-  enum GNUNET_SET_OperationType operation;
+  uint32_t salt;
+
+  /**
+   * Remote peers element count
+   */
+  uint32_t remote_element_count;
+
+  /**
+   * ID used to identify an operation between service and client
+   */
+  uint32_t client_request_id;
+
+  /**
+   * When are elements sent to the client, and which elements are sent?
+   */
+  enum GNUNET_SET_ResultMode result_mode;
+
+  /**
+   * Always use delta operation instead of sending full sets,
+   * even it it's less efficient.
+   */
+  int force_delta;
+
+  /**
+   * Always send full sets, even if delta operations would
+   * be more efficient.
+   */
+  int force_full;
+
+  /**
+   * #GNUNET_YES to fail operations where Byzantine faults
+   * are suspected
+   */
+  int byzantine;
+
+  /**
+   * Lower bound for the set size, used only when
+   * byzantine mode is enabled.
+   */
+  int byzantine_lower_bound;
 
   /**
    * Unique request id for the request from a remote peer, sent to the
@@ -420,44 +423,25 @@ struct Operation
   uint32_t suggest_id;
 
   /**
-   * #GNUNET_YES if this is not a "real" set operation yet, and we still
-   * need to wait for the other peer to give us more details.
-   */
-  int is_incoming;
-
-  /**
    * Generation in which the operation handle
    * was created.
    */
   unsigned int generation_created;
 
-  /**
-   * Incremented whenever (during shutdown) some component still
-   * needs to do something with this before the operation is freed.
-   * (Used as a reference counter, but only during termination.)
-   */
-  unsigned int keep;
 };
 
 
 /**
- * SetContent stores the actual set elements,
- * which may be shared by multiple generations derived
- * from one set.
+ * SetContent stores the actual set elements, which may be shared by
+ * multiple generations derived from one set.
  */
 struct SetContent
 {
-  /**
-   * Number of references to the content.
-   */
-  unsigned int refcount;
 
   /**
    * Maps `struct GNUNET_HashCode *` to `struct ElementEntry *`.
    */
   struct GNUNET_CONTAINER_MultiHashMap *elements;
-
-  unsigned int latest_generation;
 
   /**
    * Mutations requested by the client that we're
@@ -472,6 +456,16 @@ struct SetContent
    * over the underlying hash map of elements.
    */
   struct PendingMutation *pending_mutations_tail;
+
+  /**
+   * Number of references to the content.
+   */
+  unsigned int refcount;
+
+  /**
+   * FIXME: document!
+   */
+  unsigned int latest_generation;
 
   /**
    * Number of concurrently active iterators.
@@ -494,11 +488,24 @@ struct GenerationRange
 };
 
 
+/**
+ * Information about a mutation to apply to a set.
+ */
 struct PendingMutation
 {
+  /**
+   * Mutations are kept in a DLL.
+   */
   struct PendingMutation *prev;
+
+  /**
+   * Mutations are kept in a DLL.
+   */
   struct PendingMutation *next;
 
+  /**
+   * Set this mutation is about.
+   */
   struct Set *set;
 
   /**
@@ -506,7 +513,7 @@ struct PendingMutation
    * May only be a #GNUNET_MESSAGE_TYPE_SET_ADD or
    * #GNUNET_MESSAGE_TYPE_SET_REMOVE.
    */
-  struct GNUNET_MessageHeader *mutation_message;
+  struct GNUNET_SET_ElementMessage *msg;
 };
 
 
@@ -530,12 +537,13 @@ struct Set
    * Client that owns the set.  Only one client may own a set,
    * and there can only be one set per client.
    */
-  struct GNUNET_SERVICE_Client *client;
+  struct ClientState *cs;
 
   /**
-   * Message queue for the client.
+   * Content, possibly shared by multiple sets,
+   * and thus reference counted.
    */
-  struct GNUNET_MQ_Handle *client_mq;
+  struct SetContent *content;
 
   /**
    * Virtual table for this set.  Determined by the operation type of
@@ -568,15 +576,15 @@ struct Set
   struct Operation *ops_tail;
 
   /**
+   * List of generations we have to exclude, due to lazy copies.
+   */
+  struct GenerationRange *excluded_generations;
+
+  /**
    * Current generation, that is, number of previously executed
    * operations and lazy copies on the underlying set content.
    */
   unsigned int current_generation;
-
-  /**
-   * List of generations we have to exclude, due to lazy copies.
-   */
-  struct GenerationRange *excluded_generations;
 
   /**
    * Number of elements in array @a excluded_generations.
@@ -589,21 +597,16 @@ struct Set
   enum GNUNET_SET_OperationType operation;
 
   /**
-   * Each @e iter is assigned a unique number, so that the client
-   * can distinguish iterations.
-   */
-  uint16_t iteration_id;
-
-  /**
    * Generation we're currently iteration over.
    */
   unsigned int iter_generation;
 
   /**
-   * Content, possibly shared by multiple sets,
-   * and thus reference counted.
+   * Each @e iter is assigned a unique number, so that the client
+   * can distinguish iterations.
    */
-  struct SetContent *content;
+  uint16_t iteration_id;
+
 };
 
 
@@ -611,10 +614,14 @@ extern struct GNUNET_STATISTICS_Handle *_GSS_statistics;
 
 
 /**
- * Destroy the given operation.  Call the implementation-specific
- * cancel function of the operation.  Disconnects from the remote
- * peer.  Does not disconnect the client, as there may be multiple
- * operations per set.
+ * Destroy the given operation.   Used for any operation where both
+ * peers were known and that thus actually had a vt and channel.  Must
+ * not be used for operations where 'listener' is still set and we do
+ * not know the other peer.
+ *
+ * Call the implementation-specific cancel function of the operation.
+ * Disconnects from the remote peer.  Does not disconnect the client,
+ * as there may be multiple operations per set.
  *
  * @param op operation to destroy
  * @param gc #GNUNET_YES to perform garbage collection on the set
@@ -642,10 +649,13 @@ const struct SetVT *
 _GSS_intersection_vt (void);
 
 
-int
-_GSS_is_element_of_set (struct ElementEntry *ee,
-                        struct Set *set);
-
+/**
+ * Is element @a ee part of the set used by @a op?
+ *
+ * @param ee element to test
+ * @param op operation the defines the set and its generation
+ * @return #GNUNET_YES if the element is in the set, #GNUNET_NO if not
+ */
 int
 _GSS_is_element_of_operation (struct ElementEntry *ee,
                               struct Operation *op);
