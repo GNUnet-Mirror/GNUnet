@@ -38,8 +38,9 @@
 struct multicast_peer
 {
   int peer; /* peer number */
-  struct GNUNET_TESTBED_Operation *op;
-  struct GNUNET_TESTBED_Operation *pi_op;
+  struct GNUNET_TESTBED_Operation *op; /* not yet in use */
+  struct GNUNET_TESTBED_Operation *pi_op; /* not yet in use */
+  uint8_t test_ok;
 };
 
 static void service_connect (void *cls,
@@ -49,12 +50,14 @@ static void service_connect (void *cls,
 
 static struct multicast_peer **mc_peers;
 static struct GNUNET_TESTBED_Peer **peers;
+
+// FIXME: refactor
 static struct GNUNET_TESTBED_Operation *op[NUM_PEERS];
 static struct GNUNET_TESTBED_Operation *pi_op[NUM_PEERS];
 static const struct GNUNET_PeerIdentity *peer_id[NUM_PEERS];
 
 static struct GNUNET_MULTICAST_Origin *origin;
-static struct GNUNET_MULTICAST_Member *member[NUM_PEERS];
+static struct GNUNET_MULTICAST_Member *member[NUM_PEERS]; /* first element always empty */
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
@@ -69,7 +72,6 @@ static struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key[NUM_PEERS];
  * Global result for testcase.
  */
 static int result;
-
 
 /**
  * Function run on CTRL-C or shutdown (i.e. success/timeout/etc.).
@@ -132,6 +134,7 @@ member_join_request (void *cls,
 
 }
 
+
 static int 
 notify (void *cls,
         size_t *data_size,
@@ -174,12 +177,14 @@ member_join_decision (void *cls,
   }
 }
 
+
 static void
 member_replay_frag ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "member replay frag...\n");
 }
+
 
 static void
 member_replay_msg ()
@@ -188,16 +193,41 @@ member_replay_msg ()
               "member replay msg...\n");
 }
 
-static void
-member_message ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "member message...\n");
 
-  // FIXME: not finished here
+static void
+member_message (void *cls, 
+                const struct GNUNET_MULTICAST_MessageHeader *msg)
+{
+  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+
+  if (0 != strncmp ("pong", (char *)&msg[1], 4)) 
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "peer #%i did not receive pong\n", 
+                mc_peer->peer);
+
+    result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "peer #%i receives: %s\n", 
+              mc_peer->peer,
+              (char *)&msg[1]);
+
+  mc_peer->test_ok = GNUNET_OK;
+
+  // FIXME: ugly test function
+  /*
+  for (int i=1; i<NUM_PEERS; i++)
+    if (!mc_peers[i]->test_ok)
+      return;
+
   result = GNUNET_YES;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
+  */
 }
+
 
 static void
 origin_join_request (void *cls,
@@ -233,6 +263,7 @@ origin_join_request (void *cls,
   result = GNUNET_OK;
 }
 
+
 static void
 origin_replay_frag (void *cls,
                     const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
@@ -242,6 +273,7 @@ origin_replay_frag (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay fraq msg\n");
 }
+
 
 static void
 origin_replay_msg (void *cls,
@@ -288,12 +320,14 @@ origin_request (void *cls,
                                   cls);
 }
 
+
 static void
 origin_message (void *cls,
                 const struct GNUNET_MULTICAST_MessageHeader *msg) 
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin message msg\n");
 }
+
 
 static void
 multicast_da (void *cls,
@@ -375,6 +409,7 @@ multicast_ca (void *cls,
   }
 }
 
+
 static void
 peer_information_cb (void *cls,
                      struct GNUNET_TESTBED_Operation *operation,
@@ -452,7 +487,7 @@ service_connect (void *cls,
   }
   else 
   {
-    member[mc_peer->peer-1] = ca_result;
+    member[mc_peer->peer] = ca_result;
   }
 }
 
@@ -500,6 +535,7 @@ testbed_master (void *cls,
   {
     mc_peers[i] = GNUNET_new (struct multicast_peer);
     mc_peers[i]->peer = i;
+    mc_peers[i]->test_ok = GNUNET_NO;
   }
 
   op[0] = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
@@ -517,7 +553,7 @@ testbed_master (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
 
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 80),
 					      &timeout_task, NULL);
 }
 

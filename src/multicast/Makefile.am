@@ -51,9 +51,9 @@ gnunet_service_multicast_LDADD = \
   $(GN_LIBINTL)
 
 check_PROGRAMS = \
-  test_multicast \
-  test_multicast_2peers
-# test_multicast_multipeer
+  test_multicast_multipeer
+#  test_multicast 
+#  test_multicast_2peers
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@}; export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH; unset XDG_DATA_HOME; unset XDG_CONFIG_HOME;

@@ -758,7 +758,8 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
     LOG_SQLITE (plugin->dbh,
                 GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sq_prepare");
-    (void) sqlite3_close (plugin->dbh);
+    GNUNET_break (SQLITE_OK ==
+                  sqlite3_close (plugin->dbh));
     GNUNET_free (plugin);
     return NULL;
   }
