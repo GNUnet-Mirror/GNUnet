@@ -1429,10 +1429,10 @@ Peers_handle_inbound_channel (void *cls,
                       Peers_CHANNEL_ESTABLISHED_TWICE);
     GNUNET_CADET_channel_destroy (channel);
     /* return the channel context */
-    return (struct PeerContext *) initiator;
+    return &peer_ctx->peer_id;
   }
   peer_ctx->recv_channel = channel;
-  return (struct PeerContext *) initiator;
+  return &peer_ctx->peer_id;
 }
 
 
