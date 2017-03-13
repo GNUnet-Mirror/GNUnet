@@ -254,7 +254,10 @@ main(int argc,
     fprintf (stderr,
 	     "Failed to create table\n");
     sqlite3_close (dbh);
-    unlink ("test.db");
+    if (0 != unlink ("test.db"))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "unlink",
+                                "test.db");
     return 1;
   }
 
@@ -266,12 +269,13 @@ main(int argc,
   {
     fprintf (stderr,
 	     "Failed to drop table\n");
-    sqlite3_close (dbh);
-    unlink ("test.db");
-    return 1;
+    ret = 1;
   }
   sqlite3_close (dbh);
-  unlink ("test.db");
+  if (0 != unlink ("test.db"))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "unlink",
+                              "test.db");
   return ret;
 }
 
