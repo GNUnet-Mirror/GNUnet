@@ -117,6 +117,7 @@ member_join_request (void *cls,
 
 }
 
+
 int notify (void *cls,
             size_t *data_size,
             void *data)
@@ -155,6 +156,7 @@ member_join_decision (void *cls,
   }
 }
 
+
 static void
 member_message (void *cls, 
                 const struct GNUNET_MULTICAST_MessageHeader *msg)
@@ -173,6 +175,7 @@ member_message (void *cls,
   result = GNUNET_YES;
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 static void
 origin_join_request (void *cls,
@@ -208,6 +211,7 @@ origin_join_request (void *cls,
   result = GNUNET_OK;
 }
 
+
 int
 origin_notify (void *cls, 
                size_t *data_size, 
@@ -239,6 +243,7 @@ origin_request (void *cls,
                                   NULL);
 }
 
+
 static void
 origin_message (void *cls,
                 const struct GNUNET_MULTICAST_MessageHeader *msg) 
@@ -255,16 +260,17 @@ service_connect1 (void *cls,
 {
   member = ca_result;
 
-  if (NULL != member) 
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
-  }
-  else
+  if (NULL == member)
   {
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
+  }
 }
+
 
 static void
 multicast_da1 (void *cls,
@@ -349,8 +355,9 @@ peer_information_cb (void *cls,
                                           multicast_da1,     /* callback to be called when closing the
                                                                 opened service connection */
                                           NULL);                   /* closure for the above two callbacks */
-    }
+  }
 }
+
 
 /**
  * Test logic of peer "0" being origin starts here.
@@ -485,7 +492,7 @@ main (int argc, char *argv[])
 
   result = GNUNET_SYSERR;
   ret = GNUNET_TESTBED_test_run
-      ("test-multicast-multipeer",  /* test case name */
+      ("test-multicast-2peers",  /* test case name */
        "test_multicast.conf", /* template configuration */
        NUM_PEERS,       /* number of peers to start */
        0LL, /* Event mask - set to 0 for no event notifications */
@@ -498,4 +505,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of test_multicast_multipeer.c */
+
+/* end of test_multicast_2peers.c */
