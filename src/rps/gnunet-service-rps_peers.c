@@ -533,7 +533,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
                         strlen (GNUNET_APPLICATION_PORT_RPS),
                         &port);
     peer_ctx->send_channel =
-      GNUNET_CADET_channel_creatE (cadet_handle,
+      GNUNET_CADET_channel_create (cadet_handle,
                                    (struct GNUNET_PeerIdentity *) peer, /* context */
                                    peer,
                                    &port,

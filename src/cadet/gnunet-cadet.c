@@ -829,7 +829,7 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting to CADET service\n");
-  mh = GNUNET_CADET_connecT (cfg);
+  mh = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
   if (NULL == mh)
@@ -844,7 +844,7 @@ run (void *cls,
     GNUNET_CRYPTO_hash (listen_port,
                         strlen (listen_port),
                         &porthash);
-    lp = GNUNET_CADET_open_porT (mh,
+    lp = GNUNET_CADET_open_port (mh,
                                  &porthash,
                                  &channel_incoming,
                                  NULL,
@@ -876,7 +876,7 @@ run (void *cls,
     GNUNET_CRYPTO_hash (target_port,
                         strlen(target_port),
                         &porthash);
-    ch = GNUNET_CADET_channel_creatE (mh,
+    ch = GNUNET_CADET_channel_create (mh,
                                       NULL,
                                       &pid,
                                       &porthash,

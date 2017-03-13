@@ -1305,7 +1305,7 @@ handle_client_listen (void *cls,
               listener->operation,
               GNUNET_h2s (&listener->app_id));
   listener->open_port
-    = GNUNET_CADET_open_porT (cadet,
+    = GNUNET_CADET_open_port (cadet,
                               &msg->app_id,
                               &channel_new_cb,
                               listener,
@@ -1568,7 +1568,7 @@ handle_client_evaluate (void *cls,
               "Creating new CADET channel to port %s for set operation type %u\n",
               GNUNET_h2s (&msg->app_id),
               set->operation);
-  op->channel = GNUNET_CADET_channel_creatE (cadet,
+  op->channel = GNUNET_CADET_channel_create (cadet,
                                              op,
                                              &msg->target_peer,
                                              &msg->app_id,
@@ -1941,7 +1941,7 @@ run (void *cls,
                                  NULL);
   _GSS_statistics = GNUNET_STATISTICS_create ("set",
                                               cfg);
-  cadet = GNUNET_CADET_connecT (cfg);
+  cadet = GNUNET_CADET_connect (cfg);
   if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

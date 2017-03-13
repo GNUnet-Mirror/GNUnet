@@ -1076,7 +1076,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
               "Creating new channel for session with key %s.\n",
               GNUNET_h2s (&s->session_id));
   s->channel
-    = GNUNET_CADET_channel_creatE (my_cadet,
+    = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
                                    &s->session_id,
@@ -1398,7 +1398,7 @@ run (void *cls,
                     GNUNET_CRYPTO_PAILLIER_BITS / 3);
   GNUNET_CRYPTO_paillier_create (&my_pubkey,
                                  &my_privkey);
-  my_cadet = GNUNET_CADET_connecT (cfg);
+  my_cadet = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   if (NULL == my_cadet)

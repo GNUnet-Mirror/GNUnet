@@ -499,12 +499,12 @@ GSF_cadet_start_server ()
 	      "Initializing cadet FS server with a limit of %llu connections\n",
 	      sc_count_max);
   cadet_map = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
-  cadet_handle = GNUNET_CADET_connecT (GSF_cfg);
+  cadet_handle = GNUNET_CADET_connect (GSF_cfg);
   GNUNET_assert (NULL != cadet_handle);
   GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
                       strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
                       &port);
-  cadet_port = GNUNET_CADET_open_porT (cadet_handle,
+  cadet_port = GNUNET_CADET_open_port (cadet_handle,
                                        &port,
                                        &connect_cb,
                                        NULL,

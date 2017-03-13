@@ -1084,7 +1084,7 @@ try_open_exit ()
 
         /* move to the head of the DLL */
 	pos->cadet_channel
-          = GNUNET_CADET_channel_creatE (cadet_handle,
+          = GNUNET_CADET_channel_create (cadet_handle,
                                          pos,
                                          &pos->peer,
                                          &port,
@@ -1246,7 +1246,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    cadet_handle = GNUNET_CADET_connecT (cfg);
+    cadet_handle = GNUNET_CADET_connect (cfg);
     if (NULL == cadet_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

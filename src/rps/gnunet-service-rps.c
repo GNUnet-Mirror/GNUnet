@@ -2349,12 +2349,12 @@ run (void *cls,
 
 
   /* Initialise cadet */
-  cadet_handle = GNUNET_CADET_connecT (cfg);
+  cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
   GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
                       strlen (GNUNET_APPLICATION_PORT_RPS),
                       &port);
-  cadet_port = GNUNET_CADET_open_porT (cadet_handle,
+  cadet_port = GNUNET_CADET_open_port (cadet_handle,
                                        &port,
                                        &Peers_handle_inbound_channel, /* Connect handler */
                                        NULL, /* cls */

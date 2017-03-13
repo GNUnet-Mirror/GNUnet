@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2014 GNUnet e.V.
+     Copyright (C) 2009-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -137,12 +137,12 @@ enum GNUNET_CADET_ChannelOption
 /**
  * Method called whenever a peer connects to a port in MQ-based CADET.
  *
- * @param cls Closure from #GNUNET_CADET_open_porT.
+ * @param cls Closure from #GNUNET_CADET_open_port.
  * @param channel New handle to the channel.
  * @param source Peer that started this channel.
  * @return Closure for the incoming @a channel. It's given to:
  *         - The #GNUNET_CADET_DisconnectEventHandler (given to
- *           #GNUNET_CADET_open_porT) when the channel dies.
+ *           #GNUNET_CADET_open_port) when the channel dies.
  *         - Each the #GNUNET_MQ_MessageCallback handlers for each message
  *           received on the @a channel.
  */
@@ -195,7 +195,7 @@ typedef void
  * @return Handle to the cadet service NULL on error.
  */
 struct GNUNET_CADET_Handle *
-GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -224,7 +224,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
  * @return Port handle.
  */
 struct GNUNET_CADET_Port *
-GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
+GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
                         const struct GNUNET_HashCode *port,
                         GNUNET_CADET_ConnectEventHandler connects,
                         void *connects_cls,
@@ -266,7 +266,7 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
  * @return Handle to the channel.
  */
 struct GNUNET_CADET_Channel *
-GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
+GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                              void *channel_cls,
                              const struct GNUNET_PeerIdentity *destination,
                              const struct GNUNET_HashCode *port,

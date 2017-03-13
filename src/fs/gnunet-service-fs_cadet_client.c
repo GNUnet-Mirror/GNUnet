@@ -487,7 +487,7 @@ reset_cadet (struct CadetHandle *mh)
     GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
                         strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
                         &port);
-    mh->channel = GNUNET_CADET_channel_creatE (cadet_handle,
+    mh->channel = GNUNET_CADET_channel_create (cadet_handle,
                                                mh,
                                                &mh->target,
                                                &port,
@@ -627,7 +627,7 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
     GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
                         strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
                         &port);
-    mh->channel = GNUNET_CADET_channel_creatE (cadet_handle,
+    mh->channel = GNUNET_CADET_channel_create (cadet_handle,
                                                mh,
                                                &mh->target,
                                                &port,

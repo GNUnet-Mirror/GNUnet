@@ -1547,12 +1547,12 @@ GC_u2h (uint32_t port)
  * @return Handle to the cadet service NULL on error.
  */
 struct GNUNET_CADET_Handle *
-GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CADET_Handle *h;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GNUNET_CADET_connecT()\n");
+       "GNUNET_CADET_connect()\n");
   h = GNUNET_new (struct GNUNET_CADET_Handle);
   h->cfg = cfg;
   h->ports = GNUNET_CONTAINER_multihashmap_create (4,
@@ -1586,7 +1586,7 @@ GNUNET_CADET_connecT (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return Port handle.
  */
 struct GNUNET_CADET_Port *
-GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
+GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
                         const struct GNUNET_HashCode *port,
                         GNUNET_CADET_ConnectEventHandler connects,
                         void * connects_cls,
@@ -1645,7 +1645,7 @@ GNUNET_CADET_open_porT (struct GNUNET_CADET_Handle *h,
  * @return Handle to the channel.
  */
 struct GNUNET_CADET_Channel *
-GNUNET_CADET_channel_creatE (struct GNUNET_CADET_Handle *h,
+GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                              void *channel_cls,
                              const struct GNUNET_PeerIdentity *destination,
                              const struct GNUNET_HashCode *port,

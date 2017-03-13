@@ -132,12 +132,12 @@ do_abort (void *cls)
 /**
  * Method called whenever a peer connects to a port in MQ-based CADET.
  *
- * @param cls Closure from #GNUNET_CADET_open_porT.
+ * @param cls Closure from #GNUNET_CADET_open_port.
  * @param channel New handle to the channel.
  * @param source Peer that started this channel.
  * @return Closure for the incoming @a channel. It's given to:
  *         - The #GNUNET_CADET_DisconnectEventHandler (given to
- *           #GNUNET_CADET_open_porT) when the channel dies.
+ *           #GNUNET_CADET_open_port) when the channel dies.
  *         - Each the #GNUNET_MQ_MessageCallback handlers for each message
  *           received on the @a channel.
  */
@@ -235,7 +235,7 @@ do_connect (void *cls)
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "creating channel\n");
-  ch = GNUNET_CADET_channel_creatE (cadet_peer_1, /* cadet handle */
+  ch = GNUNET_CADET_channel_create (cadet_peer_1, /* cadet handle */
                                     NULL,         /* channel cls */
                                     &id,          /* destination */
                                     GC_u2h (TEST_MESSAGE_TYPE), /* port */
@@ -282,8 +282,8 @@ run (void *cls,
   abort_task = GNUNET_SCHEDULER_add_delayed (delay,
                                              &do_abort,
                                              (void *) (long) __LINE__);
-  cadet_peer_1 = GNUNET_CADET_connecT (cfg);
-  cadet_peer_2 = GNUNET_CADET_connecT (cfg);
+  cadet_peer_1 = GNUNET_CADET_connect (cfg);
+  cadet_peer_2 = GNUNET_CADET_connect (cfg);
 
   if ( (NULL == cadet_peer_1) ||
        (NULL == cadet_peer_2) )
@@ -297,7 +297,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 1: %p\n", cadet_peer_1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 2: %p\n", cadet_peer_2);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handlers 2: %p\n", handlers);
-  GNUNET_CADET_open_porT (cadet_peer_2,          /* cadet handle */
+  GNUNET_CADET_open_port (cadet_peer_2,          /* cadet handle */
                           GC_u2h (TEST_PORT_ID), /* port id */
                           &connected,            /* connect handler */
                           (void *) 2L,           /* handle for #connected */
