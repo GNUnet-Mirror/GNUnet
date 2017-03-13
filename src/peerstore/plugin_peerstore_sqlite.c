@@ -213,7 +213,8 @@ peerstore_sqlite_expire_records (void *cls, struct GNUNET_TIME_Absolute now,
  * called
  */
 static int
-peerstore_sqlite_iterate_records (void *cls, const char *sub_system,
+peerstore_sqlite_iterate_records (void *cls,
+                                  const char *sub_system,
                                   const struct GNUNET_PeerIdentity *peer,
                                   const char *key,
                                   GNUNET_PEERSTORE_Processor iter,
@@ -333,9 +334,12 @@ peerstore_sqlite_iterate_records (void *cls, const char *sub_system,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR and cont is not called
  */
 static int
-peerstore_sqlite_store_record (void *cls, const char *sub_system,
+peerstore_sqlite_store_record (void *cls,
+                               const char *sub_system,
                                const struct GNUNET_PeerIdentity *peer,
-                               const char *key, const void *value, size_t size,
+                               const char *key,
+                               const void *value,
+                               size_t size,
                                struct GNUNET_TIME_Absolute expiry,
                                enum GNUNET_PEERSTORE_StoreOption options,
                                GNUNET_PEERSTORE_Continuation cont,
@@ -346,7 +350,10 @@ peerstore_sqlite_store_record (void *cls, const char *sub_system,
 
   if (GNUNET_PEERSTORE_STOREOPTION_REPLACE == options)
   {
-    peerstore_sqlite_delete_records (cls, sub_system, peer, key);
+    peerstore_sqlite_delete_records (cls,
+                                     sub_system,
+                                     peer,
+                                     key);
   }
   if (SQLITE_OK !=
       sqlite3_bind_text (stmt, 1, sub_system, strlen (sub_system) + 1,
@@ -388,15 +395,25 @@ peerstore_sqlite_store_record (void *cls, const char *sub_system,
  * @return 0 on success
  */
 static int
-sql_exec (sqlite3 * dbh, const char *sql)
+sql_exec (sqlite3 *dbh,
+          const char *sql)
 {
   int result;
 
-  result = sqlite3_exec (dbh, sql, NULL, NULL, NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Executed `%s' / %d\n", sql, result);
-  if (result != SQLITE_OK)
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Error executing SQL query: %s\n  %s\n"),
-         sqlite3_errmsg (dbh), sql);
+  result = sqlite3_exec (dbh,
+                         sql,
+                         NULL,
+                         NULL,
+                         NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Executed `%s' / %d\n",
+       sql,
+       result);
+  if (SQLITE_OK != result)
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Error executing SQL query: %s\n  %s\n"),
+         sqlite3_errmsg (dbh),
+         sql);
   return result;
 }
 
@@ -410,17 +427,28 @@ sql_exec (sqlite3 * dbh, const char *sql)
  * @return 0 on success
  */
 static int
-sql_prepare (sqlite3 * dbh, const char *sql, sqlite3_stmt ** stmt)
+sql_prepare (sqlite3 *dbh,
+             const char *sql,
+             sqlite3_stmt ** stmt)
 {
   char *tail;
   int result;
 
-  result =
-      sqlite3_prepare_v2 (dbh, sql, strlen (sql), stmt, (const char **) &tail);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Prepared `%s' / %p: %d\n", sql, *stmt, result);
-  if (result != SQLITE_OK)
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Error preparing SQL query: %s\n  %s\n"),
-         sqlite3_errmsg (dbh), sql);
+  result = sqlite3_prepare_v2 (dbh,
+                               sql,
+                               strlen (sql),
+                               stmt,
+                               (const char **) &tail);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Prepared `%s' / %p: %d\n",
+       sql,
+       *stmt,
+       result);
+  if (SQLITE_OK != result)
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Error preparing SQL query: %s\n  %s\n"),
+         sqlite3_errmsg (dbh),
+         sql);
   return result;
 }
 
@@ -429,8 +457,10 @@ sql_prepare (sqlite3 * dbh, const char *sql, sqlite3_stmt ** stmt)
  * sqlite3 custom function for comparison of uint64_t values
  * since it is not supported by default
  */
-void
-sqlite3_lessthan (sqlite3_context * ctx, int dummy, sqlite3_value ** values)
+static void
+sqlite3_lessthan (sqlite3_context *ctx,
+                  int dummy,
+                  sqlite3_value **values)
 {
   uint64_t v1;
   uint64_t v2;
@@ -455,10 +485,13 @@ database_setup (struct Plugin *plugin)
   char *filename;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "peerstore-sqlite",
-                                               "FILENAME", &filename))
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
+                                               "peerstore-sqlite",
+                                               "FILENAME",
+                                               &filename))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "peerstore-sqlite",
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "peerstore-sqlite",
                                "FILENAME");
     return GNUNET_SYSERR;
   }
@@ -474,34 +507,52 @@ database_setup (struct Plugin *plugin)
   /* filename should be UTF-8-encoded. If it isn't, it's a bug */
   plugin->fn = filename;
   /* Open database and precompile statements */
-  if (SQLITE_OK != sqlite3_open (plugin->fn, &plugin->dbh))
+  if (SQLITE_OK != sqlite3_open (plugin->fn,
+                                 &plugin->dbh))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Unable to initialize SQLite: %s.\n"),
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unable to initialize SQLite: %s.\n"),
          sqlite3_errmsg (plugin->dbh));
     return GNUNET_SYSERR;
   }
-  sql_exec (plugin->dbh, "PRAGMA temp_store=MEMORY");
-  sql_exec (plugin->dbh, "PRAGMA synchronous=OFF");
-  sql_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF");
-  sql_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL");
-  sql_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"");
-  sql_exec (plugin->dbh, "PRAGMA page_size=4096");
-  sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS);
+  sql_exec (plugin->dbh,
+            "PRAGMA temp_store=MEMORY");
+  sql_exec (plugin->dbh,
+            "PRAGMA synchronous=OFF");
+  sql_exec (plugin->dbh,
+            "PRAGMA legacy_file_format=OFF");
+  sql_exec (plugin->dbh,
+            "PRAGMA auto_vacuum=INCREMENTAL");
+  sql_exec (plugin->dbh,
+            "PRAGMA encoding=\"UTF-8\"");
+  sql_exec (plugin->dbh,
+            "PRAGMA page_size=4096");
+  sqlite3_busy_timeout (plugin->dbh,
+                        BUSY_TIMEOUT_MS);
   /* Create tables */
   sql_exec (plugin->dbh,
             "CREATE TABLE IF NOT EXISTS peerstoredata (\n"
             "  sub_system TEXT NOT NULL,\n" "  peer_id BLOB NOT NULL,\n"
             "  key TEXT NOT NULL,\n" "  value BLOB NULL,\n"
             "  expiry sqlite3_uint64 NOT NULL" ");");
-  sqlite3_create_function (plugin->dbh, "UINT64_LT", 2, SQLITE_UTF8, NULL,
-                           &sqlite3_lessthan, NULL, NULL);
+  sqlite3_create_function (plugin->dbh,
+                           "UINT64_LT",
+                           2,
+                           SQLITE_UTF8,
+                           NULL,
+                           &sqlite3_lessthan,
+                           NULL,
+                           NULL);
   /* Create Indices */
   if (SQLITE_OK !=
       sqlite3_exec (plugin->dbh,
                     "CREATE INDEX IF NOT EXISTS peerstoredata_key_index ON peerstoredata (sub_system, peer_id, key)",
-                    NULL, NULL, NULL))
+                    NULL,
+                    NULL,
+                    NULL))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Unable to create indices: %s.\n"),
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unable to create indices: %s.\n"),
          sqlite3_errmsg (plugin->dbh));
     return GNUNET_SYSERR;
   }
@@ -573,7 +624,9 @@ libgnunet_plugin_peerstore_sqlite_init (void *cls)
 
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
-  memset (&plugin, 0, sizeof (struct Plugin));
+  memset (&plugin,
+          0,
+          sizeof (struct Plugin));
   plugin.cfg = cfg;
   if (GNUNET_OK != database_setup (&plugin))
   {
@@ -585,7 +638,8 @@ libgnunet_plugin_peerstore_sqlite_init (void *cls)
   api->store_record = &peerstore_sqlite_store_record;
   api->iterate_records = &peerstore_sqlite_iterate_records;
   api->expire_records = &peerstore_sqlite_expire_records;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sqlite plugin is running\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sqlite plugin is running\n");
   return api;
 }
 
@@ -605,7 +659,8 @@ libgnunet_plugin_peerstore_sqlite_done (void *cls)
   database_shutdown (plugin);
   plugin->cfg = NULL;
   GNUNET_free (api);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sqlite plugin is finished\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sqlite plugin is finished\n");
   return NULL;
 }
 
