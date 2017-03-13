@@ -2502,7 +2502,7 @@ store_service (int proto,
               GNUNET_h2s (&cadet_port),
               name,
               (unsigned int) destination_port);
-  service->port = GNUNET_CADET_open_porT (cadet_handle,
+  service->port = GNUNET_CADET_open_port (cadet_handle,
                                           &cadet_port,
                                           &new_service_channel,
                                           service,
@@ -3579,7 +3579,7 @@ advertise_dns_exit ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Opening CADET port %s for DNS exit service\n",
               GNUNET_h2s (&port));
-  dns_port = GNUNET_CADET_open_porT (cadet_handle,
+  dns_port = GNUNET_CADET_open_port (cadet_handle,
                                      &port,
                                      &new_channel,
                                      NULL,
@@ -3829,7 +3829,7 @@ run (void *cls,
 				 NULL);
   stats = GNUNET_STATISTICS_create ("exit",
                                     cfg);
-  cadet_handle = GNUNET_CADET_connecT (cfg);
+  cadet_handle = GNUNET_CADET_connect (cfg);
   if (NULL == cadet_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -3862,7 +3862,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Opening CADET port %s for IPv4 gateway service\n",
                 GNUNET_h2s (&port));
-    cadet_port4 = GNUNET_CADET_open_porT (cadet_handle,
+    cadet_port4 = GNUNET_CADET_open_port (cadet_handle,
                                           &port,
                                           &new_channel,
                                           NULL,
@@ -3902,7 +3902,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Opening CADET port %s for IPv6 gateway service\n",
                 GNUNET_h2s (&port));
-    cadet_port6 = GNUNET_CADET_open_porT (cadet_handle,
+    cadet_port6 = GNUNET_CADET_open_port (cadet_handle,
                                           &port,
                                           &new_channel,
                                           NULL,

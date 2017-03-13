@@ -705,12 +705,12 @@ handle_data (void *cls, const struct GNUNET_MessageHeader *message)
 /**
  * Method called whenever a peer connects to a port in MQ-based CADET.
  *
- * @param cls Closure from #GNUNET_CADET_open_porT (peer # as long).
+ * @param cls Closure from #GNUNET_CADET_open_port (peer # as long).
  * @param channel New handle to the channel.
  * @param source Peer that started this channel.
  * @return Closure for the incoming @a channel. It's given to:
  *         - The #GNUNET_CADET_DisconnectEventHandler (given to
- *           #GNUNET_CADET_open_porT) when the channel dies.
+ *           #GNUNET_CADET_open_port) when the channel dies.
  *         - Each the #GNUNET_MQ_MessageCallback handlers for each message
  *           received on the @a channel.
  */
@@ -840,7 +840,7 @@ start_test (void *cls)
   }
 
   ch = GNUNET_new (struct CadetTestChannelWrapper);
-  outgoing_ch = GNUNET_CADET_channel_creatE (h1,
+  outgoing_ch = GNUNET_CADET_channel_create (h1,
                                              ch,
                                              p_id[1],
                                              &port,

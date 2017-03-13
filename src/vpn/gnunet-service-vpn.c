@@ -1384,7 +1384,7 @@ create_channel (struct ChannelState *ts,
     GNUNET_MQ_handler_end()
   };
 
-  return GNUNET_CADET_channel_creatE (cadet_handle,
+  return GNUNET_CADET_channel_create (cadet_handle,
                                       ts,
                                       target,
                                       port,
@@ -3068,7 +3068,7 @@ run (void *cls,
   }
   vpn_argv[6] = NULL;
 
-  cadet_handle = GNUNET_CADET_connecT (cfg_);
+  cadet_handle = GNUNET_CADET_connect (cfg_);
     // FIXME never opens ports???
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,

@@ -1230,7 +1230,7 @@ handle_bob_client_message (void *cls,
   }
   GNUNET_SERVICE_client_continue (s->client);
   /* We're ready, open the port */
-  s->port = GNUNET_CADET_open_porT (my_cadet,
+  s->port = GNUNET_CADET_open_port (my_cadet,
                                     &msg->session_key,
                                     &cb_channel_incoming,
                                     s,
@@ -1336,7 +1336,7 @@ run (void *cls,
 
   GNUNET_CRYPTO_paillier_create (&my_pubkey,
                                  &my_privkey);
-  my_cadet = GNUNET_CADET_connecT (cfg);
+  my_cadet = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   if (NULL == my_cadet)

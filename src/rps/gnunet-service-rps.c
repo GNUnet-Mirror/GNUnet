@@ -217,6 +217,11 @@ static struct GNUNET_NSE_Handle *nse;
 static struct GNUNET_CADET_Handle *cadet_handle;
 
 /**
+ * @brief Port to communicate to other peers.
+ */
+static struct GNUNET_CADET_Port *cadet_port;
+
+/**
  * Handler to PEERINFO.
  */
 static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
@@ -838,14 +843,10 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
  */
 static void
 cleanup_destroyed_channel (void *cls,
-                           const struct GNUNET_CADET_Channel *channel,
-                           void *channel_ctx)
+                           const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer;
-
-  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
-      (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
-       // FIXME wait for cadet to change this function
+  struct GNUNET_PeerIdentity *peer = cls;
+  uint32_t *channel_flag;
 
   if (GNUNET_NO == Peers_check_peer_known (peer))
   { /* We don't know a context to that peer */
@@ -858,7 +859,7 @@ cleanup_destroyed_channel (void *cls,
   if (GNUNET_YES == Peers_check_peer_flag (peer, Peers_TO_DESTROY))
   { /* We are in the middle of removing that peer from our knowledge. In this
        case simply make sure that the channels are cleaned. */
-    Peers_cleanup_destroyed_channel (cls, channel, channel_ctx);
+    Peers_cleanup_destroyed_channel (cls, channel);
     to_file (file_name_view_log,
              "-%s\t(cleanup channel, ourself)",
              GNUNET_i2s_full (peer));
@@ -872,16 +873,17 @@ cleanup_destroyed_channel (void *cls,
      *  - ourselves  -> cleaning send channel -> clean context
      *  - other peer -> peer probably went down -> remove
      */
-    if (GNUNET_YES == Peers_check_channel_flag (channel_ctx, Peers_CHANNEL_CLEAN))
+    channel_flag = Peers_get_channel_flag (peer, Peers_CHANNEL_ROLE_SENDING);
+    if (GNUNET_YES == Peers_check_channel_flag (channel_flag, Peers_CHANNEL_CLEAN))
     { /* We are about to clean the sending channel. Clean the respective
        * context */
-      Peers_cleanup_destroyed_channel (cls, channel, channel_ctx);
+      Peers_cleanup_destroyed_channel (cls, channel);
       return;
     }
     else
     { /* Other peer destroyed our sending channel that he is supposed to keep
        * open. It probably went down. Remove it from our knowledge. */
-      Peers_cleanup_destroyed_channel (cls, channel, channel_ctx);
+      Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);
       return;
     }
@@ -893,17 +895,18 @@ cleanup_destroyed_channel (void *cls,
      *  - ourselves  -> peer tried to establish channel twice -> clean context
      *  - other peer -> peer doesn't want to send us data -> clean
      */
+    channel_flag = Peers_get_channel_flag (peer, Peers_CHANNEL_ROLE_RECEIVING);
     if (GNUNET_YES ==
-        Peers_check_channel_flag (channel_ctx, Peers_CHANNEL_ESTABLISHED_TWICE))
+        Peers_check_channel_flag (channel_flag, Peers_CHANNEL_ESTABLISHED_TWICE))
     { /* Other peer tried to establish a channel to us twice. We do not accept
        * that. Clean the context. */
-      Peers_cleanup_destroyed_channel (cls, channel, channel_ctx);
+      Peers_cleanup_destroyed_channel (cls, channel);
       return;
     }
     else
     { /* Other peer doesn't want to send us data anymore. We are free to clean
        * it. */
-      Peers_cleanup_destroyed_channel (cls, channel, channel_ctx);
+      Peers_cleanup_destroyed_channel (cls, channel);
       clean_peer (peer);
       return;
     }
@@ -1048,7 +1051,6 @@ client_respond (void *cls,
  * Handle RPS request from the client.
  *
  * @param cls closure
- * @param client identification of the client
  * @param message the actual message
  */
 static void
@@ -1100,12 +1102,11 @@ handle_client_request (void *cls,
  * @brief Handle a message that requests the cancellation of a request
  *
  * @param cls unused
- * @param client the client that requests the cancellation
  * @param message the message containing the id of the request
  */
 static void
 handle_client_request_cancel (void *cls,
-                          const struct GNUNET_RPS_CS_RequestCancelMessage *msg)
+                              const struct GNUNET_RPS_CS_RequestCancelMessage *msg)
 {
   struct ClientContext *cli_ctx = cls;
   struct ReplyCls *rep_cls;
@@ -1157,7 +1158,6 @@ check_client_seed (void *cls, const struct GNUNET_RPS_CS_SeedMessage *msg)
  * Handle seed from the client.
  *
  * @param cls closure
- * @param client identification of the client
  * @param message the actual message
  */
 static void
@@ -1172,7 +1172,7 @@ handle_client_seed (void *cls,
   num_peers = ntohl (msg->num_peers);
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   //peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
-  //GNUNET_memcpy (peers, &in_msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
+  //GNUNET_memcpy (peers, &msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client seeded peers:\n");
@@ -1200,18 +1200,15 @@ handle_client_seed (void *cls,
  * the channel is blocked for all other communication.
  *
  * @param cls Closure
- * @param channel The channel the CHECK was received over
- * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
-static int
+static void
 handle_peer_check (void *cls,
-		  struct GNUNET_CADET_Channel *channel,
-		  void **channel_ctx,
-		  const struct GNUNET_MessageHeader *msg)
+                   const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_CADET_receive_done (channel);
-  return GNUNET_OK;
+  const struct GNUNET_PeerIdentity *peer = cls;
+
+  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
 }
 
 /**
@@ -1221,23 +1218,15 @@ handle_peer_check (void *cls,
  * in the temporary list for pushed PeerIDs.
  *
  * @param cls Closure
- * @param channel The channel the PUSH was received over
- * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
-static int
+static void
 handle_peer_push (void *cls,
-		  struct GNUNET_CADET_Channel *channel,
-		  void **channel_ctx,
-		  const struct GNUNET_MessageHeader *msg)
+                  const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_PeerIdentity *peer;
+  const struct GNUNET_PeerIdentity *peer = cls;
 
   // (check the proof of work (?))
-
-  peer = (const struct GNUNET_PeerIdentity *)
-    GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
-  // FIXME wait for cadet to change this function
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received PUSH (%s)\n",
@@ -1261,23 +1250,20 @@ handle_peer_push (void *cls,
                                    tmp_att_peer);
       add_peer_array_to_set (peer, 1, att_peer_set);
     }
-    GNUNET_CADET_receive_done (channel);
-    return GNUNET_OK;
+    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
 
 
   else if (2 == mal_type)
   { /* We attack one single well-known peer - simply ignore */
-    GNUNET_CADET_receive_done (channel);
-    return GNUNET_OK;
+    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
   #endif /* ENABLE_MALICIOUS */
 
   /* Add the sending peer to the push_map */
   CustomPeerMap_put (push_map, peer);
 
-  GNUNET_CADET_receive_done (channel);
-  return GNUNET_OK;
+  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
 }
 
 
@@ -1287,23 +1273,14 @@ handle_peer_push (void *cls,
  * Reply with the view of PeerIDs.
  *
  * @param cls Closure
- * @param channel The channel the PULL REQUEST was received over
- * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
-static int
+static void
 handle_peer_pull_request (void *cls,
-			  struct GNUNET_CADET_Channel *channel,
-			  void **channel_ctx,
-			  const struct GNUNET_MessageHeader *msg)
+                          const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity *peer = cls;
   const struct GNUNET_PeerIdentity *view_array;
-
-  peer = (struct GNUNET_PeerIdentity *)
-    GNUNET_CADET_channel_get_info (channel,
-                                   GNUNET_CADET_OPTION_PEER);
-  // FIXME wait for cadet to change this function
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
 
@@ -1312,8 +1289,7 @@ handle_peer_pull_request (void *cls,
       || 3 == mal_type)
   { /* Try to maximise representation */
     send_pull_reply (peer, mal_peers, num_mal_peers);
-    GNUNET_CADET_receive_done (channel);
-    return GNUNET_OK;
+    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
 
   else if (2 == mal_type)
@@ -1322,101 +1298,93 @@ handle_peer_pull_request (void *cls,
     {
       send_pull_reply (peer, mal_peers, num_mal_peers);
     }
-    GNUNET_CADET_receive_done (channel);
-    return GNUNET_OK;
+    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
   #endif /* ENABLE_MALICIOUS */
 
   view_array = View_get_as_array ();
-
   send_pull_reply (peer, view_array, View_size ());
 
-  GNUNET_CADET_receive_done (channel);
-  return GNUNET_OK;
+  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
 }
 
 
 /**
- * Handle PULL REPLY message from another peer.
- *
  * Check whether we sent a corresponding request and
  * whether this reply is the first one.
  *
  * @param cls Closure
- * @param channel The channel the PUSH was received over
- * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
 static int
-handle_peer_pull_reply (void *cls,
-                        struct GNUNET_CADET_Channel *channel,
-                        void **channel_ctx,
-                        const struct GNUNET_MessageHeader *msg)
+check_peer_pull_reply (void *cls,
+                       const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
 {
-  struct GNUNET_RPS_P2P_PullReplyMessage *in_msg;
-  struct GNUNET_PeerIdentity *peers;
-  struct GNUNET_PeerIdentity *sender;
-  uint32_t i;
-#ifdef ENABLE_MALICIOUS
-  struct AttackedPeer *tmp_att_peer;
-#endif /* ENABLE_MALICIOUS */
+  struct GNUNET_PeerIdentity *sender = cls;
 
-  /* Check for protocol violation */
-  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
+  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->header.size))
   {
     GNUNET_break_op (0);
-    GNUNET_CADET_receive_done (channel);
     return GNUNET_SYSERR;
   }
 
-  in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
-  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
-      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
+  if ((ntohs (msg->header.size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+      sizeof (struct GNUNET_PeerIdentity) != ntohl (msg->num_peers))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
         "message says it sends %" PRIu32 " peers, have space for %lu peers\n",
-        ntohl (in_msg->num_peers),
-        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+        ntohl (msg->num_peers),
+        (ntohs (msg->header.size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
     GNUNET_break_op (0);
-    GNUNET_CADET_receive_done (channel);
     return GNUNET_SYSERR;
   }
-
-  // Guess simply casting isn't the nicest way...
-  // FIXME wait for cadet to change this function
-  sender = (struct GNUNET_PeerIdentity *)
-      GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
 
   if (GNUNET_YES != Peers_check_peer_flag (sender, Peers_PULL_REPLY_PENDING))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer we didn't request one from!\n");
-    GNUNET_CADET_receive_done (channel);
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
 
+/**
+ * Handle PULL REPLY message from another peer.
+ *
+ * @param cls Closure
+ * @param msg The message header
+ */
+static void
+handle_peer_pull_reply (void *cls,
+                        const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
+{
+  struct GNUNET_PeerIdentity *peers;
+  struct GNUNET_PeerIdentity *sender = cls;
+  uint32_t i;
+#ifdef ENABLE_MALICIOUS
+  struct AttackedPeer *tmp_att_peer;
+#endif /* ENABLE_MALICIOUS */
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
 
   #ifdef ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
   {
-    GNUNET_CADET_receive_done (channel);
-    return GNUNET_OK;
+    GNUNET_CADET_receive_done (Peers_get_recv_channel (sender));
   }
   #endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
-  peers = (struct GNUNET_PeerIdentity *) &in_msg[1];
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "PULL REPLY received, got following %u peers:\n",
-       ntohl (in_msg->num_peers));
+       ntohl (msg->num_peers));
 
-  for (i = 0 ; i < ntohl (in_msg->num_peers) ; i++)
+  for (i = 0; i < ntohl (msg->num_peers); i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%u. %s\n",
@@ -1466,8 +1434,7 @@ handle_peer_pull_reply (void *cls,
   Peers_unset_peer_flag (sender, Peers_PULL_REPLY_PENDING);
   clean_peer (sender);
 
-  GNUNET_CADET_receive_done (channel);
-  return GNUNET_OK;
+  GNUNET_CADET_receive_done (Peers_get_recv_channel (sender));
 }
 
 
@@ -2273,15 +2240,24 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {&handle_peer_check       , GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
-      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH,
-      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
-      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY, 0},
-    {NULL, 0, 0}
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (peer_check,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (peer_push,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_PUSH,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (peer_pull_request,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_var_size (peer_pull_reply,
+                           GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY,
+                           struct GNUNET_RPS_P2P_PullReplyMessage,
+                           NULL),
+    GNUNET_MQ_handler_end ()
   };
 
   int size;
@@ -2373,21 +2349,23 @@ run (void *cls,
 
 
   /* Initialise cadet */
-  cadet_handle = GNUNET_CADET_connect (cfg,
-                                       cls,
-                                       &cleanup_destroyed_channel,
-                                       cadet_handlers);
+  cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
   GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
                       strlen (GNUNET_APPLICATION_PORT_RPS),
                       &port);
-  GNUNET_CADET_open_port (cadet_handle,
-                          &port,
-                          &Peers_handle_inbound_channel, cls);
+  cadet_port = GNUNET_CADET_open_port (cadet_handle,
+                                       &port,
+                                       &Peers_handle_inbound_channel, /* Connect handler */
+                                       NULL, /* cls */
+                                       NULL, /* WindowSize handler */
+                                       cleanup_destroyed_channel, /* Disconnect handler */
+                                       cadet_handlers);
 
 
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
-  Peers_initialise (fn_valid_peers, cadet_handle, &own_identity);
+  Peers_initialise (fn_valid_peers, cadet_handle, cleanup_destroyed_channel,
+                    cadet_handlers, &own_identity);
   GNUNET_free (fn_valid_peers);
 
   /* Initialise sampler */

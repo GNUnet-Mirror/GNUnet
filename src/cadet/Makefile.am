@@ -29,35 +29,23 @@ bin_PROGRAMS = \
  gnunet-cadet
 
 lib_LTLIBRARIES = \
-  libgnunetcadetnew.la \
   libgnunetcadet.la \
   $(EXP_LIB)
 
 libgnunetcadet_la_SOURCES = \
-  cadet_api.c cadet_common.c
+  cadet_api.c
 libgnunetcadet_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetcadet_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 5:0:0
-
-
-libgnunetcadetnew_la_SOURCES = \
-  cadet_api_new.c
-libgnunetcadetnew_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB) \
-  $(LTLIBINTL)
-libgnunetcadetnew_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 6:0:0
+  -version-info 7:0:0
 
 gnunet_cadet_SOURCES = \
   gnunet-cadet.c
 gnunet_cadet_LDADD = \
-  libgnunetcadetnew.la \
+  libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_cadet_SOURCES = \
@@ -121,7 +109,7 @@ endif
 test_cadet_local_mq_SOURCES = \
   test_cadet_local_mq.c
 test_cadet_local_mq_LDADD = \
-  libgnunetcadetnew.la \
+  libgnunetcadet.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -131,17 +119,17 @@ libgnunetcadettest_la_SOURCES = \
 libgnunetcadettest_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- libgnunetcadetnew.la
+ libgnunetcadet.la
 
 ld_cadet_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  libgnunetcadetnew.la \
+  libgnunetcadet.la \
   libgnunetcadettest.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 dep_cadet_test_lib = \
-  libgnunetcadetnew.la \
+  libgnunetcadet.la \
   libgnunetcadettest.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 

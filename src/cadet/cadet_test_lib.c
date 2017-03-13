@@ -137,14 +137,14 @@ cadet_connect_adapter (void *cls,
   struct GNUNET_CADET_Handle *h;
   unsigned int i;
 
-  h = GNUNET_CADET_connecT (cfg);
+  h = GNUNET_CADET_connect (cfg);
   if (NULL == ctx->ports)
     return h;
 
   actx->ports = GNUNET_new_array (ctx->port_count, struct GNUNET_CADET_Port *);
   for (i = 0; i < ctx->port_count; i++)
   {
-    actx->ports[i] = GNUNET_CADET_open_porT (h,
+    actx->ports[i] = GNUNET_CADET_open_port (h,
                                              ctx->ports[i],
                                              ctx->connects,
                                              (void *) (long) actx->peer,

@@ -100,22 +100,28 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
-test_service_rps_view_SOURCES = gnunet-service-rps_view.h gnunet-service-rps_view.c \
-																test_service_rps_view.c
+test_service_rps_view_SOURCES = \
+  gnunet-service-rps_view.h gnunet-service-rps_view.c \
+  test_service_rps_view.c
 test_service_rps_view_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 
-test_service_rps_peers_SOURCES = gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
-																 test_service_rps_peers.c
-test_service_rps_peers_LDADD = $(top_builddir)/src/util/libgnunetutil.la \
-															 $(top_builddir)/src/cadet/libgnunetcadet.la
+test_service_rps_peers_SOURCES = \
+  gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
+  test_service_rps_peers.c
+test_service_rps_peers_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la
 
-test_service_rps_custommap_SOURCES = gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
-																 test_service_rps_custommap.c
-test_service_rps_custommap_LDADD = $(top_builddir)/src/util/libgnunetutil.la
+test_service_rps_custommap_SOURCES = \
+  gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
+  test_service_rps_custommap.c
+test_service_rps_custommap_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
 
-test_service_rps_sampler_elem_SOURCES = gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
-																				rps-test_util.h rps-test_util.c \
-																        test_service_rps_sampler_elem.c
+test_service_rps_sampler_elem_SOURCES = \
+  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+  rps-test_util.h rps-test_util.c \
+  test_service_rps_sampler_elem.c
 test_service_rps_sampler_elem_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 
 test_rps_malicious_1_SOURCES = $(rps_test_src)

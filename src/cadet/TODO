@@ -1,6 +1,10 @@
-- URGENT: Congestion/flow control (CHANNEL):
-  + estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
-   (and figure out how/where to use this!)
+- URGENT:
+  + if 'client-not-ready', we do not ACK at all, and sender keeps
+    retransmitting again and again; would be good to do flow-control notification instead
+    of not ACKing that we got the data but are simply not ready for more!
+  + Congestion/flow control (CHANNEL):
+    estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
+    (and figure out how/where to use this!)
 
 - HIGH: revisit handling of 'unbuffered' traffic! (CHANNEL/TUNNEL)
         (need to push down through tunnel into connection selection);

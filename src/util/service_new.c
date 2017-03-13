@@ -2000,11 +2000,10 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
   if (NULL != client->drop_task)
     return; /* we're going down right now, do not try to send */
   GNUNET_assert (NULL == client->send_task);
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending message of type %u and size %u to client\n",
-       ntohs (msg->type), ntohs (msg->size));
-
+       ntohs (msg->type),
+       ntohs (msg->size));
   client->msg = msg;
   client->msg_pos = 0;
   client->send_task
@@ -2103,10 +2102,10 @@ service_client_mst_cb (void *cls,
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message of type %u and size %u from client\n",
-       ntohs (message->type), ntohs (message->size));
-
+       ntohs (message->type),
+       ntohs (message->size));
   GNUNET_assert (GNUNET_NO == client->needs_continue);
   client->needs_continue = GNUNET_YES;
   client->warn_type = ntohs (message->type);
