@@ -207,11 +207,6 @@ struct GNUNET_CADET_Port
   struct GNUNET_CADET_Handle *cadet;
 
   /**
-   * Callback handler for incoming channels on this port.
-   */
-  GNUNET_CADET_InboundChannelNotificationHandler *handler;
-
-  /**
    * Closure for @a handler.
    */
   void *cls;
