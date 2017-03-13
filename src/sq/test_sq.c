@@ -253,7 +253,8 @@ main(int argc,
   {
     fprintf (stderr,
 	     "Failed to create table\n");
-    sqlite3_close (dbh);
+    GNUNET_break (SQLITE_OK ==
+                  sqlite3_close (dbh));
     if (0 != unlink ("test.db"))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                                 "unlink",
