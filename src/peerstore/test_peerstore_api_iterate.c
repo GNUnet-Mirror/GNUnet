@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C)
+     Copyright (C) 2013-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -42,7 +42,8 @@ static int count = 0;
 
 
 static void
-iter3_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+iter3_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
@@ -63,7 +64,8 @@ iter3_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
 
 
 static void
-iter2_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+iter2_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
@@ -78,13 +80,19 @@ iter2_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
   }
   GNUNET_assert (count == 2);
   count = 0;
-  ic = GNUNET_PEERSTORE_iterate (h, ss, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
-                            iter3_cb, NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 NULL,
+                                 NULL,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 &iter3_cb,
+                                 NULL);
 }
 
 
 static void
-iter1_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+iter1_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
@@ -99,30 +107,61 @@ iter1_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
   }
   GNUNET_assert (count == 1);
   count = 0;
-  ic = GNUNET_PEERSTORE_iterate (h, ss, &p1, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
-                            iter2_cb, NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 &p1,
+                                 NULL,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 iter2_cb,
+                                 NULL);
 }
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   h = GNUNET_PEERSTORE_connect (cfg);
   GNUNET_assert (NULL != h);
   memset (&p1, 1, sizeof (p1));
   memset (&p2, 2, sizeof (p2));
-  GNUNET_PEERSTORE_store (h, ss, &p1, k1, val, strlen (val) + 1,
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p1,
+                          k1,
+                          val,
+                          strlen (val) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
-  GNUNET_PEERSTORE_store (h, ss, &p1, k2, val, strlen (val) + 1,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p1,
+                          k2,
+                          val,
+                          strlen (val) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
-  GNUNET_PEERSTORE_store (h, ss, &p2, k3, val, strlen (val) + 1,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p2,
+                          k3,
+                          val,
+                          strlen (val) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
-  ic = GNUNET_PEERSTORE_iterate (h, ss, &p1, k1, GNUNET_TIME_UNIT_FOREVER_REL,
-                            iter1_cb, NULL);
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 &p1,
+                                 k1,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 &iter1_cb, NULL);
 }
 
 

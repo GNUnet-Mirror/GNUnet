@@ -86,7 +86,7 @@ struct GNUNET_PEERSTORE_Record
   /**
    * Peer Identity
    */
-  struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity peer;
 
   /**
    * Record key string
@@ -106,7 +106,7 @@ struct GNUNET_PEERSTORE_Record
   /**
    * Expiry time of entry
    */
-  struct GNUNET_TIME_Absolute *expiry;
+  struct GNUNET_TIME_Absolute expiry;
 
   /**
    * Client from which this record originated.
