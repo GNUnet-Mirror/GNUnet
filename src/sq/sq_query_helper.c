@@ -90,6 +90,14 @@ bind_string (void *cls,
              sqlite3_stmt *stmt,
              unsigned int off)
 {
+  if (NULL == data)
+  {
+    if (SQLITE_OK !=
+        sqlite3_bind_null (stmt,
+                           (int) off))
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  }
   if (SQLITE_OK !=
       sqlite3_bind_text (stmt,
                          (int) off,

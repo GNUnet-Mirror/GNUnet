@@ -228,6 +228,13 @@ extract_utf8_string (void *cls,
   const char *text;
   char **rdst = dst;
 
+  if (SQLITE_NULL ==
+      sqlite3_column_type (result,
+                           column))
+  {
+    *rdst = NULL;
+    return GNUNET_OK;
+  }
   if (SQLITE_TEXT !=
       sqlite3_column_type (result,
                            column))
