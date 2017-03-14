@@ -107,7 +107,9 @@ delete_entries (void *cls,
   struct GNUNET_PEERSTORE_Record *entry = value;
   if (0 != strcmp (plugin->iter_key, entry->key))
     return GNUNET_YES;
-  if (0 != memcmp (plugin->iter_peer, entry->peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (plugin->iter_peer,
+                   &entry->peer,
+                   sizeof (struct GNUNET_PeerIdentity)))
     return GNUNET_YES;
   if (0 != strcmp (plugin->iter_sub_system, entry->sub_system))
     return GNUNET_YES;
@@ -153,7 +155,7 @@ expire_entries (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_PEERSTORE_Record *entry = value;
 
-  if (entry->expiry->abs_value_us < plugin->iter_now.abs_value_us)
+  if (entry->expiry.abs_value_us < plugin->iter_now.abs_value_us)
   {
     GNUNET_CONTAINER_multihashmap_remove (plugin->hm, key, value);
     plugin->exp_changes++;
@@ -204,7 +206,7 @@ iterate_entries (void *cls,
 
   if ((NULL != plugin->iter_peer) &&
       (0 != memcmp (plugin->iter_peer,
-                    entry->peer,
+                    &entry->peer,
                     sizeof (struct GNUNET_PeerIdentity))))
   {
     return GNUNET_YES;
@@ -296,10 +298,8 @@ peerstore_flat_store_record (void *cls, const char *sub_system,
   entry->value = GNUNET_malloc (size);
   GNUNET_memcpy (entry->value, value, size);
   entry->value_size = size;
-  entry->peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  GNUNET_memcpy (entry->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  entry->expiry = GNUNET_new (struct GNUNET_TIME_Absolute);
-  entry->expiry->abs_value_us = expiry.abs_value_us;
+  entry->peer = *peer;
+  entry->expiry = expiry;
 
   peer_id = GNUNET_i2s (peer);
   GNUNET_CRYPTO_hash (peer_id,
@@ -409,7 +409,7 @@ database_setup (struct Plugin *plugin)
     GNUNET_free (buffer);
     return GNUNET_SYSERR;
   }
-  
+
   buffer[size] = '\0';
   GNUNET_DISK_file_close (fh);
   if (0 < size) {
@@ -433,22 +433,35 @@ database_setup (struct Plugin *plugin)
       entry = GNUNET_new (struct GNUNET_PEERSTORE_Record);
       entry->sub_system = GNUNET_strdup (sub_system);
       entry->key = GNUNET_strdup (key);
-      GNUNET_STRINGS_base64_decode (peer,
-                                    strlen (peer),
-                                    (char**)&entry->peer);
+      {
+        size_t s;
+        char *o;
+
+        o = NULL;
+        s = GNUNET_STRINGS_base64_decode (peer,
+                                          strlen (peer),
+                                          &o);
+        if (sizeof (struct GNUNET_PeerIdentity) == s)
+          GNUNET_memcpy (&entry->peer,
+                         o,
+                         s);
+        else
+          GNUNET_break (0);
+        GNUNET_free_non_null (o);
+      }
       entry->value_size = GNUNET_STRINGS_base64_decode (value,
                                                         strlen (value),
                                                         (char**)&entry->value);
-      if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_time_to_absolute (expiry,
-                                             entry->expiry))
+      if (GNUNET_SYSERR ==
+          GNUNET_STRINGS_fancy_time_to_absolute (expiry,
+                                                 &entry->expiry))
       {
         GNUNET_free (entry->sub_system);
         GNUNET_free (entry->key);
-        GNUNET_free (entry->peer);
         GNUNET_free (entry);
         break;
       }
-      peer_id = GNUNET_i2s (entry->peer);
+      peer_id = GNUNET_i2s (&entry->peer);
       GNUNET_CRYPTO_hash (peer_id,
                           strlen (peer_id),
                           &hkey);
@@ -479,8 +492,8 @@ store_and_free_entries (void *cls,
   GNUNET_STRINGS_base64_encode (entry->value,
                                 entry->value_size,
                                 &val);
-  expiry = GNUNET_STRINGS_absolute_time_to_string (*entry->expiry);
-  GNUNET_STRINGS_base64_encode ((char*)entry->peer,
+  expiry = GNUNET_STRINGS_absolute_time_to_string (entry->expiry);
+  GNUNET_STRINGS_base64_encode ((char*)&entry->peer,
                                 sizeof (struct GNUNET_PeerIdentity),
                                 &peer);
   GNUNET_asprintf (&line,
@@ -496,10 +509,8 @@ store_and_free_entries (void *cls,
                           line,
                           strlen (line));
   GNUNET_free (entry->sub_system);
-  GNUNET_free (entry->peer);
   GNUNET_free (entry->key);
   GNUNET_free (entry->value);
-  GNUNET_free (entry->expiry);
   GNUNET_free (entry);
   GNUNET_free (line);
   return GNUNET_YES;
