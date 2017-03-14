@@ -45,37 +45,37 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_CONSENSUS_RoundContextMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
+   * Type: #GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * A value from 'enum PhaseKind'.
    */
-  uint16_t kind;
+  uint16_t kind GNUNET_PACKED;
 
   /**
    * Number of the first peer
    * in canonical order.
    */
-  int16_t peer1;
+  int16_t peer1 GNUNET_PACKED;
 
   /**
    * Number of the second peer in canonical order.
    */
-  int16_t peer2;
+  int16_t peer2 GNUNET_PACKED;
 
   /**
    * Repetition of the gradecast phase.
    */
-  int16_t repetition;
+  int16_t repetition GNUNET_PACKED;
 
   /**
    * Leader in the gradecast phase.
    *
    * Can be different from both peer1 and peer2.
    */
-  int16_t leader;
+  int16_t leader GNUNET_PACKED;
 
   /**
    * Non-zero if this set reconciliation
@@ -85,7 +85,7 @@ struct GNUNET_CONSENSUS_RoundContextMessage
    *
    * Ignored for set operations that are not within gradecasts.
    */
-  uint16_t is_contested;
+  uint16_t is_contested GNUNET_PACKED;
 };
 
 
@@ -104,12 +104,12 @@ struct ConsensusElement
    * Payload element_type, only valid
    * if this is not a marker element.
    */
-  uint16_t payload_type;
+  uint16_t payload_type GNUNET_PACKED;
 
   /**
    * Is this a marker element?
    */
-  uint8_t marker;
+  uint8_t marker GNUNET_PACKED;
 
   /* rest: element data */
 };
