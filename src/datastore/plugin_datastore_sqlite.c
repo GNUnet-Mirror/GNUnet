@@ -361,11 +361,15 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         sqlite3_step (stmt)) &&
        (SQLITE_OK !=
         sqlite3_exec (plugin->dbh,
-                      "CREATE TABLE gn090 (" "  repl INT4 NOT NULL DEFAULT 0,"
-                      "  type INT4 NOT NULL DEFAULT 0," "  prio INT4 NOT NULL DEFAULT 0,"
+                      "CREATE TABLE gn090 ("
+                      "  repl INT4 NOT NULL DEFAULT 0,"
+                      "  type INT4 NOT NULL DEFAULT 0,"
+                      "  prio INT4 NOT NULL DEFAULT 0,"
                       "  anonLevel INT4 NOT NULL DEFAULT 0,"
-                      "  expire INT8 NOT NULL DEFAULT 0," "  rvalue INT8 NOT NULL,"
-                      "  hash TEXT NOT NULL DEFAULT ''," "  vhash TEXT NOT NULL DEFAULT '',"
+                      "  expire INT8 NOT NULL DEFAULT 0,"
+                      "  rvalue INT8 NOT NULL,"
+                      "  hash TEXT NOT NULL DEFAULT '',"
+                      "  vhash TEXT NOT NULL DEFAULT '',"
                       "  value BLOB NOT NULL DEFAULT '')",
                       NULL,
                       NULL,

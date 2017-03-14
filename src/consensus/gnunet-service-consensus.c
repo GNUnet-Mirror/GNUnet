@@ -1341,7 +1341,10 @@ commit_set (struct ConsensusSession *session,
   if (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind)
   {
     struct GNUNET_SET_Element element;
-    struct ConsensusSizeElement cse = { 0 };
+    struct ConsensusSizeElement cse = {
+      .size = 0,
+      .sender_index = 0
+    };
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "inserting size marker\n");
     cse.ce.marker = CONSENSUS_MARKER_SIZE;
     cse.size = GNUNET_htonll (session->first_size);
@@ -1394,7 +1397,10 @@ commit_set (struct ConsensusSession *session,
         for (i = 0; i < evil.num; i++)
         {
           struct GNUNET_SET_Element element;
-          struct ConsensusStuffedElement se = { 0 };
+          struct ConsensusStuffedElement se = {
+            .ce.payload_type = 0,
+            .ce.marker = 0,
+          };
           element.data = &se;
           element.size = sizeof (struct ConsensusStuffedElement);
           element.element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT;
@@ -2123,7 +2129,7 @@ task_start_reconcile (struct TaskEntry *task)
 
   if (task->key.peer1 == session->local_peer_idx)
   {
-    struct GNUNET_CONSENSUS_RoundContextMessage rcm = { 0 };
+    struct GNUNET_CONSENSUS_RoundContextMessage rcm;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%u: Looking up set {%s} to run remote union\n",
@@ -2138,6 +2144,7 @@ task_start_reconcile (struct TaskEntry *task)
     rcm.peer2 = htons (task->key.peer2);
     rcm.leader = htons (task->key.leader);
     rcm.repetition = htons (task->key.repetition);
+    rcm.is_contested = htons (0);
 
     GNUNET_assert (NULL == setop->op);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: initiating set op with P%u, our set is %s\n",
