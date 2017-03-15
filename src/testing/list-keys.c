@@ -6,10 +6,6 @@ static unsigned int nkeys;
 static unsigned int nskip;
 static int result;
 
-
-
-
-
 /**
  * Main run function.
  *
@@ -87,12 +83,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 int main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] = {
-    {'n', "num-keys", "COUNT",
-     gettext_noop ("list COUNT number of keys"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &nkeys},
-    {'s', "skip", "COUNT",
-     gettext_noop ("skip COUNT number of keys in the beginning"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &nskip},
+    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+                                   "num-keys",
+                                   "COUNT",
+                                   gettext_noop ("list COUNT number of keys"),
+                                   &nkeys),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
