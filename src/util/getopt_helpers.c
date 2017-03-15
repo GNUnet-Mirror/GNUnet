@@ -647,6 +647,71 @@ GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME (char shortName,
 
 
 /**
+ * Set an option of type 'struct GNUNET_TIME_Absolute' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'struct GNUNET_TIME_Absolute'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return #GNUNET_OK if parsing the value worked
+ */
+static int
+set_absolute_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                   void *scls,
+                   const char *option,
+                   const char *value)
+{
+  struct GNUNET_TIME_Absolute *val = scls;
+
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_fancy_time_to_absolute (value,
+					     val))
+  {
+    FPRINTF (stderr,
+             _("You must pass absolute time to the `%s' option.\n"),
+             option);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Allow user to specify a `struct GNUNET_TIME_Absolute`
+ * (using human-readable "fancy" time).
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val set to the time specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_OPTION_SET_ABSOLUTE_TIME (char shortName,
+                                        const char *name,
+                                        const char *argumentHelp,
+                                        const char *description,
+                                        struct GNUNET_TIME_Absolute *val)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName =  shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_absolute_time,
+    .scls = (void *) val
+  };
+
+  return clo;
+}
+
+
+/**
  * Set an option of type 'unsigned int' from the command line.
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
