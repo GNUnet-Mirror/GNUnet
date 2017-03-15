@@ -121,12 +121,12 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
 /**
  * Do we want to give our stdout to gnunet-service-arm?
  */
-static unsigned int no_stdout;
+static int no_stdout;
 
 /**
  * Do we want to give our stderr to gnunet-service-arm?
  */
-static unsigned int no_stderr;
+static int no_stderr;
 
 /**
  * Handle for the task running the #action_loop().
@@ -762,35 +762,70 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'e', "end", NULL, gettext_noop ("stop all GNUnet services"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &end},
-    {'i', "init", "SERVICE", gettext_noop ("start a particular service"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &init},
-    {'k', "kill", "SERVICE", gettext_noop ("stop a particular service"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &term},
-    {'s', "start", NULL, gettext_noop ("start all GNUnet default services"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &start},
-    {'r', "restart", NULL,
-     gettext_noop ("stop and start all GNUnet default services"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &restart},
-    {'d', "delete", NULL,
-     gettext_noop ("delete config file and directory on exit"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
-    {'m', "monitor", NULL,
-     gettext_noop ("monitor ARM activities"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor},
-    {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
-    {'T', "timeout", "DELAY",
-     gettext_noop ("exit with error status if operation does not finish after DELAY"),
-     GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &timeout},
-    {'I', "info", NULL, gettext_noop ("list currently running services"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &list},
-    {'O', "no-stdout", NULL, gettext_noop ("don't let gnunet-service-arm inherit standard output"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &no_stdout},
-    {'E', "no-stderr", NULL, gettext_noop ("don't let gnunet-service-arm inherit standard error"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &no_stderr},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+                                  "end",
+                                  gettext_noop ("stop all GNUnet services"),
+                                  &end),
+
+    GNUNET_GETOPT_OPTION_STRING ('i',
+                                 "init",
+                                 "SERVICE",
+                                 gettext_noop ("start a particular service"),
+                                 &init),
+
+    GNUNET_GETOPT_OPTION_STRING ('k',
+                                 "kill",
+                                 "SERVICE",
+                                 gettext_noop ("stop a particular service"),
+                                 &term),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "start",
+                                  gettext_noop ("start all GNUnet default services"),
+                                  &start),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('r',
+                                  "restart",
+                                  gettext_noop ("stop and start all GNUnet default services"),
+                                  &restart),
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "delete",
+                                  gettext_noop ("delete config file and directory on exit"),
+                                  &delete),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('m',
+                                  "monitor",
+                                  gettext_noop ("monitor ARM activities"),
+                                  &monitor),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('q',
+                                  "quiet",
+                                  gettext_noop ("don't print status messages"),
+                                  &quiet),
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('T',
+                                            "timeout",
+                                            "DELAY",
+                                            gettext_noop ("exit with error status if operation does not finish after DELAY"),
+                                            &timeout),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('I',
+                                  "info",
+                                  gettext_noop ("list currently running services"),
+                                  &list), 
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('O',
+                                  "no-stdout",
+                                  gettext_noop ("don't let gnunet-service-arm inherit standard output"),
+                                  &no_stdout),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('E',
+                                  "no-stderr",
+                                  gettext_noop ("don't let gnunet-service-arm inherit standard error"),
+                                  &no_stderr),
+
     GNUNET_GETOPT_OPTION_END
   };
 
