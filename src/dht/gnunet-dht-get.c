@@ -50,7 +50,7 @@ static struct GNUNET_TIME_Relative timeout_request = { 60000 };
 /**
  * Be verbose
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Use DHT demultixplex_everywhere
@@ -226,33 +226,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 }
 
-
-/**
- * gnunet-dht-get command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'k', "key", "KEY",
-   gettext_noop ("the query key"),
-   1, &GNUNET_GETOPT_set_string, &query_key},
-  {'r', "replication", "LEVEL",
-   gettext_noop ("how many parallel requests (replicas) to create"),
-   1, &GNUNET_GETOPT_set_uint, &replication},
-  {'t', "type", "TYPE",
-   gettext_noop ("the type of data to look for"),
-   1, &GNUNET_GETOPT_set_uint, &query_type},
-  {'T', "timeout", "TIMEOUT",
-   gettext_noop ("how long to execute this query before giving up?"),
-   1, &GNUNET_GETOPT_set_relative_time, &timeout_request},
-  {'x', "demultiplex", NULL,
-    gettext_noop ("use DHT's demultiplex everywhere option"),
-    0, &GNUNET_GETOPT_set_one, &demultixplex_everywhere},
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
 /**
  * Entry point for gnunet-dht-get
  *
@@ -263,6 +236,48 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+  
+    GNUNET_GETOPT_OPTION_STRING ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
+  
+    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+                                   "replication",
+                                   "LEVEL",
+                                   gettext_noop ("how many parallel requests (replicas) to create"),
+                                   &replication),
+  
+  
+    GNUNET_GETOPT_OPTION_SET_UINT ('t',
+                                   "type",
+                                   "TYPE",
+                                   gettext_noop ("the type of data to look for"),
+                                   &query_type),
+  
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('T',
+                                            "timeout",
+                                            "TIMEOUT",
+                                            gettext_noop ("how long to execute this query before giving up?"),
+                                            &timeout_request),
+  
+    GNUNET_GETOPT_OPTION_SET_ONE ('x',
+                                  "demultiplex",
+                                  gettext_noop ("use DHT's demultiplex everywhere option"),
+                                  &demultixplex_everywhere),
+  
+    GNUNET_GETOPT_OPTION_SET_ONE ('V',
+                                  "verbose",
+                                  gettext_noop ("be verbose (print progress information)"),
+                                  &verbose),
+    GNUNET_GETOPT_OPTION_END
+  };
+
+
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   return (GNUNET_OK ==
