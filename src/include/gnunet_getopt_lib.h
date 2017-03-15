@@ -131,6 +131,11 @@ struct GNUNET_GETOPT_CommandLineOption
   int require_argument;
 
   /**
+   * Is the presence of this option mandatory?
+   */
+  int option_mandatory;
+
+  /**
    * Handler for the option.
    */
   GNUNET_GETOPT_CommandLineOptionProcessor processor;
@@ -389,10 +394,20 @@ GNUNET_GETOPT_OPTION_CFG_FILE (char **fn);
 
 
 /**
+ * Make the given option mandatory.
+ *
+ * @param opt option to modify
+ * @return @a opt with the mandatory flag set.
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_OPTION_MANDATORY (struct GNUNET_GETOPT_CommandLineOption opt);
+
+
+/**
  * Marker for the end of the list of options.
  */
 #define GNUNET_GETOPT_OPTION_END \
-  { '\0', NULL, NULL, NULL, 0, NULL, NULL, NULL }
+  { '\0', NULL, NULL, NULL, 0, 0, NULL, NULL, NULL }
 
 
 /**

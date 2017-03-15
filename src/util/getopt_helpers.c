@@ -357,7 +357,7 @@ set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 {
   char **val = scls;
 
-  GNUNET_assert (value != NULL);
+  GNUNET_assert (NULL != value);
   GNUNET_free_non_null (*val);
   *val = GNUNET_strdup (value);
   return GNUNET_OK;
@@ -875,6 +875,20 @@ GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
   bc->val = val;
   bc->val_size = val_size;
   return clo;
+}
+
+
+/**
+ * Make the given option mandatory.
+ *
+ * @param opt option to modify
+ * @return @a opt with the mandatory flag set.
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_OPTION_MANDATORY (struct GNUNET_GETOPT_CommandLineOption opt)
+{
+  opt.option_mandatory = 1;
+  return opt;
 }
 
 

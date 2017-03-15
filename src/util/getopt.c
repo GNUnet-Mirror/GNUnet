@@ -881,6 +881,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   int spos;
   int cont;
   int c;
+  uint8_t *seen;
 
   GNUNET_assert (argc > 0);
   GNoptind = 0;
@@ -893,6 +894,8 @@ GNUNET_GETOPT_run (const char *binaryOptions,
 
   long_options = GNUNET_new_array (count + 1,
                                    struct GNoption);
+  seen = GNUNET_new_array (count,
+                           uint8_t);
   shorts = GNUNET_malloc (count * 2 + 1);
   spos = 0;
   for (unsigned i = 0; i < count; i++)
@@ -934,6 +937,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
                                         allOptions[i].scls,
                                         allOptions[i].name,
                                         GNoptarg);
+        seen[i] = 1;
         break;
       }
     }
@@ -947,6 +951,20 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   }
   GNUNET_free (shorts);
   GNUNET_free (long_options);
+
+  if (GNUNET_YES == cont)
+  {
+    for (count = 0; NULL != allOptions[count].name; count++)
+      if ( (0 == seen[count]) &&
+           (allOptions[count].option_mandatory) )
+      {
+        FPRINTF (stderr,
+                 _("Missing mandatory option `%s'.\n"),
+                 allOptions[count].name);
+        cont = GNUNET_SYSERR;
+      }
+  }
+  GNUNET_free (seen);
 
   /* call cleaners, if available */
   for (count = 0; NULL != allOptions[count].name; count++)

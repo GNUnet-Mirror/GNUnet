@@ -136,13 +136,16 @@ testLogOpts ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (5 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 5, myargv))
+  if (5 != GNUNET_GETOPT_run ("test_getopt",
+                              logoptionlist,
+                              5, myargv))
   {
     GNUNET_break (0);
     return 1;
   }
-  GNUNET_assert (fn != NULL);
-  if ((0 != strcmp (level, "WARNING")) || (0 != strcmp (fn, "filename")))
+  GNUNET_assert (NULL != fn);
+  if ( (0 != strcmp (level, "WARNING")) ||
+       (NULL == strstr (fn, "/filename")) )
   {
     GNUNET_break (0);
     GNUNET_free (level);
@@ -212,7 +215,9 @@ main (int argc, char *argv[])
 {
   int errCnt = 0;
 
-  GNUNET_log_setup ("test_getopt", "WARNING", NULL);
+  GNUNET_log_setup ("test_getopt",
+                    "WARNING",
+                    NULL);
   /* suppress output from -h, -v options */
 #ifndef MINGW
   GNUNET_break (0 == CLOSE (1));
