@@ -295,7 +295,7 @@ static struct GNUNET_SCHEDULER_Task *op_timeout;
 /**
  * Selected level of verbosity.
  */
-static int verbosity;
+static unsigned int verbosity;
 
 /**
  * Resolver process handle.
@@ -1439,37 +1439,49 @@ main (int argc,
       char * const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'a', "all", NULL,
-      gettext_noop ("print information for all peers (instead of only connected peers)"),
-      0, &GNUNET_GETOPT_set_one, &iterate_all },
-    { 'b', "benchmark", NULL,
-      gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
-      0, &GNUNET_GETOPT_set_one, &benchmark_receive },
-    { 'D', "disconnect",
-      NULL, gettext_noop ("disconnect from a peer"), 0,
-      &GNUNET_GETOPT_set_one, &do_disconnect },
-    { 'i', "information", NULL,
-      gettext_noop ("provide information about all current connections (once)"),
-      0, &GNUNET_GETOPT_set_one, &iterate_connections },
-    { 'm', "monitor", NULL,
-      gettext_noop ("provide information about all current connections (continuously)"),
-      0, &GNUNET_GETOPT_set_one, &monitor_connections },
-    { 'e', "events", NULL,
-      gettext_noop ("provide information about all connects and disconnect events (continuously)"),
-      0, &GNUNET_GETOPT_set_one, &monitor_connects },
-    { 'n', "numeric",
-      NULL, gettext_noop ("do not resolve hostnames"), 0,
-      &GNUNET_GETOPT_set_one, &numeric },
-    { 'p', "peer", "PEER",
-      gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
-      &cpid },
-    { 'P', "plugins", NULL,
-      gettext_noop ("monitor plugin sessions"), 0, &GNUNET_GETOPT_set_one,
-      &monitor_plugins },
-    { 's', "send", NULL, gettext_noop
-      ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
-      &GNUNET_GETOPT_set_one, &benchmark_send },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_ONE ('a',
+                                  "all",
+                                  gettext_noop ("print information for all peers (instead of only connected peers)"),
+                                  &iterate_all),
+    GNUNET_GETOPT_OPTION_SET_ONE ('b',
+                                  "benchmark",
+                                  gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
+                                  &benchmark_receive),
+    GNUNET_GETOPT_OPTION_SET_ONE ('D',
+                                  "disconnect",
+                                  gettext_noop ("disconnect from a peer"),
+                                  &do_disconnect), 
+    GNUNET_GETOPT_OPTION_SET_ONE ('i',
+                                  "information",
+                                  gettext_noop ("provide information about all current connections (once)"),
+                                  &iterate_connections),
+    GNUNET_GETOPT_OPTION_SET_ONE ('m',
+                                  "monitor",
+                                  gettext_noop ("provide information about all current connections (continuously)"),
+                                  &monitor_connections),
+    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+                                  "events",
+                                  gettext_noop ("provide information about all connects and disconnect events (continuously)"),
+                                  &monitor_connects),
+    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+                                  "numeric",
+                                  gettext_noop ("do not resolve hostnames"),
+                                  &numeric),
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEER",
+                                 gettext_noop ("peer identity"),
+                                 &cpid),
+    GNUNET_GETOPT_OPTION_SET_ONE ('P',
+                                  "plugins",
+                                  gettext_noop ("monitor plugin sessions"),
+                                  &monitor_plugins),
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "send",
+                                  gettext_noop
+      ("send data for benchmarking to the other peer (until CTRL-C)"),
+                                  &benchmark_send),
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };

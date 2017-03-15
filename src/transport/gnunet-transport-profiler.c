@@ -151,7 +151,7 @@ static struct GNUNET_PeerIdentity pid;
 /**
  * Selected level of verbosity.
  */
-static int verbosity;
+static unsigned int verbosity;
 
 
 /**
@@ -610,26 +610,36 @@ main (int argc, char * const *argv)
   benchmark_iterations = DEFAULT_ITERATION_COUNT;
   benchmark_running = GNUNET_NO;
 
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    { 's', "send", NULL,
-      gettext_noop ("send data to peer"),
-      0, &GNUNET_GETOPT_set_one, &benchmark_send},
-    { 'r', "receive", NULL, gettext_noop
-      ("receive data from peer"), 0,
-      &GNUNET_GETOPT_set_one, &benchmark_receive},
-    { 'i', "iterations", NULL, gettext_noop
-      ("iterations"), 1,
-      &GNUNET_GETOPT_set_uint, &benchmark_iterations},
-    { 'n', "number", NULL, gettext_noop
-      ("number of messages to send"), 1,
-      &GNUNET_GETOPT_set_uint, &benchmark_count},
-    { 'm', "messagesize", NULL, gettext_noop
-      ("message size to use"), 1,
-      &GNUNET_GETOPT_set_uint, &benchmark_size},
-    { 'p', "peer", "PEER",
-      gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
-      &cpid },
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "send",
+                                  gettext_noop ("send data to peer"),
+                                  &benchmark_send),
+    GNUNET_GETOPT_OPTION_SET_ONE ('r',
+                                  "receive",
+                                  gettext_noop ("receive data from peer"),
+                                  &benchmark_receive),
+    GNUNET_GETOPT_OPTION_SET_UINT ('i',
+                                   "iterations",
+                                   NULL,
+                                   gettext_noop ("iterations"),
+                                   &benchmark_iterations),
+    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+                                   "number",
+                                   NULL,
+                                   gettext_noop ("number of messages to send"),
+                                   &benchmark_count),
+    GNUNET_GETOPT_OPTION_SET_UINT ('m',
+                                   "messagesize",
+                                   NULL,
+                                   gettext_noop ("message size to use"),
+                                   &benchmark_size),
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEER",
+                                 gettext_noop ("peer identity"),
+                                 &cpid),
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
