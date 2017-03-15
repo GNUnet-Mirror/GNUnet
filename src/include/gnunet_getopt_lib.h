@@ -136,6 +136,12 @@ struct GNUNET_GETOPT_CommandLineOption
   GNUNET_GETOPT_CommandLineOptionProcessor processor;
 
   /**
+   * Function to call on @e scls to clean up after processing all
+   * the arguments. Can be NULL.
+   */
+  void (*cleaner)(void *cls);
+
+  /**
    * Specific closure to pass to the processor.
    */
   void *scls;
@@ -204,6 +210,42 @@ GNUNET_GETOPT_OPTION_FILENAME (char shortName,
                                const char *argumentHelp,
                                const char *description,
                                char **str);
+
+
+/**
+ * Allow user to specify a binary value using Crockford
+ * Base32 encoding.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val binary value decoded from Crockford Base32-encoded argument
+ * @param val_size size of @a val in bytes
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
+                                            const char *name,
+                                            const char *argumentHelp,
+                                            const char *description,
+                                            void *val,
+                                            size_t val_size);
+
+
+/**
+ * Allow user to specify a binary value using Crockford
+ * Base32 encoding where the size of the binary value is
+ * automatically determined from its type.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val binary value decoded from Crockford Base32-encoded argument;
+ *             size is determined by type (sizeof (*val)).
+ */
+#define GNUNET_GETOPT_OPTION_SET_BASE32_AUTO(shortName,name,argumentHelp,description,val) \
+  GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE(shortName,name,argumentHelp,description,val,sizeof(*val))
 
 
 /**
@@ -307,7 +349,7 @@ GNUNET_GETOPT_OPTION_LOGLEVEL (char **level);
  * @param[out] level set to the verbosity level
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_VERBOSE (int *level);
+GNUNET_GETOPT_OPTION_VERBOSE (unsigned int *level);
 
 
 /**
@@ -332,7 +374,7 @@ GNUNET_GETOPT_OPTION_CFG_FILE (char **fn);
  * Marker for the end of the list of options.
  */
 #define GNUNET_GETOPT_OPTION_END \
-  { '\0', NULL, NULL, NULL, 0, NULL, NULL }
+  { '\0', NULL, NULL, NULL, 0, NULL, NULL, NULL }
 
 
 /**
