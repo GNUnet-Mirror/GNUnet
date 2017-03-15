@@ -266,7 +266,7 @@ GNUNET_GETOPT_OPTION_INCREMENT_VALUE (char shortName,
  * @param[out] level set to the verbosity level
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_VERBOSE (int *level)
+GNUNET_GETOPT_OPTION_VERBOSE (unsigned int *level)
 {
   struct GNUNET_GETOPT_CommandLineOption clo = {
     .shortName = 'V',
@@ -706,6 +706,109 @@ GNUNET_GETOPT_OPTION_SET_UINT (char shortName,
     .scls = (void *) val
   };
 
+  return clo;
+}
+
+
+/**
+ * Closure for #set_base32().
+ */
+struct Base32Context
+{
+  /**
+   * Value to initialize (already allocated)
+   */
+  void *val;
+
+  /**
+   * Number of bytes expected for @e val.
+   */
+  size_t val_size;
+};
+
+
+/**
+ * Set an option of type 'unsigned int' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'unsigned int'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'unsigned int')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return #GNUNET_OK if parsing the value worked
+ */
+static int
+set_base32 (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+            void *scls,
+            const char *option,
+            const char *value)
+{
+  struct Base32Context *bc = scls;
+
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (value,
+                                     strlen (value),
+                                     bc->val,
+                                     bc->val_size))
+  {
+    fprintf (stderr,
+             _("Argument `%s' malformed. Expected base32 (Crockford) encoded value.\n"),
+             option);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Helper function to clean up after
+ * #GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE.
+ *
+ * @param cls value to GNUNET_free()
+ */
+static void
+free_bc (void *cls)
+{
+  GNUNET_free (cls);
+}
+
+
+/**
+ * Allow user to specify a binary value using Crockford
+ * Base32 encoding.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val binary value decoded from Crockford Base32-encoded argument
+ * @param val_size size of @a val in bytes
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
+                                            const char *name,
+                                            const char *argumentHelp,
+                                            const char *description,
+                                            void *val,
+                                            size_t val_size)
+{
+  struct Base32Context *bc = GNUNET_new (struct Base32Context);
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName =  shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_base32,
+    .cleaner = &free_bc,
+    .scls = (void *) bc
+  };
+
+  bc->val = val;
+  bc->val_size = val_size;
   return clo;
 }
 
