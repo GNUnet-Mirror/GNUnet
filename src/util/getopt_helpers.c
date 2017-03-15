@@ -654,7 +654,7 @@ GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME (char shortName,
  * type 'struct GNUNET_TIME_Absolute'.
  *
  * @param ctx command line processing context
- * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
+ * @param scls additional closure (will point to the `struct GNUNET_TIME_Absolute`)
  * @param option name of the option
  * @param value actual value of the option as a string.
  * @return #GNUNET_OK if parsing the value worked

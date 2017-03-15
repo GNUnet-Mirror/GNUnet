@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+  Copyright (C) 2014-2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -82,12 +82,77 @@ GNUNET_JSON_parse (const json_t *root,
 void
 GNUNET_JSON_parse_free (struct GNUNET_JSON_Specification *spec)
 {
-  unsigned int i;
-
-  for (i=0;NULL != spec[i].parser;i++)
+  for (unsigned int i=0;NULL != spec[i].parser;i++)
     if (NULL != spec[i].cleaner)
       spec[i].cleaner (spec[i].cls,
                        &spec[i]);
+}
+
+
+/**
+ * Set an option with a JSON value from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'json_t *')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return #GNUNET_OK if parsing the value worked
+ */
+static int
+set_json (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+          void *scls,
+          const char *option,
+          const char *value)
+{
+  json_t **json = scls;
+  json_error_t error;
+
+  *json = json_loads (value,
+                      JSON_REJECT_DUPLICATES,
+                      &error);
+  if (NULL == *json)
+  {
+    FPRINTF (stderr,
+             _("Failed to parse JSON in option `%s': %s (%s)\n"),
+             option,
+             error.text,
+             error.source);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Allow user to specify a JSON input value.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val set to the JSON specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_JSON_getopt (char shortName,
+                    const char *name,
+                    const char *argumentHelp,
+                    const char *description,
+                    json_t **json)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName =  shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_json,
+    .scls = (void *) json
+  };
+
+  return clo;
 }
 
 
