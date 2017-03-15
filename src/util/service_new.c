@@ -1723,9 +1723,10 @@ GNUNET_SERVICE_ruN_ (int argc,
 
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
     GNUNET_GETOPT_OPTION_CFG_FILE (&opt_cfg_filename),
-    {'d', "daemonize", NULL,
-     gettext_noop ("do daemonize (detach from terminal)"), 0,
-     GNUNET_GETOPT_set_one, &do_daemonize},
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "daemonize",
+                                  gettext_noop ("do daemonize (detach from terminal)"),
+                                  &do_daemonize),
     GNUNET_GETOPT_OPTION_HELP (NULL),
     GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
     GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
