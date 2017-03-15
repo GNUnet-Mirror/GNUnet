@@ -269,10 +269,7 @@ main (int argc, char *const *argv)
                                   gettext_noop ("use DHT's demultiplex everywhere option"),
                                   &demultixplex_everywhere),
   
-    GNUNET_GETOPT_OPTION_SET_ONE ('V',
-                                  "verbose",
-                                  gettext_noop ("be verbose (print progress information)"),
-                                  &verbose),
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
 

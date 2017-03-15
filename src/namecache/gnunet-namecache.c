@@ -225,13 +225,19 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'n', "name", "NAME",
-     gettext_noop ("name of the record to add/delete/display"), 1,
-     &GNUNET_GETOPT_set_string, &name},
-    {'z', "zone", "PKEY",
-     gettext_noop ("spezifies the public key of the zone to look in"), 1,
-     &GNUNET_GETOPT_set_string, &pkey},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_STRING ('n',
+                                 "name",
+                                 "NAME",
+                                 gettext_noop ("name of the record to add/delete/display"),
+                                 &name),
+
+    GNUNET_GETOPT_OPTION_STRING ('z',
+                                 "zone",
+                                 "PKEY",
+                                 gettext_noop ("spezifies the public key of the zone to look in"),
+                                 &pkey),
+
     GNUNET_GETOPT_OPTION_END
   };
 

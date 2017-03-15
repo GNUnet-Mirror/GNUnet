@@ -59,8 +59,8 @@ static struct GNUNET_PeerIdentity local_peer;
 static struct GNUNET_SET_ListenHandle *set_listener;
 
 static int byzantine;
-static int force_delta;
-static int force_full;
+static unsigned int force_delta;
+static unsigned int force_full;
 static unsigned int element_size = 32;
 
 /**
@@ -426,34 +426,60 @@ pre_run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-      { 'A', "num-first", NULL,
-        gettext_noop ("number of values"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_a },
-      { 'B', "num-second", NULL,
-        gettext_noop ("number of values"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_b },
-      { 'b', "byzantine", NULL,
-        gettext_noop ("use byzantine mode"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &byzantine },
-      { 'f', "force-full", NULL,
-        gettext_noop ("force sending full set"),
-        GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_full },
-      { 'd', "force-delta", NULL,
-        gettext_noop ("number delta operation"),
-        GNUNET_NO, &GNUNET_GETOPT_set_uint, &force_delta },
-      { 'C', "num-common", NULL,
-        gettext_noop ("number of values"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_c },
-      { 'x', "operation", NULL,
-        gettext_noop ("operation to execute"),
-        GNUNET_YES, &GNUNET_GETOPT_set_string, &op_str },
-      { 'w', "element-size", NULL,
-        gettext_noop ("element size"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &element_size },
-      { 's', "statistics", NULL,
-        gettext_noop ("write statistics to file"),
-        GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
+   struct GNUNET_GETOPT_CommandLineOption options[] = {
+      GNUNET_GETOPT_OPTION_SET_UINT ('A',
+                                     "num-first",
+                                     NULL,
+                                     gettext_noop ("number of values"),
+                                     &num_a),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('B',
+                                     "num-second",
+                                     NULL,
+                                     gettext_noop ("number of values"),
+                                     &num_b),
+
+      GNUNET_GETOPT_OPTION_SET_ONE ('b',
+                                    "byzantine",
+                                    gettext_noop ("use byzantine mode"),
+                                    &byzantine),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('f',
+                                     "force-full",
+                                     NULL,
+                                     gettext_noop ("force sending full set"),
+                                     &force_full),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('d',
+                                     "force-delta",
+                                     NULL,
+                                     gettext_noop ("number delta operation"),
+                                     &force_delta),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('C',
+                                     "num-common",
+                                     NULL,
+                                     gettext_noop ("number of values"),
+                                     &num_c),
+
+      GNUNET_GETOPT_OPTION_STRING ('x',
+                                   "operation",
+                                   NULL,
+                                   gettext_noop ("operation to execute"),
+                                   &op_str),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('w',
+                                     "element-size",
+                                     NULL,
+                                     gettext_noop ("element size"),
+                                     &element_size),
+
+      GNUNET_GETOPT_OPTION_FILENAME ('s',
+                                     "statistics",
+                                     "FILENAME",
+                                     gettext_noop ("write statistics to file"),
+                                     &statistics_filename),
+
       GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set-profiler",
