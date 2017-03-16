@@ -344,6 +344,13 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('e',
+                                 "elements",
+                                 "\"key1,val1;key2,val2;...,keyn,valn;\"",
+                                 gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
+                                 &input_elements),
+
     {'e', "elements", "\"key1,val1;key2,val2;...,keyn,valn;\"",
       gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
       1, &GNUNET_GETOPT_set_string, &input_elements},
