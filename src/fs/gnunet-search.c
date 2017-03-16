@@ -51,7 +51,7 @@ static unsigned int results_limit;
 
 static unsigned int results;
 
-static int verbose;
+static unsigned int verbose;
 
 static int local_only;
 
@@ -305,26 +305,42 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "anonymity", "LEVEL",
-     gettext_noop ("set the desired LEVEL of receiver-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &anonymity},
-    {'n', "no-network", NULL,
-     gettext_noop ("only search the local peer (no P2P network search)"),
-     0, &GNUNET_GETOPT_set_one, &local_only},
-    {'o', "output", "PREFIX",
-     gettext_noop ("write search results to file starting with PREFIX"),
-     1, &GNUNET_GETOPT_set_string, &output_filename},
-    {'t', "timeout", "DELAY",
-     gettext_noop ("automatically terminate search after DELAY"),
-     1, &GNUNET_GETOPT_set_relative_time, &timeout},
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
-    {'N', "results", "VALUE",
-     gettext_noop
-     ("automatically terminate search after VALUE results are found"),
-     1, &GNUNET_GETOPT_set_uint, &results_limit},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+                                   "anonymity",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired LEVEL of receiver-anonymity"),
+                                   &anonymity),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+                                  "no-network",
+                                  gettext_noop ("only search the local peer (no P2P network search)"),
+                                  &local_only),
+                                  
+    GNUNET_GETOPT_OPTION_STRING ('o',
+                                 "output",
+                                 "PREFIX",
+                                 gettext_noop ("write search results to file starting with PREFIX"),
+                                 &output_filename),                              
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t', 
+                                            "timeout",
+                                            "DELAY",
+                                            gettext_noop ("automatically terminate search after DELAY"),
+                                            &timeout),
+
+
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('N',
+                                   "results",
+                                   "VALUE",
+                                   gettext_noop ("automatically terminate search "
+                                                 "after VALUE results are found"),
+                                   &results_limit),
+
     GNUNET_GETOPT_OPTION_END
   };
 

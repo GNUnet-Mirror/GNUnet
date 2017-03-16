@@ -203,16 +203,26 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'n', "num-peers", "COUNT",
-     gettext_noop ("run the experiment with COUNT peers"),
-     1, &GNUNET_GETOPT_set_uint, &num_peers},
-    {'H', "hosts", "HOSTFILE",
-     gettext_noop ("specifies name of a file with the HOSTS the testbed should use"),
-     1, &GNUNET_GETOPT_set_string, &host_filename},
-    {'t', "timeout", "DELAY",
-     gettext_noop ("automatically terminate experiment after DELAY"),
-     1, &GNUNET_GETOPT_set_relative_time, &timeout},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+                                   "num-peers",
+                                   "COUNT",
+                                   gettext_noop ("run the experiment with COUNT peers"),
+                                   &num_peers),
+
+    GNUNET_GETOPT_OPTION_STRING ('H',
+                                 "hosts",
+                                 "HOSTFILE",
+                                 gettext_noop ("specifies name of a file with the HOSTS the testbed should use"),
+                                 &host_filename),
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+                                            "timeout",
+                                            "DELAY",
+                                            gettext_noop ("automatically terminate experiment after DELAY"),
+                                            &timeout),
+
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
