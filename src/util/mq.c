@@ -202,24 +202,6 @@ struct GNUNET_MQ_Handle
 
 
 /**
- * Implementation-specific state for connection to
- * client (MQ for server).
- */
-struct ServerClientSocketState
-{
-  /**
-   * Handle of the client that connected to the server.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Active transmission request to the client.
-   */
-  struct GNUNET_SERVER_TransmitHandle *th;
-};
-
-
-/**
  * Call the message message handler that was registered
  * for the type of the given message in the given message queue.
  *
