@@ -155,30 +155,49 @@ fail:
 int
 main (int argc, char *const *argv)
 {
-	static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-		{'d', "description", "FILE",
-			gettext_noop ("description of the item to be sold"),
-			1, &GNUNET_GETOPT_set_filename, &fndesc},
-		{'p', "pricemap", "FILE",
-			gettext_noop ("mapping of possible prices"),
-			1, &GNUNET_GETOPT_set_filename, &fnprices},
-		{'r', "roundtime", "DURATION",
-			gettext_noop ("max duration per round"),
-			1, &GNUNET_GETOPT_set_relative_time, &dround},
-		{'s', "regtime", "DURATION",
-			gettext_noop ("duration until auction starts"),
-			1, &GNUNET_GETOPT_set_relative_time, &dstart},
-		{'m', "m", "NUMBER",
-			gettext_noop ("number of items to sell\n"
-			              "0 for first price auction\n"
-			              ">0 for vickrey/M+1st price auction"),
-			1, &GNUNET_GETOPT_set_uint, &m},
-		{'u', "public", NULL,
-			gettext_noop ("public auction outcome"),
-			0, &GNUNET_GETOPT_set_one, &outcome},
-		{'i', "interactive", NULL,
-			gettext_noop ("keep running in foreground until auction completes"),
-			0, &GNUNET_GETOPT_set_one, &interactive},
+	struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+                GNUNET_GETOPT_OPTION_FILENAME ('d',
+                                               "description",
+                                               "FILE",
+                                               gettext_noop ("description of the item to be sold"),
+                                               &fndesc),
+
+                GNUNET_GETOPT_OPTION_FILENAME ('p',
+                                               "pricemap",
+                                               "FILE",
+                                               gettext_noop ("mapping of possible prices"),
+                                               &fnprices),
+
+                GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('r',
+                                                        "roundtime",
+                                                        "DURATION",
+                                                        gettext_noop ("max duration per round"),
+                                                        &dround),
+
+                GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('s',
+                                                        "regtime",
+                                                        "DURATION",
+                                                        gettext_noop ("duration until auction starts"),
+                                                        &dstart),
+                GNUNET_GETOPT_OPTION_SET_UINT ('m',
+                                               "m",
+                                               "NUMBER",
+                                               gettext_noop ("number of items to sell\n"
+                                                             "0 for first price auction\n"
+			                                     ">0 for vickrey/M+1st price auction"),
+                                               &m), 
+
+                GNUNET_GETOPT_OPTION_SET_ONE ('u',
+                                              "public",
+                                              gettext_noop ("public auction outcome"),
+                                              &outcome),
+
+                GNUNET_GETOPT_OPTION_SET_ONE ('i',
+                                              "interactive",
+                                              gettext_noop ("keep running in foreground until auction completes"),
+                                              &interactive),
+
 		GNUNET_GETOPT_OPTION_END
 	};
 	if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

@@ -720,7 +720,7 @@ keygen_round1_new_element (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "keygen commit data with wrong size (%u) in consensus, "
-                " %lu expected\n",
+                " %u expected\n",
                 element->size, sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData));
     return;
   }
