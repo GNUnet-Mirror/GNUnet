@@ -404,6 +404,7 @@ src/transport/plugin_transport_unix.c
 src/transport/plugin_transport_wlan.c
 src/transport/tcp_connection_legacy.c
 src/transport/tcp_server_legacy.c
+src/transport/tcp_server_mst_legacy.c
 src/transport/tcp_service_legacy.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c

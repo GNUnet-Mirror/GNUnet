@@ -30,7 +30,6 @@ W32CONSOLEHELPER = gnunet-helper-w32-console
 endif
 
 if !MINGW
- SERVER_CLIENT_UNIX = test_server_with_client_unix
  TEST_CLIENT_UNIC_NC = test_client_unix.nc
 else
  TEST_CLIENT_UNIC_NC =
@@ -311,13 +310,7 @@ check_PROGRAMS = \
 # Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
 # sequential execution order for them
 TEST_EXTENSIONS = .nc
-test_connection.log: test_client.log
-test_connection_addressing.log: test_connection.log
-test_connection_timeout_no_connect.log: test_connection_addressing.log
-test_connection_transmit_cancel.log: test_connection_timeout_no_connect.log
-test_connection_receive_cancel.log: test_connection_transmit_cancel.log
-test_connection_timeout.log: test_connection_receive_cancel.log
-test_resolver_api.log: test_connection_timeout.log
+test_test_client_unix.log: test_client.log
 
 test_bio_SOURCES = \
  test_bio.c
