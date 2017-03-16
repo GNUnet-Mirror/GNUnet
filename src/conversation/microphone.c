@@ -64,13 +64,11 @@ struct Microphone
  * Function to process the audio from the record helper
  *
  * @param cls clsoure with our `struct Microphone`
- * @param client NULL
  * @param msg the message from the helper
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 process_record_messages (void *cls,
-			 void *client,
 			 const struct GNUNET_MessageHeader *msg)
 {
   struct Microphone *mic = cls;

@@ -201,7 +201,7 @@ struct GNUNET_ATS_Session
   /**
    * Message stream tokenizer for incoming data
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
+  struct GNUNET_MessageStreamTokenizer *msg_tk;
 
   /**
    * Client recv handle
@@ -608,7 +608,7 @@ server_delete_session (struct GNUNET_ATS_Session *s)
   }
   if (NULL != s->msg_tk)
   {
-    GNUNET_SERVER_mst_destroy (s->msg_tk);
+    GNUNET_MST_destroy (s->msg_tk);
     s->msg_tk = NULL;
   }
   GNUNET_HELLO_address_free (s->address);
@@ -1621,13 +1621,11 @@ server_send_callback (void *cls,
  * Callback called by MessageStreamTokenizer when a message has arrived
  *
  * @param cls current session as closure
- * @param client client
  * @param message the message to be forwarded to transport service
  * @return #GNUNET_OK
  */
 static int
 server_receive_mst_cb (void *cls,
-                       void *client,
                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_ATS_Session *s = cls;
@@ -1847,13 +1845,16 @@ server_access_cb (void *cls,
              *upload_data_size);
         if (s->msg_tk == NULL)
         {
-          s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
+          s->msg_tk = GNUNET_MST_create (&server_receive_mst_cb,
+                                         s);
         }
-        GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size,
-            GNUNET_NO, GNUNET_NO);
+        GNUNET_MST_from_buffer (s->msg_tk,
+                                upload_data,
+                                *upload_data_size,
+                                GNUNET_NO, GNUNET_NO);
         server_mhd_connection_timeout (plugin, s,
-            GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us / 1000LL
-                / 1000LL);
+                                       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us / 1000LL
+                                       / 1000LL);
         (*upload_data_size) = 0;
       }
       else
@@ -1935,7 +1936,7 @@ server_disconnect_cb (void *cls,
       sc->session->server_recv = NULL;
       if (NULL != sc->session->msg_tk)
       {
-        GNUNET_SERVER_mst_destroy (sc->session->msg_tk);
+        GNUNET_MST_destroy (sc->session->msg_tk);
         sc->session->msg_tk = NULL;
       }
     }
@@ -2757,7 +2758,7 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
     return;
   }
 
-  plugin->nat 
+  plugin->nat
     = GNUNET_NAT_register (plugin->env->cfg,
 			   "transport-http_server",
 			   IPPROTO_TCP,

@@ -2217,12 +2217,10 @@ route_packet (struct DestinationEntry *destination,
  * and forward the packet.
  *
  * @param cls closure, NULL
- * @param client NULL
  * @param message message we got from the client (VPN channel interface)
  */
 static int
 message_token (void *cls,
-	       void *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *tun;

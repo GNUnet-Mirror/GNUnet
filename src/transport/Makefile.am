@@ -191,6 +191,8 @@ libexec_PROGRAMS = \
  $(BT_BIN) \
  gnunet-service-transport
 
+
+
 bin_PROGRAMS = \
  gnunet-transport \
  gnunet-transport-certificate-creation
@@ -561,7 +563,7 @@ TESTS = \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_TIMEOUT_TEST) \
- $(BT_TIMEOUT_TEST) 
+ $(BT_TIMEOUT_TEST)
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats

@@ -68,7 +68,6 @@ libgnunetutil_la_SOURCES = \
   common_logging.c \
   configuration.c \
   configuration_loader.c \
-  connection.c \
   container_bloomfilter.c \
   container_heap.c \
   container_meta_data.c \
@@ -108,16 +107,10 @@ libgnunetutil_la_SOURCES = \
   program.c \
   resolver_api.c resolver.h \
   scheduler.c \
-  server.c \
-  server_mst.c \
-  server_nc.c \
-  server_tc.c \
-  service.c \
   service_new.c \
   signal.c \
   strings.c \
   time.c \
-  socks.c \
   speedup.c speedup.h
 
 libgnunetutil_la_LIBADD = \
@@ -263,14 +256,13 @@ if HAVE_BENCHMARKS
 endif
 
 if HAVE_SSH_KEY
- SSH_USING_TESTS = test_socks.nc
+# SSH_USING_TESTS = test_socks.nc
 endif
 
 check_PROGRAMS = \
  test_bio \
  test_client.nc \
  $(TEST_CLIENT_UNIX_NC) \
- $(SSH_USING_TESTS) \
  test_common_allocation \
  test_common_endian \
  test_common_logging \
@@ -298,12 +290,6 @@ check_PROGRAMS = \
  test_crypto_rsa \
  test_disk \
  test_getopt \
- test_connection.nc \
- test_connection_addressing.nc \
- test_connection_receive_cancel.nc \
- test_connection_timeout.nc \
- test_connection_timeout_no_connect.nc \
- test_connection_transmit_cancel.nc \
  test_mq \
  test_os_network \
  test_peer \
@@ -312,11 +298,6 @@ check_PROGRAMS = \
  test_resolver_api.nc \
  test_scheduler \
  test_scheduler_delay \
- test_server.nc \
- test_server_disconnect.nc \
- test_server_with_client.nc \
- test_server_mst_interrupt.nc \
- $(SERVER_CLIENT_UNIX) \
  test_service \
  test_strings \
  test_strings_to_data \
@@ -337,11 +318,6 @@ test_connection_transmit_cancel.log: test_connection_timeout_no_connect.log
 test_connection_receive_cancel.log: test_connection_transmit_cancel.log
 test_connection_timeout.log: test_connection_receive_cancel.log
 test_resolver_api.log: test_connection_timeout.log
-test_server.log: test_resolver_api.log
-test_server_disconnect.log: test_server.log
-test_server_with_client.log: test_server_disconnect.log
-test_server_mst_interrupt.log: test_server_with_client.log
-test_client_unix.log: test_server_mst_interrupt.log
 
 test_bio_SOURCES = \
  test_bio.c
@@ -518,36 +494,6 @@ test_getopt_SOURCES = \
 test_getopt_LDADD = \
  libgnunetutil.la
 
-test_connection_nc_SOURCES = \
- test_connection.c
-test_connection_nc_LDADD = \
- libgnunetutil.la
-
-test_connection_addressing_nc_SOURCES = \
- test_connection_addressing.c
-test_connection_addressing_nc_LDADD = \
- libgnunetutil.la
-
-test_connection_receive_cancel_nc_SOURCES = \
- test_connection_receive_cancel.c
-test_connection_receive_cancel_nc_LDADD = \
- libgnunetutil.la
-
-test_connection_timeout_nc_SOURCES = \
- test_connection_timeout.c
-test_connection_timeout_nc_LDADD = \
- libgnunetutil.la
-
-test_connection_timeout_no_connect_nc_SOURCES = \
- test_connection_timeout_no_connect.c
-test_connection_timeout_no_connect_nc_LDADD = \
- libgnunetutil.la
-
-test_connection_transmit_cancel_nc_SOURCES = \
- test_connection_transmit_cancel.c
-test_connection_transmit_cancel_nc_LDADD = \
- libgnunetutil.la
-
 test_mq_SOURCES = \
  test_mq.c
 test_mq_LDADD = \
@@ -588,32 +534,6 @@ test_scheduler_delay_SOURCES = \
 test_scheduler_delay_LDADD = \
  libgnunetutil.la
 
-test_server_mst_interrupt_nc_SOURCES = \
- test_server_mst_interrupt.c
-test_server_mst_interrupt_nc_LDADD = \
- libgnunetutil.la
-
-test_server_nc_SOURCES = \
- test_server.c
-test_server_nc_LDADD = \
- libgnunetutil.la
-
-test_server_disconnect_nc_SOURCES = \
- test_server_disconnect.c
-test_server_disconnect_nc_LDADD = \
- libgnunetutil.la
-
-test_server_with_client_nc_SOURCES = \
- test_server_with_client.c
-test_server_with_client_nc_LDADD = \
- libgnunetutil.la
-
-test_server_with_client_unix_SOURCES = \
- test_server_with_client_unix.c
-test_server_with_client_unix_LDADD = \
- libgnunetutil.la
-
-
 test_service_SOURCES = \
  test_service.c
 test_service_LDADD = \
@@ -623,7 +543,6 @@ test_strings_SOURCES = \
  test_strings.c
 test_strings_LDADD = \
  libgnunetutil.la
-
 
 test_strings_to_data_SOURCES = \
  test_strings_to_data.c

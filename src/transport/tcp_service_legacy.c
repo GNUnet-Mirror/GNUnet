@@ -28,19 +28,11 @@
 #include "gnunet_protocols.h"
 #include "gnunet_constants.h"
 #include "gnunet_resolver_service.h"
-#include "speedup.h"
 
 #if HAVE_MALLINFO
 #include <malloc.h>
 #include "gauger.h"
 #endif
-
-
-#define LOG(kind,...) GNUNET_log_from (kind, "util-service", __VA_ARGS__)
-
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-service", syscall)
-
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-service", syscall, filename)
 
 
 /* ******************* access control ******************** */
@@ -1152,7 +1144,6 @@ service_task (void *cls)
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
 
-  (void) GNUNET_SPEEDUP_start_ (sctx->cfg);
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
     sctx->server
@@ -1527,7 +1518,6 @@ shutdown:
     }
   }
 #endif
-  GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   i = 0;
   if (NULL != sctx.addrs)

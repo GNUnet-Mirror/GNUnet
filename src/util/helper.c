@@ -27,6 +27,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_mst_lib.h"
 
 
 /**
@@ -107,7 +108,7 @@ struct GNUNET_HELPER_Handle
   /**
    * The Message-Tokenizer that tokenizes the messages comming from the helper
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer *mst;
+  struct GNUNET_MessageStreamTokenizer *mst;
 
   /**
    * The exception callback
@@ -272,7 +273,10 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
   }
   /* purge MST buffer */
   if (NULL != h->mst)
-    (void) GNUNET_SERVER_mst_receive (h->mst, NULL, NULL, 0, GNUNET_YES, GNUNET_NO);
+    (void) GNUNET_MST_from_buffer (h->mst,
+                                   NULL, 0,
+                                   GNUNET_YES,
+                                   GNUNET_NO);
   return ret;
 }
 
@@ -373,10 +377,10 @@ helper_read (void *cls)
 						 h->fh_from_helper,
 						 &helper_read, h);
   if (GNUNET_SYSERR ==
-      GNUNET_SERVER_mst_receive (h->mst,
-				 NULL,
-				 buf, t,
-				 GNUNET_NO, GNUNET_NO))
+      GNUNET_MST_from_buffer (h->mst,
+                              buf, t,
+                              GNUNET_NO,
+                              GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to parse inbound message from helper `%s'\n"),
@@ -487,7 +491,7 @@ struct GNUNET_HELPER_Handle *
 GNUNET_HELPER_start (int with_control_pipe,
 		     const char *binary_name,
 		     char *const binary_argv[],
-		     GNUNET_SERVER_MessageTokenizerCallback cb,
+		     GNUNET_MessageTokenizerCallback cb,
 		     GNUNET_HELPER_ExceptionCallback exp_cb,
 		     void *cb_cls)
 {
@@ -508,7 +512,8 @@ GNUNET_HELPER_start (int with_control_pipe,
   h->binary_argv[c] = NULL;
   h->cb_cls = cb_cls;
   if (NULL != cb)
-    h->mst = GNUNET_SERVER_mst_create (cb, h->cb_cls);
+    h->mst = GNUNET_MST_create (cb,
+                                h->cb_cls);
   h->exp_cb = exp_cb;
   h->retry_back_off = 0;
   start_helper (h);
@@ -544,7 +549,7 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
     GNUNET_free (sh);
   }
   if (NULL != h->mst)
-    GNUNET_SERVER_mst_destroy (h->mst);
+    GNUNET_MST_destroy (h->mst);
   GNUNET_free (h->binary_name);
   for (c = 0; h->binary_argv[c] != NULL; c++)
     GNUNET_free (h->binary_argv[c]);

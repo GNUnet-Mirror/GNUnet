@@ -38,6 +38,7 @@
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_constants.h"
 
+
 #if BUILD_WLAN
 /* begin case wlan */
 #define PLUGIN_NAME "wlan"
@@ -47,6 +48,7 @@
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_wlan_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_wlan_done
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-wlan",__VA_ARGS__)
+
 
 /**
  * time out of a mac endpoint
@@ -91,6 +93,30 @@
 #else
 #error need to build wlan or bluetooth
 #endif
+
+
+
+/**
+ * Functions with this signature are called whenever a
+ * complete message is received by the tokenizer.
+ *
+ * Do not call #GNUNET_SERVER_mst_destroy from within
+ * the scope of this callback.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
+ */
+typedef int
+(*GNUNET_SERVER_MessageTokenizerCallback) (void *cls,
+                                           void *client,
+                                           const struct GNUNET_MessageHeader *message);
+
+
+/* Include legacy message stream tokenizer that was removed from util (for now) */
+#include "tcp_server_mst_legacy.c"
+
 
 /**
  * Max size of packet (that we give to the WLAN driver for transmission)
@@ -1728,11 +1754,10 @@ send_hello_beacon (void *cls)
  * Function used for to process the data from the suid process
  *
  * @param cls the plugin handle
- * @param client client that send the data (not used)
  * @param hdr header of the GNUNET_MessageHeader
  */
 static int
-handle_helper_message (void *cls, void *client,
+handle_helper_message (void *cls,
 		       const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;

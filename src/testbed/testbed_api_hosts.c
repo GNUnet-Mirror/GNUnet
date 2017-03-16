@@ -952,10 +952,11 @@ gen_rsh_suffix_args (const char * const *append_args)
  * @param client identification of the client
  * @param message the actual message
  *
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
-helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
+helper_mst (void *cls,
+            const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
