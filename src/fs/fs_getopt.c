@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
+#include "gnunet_getopt_lib.h"
 #include "fs_api.h"
 
 /* ******************** command-line option parsing API ******************** */
@@ -41,10 +42,10 @@
  * @param value command line argument given
  * @return GNUNET_OK on success
  */
-int
-GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
-                               const char *value)
+static int
+getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
+                     *ctx, void *scls, const char *option,
+                      const char *value)
 {
   struct GNUNET_FS_Uri **uri = scls;
   struct GNUNET_FS_Uri *u = *uri;
@@ -107,6 +108,34 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
   return GNUNET_OK;
 }
 
+/**
+ * Allow user to specify keywords.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] topKeywords set to the desired value
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_FS_GETOPT_KEYWORDS (char shortName,
+                           const char *name,
+                           const char *argumentHelp,
+                           const char *description,
+                           struct GNUNET_FS_Uri **topKeywords)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &getopt_set_keywords,
+    .scls = (void *) topKeywords  
+  };
+
+  return clo;
+}
 
 /**
  * Command-line option parser function that allows the user to specify
@@ -120,11 +149,11 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value command line argument given
  * @return #GNUNET_OK on success
  */
-int
-GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                               void *scls,
-                               const char *option,
-                               const char *value)
+static int
+getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                     void *scls,
+                     const char *option,
+                     const char *value)
 {
   struct GNUNET_CONTAINER_MetaData **mm = scls;
 #if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
@@ -199,5 +228,37 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext 
   }
   return GNUNET_OK;
 }
+
+/**
+ * Allow user to specify metadata.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] metadata set to the desired value
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_FS_GETOPT_METADATA (char shortName,
+                           const char *name,
+                           const char *argumentHelp,
+                           const char *description,
+                           struct GNUNET_CONTAINER_MetaData **meta)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &getopt_set_metadata,
+    .scls = (void *) meta
+  };
+
+  return clo;
+}
+
+
+
 
 /* end of fs_getopt.c */

@@ -420,25 +420,43 @@ int
 main (int argc,
       char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'u', "lookup", "NAME",
-      gettext_noop ("Lookup a record for the given name"), 1,
-      &GNUNET_GETOPT_set_string, &lookup_name},
-    {'t', "type", "TYPE",
-      gettext_noop ("Specify the type of the record to lookup"), 1,
-      &GNUNET_GETOPT_set_string, &lookup_type},
-    { 'T', "timeout", "DELAY",
-      gettext_noop ("Specify timeout for the lookup"), 1,
-      &GNUNET_GETOPT_set_relative_time, &timeout },
-    {'r', "raw", NULL,
-      gettext_noop ("No unneeded output"), 0,
-      &GNUNET_GETOPT_set_one, &raw},
-    {'p', "public-key", "PKEY",
-      gettext_noop ("Specify the public key of the zone to lookup the record in"), 1,
-      &GNUNET_GETOPT_set_string, &public_key},
-    {'z', "zone", "NAME",
-      gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
-      &GNUNET_GETOPT_set_string, &zone_ego_name},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('u',
+                                 "lookup",
+                                 "NAME",
+                                 gettext_noop ("Lookup a record for the given name"),
+                                 &lookup_name),
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "type",
+                                 "TYPE",
+                                 gettext_noop ("Specify the type of the record to lookup"),
+                                 &lookup_type),
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('T',
+                                            "timeout",
+                                            "DELAY",
+                                            gettext_noop ("Specify timeout for the lookup"),
+                                            &timeout),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('r',
+                                  "raw",
+                                  gettext_noop ("No unneeded output"),
+                                  &raw),
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "public-key",
+                                 "PKEY",
+                                 gettext_noop ("Specify the public key of the zone to lookup the record in"),
+                                 &public_key),
+    
+    GNUNET_GETOPT_OPTION_STRING ('z',
+                                 "zone",
+                                 "NAME",
+                                 gettext_noop ("Specify the name of the ego of the zone to lookup the record in"),
+                                 &zone_ego_name),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

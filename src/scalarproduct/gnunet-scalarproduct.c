@@ -343,7 +343,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
 
     GNUNET_GETOPT_OPTION_STRING ('e',
                                  "elements",
@@ -351,15 +351,24 @@ main (int argc, char *const *argv)
                                  gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
                                  &input_elements),
 
-    {'e', "elements", "\"key1,val1;key2,val2;...,keyn,valn;\"",
-      gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
-      1, &GNUNET_GETOPT_set_string, &input_elements},
-    {'p', "peer", "PEERID",
-      gettext_noop ("[Optional] peer to calculate our scalarproduct with. If this parameter is not given, the service will wait for a remote peer to compute the request."),
-      1, &GNUNET_GETOPT_set_string, &input_peer_id},
-    {'k', "key", "TRANSACTION_ID",
-      gettext_noop ("Transaction ID shared with peer."),
-      1, &GNUNET_GETOPT_set_string, &input_session_key},
+    GNUNET_GETOPT_OPTION_STRING ('e',
+                                 "elements",
+                                 "\"key1,val1;key2,val2;...,keyn,valn;\"",
+                                 gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
+                                 &input_elements),
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEERID",
+                                 gettext_noop ("[Optional] peer to calculate our scalarproduct with. If this parameter is not given, the service will wait for a remote peer to compute the request."),
+                                 &input_peer_id),
+
+    GNUNET_GETOPT_OPTION_STRING ('k',
+                                 "key",
+                                 "TRANSACTION_ID",
+                                 gettext_noop ("Transaction ID shared with peer."),
+                                 &input_session_key),
+
     GNUNET_GETOPT_OPTION_END
   };
 
