@@ -40,42 +40,6 @@
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
- * The message queue for sending messages to clients
- */
-struct MessageQueue
-{
-  /**
-   * The message to be sent
-   */
-  struct GNUNET_MessageHeader *msg;
-
-  /**
-   * The client to send the message to
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * next pointer for DLL
-   */
-  struct MessageQueue *next;
-
-  /**
-   * prev pointer for DLL
-   */
-  struct MessageQueue *prev;
-};
-
-/**
- * The message queue head
- */
-static struct MessageQueue *mq_head;
-
-/**
- * The message queue tail
- */
-static struct MessageQueue *mq_tail;
-
-/**
  * Handle for buffered writing.
  */
 struct GNUNET_BIO_WriteHandle *bio;
@@ -92,23 +56,38 @@ static int in_shutdown;
 
 
 /**
- * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
+ * Check #GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG messages
  *
- * @param cls NULL
- * @param client identification of the client
+ * @param cls client identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK (they are all always OK)
+ */
+static int
+check_log_msg (void *cls,
+               const struct GNUNET_MessageHeader *msg)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Message handler for #GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG messages
+ *
+ * @param cls client identification of the client
  * @param msg the actual message
  */
 static void
 handle_log_msg (void *cls,
-		struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *msg)
 {
+  struct GNUNET_SERVICE_Client *client = cls;
   uint16_t ms;
 
-  ms = ntohs (msg->size);
-  ms -= sizeof (struct GNUNET_MessageHeader);
-  GNUNET_BIO_write (bio, &msg[1], ms);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  ms = ntohs (msg->size) - sizeof (struct GNUNET_MessageHeader);
+  GNUNET_BIO_write (bio,
+                    &msg[1],
+                    ms);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -120,69 +99,55 @@ handle_log_msg (void *cls,
 static void
 shutdown_task (void *cls)
 {
-  struct MessageQueue *mq_entry;
-
   in_shutdown = GNUNET_YES;
   if (0 != nconn)
   {
     /* Delay shutdown if there are active connections */
-    GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                   NULL);
     return;
   }
-  while (NULL != (mq_entry = mq_head))
-  {
-    GNUNET_free (mq_entry->msg);
-    GNUNET_SERVER_client_drop (mq_entry->client);
-    GNUNET_CONTAINER_DLL_remove (mq_head,
-				 mq_tail,
-				 mq_entry);
-    GNUNET_free (mq_entry);
-  }
-  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bio));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_BIO_write_close (bio));
 }
 
 
 /**
-x * Functions with this signature are called whenever a client
- * is disconnected on the network level.
+ * Callback called when a client connects to the service.
  *
- * @param cls closure
- * @param client identification of the client; NULL
- *        for the last call when the server is destroyed
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  /* FIXME: is this really what we want here? */
+  GNUNET_SERVICE_client_persist (c);
+  nconn++;
+  return c;
+}
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
  */
 static void
-client_disconnected (void *cls,
-		     struct GNUNET_SERVER_Client *client)
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
 {
-  if (NULL == client)
-  {
-    GNUNET_break (0 == nconn);
-    return;
-  }
   nconn--;
   if (GNUNET_YES == in_shutdown)
     GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Functions with this signature are called whenever a client
- * is connected on the network level.
- *
- * @param cls closure
- * @param client identification of the client
- */
-static void
-client_connected (void *cls,
-		  struct GNUNET_SERVER_Client *client)
-{
-  if (NULL == client)
-  {
-    GNUNET_break (0 == nconn);
-    return;
-  }
-  GNUNET_SERVER_client_persist_ (client);
-  nconn++;
+  GNUNET_assert (c == internal_cls);
 }
 
 
@@ -190,18 +155,14 @@ client_connected (void *cls,
  * Testbed setup
  *
  * @param cls closure
- * @param server the initialized server
  * @param cfg configuration to use
+ * @param service the initialized service
  */
 static void
 logger_run (void *cls,
-	    struct GNUNET_SERVER_Handle *server,
-	    const struct GNUNET_CONFIGURATION_Handle *cfg)
+	    const struct GNUNET_CONFIGURATION_Handle *cfg,
+            struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler message_handlers[] = {
-    {&handle_log_msg, NULL, GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG, 0},
-    {NULL, NULL, 0, 0}
-  };
   char *dir;
   char *fn;
   char *hname;
@@ -223,7 +184,8 @@ logger_run (void *cls,
   pid = getpid ();
   hname_len = GNUNET_OS_get_hostname_max_length ();
   hname = GNUNET_malloc (hname_len);
-  if (0 != gethostname (hname, hname_len))
+  if (0 != gethostname (hname,
+                        hname_len))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Cannot get hostname.  Exiting\n");
@@ -247,24 +209,27 @@ logger_run (void *cls,
     return;
   }
   GNUNET_free (fn);
-  GNUNET_SERVER_add_handlers (server, message_handlers);
-  GNUNET_SERVER_connect_notify (server, &client_connected, NULL);
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnected, NULL);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 NULL);
   LOG_DEBUG ("TESTBED-LOGGER startup complete\n");
 }
 
 
 /**
- * The starting point of execution
+ * Define "main" method using service macro.
  */
-int
-main (int argc, char *const *argv)
-{
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "testbed-logger",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &logger_run, NULL)) ? 0 : 1;
-}
+GNUNET_SERVICE_MAIN
+("testbed-logger",
+ GNUNET_SERVICE_OPTION_NONE,
+ &logger_run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (log_msg,
+                        GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG,
+                        struct GNUNET_MessageHeader,
+                        NULL),
+ GNUNET_MQ_handler_end ());
+
 
 /* end of gnunet-service-testbed-logger.c */
