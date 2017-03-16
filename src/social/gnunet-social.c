@@ -67,10 +67,10 @@ static int op_guest_leave;
 static int op_guest_talk;
 
 /** --replay */
-static char *op_replay;
+static int op_replay;
 
 /** --replay-latest */
-static char *op_replay_latest;
+static int op_replay_latest;
 
 /** --look-at */
 static int op_look_at;
@@ -122,7 +122,7 @@ static uint64_t opt_start;
 static uint64_t opt_until;
 
 /** --limit */
-static int opt_limit;
+static long long unsigned int opt_limit;
 
 
 /* global vars */
