@@ -719,9 +719,9 @@ keygen_round1_new_element (void *cls,
   if (element->size != sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "keygen commit data with wrong size (%u) in consensus, "
-                " %u expected\n",
-                element->size, sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData));
+                "keygen commit data with wrong size (%u) in consensus, %u expected\n",
+                (unsigned int) element->size,
+                (unsigned int) sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData));
     return;
   }
 
