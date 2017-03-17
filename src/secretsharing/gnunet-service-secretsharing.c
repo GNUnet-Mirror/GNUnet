@@ -1384,9 +1384,9 @@ keygen_round2_new_element (void *cls,
   if (element->size != expected_element_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "keygen round2 data with wrong size (%u) in consensus, "
-                " %lu expected\n",
-                element->size, expected_element_size);
+                "keygen round2 data with wrong size (%u) in consensus, %u expected\n",
+                (unsigned int) element->size,
+                (unsigned int) expected_element_size);
     return;
   }
 
@@ -1934,10 +1934,15 @@ decrypt_new_element (void *cls,
   {
     char *tmp1_str;
     char *tmp2_str;
+
     tmp1_str = mpi_to_str (tmp1);
     tmp2_str = mpi_to_str (tmp2);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%ld (eqn 1), expected %s got %s\n",
-                session->share->my_peer, info - session->info, tmp1_str, tmp2_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "P%u: Received invalid partial decryption from P%u (eqn 1), expected %s got %s\n",
+                session->share->my_peer,
+                (unsigned int) (info - session->info),
+                tmp1_str,
+                tmp2_str);
     GNUNET_free (tmp1_str);
     GNUNET_free (tmp2_str);
     goto cleanup;
@@ -1952,8 +1957,10 @@ decrypt_new_element (void *cls,
 
   if (0 != gcry_mpi_cmp (tmp1, tmp2))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%ld (eqn 2)\n",
-                session->share->my_peer, info - session->info);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "P%u: Received invalid partial decryption from P%u (eqn 2)\n",
+                session->share->my_peer,
+                (unsigned int) (info - session->info));
     goto cleanup;
   }
 
