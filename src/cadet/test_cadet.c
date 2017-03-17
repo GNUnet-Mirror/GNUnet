@@ -962,12 +962,17 @@ main (int argc, char *argv[])
   char port_id[] = "test port";
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'t', "time", "short_time",
-     gettext_noop ("set short timeout"),
-     GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &short_time},
-    {'m', "messages", "NUM_MESSAGES",
-     gettext_noop ("set number of messages to send"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &total_packets},
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+                                            "time",
+                                            "short_time",
+                                            gettext_noop ("set short timeout"),
+                                            &short_time),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('m',
+                                   "messages",
+                                   "NUM_MESSAGES",
+                                   gettext_noop ("set number of messages to send"),
+                                   &total_packets),
 
     GNUNET_GETOPT_OPTION_END
   };
