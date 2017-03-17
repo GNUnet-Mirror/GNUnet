@@ -133,7 +133,7 @@ struct GNUNET_BANDWIDTH_Tracker
   /**
    * Maximum number of seconds over which bandwidth may "accumulate".
    * Note that additionally, we also always allow at least
-   * #GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.
+   * #GNUNET_MAX_MESSAGE_SIZE to accumulate.
    */
   uint32_t max_carry_s__;
 };
@@ -214,10 +214,10 @@ GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
 /**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
- * #GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.  So if the
+ * #GNUNET_MAX_MESSAGE_SIZE to accumulate.  So if the
  * bytes-per-second limit is so small that within 'max_carry_s' not
- * even #GNUNET_SERVER_MAX_MESSAGE_SIZE is allowed to accumulate, it is
- * ignored and replaced by #GNUNET_SERVER_MAX_MESSAGE_SIZE (which is in
+ * even #GNUNET_MAX_MESSAGE_SIZE is allowed to accumulate, it is
+ * ignored and replaced by #GNUNET_MAX_MESSAGE_SIZE (which is in
  * bytes).
  *
  * @param av tracker to initialize
@@ -238,10 +238,10 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
 /**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
- * GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.  So if the
+ * GNUNET_MAX_MESSAGE_SIZE to accumulate.  So if the
  * bytes-per-second limit is so small that within 'max_carry_s' not
- * even GNUNET_SERVER_MAX_MESSAGE_SIZE is allowed to accumulate, it is
- * ignored and replaced by GNUNET_SERVER_MAX_MESSAGE_SIZE (which is in
+ * even GNUNET_MAX_MESSAGE_SIZE is allowed to accumulate, it is
+ * ignored and replaced by GNUNET_MAX_MESSAGE_SIZE (which is in
  * bytes).
  *
  * @param av tracker to initialize

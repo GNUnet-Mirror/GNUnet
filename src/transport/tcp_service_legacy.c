@@ -105,7 +105,7 @@ NEXT:
 /**
  * Context for "service_task".
  */
-struct GNUNET_SERVICE_Context
+struct LEGACY_SERVICE_Context
 {
   /**
    * Our configuration.
@@ -131,7 +131,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Main service-specific task to run.
    */
-  GNUNET_SERVICE_Main task;
+  LEGACY_SERVICE_Main task;
 
   /**
    * Closure for @e task.
@@ -223,7 +223,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Our options.
    */
-  enum GNUNET_SERVICE_Options options;
+  enum LEGACY_SERVICE_Options options;
 
 };
 
@@ -307,7 +307,7 @@ static int
 check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
               const struct sockaddr *addr, socklen_t addrlen)
 {
-  struct GNUNET_SERVICE_Context *sctx = cls;
+  struct LEGACY_SERVICE_Context *sctx = cls;
   const struct sockaddr_in *i4;
   const struct sockaddr_in6 *i6;
   int ret;
@@ -359,7 +359,7 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
  * @return name of the file for the process ID
  */
 static char *
-get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
+get_pid_file_name (struct LEGACY_SERVICE_Context *sctx)
 {
   char *pif;
 
@@ -382,7 +382,7 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
  */
 static int
 process_acl4 (struct GNUNET_STRINGS_IPv4NetworkPolicy **ret,
-              struct GNUNET_SERVICE_Context *sctx,
+              struct LEGACY_SERVICE_Context *sctx,
               const char *option)
 {
   char *opt;
@@ -420,7 +420,7 @@ process_acl4 (struct GNUNET_STRINGS_IPv4NetworkPolicy **ret,
  */
 static int
 process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret,
-              struct GNUNET_SERVICE_Context *sctx,
+              struct LEGACY_SERVICE_Context *sctx,
               const char *option)
 {
   char *opt;
@@ -507,7 +507,7 @@ add_unixpath (struct sockaddr **saddrs,
  *              set to NULL).
  */
 int
-GNUNET_SERVICE_get_server_addresses (const char *service_name,
+LEGACY_SERVICE_get_server_addresses (const char *service_name,
                                      const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      struct sockaddr ***addrs,
                                      socklen_t ** addr_lens)
@@ -838,7 +838,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
  * and #GNUNET_SYSERR on error.
  */
 static int
-receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
+receive_sockets_from_parent (struct LEGACY_SERVICE_Context *sctx)
 {
   const char *env_buf;
   int fail;
@@ -932,7 +932,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
  * @return #GNUNET_OK if configuration succeeded
  */
 static int
-setup_service (struct GNUNET_SERVICE_Context *sctx)
+setup_service (struct LEGACY_SERVICE_Context *sctx)
 {
   struct GNUNET_TIME_Relative idleout;
   int tolerant;
@@ -1015,7 +1015,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
   if ((NULL == sctx->lsocks) &&
       (GNUNET_SYSERR ==
-       GNUNET_SERVICE_get_server_addresses (sctx->service_name, sctx->cfg,
+       LEGACY_SERVICE_get_server_addresses (sctx->service_name, sctx->cfg,
                                             &sctx->addrs, &sctx->addrlens)))
     return GNUNET_SYSERR;
   sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
@@ -1042,7 +1042,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
  * @return value of the 'USERNAME' option
  */
 static char *
-get_user_name (struct GNUNET_SERVICE_Context *sctx)
+get_user_name (struct LEGACY_SERVICE_Context *sctx)
 {
   char *un;
 
@@ -1062,7 +1062,7 @@ get_user_name (struct GNUNET_SERVICE_Context *sctx)
  * @return  #GNUNET_OK on success (including no work to be done)
  */
 static int
-write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
+write_pid_file (struct LEGACY_SERVICE_Context *sctx, pid_t pid)
 {
   FILE *pidfd;
   char *pif;
@@ -1117,16 +1117,16 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
 /**
  * Task run during shutdown.  Stops the server/service.
  *
- * @param cls the `struct GNUNET_SERVICE_Context`
+ * @param cls the `struct LEGACY_SERVICE_Context`
  */
 static void
 shutdown_task (void *cls)
 {
-  struct GNUNET_SERVICE_Context *service = cls;
+  struct LEGACY_SERVICE_Context *service = cls;
   struct GNUNET_SERVER_Handle *server = service->server;
 
   service->shutdown_task = NULL;
-  if (0 != (service->options & GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN))
+  if (0 != (service->options & LEGACY_SERVICE_OPTION_SOFT_SHUTDOWN))
     GNUNET_SERVER_stop_listening (server);
   else
     GNUNET_SERVER_destroy (server);
@@ -1141,7 +1141,7 @@ shutdown_task (void *cls)
 static void
 service_task (void *cls)
 {
-  struct GNUNET_SERVICE_Context *sctx = cls;
+  struct LEGACY_SERVICE_Context *sctx = cls;
   unsigned int i;
 
   GNUNET_RESOLVER_connect (sctx->cfg);
@@ -1174,7 +1174,7 @@ service_task (void *cls)
 #endif
 
 
-  if (0 == (sctx->options & GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN))
+  if (0 == (sctx->options & LEGACY_SERVICE_OPTION_MANUAL_SHUTDOWN))
   {
     /* install a task that will kill the server
      * process if the scheduler ever gets a shutdown signal */
@@ -1215,7 +1215,7 @@ service_task (void *cls)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-detach_terminal (struct GNUNET_SERVICE_Context *sctx)
+detach_terminal (struct LEGACY_SERVICE_Context *sctx)
 {
 #ifndef MINGW
   pid_t pid;
@@ -1296,7 +1296,7 @@ detach_terminal (struct GNUNET_SERVICE_Context *sctx)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-set_user_id (struct GNUNET_SERVICE_Context *sctx)
+set_user_id (struct LEGACY_SERVICE_Context *sctx)
 {
   char *user;
 
@@ -1342,7 +1342,7 @@ set_user_id (struct GNUNET_SERVICE_Context *sctx)
  * @param sctx service context
  */
 static void
-pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
+pid_file_delete (struct LEGACY_SERVICE_Context *sctx)
 {
   char *pif = get_pid_file_name (sctx);
 
@@ -1368,10 +1368,10 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  *         if we shutdown nicely
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv,
+LEGACY_SERVICE_run (int argc, char *const *argv,
                     const char *service_name,
-                    enum GNUNET_SERVICE_Options options,
-                    GNUNET_SERVICE_Main task,
+                    enum LEGACY_SERVICE_Options options,
+                    LEGACY_SERVICE_Main task,
                     void *task_cls)
 {
 #define HANDLE_ERROR do { GNUNET_break (0); goto shutdown; } while (0)
@@ -1387,7 +1387,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv,
   unsigned long long skew_offset;
   unsigned long long skew_variance;
   long long clock_offset;
-  struct GNUNET_SERVICE_Context sctx;
+  struct LEGACY_SERVICE_Context sctx;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   const char *xdg;
 
@@ -1548,15 +1548,15 @@ shutdown:
  * @param options service options
  * @return NULL on error, service handle
  */
-struct GNUNET_SERVICE_Context *
-GNUNET_SERVICE_start (const char *service_name,
+struct LEGACY_SERVICE_Context *
+LEGACY_SERVICE_start (const char *service_name,
                       const struct GNUNET_CONFIGURATION_Handle *cfg,
-		      enum GNUNET_SERVICE_Options options)
+		      enum LEGACY_SERVICE_Options options)
 {
   int i;
-  struct GNUNET_SERVICE_Context *sctx;
+  struct LEGACY_SERVICE_Context *sctx;
 
-  sctx = GNUNET_new (struct GNUNET_SERVICE_Context);
+  sctx = GNUNET_new (struct LEGACY_SERVICE_Context);
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1567,7 +1567,7 @@ GNUNET_SERVICE_start (const char *service_name,
   /* setup subsystems */
   if (GNUNET_OK != setup_service (sctx))
   {
-    GNUNET_SERVICE_stop (sctx);
+    LEGACY_SERVICE_stop (sctx);
     return NULL;
   }
   if (NULL != sctx->lsocks)
@@ -1581,7 +1581,7 @@ GNUNET_SERVICE_start (const char *service_name,
 
   if (NULL == sctx->server)
   {
-    GNUNET_SERVICE_stop (sctx);
+    LEGACY_SERVICE_stop (sctx);
     return NULL;
   }
 #ifndef WINDOWS
@@ -1611,7 +1611,7 @@ GNUNET_SERVICE_start (const char *service_name,
  * @return handle to the server for this service, NULL if there is none
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
+LEGACY_SERVICE_get_server (struct LEGACY_SERVICE_Context *ctx)
 {
   return ctx->server;
 }
@@ -1625,19 +1625,19 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
  *              array of listen sockets.
  */
 struct GNUNET_NETWORK_Handle *const*
-GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx)
+LEGACY_SERVICE_get_listen_sockets (struct LEGACY_SERVICE_Context *ctx)
 {
   return ctx->lsocks;
 }
 
 
 /**
- * Stop a service that was started with "GNUNET_SERVICE_start".
+ * Stop a service that was started with "LEGACY_SERVICE_start".
  *
  * @param sctx the service context returned from the start function
  */
 void
-GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
+LEGACY_SERVICE_stop (struct LEGACY_SERVICE_Context *sctx)
 {
   unsigned int i;
 

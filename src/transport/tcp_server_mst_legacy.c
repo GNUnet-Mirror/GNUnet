@@ -89,8 +89,8 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
   struct GNUNET_SERVER_MessageStreamTokenizer *ret;
 
   ret = GNUNET_new (struct GNUNET_SERVER_MessageStreamTokenizer);
-  ret->hdr = GNUNET_malloc (GNUNET_SERVER_MIN_BUFFER_SIZE);
-  ret->curr_buf = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  ret->hdr = GNUNET_malloc (GNUNET_MIN_MESSAGE_SIZE);
+  ret->curr_buf = GNUNET_MIN_MESSAGE_SIZE;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
   return ret;

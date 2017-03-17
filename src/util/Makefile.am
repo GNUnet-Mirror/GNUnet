@@ -30,9 +30,9 @@ W32CONSOLEHELPER = gnunet-helper-w32-console
 endif
 
 if !MINGW
- TEST_CLIENT_UNIC_NC = test_client_unix.nc
+ TEST_CLIENT_UNIX_NC = test_client_unix.nc
 else
- TEST_CLIENT_UNIC_NC =
+ TEST_CLIENT_UNIX_NC =
 endif
 
 if USE_COVERAGE
@@ -106,7 +106,7 @@ libgnunetutil_la_SOURCES = \
   program.c \
   resolver_api.c resolver.h \
   scheduler.c \
-  service_new.c \
+  service.c \
   signal.c \
   strings.c \
   time.c \

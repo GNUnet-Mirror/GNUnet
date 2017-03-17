@@ -2224,7 +2224,7 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
                              timeout,
                              MHD_OPTION_CONNECTION_MEMORY_LIMIT,
                              (size_t) (2 *
-                                       GNUNET_SERVER_MAX_MESSAGE_SIZE),
+                                       GNUNET_MAX_MESSAGE_SIZE),
                              MHD_OPTION_NOTIFY_COMPLETED,
                              &server_disconnect_cb, plugin,
                              MHD_OPTION_EXTERNAL_LOGGER,

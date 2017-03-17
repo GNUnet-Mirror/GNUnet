@@ -403,7 +403,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     len += addrlens[i];
   str_len = strlen (config_section) + 1;
   len += str_len;
-  if ( (len > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
+  if ( (len > GNUNET_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
        (num_addrs > UINT16_MAX) )
   {
     GNUNET_break (0);

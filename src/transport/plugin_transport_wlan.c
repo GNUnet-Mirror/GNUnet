@@ -744,7 +744,7 @@ send_ack (void *cls,
     GNUNET_break (0);
     return;
   }
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

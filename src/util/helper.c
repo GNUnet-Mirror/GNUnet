@@ -323,7 +323,7 @@ static void
 helper_read (void *cls)
 {
   struct GNUNET_HELPER_Handle *h = cls;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
+  char buf[GNUNET_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
   ssize_t t;
 
   h->read_task = NULL;

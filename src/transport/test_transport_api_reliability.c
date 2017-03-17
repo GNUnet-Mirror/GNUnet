@@ -217,7 +217,7 @@ notify_receive (void *cls,
 {
   static int n;
   unsigned int s;
-  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char cbuf[GNUNET_MAX_MESSAGE_SIZE - 1];
 
   if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
     return;

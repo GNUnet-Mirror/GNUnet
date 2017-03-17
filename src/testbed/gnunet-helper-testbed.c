@@ -495,7 +495,7 @@ error:
 static void
 read_task (void *cls)
 {
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_MAX_MESSAGE_SIZE];
   ssize_t sread;
 
   read_task_id = NULL;

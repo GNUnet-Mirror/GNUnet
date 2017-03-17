@@ -79,7 +79,7 @@
 #include "gnunet_protocols.h"
 
 /**
- * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
+ * Maximum size of a GNUnet message (GNUNET_MAX_MESSAGE_SIZE)
  */
 #define MAX_SIZE 65536
 

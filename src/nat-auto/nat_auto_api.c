@@ -224,7 +224,7 @@ GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   buf = GNUNET_CONFIGURATION_serialize (cfg,
 					&size);
-  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*req))
+  if (size > GNUNET_MAX_MESSAGE_SIZE - sizeof (*req))
   {
     GNUNET_break (0);
     GNUNET_free (buf);

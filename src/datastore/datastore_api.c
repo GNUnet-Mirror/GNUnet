@@ -1001,7 +1001,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   struct DataMessage *dm;
   union QueueContext qc;
 
-  if (size + sizeof (*dm) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size + sizeof (*dm) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;
@@ -1212,7 +1212,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   union QueueContext qc;
 
-  if (sizeof (*dm) + size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (sizeof (*dm) + size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;

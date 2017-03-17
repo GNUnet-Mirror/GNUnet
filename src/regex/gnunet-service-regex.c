@@ -220,7 +220,7 @@ handle_search_result (void *cls,
   if ( (get_path_length >= 65536) ||
        (put_path_length >= 65536) ||
        ( (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity))
-       + sizeof (struct ResultMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+       + sizeof (struct ResultMessage) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

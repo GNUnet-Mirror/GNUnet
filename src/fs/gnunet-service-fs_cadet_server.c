@@ -289,7 +289,7 @@ handle_datastore_reply (void *cls,
     }
     return;
   }
-  if (msize > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize > GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     continue_writing (sc);

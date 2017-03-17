@@ -1596,7 +1596,7 @@ teardown_service (struct GNUNET_SERVICE_Handle *sh)
  * dropped. Additionally, clients can be dropped at any time using
  * #GNUNET_SERVICE_client_drop().
  *
- * The service must be stopped using #GNUNET_SERVICE_stoP().
+ * The service must be stopped using #GNUNET_SERVICE_stop().
  *
  * @param service_name name of the service to run
  * @param cfg configuration to use
@@ -1609,7 +1609,7 @@ teardown_service (struct GNUNET_SERVICE_Handle *sh)
  * @return NULL on error
  */
 struct GNUNET_SERVICE_Handle *
-GNUNET_SERVICE_starT (const char *service_name,
+GNUNET_SERVICE_start (const char *service_name,
                       const struct GNUNET_CONFIGURATION_Handle *cfg,
                       GNUNET_SERVICE_ConnectHandler connect_cb,
                       GNUNET_SERVICE_DisconnectHandler disconnect_cb,
@@ -1637,12 +1637,12 @@ GNUNET_SERVICE_starT (const char *service_name,
 
 
 /**
- * Stops a service that was started with #GNUNET_SERVICE_starT().
+ * Stops a service that was started with #GNUNET_SERVICE_start().
  *
  * @param srv service to stop
  */
 void
-GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv)
+GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Handle *srv)
 {
   struct GNUNET_SERVICE_Client *client;
 
@@ -1697,7 +1697,7 @@ GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv)
  * @return 0 on success, non-zero on error
  */
 int
-GNUNET_SERVICE_ruN_ (int argc,
+GNUNET_SERVICE_run_ (int argc,
                      char *const *argv,
                      const char *service_name,
                      enum GNUNET_SERVICE_Options options,

@@ -2061,7 +2061,7 @@ udp_plugin_send (void *cls,
   if ( (sizeof(struct IPv4UdpAddress) == s->address->address_length) &&
        (NULL == plugin->sockv4) )
     return GNUNET_SYSERR;
-  if (udpmlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (udpmlen >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

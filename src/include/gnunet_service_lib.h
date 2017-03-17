@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013, 2016 GNUnet e.V.
+     Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -46,27 +46,6 @@ extern "C"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_mq_lib.h"
 
-/**
- * Largest supported message (to be precise, one byte more
- * than the largest possible message, so tests involving
- * this value should check for messages being smaller than
- * this value). NOTE: legacy name.
- */
-#define GNUNET_SERVER_MAX_MESSAGE_SIZE 65536
-
-/**
- * Smallest supported message. NOTE: legacy name.
- */
-#define GNUNET_SERVER_MIN_BUFFER_SIZE sizeof (struct GNUNET_MessageHeader)
-
-/**
- * Timeout we use on TCP connect before trying another
- * result from the DNS resolver.  Actual value used
- * is this value divided by the number of address families.
- * Default is 5s.  NOTE: legacy name.
- */
-#define GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
 
 /**
  * Options for the service (bitmask).
@@ -93,51 +72,6 @@ enum GNUNET_SERVICE_Options
   GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN = 2
 };
 
-
-
-
-/**
- * Opaque handle for a service.
- */
-struct GNUNET_SERVICE_Context;
-
-
-/**
- * Run a service startup sequence within an existing
- * initialized system.
- *
- * @param service_name our service name
- * @param cfg configuration to use
- * @param options service options
- * @return NULL on error, service handle
- * @deprecated
- */
-struct GNUNET_SERVICE_Context *
-GNUNET_SERVICE_start (const char *service_name,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg,
-		      enum GNUNET_SERVICE_Options options);
-
-
-/**
- * Get the NULL-terminated array of listen sockets for this service.
- *
- * @param ctx service context to query
- * @return NULL if there are no listen sockets, otherwise NULL-terminated
- *              array of listen sockets.
- * @deprecated
- */
-struct GNUNET_NETWORK_Handle *const *
-GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx);
-
-
-/**
- * Stop a service that was started with #GNUNET_SERVICE_start.
- *
- * @param sctx the service context returned from the start function
- * @deprecated
- */
-void
-GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 
 
 /* **************** NEW SERVICE API ********************** */
@@ -218,7 +152,7 @@ typedef void
  * dropped. Additionally, clients can be dropped at any time using
  * #GNUNET_SERVICE_client_drop().
  *
- * The service must be stopped using #GNUNET_SERVICE_stoP().
+ * The service must be stopped using #GNUNET_SERVICE_stop().
  *
  * @param service_name name of the service to run
  * @param cfg configuration to use
@@ -231,7 +165,7 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_SERVICE_Handle *
-GNUNET_SERVICE_starT (const char *service_name,
+GNUNET_SERVICE_start (const char *service_name,
                       const struct GNUNET_CONFIGURATION_Handle *cfg,
                       GNUNET_SERVICE_ConnectHandler connect_cb,
                       GNUNET_SERVICE_DisconnectHandler disconnect_cb,
@@ -240,12 +174,12 @@ GNUNET_SERVICE_starT (const char *service_name,
 
 
 /**
- * Stops a service that was started with #GNUNET_SERVICE_starT().
+ * Stops a service that was started with #GNUNET_SERVICE_start().
  *
  * @param srv service to stop
  */
 void
-GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv);
+GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Handle *srv);
 
 
 /**
@@ -290,7 +224,7 @@ GNUNET_SERVICE_stoP (struct GNUNET_SERVICE_Handle *srv);
  * @return 0 on success, non-zero on error
  */
 int
-GNUNET_SERVICE_ruN_ (int argc,
+GNUNET_SERVICE_run_ (int argc,
                      char *const *argv,
                      const char *service_name,
                      enum GNUNET_SERVICE_Options options,
@@ -366,7 +300,7 @@ GNUNET_SERVICE_ruN_ (int argc,
     struct GNUNET_MQ_MessageHandler mh[] = { \
       __VA_ARGS__ \
     };			      \
-    return GNUNET_SERVICE_ruN_ (argc, \
+    return GNUNET_SERVICE_run_ (argc, \
                                 argv, \
                                 service_name, \
                                 service_options, \

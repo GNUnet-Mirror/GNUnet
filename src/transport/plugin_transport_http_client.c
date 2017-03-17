@@ -1638,7 +1638,7 @@ client_connect_get (struct GNUNET_ATS_Session *s)
                     CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->get.easyhandle, CURLOPT_BUFFERSIZE,
-                    2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                    2 * GNUNET_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
   curl_easy_setopt (ps->recv_endpoint,
                     CURLOPT_TCP_NODELAY,
@@ -1815,7 +1815,7 @@ client_connect_put (struct GNUNET_ATS_Session *s)
                     CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->put.easyhandle, CURLOPT_BUFFERSIZE,
-                    2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                    2 * GNUNET_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
   curl_easy_setopt (s->put.easyhandle, CURLOPT_TCP_NODELAY, 1);
 #endif

@@ -520,7 +520,7 @@ run (void *cls,
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
 
   ret = 1;
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE <= benchmark_size)
+  if (GNUNET_MAX_MESSAGE_SIZE <= benchmark_size)
   {
     FPRINTF (stderr,
              "Message size too big!\n");

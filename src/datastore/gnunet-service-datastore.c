@@ -529,7 +529,7 @@ transmit_item (void *cls,
     return GNUNET_OK;
   }
   GNUNET_assert (sizeof (struct DataMessage) + size <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                 GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (dm,
                              size,
                              GNUNET_MESSAGE_TYPE_DATASTORE_DATA);

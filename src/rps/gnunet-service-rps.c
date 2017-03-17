@@ -1026,7 +1026,7 @@ client_respond (void *cls,
   size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
                 num_peers * sizeof (struct GNUNET_PeerIdentity);
 
-  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= size_needed);
+  GNUNET_assert (GNUNET_MAX_MESSAGE_SIZE >= size_needed);
 
   ev = GNUNET_MQ_msg_extra (out_msg,
                             num_peers * sizeof (struct GNUNET_PeerIdentity),
@@ -1067,7 +1067,7 @@ handle_client_request (void *cls,
   size_needed = sizeof (struct GNUNET_RPS_CS_RequestMessage) +
                 num_peers * sizeof (struct GNUNET_PeerIdentity);
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  if (GNUNET_MAX_MESSAGE_SIZE < size_needed)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Message received from client has size larger than expected\n");

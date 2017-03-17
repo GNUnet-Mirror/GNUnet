@@ -1045,7 +1045,7 @@ process_mst (struct GNUNET_SERVER_Client *client,
            GNUNET_STRINGS_relative_time_to_string (client->idle_timeout, GNUNET_YES));
       client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
-                                 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                                 GNUNET_MAX_MESSAGE_SIZE - 1,
                                  client->idle_timeout,
                                  &process_incoming,
                                  client);
@@ -1124,7 +1124,7 @@ process_incoming (void *cls,
          client);
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
-                               GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                               GNUNET_MAX_MESSAGE_SIZE - 1,
                                GNUNET_TIME_absolute_get_remaining (end),
                                &process_incoming,
                                client);
@@ -1200,7 +1200,7 @@ restart_processing (void *cls)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Server begins to read again from client.\n");
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
-                               GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                               GNUNET_MAX_MESSAGE_SIZE - 1,
                                client->idle_timeout,
                                &process_incoming,
                                client);
@@ -1288,7 +1288,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
     n->callback (n->callback_cls, client);
   client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
-                             GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                             GNUNET_MAX_MESSAGE_SIZE - 1,
                              client->idle_timeout,
                              &process_incoming,
                              client);

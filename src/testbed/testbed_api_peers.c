@@ -969,7 +969,7 @@ GNUNET_TESTBED_peer_manage_service (void *op_cls,
   GNUNET_assert (TESTBED_PS_STARTED == peer->state); /* peer is not running? */
   msize = strlen (service_name) + 1;
   msize += sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage);
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < msize)
+  if (GNUNET_MAX_MESSAGE_SIZE < msize)
     return NULL;
   data = GNUNET_new (struct ManageServiceData);
   data->cb = cb;

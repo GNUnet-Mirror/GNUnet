@@ -71,6 +71,21 @@ struct GNUNET_SERVER_TransmitHandle;
  */
 struct GNUNET_CONNECTION_Handle;
 
+/**
+ * @brief handle for a network service
+ */
+struct LEGACY_SERVICE_Context;
+
+
+/**
+ * Stops a service that was started with #GNUNET_SERVICE_start().
+ *
+ * @param srv service to stop
+ */
+void
+LEGACY_SERVICE_stop (struct LEGACY_SERVICE_Context *srv);
+
+
 
 /**
  * Function called to notify a client about the connection begin ready
@@ -269,6 +284,34 @@ struct GNUNET_SERVER_MessageHandler
 
 };
 
+
+/**
+ * Options for the service (bitmask).
+ */
+enum LEGACY_SERVICE_Options
+{
+  /**
+   * Use defaults.  Terminates all client connections and the listen
+   * sockets immediately upon receiving the shutdown signal.
+   */
+  LEGACY_SERVICE_OPTION_NONE = 0,
+
+  /**
+   * Do not trigger server shutdown on signal at all; instead, allow
+   * for the user to terminate the server explicitly when needed
+   * by calling #LEGACY_SERVICE_shutdown().
+   */
+  LEGACY_SERVICE_OPTION_MANUAL_SHUTDOWN = 1,
+
+  /**
+   * Trigger a SOFT server shutdown on signals, allowing active
+   * non-monitor clients to complete their transactions.
+   */
+  LEGACY_SERVICE_OPTION_SOFT_SHUTDOWN = 2
+};
+
+
+
 /**
  * Ask the server to disconnect from the given client.  This is the
  * same as passing #GNUNET_SYSERR to #GNUNET_SERVER_receive_done,
@@ -453,7 +496,7 @@ GNUNET_SERVER_client_drop (struct GNUNET_SERVER_Client *client);
  * @param cfg configuration to use
  */
 typedef void
-(*GNUNET_SERVICE_Main) (void *cls,
+(*LEGACY_SERVICE_Main) (void *cls,
                         struct GNUNET_SERVER_Handle *server,
                         const struct GNUNET_CONFIGURATION_Handle *cfg);
 
@@ -919,7 +962,7 @@ struct Plugin
   /**
    * Handle to the network service.
    */
-  struct GNUNET_SERVICE_Context *service;
+  struct LEGACY_SERVICE_Context *service;
 
   /**
    * Handle to the server for this service.
@@ -3733,7 +3776,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  struct GNUNET_SERVICE_Context *service;
+  struct LEGACY_SERVICE_Context *service;
   unsigned long long aport;
   unsigned long long bport;
   unsigned long long max_connections;
@@ -3788,9 +3831,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     aport = 0;
   if (0 != bport)
   {
-    service = GNUNET_SERVICE_start ("transport-tcp",
+    service = LEGACY_SERVICE_start ("transport-tcp",
                                     env->cfg,
-                                    GNUNET_SERVICE_OPTION_NONE);
+                                    LEGACY_SERVICE_OPTION_NONE);
     if (NULL == service)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -3821,7 +3864,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   {
 #ifdef TCP_STEALTH
     plugin->myoptions |= TCP_OPTIONS_TCP_STEALTH;
-    lsocks = GNUNET_SERVICE_get_listen_sockets (service);
+    lsocks = LEGACY_SERVICE_get_listen_sockets (service);
     if (NULL != lsocks)
     {
       uint32_t len = sizeof (struct WelcomeMessage);
@@ -3914,7 +3957,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->service = service;
   if (NULL != service)
   {
-    plugin->server = GNUNET_SERVICE_get_server (service);
+    plugin->server = LEGACY_SERVICE_get_server (service);
   }
   else
   {
@@ -3977,7 +4020,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     GNUNET_NAT_unregister (plugin->nat);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessionmap);
   if (NULL != service)
-    GNUNET_SERVICE_stop (service);
+    LEGACY_SERVICE_stop (service);
   GNUNET_free (plugin);
   GNUNET_free_non_null (api);
   return NULL;
@@ -4030,7 +4073,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   }
 
   if (NULL != plugin->service)
-    GNUNET_SERVICE_stop (plugin->service);
+    LEGACY_SERVICE_stop (plugin->service);
   else
     GNUNET_SERVER_destroy (plugin->server);
   GNUNET_free (plugin->handlers);

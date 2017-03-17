@@ -35,6 +35,15 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-client",__VA_ARGS__)
 
+/**
+ * Timeout we use on TCP connect before trying another
+ * result from the DNS resolver.  Actual value used
+ * is this value divided by the number of address families.
+ * Default is 5s.
+ */
+#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
 
 /**
  * Internal state for a client connected to a GNUnet service.
@@ -656,7 +665,7 @@ try_connect_using_address (void *cls,
   GNUNET_CONTAINER_DLL_insert (cstate->ap_head,
                                cstate->ap_tail,
                                ap);
-  ap->task = GNUNET_SCHEDULER_add_write_net (GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+  ap->task = GNUNET_SCHEDULER_add_write_net (CONNECT_RETRY_TIMEOUT,
 					     ap->sock,
 					     &connect_probe_continuation,
 					     ap);
@@ -760,7 +769,7 @@ start_connect (void *cls)
   cstate->dns_active
     = GNUNET_RESOLVER_ip_get (cstate->hostname,
 			      AF_UNSPEC,
-                              GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+                              CONNECT_RETRY_TIMEOUT,
                               &try_connect_using_address,
 			      cstate);
 }

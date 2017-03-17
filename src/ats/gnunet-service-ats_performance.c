@@ -85,7 +85,7 @@ notify_client (struct GNUNET_SERVICE_Client *client,
 
   if (NULL != prop)
     GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
-  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (msize < GNUNET_MAX_MESSAGE_SIZE);
   msg = (struct PeerInformationMessage *) buf;
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
