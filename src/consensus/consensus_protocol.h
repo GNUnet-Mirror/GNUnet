@@ -109,7 +109,7 @@ struct ConsensusElement
   /**
    * Is this a marker element?
    */
-  uint8_t marker GNUNET_PACKED;
+  uint8_t marker;
 
   /* rest: element data */
 };
@@ -117,7 +117,7 @@ struct ConsensusElement
 
 struct ConsensusSizeElement
 {
-  struct ConsensusElement ce GNUNET_PACKED;
+  struct ConsensusElement ce;
 
   uint64_t size GNUNET_PACKED;
   uint8_t sender_index;
@@ -125,7 +125,7 @@ struct ConsensusSizeElement
 
 struct ConsensusStuffedElement
 {
-  struct ConsensusElement ce GNUNET_PACKED;
+  struct ConsensusElement ce;
   struct GNUNET_HashCode rand GNUNET_PACKED;
 };
 

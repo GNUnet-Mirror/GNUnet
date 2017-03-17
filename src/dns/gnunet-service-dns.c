@@ -882,11 +882,10 @@ handle_client_response (void *cls,
  * message is received by the tokenizer from the DNS hijack process.
  *
  * @param cls closure
- * @param client identification of the client
  * @param message the actual message, a DNS request we should handle
  */
 static int
-process_helper_messages (void *cls GNUNET_UNUSED, void *client,
+process_helper_messages (void *cls,
 			 const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;

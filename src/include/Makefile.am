@@ -38,7 +38,6 @@ gnunetinclude_HEADERS = \
   gnunet_common.h \
   gnunet_constants.h \
   gnunet_configuration_lib.h \
-  gnunet_connection_lib.h \
   gnunet_consensus_service.h \
   gnunet_container_lib.h \
   gnunet_conversation_service.h \
@@ -107,7 +106,6 @@ gnunetinclude_HEADERS = \
   gnunet_scalarproduct_service.h \
   gnunet_scheduler_lib.h \
   gnunet_secretsharing_service.h \
-  gnunet_server_lib.h \
   gnunet_service_lib.h \
   gnunet_set_service.h \
   gnunet_signal_lib.h \

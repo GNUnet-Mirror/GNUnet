@@ -133,11 +133,10 @@ struct MstContext
  */
 static int
 broadcast_mst_cb (void *cls,
-                  void *client,
                   const struct GNUNET_MessageHeader *message)
 {
-  struct Plugin *plugin = cls;
-  struct MstContext *mc = client;
+  struct MstContext *mc = cls;
+  struct Plugin *plugin = mc->plugin;
   struct GNUNET_HELLO_Address *address;
   const struct GNUNET_MessageHeader *hello;
   const struct UDP_Beacon_Message *msg;
@@ -191,16 +190,20 @@ udp_broadcast_receive (struct Plugin *plugin,
                        size_t udp_addr_len,
                        enum GNUNET_ATS_Network_Type network_type)
 {
+  struct GNUNET_MessageStreamTokenizer *broadcast_mst;
   struct MstContext mc;
 
+  broadcast_mst = GNUNET_MST_create (&broadcast_mst_cb,
+                                     &mc);
+  mc.plugin = plugin;
   mc.udp_addr = udp_addr;
   mc.udp_addr_len = udp_addr_len;
   mc.ats_address_network_type = network_type;
-  GNUNET_SERVER_mst_receive (plugin->broadcast_mst,
-                             &mc,
-                             buf, size,
-                             GNUNET_NO,
-                             GNUNET_NO);
+  GNUNET_MST_from_buffer (broadcast_mst,
+                          buf, size,
+                          GNUNET_NO,
+                          GNUNET_NO);
+  GNUNET_MST_destroy (broadcast_mst);
 }
 
 
@@ -546,10 +549,6 @@ setup_broadcast (struct Plugin *plugin,
     return;
   }
 
-  /* always create tokenizers */
-  plugin->broadcast_mst =
-    GNUNET_SERVER_mst_create (&broadcast_mst_cb, plugin);
-
   if (GNUNET_YES != plugin->enable_broadcasting)
     return; /* We do not send, just receive */
 
@@ -635,13 +634,6 @@ stop_broadcast (struct Plugin *plugin)
       GNUNET_free (p->addr);
       GNUNET_free (p);
     }
-  }
-
-  /* Destroy MSTs */
-  if (NULL != plugin->broadcast_mst)
-  {
-    GNUNET_SERVER_mst_destroy (plugin->broadcast_mst);
-    plugin->broadcast_mst = NULL;
   }
 }
 

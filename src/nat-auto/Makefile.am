@@ -37,11 +37,11 @@ lib_LTLIBRARIES = \
 
 libgnunetnatauto_la_SOURCES = \
   nat_auto_api.c \
-  nat_auto_api_test.c 
+  nat_auto_api_test.c
 libgnunetnatauto_la_LIBADD = \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) @EXT_LIBS@ 
+  $(GN_LIBINTL) @EXT_LIBS@
 libgnunetnatauto_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
@@ -55,4 +55,3 @@ gnunet_service_nat_auto_LDADD = \
   $(LIBGCRYPT_LIBS) \
   -lgcrypt \
   $(GN_LIBINTL)
-

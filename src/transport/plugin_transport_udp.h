@@ -164,11 +164,6 @@ struct Plugin
   struct GNUNET_SCHEDULER_Task *select_task_v6;
 
   /**
-   * Tokenizer for inbound messages.
-   */
-  struct GNUNET_SERVER_MessageStreamTokenizer *mst;
-
-  /**
    * Bandwidth tracker to limit global UDP traffic.
    */
   struct GNUNET_BANDWIDTH_Tracker tracker;
@@ -192,7 +187,7 @@ struct Plugin
    * Handle to NAT traversal support.
    */
   struct GNUNET_NAT_STUN_Handle *stun;
-  
+
   /**
    * The read socket for IPv4
    */
@@ -202,11 +197,6 @@ struct Plugin
    * The read socket for IPv6
    */
   struct GNUNET_NETWORK_Handle *sockv6;
-
-  /**
-   * Tokenizer for inbound messages.
-   */
-  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_mst;
 
   /**
    * Head of DLL of broadcast addresses

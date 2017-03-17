@@ -2905,12 +2905,10 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
  * Receive packets from the helper-process
  *
  * @param cls unused
- * @param client unsued
  * @param message message received from helper
  */
 static int
 message_token (void *cls GNUNET_UNUSED,
-               void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;

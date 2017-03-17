@@ -69,7 +69,7 @@ gnunet_service_cadet_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
-  gnunet_service_cadet_new_LDFLAGS = -lrt
+  gnunet_service_cadet_LDFLAGS = -lrt
 endif
 
 

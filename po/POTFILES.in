@@ -402,6 +402,10 @@ src/transport/plugin_transport_udp_broadcasting.c
 src/transport/plugin_transport_udp.c
 src/transport/plugin_transport_unix.c
 src/transport/plugin_transport_wlan.c
+src/transport/tcp_connection_legacy.c
+src/transport/tcp_server_legacy.c
+src/transport/tcp_server_mst_legacy.c
+src/transport/tcp_service_legacy.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api_core.c
@@ -425,7 +429,6 @@ src/util/common_endian.c
 src/util/common_logging.c
 src/util/configuration.c
 src/util/configuration_loader.c
-src/util/connection.c
 src/util/container_bloomfilter.c
 src/util/container_heap.c
 src/util/container_meta_data.c
@@ -472,11 +475,9 @@ src/util/plugin.c
 src/util/program.c
 src/util/resolver_api.c
 src/util/scheduler.c
-src/util/server.c
 src/util/server_mst.c
 src/util/server_nc.c
 src/util/server_tc.c
-src/util/service.c
 src/util/service_new.c
 src/util/signal.c
 src/util/socks.c

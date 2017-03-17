@@ -44,22 +44,28 @@ extern "C"
 #endif
 
 #include "gnunet_configuration_lib.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_mq_lib.h"
 
+/**
+ * Largest supported message (to be precise, one byte more
+ * than the largest possible message, so tests involving
+ * this value should check for messages being smaller than
+ * this value). NOTE: legacy name.
+ */
+#define GNUNET_SERVER_MAX_MESSAGE_SIZE 65536
 
 /**
- * Function called by the service's run
- * method to run service-specific setup code.
- *
- * @param cls closure
- * @param server the initialized server
- * @param cfg configuration to use
+ * Smallest supported message. NOTE: legacy name.
  */
-typedef void
-(*GNUNET_SERVICE_Main) (void *cls,
-                        struct GNUNET_SERVER_Handle *server,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg);
+#define GNUNET_SERVER_MIN_BUFFER_SIZE sizeof (struct GNUNET_MessageHeader)
+
+/**
+ * Timeout we use on TCP connect before trying another
+ * result from the DNS resolver.  Actual value used
+ * is this value divided by the number of address families.
+ * Default is 5s.  NOTE: legacy name.
+ */
+#define GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
@@ -88,27 +94,6 @@ enum GNUNET_SERVICE_Options
 };
 
 
-/**
- * Run a standard GNUnet service startup sequence (initialize loggers
- * and configuration, parse options).
- *
- * @param argc number of command line arguments in @a argv
- * @param argv command line arguments
- * @param service_name our service name
- * @param options service options
- * @param task main task of the service
- * @param task_cls closure for @a task
- * @return #GNUNET_SYSERR on error, #GNUNET_OK
- *         if we shutdown nicely
- * @deprecated
- */
-int
-GNUNET_SERVICE_run (int argc,
-                    char *const *argv,
-		    const char *service_name,
-                    enum GNUNET_SERVICE_Options options,
-		    GNUNET_SERVICE_Main task,
-		    void *task_cls);
 
 
 /**
@@ -131,18 +116,6 @@ struct GNUNET_SERVICE_Context *
 GNUNET_SERVICE_start (const char *service_name,
                       const struct GNUNET_CONFIGURATION_Handle *cfg,
 		      enum GNUNET_SERVICE_Options options);
-
-
-/**
- * Obtain the server used by a service.  Note that the server must NOT
- * be destroyed by the caller.
- *
- * @param ctx the service context returned from the start function
- * @return handle to the server for this service, NULL if there is none
- * @deprecated
- */
-struct GNUNET_SERVER_Handle *
-GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
 
 
 /**
