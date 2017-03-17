@@ -349,25 +349,41 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'C', "create", "NAME",
-     gettext_noop ("create ego NAME"),
-     1, &GNUNET_GETOPT_set_string, &create_ego},
-    {'D', "delete", "NAME",
-     gettext_noop ("delete ego NAME "),
-     1, &GNUNET_GETOPT_set_string, &delete_ego},
-    {'d', "display", NULL,
-     gettext_noop ("display all egos"),
-     0, &GNUNET_GETOPT_set_one, &list},
-    {'e', "ego", "NAME",
-     gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"),
-     1, &GNUNET_GETOPT_set_string, &set_ego},
-    {'m', "monitor", NULL,
-     gettext_noop ("run in monitor mode egos"),
-     0, &GNUNET_GETOPT_set_one, &monitor},
-    {'s', "set", "SUBSYSTEM",
-     gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
-     1, &GNUNET_GETOPT_set_string, &set_subsystem},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_STRING ('C',
+                                 "create",
+                                 "NAME",
+                                 gettext_noop ("create ego NAME"),
+                                 &create_ego),
+
+    GNUNET_GETOPT_OPTION_STRING ('D',
+                                 "delete",
+                                 "NAME",
+                                 gettext_noop ("delete ego NAME "),
+                                 &delete_ego),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "display",
+                                  gettext_noop ("display all egos"),
+                                  &list),
+    
+    GNUNET_GETOPT_OPTION_STRING ('e',
+                                 "ego",
+                                 "NAME",
+                                 gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"),
+                                 &set_ego),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('m',
+                                  "monitor",
+                                  gettext_noop ("run in monitor mode egos"),
+                                  &monitor),
+
+    GNUNET_GETOPT_OPTION_STRING ('s',
+                                 "set",
+                                 "SUBSYSTEM",
+                                 gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
+                                 &set_subsystem),
+
     GNUNET_GETOPT_OPTION_END
   };
   int res;

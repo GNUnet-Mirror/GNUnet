@@ -72,7 +72,7 @@ static char *remote_addr;
 /**
  * Should we actually bind to #bind_addr and receive and process STUN requests?
  */
-static unsigned int do_stun;
+static int do_stun;
 
 /**
  * Handle to NAT operation.
@@ -417,29 +417,46 @@ int
 main (int argc,
       char *const argv[])
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'i', "in", "ADDRESS",
-     gettext_noop ("which IP and port are we locally using to bind/listen to"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &local_addr },
-    {'r', "remote", "ADDRESS",
-     gettext_noop ("which remote IP and port should be asked for connection reversal"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &remote_addr },
-    {'S', "section", NULL,
-     gettext_noop ("name of configuration section to find additional options, such as manual host punching data"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &section_name },
-    {'s', "stun", NULL,
-     gettext_noop ("enable STUN processing"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &do_stun },
-    {'t', "tcp", NULL,
-     gettext_noop ("use TCP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },
-    {'u', "udp", NULL,
-     gettext_noop ("use UDP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_udp },
-    {'W', "watch", NULL,
-     gettext_noop ("watch for connection reversal requests"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &listen_reversal },
-   GNUNET_GETOPT_OPTION_END
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('i',
+                                 "in",
+                                 "ADDRESS",
+                                 gettext_noop ("which IP and port are we locally using to bind/listen to"),
+                                 &local_addr),
+
+    GNUNET_GETOPT_OPTION_STRING ('r',
+                                 "remote",
+                                 "ADDRESS",
+                                 gettext_noop ("which remote IP and port should be asked for connection reversal"),
+                                 &remote_addr),
+
+    GNUNET_GETOPT_OPTION_STRING ('S',
+                                 "section",
+                                 NULL,
+                                 gettext_noop ("name of configuration section to find additional options, such as manual host punching data"),
+                                 &section_name),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "stun",
+                                  gettext_noop ("enable STUN processing"),
+                                  &do_stun),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+                                  "tcp",
+                                  gettext_noop ("use TCP"),
+                                  &use_tcp),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+                                  "udp",
+                                  gettext_noop ("use UDP"),
+                                  &use_udp),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('W',
+                                  "watch",
+                                  gettext_noop ("watch for connection reversal requests"),
+                                  &listen_reversal),
+    GNUNET_GETOPT_OPTION_END
   };
 
   if (GNUNET_OK !=

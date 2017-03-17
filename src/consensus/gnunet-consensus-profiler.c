@@ -515,31 +515,55 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-      { 'n', "num-peers", NULL,
-        gettext_noop ("number of peers in consensus"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
-      { 'k', "value-replication", NULL,
-        gettext_noop ("how many peers (random selection without replacement) receive one value?"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &replication },
-      { 'x', "num-values", NULL,
-        gettext_noop ("number of values"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_values },
-      { 't', "timeout", NULL,
-        gettext_noop ("consensus timeout"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &conclude_timeout },
-      { 'd', "delay", NULL,
-        gettext_noop ("delay until consensus starts"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &consensus_delay },
-      { 's', "statistics", NULL,
-        gettext_noop ("write statistics to file"),
-        GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
-      { 'S', "dist-static", NULL,
-        gettext_noop ("distribute elements to a static subset of good peers"),
-        GNUNET_YES, &GNUNET_GETOPT_set_one, &dist_static },
-      { 'V', "verbose", NULL,
-        gettext_noop ("be more verbose (print received values)"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
+   struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('n',
+                                     "num-peers",
+                                     NULL,
+                                     gettext_noop ("number of peers in consensus"),
+                                     &num_peers),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('k',
+                                     "value-replication",
+                                     NULL,
+                                     gettext_noop ("how many peers (random selection without replacement) receive one value?"),
+                                     &replication),
+
+      GNUNET_GETOPT_OPTION_SET_UINT ('x',
+                                     "num-values",
+                                     NULL,
+                                     gettext_noop ("number of values"),
+                                     &num_values),
+
+      GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+                                              "timeout",
+                                              NULL,
+                                              gettext_noop ("consensus timeout"),
+                                              &conclude_timeout),
+
+
+      GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('d',
+                                              "delay",
+                                              NULL,
+                                              gettext_noop ("delay until consensus starts"),
+                                              &consensus_delay),
+
+      GNUNET_GETOPT_OPTION_FILENAME ('s',
+                                     "statistics",
+                                     "FILENAME",
+                                     gettext_noop ("write statistics to file"),
+                                     &statistics_filename),
+
+      GNUNET_GETOPT_OPTION_SET_ONE ('S',
+                                    "dist-static",
+                                    gettext_noop ("distribute elements to a static subset of good peers"),
+                                    &dist_static),
+
+      GNUNET_GETOPT_OPTION_SET_ONE ('V',
+                                    "verbose",
+                                    gettext_noop ("be more verbose (print received values)"),
+                                    &verbose),
+
       GNUNET_GETOPT_OPTION_END
   };
   conclude_timeout = GNUNET_TIME_UNIT_SECONDS;

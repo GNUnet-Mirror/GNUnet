@@ -63,7 +63,7 @@ static char *section_name;
 /**
  * Should we run autoconfiguration?
  */
-static unsigned int do_auto;
+static int do_auto;
 
 /**
  * Handle to a NAT test operation.
@@ -339,22 +339,32 @@ int
 main (int argc,
       char *const argv[])
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "auto", NULL,
-     gettext_noop ("run autoconfiguration"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &do_auto },
-    {'S', "section", "NAME",
-     gettext_noop ("section name providing the configuration for the adapter"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &section_name },
-    {'t', "tcp", NULL,
-     gettext_noop ("use TCP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },
-    {'u', "udp", NULL,
-     gettext_noop ("use UDP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_udp },
-    {'w', "write", NULL,
-     gettext_noop ("write configuration file (for autoconfiguration)"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &write_cfg },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_ONE ('a',
+                                  "auto",
+                                  gettext_noop ("run autoconfiguration"),
+                                  &do_auto),
+
+    GNUNET_GETOPT_OPTION_STRING ('S',
+                                 "section",
+                                 "NAME",
+                                 gettext_noop ("section name providing the configuration for the adapter"),
+                                 &section_name),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+                                   "tcp",
+                                   gettext_noop ("use TCP"),
+                                   &use_tcp),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+                                   "udp",
+                                   gettext_noop ("use UDP"),
+                                   &use_udp),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('w',
+                                   "write",
+                                   gettext_noop ("write configuration file (for autoconfiguration)"),
+                                   &write_cfg),
     GNUNET_GETOPT_OPTION_END
   };
 
