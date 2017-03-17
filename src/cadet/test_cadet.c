@@ -948,6 +948,7 @@ tmain (void *cls,
 int
 main (int argc, char *argv[])
 {
+  static const struct GNUNET_HashCode *ports[2];
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (data,
                            GNUNET_MESSAGE_TYPE_DUMMY,
@@ -955,13 +956,9 @@ main (int argc, char *argv[])
                            NULL),
     GNUNET_MQ_handler_end ()
   };
-
-  initialized = GNUNET_NO;
-  static const struct GNUNET_HashCode *ports[2];
   const char *config_file;
   char port_id[] = "test port";
-
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
                                             "time",
                                             "short_time",
@@ -977,6 +974,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+
+  initialized = GNUNET_NO;
   GNUNET_log_setup ("test", "DEBUG", NULL);
 
   total_packets = TOTAL_PACKETS;
