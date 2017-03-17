@@ -116,13 +116,13 @@ static char *opt_data;
 static char *opt_name;
 
 /** --start */
-static uint64_t opt_start;
+static unsigned long long opt_start;
 
 /** --until */
-static uint64_t opt_until;
+static unsigned long long opt_until;
 
 /** --limit */
-static long long unsigned int opt_limit;
+static unsigned long long opt_limit;
 
 
 /* global vars */
@@ -1318,7 +1318,7 @@ main (int argc, char *const *argv)
                                  "gns",
                                  "GNS_NAME",
                                  gettext_noop ("GNS name"),
-                                 &opt_gns), 
+                                 &opt_gns),
 
     GNUNET_GETOPT_OPTION_STRING ('i',
                                  "peer",
