@@ -41,9 +41,9 @@ static struct GNUNET_RPS_Handle *rps_handle;
 static struct GNUNET_RPS_Request_Handle *req_handle;
 
 /**
- * PeerID in string representation (Option --seed)
+ * PeerID (Option --seed)
  */
-static char *peer_id_str;
+static struct GNUNET_PeerIdentity peer_id;
 
 
 /**
@@ -103,11 +103,13 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static uint64_t num_peers;
-  struct GNUNET_PeerIdentity peer_id;
+  struct GNUNET_PeerIdentity zero_pid;
 
   rps_handle = GNUNET_RPS_connect (cfg);
 
-  if (NULL == peer_id_str)
+  if (0 == memcmp (&zero_pid,
+                   &peer_id,
+                   sizeof (peer_id)))
   { /* Request n PeerIDs */
     /* If number was specified use it, else request single peer. */
     num_peers = (NULL == args[0]) ? 1 : atoi (args[0]);
@@ -118,16 +120,6 @@ run (void *cls,
   }
   else
   { /* Seed PeerID */
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id_str,
-                                                    strlen (peer_id_str),
-                                                    &peer_id.public_key))
-    {
-      FPRINTF (stderr,
-               _("Failed to parse peer identity `%s'\n"),
-               peer_id_str);
-      return;
-    }
     GNUNET_RPS_seed_ids (rps_handle, 1, &peer_id);
     FPRINTF (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (&peer_id));
     ret = 0;
@@ -148,11 +140,11 @@ main (int argc, char *const *argv)
   const char helpstr[] =
     "Get random GNUnet peers. If none is specified a single is requested.";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_STRING ('s',
-                                 "seed",
-                                 "PEER_ID",
-                                 gettext_noop ("Seed a PeerID"),
-                                 &peer_id_str),
+    GNUNET_GETOPT_OPTION_SET_BASE32_AUTO ('s',
+                                          "seed",
+                                          "PEER_ID",
+                                          gettext_noop ("Seed a PeerID"),
+                                          &peer_id),
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
