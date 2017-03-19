@@ -103,7 +103,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static uint64_t num_peers;
-  struct GNUNET_PeerIdentity zero_pid;
+  static struct GNUNET_PeerIdentity zero_pid;
 
   rps_handle = GNUNET_RPS_connect (cfg);
 
