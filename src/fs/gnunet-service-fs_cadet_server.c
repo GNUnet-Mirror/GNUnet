@@ -345,12 +345,13 @@ handle_request (void *cls,
 			    GNUNET_NO);
   refresh_timeout_task (sc);
   sc->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
-				     0,
-				     &sqm->query,
-				     ntohl (sqm->type),
-				     0 /* priority */,
-				     GSF_datastore_queue_size,
-				     &handle_datastore_reply,
+                                     0 /* next_uid */,
+                                     false /* random */,
+                                     &sqm->query,
+                                     ntohl (sqm->type),
+                                     0 /* priority */,
+                                     GSF_datastore_queue_size,
+                                     &handle_datastore_reply,
                                      sc);
   if (NULL == sc->qe)
   {

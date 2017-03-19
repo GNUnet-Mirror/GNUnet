@@ -119,9 +119,14 @@ struct GetKeyMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
+  uint64_t next_uid GNUNET_PACKED;
+
+  /**
+   * If true return a random result
+   */
+  uint32_t random GNUNET_PACKED;
 
   /**
    * Desired key.
@@ -148,9 +153,14 @@ struct GetMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
+  uint64_t next_uid GNUNET_PACKED;
+
+  /**
+   * If true return a random result
+   */
+  uint32_t random GNUNET_PACKED;
 
 };
 
@@ -172,9 +182,9 @@ struct GetZeroAnonymityMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
+  uint64_t next_uid GNUNET_PACKED;
 
 };
 

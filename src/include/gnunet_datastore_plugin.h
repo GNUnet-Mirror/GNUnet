@@ -204,9 +204,9 @@ typedef void
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
- * @param key key to match, never NULL
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
+ * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
  *        Note that for DBlocks there is no difference
@@ -215,17 +215,18 @@ typedef void
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
- *        proc should be called with NULL if there is no result
+ *        will be called with NULL if nothing matches
  * @param proc_cls closure for @a proc
  */
 typedef void
 (*PluginGetKey) (void *cls,
-		 uint64_t offset,
-		 const struct GNUNET_HashCode *key,
-		 const struct GNUNET_HashCode *vhash,
-		 enum GNUNET_BLOCK_Type type,
-		 PluginDatumProcessor proc,
-		 void *proc_cls);
+                 uint64_t next_uid,
+                 bool random,
+                 const struct GNUNET_HashCode *key,
+                 const struct GNUNET_HashCode *vhash,
+                 enum GNUNET_BLOCK_Type type,
+                 PluginDatumProcessor proc,
+                 void *proc_cls);
 
 
 /**
@@ -285,23 +286,22 @@ typedef void
 
 
 /**
- * Select a single item from the datastore at the specified offset
- * (among those applicable).
+ * Select a single item from the datastore (among those applicable).
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
  *        Must not be zero (ANY).
- * @param proc function to call on the matching value
+ * @param proc function to call on the matching value;
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for @a proc
  */
 typedef void
 (*PluginGetType) (void *cls,
-		  uint64_t offset,
-		  enum GNUNET_BLOCK_Type type,
-		  PluginDatumProcessor proc,
-		  void *proc_cls);
+                  uint64_t next_uid,
+                  enum GNUNET_BLOCK_Type type,
+                  PluginDatumProcessor proc,
+                  void *proc_cls);
 
 
 /**
@@ -354,9 +354,6 @@ struct GNUNET_DATASTORE_PluginFunctions
 
   /**
    * Get datum (of the specified type) with anonymity level zero.
-   * This function is allowed to ignore the 'offset' argument
-   * and instead return a random result (with zero anonymity of
-   * the correct type) if implementing an offset is expensive.
    */
   PluginGetType get_zero_anonymity;
 

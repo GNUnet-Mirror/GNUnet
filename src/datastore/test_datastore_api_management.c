@@ -58,7 +58,6 @@ struct CpsRunContext
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   enum RunPhase phase;
-  uint64_t offset;
 };
 
 
@@ -159,7 +158,6 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity (i));
   GNUNET_assert (expiration.abs_value_us == get_expiration (i).abs_value_us);
-  crc->offset++;
   crc->i--;
   if (crc->i == 0)
     crc->phase = RP_DONE;
@@ -221,8 +219,13 @@ run_continuation (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-    GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1,
+    GNUNET_DATASTORE_get_key (datastore,
+                              0,
+                              false,
+                              &crc->key,
+                              get_type (crc->i),
+                              1,
+                              1,
                               &check_value,
                               crc);
     break;
@@ -230,8 +233,13 @@ run_continuation (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET(f)",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-    GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1,
+    GNUNET_DATASTORE_get_key (datastore,
+                              0,
+                              false,
+                              &crc->key,
+                              get_type (crc->i),
+                              1,
+                              1,
                               &check_nothing,
                               crc);
     break;

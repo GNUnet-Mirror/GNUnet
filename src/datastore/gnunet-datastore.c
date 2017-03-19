@@ -171,7 +171,7 @@ static void
 do_get ()
 {
   qe = GNUNET_DATASTORE_get_key (db_src,
-				 offset,
+				 0, false,
 				 NULL, GNUNET_BLOCK_TYPE_ANY,
 				 0, 1,
 				 &do_put, NULL);

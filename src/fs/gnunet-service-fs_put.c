@@ -72,9 +72,14 @@ struct PutOperator
   uint64_t zero_anonymity_count_estimate;
 
   /**
-   * Current offset when iterating the database.
+   * Count of results received from the database.
    */
-  uint64_t current_offset;
+  uint64_t result_count;
+
+  /**
+   * Next UID to request when iterating the database.
+   */
+  uint64_t next_uid;
 };
 
 
@@ -177,37 +182,43 @@ delay_dht_put_task (void *cls)
  */
 static void
 process_dht_put_content (void *cls,
-			 const struct GNUNET_HashCode * key,
-			 size_t size,
+                         const struct GNUNET_HashCode * key,
+                         size_t size,
                          const void *data,
-			 enum GNUNET_BLOCK_Type type,
-                         uint32_t priority, uint32_t anonymity,
-                         struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t priority,
+                         uint32_t anonymity,
+                         struct GNUNET_TIME_Absolute expiration,
+                         uint64_t uid)
 {
   struct PutOperator *po = cls;
 
   po->dht_qe = NULL;
   if (key == NULL)
   {
-    po->zero_anonymity_count_estimate = po->current_offset - 1;
-    po->current_offset = 0;
+    po->zero_anonymity_count_estimate = po->result_count;
+    po->result_count = 0;
+    po->next_uid = 0;
     po->dht_task = GNUNET_SCHEDULER_add_now (&delay_dht_put_task, po);
     return;
   }
+  po->result_count++;
+  po->next_uid = uid + 1;
   po->zero_anonymity_count_estimate =
-      GNUNET_MAX (po->current_offset, po->zero_anonymity_count_estimate);
+    GNUNET_MAX (po->result_count, po->zero_anonymity_count_estimate);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Retrieved block `%s' of type %u for DHT PUT\n", GNUNET_h2s (key),
               type);
   po->dht_put = GNUNET_DHT_put (GSF_dht,
                                 key,
                                 DEFAULT_PUT_REPLICATION,
-				GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                 type,
                                 size,
                                 data,
-				expiration,
-				&delay_dht_put_blocks, po);
+                                expiration,
+                                &delay_dht_put_blocks,
+                                po);
 }
 
 
@@ -223,10 +234,13 @@ gather_dht_put_blocks (void *cls)
 
   po->dht_task = NULL;
   po->dht_qe =
-      GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, po->current_offset++, 0,
+      GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh,
+                                           po->next_uid,
+                                           0,
                                            UINT_MAX,
                                            po->dht_put_type,
-                                           &process_dht_put_content, po);
+                                           &process_dht_put_content,
+                                           po);
   if (NULL == po->dht_qe)
     po->dht_task = GNUNET_SCHEDULER_add_now (&delay_dht_put_task, po);
 }
