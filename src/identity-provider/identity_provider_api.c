@@ -440,7 +440,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   size_t slen;
 
   slen = strlen (scopes) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -493,7 +493,7 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle
   ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
 
   slen = strlen (ticket_str) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct ExchangeMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct ExchangeMessage))
   {
     GNUNET_free (ticket_str);
     GNUNET_break (0);

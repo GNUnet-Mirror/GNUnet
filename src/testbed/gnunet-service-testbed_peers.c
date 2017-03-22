@@ -1137,14 +1137,8 @@ arm_req_string (enum GNUNET_ARM_RequestStatus rs)
   {
   case GNUNET_ARM_REQUEST_SENT_OK:
     return _("Message was sent successfully");
-  case GNUNET_ARM_REQUEST_CONFIGURATION_ERROR:
-    return _("Misconfiguration (can't connect to the ARM service)");
   case GNUNET_ARM_REQUEST_DISCONNECTED:
     return _("We disconnected from ARM before we could send a request");
-  case GNUNET_ARM_REQUEST_BUSY:
-    return _("ARM API is busy");
-  case GNUNET_ARM_REQUEST_TIMEOUT:
-    return _("Request timed out");
   }
   return _("Unknown request status");
 }

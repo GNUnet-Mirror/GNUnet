@@ -29,7 +29,7 @@
 #define GNUNET_SERVICE_CADET_PATHS_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet-service-cadet-new.h"
+#include "gnunet-service-cadet.h"
 
 /**
  * Create a peer path based on the result of a DHT lookup.  If we

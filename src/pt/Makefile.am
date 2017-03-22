@@ -25,7 +25,7 @@ gnunet_daemon_pt_SOURCES = \
  gnunet-daemon-pt.c
 gnunet_daemon_pt_LDADD = \
   $(top_builddir)/src/vpn/libgnunetvpn.la \
-  $(top_builddir)/src/cadet/libgnunetcadetnew.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \

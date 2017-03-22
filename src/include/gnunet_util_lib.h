@@ -38,10 +38,24 @@ extern "C"
 #endif
 #endif
 
+
+/**
+ * Largest supported message (to be precise, one byte more
+ * than the largest possible message, so tests involving
+ * this value should check for messages being smaller than
+ * this value).
+ */
+#define GNUNET_MAX_MESSAGE_SIZE 65536
+
+/**
+ * Smallest supported message.
+ */
+#define GNUNET_MIN_MESSAGE_SIZE sizeof (struct GNUNET_MessageHeader)
+
+
 #include "gnunet_crypto_lib.h"
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_bio_lib.h"
-#include "gnunet_connection_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_getopt_lib.h"
@@ -55,7 +69,6 @@ extern "C"
 #include "gnunet_plugin_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_strings_lib.h"

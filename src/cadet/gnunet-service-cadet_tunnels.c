@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/gnunet-service-cadet-new_tunnels.c
+ * @file cadet/gnunet-service-cadet_tunnels.c
  * @brief Information we track per tunnel.
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -34,13 +34,12 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_signatures.h"
-#include "gnunet-service-cadet-new.h"
 #include "cadet_protocol.h"
-#include "gnunet-service-cadet-new_channel.h"
-#include "gnunet-service-cadet-new_connection.h"
-#include "gnunet-service-cadet-new_tunnels.h"
-#include "gnunet-service-cadet-new_peer.h"
-#include "gnunet-service-cadet-new_paths.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnels.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
 
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-tun",__VA_ARGS__)
@@ -3082,10 +3081,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     break;
   }
 
-  GNUNET_STATISTICS_update (stats,
-                            "# received encrypted",
-                            1,
-                            GNUNET_NO);
   decrypted_size = -1;
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
@@ -3166,6 +3161,10 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
              &t->ax);
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+                            "# decrypted bytes",
+                            decrypted_size,
+                            GNUNET_NO);
 
   /* The MST will ultimately call #handle_decrypted() on each message. */
   t->current_ct = ct;
@@ -3217,6 +3216,10 @@ GCT_send (struct CadetTunnel *t,
                 &ax_msg[1],
                 message,
                 payload_size);
+  GNUNET_STATISTICS_update (stats,
+                            "# encrypted bytes",
+                            payload_size,
+                            GNUNET_NO);
   ax_msg->ax_header.Ns = htonl (t->ax.Ns++);
   ax_msg->ax_header.PNs = htonl (t->ax.PNs);
   /* FIXME: we should do this once, not once per message;

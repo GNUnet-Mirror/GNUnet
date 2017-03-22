@@ -812,6 +812,7 @@ start_process (struct ServiceList *sl,
                        "%s %s",
                        fin_options,
                        optpos);
+      GNUNET_free (fin_options);
       GNUNET_free (optpos);
     }
     else
@@ -2224,7 +2225,7 @@ main (int argc,
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD,
                                    &sighandler_child_death);
-  ret = GNUNET_SERVICE_ruN_ (argc,
+  ret = GNUNET_SERVICE_run_ (argc,
                              argv,
                              "arm",
                              GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN,

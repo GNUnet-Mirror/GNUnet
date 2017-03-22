@@ -319,7 +319,7 @@ send_get_known_results (struct GNUNET_DHT_GetHandle *gh,
   unsigned int max;
   unsigned int transmission_offset;
 
-  max = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*msg))
+  max = (GNUNET_MAX_MESSAGE_SIZE - sizeof (*msg))
     / sizeof (struct GNUNET_HashCode);
   transmission_offset = transmission_offset_start;
   while (transmission_offset < gh->seen_results_end)
@@ -704,9 +704,9 @@ check_client_result (void *cls,
     sizeof (struct GNUNET_PeerIdentity) * (get_path_length + put_path_length);
   if ( (msize < meta_length) ||
        (get_path_length >
-        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+        GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
        (put_path_length >
-        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) )
+        GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -998,8 +998,8 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_PutHandle *ph;
 
   msize = sizeof (struct GNUNET_DHT_ClientPutMessage) + size;
-  if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+  if ((msize >= GNUNET_MAX_MESSAGE_SIZE) ||
+      (size >= GNUNET_MAX_MESSAGE_SIZE))
   {
     GNUNET_break (0);
     return NULL;
@@ -1090,8 +1090,8 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   size_t msize;
 
   msize = sizeof (struct GNUNET_DHT_ClientGetMessage) + xquery_size;
-  if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (xquery_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+  if ((msize >= GNUNET_MAX_MESSAGE_SIZE) ||
+      (xquery_size >= GNUNET_MAX_MESSAGE_SIZE))
   {
     GNUNET_break (0);
     return NULL;

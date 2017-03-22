@@ -159,6 +159,11 @@ struct GNUNET_ATS_Session
   struct GNUNET_PeerIdentity target;
 
   /**
+   * Tokenizer for inbound messages.
+   */
+  struct GNUNET_MessageStreamTokenizer *mst;
+
+  /**
    * Plugin this session belongs to.
    */
   struct Plugin *plugin;
@@ -625,6 +630,11 @@ free_session (struct GNUNET_ATS_Session *s)
                                      NULL);
     GNUNET_free (s->frag_ctx);
     s->frag_ctx = NULL;
+  }
+  if (NULL != s->mst)
+  {
+    GNUNET_MST_destroy (s->mst);
+    s->mst = NULL;
   }
   GNUNET_free (s);
 }
@@ -1623,7 +1633,7 @@ enqueue (struct Plugin *plugin,
     GNUNET_break (0);
     return;
   }
-  if (plugin->bytes_in_buffer + udpw->msg_size > INT64_MAX)
+  if (plugin->bytes_in_buffer > INT64_MAX - udpw->msg_size)
   {
     GNUNET_break (0);
   }
@@ -2051,7 +2061,7 @@ udp_plugin_send (void *cls,
   if ( (sizeof(struct IPv4UdpAddress) == s->address->address_length) &&
        (NULL == plugin->sockv4) )
     return GNUNET_SYSERR;
-  if (udpmlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (udpmlen >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -2499,18 +2509,16 @@ read_process_ack (struct Plugin *plugin,
  * Message tokenizer has broken up an incomming message. Pass it on
  * to the service.
  *
- * @param cls the `struct Plugin *`
- * @param client the `struct GNUNET_ATS_Session *`
+ * @param cls the `struct GNUNET_ATS_Session *`
  * @param hdr the actual message
  * @return #GNUNET_OK (always)
  */
 static int
 process_inbound_tokenized_messages (void *cls,
-                                    void *client,
                                     const struct GNUNET_MessageHeader *hdr)
 {
-  struct Plugin *plugin = cls;
-  struct GNUNET_ATS_Session *session = client;
+  struct GNUNET_ATS_Session *session = cls;
+  struct Plugin *plugin = session->plugin;
 
   if (GNUNET_YES == session->in_destroy)
     return GNUNET_OK;
@@ -2626,6 +2634,8 @@ udp_plugin_create_session (void *cls,
   struct GNUNET_ATS_Session *s;
 
   s = GNUNET_new (struct GNUNET_ATS_Session);
+  s->mst = GNUNET_MST_create (&process_inbound_tokenized_messages,
+                              s);
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->target = address->peer;
@@ -2792,12 +2802,11 @@ process_udp_message (struct Plugin *plugin,
   GNUNET_free (address);
 
   s->rc++;
-  GNUNET_SERVER_mst_receive (plugin->mst,
-                             s,
-                             (const char *) &msg[1],
-                             ntohs (msg->header.size) - sizeof(struct UDPMessage),
-                             GNUNET_YES,
-                             GNUNET_NO);
+  GNUNET_MST_from_buffer (s->mst,
+                          (const char *) &msg[1],
+                          ntohs (msg->header.size) - sizeof(struct UDPMessage),
+                          GNUNET_YES,
+                          GNUNET_NO);
   s->rc--;
   if ( (0 == s->rc) &&
        (GNUNET_YES == s->in_destroy) )
@@ -3990,8 +3999,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->sessions = GNUNET_CONTAINER_multipeermap_create (16,
                                                       GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages,
-                                     p);
   GNUNET_BANDWIDTH_tracker_init (&p->tracker,
                                  NULL,
                                  NULL,
@@ -4008,7 +4015,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
         _("Failed to create UDP network sockets\n"));
     GNUNET_CONTAINER_multipeermap_destroy (p->sessions);
     GNUNET_CONTAINER_heap_destroy (p->defrag_ctxs);
-    GNUNET_SERVER_mst_destroy (p->mst);
     if (NULL != p->nat)
       GNUNET_NAT_unregister (p->nat);
     GNUNET_free (p);
@@ -4119,11 +4125,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                    NULL);
     GNUNET_CONTAINER_heap_destroy (plugin->defrag_ctxs);
     plugin->defrag_ctxs = NULL;
-  }
-  if (NULL != plugin->mst)
-  {
-    GNUNET_SERVER_mst_destroy (plugin->mst);
-    plugin->mst = NULL;
   }
   while (NULL != (udpw = plugin->ipv4_queue_head))
   {

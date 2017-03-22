@@ -489,7 +489,7 @@ connect_handler (void *cls,
     return NULL;
   size = strlen (hostlist_uri) + 1;
   if (size + sizeof (struct GNUNET_MessageHeader) >=
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;

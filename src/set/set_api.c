@@ -76,6 +76,8 @@ struct GNUNET_SET_Handle
 
   /**
    * Should the set be destroyed once all operations are gone?
+   * #GNUNET_SYSERR if #GNUNET_SET_destroy() must raise this flag,
+   * #GNUNET_YES if #GNUNET_SET_destroy() did raise this flag.
    */
   int destroy_requested;
 
@@ -308,6 +310,8 @@ handle_iter_element (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   uint16_t msize;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received element in set iteration\n");
   msize = ntohs (msg->header.size);
   if (set->iteration_id != ntohs (msg->iteration_id))
   {
@@ -344,11 +348,24 @@ handle_iter_done (void *cls,
   GNUNET_SET_ElementIterator iter = set->iterator;
 
   if (NULL == iter)
+  {
+    /* FIXME: if this is true, could cancel+start a fresh one
+       cause elements to go to the wrong iteration? */
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Service completed set iteration that was already cancelled\n");
     return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Set iteration completed\n");
+  set->destroy_requested = GNUNET_SYSERR;
   set->iterator = NULL;
   set->iteration_id++;
   iter (set->iterator_cls,
         NULL);
+  if (GNUNET_SYSERR == set->destroy_requested)
+    set->destroy_requested = GNUNET_NO;
+  if (GNUNET_YES == set->destroy_requested)
+    GNUNET_SET_destroy (set);
 }
 
 
@@ -385,7 +402,7 @@ handle_result (void *cls,
   int destroy_set;
 
   GNUNET_assert (NULL != set->mq);
-  result_status = ntohs (msg->result_status);
+  result_status = (enum GNUNET_SET_Status) ntohs (msg->result_status);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got result message with status %d\n",
        result_status);
@@ -500,6 +517,8 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
   struct GNUNET_SET_CancelMessage *m;
   struct GNUNET_MQ_Envelope *mqm;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Cancelling SET operation\n");
   if (NULL != set)
   {
     mqm = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_SET_CANCEL);
@@ -553,6 +572,9 @@ handle_client_set_error (void *cls,
 }
 
 
+/**
+ * FIXME.
+ */
 static struct GNUNET_SET_Handle *
 create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  enum GNUNET_SET_OperationType op,
@@ -611,7 +633,8 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT);
     copy_msg->cookie = *cookie;
   }
-  GNUNET_MQ_send (set->mq, mqm);
+  GNUNET_MQ_send (set->mq,
+                  mqm);
   return set;
 }
 
@@ -631,7 +654,16 @@ struct GNUNET_SET_Handle *
 GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op)
 {
-  return create_internal (cfg, op, NULL);
+  struct GNUNET_SET_Handle *set;
+
+  set = create_internal (cfg,
+                          op,
+                          NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating set %p for operation %d\n",
+       set,
+       op);
+  return set;
 }
 
 
@@ -657,8 +689,10 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "adding element of type %u\n", (unsigned) element->element_type);
-
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "adding element of type %u to set %p\n",
+       (unsigned int) element->element_type,
+       set);
   if (GNUNET_YES == set->invalid)
   {
     if (NULL != cont)
@@ -701,6 +735,9 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing element from set %p\n",
+       set);
   if (GNUNET_YES == set->invalid)
   {
     if (NULL != cont)
@@ -733,8 +770,9 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   /* destroying set while iterator is active is currently
      not supported; we should expand the API to allow
      clients to explicitly cancel the iteration! */
-  GNUNET_assert (NULL == set->iterator);
-  if (NULL != set->ops_head)
+  if ( (NULL != set->ops_head) ||
+       (NULL != set->iterator) ||
+       (GNUNET_SYSERR == set->destroy_requested) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Set operations are pending, delaying set destruction\n");
@@ -807,7 +845,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
         msg->force_delta = GNUNET_YES;
         break;
       default:
-        LOG (GNUNET_ERROR_TYPE_ERROR, 
+        LOG (GNUNET_ERROR_TYPE_ERROR,
              "Option with type %d not recognized\n", (int) opt->type);
     }
   }
@@ -870,7 +908,8 @@ handle_request (void *cls,
   struct GNUNET_SET_RejectMessage *rmsg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Processing incoming operation request\n");
+       "Processing incoming operation request with id %u\n",
+       ntohl (msg->accept_id));
   /* we got another valid request => reset the backoff */
   lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   req.accept_id = ntohl (msg->accept_id);
@@ -884,7 +923,8 @@ handle_request (void *cls,
   if (GNUNET_YES == req.accepted)
     return; /* the accept-case is handled in #GNUNET_SET_accept() */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Rejecting request\n");
+       "Rejected request %u\n",
+       ntohl (msg->accept_id));
   mqm = GNUNET_MQ_msg (rmsg,
                        GNUNET_MESSAGE_TYPE_SET_REJECT);
   rmsg->accept_reject_id = msg->accept_id;
@@ -974,6 +1014,9 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_SET_ListenHandle *lh;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting listener for app %s\n",
+       GNUNET_h2s (app_id));
   lh = GNUNET_new (struct GNUNET_SET_ListenHandle);
   lh->listen_cb = listen_cb;
   lh->listen_cls = listen_cls;
@@ -1000,7 +1043,8 @@ void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Canceling listener\n");
+       "Canceling listener %s\n",
+       GNUNET_h2s (&lh->app_id));
   if (NULL != lh->mq)
   {
     GNUNET_MQ_destroy (lh->mq);
@@ -1042,10 +1086,12 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
   GNUNET_assert (GNUNET_NO == request->accepted);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client accepts set operation (%d)\n",
-       result_mode);
+       "Client accepts set operation (%d) with id %u\n",
+       result_mode,
+       request->accept_id);
   request->accepted = GNUNET_YES;
-  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
+  mqm = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->accept_reject_id = htonl (request->accept_id);
   msg->result_mode = htonl (result_mode);
   oh = GNUNET_new (struct GNUNET_SET_OperationHandle);
@@ -1143,6 +1189,8 @@ GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *ev;
   struct SetCopyRequest *req;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating lazy copy of set\n");
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE);
   GNUNET_MQ_send (set->mq, ev);
 

@@ -37,7 +37,7 @@ static int ret;
 /**
  * Command line option 'verbose' set
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Handle to our configuration.
@@ -893,63 +893,98 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "anonymity", "LEVEL",
-     gettext_noop ("set the desired LEVEL of sender-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &bo.anonymity_level},
-    {'d', "disable-creation-time", NULL,
-     gettext_noop
-     ("disable adding the creation time to the metadata of the uploaded file"),
-     0, &GNUNET_GETOPT_set_one, &do_disable_creation_time},
-    {'D', "disable-extractor", NULL,
-     gettext_noop ("do not use libextractor to add keywords or metadata"),
-     0, &GNUNET_GETOPT_set_one, &disable_extractor},
-    {'e', "extract", NULL,
-     gettext_noop
-     ("print list of extracted keywords that would be used, but do not perform upload"),
-     0, &GNUNET_GETOPT_set_one, &extract_only},
-    {'k', "key", "KEYWORD",
-     gettext_noop
-     ("add an additional keyword for the top-level file or directory"
-      " (this option can be specified multiple times)"),
-     1, &GNUNET_FS_getopt_set_keywords, &topKeywords},
-    {'m', "meta", "TYPE:VALUE",
-     gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
-     1, &GNUNET_FS_getopt_set_metadata, &meta},
-    {'n', "noindex", NULL,
-     gettext_noop ("do not index, perform full insertion (stores entire "
-                   "file in encrypted form in GNUnet database)"),
-     0, &GNUNET_GETOPT_set_one, &do_insert},
-    {'N', "next", "ID",
-     gettext_noop
-     ("specify ID of an updated version to be published in the future"
-      " (for namespace insertions only)"),
-     1, &GNUNET_GETOPT_set_string, &next_id},
-    {'p', "priority", "PRIORITY",
-     gettext_noop ("specify the priority of the content"),
-     1, &GNUNET_GETOPT_set_uint, &bo.content_priority},
-    {'P', "pseudonym", "NAME",
-     gettext_noop
-     ("publish the files under the pseudonym NAME (place file into namespace)"),
-     1, &GNUNET_GETOPT_set_string, &pseudonym},
-    {'r', "replication", "LEVEL",
-     gettext_noop ("set the desired replication LEVEL"),
-     1, &GNUNET_GETOPT_set_uint, &bo.replication_level},
-    {'s', "simulate-only", NULL,
-     gettext_noop ("only simulate the process but do not do any "
-                   "actual publishing (useful to compute URIs)"),
-     0, &GNUNET_GETOPT_set_one, &do_simulate},
-    {'t', "this", "ID",
-     gettext_noop ("set the ID of this version of the publication"
-                   " (for namespace insertions only)"),
-     1, &GNUNET_GETOPT_set_string, &this_id},
-    {'u', "uri", "URI",
-     gettext_noop ("URI to be published (can be used instead of passing a "
-                   "file to add keywords to the file with the respective URI)"),
-     1, &GNUNET_GETOPT_set_string, &uri_string},
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+                                   "anonymity",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired LEVEL of sender-anonymity"),
+                                   &bo.anonymity_level),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "disable-creation-time",
+                                  gettext_noop ("disable adding the creation time to the "
+                                                "metadata of the uploaded file"),
+                                  &do_disable_creation_time),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('D',
+                                  "disable-extractor",
+                                  gettext_noop ("do not use libextractor to add keywords or metadata"),
+                                  &disable_extractor),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+                                  "extract",
+                                  gettext_noop ("print list of extracted keywords that would "
+                                                "be used, but do not perform upload"),
+                                  &extract_only),
+
+    GNUNET_FS_GETOPT_KEYWORDS ('k',
+                               "key",
+                               "KEYWORD",
+                               gettext_noop ("add an additional keyword for the top-level "
+                                             "file or directory (this option can be specified multiple times)"),
+                               &topKeywords),
+
+    GNUNET_FS_GETOPT_METADATA ('m',
+                               "meta",
+                               "TYPE:VALUE",
+                               gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
+                               &meta),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+                                  "noindex",
+                                  gettext_noop ("do not index, perform full insertion (stores "
+                                                "entire file in encrypted form in GNUnet database)"),
+                                  &do_insert),
+
+    GNUNET_GETOPT_OPTION_STRING ('N',
+                                 "next",
+                                 "ID",
+                                 gettext_noop ("specify ID of an updated version to be "
+                                               "published in the future (for namespace insertions only)"),
+                                 &next_id),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+                                   "priority",
+                                   "PRIORITY",
+                                   gettext_noop ("specify the priority of the content"),
+                                   &bo.content_priority),
+
+    GNUNET_GETOPT_OPTION_STRING ('P',
+                                 "pseudonym",
+                                 "NAME",
+                                 gettext_noop ("publish the files under the pseudonym "
+                                               "NAME (place file into namespace)"),
+                                 &pseudonym),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+                                   "replication",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired replication LEVEL"),
+                                   &bo.replication_level),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "simulate-only",
+                                  gettext_noop ("only simulate the process but do not do "
+                                                "any actual publishing (useful to compute URIs)"),
+                                  &do_simulate),
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "this",
+                                 "ID",
+                                 gettext_noop ("set the ID of this version of the publication "
+                                               "(for namespace insertions only)"),
+                                 &this_id),
+
+    GNUNET_GETOPT_OPTION_STRING ('u',
+                                 "uri",
+                                 "URI",
+                                 gettext_noop ("URI to be published (can be used instead of passing a "
+                                               "file to add keywords to the file with the respective URI)"),
+                                 &uri_string), 
+
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+
     GNUNET_GETOPT_OPTION_END
   };
   bo.expiration_time =

@@ -779,7 +779,6 @@ handle_cadet_hangup_message (void *cls,
   {
   case CS_CALLEE_INIT:
     GNUNET_break_op (0);
-    destroy_line_cadet_channels (ch);
     return;
   case CS_CALLEE_RINGING:
   case CS_CALLEE_CONNECTED:
@@ -1110,7 +1109,7 @@ handle_client_call_message (void *cls,
                                line->channel_tail,
                                ch);
   ch->status = CS_CALLER_CALLING;
-  ch->channel = GNUNET_CADET_channel_creatE (cadet,
+  ch->channel = GNUNET_CADET_channel_create (cadet,
                                              ch,
                                              &msg->target,
                                              &msg->line_port,
@@ -1264,7 +1263,7 @@ handle_client_register_message (void *cls,
   };
 
   line->line_port = msg->line_port;
-  line->port = GNUNET_CADET_open_porT (cadet,
+  line->port = GNUNET_CADET_open_port (cadet,
                                        &msg->line_port,
                                        &inbound_channel,
                                        line,
@@ -1307,7 +1306,7 @@ run (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_get_peer_identity (cfg,
                                                   &my_identity));
-  cadet = GNUNET_CADET_connecT (cfg);
+  cadet = GNUNET_CADET_connect (cfg);
   if (NULL == cadet)
   {
     GNUNET_break (0);

@@ -51,7 +51,7 @@ gnunet_set_ibf_profiler_LDADD = \
 
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c gnunet-service-set.h \
- gnunet-service-set_union.c \
+ gnunet-service-set_union.c gnunet-service-set_union.h \
  gnunet-service-set_intersection.c \
  ibf.c ibf.h \
  gnunet-service-set_union_strata_estimator.c gnunet-service-set_union_strata_estimator.h \
@@ -60,7 +60,7 @@ gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/cadet/libgnunetcadetnew.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   libgnunetset.la \
   $(GN_LIBINTL)

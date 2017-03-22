@@ -772,15 +772,15 @@ run (void *cls,
        && target_id != NULL)
   {
     FPRINTF (stderr,
-             _("You must NOT give a TARGET "
-               "when using 'request all' options\n"));
+             _("Extra arguments are not applicable "
+               "in combination with this option.\n"));
     return;
   }
 
   if (GNUNET_YES == dump)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "requesting debug dump\n");
+                "Requesting debug dump\n");
     job = GNUNET_SCHEDULER_add_now (&request_dump,
                                     NULL);
   }
@@ -829,7 +829,7 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting to CADET service\n");
-  mh = GNUNET_CADET_connecT (cfg);
+  mh = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
   if (NULL == mh)
@@ -844,7 +844,7 @@ run (void *cls,
     GNUNET_CRYPTO_hash (listen_port,
                         strlen (listen_port),
                         &porthash);
-    lp = GNUNET_CADET_open_porT (mh,
+    lp = GNUNET_CADET_open_port (mh,
                                  &porthash,
                                  &channel_incoming,
                                  NULL,
@@ -876,7 +876,7 @@ run (void *cls,
     GNUNET_CRYPTO_hash (target_port,
                         strlen(target_port),
                         &porthash);
-    ch = GNUNET_CADET_channel_creatE (mh,
+    ch = GNUNET_CADET_channel_create (mh,
                                       NULL,
                                       &pid,
                                       &porthash,
@@ -919,32 +919,55 @@ main (int argc,
       char *const *argv)
 {
   int res;
-  const char helpstr[] = "Create channels and retreive info about cadets status.";
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'C', "connection", "CONNECTION_ID",
-     gettext_noop ("provide information about a particular connection"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
-    {'e', "echo", NULL,
-     gettext_noop ("activate echo mode"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
-    {'d', "dump", NULL,
-     gettext_noop ("dump debug information to STDERR"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &dump},
-    {'o', "open-port", "PORT",
-     gettext_noop ("port to listen to"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
-    {'p', "peer", "PEER_ID",
-     gettext_noop ("provide information about a patricular peer"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &peer_id},
-    {'P', "peers", NULL,
-      gettext_noop ("provide information about all peers"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
-    {'t', "tunnel", "TUNNEL_ID",
-     gettext_noop ("provide information about a particular tunnel"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
-    {'T', "tunnels", NULL,
-     gettext_noop ("provide information about all tunnels"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &request_tunnels},
+  const char helpstr[] = "Create tunnels and retrieve info about CADET's status.";
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    /* I would use the terminology 'circuit' here...  --lynX */
+    GNUNET_GETOPT_OPTION_STRING ('C',
+                                 "connection",
+                                 "CONNECTION_ID",
+                                 gettext_noop ("Provide information about a particular connection"),
+                                 &conn_id),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+                                  "echo",
+                                  gettext_noop ("Activate echo mode"),
+                                  &echo), 
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "dump",
+                                  gettext_noop ("Dump debug information to STDERR"),
+                                  &dump),
+
+    GNUNET_GETOPT_OPTION_STRING ('o',
+                                 "open-port",
+                                 "SHARED_SECRET",
+                                 gettext_noop ("Listen for connections using a shared secret among sender and recipient"),
+                                 &listen_port),
+
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEER_ID",
+                                 gettext_noop ("Provide information about a patricular peer"),
+                                 &peer_id),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('P',
+                                  "peers",
+                                  gettext_noop ("Provide information about all peers"),
+                                  &request_peers),
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "tunnel",
+                                 "TUNNEL_ID",
+                                 gettext_noop ("Provide information about a particular tunnel"),
+                                 &tunnel_id),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('T',
+                                  "tunnels",
+                                  gettext_noop ("Provide information about all tunnels"),
+                                  &request_tunnels),
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -955,7 +978,7 @@ main (int argc,
     return 2;
 
   res = GNUNET_PROGRAM_run (argc, argv,
-                            "gnunet-cadet (OPTIONS | TARGET PORT)",
+                            "gnunet-cadet (OPTIONS | PEER_ID SHARED_SECRET)",
                             gettext_noop (helpstr),
                             options, &run, NULL);
 

@@ -56,7 +56,7 @@ PEERSTORE_create_record_mq_envelope (const char *sub_system,
                                      const char *key,
                                      const void *value,
                                      size_t value_size,
-                                     struct GNUNET_TIME_Absolute *expiry,
+                                     struct GNUNET_TIME_Absolute expiry,
                                      enum GNUNET_PEERSTORE_StoreOption options,
                                      uint16_t msg_type);
 

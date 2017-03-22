@@ -807,7 +807,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage);
 
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

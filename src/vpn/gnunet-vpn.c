@@ -78,7 +78,7 @@ static int udp;
 /**
  * Selected level of verbosity.
  */
-static int verbosity;
+static unsigned int verbosity;
 
 /**
  * Global return value.
@@ -286,33 +286,53 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'4', "ipv4", NULL,
-     gettext_noop ("request that result should be an IPv4 address"),
-     0, &GNUNET_GETOPT_set_one, &ipv4},
-    {'6', "ipv6", NULL,
-     gettext_noop ("request that result should be an IPv6 address"),
-     0, &GNUNET_GETOPT_set_one, &ipv6},
-    {'d', "duration", "TIME",
-     gettext_noop ("how long should the mapping be valid for new tunnels?"),
-     1, &GNUNET_GETOPT_set_relative_time, &duration},
-    {'i', "ip", "IP",
-     gettext_noop ("destination IP for the tunnel"),
-     1, &GNUNET_GETOPT_set_string, &target_ip},
-    {'p', "peer", "PEERID",
-     gettext_noop ("peer offering the service we would like to access"),
-     1, &GNUNET_GETOPT_set_string, &peer_id},
-    {'s', "service", "NAME",
-     gettext_noop ("name of the service we would like to access"),
-     1, &GNUNET_GETOPT_set_string, &service_name},
-    {'t', "tcp", NULL,
-     gettext_noop ("service is offered via TCP"),
-     0, &GNUNET_GETOPT_set_one, &tcp},
-    {'u', "udp", NULL,
-     gettext_noop ("service is offered via UDP"),
-     0, &GNUNET_GETOPT_set_one, &udp},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_ONE ('4',
+                                  "ipv4",
+                                  gettext_noop ("request that result should be an IPv4 address"),
+                                  &ipv4),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('6',
+                                  "ipv6",
+                                  gettext_noop ("request that result should be an IPv6 address"),
+                                  &ipv6),
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('d',
+                                            "duration",
+                                            "TIME",
+                                            gettext_noop ("how long should the mapping be valid for new tunnels?"),
+                                            &duration),
+
+    GNUNET_GETOPT_OPTION_STRING ('i',
+                                 "ip",
+                                 "IP",
+                                 gettext_noop ("destination IP for the tunnel"),
+                                 &target_ip),
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEERID",
+                                 gettext_noop ("peer offering the service we would like to access"),
+                                 &peer_id),
+
+    GNUNET_GETOPT_OPTION_STRING ('s', 
+                                 "service",
+                                 "NAME",
+                                 gettext_noop ("name of the service we would like to access"),
+                                 &service_name),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+                                  "tcp",
+                                  gettext_noop ("service is offered via TCP"),
+                                  &tcp),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+                                  "udp",
+                                  gettext_noop ("service is offered via UDP"),
+                                  &udp),
 
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

@@ -201,33 +201,6 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Update a value in the datastore.
- *
- * @param h handle to the datastore
- * @param uid identifier for the value
- * @param priority how much to increase the priority of the value
- * @param expiration new expiration value should be MAX of existing and this argument
- * @param queue_priority ranking of this request in the priority queue
- * @param max_queue_size at what queue size should this request be dropped
- *        (if other requests of higher priority are in the queue)
- * @param cont continuation to call when done
- * @param cont_cls closure for @a cont
- * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
- */
-struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
-                         uint64_t uid,
-                         uint32_t priority,
-                         struct GNUNET_TIME_Absolute expiration,
-                         unsigned int queue_priority,
-                         unsigned int max_queue_size,
-                         GNUNET_DATASTORE_ContinuationWithStatus cont,
-                         void *cont_cls);
-
-
-/**
  * Explicitly remove some content from the database.  @a cont will be
  * called with status #GNUNET_OK if content was removed, #GNUNET_NO if
  * no matching entry was found and #GNUNET_SYSERR on all other types
@@ -288,10 +261,8 @@ typedef void
  * will only be called once.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (modulo num-results); set to
- *               a random 64-bit value initially; then increment by
- *               one each time; detect that all results have been found by uid
- *               being again the first uid ever returned.
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
  * @param type desired type, 0 for any
  * @param queue_priority ranking of this request in the priority queue
@@ -305,7 +276,8 @@ typedef void
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
-                          uint64_t offset,
+                          uint64_t next_uid,
+                          bool random,
                           const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
@@ -316,16 +288,9 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
 
 /**
  * Get a single zero-anonymity value from the datastore.
- * Note that some implementations can ignore the 'offset' and
- * instead return a random zero-anonymity value.  In that case,
- * detecting the wrap-around based on a repeating UID is at best
- * probabilistic.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (modulo num-results); set to
- *               a random 64-bit value initially; then increment by
- *               one each time; detect that all results have been found by uid
- *               being again the first uid ever returned.
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
@@ -339,7 +304,7 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-                                     uint64_t offset,
+                                     uint64_t next_uid,
                                      unsigned int queue_priority,
                                      unsigned int max_queue_size,
                                      enum GNUNET_BLOCK_Type type,

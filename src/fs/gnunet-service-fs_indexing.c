@@ -438,7 +438,7 @@ GNUNET_FS_indexing_send_list (struct GNUNET_MQ_Handle *mq)
     fn = pos->filename;
     slen = strlen (fn) + 1;
     if (slen + sizeof (struct IndexInfoMessage) >=
-        GNUNET_SERVER_MAX_MESSAGE_SIZE)
+        GNUNET_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       break;

@@ -221,7 +221,7 @@ struct GNUNET_ATS_Session
   /**
    * Message stream tokenizer for incoming data
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
+  struct GNUNET_MessageStreamTokenizer *msg_tk;
 
   /**
    * Session timeout task
@@ -528,7 +528,7 @@ client_delete_session (struct GNUNET_ATS_Session *s)
                           GNUNET_TRANSPORT_SS_DONE);
   if (NULL != s->msg_tk)
   {
-    GNUNET_SERVER_mst_destroy (s->msg_tk);
+    GNUNET_MST_destroy (s->msg_tk);
     s->msg_tk = NULL;
   }
   GNUNET_HELLO_address_free (s->address);
@@ -1158,13 +1158,11 @@ client_wake_up (void *cls)
  * Callback for message stream tokenizer
  *
  * @param cls the session
- * @param client not used
  * @param message the message received
  * @return always #GNUNET_OK
  */
 static int
 client_receive_mst_cb (void *cls,
-                       void *client,
                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_ATS_Session *s = cls;
@@ -1274,14 +1272,13 @@ client_receive (void *stream,
     return CURL_WRITEFUNC_PAUSE;
   }
   if (NULL == s->msg_tk)
-    s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb,
-                                          s);
-  GNUNET_SERVER_mst_receive (s->msg_tk,
-                             s,
-                             stream,
-                             len,
-                             GNUNET_NO,
-                             GNUNET_NO);
+    s->msg_tk = GNUNET_MST_create (&client_receive_mst_cb,
+                                   s);
+  GNUNET_MST_from_buffer (s->msg_tk,
+                          stream,
+                          len,
+                          GNUNET_NO,
+                          GNUNET_NO);
   return len;
 }
 
@@ -1641,7 +1638,7 @@ client_connect_get (struct GNUNET_ATS_Session *s)
                     CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->get.easyhandle, CURLOPT_BUFFERSIZE,
-                    2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                    2 * GNUNET_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
   curl_easy_setopt (ps->recv_endpoint,
                     CURLOPT_TCP_NODELAY,
@@ -1818,7 +1815,7 @@ client_connect_put (struct GNUNET_ATS_Session *s)
                     CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->put.easyhandle, CURLOPT_BUFFERSIZE,
-                    2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                    2 * GNUNET_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
   curl_easy_setopt (s->put.easyhandle, CURLOPT_TCP_NODELAY, 1);
 #endif

@@ -171,7 +171,7 @@ static void
 do_get ()
 {
   qe = GNUNET_DATASTORE_get_key (db_src,
-				 offset,
+				 0, false,
 				 NULL, GNUNET_BLOCK_TYPE_ANY,
 				 0, 1,
 				 &do_put, NULL);
@@ -239,10 +239,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 's', "sourcecfg", "FILENAME",
-      gettext_noop ("specifies the configuration to use to access an alternative datastore; will merge that datastore into our current datastore"),
-      1, &GNUNET_GETOPT_set_filename, &alternative_cfg },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_FILENAME ('s',
+                                   "sourcecfg",
+                                   "FILENAME",
+                                   gettext_noop ("specifies the configuration to use to access an alternative datastore; will merge that datastore into our current datastore"),
+                                       &alternative_cfg),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

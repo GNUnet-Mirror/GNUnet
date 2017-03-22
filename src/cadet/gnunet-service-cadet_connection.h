@@ -1,6 +1,7 @@
+
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2001-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,557 +21,319 @@
 
 /**
  * @file cadet/gnunet-service-cadet_connection.h
- * @brief cadet service; dealing with connections
+ * @brief A connection is a live end-to-end messaging mechanism
+ *       where the peers are identified by a path and know how
+ *       to forward along the route using a connection identifier
+ *       for routing the data.
  * @author Bartlomiej Polot
- *
- * All functions in this file use the prefix GCC (GNUnet Cadet Connection)
+ * @author Christian Grothoff
  */
-
 #ifndef GNUNET_SERVICE_CADET_CONNECTION_H
 #define GNUNET_SERVICE_CADET_CONNECTION_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include "gnunet_util_lib.h"
+#include "gnunet-service-cadet.h"
+#include "gnunet-service-cadet_peer.h"
+#include "cadet_protocol.h"
 
 
 /**
- * All the states a connection can be in.
+ * Function called to notify tunnel about change in our readyness.
+ *
+ * @param cls closure
+ * @param is_ready #GNUNET_YES if the connection is now ready for transmission,
+ *                 #GNUNET_NO if the connection is no longer ready for transmission
  */
-enum CadetConnectionState
+typedef void
+(*GCC_ReadyCallback)(void *cls,
+                     int is_ready);
+
+
+/**
+ * Destroy a connection, called when the CORE layer is already done
+ * (i.e. has received a BROKEN message), but if we still have to
+ * communicate the destruction of the connection to the tunnel (if one
+ * exists).
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_core (struct CadetConnection *cc);
+
+
+/**
+ * Destroy a connection, called if the tunnel association with the
+ * connection was already broken, but we still need to notify the CORE
+ * layer about the breakage.
+ *
+ * @param cc connection to destroy
+ */
+void
+GCC_destroy_without_tunnel (struct CadetConnection *cc);
+
+
+/**
+ * Lookup a connection by its identifier.
+ *
+ * @param cid identifier to resolve
+ * @return NULL if connection was not found
+ */
+struct CadetConnection *
+GCC_lookup (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param off offset of @a destination on @a path
+ * @param options options for the connection
+ * @param ct which tunnel uses this connection
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection
+ */
+struct CadetConnection *
+GCC_create (struct CadetPeer *destination,
+            struct CadetPeerPath *path,
+            unsigned int off,
+            enum GNUNET_CADET_ChannelOption options,
+            struct CadetTConnection *ct,
+            GCC_ReadyCallback ready_cb,
+            void *ready_cb_cls);
+
+
+/**
+ * Create a connection to @a destination via @a path and
+ * notify @a cb whenever we are ready for more data.  This
+ * is an inbound tunnel, so we must use the existing @a cid
+ *
+ * @param destination where to go
+ * @param path which path to take (may not be the full path)
+ * @param options options for the connection
+ * @param ct which tunnel uses this connection
+ * @param ready_cb function to call when ready to transmit
+ * @param ready_cb_cls closure for @a cb
+ * @return handle to the connection, NULL if we already have
+ *         a connection that takes precedence on @a path
+ */
+struct CadetConnection *
+GCC_create_inbound (struct CadetPeer *destination,
+                    struct CadetPeerPath *path,
+                    enum GNUNET_CADET_ChannelOption options,
+                    struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                    GCC_ReadyCallback ready_cb,
+                    void *ready_cb_cls);
+
+
+/**
+ * Transmit message @a msg via connection @a cc.  Must only be called
+ * (once) after the connection has signalled that it is ready via the
+ * `ready_cb`.  Clients can also use #GCC_is_ready() to check if the
+ * connection is right now ready for transmission.
+ *
+ * @param cc connection identification
+ * @param env envelope with message to transmit;
+ *            the #GNUNET_MQ_notify_send() must not have yet been used
+ *            for the envelope.  Also, the message better match the
+ *            connection identifier of this connection...
+ */
+void
+GCC_transmit (struct CadetConnection *cc,
+              struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * A CREATE_ACK was received for this connection, process it.
+ *
+ * @param cc the connection that got the ACK.
+ */
+void
+GCC_handle_connection_create_ack (struct CadetConnection *cc);
+
+
+/**
+ * We got a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE for a
+ * connection that we already have.  Either our ACK got lost
+ * or something is fishy.  Consider retransmitting the ACK.
+ *
+ * @param cc connection that got the duplicate CREATE
+ */
+void
+GCC_handle_duplicate_create (struct CadetConnection *cc);
+
+
+/**
+ * Handle KX message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx (struct CadetConnection *cc,
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
+
+
+/**
+ * Handle KX_AUTH message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the key exchange message
+ */
+void
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+
+
+/**
+ * Performance metrics for a connection.
+ */
+struct CadetConnectionMetrics
 {
-  /**
-   * Uninitialized status, should never appear in operation.
-   */
-  CADET_CONNECTION_NEW,
 
   /**
-   * Connection create message sent, waiting for ACK.
+   * Our current best estimate of the latency, based on a weighted
+   * average of at least @a latency_datapoints values.
    */
-  CADET_CONNECTION_SENT,
+  struct GNUNET_TIME_Relative aged_latency;
 
   /**
-   * Connection ACK sent, waiting for ACK.
+   * When was this connection first established? (by us sending or
+   * receiving the CREATE_ACK for the first time)
    */
-  CADET_CONNECTION_ACK,
+  struct GNUNET_TIME_Absolute age;
 
   /**
-   * Connection confirmed, ready to carry traffic.
+   * When was this connection last used? (by us sending or
+   * receiving a PAYLOAD message on it)
    */
-  CADET_CONNECTION_READY,
+  struct GNUNET_TIME_Absolute last_use;
 
   /**
-   * Connection to be destroyed, just waiting to empty queues.
+   * How many packets that ought to generate an ACK did we send via
+   * this connection?
    */
-  CADET_CONNECTION_DESTROYED,
+  unsigned long long num_acked_transmissions;
 
   /**
-   * Connection to be destroyed because of a distant peer, same as DESTROYED.
+   * Number of packets that were sent via this connection did actually
+   * receive an ACK?  (Note: ACKs may be transmitted and lost via
+   * other connections, so this value should only be interpreted
+   * relative to @e num_acked_transmissions and in relation to other
+   * connections.)
    */
-  CADET_CONNECTION_BROKEN,
+  unsigned long long num_successes;
+
 };
 
 
 /**
- * Struct containing all information regarding a connection to a peer.
+ * Obtain performance @a metrics from @a cc.
+ *
+ * @param cc connection to query
+ * @return the metrics
  */
-struct CadetConnection;
-
-/**
- * Handle for messages queued but not yet sent.
- */
-struct CadetConnectionQueue;
-
-#include "cadet_path.h"
-#include "gnunet-service-cadet_channel.h"
-#include "gnunet-service-cadet_peer.h"
+const struct CadetConnectionMetrics *
+GCC_get_metrics (struct CadetConnection *cc);
 
 
 /**
- * Check invariants for all connections using #check_neighbours().
+ * Handle encrypted message.
+ *
+ * @param cc connection that received encrypted message
+ * @param msg the encrypted message to decrypt
  */
 void
-GCC_check_connections (void);
-
-
-/**
- * Callback called when a queued message is sent.
- *
- * @param cls Closure.
- * @param c Connection this message was on.
- * @param type Type of message sent.
- * @param fwd Was this a FWD going message?
- * @param size Size of the message.
- */
-typedef void
-(*GCC_sent) (void *cls,
-             struct CadetConnection *c,
-             struct CadetConnectionQueue *q,
-             uint16_t type,
-             int fwd,
-             size_t size);
-
-
-/**
- * Handler for connection creation.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_create (struct CadetPeer *peer,
-                   const struct GNUNET_CADET_ConnectionCreateMessage *msg);
-
-
-/**
- * Handler for connection confirmations.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_confirm (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionCreateAckMessage *msg);
-
-
-/**
- * Handler for notifications of broken connections.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_broken (struct CadetPeer *peer,
-                   const struct GNUNET_CADET_ConnectionBrokenMessage *msg);
-
-/**
- * Handler for notifications of destroyed connections.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_destroy (struct CadetPeer *peer,
-                    const struct GNUNET_CADET_ConnectionDestroyMessage *msg);
-
-/**
- * Handler for cadet network traffic hop-by-hop acks.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_ack (struct CadetPeer *peer,
-                const struct GNUNET_CADET_ConnectionEncryptedAckMessage *msg);
-
-/**
- * Handler for cadet network traffic hop-by-hop data counter polls.
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_poll (struct CadetPeer *peer,
-                 const struct GNUNET_CADET_ConnectionHopByHopPollMessage *msg);
-
-/**
- * Handler for key exchange traffic (Axolotl KX).
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_kx (struct CadetPeer *peer,
-               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
-
-/**
- * Handler for encrypted cadet network traffic (channel mgmt, data).
- *
- * @param peer Message sender (neighbor).
- * @param msg Message itself.
- */
-void
-GCC_handle_encrypted (struct CadetPeer *peer,
+GCC_handle_encrypted (struct CadetConnection *cc,
                       const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
-/**
- * Core handler for axolotl key exchange traffic.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Neighbor who sent the message.
- *
- * @return GNUNET_OK, to keep the connection open.
- */
-int
-GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for axolotl encrypted cadet network traffic.
+ * We sent a message for which we expect to receive an ACK via
+ * the connection identified by @a cti.
  *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Neighbor who sent the message.
- *
- * @return GNUNET_OK, to keep the connection open.
- */
-int
-GCC_handle_ax (void *cls, const struct GNUNET_PeerIdentity *peer,
-               struct GNUNET_MessageHeader *message);
-
-/**
- * Core handler for cadet keepalives.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- *
- * TODO: Check who we got this from, to validate route.
- */
-int
-GCC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message);
-
-/**
- * Send an ACK on the appropriate connection/channel, depending on
- * the direction and the position of the peer.
- *
- * @param c Which connection to send the hop-by-hop ACK.
- * @param fwd Is this a fwd ACK? (will go dest->root).
- * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
+ * @param cid connection identifier where we expect an ACK
  */
 void
-GCC_send_ack (struct CadetConnection *c, int fwd, int force);
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
 
 /**
- * Initialize the connections subsystem
+ * We observed an ACK for a message that was originally sent via
+ * the connection identified by @a cti.
  *
- * @param c Configuration handle.
+ * @param cid connection identifier where we got an ACK for a message
+ *            that was originally sent via this connection (the ACK
+ *            may have gotten back to us via a different connection).
  */
 void
-GCC_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+
 
 /**
- * Shut down the connections subsystem.
+ * We observed some the given @a latency on the connection
+ * identified by @a cti.  (The same connection was taken
+ * in both directions.)
+ *
+ * @param cti connection identifier where we measured latency
+ * @param latency the observed latency
  */
 void
-GCC_shutdown (void);
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                      struct GNUNET_TIME_Relative latency);
+
 
 /**
- * Create a connection.
+ * Return the tunnel associated with this connection.
  *
- * @param cid Connection ID (either created locally or imposed remotely).
- * @param t Tunnel this connection belongs to (or NULL for transit connections);
- * @param path Path this connection has to use (copy is made).
- * @param own_pos Own position in the @c path path.
- *
- * @return Newly created connection.
- *         NULL in case of error: own id not in path, wrong neighbors, ...
+ * @param cc connection to query
+ * @return corresponding entry in the tunnel's connection list
  */
-struct CadetConnection *
-GCC_new (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-         struct CadetTunnel *t,
-         struct CadetPeerPath *path,
-         unsigned int own_pos);
+struct CadetTConnection *
+GCC_get_ct (struct CadetConnection *cc);
+
 
 /**
- * Connection is no longer needed: destroy it.
+ * Obtain the path used by this connection.
  *
- * Cancels all pending traffic (including possible DESTROY messages), all
- * maintenance tasks and removes the connection from neighbor peers and tunnel.
- *
- * @param c Connection to destroy.
+ * @param cc connection
+ * @return path to @a cc
  */
-void
-GCC_destroy (struct CadetConnection *c);
+struct CadetPeerPath *
+GCC_get_path (struct CadetConnection *cc);
+
 
 /**
- * Get the connection ID.
+ * Obtain unique ID for the connection.
  *
- * @param c Connection to get the ID from.
- *
- * @return ID of the connection.
+ * @param cc connection.
+ * @return unique number of the connection
  */
 const struct GNUNET_CADET_ConnectionTunnelIdentifier *
-GCC_get_id (const struct CadetConnection *c);
+GCC_get_id (struct CadetConnection *cc);
 
-
-/**
- * Get the connection path.
- *
- * @param c Connection to get the path from.
- *
- * @return path used by the connection.
- */
-const struct CadetPeerPath *
-GCC_get_path (const struct CadetConnection *c);
-
-/**
- * Get the connection state.
- *
- * @param c Connection to get the state from.
- *
- * @return state of the connection.
- */
-enum CadetConnectionState
-GCC_get_state (const struct CadetConnection *c);
-
-/**
- * Get the connection tunnel.
- *
- * @param c Connection to get the tunnel from.
- *
- * @return tunnel of the connection.
- */
-struct CadetTunnel *
-GCC_get_tunnel (const struct CadetConnection *c);
-
-/**
- * Get free buffer space in a connection.
- *
- * @param c Connection.
- * @param fwd Is query about FWD traffic?
- *
- * @return Free buffer space [0 - max_msgs_queue/max_connections]
- */
-unsigned int
-GCC_get_buffer (struct CadetConnection *c, int fwd);
-
-/**
- * Get how many messages have we allowed to send to us from a direction.
- *
- * @param c Connection.
- * @param fwd Are we asking about traffic from FWD (BCK messages)?
- *
- * @return last_ack_sent - last_pid_recv
- */
-unsigned int
-GCC_get_allowed (struct CadetConnection *c, int fwd);
-
-/**
- * Get messages queued in a connection.
- *
- * @param c Connection.
- * @param fwd Is query about FWD traffic?
- *
- * @return Number of messages queued.
- */
-unsigned int
-GCC_get_qn (struct CadetConnection *c, int fwd);
-
-/**
- * Get next PID to use.
- *
- * @param c Connection.
- * @param fwd Is query about FWD traffic?
- * @return Next PID to use.
- */
-struct CadetEncryptedMessageIdentifier
-GCC_get_pid (struct CadetConnection *c, int fwd);
-
-/**
- * Allow the connection to advertise a buffer of the given size.
- *
- * The connection will send an @c fwd ACK message (so: in direction !fwd)
- * allowing up to last_pid_recv + buffer.
- *
- * @param c Connection.
- * @param buffer How many more messages the connection can accept.
- * @param fwd Is this about FWD traffic? (The ack will go dest->root).
- */
-void
-GCC_allow (struct CadetConnection *c, unsigned int buffer, int fwd);
-
-/**
- * Send FWD keepalive packets for a connection.
- *
- * @param cls Closure (connection for which to send the keepalive).
- * @param tc Notification context.
- */
-void
-GCC_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-/**
- * Send BCK keepalive packets for a connection.
- *
- * @param cls Closure (connection for which to send the keepalive).
- * @param tc Notification context.
- */
-void
-GCC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Notify other peers on a connection of a broken link. Mark connections
- * to destroy after all traffic has been sent.
- *
- * @param c Connection on which there has been a disconnection.
- * @param peer Peer that disconnected.
- */
-void
-GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer);
-
-/**
- * Is this peer the first one on the connection?
- *
- * @param c Connection.
- * @param fwd Is this about fwd traffic?
- *
- * @return #GNUNET_YES if origin, #GNUNET_NO if relay/terminal.
- */
-int
-GCC_is_origin (struct CadetConnection *c, int fwd);
-
-/**
- * Is this peer the last one on the connection?
- *
- * @param c Connection.
- * @param fwd Is this about fwd traffic?
- *            Note that the ROOT is the terminal for BCK traffic!
- *
- * @return #GNUNET_YES if terminal, #GNUNET_NO if relay/origin.
- */
-int
-GCC_is_terminal (struct CadetConnection *c, int fwd);
-
-/**
- * See if we are allowed to send by the next hop in the given direction.
- *
- * @param c Connection.
- * @param fwd Is this about fwd traffic?
- *
- * @return #GNUNET_YES in case it's OK to send.
- */
-int
-GCC_is_sendable (struct CadetConnection *c, int fwd);
-
-/**
- * Check if this connection is a direct one (never trim a direct connection).
- *
- * @param c Connection.
- *
- * @return #GNUNET_YES in case it's a direct connection, #GNUNET_NO otherwise.
- */
-int
-GCC_is_direct (struct CadetConnection *c);
-
-/**
- * Cancel a previously sent message while it's in the queue.
- *
- * ONLY can be called before the continuation given to the send function
- * is called. Once the continuation is called, the message is no longer in the
- * queue.
- *
- * @param q Handle to the queue.
- */
-void
-GCC_cancel (struct CadetConnectionQueue *q);
-
-/**
- * Sends an already built message on a connection, properly registering
- * all used resources.
- *
- * @param message Message to send.
- * @param payload_type Type of payload, in case the message is encrypted.
- *                     0 for restransmissions (when type is no longer known)
- *                     UINT16_MAX when not applicable.
- * @param payload_id ID of the payload (PID, ACK, ...).
- * @param c Connection on which this message is transmitted.
- * @param fwd Is this a fwd message?
- * @param force Force the connection to accept the message (buffer overfill).
- * @param cont Continuation called once message is sent. Can be NULL.
- * @param cont_cls Closure for @c cont.
- *
- * @return Handle to cancel the message before it's sent.
- *         NULL on error.
- *         Invalid on @c cont call.
- */
-struct CadetConnectionQueue *
-GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           uint16_t payload_type,
-                           struct CadetEncryptedMessageIdentifier payload_id,
-                           struct CadetConnection *c, int fwd, int force,
-                           GCC_sent cont, void *cont_cls);
-
-/**
- * Sends a CREATE CONNECTION message for a path to a peer.
- * Changes the connection and tunnel states if necessary.
- *
- * @param connection Connection to create.
- */
-void
-GCC_send_create (struct CadetConnection *connection);
-
-/**
- * Send a message to all peers in this connection that the connection
- * is no longer valid.
- *
- * If some peer should not receive the message, it should be zero'ed out
- * before calling this function.
- *
- * @param c The connection whose peers to notify.
- */
-void
-GCC_send_destroy (struct CadetConnection *c);
-
-/**
- * @brief Start a polling timer for the connection.
- *
- * When a neighbor does not accept more traffic on the connection it could be
- * caused by a simple congestion or by a lost ACK. Polling enables to check
- * for the lastest ACK status for a connection.
- *
- * @param c Connection.
- * @param fwd Should we poll in the FWD direction?
- */
-void
-GCC_start_poll (struct CadetConnection *c, int fwd);
-
-
-/**
- * @brief Stop polling a connection for ACKs.
- *
- * Once we have enough ACKs for future traffic, polls are no longer necessary.
- *
- * @param c Connection.
- * @param fwd Should we stop the poll in the FWD direction?
- */
-void
-GCC_stop_poll (struct CadetConnection *c, int fwd);
 
 /**
  * Get a (static) string for a connection.
  *
- * @param c Connection.
+ * @param cc Connection.
  */
 const char *
-GCC_2s (const struct CadetConnection *c);
+GCC_2s (const struct CadetConnection *cc);
+
 
 /**
- * Log all possible info about the connection state.
+ * Log connection info.
  *
- * @param c Connection to debug.
+ * @param cc connection
  * @param level Debug level to use.
  */
 void
-GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level);
+GCC_debug (struct CadetConnection *cc,
+           enum GNUNET_ErrorType level);
 
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
-/* ifndef GNUNET_SERVICE_CADET_CONNECTION_H */
 #endif
-/* end of gnunet-service-cadet_connection.h */

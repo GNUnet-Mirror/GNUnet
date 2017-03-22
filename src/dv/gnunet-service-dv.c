@@ -399,7 +399,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
               (unsigned int) distance);
   size = sizeof (struct GNUNET_DV_ReceivedMessage) +
     ntohs (message->size);
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0); /* too big */
     return;
@@ -537,7 +537,7 @@ forward_payload (struct DirectNeighbor *target,
     return;
   }
   if (sizeof (struct RouteMessage) + ntohs (payload->size)
-      >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1530,7 +1530,7 @@ listen_set_union (void *cls,
 					GNUNET_SET_OPERATION_UNION);
   neighbor->set_op = GNUNET_SET_accept (request,
 					GNUNET_SET_RESULT_ADDED,
-                                        (struct GNUNET_SET_Option[]) { 0 },
+                                        (struct GNUNET_SET_Option[]) {{ 0 }},
 					&handle_set_union_result,
 					neighbor);
   neighbor->consensus_insertion_offset = 0;
@@ -1561,7 +1561,7 @@ initiate_set_union (void *cls)
                                          &neighbor->real_session_id,
                                          NULL,
                                          GNUNET_SET_RESULT_ADDED,
-                                         (struct GNUNET_SET_Option[]) { 0 },
+                                         (struct GNUNET_SET_Option[]) {{ 0 }},
                                          &handle_set_union_result,
                                          neighbor);
   neighbor->consensus_insertion_offset = 0;

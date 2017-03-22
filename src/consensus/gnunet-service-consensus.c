@@ -393,6 +393,14 @@ struct DiffEntry
   struct GNUNET_CONTAINER_MultiHashMap *changes;
 };
 
+struct SetHandle
+{
+  struct SetHandle *prev;
+  struct SetHandle *next;
+
+  struct GNUNET_SET_Handle *h;
+};
+
 
 
 /**
@@ -499,6 +507,9 @@ struct ConsensusSession
    * Bounded Eppstein lower bound.
    */
   uint64_t lower_bound;
+
+  struct SetHandle *set_handles_head;
+  struct SetHandle *set_handles_tail;
 };
 
 /**
@@ -894,7 +905,7 @@ cmp_uint64_t (const void *pa, const void *pb)
  * in the result set.
  *
  * @param cls closure
- * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
+ * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
  * @param current_size current set size
  * @param status see enum GNUNET_SET_Status
  */
@@ -1011,6 +1022,7 @@ set_result_cb (void *cls,
                     "P%u: lower bound %llu\n",
                     session->local_peer_idx,
                     (long long) session->lower_bound);
+        GNUNET_free (copy);
       }
       return;
     }
@@ -1329,7 +1341,10 @@ commit_set (struct ConsensusSession *session,
   if (PHASE_KIND_ALL_TO_ALL_2 == task->key.kind)
   {
     struct GNUNET_SET_Element element;
-    struct ConsensusSizeElement cse = { 0 };
+    struct ConsensusSizeElement cse = {
+      .size = 0,
+      .sender_index = 0
+    };
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "inserting size marker\n");
     cse.ce.marker = CONSENSUS_MARKER_SIZE;
     cse.size = GNUNET_htonll (session->first_size);
@@ -1382,7 +1397,10 @@ commit_set (struct ConsensusSession *session,
         for (i = 0; i < evil.num; i++)
         {
           struct GNUNET_SET_Element element;
-          struct ConsensusStuffedElement se = { 0 };
+          struct ConsensusStuffedElement se = {
+            .ce.payload_type = 0,
+            .ce.marker = 0,
+          };
           element.data = &se;
           element.size = sizeof (struct ConsensusStuffedElement);
           element.element_type = GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT;
@@ -1663,6 +1681,12 @@ set_copy_cb (void *cls, struct GNUNET_SET_Handle *copy)
   struct TaskEntry *task = scc->task;
   struct SetKey dst_set_key = scc->dst_set_key;
   struct SetEntry *set;
+  struct SetHandle *sh = GNUNET_new (struct SetHandle);
+
+  sh->h = copy;
+  GNUNET_CONTAINER_DLL_insert (task->step->session->set_handles_head,
+                               task->step->session->set_handles_tail,
+                               sh);
 
   GNUNET_free (scc);
   set = GNUNET_new (struct SetEntry);
@@ -2105,7 +2129,7 @@ task_start_reconcile (struct TaskEntry *task)
 
   if (task->key.peer1 == session->local_peer_idx)
   {
-    struct GNUNET_CONSENSUS_RoundContextMessage rcm = { 0 };
+    struct GNUNET_CONSENSUS_RoundContextMessage rcm;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%u: Looking up set {%s} to run remote union\n",
@@ -2120,6 +2144,7 @@ task_start_reconcile (struct TaskEntry *task)
     rcm.peer2 = htons (task->key.peer2);
     rcm.leader = htons (task->key.leader);
     rcm.repetition = htons (task->key.repetition);
+    rcm.is_contested = htons (0);
 
     GNUNET_assert (NULL == setop->op);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: initiating set op with P%u, our set is %s\n",
@@ -3152,6 +3177,11 @@ handle_client_join (void *cls,
     client_set = GNUNET_new (struct SetEntry);
     client_set->h = GNUNET_SET_create (cfg,
                                        GNUNET_SET_OPERATION_UNION);
+    struct SetHandle *sh = GNUNET_new (struct SetHandle);
+    sh->h = client_set->h;
+    GNUNET_CONTAINER_DLL_insert (session->set_handles_head,
+                                 session->set_handles_tail,
+                                 sh);
     client_set->key = ((struct SetKey) { SET_KIND_CURRENT, 0, 0 });
     put_set (session,
              client_set);
@@ -3370,6 +3400,14 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (sessions_head,
                                sessions_tail,
                                session);
+
+  while (session->set_handles_head)
+  {
+    struct SetHandle *sh = session->set_handles_head;
+    session->set_handles_head = sh->next;
+    GNUNET_SET_destroy (sh->h);
+    GNUNET_free (sh);
+  }
   GNUNET_free (session);
 }
 

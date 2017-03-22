@@ -64,7 +64,6 @@ struct CpsRunContext
   enum RunPhase phase;
   unsigned int cnt;
   unsigned int i;
-  uint64_t offset;
 };
 
 
@@ -308,7 +307,8 @@ test (void *cls)
                 "Looking for %s\n",
                 GNUNET_h2s (&key));
     crc->api->get_key (crc->api->cls,
-                       crc->offset++,
+                       0,
+                       false,
                        &key,
                        NULL,
                        GNUNET_BLOCK_TYPE_ANY,

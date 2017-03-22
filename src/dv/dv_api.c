@@ -437,7 +437,7 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
   struct ConnectedPeer *peer;
   struct GNUNET_MQ_Envelope *env;
 
-  if (ntohs (msg->size) + sizeof (*sm) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (ntohs (msg->size) + sizeof (*sm) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

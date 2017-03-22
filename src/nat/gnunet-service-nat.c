@@ -662,6 +662,11 @@ notify_client (enum GNUNET_NAT_AddressClass ac,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_NAT_AddressChangeNotificationMessage *msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying client about %s of IP %s\n",
+              add ? "addition" : "removal",
+              GNUNET_a2s (addr,
+                          addr_len));
   env = GNUNET_MQ_msg_extra (msg,
 			     addr_len,
 			     GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE);
@@ -693,7 +698,11 @@ check_notify_client (struct LocalAddressList *delta,
   struct sockaddr_in6 v6;
 
   if (0 == (ch->flags & GNUNET_NAT_RF_ADDRESSES))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not notifying client as it does not care about addresses\n");
     return;
+  }
   switch (delta->af)
   {
   case AF_INET:
@@ -715,25 +724,24 @@ check_notify_client (struct LocalAddressList *delta,
 	   (! match_ipv4 ("127.0.0.1", &v4.sin_addr, 8)) )
 	continue; /* bound to loopback, but this is not loopback */
       if ( (! match_ipv4 ("127.0.0.1", &c4->sin_addr, 8) ) &&
-	   (0 != c4->sin_addr.s_addr) &&
 	   match_ipv4 ("127.0.0.1", &v4.sin_addr, 8) )
 	continue; /* bound to non-loopback, but this is loopback */
-      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
-	   (0 != c4->sin_addr.s_addr) &&
-	   (! is_nat_v4 (&v4.sin_addr)) )
-	continue; /* based on external-IP, but this IP is not
-		     from private address range. */
+      if ( (0 != (delta->ac & GNUNET_NAT_AC_EXTERN)) &&
+           (0 != c4->sin_addr.s_addr) &&
+           (! is_nat_v4 (&v4.sin_addr)) )
+       continue; /* based on external-IP, but this IP is not
+                    from private address range. */
       if ( (0 != memcmp (&v4.sin_addr,
-			 &c4->sin_addr,
-			 sizeof (struct in_addr))) &&
-	   (0 != c4->sin_addr.s_addr) &&
-	   ( (! is_nat_v4 (&c4->sin_addr)) ||
-	     (0 == (ch->flags & GNUNET_NAT_AC_EXTERN))) )
+                         &c4->sin_addr,
+                         sizeof (struct in_addr))) &&
+           (0 != c4->sin_addr.s_addr) &&
+           (! is_nat_v4 (&c4->sin_addr)) )
 	continue; /* this IP is not from private address range,
 		     and IP does not match. */
 
       /* OK, IP seems relevant, notify client */
-      v4.sin_port = c4->sin_port;
+      if (0 == htons (v4.sin_port))
+        v4.sin_port = c4->sin_port;
       notify_client (delta->ac,
 		     ch,
 		     add,
@@ -760,13 +768,10 @@ check_notify_client (struct LocalAddressList *delta,
 	   (! match_ipv6 ("::1", &v6.sin6_addr, 128)) )
 	continue; /* bound to loopback, but this is not loopback */
       if ( (! match_ipv6 ("::1", &c6->sin6_addr, 128) ) &&
-	   (0 != memcmp (&c6->sin6_addr,
-			 &in6addr_any,
-			 sizeof (struct in6_addr))) &&
 	   match_ipv6 ("::1", &v6.sin6_addr, 128) )
 	continue; /* bound to non-loopback, but this is loopback */
-      if ( (0 != (ch->flags & GNUNET_NAT_AC_EXTERN)) &&
-	   (0 != memcmp (&c6->sin6_addr,
+      if ( (0 != (delta->ac & GNUNET_NAT_AC_EXTERN)) &&
+           (0 != memcmp (&c6->sin6_addr,
 			 &in6addr_any,
 			 sizeof (struct in6_addr))) &&
 	   (! is_nat_v6 (&v6.sin6_addr)) )
@@ -793,7 +798,8 @@ check_notify_client (struct LocalAddressList *delta,
 		     does not match and is not an external IP */
 
       /* OK, IP seems relevant, notify client */
-      v6.sin6_port = c6->sin6_port;
+      if (0 == htons (v6.sin6_port))
+        v6.sin6_port = c6->sin6_port;
       notify_client (delta->ac,
 		     ch,
 		     add,
@@ -853,6 +859,10 @@ notify_client_external_ipv4_change (void *cls,
     struct LocalAddressList lal;
     struct sockaddr_in *s4;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Detected eternal IP, can now back-fill AUTO:%u in hole punching specification of `%s'\n",
+                (unsigned int) ch->ext_dns_port,
+                ch->section_name);
     memset (&lal, 0, sizeof (lal));
     s4 = (struct sockaddr_in *) &lal.addr;
     s4->sin_family = AF_INET;
@@ -867,8 +877,6 @@ notify_client_external_ipv4_change (void *cls,
 
   /* (1) check if client cares. */
   if (! ch->natted_address)
-    return;
-  if (0 == (GNUNET_NAT_RF_ADDRESSES & ch->flags))
     return;
   have_v4 = GNUNET_NO;
   for (unsigned int i=0;i<ch->num_caddrs;i++)
@@ -891,6 +899,10 @@ notify_client_external_ipv4_change (void *cls,
   sa.sin_addr = *v4;
   sa.sin_port = htons (0);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Detected eternal IP %s, notifying client of external IP (without port)\n",
+              GNUNET_a2s ((const struct sockaddr *) &sa,
+                          sizeof (sa)));
   /* (3) notify client of change */
   notify_client (is_nat_v4 (v4)
 		 ? GNUNET_NAT_AC_EXTERN | GNUNET_NAT_AC_LAN
@@ -1055,7 +1067,8 @@ run_scan (void *cls)
 
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Found NATed local address %s, starting NAT server\n",
-		    GNUNET_a2s ((void *) &pos->addr, sizeof (*s4)));
+		    GNUNET_a2s ((const struct sockaddr *) &pos->addr,
+                                sizeof (*s4)));
 	pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
 					       &reversal_callback,
 					       pos);
@@ -1280,6 +1293,11 @@ dyndns_lookup (void *cls)
   struct ClientHandle *ch = cls;
   struct LocalAddressList *lal;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Performing DNS lookup for punched hole given for `%s' as `%s:%u'\n",
+              ch->section_name,
+              ch->hole_external,
+              (unsigned int) ch->ext_dns_port);
   for (lal = ch->ext_addr_head; NULL != lal; lal = lal->next)
     lal->old = GNUNET_YES;
   ch->ext_dns_task = NULL;
@@ -1374,6 +1392,11 @@ lookup_hole_external (struct ClientHandle *ch)
 		      ch->hole_external,
 		      &s4->sin_addr))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "IPv4 punched hole given for `%s' via `%s:%u'\n",
+                ch->section_name,
+                ch->hole_external,
+                (unsigned int) ch->ext_dns_port);
     s4->sin_port = htons (ch->ext_dns_port);
     lal->af = AF_INET;
     lal->ac = GNUNET_NAT_AC_GLOBAL | GNUNET_NAT_AC_MANUAL;
@@ -1423,8 +1446,6 @@ handle_register (void *cls,
     GNUNET_SERVICE_client_drop (ch->client);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received REGISTER message from client\n");
   ch->flags = message->flags;
   ch->proto = message->proto;
   ch->num_caddrs = ntohs (message->num_addrs);
@@ -1512,6 +1533,9 @@ handle_register (void *cls,
   ch->section_name
     = GNUNET_strndup (off,
 		      ntohs (message->str_len));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received REGISTER message from client for subsystem `%s'\n",
+              ch->section_name);
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
 					     ch->section_name,

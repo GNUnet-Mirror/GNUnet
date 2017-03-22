@@ -438,23 +438,36 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
 /* ******************** command-line option parsing API *********************** */
 
 /**
- * Command-line option parser function that allows the user
- * to specify one or more '-k' options with keywords.  Each
- * specified keyword will be added to the URI.  A pointer to
- * the URI must be passed as the "scls" argument.
+ * Allow user to specify keywords.
  *
- * @param ctx command line processor context
- * @param scls must be of type "struct GNUNET_FS_Uri **"
- * @param option name of the option (typically 'k')
- * @param value command line argument given
- * @return #GNUNET_OK on success
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] topKeywords set to the desired value
  */
-int
-GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                               void *scls,
-                               const char *option,
-                               const char *value);
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_FS_GETOPT_KEYWORDS (char shortName,
+                           const char *name,
+                           const char *argumentHelp,
+                           const char *description,
+                           struct GNUNET_FS_Uri **topKeywords);
 
+/**
+ * Allow user to specify metadata.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] metadata set to the desired value
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_FS_GETOPT_METADATA (char shortName,
+                           const char *name,
+                           const char *argumentHelp,
+                           const char *description,
+                           struct GNUNET_CONTAINER_MetaData **meta);
 
 /**
  * Command-line option parser function that allows the user to specify

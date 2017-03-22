@@ -818,7 +818,7 @@ CPPFLAGS=$SAVE_CPPFLAGS
 postgres=false
 # even running the check for postgres breaks emscripten ...
 if test "$taler_only" != yes; then
-  AX_LIB_POSTGRESQL([])
+  AX_LIB_POSTGRESQL([9.6])
   if test "$found_postgresql" = "yes"; then
     CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
     AC_CHECK_HEADERS([libpq-fe.h],

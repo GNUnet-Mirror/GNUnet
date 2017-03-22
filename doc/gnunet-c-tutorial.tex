@@ -1,12 +1,13 @@
 \documentclass[10pt]{article}
 \usepackage[ansinew]{inputenc}
 \usepackage{makeidx,amsmath,amssymb,exscale,multicol,epsfig,graphics,verbatim,ulem}
-\usepackage{epsfig,geometry,url,listings, subcaption}
+\usepackage{epsfig,geometry,url,listings,subcaption}
 \usepackage{boxedminipage}
 \usepackage[T1]{fontenc}%required
 \usepackage{textcomp}
 \geometry{headsep=3ex,hscale=0.9}
 \usepackage{hyperref}
+\usepackage{color}
 \hypersetup{pdftitle={GNUnet C Tutorial},
   pdfsubject={GNUnet},
   pdfauthor={Christian Grothoff <christian@grothoff.org>},
@@ -27,6 +28,26 @@ literate={*}{{\char42}}1
 \newcommand{\exercise}[1]{\noindent\begin{boxedminipage}{\textwidth}{\bf Exercise:} #1 \end{boxedminipage}}
 
 \begin{document}
+
+\lstset{ %
+language=C,                     % choose the language of the code
+basicstyle=\footnotesize,       % the size of the fonts that are used for the code
+numbers=left,                   % where to put the line-numbers
+numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it is 1 each line will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code
+backgroundcolor=\color{white},  % choose the background color. You must add \usepackage{color}
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,           % adds a frame around the code
+tabsize=2,          % sets default tabsize to 2 spaces
+captionpos=b,           % sets the caption-position to bottom
+breaklines=true,        % sets automatic line breaking
+breakatwhitespace=false,    % sets if automatic breaks should only happen at whitespace
+escapeinside={\%*}{*)}          % if you want to add a comment within your code
+}
+
 
 \begin{center}
 \large {A Tutorial for GNUnet 0.10.x (C version)}
@@ -68,20 +89,25 @@ You should also download the signature file and verify the integrity of the tarb
 \url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz.sig}
 \end{center}
 To verify the signature you should first import the GPG key used to sign the tarball
+\lstset{language=bash}
 \begin{lstlisting}
 $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
 \end{lstlisting}
 And use this key to verify the tarball's signature
+\lstset{language=bash}
 \begin{lstlisting}
 $ gpg --verify gnunet-0.10.x.tar.gz.sig gnunet-0.10.x.tar.gz
 \end{lstlisting}
 After successfully verifying the integrity you can extract the tarball using
+\lstset{language=bash}
 \begin{lstlisting}
 $ tar xvzf gnunet-0.10.x.tar.gz
 $ mv gnunet-0.10.x gnunet		# we will use the directory "gnunet" in the remainder of this document
 $ cd gnunet
 \end{lstlisting}
 
+However, please note that stable versions can be very outdated, as a developer
+you are strongly encouraged to use the version from \url{https://gnunet.org/git/}.
 
 \subsection{Installing Build Tool Chain and Dependencies}
 
@@ -116,15 +142,15 @@ The remainder of this tutorial assumes that you have Git Master checked out.
 \subsection{Compiling and Installing GNUnet}
 
 First, you need to install at least {\tt libgnupgerror} version
-1.12\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2}}
+1.27\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2}}
 and {\tt libgcrypt} version
-1.6\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2}}.
+1.7.6\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2}}.
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
-$ tar xf libgpg-error-1.12.tar.bz2
-$ cd libgpg-error-1.12
+$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
+$ tar xf libgpg-error-1.27.tar.bz2
+$ cd libgpg-error-1.27
 $ ./configure
 $ sudo make install
 $ cd ..
@@ -132,9 +158,9 @@ $ cd ..
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
-$ tar xf libgcrypt-1.6.0.tar.bz2
-$ cd libgcrypt-1.6.0
+$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
+$ tar xf libgcrypt-1.7.6.tar.bz2
+$ cd libgcrypt-1.7.6
 $ ./configure
 $ sudo make install
 $ cd ..
@@ -176,12 +202,14 @@ $ touch ~/.config/gnunet.conf
 You should check your installation to ensure that installing GNUnet
 was successful up to this point. You should be able to access GNUnet's
 binaries and run GNUnet's self check.
+\lstset{language=bash}
 \begin{lstlisting}
 $ which gnunet-arm
 \end{lstlisting}
 should return \lstinline|$PREFIX/bin/gnunet-arm|. It should be
 located in your GNUnet installation and the output should not be
 empty. If you see an output like:
+\lstset{language=bash}
 \begin{lstlisting}
 $ which gnunet-arm
 $
@@ -189,29 +217,20 @@ $
 check your {\tt PATH} variable to ensure GNUnet's {\tt bin} directory is included.
 
 GNUnet provides tests for all of its subcomponents. Run
+\lstset{language=bash}
 \begin{lstlisting}
 $ make check
 \end{lstlisting}
 to execute tests for all components. {\tt make check} traverses all subdirectories in {\tt src}.
 For every subdirectory you should get a message like this:
 
-\begin{lstlisting}
+\begin{verbatim}
 make[2]: Entering directory `/home/$USER/gnunet/contrib'
 PASS: test_gnunet_prefix
 =============
 1 test passed
 =============
-\end{lstlisting}
-
-If you see a message like this:
-
-\begin{lstlisting}
-Mar 12 16:57:56-642482 resolver-api-19449 ERROR Must specify `HOSTNAME' for `resolver' in configuration!
-Mar 12 16:57:56-642573 test_program-19449 ERROR Assertion failed at resolver_api.c:204.
-/bin/bash: line 5: 19449 Aborted                 (core dumped) ${dir}$tst
-FAIL: test_program
-\end{lstlisting}
-double check the steps performed in ~\ref{sub:install}
+\end{verbatim}
 
 
 \section{Background: GNUnet Architecture}
@@ -262,6 +281,7 @@ First of all we need to configure your peer. Each peer is started with a configu
 
 Since we want to start additional peers later, we need
 some modifications from the default configuration. We need to create a separate service home and a file containing our modifications for this peer:
+\lstset{language=bash}
 \begin{lstlisting}
 $ mkdir ~/gnunet1/
 $ touch peer1.conf
@@ -271,12 +291,12 @@ Now add the following lines to peer1.conf to use this directory. For
 simplified usage we want to prevent the peer to connect to the GNUnet
 network since this could lead to confusing output. This modifications
 will replace the default settings:
-\begin{lstlisting}
+\begin{verbatim}
 [PATHS]
 GNUNET_HOME = ~/gnunet1/		# Use this directory to store GNUnet data
 [hostlist]
 SERVERS =				# prevent bootstrapping
-\end{lstlisting}
+\end{verbatim}
 
 
 \subsection{Start a peer}
@@ -322,6 +342,7 @@ $ cd ~/gnunet/src/dht;
 $ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 \end{lstlisting}
 Now open a separate terminal and change again to the \lstinline|gnunet/src/dht| directory:
+\lstset{language=bash}
 \begin{lstlisting}
 $ cd ~/gnunet/src/dht
 $ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE		# put VALUE under KEY in the DHT
@@ -333,6 +354,11 @@ $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 
 
 \subsection{Starting Two Peers by Hand}
+
+This section describes how to start two peers on the same machine by hand.
+The process is rather painful, but the description is somewhat instructive.
+In practice, you might prefer the automated method described in
+Section~\ref{sec:testbed}.
 
 \subsubsection{Setup a second peer}
 We will now start a second peer on your machine.
@@ -348,13 +374,14 @@ To configure the second peer, use the files {\tt
 configuration file:
 %
 \lstset{language=bash}
+\lstset{language=bash}
 \begin{lstlisting}
 $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 \end{lstlisting}
 Now you have to edit {\tt peer2.conf} and change:
 \begin{itemize}
   \itemsep0em
-  \item{\texttt{SERVICEHOME} under \texttt{PATHS}}
+  \item{\texttt{GNUNET\_TEST\_HOME} under \texttt{PATHS}}
   \item{Every (uncommented) value for ``\texttt{PORT}'' (add 10000) in any
         section (the option may be commented out if \texttt{PORT} is
         prefixed by "\#", in this case, UNIX domain sockets are used
@@ -399,10 +426,10 @@ If you want the two peers to connect, you have multiple options:
 To setup peer 1 as bootstrapping server change the configuration of
 the first one to be a hostlist server by adding the following lines to
 \texttt{peer1.conf} to enable bootstrapping server:
- \begin{lstlisting}
+ \begin{verbatim}
 [hostlist]
 OPTIONS = -p
-\end{lstlisting}
+\end{verbatim}
 
 Then change {\tt peer2.conf} and replace the ``\texttt{SERVERS}'' line in the ``\texttt{[hostlist]}'' section with
 ``\texttt{http://localhost:8080/}''.  Restart both peers using:
@@ -432,12 +459,13 @@ If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
 
 Check that they are connected using {\tt gnunet-core -c peer1.conf}, which should give you the other peer's
 peer identity:
+\lstset{language=bash}
 \begin{lstlisting}
 $ gnunet-core -c peer1.conf
 Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
 \end{lstlisting}
 
-\subsection{Starting Peers Using the Testbed Service}
+\subsection{Starting Peers Using the Testbed Service} \label{sec:testbed}
 
 GNUnet's testbed service is used for testing scenarios where a number of peers
 are to be started.  The testbed can manage peers on a single host or on multiple
@@ -463,7 +491,8 @@ found in the testbed default configuration file \texttt{src/testbed/testbed.conf
 
 With the testbed API, a sample test case can be structured as follows:
 % <lynX> Is there a way to pick a more readable font for this include?
-\lstinputlisting[language=C]{testbed_test.c}
+\lstset{language=C}
+\lstinputlisting{testbed_test.c}
 The source code for the above listing can be found at
 \url{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
 or in the {\tt doc/} folder of your repository check-out.
@@ -473,6 +502,8 @@ After installing GNUnet, the above source code can be compiled as:
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
 $ export LDFLAGS="-L/path/to/gnunet/libraries"
 $ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c  -lgnunettestbed -lgnunetdht -lgnunetutil
+$ touch template.conf # Generate (empty) configuration
+$ ./testbed-test  # run it (press CTRL-C to stop)
 \end{lstlisting}
 The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
 into a different directory other than \texttt{/usr/local}.
@@ -593,7 +624,7 @@ command-line options, setup the scheduler and then invoke the {\tt
 to the parsed configuration (and the configuration file name that was
 used, which is typically not needed):
 
-\lstset{language=c}
+\lstset{language=C}
 \begin{lstlisting}
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
@@ -606,7 +637,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  /* main code here */
+  // main code here
   ret = 0;
 }
 
@@ -632,6 +663,7 @@ expanding the {\tt options} array.  For example, the following would
 add a string-option and a binary flag (defaulting to {\tt NULL} and
 {\tt GNUNET\_NO} respectively):
 
+\lstset{language=C}
 \begin{lstlisting}
 static char *string_option;
 static int a_flag;
@@ -696,7 +728,7 @@ file).
 Before a client library can implement the application-specific protocol
 with the service, a connection must be created:
 
-\lstset{language=c}
+\lstset{language=C}
 \begin{lstlisting}
   struct GNUNET_MQ_MessageHandlers handlers[] = {
     // ...
@@ -723,36 +755,26 @@ In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_Message
 in big endian format. This header defines the size and the type of the
 message, the payload follows after this header.
 
-\lstset{language=c}
+\lstset{language=C}
 \begin{lstlisting}
 struct GNUNET_MessageHeader
 {
-
-  /**
-   * The length of the struct (in bytes, including the length field itself),
-   * in big-endian format.
-   */
   uint16_t size GNUNET_PACKED;
-
-  /**
-   * The type of the message (GNUNET_MESSAGE_TYPE_XXXX), in big-endian format.
-   */
   uint16_t type GNUNET_PACKED;
-
 };
 \end{lstlisting}
 
 Existing message types are defined in {\tt gnunet\_protocols.h}\\
 A common way to create a message is with an envelope:
 
-\lstset{language=c}
+\lstset{language=C}
 \begin{lstlisting}
 struct GNUNET_MQ_Envelope *env;
 struct GNUNET_MessageHeader *msg;
 
 env = GNUNET_MQ_msg_extra (msg, payload_size, GNUNET_MY_MESSAGE_TYPE);
 memcpy (&msg[1], &payload, payload_size);
-/* Send message via message queue 'mq': */
+// Send message via message queue 'mq'
 GNUNET_mq_send (mq, env);
 \end{lstlisting}
 
@@ -785,38 +807,19 @@ and {\tt handle\_} are mandatory.
 
 \lstset{language=c}
 \begin{lstlisting}
-/**
- * Function called with MyMessage messages from service.
- *
- * @param cls closure
- * @param msg message received
- */
 static void
 handle_fix (void *cls, const struct MyMessage *msg)
 {
   // process 'msg'
 }
 
-/**
- * Function called with MyVarMessage messages from service.
- *
- * @param cls closure
- * @param msg message received
- * @return #GNUNET_OK if @a msg is well-formed
- */
 static int
 check_var (void *cls, const struct MyVarMessage *msg)
 {
   // check 'msg' is well-formed
-  return GNUNET_OK; /* suppose yes */
+  return GNUNET_OK;
 }
 
-/**
- * Function called with MyMessage messages from service.
- *
- * @param cls closure
- * @param msg message received
- */
 static void
 handle_var (void *cls, const struct MyVarMessage *msg)
 {
@@ -900,13 +903,6 @@ like this:
 
 \lstset{language=c}
 \begin{lstlisting}
-/**
- * Launch service.
- *
- * @param cls closure
- * @param c configuration to use
- * @param service the initialized service
- */
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
@@ -914,14 +910,6 @@ run (void *cls,
 {
 }
 
-/**
- * Callback called when a client connects to the service.
- *
- * @param cls closure for the service
- * @param c the new client that connected to the service
- * @param mq the message queue used to send messages to the client
- * @return @a c
- */
 static void *
 client_connect_cb (void *cls,
 		   struct GNUNET_SERVICE_Client *c,
@@ -930,13 +918,6 @@ client_connect_cb (void *cls,
   return c;
 }
 
-/**
- * Callback called when a client disconnected from the service
- *
- * @param cls closure for the service
- * @param c the client that disconnected
- * @param internal_cls should be equal to @a c
- */
 static void
 client_disconnect_cb (void *cls,
 		      struct GNUNET_SERVICE_Client *c,
@@ -988,11 +969,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
-                     GNUNET_CORE_MessageCallback inbound_notify,
-                     int inbound_hdr_only,
-                     GNUNET_CORE_MessageCallback outbound_notify,
-                     int outbound_hdr_only,
-                     const struct GNUNET_CORE_MessageHandler *handlers);
+                     const struct GNUNET_MQ_MessageHandler *handlers);
 \end{lstlisting}
 
 \subsection{New P2P connections}
@@ -1003,14 +980,18 @@ which communicates the identity of the new peer to the service:
 
 \lstset{language=C}
 \begin{lstlisting}
-void
+void *
 connects (void *cls,
-	  const struct GNUNET_PeerIdentity * peer)
+          const struct GNUNET_PeerIdentity *peer,
+          struct GNUNET_MQ_Handle *mq)
 {
-    /* Save identity for later use */
-    /* Optional: start sending messages to peer */
+  return mq;
 }
 \end{lstlisting}
+
+Note that whatever you return from {\tt connects} is given as the
+{\it cls} argument to the message handlers for messages from
+the respective peer.
 
 \exercise{Create a service that connects to the \texttt{CORE}.  Then
 start (and connect) two peers and print a message once your connect
@@ -1018,30 +999,14 @@ callback is invoked.}
 
 \subsection{Receiving P2P Messages}
 
-To receive messages from \texttt{CORE}, services register a set of handlers
-(parameter {\tt *handlers} in the \lstinline|GNUNET_CORE_connect| call that are called by \texttt{CORE}
-when a suitable message arrives.
+To receive messages from \texttt{CORE}, you pass the desired
+{\em handlers} to the {\tt GNUNET\_CORE\_connect()} function,
+just as we showed for services.
 
-\lstset{language=c}
-\begin{lstlisting}
-static int
-callback_function_for_type_one(void *cls,
-                               const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_MessageHeader *message)
-{
-    /* Do stuff */
-    return GNUNET_OK; /* or GNUNET_SYSERR to close the connection */
-}
-
-/**
- * Functions to handle messages from core
- */
-static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&callback_function_for_type_one, GNUNET_MESSAGE_TYPE_MYSERVICE_TYPE_ONE, 0},
-  /* more handlers*/
-  {NULL, 0, 0}
-};
-\end{lstlisting}
+It is your responsibility to process messages fast enough or
+to implement flow control. If an application does not process
+CORE messages fast enough, CORE will randomly drop messages
+to not keep a very long queue in memory.
 
 \exercise{Start one peer with a new service that has a message
 handler and start a second peer that only has your ``old'' service
@@ -1051,29 +1016,13 @@ the two peers are connected?  Why?}
 
 \subsection{Sending P2P Messages}
 
-In response to events (connect, disconnect, inbound messages,
-timing, etc.) services can then use this API to transmit messages:
+You can transmit messages to other peers using the {\it mq} you were
+given during the {\tt connect} callback.  Note that the {\it mq}
+automatically is released upon {\tt disconnect} and that you must
+not use it afterwards.
 
-\lstset{language=C}
-\begin{lstlisting}
-typedef size_t
-(*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
-                                          size_t size,
-                                          void *buf)
-{
-    /* Fill "*buf" with up to "size" bytes, must start with GNUNET_MessageHeader */
-    return n; /* Total size of the message put in "*buf" */
-}
-
-struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
-                                   int cork, uint32_t priority,
-                                   struct GNUNET_TIME_Relative maxdelay,
-                                   const struct GNUNET_PeerIdentity *target,
-                                   size_t notify_size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
-                                   void *notify_cls);
-\end{lstlisting}
+It is your responsibility to not over-fill the message queue, GNUnet
+will send the messages roughly in the order given as soon as possible.
 
 \exercise{Write a service that upon connect sends messages as
 fast as possible to the other peer (the other peer should run a
@@ -1258,22 +1207,21 @@ and other unfavorable events, just make several PUT requests!
 
 \lstset{language=C}
 \begin{lstlisting}
-void
+static void
 message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    /* Request has left local node */
+  // Request has left local node
 }
 
 struct GNUNET_DHT_PutHandle *
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const struct GNUNET_HashCode *key,
                 uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options, /* Route options, see next call */
+                enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type, size_t size, const void *data,
-                struct GNUNET_TIME_Absolute exp, /* When does the data expire? */
-                struct GNUNET_TIME_Relative timeout,  /* How long to try to send the request */
-                GNUNET_DHT_PutContinuation cont,
-                void *cont_cls)
+                struct GNUNET_TIME_Absolute exp,
+                struct GNUNET_TIME_Relative timeout,
+                GNUNET_DHT_PutContinuation cont, void *cont_cls)
 \end{lstlisting}
 
 \exercise{Store a value in the DHT periodically to make sure it is available
@@ -1305,9 +1253,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute expiration,
                      unsigned int put_path_length,
                      enum GNUNET_BLOCK_Type type, size_t size, const void *data)
 {
-    /* Do stuff with the data and/or route */
-    /* Optionally: */
-    GNUNET_DHT_get_stop (get_handle);
+  // Optionally:
+  GNUNET_DHT_get_stop (get_handle);
 }
 
 get_handle =
@@ -1315,9 +1262,9 @@ get_handle =
                             block_type,
                             &key,
                             replication,
-                            GNUNET_DHT_RO_NONE, /* Route options */
-                            NULL, /* xquery: not used here */
-                            0, /* xquery size */
+                            GNUNET_DHT_RO_NONE,
+                            NULL,
+                            0,
                             &get_result_iterator,
                             cls)
 \end{lstlisting}
@@ -1356,13 +1303,13 @@ static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_SERVICE_evaluate (void *cls,
                               enum GNUNET_BLOCK_Type type,
                               struct GNUNET_BlockGroup *bg,
-			      const GNUNET_HashCode *query,
-			      const void *xquery,
-			      size_t xquery_size,
-			      const void *reply_block,
-			      size_t reply_block_size)
+                              const GNUNET_HashCode *query,
+                              const void *xquery,
+                              size_t xquery_size,
+                              const void *reply_block,
+                              size_t reply_block_size)
 {
-  /* Verify type, block and bg */
+  // Verify type, block and bg
 }
 \end{lstlisting}
 
@@ -1385,10 +1332,10 @@ just fine with such blocks).
 \begin{lstlisting}
 static int
 block_plugin_SERVICE_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                              const void *block, size_t block_size,
-                              struct GNUNET_HashCode *key)
+                             const void *block, size_t block_size,
+                             struct GNUNET_HashCode *key)
 {
-    /* Store the key in the key argument, return GNUNET_OK on success. */
+  // Store the key in the key argument, return GNUNET_OK on success.
 }
 \end{lstlisting}
 
@@ -1407,8 +1354,8 @@ libgnunet_plugin_block_SERVICE_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] =
   {
-    GNUNET_BLOCK_TYPE_SERVICE_BLOCKYPE, /* list of blocks we care about, from gnunet_block_lib.h */
-    GNUNET_BLOCK_TYPE_ANY       /* end of list */
+    GNUNET_BLOCK_TYPE_SERVICE_BLOCKYPE,
+    GNUNET_BLOCK_TYPE_ANY
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
@@ -1483,7 +1430,7 @@ to allow for filtering of messages. When an event happens, the appropiate callba
 is called with all the information about the event.
 \lstset{language=C}
 \begin{lstlisting}
-void
+static void
 get_callback (void *cls,
               enum GNUNET_DHT_RouteOption options,
               enum GNUNET_BLOCK_Type type,
@@ -1495,7 +1442,8 @@ get_callback (void *cls,
 {
 }
 
-void
+
+static void
 get_resp_callback (void *cls,
                    enum GNUNET_BLOCK_Type type,
                    const struct GNUNET_PeerIdentity *get_path,
@@ -1509,7 +1457,8 @@ get_resp_callback (void *cls,
 {
 }
 
-void
+
+static void
 put_callback (void *cls,
               enum GNUNET_DHT_RouteOption options,
               enum GNUNET_BLOCK_Type type,
@@ -1524,13 +1473,14 @@ put_callback (void *cls,
 {
 }
 
+
 monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
-                                           block_type, /* GNUNET_BLOCK_TYPE_ANY for all */
-                                           key, /* NULL for all */
-                                           &get_callback,
-                                           &get_resp_callback,
-                                           &put_callback,
-                                           cls);
+                                          block_type,
+                                          key,
+                                          &get_callback,
+                                          &get_resp_callback,
+                                          &put_callback,
+                                          cls);
 \end{lstlisting}
 
 

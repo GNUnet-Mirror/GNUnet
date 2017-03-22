@@ -979,7 +979,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_TcpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1079,7 +1079,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_IcmpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1358,7 +1358,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_UdpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -2502,7 +2502,7 @@ store_service (int proto,
               GNUNET_h2s (&cadet_port),
               name,
               (unsigned int) destination_port);
-  service->port = GNUNET_CADET_open_porT (cadet_handle,
+  service->port = GNUNET_CADET_open_port (cadet_handle,
                                           &cadet_port,
                                           &new_service_channel,
                                           service,
@@ -2884,7 +2884,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   mtcp->crc = 0;
 
   mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + (pktlen - sizeof (struct GNUNET_TUN_TcpHeader));
-  if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -2905,12 +2905,10 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
  * Receive packets from the helper-process
  *
  * @param cls unused
- * @param client unsued
  * @param message message received from helper
  */
 static int
 message_token (void *cls GNUNET_UNUSED,
-               void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;
@@ -3579,7 +3577,7 @@ advertise_dns_exit ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Opening CADET port %s for DNS exit service\n",
               GNUNET_h2s (&port));
-  dns_port = GNUNET_CADET_open_porT (cadet_handle,
+  dns_port = GNUNET_CADET_open_port (cadet_handle,
                                      &port,
                                      &new_channel,
                                      NULL,
@@ -3829,7 +3827,7 @@ run (void *cls,
 				 NULL);
   stats = GNUNET_STATISTICS_create ("exit",
                                     cfg);
-  cadet_handle = GNUNET_CADET_connecT (cfg);
+  cadet_handle = GNUNET_CADET_connect (cfg);
   if (NULL == cadet_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -3862,7 +3860,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Opening CADET port %s for IPv4 gateway service\n",
                 GNUNET_h2s (&port));
-    cadet_port4 = GNUNET_CADET_open_porT (cadet_handle,
+    cadet_port4 = GNUNET_CADET_open_port (cadet_handle,
                                           &port,
                                           &new_channel,
                                           NULL,
@@ -3902,7 +3900,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Opening CADET port %s for IPv6 gateway service\n",
                 GNUNET_h2s (&port));
-    cadet_port6 = GNUNET_CADET_open_porT (cadet_handle,
+    cadet_port6 = GNUNET_CADET_open_port (cadet_handle,
                                           &port,
                                           &new_channel,
                                           NULL,

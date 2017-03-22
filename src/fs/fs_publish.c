@@ -837,7 +837,7 @@ hash_for_index_cb (void *cls,
   GNUNET_assert (fn != NULL);
   slen = strlen (fn) + 1;
   if (slen >=
-      GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct IndexStartMessage))
+      GNUNET_MAX_MESSAGE_SIZE - sizeof (struct IndexStartMessage))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
@@ -1226,7 +1226,7 @@ fip_signal_start (void *cls,
   {
     kc = GNUNET_FS_uri_ksk_get_keyword_count (*uri);
     pc->reserve_entries += kc;
-    pc->reserve_space += GNUNET_SERVER_MAX_MESSAGE_SIZE * kc;
+    pc->reserve_space += GNUNET_MAX_MESSAGE_SIZE * kc;
   }
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);

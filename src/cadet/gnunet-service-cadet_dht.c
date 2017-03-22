@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,25 +17,41 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
+/**
+ * @file cadet/gnunet-service-cadet_dht.c
+ * @brief Information we track per peer.
+ * @author Bartlomiej Polot
+ * @author Christian Grothoff
+ */
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-
-#include "cadet_path.h"
+#include "gnunet-service-cadet.h"
 #include "gnunet-service-cadet_dht.h"
-#include "gnunet-service-cadet_peer.h"
 #include "gnunet-service-cadet_hello.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_paths.h"
+
+/**
+ * How long do we wait before first announcing our presence to the DHT.
+ * Used to wait for our HELLO to be available.  Note that we also get
+ * notifications when our HELLO is ready, so this is just the maximum
+ * we wait for the first notification.
+ */
+#define STARTUP_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+
+/**
+ * How long do we wait after we get an updated HELLO before publishing?
+ * Allows for the HELLO to be updated again quickly, for example in
+ * case multiple addresses changed and we got a partial update.
+ */
+#define CHANGE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
 
 #define LOG(level, ...) GNUNET_log_from (level,"cadet-dht",__VA_ARGS__)
 
-
-/******************************************************************************/
-/********************************   STRUCTS  **********************************/
-/******************************************************************************/
 
 /**
  * Handle for DHT searches.
@@ -47,41 +63,8 @@ struct GCD_search_handle
    */
   struct GNUNET_DHT_GetHandle *dhtget;
 
-  /**
-   * Provided callback to call when a path is found.
-   */
-  GCD_search_callback callback;
-
-  /**
-   * Provided closure.
-   */
-  void *cls;
-
-  /**
-   * Peer ID searched for
-   */
-  GNUNET_PEER_Id peer_id;
 };
 
-
-/******************************************************************************/
-/*******************************   GLOBALS  ***********************************/
-/******************************************************************************/
-
-/**
- * Global handle to the statistics service.
- */
-extern struct GNUNET_STATISTICS_Handle *stats;
-
-/**
- * Own ID (short value).
- */
-extern GNUNET_PEER_Id myid;
-
-/**
- * Own ID (full value).
- */
-extern struct GNUNET_PeerIdentity my_full_id;
 
 /**
  * Handle to use DHT.
@@ -94,68 +77,19 @@ static struct GNUNET_DHT_Handle *dht_handle;
 static struct GNUNET_TIME_Relative id_announce_time;
 
 /**
- * DHT replication level, see DHT API: GNUNET_DHT_get_start, GNUNET_DHT_put.
+ * DHT replication level, see DHT API: #GNUNET_DHT_get_start(), #GNUNET_DHT_put().
  */
 static unsigned long long dht_replication_level;
 
 /**
  * Task to periodically announce itself in the network.
  */
-static struct GNUNET_SCHEDULER_Task * announce_id_task;
+static struct GNUNET_SCHEDULER_Task *announce_id_task;
 
 /**
  * Delay for the next ID announce.
  */
 static struct GNUNET_TIME_Relative announce_delay;
-
-/**
- * GET requests to stop on shutdown.
- */
-static struct GNUNET_CONTAINER_MultiHashMap32 *get_requests;
-
-/******************************************************************************/
-/********************************   STATIC  ***********************************/
-/******************************************************************************/
-
-
-/**
- * Build a PeerPath from the paths returned from the DHT, reversing the paths
- * to obtain a local peer -> destination path and interning the peer ids.
- *
- * @return Newly allocated and created path
- *
- * FIXME refactor and use build_path_from_peer_ids
- */
-static struct CadetPeerPath *
-path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length)
-{
-  size_t size = get_path_length + put_path_length + 1;
-  struct GNUNET_PeerIdentity peers[size];
-  const struct GNUNET_PeerIdentity *peer;
-  struct CadetPeerPath *p;
-  unsigned int own_pos;
-  int i;
-
-  peers[0] = my_full_id;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", get_path_length);
-  for (i = 0 ; i < get_path_length; i++)
-  {
-    peer = &get_path[get_path_length - i - 1];
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   From GET: %s\n", GNUNET_i2s (peer));
-    peers[i + 1] = *peer;
-  }
-  for (i = 0 ; i < put_path_length; i++)
-  {
-    peer = &put_path[put_path_length - i - 1];
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   From PUT: %s\n", GNUNET_i2s (peer));
-    peers[i + get_path_length + 1] = *peer;
-  }
-  p = path_build_from_peer_ids (peers, size, myid, &own_pos);
-  return p;
-}
 
 
 /**
@@ -176,42 +110,34 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
  */
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const struct GNUNET_HashCode * key,
+                    const struct GNUNET_HashCode *key,
                     const struct GNUNET_PeerIdentity *get_path,
                     unsigned int get_path_length,
                     const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                    size_t size, const void *data)
+                    unsigned int put_path_length,
+                    enum GNUNET_BLOCK_Type type,
+                    size_t size,
+                    const void *data)
 {
-  struct GCD_search_handle *h = cls;
-  struct GNUNET_HELLO_Message *hello;
-  struct CadetPeerPath *p;
+  const struct GNUNET_HELLO_Message *hello = data;
   struct CadetPeer *peer;
-  char *s;
 
-  p = path_build_from_dht (get_path, get_path_length,
-                           put_path, put_path_length);
-  if (NULL == p)
+  GCPP_try_path_from_dht (get_path,
+                          get_path_length,
+                          put_path,
+                          put_path_length);
+  if ( (size >= sizeof (struct GNUNET_HELLO_Message)) &&
+       (ntohs (hello->header.size) == size) &&
+       (size == GNUNET_HELLO_size (hello)) )
   {
-    GNUNET_break_op (0);
-    return;
+    peer = GCP_get (&put_path[0],
+                    GNUNET_YES);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got HELLO for %s\n",
+         GCP_2s (peer));
+    GCP_set_hello (peer,
+                   hello);
   }
-
-  s = path_2s (p);
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Got path from DHT: %s\n",
-       s);
-  GNUNET_free_non_null (s);
-
-  peer = GCP_get_short (p->peers[p->length - 1], GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got HELLO for %s\n",
-       GCP_2s (peer));
-  h->callback (h->cls, p);
-  path_destroy (p);
-  hello = (struct GNUNET_HELLO_Message *) data;
-  GCP_set_hello (peer, hello);
-  GCP_try_connect (peer);
 }
 
 
@@ -229,19 +155,10 @@ announce_id (void *cls)
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative next_put;
 
-  announce_id_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
   hello = GCH_get_mine ();
   size = (NULL != hello) ? GNUNET_HELLO_size (hello) : 0;
-  if ( (NULL == hello) || (0 == size) )
+  if (0 == size)
   {
-    /* Peerinfo gave us no hello yet, try again soon. */
-    LOG (GNUNET_ERROR_TYPE_INFO,
-	 "  no hello, waiting!\n");
-    GNUNET_STATISTICS_update (stats,
-			      "# DHT announce skipped (no hello)",
-                              1,
-			      GNUNET_NO);
     expiration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                            announce_delay);
     announce_delay = GNUNET_TIME_STD_BACKOFF (announce_delay);
@@ -252,70 +169,63 @@ announce_id (void *cls)
     announce_delay = GNUNET_TIME_UNIT_SECONDS;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Hello %p size: %u\n",
-       hello,
-       size);
-  if (NULL != hello)
-  {
-    GNUNET_STATISTICS_update (stats,
-			      "# DHT announce",
-			      1, GNUNET_NO);
-    memset (&phash,
-	    0,
-	    sizeof (phash));
-    GNUNET_memcpy (&phash,
-		   &my_full_id,
-		   sizeof (my_full_id));
-    GNUNET_DHT_put (dht_handle,   /* DHT handle */
-		    &phash,       /* Key to use */
-		    dht_replication_level,     /* Replication level */
-		    GNUNET_DHT_RO_RECORD_ROUTE
-		    | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-		    GNUNET_BLOCK_TYPE_DHT_HELLO,       /* Block type */
-		    size,  /* Size of the data */
-		    (const char *) hello, /* Data itself */
-		    expiration,  /* Data expiration */
-		    NULL,         /* Continuation */
-		    NULL);        /* Continuation closure */
-  }
   /* Call again in id_announce_time, unless HELLO expires first,
    * but wait at least 1s. */
-  next_put = GNUNET_TIME_absolute_get_remaining (expiration);
-  next_put = GNUNET_TIME_relative_min (next_put,
-				       id_announce_time);
-  next_put = GNUNET_TIME_relative_max (next_put,
-				       GNUNET_TIME_UNIT_SECONDS);
-  announce_id_task = GNUNET_SCHEDULER_add_delayed (next_put,
-						   &announce_id,
-						   cls);
+  next_put
+    = GNUNET_TIME_absolute_get_remaining (expiration);
+  next_put
+    = GNUNET_TIME_relative_min (next_put,
+                                id_announce_time);
+  next_put
+    = GNUNET_TIME_relative_max (next_put,
+                                GNUNET_TIME_UNIT_SECONDS);
+  announce_id_task
+    = GNUNET_SCHEDULER_add_delayed (next_put,
+                                    &announce_id,
+                                    cls);
+  GNUNET_STATISTICS_update (stats,
+                            "# DHT announce",
+                            1,
+                            GNUNET_NO);
+  memset (&phash,
+          0,
+          sizeof (phash));
+  GNUNET_memcpy (&phash,
+                 &my_full_id,
+                 sizeof (my_full_id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Announcing my HELLO (%u bytes) in the DHT\n",
+       size);
+  GNUNET_DHT_put (dht_handle,   /* DHT handle */
+                  &phash,       /* Key to use */
+                  dht_replication_level,     /* Replication level */
+                  GNUNET_DHT_RO_RECORD_ROUTE
+                  | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
+                  GNUNET_BLOCK_TYPE_DHT_HELLO,       /* Block type */
+                  size,  /* Size of the data */
+                  (const char *) hello, /* Data itself */
+                  expiration,  /* Data expiration */
+                  NULL,         /* Continuation */
+                  NULL);        /* Continuation closure */
 }
+
 
 /**
- * Iterator over hash map entries and stop GET requests before disconnecting
- * from the DHT.
- *
- * @param cls Closure (unused)
- * @param key Current peer ID.
- * @param value Value in the hash map (GCD_search_handle).
- *
- * @return #GNUNET_YES, we should continue to iterate,
+ * Function called by the HELLO subsystem whenever OUR hello
+ * changes. Re-triggers the DHT PUT immediately.
  */
-int
-stop_get (void *cls,
-          uint32_t key,
-          void *value)
+void
+GCD_hello_update ()
 {
-  struct GCD_search_handle *h = value;
-
-  GCD_search_stop (h);
-  return GNUNET_YES;
+  if (NULL == announce_id_task)
+    return; /* too early */
+  GNUNET_SCHEDULER_cancel (announce_id_task);
+  announce_id_task
+    = GNUNET_SCHEDULER_add_delayed (CHANGE_DELAY,
+                                    &announce_id,
+                                    NULL);
 }
 
-
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
 
 /**
  * Initialize the DHT subsystem.
@@ -325,36 +235,40 @@ stop_get (void *cls,
 void
 GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "CADET",
+      GNUNET_CONFIGURATION_get_value_number (c,
+                                             "CADET",
                                              "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, "CADET",
-                               "DHT_REPLICATION_LEVEL", "USING DEFAULT");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET",
+                               "DHT_REPLICATION_LEVEL",
+                               "USING DEFAULT");
     dht_replication_level = 3;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "ID_ANNOUNCE_TIME",
+      GNUNET_CONFIGURATION_get_value_time (c,
+                                           "CADET",
+                                           "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "CADET",
-                               "ID_ANNOUNCE_TIME", "MISSING");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "CADET",
+                               "ID_ANNOUNCE_TIME",
+                               "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
-  dht_handle = GNUNET_DHT_connect (c, 64);
-  if (NULL == dht_handle)
-  {
-    GNUNET_break (0);
-  }
-
+  dht_handle = GNUNET_DHT_connect (c,
+                                   64);
+  GNUNET_break (NULL != dht_handle);
   announce_delay = GNUNET_TIME_UNIT_SECONDS;
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, NULL);
-  get_requests = GNUNET_CONTAINER_multihashmap32_create (32);
+  announce_id_task = GNUNET_SCHEDULER_add_delayed (STARTUP_DELAY,
+                                                   &announce_id,
+                                                   NULL);
 }
 
 
@@ -364,10 +278,7 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCD_shutdown (void)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down DHT\n");
-  GNUNET_CONTAINER_multihashmap32_iterate (get_requests, &stop_get, NULL);
-  GNUNET_CONTAINER_multihashmap32_destroy (get_requests);
-  if (dht_handle != NULL)
+  if (NULL != dht_handle)
   {
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
@@ -379,22 +290,31 @@ GCD_shutdown (void)
   }
 }
 
+
+/**
+ * Search DHT for paths to @a peeR_id
+ *
+ * @param peer_id peer to search for
+ * @return handle to abort search
+ */
 struct GCD_search_handle *
-GCD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GCD_search_callback callback, void *cls)
+GCD_search (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct GNUNET_HashCode phash;
   struct GCD_search_handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting DHT GET for peer %s\n",
-       GNUNET_i2s (peer_id));
-  GNUNET_STATISTICS_update (stats, "# DHT search", 1, GNUNET_NO);
-  memset (&phash, 0, sizeof (phash));
-  GNUNET_memcpy (&phash, peer_id, sizeof (*peer_id));
+  GNUNET_STATISTICS_update (stats,
+                            "# DHT search",
+                            1,
+                            GNUNET_NO);
+  memset (&phash,
+          0,
+          sizeof (phash));
+  GNUNET_memcpy (&phash,
+                 peer_id,
+                 sizeof (*peer_id));
+
   h = GNUNET_new (struct GCD_search_handle);
-  h->peer_id = GNUNET_PEER_intern (peer_id);
-  h->callback = callback;
-  h->cls = cls;
   h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                     GNUNET_BLOCK_TYPE_DHT_HELLO, /* type */
                                     &phash,     /* key to search */
@@ -405,20 +325,27 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
                                     0,     /* xquery bits */
                                     &dht_get_id_handler,
 				    h);
-  GNUNET_CONTAINER_multihashmap32_put (get_requests,
-				       h->peer_id,
-				       h,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting DHT GET for peer %s (%p)\n",
+       GNUNET_i2s (peer_id),
+       h);
   return h;
 }
 
 
+/**
+ * Stop DHT search started with #GCD_search().
+ *
+ * @param h handle to search to stop
+ */
 void
 GCD_search_stop (struct GCD_search_handle *h)
 {
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap32_remove (get_requests,
-                                                        h->peer_id, h));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Stopping DHT GET %p\n",
+       h);
   GNUNET_DHT_get_stop (h->dhtget);
   GNUNET_free (h);
 }
+
+/* end of gnunet-service-cadet_dht.c */

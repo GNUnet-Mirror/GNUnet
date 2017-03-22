@@ -907,6 +907,7 @@ update_config_sections (void *cls,
       {
         ikeys[key] = ptr;
         ptr = strstr (ptr, ";");
+        GNUNET_assert (NULL != ptr); /* worked just before... */
         *ptr = '\0';
         ptr++;
       }

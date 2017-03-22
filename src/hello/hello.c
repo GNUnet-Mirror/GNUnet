@@ -206,7 +206,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                      void *addrgen_cls,
                      int friend_only)
 {
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - 256 -
+  char buffer[GNUNET_MAX_MESSAGE_SIZE - 1 - 256 -
               sizeof (struct GNUNET_HELLO_Message)];
   size_t max;
   size_t used;

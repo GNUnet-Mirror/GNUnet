@@ -621,7 +621,7 @@ struct Socks5Request
 /**
  * The port the proxy is running on (default 7777)
  */
-static unsigned long port = GNUNET_GNS_PROXY_PORT;
+static unsigned long long port = GNUNET_GNS_PROXY_PORT;
 
 /**
  * The CA file (pem) to use for the proxy CA
@@ -865,7 +865,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
   const char *name;
 
   s5r->ssl_checked = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "XXXXXX\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Checking SSL certificate\n");
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
@@ -1882,19 +1883,22 @@ mhd_connection_cb (void *cls,
       {
         if (GNUNET_NETWORK_get_fd (s5r->sock) == sock)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Context set...\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Context set...\n");
+          s5r->ssl_checked = GNUNET_NO;
           *con_cls = s5r;
           break;
         }
       }
-      s5r->ssl_checked = GNUNET_NO;
       break;
     case MHD_CONNECTION_NOTIFY_CLOSED:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connection closed... cleaning up\n");
       s5r = *con_cls;
       if (NULL == s5r)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Connection stale!\n");
         return;
       }
       cleanup_s5r (s5r);
@@ -3104,7 +3108,7 @@ run_cont ()
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Proxy listens on port %lu\n",
+              "Proxy listens on port %llu\n",
               port);
 
   /* start MHD daemon for HTTP */
@@ -3257,13 +3261,20 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'p', "port", NULL,
-      gettext_noop ("listen on specified port (default: 7777)"), 1,
-      &GNUNET_GETOPT_set_ulong, &port},
-    {'a', "authority", NULL,
-      gettext_noop ("pem file to use as CA"), 1,
-      &GNUNET_GETOPT_set_string, &cafile_opt},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_ULONG ('p',
+                                    "port",
+                                    NULL,
+                                    gettext_noop ("listen on specified port (default: 7777)"),
+                                    &port),
+
+    GNUNET_GETOPT_OPTION_STRING ('a',
+                                 "authority",
+                                 NULL,
+                                 gettext_noop ("pem file to use as CA"),
+                                 &cafile_opt),
+
     GNUNET_GETOPT_OPTION_END
   };
   static const char* page =

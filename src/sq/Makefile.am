@@ -9,7 +9,7 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage
 endif
 
-if HAVE_POSTGRESQL
+if HAVE_SQLITE
 lib_LTLIBRARIES = libgnunetsq.la
 endif
 

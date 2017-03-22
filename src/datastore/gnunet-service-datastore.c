@@ -307,7 +307,7 @@ expired_processor (void *cls,
 {
   struct GNUNET_TIME_Absolute now;
 
-  if (key == NULL)
+  if (NULL == key)
   {
     expired_kill_task =
         GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
@@ -529,7 +529,7 @@ transmit_item (void *cls,
     return GNUNET_OK;
   }
   GNUNET_assert (sizeof (struct DataMessage) + size <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                 GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (dm,
                              size,
                              GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
@@ -984,12 +984,13 @@ handle_put (void *cls,
                         size,
                         &vhash);
     plugin->api->get_key (plugin->api->cls,
-			  0,
-			  &dm->key,
-			  &vhash,
+                          0,
+                          false,
+                          &dm->key,
+                          &vhash,
                           ntohl (dm->type),
-			  &check_present,
-			  pc);
+                          &check_present,
+                          pc);
     GNUNET_SERVICE_client_continue (client);
     return;
   }
@@ -1018,7 +1019,8 @@ handle_get (void *cls,
                             1,
                             GNUNET_NO);
   plugin->api->get_key (plugin->api->cls,
-                        GNUNET_ntohll (msg->offset),
+                        GNUNET_ntohll (msg->next_uid),
+                        msg->random,
                         NULL,
                         NULL,
                         ntohl (msg->type),
@@ -1069,7 +1071,8 @@ handle_get_key (void *cls,
     return;
   }
   plugin->api->get_key (plugin->api->cls,
-                        GNUNET_ntohll (msg->offset),
+                        GNUNET_ntohll (msg->next_uid),
+                        msg->random,
                         &msg->key,
                         NULL,
                         ntohl (msg->type),
@@ -1131,7 +1134,7 @@ handle_get_zero_anonymity (void *cls,
                             1,
                             GNUNET_NO);
   plugin->api->get_zero_anonymity (plugin->api->cls,
-                                   GNUNET_ntohll (msg->offset),
+                                   GNUNET_ntohll (msg->next_uid),
                                    type,
                                    &transmit_item,
                                    client);
@@ -1241,6 +1244,7 @@ handle_remove (void *cls,
               (uint32_t) ntohl (dm->type));
   plugin->api->get_key (plugin->api->cls,
                         0,
+                        false,
                         &dm->key,
                         &vhash,
                         (enum GNUNET_BLOCK_Type) ntohl (dm->type),

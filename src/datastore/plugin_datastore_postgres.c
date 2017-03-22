@@ -80,6 +80,7 @@ init_connection (struct Plugin *plugin)
    * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
    * we do math or inequality tests, so we can't handle the entire range of uint32_t.
    * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
+   * PostgreSQL also recommends against using WITH OIDS.
    */
   ret =
       PQexec (plugin->dbh,
@@ -114,13 +115,17 @@ init_connection (struct Plugin *plugin)
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
   {
     if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
                                "CREATE INDEX IF NOT EXISTS idx_prio_anon ON gn090 (prio,anonLevel)")) ||
@@ -128,9 +133,11 @@ init_connection (struct Plugin *plugin)
          GNUNET_POSTGRES_exec (plugin->dbh,
                                "CREATE INDEX IF NOT EXISTS idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
         (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                               "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
     {
       PQclear (ret);
       PQfinish (plugin->dbh);
@@ -170,40 +177,18 @@ init_connection (struct Plugin *plugin)
   }
   PQclear (ret);
   if ((GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "getvt",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE hash=$1 AND vhash=$2 AND type=$3 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $4", 4)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "gett",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE hash=$1 AND type=$2 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "getv",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE hash=$1 AND vhash=$2 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3)) ||
-      (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "get",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE hash=$1 " "ORDER BY oid ASC LIMIT 1 OFFSET $2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "count_getvt",
-				"SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2 AND type=$3", 3)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "count_gett",
-				"SELECT count(*) FROM gn090 WHERE hash=$1 AND type=$2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "count_getv",
-				"SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "count_get",
-				"SELECT count(*) FROM gn090 WHERE hash=$1", 1)) ||
+                   "WHERE oid >= $1::bigint AND "
+                   "(rvalue >= $2 OR 0 = $3::smallint) AND "
+                   "(hash = $4 OR 0 = $5::smallint) AND "
+                   "(vhash = $6 OR 0 = $7::smallint) AND "
+                   "(type = $8 OR 0 = $9::smallint) "
+                   "ORDER BY oid ASC LIMIT 1", 9)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "put",
                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, RANDOM(), $6, $7, $8)", 9)) ||
+                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", 9)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "update",
                    "UPDATE gn090 SET prio = prio + $1, expire = CASE WHEN expire < $2 THEN $2 ELSE expire END "
@@ -215,8 +200,9 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "select_non_anonymous",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE anonLevel = 0 AND type = $1 ORDER BY oid DESC LIMIT 1 OFFSET $2",
-                   1)) ||
+                   "WHERE anonLevel = 0 AND type = $1 AND oid >= $2::bigint "
+                   "ORDER BY oid ASC LIMIT 1",
+                   2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "select_expiration_order",
                    "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
@@ -322,6 +308,8 @@ postgres_plugin_put (void *cls,
   struct Plugin *plugin = cls;
   uint32_t utype = type;
   struct GNUNET_HashCode vhash;
+  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                              UINT64_MAX);
   PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&replication),
@@ -329,6 +317,7 @@ postgres_plugin_put (void *cls,
     GNUNET_PQ_query_param_uint32 (&priority),
     GNUNET_PQ_query_param_uint32 (&anonymity),
     GNUNET_PQ_query_param_absolute_time (&expiration),
+    GNUNET_PQ_query_param_uint64 (&rvalue),
     GNUNET_PQ_query_param_auto_from_type (key),
     GNUNET_PQ_query_param_auto_from_type (&vhash),
     GNUNET_PQ_query_param_fixed_size (data, size),
@@ -489,12 +478,11 @@ process_result (struct Plugin *plugin,
 
 
 /**
- * Iterate over the results for a particular key
- * in the datastore.
+ * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure with the 'struct Plugin'
- * @param offset offset of the result (modulo num-results);
- *        specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -504,160 +492,52 @@ process_result (struct Plugin *plugin,
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
- *        will be called once with a NULL if no value matches
- * @param proc_cls closure for iter
+ *        will be called with NULL if nothing matches
+ * @param proc_cls closure for @a proc
  */
 static void
 postgres_plugin_get_key (void *cls,
-			 uint64_t offset,
+                         uint64_t next_uid,
+                         bool random,
                          const struct GNUNET_HashCode *key,
                          const struct GNUNET_HashCode *vhash,
                          enum GNUNET_BLOCK_Type type,
-			 PluginDatumProcessor proc,
+                         PluginDatumProcessor proc,
                          void *proc_cls)
 {
   struct Plugin *plugin = cls;
   uint32_t utype = type;
+  uint16_t use_rvalue = random;
+  uint16_t use_key = NULL != key;
+  uint16_t use_vhash = NULL != vhash;
+  uint16_t use_type = GNUNET_BLOCK_TYPE_ANY != type;
+  uint64_t rvalue;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_uint64 (&next_uid),
+    GNUNET_PQ_query_param_uint64 (&rvalue),
+    GNUNET_PQ_query_param_uint16 (&use_rvalue),
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_uint16 (&use_key),
+    GNUNET_PQ_query_param_auto_from_type (vhash),
+    GNUNET_PQ_query_param_uint16 (&use_vhash),
+    GNUNET_PQ_query_param_uint32 (&utype),
+    GNUNET_PQ_query_param_uint16 (&use_type),
+    GNUNET_PQ_query_param_end
+  };
   PGresult *ret;
-  uint64_t total;
-  uint64_t limit_off;
 
-  if (0 != type)
+  if (random)
   {
-    if (NULL != vhash)
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (vhash),
-	GNUNET_PQ_query_param_uint32 (&utype),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "count_getvt",
-				     params);
-    }
-    else
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_uint32 (&utype),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "count_gett",
-				     params);
-    }
+    rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                       UINT64_MAX);
+    next_uid = 0;
   }
   else
-  {
-    if (NULL != vhash)
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (vhash),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "count_getv",
-				     params);
-    }
-    else
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "count_get",
-				     params);
-    }
-  }
+    rvalue = 0;
 
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-				    ret,
-				    PGRES_TUPLES_OK,
-				    "PQexecParams",
-				    "count"))
-  {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  if ( (PQntuples (ret) != 1) ||
-       (PQnfields (ret) != 1) ||
-       (PQgetlength (ret, 0, 0) != sizeof (uint64_t)))
-  {
-    GNUNET_break (0);
-    PQclear (ret);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  total = GNUNET_ntohll (*(const uint64_t *) PQgetvalue (ret, 0, 0));
-  PQclear (ret);
-  if (0 == total)
-  {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
-  }
-  limit_off = offset % total;
-
-  if (0 != type)
-  {
-    if (NULL != vhash)
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (vhash),
-	GNUNET_PQ_query_param_uint32 (&utype),
-	GNUNET_PQ_query_param_uint64 (&limit_off),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "getvt",
-				     params);
-    }
-    else
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_uint32 (&utype),
-	GNUNET_PQ_query_param_uint64 (&limit_off),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "gett",
-				     params);
-    }
-  }
-  else
-  {
-    if (NULL != vhash)
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (vhash),
-	GNUNET_PQ_query_param_uint64 (&limit_off),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "getv",
-				     params);
-    }
-    else
-    {
-      struct GNUNET_PQ_QueryParam params[] = {
-	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_uint64 (&limit_off),
-	GNUNET_PQ_query_param_end
-      };
-      ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				     "get",
-				     params);
-    }
-  }
+  ret = GNUNET_PQ_exec_prepared (plugin->dbh,
+                                 "get",
+                                 params);
   process_result (plugin,
 		  proc,
 		  proc_cls,
@@ -671,26 +551,25 @@ postgres_plugin_get_key (void *cls,
  * the given iterator for each of them.
  *
  * @param cls our `struct Plugin *`
- * @param offset offset of the result (modulo num-results);
- *        specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
+ *        Must not be zero (ANY).
  * @param proc function to call on the matching value;
- *        will be called with a NULL if no value matches
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for @a proc
  */
 static void
 postgres_plugin_get_zero_anonymity (void *cls,
-				    uint64_t offset,
+                                    uint64_t next_uid,
                                     enum GNUNET_BLOCK_Type type,
                                     PluginDatumProcessor proc,
-				    void *proc_cls)
+                                    void *proc_cls)
 {
   struct Plugin *plugin = cls;
   uint32_t utype = type;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&utype),
-    GNUNET_PQ_query_param_uint64 (&offset),
+    GNUNET_PQ_query_param_uint64 (&next_uid),
     GNUNET_PQ_query_param_end
   };
   PGresult *ret;

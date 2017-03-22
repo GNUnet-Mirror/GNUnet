@@ -116,6 +116,7 @@ result_cb_set2 (void *cls,
     oh2 = NULL;
     fprintf (stderr,
              "set 2: received failure status\n");
+    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     break;
   case GNUNET_SET_STATUS_DONE:
@@ -147,8 +148,6 @@ listen_cb (void *cls,
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_DUMMY);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "listen cb called\n");
-  GNUNET_SET_listen_cancel (listen_handle);
-  listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
                            GNUNET_SET_RESULT_ADDED,
                            (struct GNUNET_SET_Option[]) { 0 },
@@ -200,19 +199,25 @@ init_set2 (void *cls)
 {
   struct GNUNET_SET_Element element;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initializing set 2\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "initializing set 2\n");
 
   element.element_type = 0;
-
   element.data = "hello";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          NULL, NULL);
   element.data = "quux";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          NULL, NULL);
   element.data = "baz";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, &start, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          &start, NULL);
 }
 
 
@@ -225,14 +230,17 @@ init_set1 (void)
   struct GNUNET_SET_Element element;
 
   element.element_type = 0;
-
   element.data = "hello";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set1, &element, NULL, NULL);
+  GNUNET_SET_add_element (set1,
+                          &element,
+                          NULL, NULL);
   element.data = "bar";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set1, &element, init_set2, NULL);
-
+  GNUNET_SET_add_element (set1,
+                          &element,
+                          &init_set2,
+                          NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "initialized set 1\n");
 }
@@ -242,10 +250,15 @@ static int
 iter_cb (void *cls,
          const struct GNUNET_SET_Element *element)
 {
+  struct GNUNET_SET_Handle *set = cls;
+
   if (NULL == element)
   {
     GNUNET_assert (3 == iter_count);
-    GNUNET_SET_destroy (cls);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Iteration finished, destroying set %p\n",
+                set);
+    GNUNET_SET_destroy (set);
     return GNUNET_YES;
   }
   iter_count++;
@@ -262,21 +275,31 @@ test_iter ()
   struct GNUNET_SET_Element element;
   struct GNUNET_SET_Handle *iter_set;
 
-  iter_set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
-
+  iter_set = GNUNET_SET_create (config,
+                                GNUNET_SET_OPERATION_UNION);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Testing iteration over 3 elements on set %p\n",
+              iter_set);
   element.element_type = 0;
 
   element.data = "hello";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
+  GNUNET_SET_add_element (iter_set,
+                          &element,
+                          NULL, NULL);
   element.data = "bar";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
+  GNUNET_SET_add_element (iter_set,
+                          &element,
+                          NULL, NULL);
   element.data = "quux";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
-
-  GNUNET_SET_iterate (iter_set, iter_cb, iter_set);
+  GNUNET_SET_add_element (iter_set,
+                          &element,
+                          NULL, NULL);
+  GNUNET_SET_iterate (iter_set,
+                      &iter_cb,
+                      iter_set);
 }
 
 
@@ -372,12 +395,20 @@ run (void *cls,
               GNUNET_i2s (&local_id));
   test_iter ();
 
-  set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
-  set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  set1 = GNUNET_SET_create (cfg,
+                            GNUNET_SET_OPERATION_UNION);
+  set2 = GNUNET_SET_create (cfg,
+                            GNUNET_SET_OPERATION_UNION);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created sets %p and %p for union operation\n",
+              set1,
+              set2);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
                                     &app_id);
 
-  ///* test if canceling an uncommited request works! */
+  /* test if canceling an uncommited request works! */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Launching and instantly stopping set operation\n");
   my_oh = GNUNET_SET_prepare (&local_id,
                               &app_id,
                               NULL,
@@ -385,7 +416,6 @@ run (void *cls,
                               (struct GNUNET_SET_Option[]) { 0 },
                               NULL,
                               NULL);
-
   GNUNET_SET_operation_cancel (my_oh);
 
   /* test the real set reconciliation */

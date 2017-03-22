@@ -17,9 +17,6 @@ if USE_COVERAGE
 endif
 
 
-bin_PROGRAMS = \
- gnunet-secretsharing-profiler
-
 libexec_PROGRAMS = \
  gnunet-service-secretsharing
 
@@ -57,6 +54,9 @@ libgnunetsecretsharing_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 if HAVE_TESTING
+bin_PROGRAMS = \
+ gnunet-secretsharing-profiler
+
 check_PROGRAMS = \
  test_secretsharing_api
 

@@ -1302,7 +1302,7 @@ cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->channel = GNUNET_CADET_channel_creatE (cadet, chn, &chn->peer,
+  chn->channel = GNUNET_CADET_channel_create (cadet, chn, &chn->peer,
                                               &grp->cadet_port_hash,
                                               GNUNET_CADET_OPTION_RELIABLE,
                                               cadet_notify_window_change,
@@ -1392,7 +1392,7 @@ handle_client_origin_start (void *cls,
     };
 
 
-    orig->cadet_port = GNUNET_CADET_open_porT (cadet,
+    orig->cadet_port = GNUNET_CADET_open_port (cadet,
                                                &grp->cadet_port_hash,
                                                cadet_notify_connect,
                                                NULL,
@@ -2085,7 +2085,7 @@ run (void *cls,
   replay_req_cadet = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   replay_req_client = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
 
-  cadet = GNUNET_CADET_connecT (cfg);
+  cadet = GNUNET_CADET_connect (cfg);
 
   GNUNET_assert (NULL != cadet);
 

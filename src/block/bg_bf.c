@@ -77,6 +77,7 @@ bf_group_serialize_cb (struct GNUNET_BLOCK_Group *bg,
                                                  raw,
                                                  gi->bf_size))
   {
+    GNUNET_free (raw);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }

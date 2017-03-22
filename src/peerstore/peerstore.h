@@ -60,7 +60,7 @@ struct StoreRecordMessage
   /**
    * Expiry time of entry
    */
-  struct GNUNET_TIME_Absolute expiry GNUNET_PACKED;
+  struct GNUNET_TIME_AbsoluteNBO expiry;
 
   /**
    * Size of the key string

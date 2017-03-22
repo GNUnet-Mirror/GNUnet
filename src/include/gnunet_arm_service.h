@@ -62,25 +62,9 @@ enum GNUNET_ARM_RequestStatus
   GNUNET_ARM_REQUEST_SENT_OK = 0,
 
   /**
-   * Misconfiguration (can't connect to the ARM service).
-   */
-  GNUNET_ARM_REQUEST_CONFIGURATION_ERROR = 1,
-
-  /**
    * We disconnected from ARM, and request was not sent.
    */
-  GNUNET_ARM_REQUEST_DISCONNECTED = 2,
-
-  /**
-   * ARM API is busy (probably trying to connect to ARM),
-   * and request was not sent. Try again later.
-   */
-  GNUNET_ARM_REQUEST_BUSY = 3,
-
-  /**
-   * Request time ran out before we had a chance to send it.
-   */
-  GNUNET_ARM_REQUEST_TIMEOUT = 5
+  GNUNET_ARM_REQUEST_DISCONNECTED = 2
 
 };
 

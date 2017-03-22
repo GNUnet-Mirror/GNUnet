@@ -876,7 +876,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
 
   slen = strlen (hostname) + 1;
   if (slen + sizeof (struct GNUNET_RESOLVER_GetMessage) >=
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;

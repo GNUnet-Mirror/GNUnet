@@ -1384,7 +1384,7 @@ create_channel (struct ChannelState *ts,
     GNUNET_MQ_handler_end()
   };
 
-  return GNUNET_CADET_channel_creatE (cadet_handle,
+  return GNUNET_CADET_channel_create (cadet_handle,
                                       ts,
                                       target,
                                       port,
@@ -1839,7 +1839,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_UdpServiceMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -1864,7 +1864,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -1904,7 +1904,7 @@ route_packet (struct DestinationEntry *destination,
 
 	mlen = sizeof (struct GNUNET_EXIT_TcpServiceStartMessage) +
 	  payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
 	  return;
@@ -1927,7 +1927,7 @@ route_packet (struct DestinationEntry *destination,
 
 	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) +
 	  alen + payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
 	  return;
@@ -1963,7 +1963,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2038,7 +2038,7 @@ route_packet (struct DestinationEntry *destination,
       /* update length calculations, as payload_length may have changed */
       mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2061,6 +2061,7 @@ route_packet (struct DestinationEntry *destination,
       void *payload;
       uint8_t new_type;
 
+      new_type = icmp->type;
       /* Perform ICMP protocol-translation (depending on destination AF and source AF)
 	 and throw away ICMP payload depending on ICMP message type */
       switch (af)
@@ -2111,8 +2112,8 @@ route_packet (struct DestinationEntry *destination,
 	switch (icmp->type)
 	  {
 	  case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
-	    if (destination->details.exit_destination.af == AF_INET6)
-	      new_type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
+	    if (destination->details.exit_destination.af == AF_INET)
+	      new_type = GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE;
 	    /* throw away IP-payload, exit will have to make it up anyway */
 	    payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
 	    break;
@@ -2167,7 +2168,7 @@ route_packet (struct DestinationEntry *destination,
       /* update length calculations, as payload_length may have changed */
       mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2216,12 +2217,10 @@ route_packet (struct DestinationEntry *destination,
  * and forward the packet.
  *
  * @param cls closure, NULL
- * @param client NULL
  * @param message message we got from the client (VPN channel interface)
  */
 static int
 message_token (void *cls,
-	       void *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *tun;
@@ -3067,7 +3066,7 @@ run (void *cls,
   }
   vpn_argv[6] = NULL;
 
-  cadet_handle = GNUNET_CADET_connecT (cfg_);
+  cadet_handle = GNUNET_CADET_connect (cfg_);
     // FIXME never opens ports???
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,

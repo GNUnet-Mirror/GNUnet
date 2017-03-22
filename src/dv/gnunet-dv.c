@@ -34,7 +34,7 @@ static struct GNUNET_DV_ServiceHandle *sh;
 /**
  * Was verbose specified?
  */
-static int verbose;
+static unsigned int verbose;
 
 
 /**
@@ -161,10 +161,10 @@ main (int argc, char *const *argv)
 {
   int res;
 
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'V', "verbose", NULL,
-     gettext_noop ("verbose output"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+
     GNUNET_GETOPT_OPTION_END
   };
 

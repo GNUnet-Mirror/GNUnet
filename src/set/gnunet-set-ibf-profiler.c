@@ -244,24 +244,41 @@ run (void *cls,
 int
 main (int argc, char **argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'A', "asize", NULL,
-     gettext_noop ("number of element in set A-B"), 1,
-     &GNUNET_GETOPT_set_uint, &asize},
-    {'B', "bsize", NULL,
-     gettext_noop ("number of element in set B-A"), 1,
-     &GNUNET_GETOPT_set_uint, &bsize},
-    {'C', "csize", NULL,
-     gettext_noop ("number of common elements in A and B"), 1,
-     &GNUNET_GETOPT_set_uint, &csize},
-    {'k', "hash-num", NULL,
-     gettext_noop ("hash num"), 1,
-     &GNUNET_GETOPT_set_uint, &hash_num},
-    {'s', "ibf-size", NULL,
-     gettext_noop ("ibf size"), 1,
-     &GNUNET_GETOPT_set_uint, &ibf_size},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('A',
+                                   "asize",
+                                   NULL,
+                                   gettext_noop ("number of element in set A-B"),
+                                   &asize),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('B',
+                                   "bsize",
+                                   NULL,
+                                   gettext_noop ("number of element in set B-A"),
+                                   &bsize),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('C',
+                                   "csize",
+                                   NULL,
+                                   gettext_noop ("number of common elements in A and B"),
+                                   &csize),
+    
+    GNUNET_GETOPT_OPTION_SET_UINT ('k',
+                                   "hash-num",
+                                   NULL,
+                                   gettext_noop ("hash num"),
+                                   &hash_num),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('s',
+                                   "ibf-size",
+                                   NULL,
+                                   gettext_noop ("ibf size"),
+                                   &ibf_size),
+
     GNUNET_GETOPT_OPTION_END
   };
+
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-consensus-ibf",
                       "help",
                       options, &run, NULL, GNUNET_YES);

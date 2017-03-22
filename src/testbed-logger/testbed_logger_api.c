@@ -39,7 +39,7 @@
 /**
  * The size of the buffer we fill before sending out the message
  */
-#define BUFFER_SIZE (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_MessageHeader))
+#define BUFFER_SIZE (GNUNET_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_MessageHeader))
 
 /**
  * Connection handle for the logger service

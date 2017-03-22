@@ -657,9 +657,9 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
   namelen = strlen (address->transport_name) + 1;
   msize = address->address_length + namelen;
-  if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
+  if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_MAX_MESSAGE_SIZE) ||
+      (address->address_length >= GNUNET_MAX_MESSAGE_SIZE) ||
+      (namelen >= GNUNET_MAX_MESSAGE_SIZE) )
   {
     /* address too large for us, this should not happen */
     GNUNET_break (0);

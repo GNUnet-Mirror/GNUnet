@@ -950,7 +950,7 @@ handle_bob_client_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client request, opening port %s!\n",
               GNUNET_h2s (&msg->session_key));
-  s->port = GNUNET_CADET_open_porT (my_cadet,
+  s->port = GNUNET_CADET_open_port (my_cadet,
                                     &msg->session_key,
                                     &cb_channel_incoming,
                                     s,
@@ -1054,7 +1054,7 @@ run (void *cls,
   /* We don't really do DLOG, so we can setup with very minimal resources */
   edc = GNUNET_CRYPTO_ecc_dlog_prepare (4 /* max value */,
                                         2 /* RAM */);
-  my_cadet = GNUNET_CADET_connecT (cfg);
+  my_cadet = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   if (NULL == my_cadet)

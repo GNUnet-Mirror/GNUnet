@@ -90,6 +90,14 @@ bind_string (void *cls,
              sqlite3_stmt *stmt,
              unsigned int off)
 {
+  if (NULL == data)
+  {
+    if (SQLITE_OK !=
+        sqlite3_bind_null (stmt,
+                           (int) off))
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  }
   if (SQLITE_OK !=
       sqlite3_bind_text (stmt,
                          (int) off,
@@ -235,6 +243,40 @@ GNUNET_SQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 
 
 /**
+ * Function called to convert input argument into SQL parameters.
+ *
+ * @param cls closure
+ * @param data pointer to input argument
+ * @param data_len number of bytes in @a data (if applicable)
+ * @param stmt sqlite statement to bind parameters for
+ * @param off offset of the argument to bind in @a stmt, numbered from 1,
+ *            so immediately suitable for passing to `sqlite3_bind`-functions.
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+static int
+bind_abstime (void *cls,
+              const void *data,
+              size_t data_len,
+              sqlite3_stmt *stmt,
+              unsigned int off)
+{
+  const struct GNUNET_TIME_Absolute *u = data;
+  struct GNUNET_TIME_Absolute abs;
+
+  abs = *u;
+  if (abs.abs_value_us > INT64_MAX)
+    abs.abs_value_us = INT64_MAX;
+  GNUNET_assert (sizeof (uint64_t) == data_len);
+  if (SQLITE_OK !=
+      sqlite3_bind_int64 (stmt,
+                          (int) off,
+                          (sqlite3_int64) abs.abs_value_us))
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/**
  * Generate query parameter for an absolute time value.
  * The database must store a 64-bit integer.
  *
@@ -243,7 +285,13 @@ GNUNET_SQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 struct GNUNET_SQ_QueryParam
 GNUNET_SQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
 {
-  return GNUNET_SQ_query_param_uint64 (&x->abs_value_us);
+ struct GNUNET_SQ_QueryParam qp = {
+    .conv = &bind_abstime,
+    .data = x,
+    .size = sizeof (struct GNUNET_TIME_Absolute),
+    .num_params = 1
+  };
+  return qp;
 }
 
 
@@ -269,6 +317,8 @@ bind_nbotime (void *cls,
   struct GNUNET_TIME_Absolute abs;
 
   abs = GNUNET_TIME_absolute_ntoh (*u);
+  if (abs.abs_value_us > INT64_MAX)
+    abs.abs_value_us = INT64_MAX;
   GNUNET_assert (sizeof (uint64_t) == data_len);
   if (SQLITE_OK !=
       sqlite3_bind_int64 (stmt,

@@ -1265,13 +1265,20 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'e', "ego", "NAME",
-     gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
-     1, &GNUNET_GETOPT_set_string, &ego_name},
-    {'p', "phone", "LINE",
-      gettext_noop ("sets the LINE to use for the phone"),
-     1, &GNUNET_GETOPT_set_string, &line},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('e',
+                                 "ego",
+                                 "NAME",
+                                 gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
+                                 &ego_name),
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "phone",
+                                 "LINE",
+                                 gettext_noop ("sets the LINE to use for the phone"),
+                                 &line),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
