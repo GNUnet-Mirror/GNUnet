@@ -231,6 +231,7 @@ check_value (void *cls,
              enum GNUNET_BLOCK_Type type,
              uint32_t priority,
              uint32_t anonymity,
+             uint32_t replication,
              struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
 {
@@ -283,6 +284,7 @@ delete_value (void *cls,
               enum GNUNET_BLOCK_Type type,
               uint32_t priority,
               uint32_t anonymity,
+              uint32_t replication,
               struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
 {
@@ -308,6 +310,7 @@ check_nothing (void *cls,
                enum GNUNET_BLOCK_Type type,
                uint32_t priority,
                uint32_t anonymity,
+               uint32_t replication,
                struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
@@ -329,6 +332,7 @@ check_multiple (void *cls,
                 enum GNUNET_BLOCK_Type type,
                 uint32_t priority,
                 uint32_t anonymity,
+                uint32_t replication,
                 struct GNUNET_TIME_Absolute expiration,
                 uint64_t uid)
 {

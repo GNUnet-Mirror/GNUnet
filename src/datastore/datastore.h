@@ -229,7 +229,7 @@ struct DataMessage
   uint32_t anonymity GNUNET_PACKED;
 
   /**
-   * Desired replication level. 0 from service to API.
+   * Desired replication level.
    */
   uint32_t replication GNUNET_PACKED;
 

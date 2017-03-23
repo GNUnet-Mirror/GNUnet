@@ -137,9 +137,15 @@ check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiratio
 
 
 static void
-check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
-             const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-             uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_value (void *cls,
+             const struct GNUNET_HashCode *key,
+             size_t size,
+             const void *data,
+             enum GNUNET_BLOCK_Type type,
+             uint32_t priority,
+             uint32_t anonymity,
+             uint32_t replication,
+             struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -166,9 +172,15 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_nothing (void *cls,
+               const struct GNUNET_HashCode *key,
+               size_t size,
+               const void *data,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
+               uint32_t anonymity,
+               uint32_t replication,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;

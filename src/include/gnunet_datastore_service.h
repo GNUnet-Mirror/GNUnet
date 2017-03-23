@@ -240,6 +240,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication how often should the content be replicated to other peers?
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -252,6 +253,7 @@ typedef void
                                     enum GNUNET_BLOCK_Type type,
                                     uint32_t priority,
                                     uint32_t anonymity,
+                                    uint32_t replication,
                                     struct GNUNET_TIME_Absolute expiration,
                                     uint64_t uid);
 

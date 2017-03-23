@@ -1409,6 +1409,7 @@ process_local_reply (void *cls,
                      enum GNUNET_BLOCK_Type type,
                      uint32_t priority,
                      uint32_t anonymity,
+                     uint32_t replication,
                      struct GNUNET_TIME_Absolute expiration,
                      uint64_t uid);
 
@@ -1470,6 +1471,7 @@ start_local_query (struct GSF_PendingRequest *pr,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -1482,6 +1484,7 @@ process_local_reply (void *cls,
                      enum GNUNET_BLOCK_Type type,
                      uint32_t priority,
                      uint32_t anonymity,
+                     uint32_t replication,
                      struct GNUNET_TIME_Absolute expiration,
                      uint64_t uid)
 {
@@ -1563,9 +1566,17 @@ process_local_reply (void *cls,
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                       &odc_warn_delay_task, pr);
     if (GNUNET_OK ==
-        GNUNET_FS_handle_on_demand_block (key, size, data, type, priority,
-                                          anonymity, expiration, uid,
-                                          &process_local_reply, pr))
+        GNUNET_FS_handle_on_demand_block (key,
+                                          size,
+                                          data,
+                                          type,
+                                          priority,
+                                          anonymity,
+                                          replication,
+                                          expiration,
+                                          uid,
+                                          &process_local_reply,
+                                          pr))
     {
       GNUNET_STATISTICS_update (GSF_stats,
                                 gettext_noop

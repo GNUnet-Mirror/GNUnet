@@ -176,9 +176,10 @@ init_connection (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
   PQclear (ret);
+#define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, oid"
   if ((GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "get",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
+                   "SELECT " RESULT_COLUMNS " FROM gn090 "
                    "WHERE oid >= $1::bigint AND "
                    "(rvalue >= $2 OR 0 = $3::smallint) AND "
                    "(hash = $4 OR 0 = $5::smallint) AND "
@@ -191,28 +192,33 @@ init_connection (struct Plugin *plugin)
                    "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", 9)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "update",
-                   "UPDATE gn090 SET prio = prio + $1, expire = CASE WHEN expire < $2 THEN $2 ELSE expire END "
-                   "WHERE oid = $3", 3)) ||
+                   "UPDATE gn090 "
+                   "SET prio = prio + $1, "
+                   "repl = repl + $2, "
+                   "expire = CASE WHEN expire < $3 THEN $3 ELSE expire END "
+                   "WHERE oid = $4", 4)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "decrepl",
                    "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
                    "WHERE oid = $1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "select_non_anonymous",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
+                   "SELECT " RESULT_COLUMNS " FROM gn090 "
                    "WHERE anonLevel = 0 AND type = $1 AND oid >= $2::bigint "
                    "ORDER BY oid ASC LIMIT 1",
                    2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "select_expiration_order",
-                   "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE expire < $1 ORDER BY prio ASC LIMIT 1) " "UNION "
-                   "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "ORDER BY prio ASC LIMIT 1) " "ORDER BY expire ASC LIMIT 1",
+                   "(SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "WHERE expire < $1 ORDER BY prio ASC LIMIT 1) "
+                   "UNION "
+                   "(SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "ORDER BY prio ASC LIMIT 1) "
+                   "ORDER BY expire ASC LIMIT 1",
                    1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "select_replication_order",
-                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
+                   "SELECT " RESULT_COLUMNS " FROM gn090 "
                    "ORDER BY repl DESC,RANDOM() LIMIT 1", 0)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1)) ||
@@ -371,19 +377,21 @@ process_result (struct Plugin *plugin,
   uint32_t rowid;
   uint32_t utype;
   uint32_t anonymity;
+  uint32_t replication;
   uint32_t priority;
   size_t size;
   void *data;
   struct GNUNET_TIME_Absolute expiration_time;
   struct GNUNET_HashCode key;
   struct GNUNET_PQ_ResultSpec rs[] = {
+    GNUNET_PQ_result_spec_uint32 ("repl", &replication),
     GNUNET_PQ_result_spec_uint32 ("type", &utype),
     GNUNET_PQ_result_spec_uint32 ("prio", &priority),
     GNUNET_PQ_result_spec_uint32 ("anonLevel", &anonymity),
-    GNUNET_PQ_result_spec_uint32 ("oid", &rowid),
     GNUNET_PQ_result_spec_absolute_time ("expire", &expiration_time),
     GNUNET_PQ_result_spec_auto_from_type ("hash", &key),
     GNUNET_PQ_result_spec_variable_size ("value", &data, &size),
+    GNUNET_PQ_result_spec_uint32 ("oid", &rowid),
     GNUNET_PQ_result_spec_end
   };
 
@@ -398,8 +406,7 @@ process_result (struct Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		     "datastore-postgres",
                      "Ending iteration (postgres error)\n");
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
@@ -409,16 +416,14 @@ process_result (struct Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		     "datastore-postgres",
                      "Ending iteration (no more results)\n");
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     PQclear (res);
     return;
   }
   if (1 != PQntuples (res))
   {
     GNUNET_break (0);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     PQclear (res);
     return;
   }
@@ -432,8 +437,7 @@ process_result (struct Plugin *plugin,
     GNUNET_POSTGRES_delete_by_rowid (plugin->dbh,
 				     "delrow",
 				     rowid);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
-	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
@@ -443,14 +447,15 @@ process_result (struct Plugin *plugin,
                    (unsigned int) size,
 		   (unsigned int) utype);
   iret = proc (proc_cls,
-	       &key,
-	       size,
-	       data,
-	       (enum GNUNET_BLOCK_Type) utype,
-	       priority,
-	       anonymity,
-	       expiration_time,
-	       rowid);
+               &key,
+               size,
+               data,
+               (enum GNUNET_BLOCK_Type) utype,
+               priority,
+               anonymity,
+               replication,
+               expiration_time,
+               rowid);
   PQclear (res);
   if (iret == GNUNET_NO)
   {
@@ -620,6 +625,7 @@ struct ReplCtx
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -630,13 +636,14 @@ struct ReplCtx
  */
 static int
 repl_proc (void *cls,
-	   const struct GNUNET_HashCode *key,
-	   uint32_t size,
+           const struct GNUNET_HashCode *key,
+           uint32_t size,
            const void *data,
-	   enum GNUNET_BLOCK_Type type,
-	   uint32_t priority,
+           enum GNUNET_BLOCK_Type type,
+           uint32_t priority,
            uint32_t anonymity,
-	   struct GNUNET_TIME_Absolute expiration,
+           uint32_t replication,
+           struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
 {
   struct ReplCtx *rc = cls;
@@ -650,12 +657,15 @@ repl_proc (void *cls,
   PGresult *qret;
 
   ret = rc->proc (rc->proc_cls,
-		  key,
-		  size, data,
-		  type,
-		  priority,
-		  anonymity,
-		  expiration, uid);
+                  key,
+                  size,
+                  data,
+                  type,
+                  priority,
+                  anonymity,
+                  replication,
+                  expiration,
+                  uid);
   if (NULL == key)
     return ret;
   qret = GNUNET_PQ_exec_prepared (plugin->dbh,
@@ -740,19 +750,17 @@ postgres_plugin_get_expiration (void *cls,
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
- *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
  *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
@@ -762,16 +770,18 @@ postgres_plugin_get_expiration (void *cls,
  */
 static void
 postgres_plugin_update (void *cls,
-			uint64_t uid,
-			uint32_t delta,
+                        uint64_t uid,
+                        uint32_t priority,
+                        uint32_t replication,
                         struct GNUNET_TIME_Absolute expire,
                         PluginUpdateCont cont,
-			void *cont_cls)
+                        void *cont_cls)
 {
   struct Plugin *plugin = cls;
   uint32_t oid = (uint32_t) uid;
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_uint32 (&delta),
+    GNUNET_PQ_query_param_uint32 (&priority),
+    GNUNET_PQ_query_param_uint32 (&replication),
     GNUNET_PQ_query_param_absolute_time (&expire),
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end

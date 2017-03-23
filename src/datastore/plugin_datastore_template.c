@@ -151,19 +151,17 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
- *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
  *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
@@ -172,9 +170,13 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param cons_cls continuation closure
  */
 static void
-template_plugin_update (void *cls, uint64_t uid, uint32_t delta,
+template_plugin_update (void *cls,
+                        uint64_t uid,
+                        uint32_t priority,
+                        uint32_t replication,
                         struct GNUNET_TIME_Absolute expire,
-                        PluginUpdateCont cont, void *cont_cls)
+                        PluginUpdateCont cont,
+                        void *cont_cls)
 {
   GNUNET_break (0);
   cont (cont_cls, GNUNET_SYSERR, "not implemented");

@@ -93,6 +93,7 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum
  * @return #GNUNET_OK to keep the item
@@ -100,14 +101,15 @@ struct GNUNET_DATASTORE_PluginEnvironment
  */
 typedef int
 (*PluginDatumProcessor) (void *cls,
-			 const struct GNUNET_HashCode *key,
-			 uint32_t size,
-			 const void *data,
-			 enum GNUNET_BLOCK_Type type,
-			 uint32_t priority,
-			 uint32_t anonymity,
-			 struct GNUNET_TIME_Absolute expiration,
-			 uint64_t uid);
+                         const struct GNUNET_HashCode *key,
+                         uint32_t size,
+                         const void *data,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t priority,
+                         uint32_t anonymity,
+                         uint32_t replication,
+                         struct GNUNET_TIME_Absolute expiration,
+                         uint64_t uid);
 
 
 /**
@@ -259,16 +261,17 @@ typedef void
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls closure
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
  *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
@@ -278,11 +281,12 @@ typedef void
  */
 typedef void
 (*PluginUpdate) (void *cls,
-		 uint64_t uid,
-		 uint32_t delta,
-		 struct GNUNET_TIME_Absolute expire,
-		 PluginUpdateCont cont,
-		 void *cont_cls);
+                 uint64_t uid,
+                 uint32_t priority,
+                 uint32_t replication,
+                 struct GNUNET_TIME_Absolute expire,
+                 PluginUpdateCont cont,
+                 void *cont_cls);
 
 
 /**

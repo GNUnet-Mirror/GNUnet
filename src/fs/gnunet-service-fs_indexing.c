@@ -266,6 +266,7 @@ remove_cont (void *cls, int success,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -280,6 +281,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key,
                                   enum GNUNET_BLOCK_Type type,
                                   uint32_t priority,
                                   uint32_t anonymity,
+                                  uint32_t replication,
                                   struct GNUNET_TIME_Absolute expiration,
                                   uint64_t uid,
                                   GNUNET_DATASTORE_DatumProcessor cont,
@@ -412,6 +414,7 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key,
         GNUNET_BLOCK_TYPE_FS_DBLOCK,
         priority,
         anonymity,
+        replication,
         expiration,
         uid);
   return GNUNET_OK;

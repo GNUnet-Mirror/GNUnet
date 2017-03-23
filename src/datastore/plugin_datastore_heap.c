@@ -439,7 +439,7 @@ heap_plugin_get_key (void *cls, uint64_t next_uid, bool random,
   }
   if (NULL == gc.value)
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (GNUNET_NO ==
@@ -450,6 +450,7 @@ heap_plugin_get_key (void *cls, uint64_t next_uid, bool random,
             gc.value->type,
             gc.value->priority,
             gc.value->anonymity,
+            gc.value->replication,
             gc.value->expiration,
             (uint64_t) (intptr_t) gc.value))
   {
@@ -480,8 +481,7 @@ heap_plugin_get_replication (void *cls,
   value = GNUNET_CONTAINER_heap_remove_root (plugin->by_replication);
   if (NULL == value)
   {
-    proc (proc_cls,
-	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (value->replication > 0)
@@ -501,14 +501,15 @@ heap_plugin_get_replication (void *cls,
   }
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (intptr_t) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 
@@ -531,35 +532,36 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   value = GNUNET_CONTAINER_heap_peek (plugin->by_expiration);
   if (NULL == value)
   {
-    proc (proc_cls,
-	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (intptr_t) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
  *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
@@ -569,11 +571,12 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  */
 static void
 heap_plugin_update (void *cls,
-		    uint64_t uid,
-		    uint32_t delta,
-		    struct GNUNET_TIME_Absolute expire,
-		    PluginUpdateCont cont,
-		    void *cont_cls)
+                    uint64_t uid,
+                    uint32_t priority,
+                    uint32_t replication,
+                    struct GNUNET_TIME_Absolute expire,
+                    PluginUpdateCont cont,
+                    void *cont_cls)
 {
   struct Value *value;
 
@@ -585,11 +588,15 @@ heap_plugin_update (void *cls,
     GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
 				       expire.abs_value_us);
   }
-  /* Saturating add, don't overflow */
-  if (value->priority > UINT32_MAX - delta)
+  /* Saturating adds, don't overflow */
+  if (value->priority > UINT32_MAX - priority)
     value->priority = UINT32_MAX;
   else
-    value->priority += delta;
+    value->priority += priority;
+  if (value->replication > UINT32_MAX - replication)
+    value->replication = UINT32_MAX;
+  else
+    value->replication += replication;
   cont (cont_cls, GNUNET_OK, NULL);
 }
 
@@ -631,20 +638,20 @@ heap_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
   }
   if (NULL == value)
   {
-    proc (proc_cls,
-          NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (intptr_t) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 

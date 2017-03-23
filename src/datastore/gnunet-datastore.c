@@ -130,20 +130,23 @@ do_finish (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
 static void
 do_put (void *cls,
-	const struct GNUNET_HashCode *key,
-	size_t size,
+        const struct GNUNET_HashCode *key,
+        size_t size,
         const void *data,
-	enum GNUNET_BLOCK_Type type,
-	uint32_t priority,
-	uint32_t anonymity,
-	struct GNUNET_TIME_Absolute
-	expiration, uint64_t uid)
+        enum GNUNET_BLOCK_Type type,
+        uint32_t priority,
+        uint32_t anonymity,
+        uint32_t replication,
+        struct GNUNET_TIME_Absolute
+        expiration,
+        uint64_t uid)
 {
   qe = NULL;
   if ( (0 != offset) &&
@@ -154,13 +157,20 @@ do_put (void *cls,
   }
   if (0 == offset)
     first_uid = uid;
-  qe = GNUNET_DATASTORE_put (db_dst, 0,
-			     key, size, data, type,
-			     priority, anonymity,
-			     0 /* FIXME: replication is lost... */,
-			     expiration,
-			     0, 1,
-			     &do_finish, NULL);
+  qe = GNUNET_DATASTORE_put (db_dst,
+                             0,
+                             key,
+                             size,
+                             data,
+                             type,
+                             priority,
+                             anonymity,
+                             replication,
+                             expiration,
+                             0,
+                             1,
+                             &do_finish,
+                             NULL);
 }
 
 

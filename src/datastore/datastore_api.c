@@ -352,7 +352,11 @@ mq_error_handler (void *cls,
         qc.rc.proc (qc.rc.proc_cls,
                     NULL,
                     0,
-                    NULL, 0, 0, 0,
+                    NULL,
+                    0,
+                    0,
+                    0,
+                    0,
                     GNUNET_TIME_UNIT_ZERO_ABS,
                     0);
       break;
@@ -468,7 +472,11 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
         qe->qc.rc.proc (qe->qc.rc.proc_cls,
                         NULL,
                         0,
-                        NULL, 0, 0, 0,
+                        NULL,
+                        0,
+                        0,
+                        0,
+                        0,
                         GNUNET_TIME_UNIT_ZERO_ABS,
                         0);
       break;
@@ -825,6 +833,7 @@ handle_data (void *cls,
              ntohl (dm->type),
              ntohl (dm->priority),
              ntohl (dm->anonymity),
+             ntohl (dm->replication),
              GNUNET_TIME_absolute_ntoh (dm->expiration),
              GNUNET_ntohll (dm->uid));
 }
@@ -884,6 +893,7 @@ handle_data_end (void *cls,
              NULL,
              0,
              NULL,
+             0,
              0,
              0,
              0,
@@ -1022,8 +1032,6 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->priority = htonl (priority);
   dm->anonymity = htonl (anonymity);
   dm->replication = htonl (replication);
-  dm->reserved = htonl (0);
-  dm->uid = GNUNET_htonll (0);
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->key = *key;
   GNUNET_memcpy (&dm[1],
@@ -1226,13 +1234,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   env = GNUNET_MQ_msg_extra (dm,
                              size,
                              GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE);
-  dm->rid = htonl (0);
   dm->size = htonl (size);
-  dm->type = htonl (0);
-  dm->priority = htonl (0);
-  dm->anonymity = htonl (0);
-  dm->uid = GNUNET_htonll (0);
-  dm->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_ZERO_ABS);
   dm->key = *key;
   GNUNET_memcpy (&dm[1],
           data,
