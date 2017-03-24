@@ -199,10 +199,10 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
 
   alen = address->address_length;
   slen = strlen (address->transport_name) + 1;
-  if ( (alen + slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE
+  if ( (alen + slen >= GNUNET_MAX_MESSAGE_SIZE
         - sizeof (struct AddressLookupMessage)) ||
-       (alen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
+       (alen >= GNUNET_MAX_MESSAGE_SIZE) ||
+       (slen >= GNUNET_MAX_MESSAGE_SIZE) )
   {
     GNUNET_break (0);
     GNUNET_free (alc);

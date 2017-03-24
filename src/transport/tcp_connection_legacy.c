@@ -35,7 +35,15 @@
 #include "gnunet_resolver_service.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-connection", __VA_ARGS__)
+/**
+ * Timeout we use on TCP connect before trying another
+ * result from the DNS resolver.  Actual value used
+ * is this value divided by the number of address families.
+ * Default is 5s.
+ */
+#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
 
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-connection", syscall)
 
@@ -305,7 +313,7 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_NETWORK_Handle *osSocket)
   struct GNUNET_CONNECTION_Handle *connection;
 
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
-  connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  connection->write_buffer_size = GNUNET_MIN_MESSAGE_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->sock = osSocket;
   return connection;
@@ -452,7 +460,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
     return NULL;
   }
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
-  connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  connection->write_buffer_size = GNUNET_MIN_MESSAGE_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->addr = uaddr;
   connection->addrlen = addrlen;
@@ -825,7 +833,7 @@ try_connect_using_address (void *cls,
     return;
   }
   GNUNET_CONTAINER_DLL_insert (connection->ap_head, connection->ap_tail, ap);
-  delay = GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT;
+  delay = CONNECT_RETRY_TIMEOUT;
   if (NULL != connection->nth.notify_ready)
     delay = GNUNET_TIME_relative_min (delay,
 				      GNUNET_TIME_absolute_get_remaining (connection->nth.transmit_timeout));
@@ -859,14 +867,14 @@ GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle 
   GNUNET_assert (0 < strlen (hostname));        /* sanity check */
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->cfg = cfg;
-  connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  connection->write_buffer_size = GNUNET_MIN_MESSAGE_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->port = port;
   connection->hostname = GNUNET_strdup (hostname);
   connection->dns_active =
       GNUNET_RESOLVER_ip_get (connection->hostname,
 			      AF_UNSPEC,
-                              GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+                              CONNECT_RETRY_TIMEOUT,
                               &try_connect_using_address,
 			      connection);
   return connection;
@@ -910,7 +918,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct GNUNET_CONFIGURA
 #endif
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->cfg = cfg;
-  connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
+  connection->write_buffer_size = GNUNET_MIN_MESSAGE_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->port = 0;
   connection->hostname = NULL;
@@ -1536,7 +1544,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
     return NULL;
   }
   GNUNET_assert (NULL != notify);
-  GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (size < GNUNET_MAX_MESSAGE_SIZE);
   GNUNET_assert (connection->write_buffer_off <= connection->write_buffer_size);
   GNUNET_assert (connection->write_buffer_pos <= connection->write_buffer_size);
   GNUNET_assert (connection->write_buffer_pos <= connection->write_buffer_off);

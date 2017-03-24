@@ -72,7 +72,7 @@ static int ret;
 /**
  * Are we running 'verbosely'?
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Configuration to use.
@@ -759,26 +759,38 @@ free_item (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "anonymity", "LEVEL",
-     gettext_noop ("set the desired LEVEL of sender-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &anonymity_level},
-    {'d', "disable-creation-time", NULL,
-     gettext_noop
-     ("disable adding the creation time to the metadata of the uploaded file"),
-     0, &GNUNET_GETOPT_set_one, &do_disable_creation_time},
-    {'D', "disable-extractor", NULL,
-     gettext_noop ("do not use libextractor to add keywords or metadata"),
-     0, &GNUNET_GETOPT_set_one, &disable_extractor},
-    {'p', "priority", "PRIORITY",
-     gettext_noop ("specify the priority of the content"),
-     1, &GNUNET_GETOPT_set_uint, &content_priority},
-    {'r', "replication", "LEVEL",
-     gettext_noop ("set the desired replication LEVEL"),
-     1, &GNUNET_GETOPT_set_uint, &replication_level},
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+                                   "anonymity",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired LEVEL of sender-anonymity"),
+                                   &anonymity_level),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "disable-creation-time",
+                                  gettext_noop ("disable adding the creation time to the metadata of the uploaded file"),
+                                  &do_disable_creation_time),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('D',
+                                  "disable-extractor",
+                                  gettext_noop ("do not use libextractor to add keywords or metadata"),
+                                  &disable_extractor),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+                                   "priority",
+                                   "PRIORITY",
+                                   gettext_noop ("specify the priority of the content"),
+                                   &content_priority),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+                                   "replication",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired replication LEVEL"),
+                                   &replication_level),
+
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+
     GNUNET_GETOPT_OPTION_END
   };
   struct WorkItem *wi;

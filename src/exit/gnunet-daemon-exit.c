@@ -979,7 +979,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_TcpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1079,7 +1079,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_IcmpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1358,7 +1358,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
   }
   len += sizeof (struct GNUNET_TUN_UdpHeader);
   len += payload_length;
-  if (len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -2884,7 +2884,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   mtcp->crc = 0;
 
   mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + (pktlen - sizeof (struct GNUNET_TUN_TcpHeader));
-  if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -2905,12 +2905,10 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
  * Receive packets from the helper-process
  *
  * @param cls unused
- * @param client unsued
  * @param message message received from helper
  */
 static int
 message_token (void *cls GNUNET_UNUSED,
-               void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;

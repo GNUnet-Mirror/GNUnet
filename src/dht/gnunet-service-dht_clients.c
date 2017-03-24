@@ -1166,7 +1166,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 
   msize = sizeof (struct GNUNET_DHT_ClientResultMessage) + data_size +
     (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

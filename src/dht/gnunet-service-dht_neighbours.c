@@ -1423,7 +1423,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                                          UINT32_MAX);
   }
   msize = xquery_size + reply_bf_size;
-  if (msize + sizeof (struct PeerGetMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize + sizeof (struct PeerGetMessage) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     GNUNET_free_non_null (reply_bf);
@@ -1522,12 +1522,12 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 
   msize = data_size + (get_path_length + put_path_length) *
       sizeof (struct GNUNET_PeerIdentity);
-  if ((msize + sizeof (struct PeerResultMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+  if ((msize + sizeof (struct PeerResultMessage) >= GNUNET_MAX_MESSAGE_SIZE) ||
       (get_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
       (put_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
-      (data_size > GNUNET_SERVER_MAX_MESSAGE_SIZE))
+       GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+      (data_size > GNUNET_MAX_MESSAGE_SIZE))
   {
     GNUNET_break (0);
     return;
@@ -1627,7 +1627,7 @@ check_dht_p2p_put (void *cls,
        sizeof (struct PeerPutMessage) +
        putlen * sizeof (struct GNUNET_PeerIdentity)) ||
       (putlen >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+       GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2213,9 +2213,9 @@ check_dht_p2p_result (void *cls,
                                             put_path_length) *
        sizeof (struct GNUNET_PeerIdentity)) ||
       (get_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
+       GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)) ||
       (put_path_length >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+       GNUNET_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;

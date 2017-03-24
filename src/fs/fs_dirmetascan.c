@@ -245,12 +245,10 @@ finish_scan (void *cls)
  * Calls the scanner progress handler.
  *
  * @param cls the closure (directory scanner object)
- * @param client always NULL
  * @param msg message from the helper process
  */
 static int
 process_helper_msgs (void *cls,
-		     void *client,
 		     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_DirScanner *ds = cls;

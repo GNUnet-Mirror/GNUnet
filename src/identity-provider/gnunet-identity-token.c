@@ -158,13 +158,18 @@ run (void *cls,
 int
 main(int argc, char *const argv[])
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'t', "token", NULL,
-      gettext_noop ("GNUid token"), 1,
-      &GNUNET_GETOPT_set_string, &token},
-    {'p', "print", NULL,
-      gettext_noop ("Print token contents"), 0,
-      &GNUNET_GETOPT_set_one, &print_token},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "token",
+                                 NULL,
+                                 gettext_noop ("GNUid token"),
+                                 &token),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+                                  "print",
+                                  gettext_noop ("Print token contents"),
+                                  &print_token),
 
     GNUNET_GETOPT_OPTION_END
   };

@@ -391,7 +391,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
        "Trying to lookup `%s' in GNS\n",
        name);
   nlen = strlen (name) + 1;
-  if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*lr))
+  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*lr))
   {
     GNUNET_break (0);
     return NULL;

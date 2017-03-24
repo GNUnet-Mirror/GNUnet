@@ -136,13 +136,16 @@ testLogOpts ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (5 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 5, myargv))
+  if (5 != GNUNET_GETOPT_run ("test_getopt",
+                              logoptionlist,
+                              5, myargv))
   {
     GNUNET_break (0);
     return 1;
   }
-  GNUNET_assert (fn != NULL);
-  if ((0 != strcmp (level, "WARNING")) || (0 != strcmp (fn, "filename")))
+  GNUNET_assert (NULL != fn);
+  if ( (0 != strcmp (level, "WARNING")) ||
+       (NULL == strstr (fn, "/filename")) )
   {
     GNUNET_break (0);
     GNUNET_free (level);
@@ -170,21 +173,35 @@ testFlagNum ()
   unsigned long long lnum = 0;
 
   const struct GNUNET_GETOPT_CommandLineOption logoptionlist[] = {
-    {'f', "--flag", NULL, "helptext", 0, &GNUNET_GETOPT_set_one,
-     (void *) &flag},
-    {'n', "--num", "ARG", "helptext", 1, &GNUNET_GETOPT_set_uint,
-     (void *) &num},
-    {'N', "--lnum", "ARG", "helptext", 1, &GNUNET_GETOPT_set_ulong,
-     (void *) &lnum},
+    GNUNET_GETOPT_OPTION_SET_ONE ('f',
+                                  "--flag",
+                                  "helptext",
+                                  &flag),
+    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+                                   "--num",
+                                   "ARG",
+                                   "helptext",
+                                   &num),
+    GNUNET_GETOPT_OPTION_SET_ULONG ('N',
+                                    "--lnum",
+                                    "ARG",
+                                    "helptext",
+                                    &lnum),
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (6 != GNUNET_GETOPT_run ("test_getopt", logoptionlist, 6, myargv))
+  if (6 !=
+      GNUNET_GETOPT_run ("test_getopt",
+                         logoptionlist,
+                         6,
+                         myargv))
   {
     GNUNET_break (0);
     return 1;
   }
-  if ((1 != flag) || (42 != num) || (42 != lnum))
+  if ( (1 != flag) ||
+       (42 != num) ||
+       (42 != lnum))
   {
     GNUNET_break (0);
     return 1;
@@ -198,7 +215,9 @@ main (int argc, char *argv[])
 {
   int errCnt = 0;
 
-  GNUNET_log_setup ("test_getopt", "WARNING", NULL);
+  GNUNET_log_setup ("test_getopt",
+                    "WARNING",
+                    NULL);
   /* suppress output from -h, -v options */
 #ifndef MINGW
   GNUNET_break (0 == CLOSE (1));

@@ -202,24 +202,6 @@ struct GNUNET_MQ_Handle
 
 
 /**
- * Implementation-specific state for connection to
- * client (MQ for server).
- */
-struct ServerClientSocketState
-{
-  /**
-   * Handle of the client that connected to the server.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Active transmission request to the client.
-   */
-  struct GNUNET_SERVER_TransmitHandle *th;
-};
-
-
-/**
  * Call the message message handler that was registered
  * for the type of the given message in the given message queue.
  *
@@ -704,92 +686,6 @@ GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
 		 ntohs (nested_mh->size));
 
   return mqm;
-}
-
-
-/**
- * Transmit a queued message to the session's client.
- *
- * @param cls consensus session
- * @param size number of bytes available in @a buf
- * @param buf where the callee should write the message
- * @return number of bytes written to @a buf
- */
-static size_t
-transmit_queued (void *cls,
-                 size_t size,
-                 void *buf)
-{
-  struct GNUNET_MQ_Handle *mq = cls;
-  struct ServerClientSocketState *state = GNUNET_MQ_impl_state (mq);
-  const struct GNUNET_MessageHeader *msg = GNUNET_MQ_impl_current (mq);
-  size_t msg_size;
-
-  GNUNET_assert (NULL != buf);
-  msg_size = ntohs (msg->size);
-  GNUNET_assert (size >= msg_size);
-  GNUNET_memcpy (buf, msg, msg_size);
-  state->th = NULL;
-
-  GNUNET_MQ_impl_send_continue (mq);
-
-  return msg_size;
-}
-
-
-static void
-server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
-                            void *impl_state)
-{
-  struct ServerClientSocketState *state = impl_state;
-
-  if (NULL != state->th)
-  {
-    GNUNET_SERVER_notify_transmit_ready_cancel (state->th);
-    state->th = NULL;
-  }
-
-  GNUNET_assert (NULL != mq);
-  GNUNET_assert (NULL != state);
-  GNUNET_SERVER_client_drop (state->client);
-  GNUNET_free (state);
-}
-
-
-static void
-server_client_send_impl (struct GNUNET_MQ_Handle *mq,
-                         const struct GNUNET_MessageHeader *msg,
-                         void *impl_state)
-{
-  GNUNET_assert (NULL != mq);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message of type %u and size %u\n",
-       ntohs (msg->type), ntohs (msg->size));
-
-  struct ServerClientSocketState *state = impl_state;
-  state->th = GNUNET_SERVER_notify_transmit_ready (state->client,
-						   ntohs (msg->size),
-						   GNUNET_TIME_UNIT_FOREVER_REL,
-						   &transmit_queued,
-                                                   mq);
-}
-
-
-struct GNUNET_MQ_Handle *
-GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client)
-{
-  struct GNUNET_MQ_Handle *mq;
-  struct ServerClientSocketState *scss;
-
-  mq = GNUNET_new (struct GNUNET_MQ_Handle);
-  scss = GNUNET_new (struct ServerClientSocketState);
-  mq->impl_state = scss;
-  scss->client = client;
-  GNUNET_SERVER_client_keep (client);
-  mq->send_impl = &server_client_send_impl;
-  mq->destroy_impl = &server_client_destroy_impl;
-  return mq;
 }
 
 

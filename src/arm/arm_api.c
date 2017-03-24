@@ -753,7 +753,7 @@ change_service (struct GNUNET_ARM_Handle *h,
 
   slen = strlen (service_name) + 1;
   if (slen + sizeof (struct GNUNET_ARM_Message) >=
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;

@@ -837,31 +837,48 @@ state_machine (void *cls)
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'n', "numeric", NULL,
-     gettext_noop ("don't resolve host names"),
-     0, &GNUNET_GETOPT_set_one, &no_resolve},
-    {'q', "quiet", NULL,
-     gettext_noop ("output only the identity strings"),
-     0, &GNUNET_GETOPT_set_one, &be_quiet},
-    {'f', "friends", NULL,
-     gettext_noop ("include friend-only information"),
-     0, &GNUNET_GETOPT_set_one, &include_friend_only},
-    {'s', "self", NULL,
-     gettext_noop ("output our own identity only"),
-     0, &GNUNET_GETOPT_set_one, &get_self},
-    {'i', "info", NULL,
-     gettext_noop ("list all known peers"),
-     0, &GNUNET_GETOPT_set_one, &get_info},
-    {'d', "dump-hello", NULL,
-     gettext_noop ("dump hello to file"),
-     1, &GNUNET_GETOPT_set_string, &dump_hello},
-    {'g', "get-hello", NULL,
-     gettext_noop ("also output HELLO uri(s)"),
-     0, &GNUNET_GETOPT_set_one, &get_uri},
-    {'p', "put-hello", "HELLO",
-     gettext_noop ("add given HELLO uri to the database"),
-     1, &GNUNET_GETOPT_set_string, &put_uri},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+                                  "numeric",
+                                  gettext_noop ("don't resolve host names"),
+                                  &no_resolve),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('q',
+                                  "quiet",
+                                  gettext_noop ("output only the identity strings"),
+                                  &be_quiet),
+    GNUNET_GETOPT_OPTION_SET_ONE ('f',
+                                  "friends",
+                                  gettext_noop ("include friend-only information"),
+                                  &include_friend_only),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+                                  "self",
+                                  gettext_noop ("output our own identity only"),
+                                  &get_self),
+    
+    GNUNET_GETOPT_OPTION_SET_ONE ('i',
+                                  "info",
+                                  gettext_noop ("list all known peers"),
+                                  &get_info),
+
+    GNUNET_GETOPT_OPTION_STRING ('d',
+                                 "dump-hello",
+                                 NULL,
+                                 gettext_noop ("dump hello to file"),
+                                 &dump_hello),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('g',
+                                  "get-hello",
+                                  gettext_noop ("also output HELLO uri(s)"),
+                                  &get_uri),
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "put-hello",
+                                 "HELLO",
+                                 gettext_noop ("add given HELLO uri to the database"),
+                                 &put_uri),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

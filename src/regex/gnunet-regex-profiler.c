@@ -1477,22 +1477,39 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'o', "output-file", "FILENAME",
-     gettext_noop ("name of the file for writing statistics"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &data_filename},
-    {'t', "matching-timeout", "TIMEOUT",
-      gettext_noop ("wait TIMEOUT before ending the experiment"),
-      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time},
-    {'p', "policy-dir", "DIRECTORY",
-      gettext_noop ("directory with policy files"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &policy_dir},
-    {'s', "strings-file", "FILENAME",
-      gettext_noop ("name of file with input strings"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &strings_file},
-    {'H', "hosts-file", "FILENAME",
-      gettext_noop ("name of file with hosts' names"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &hosts_file},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_FILENAME ('o',
+                                   "output-file",
+                                   "FILENAME",
+                                   gettext_noop ("name of the file for writing statistics"),
+                                   &data_filename),
+
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+                                            "matching-timeout",
+                                            "TIMEOUT",
+                                            gettext_noop ("wait TIMEOUT before ending the experiment"),
+                                            &search_timeout_time), 
+
+    GNUNET_GETOPT_OPTION_FILENAME ('p',
+                                   "policy-dir",
+                                   "DIRECTORY",
+                                   gettext_noop ("directory with policy files"),
+                                   &policy_dir),
+
+
+    GNUNET_GETOPT_OPTION_FILENAME ('s',
+                                   "strings-file",
+                                   "FILENAME",
+                                   gettext_noop ("name of file with input strings"),
+                                   &strings_file),
+
+    GNUNET_GETOPT_OPTION_FILENAME ('H',
+                                   "hosts-file",
+                                   "FILENAME",
+                                   gettext_noop ("name of file with hosts' names"),
+                                   &hosts_file),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

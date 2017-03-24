@@ -776,22 +776,38 @@ int
 main (int argc,
       char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'d', "dns", "IP",
-      gettext_noop ("IP of recursive DNS resolver to use (required)"), 1,
-      &GNUNET_GETOPT_set_string, &dns_ip},
-    {'f', "fcfs", "NAME",
-      gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
-      &GNUNET_GETOPT_set_string, &fcfs_suffix},
-    {'s', "suffix", "SUFFIX",
-      gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
-      &GNUNET_GETOPT_set_string, &dns_suffix},
-    {'p', "port", "UDPPORT",
-      gettext_noop ("UDP port to listen on for inbound DNS requests; default: 2853"), 1,
-      &GNUNET_GETOPT_set_uint, &listen_port},
-    {'z', "zone", "PUBLICKEY",
-      gettext_noop ("Public key of the GNS zone to use (overrides default)"), 1,
-      &GNUNET_GETOPT_set_string, &gns_zone_str},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('d',
+                                 "dns",
+                                 "IP",
+                                 gettext_noop ("IP of recursive DNS resolver to use (required)"),
+                                 &dns_ip),
+
+    GNUNET_GETOPT_OPTION_STRING ('f',
+                                 "fcfs",
+                                 "NAME",
+                                 gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"),
+                                 &fcfs_suffix),
+
+    GNUNET_GETOPT_OPTION_STRING ('s',
+                                 "suffix",
+                                 "SUFFIX",
+                                 gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"),
+                                 &dns_suffix),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+                                   "port",
+                                   "UDPPORT",
+                                   gettext_noop ("UDP port to listen on for inbound DNS requests; default: 2853"),
+                                   &listen_port),
+
+    GNUNET_GETOPT_OPTION_STRING ('z',
+                                 "zone",
+                                 "PUBLICKEY",
+                                 gettext_noop ("Public key of the GNS zone to use (overrides default)"),
+                                 &gns_zone_str), 
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

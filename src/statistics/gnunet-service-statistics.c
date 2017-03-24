@@ -359,7 +359,7 @@ transmit (struct ClientEntry *ce,
 
   size = strlen (e->subsystem->service) + 1 +
     strlen (e->name) + 1;
-  GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (size < GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (m,
 			     size,
 			     GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);

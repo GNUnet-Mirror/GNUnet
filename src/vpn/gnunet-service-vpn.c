@@ -1839,7 +1839,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_UdpServiceMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -1864,7 +1864,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -1904,7 +1904,7 @@ route_packet (struct DestinationEntry *destination,
 
 	mlen = sizeof (struct GNUNET_EXIT_TcpServiceStartMessage) +
 	  payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
 	  return;
@@ -1927,7 +1927,7 @@ route_packet (struct DestinationEntry *destination,
 
 	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) +
 	  alen + payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
 	  return;
@@ -1963,7 +1963,7 @@ route_packet (struct DestinationEntry *destination,
 
       mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2038,7 +2038,7 @@ route_packet (struct DestinationEntry *destination,
       /* update length calculations, as payload_length may have changed */
       mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2168,7 +2168,7 @@ route_packet (struct DestinationEntry *destination,
       /* update length calculations, as payload_length may have changed */
       mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
-      if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      if (mlen >= GNUNET_MAX_MESSAGE_SIZE)
       {
 	GNUNET_break (0);
 	return;
@@ -2217,12 +2217,10 @@ route_packet (struct DestinationEntry *destination,
  * and forward the packet.
  *
  * @param cls closure, NULL
- * @param client NULL
  * @param message message we got from the client (VPN channel interface)
  */
 static int
 message_token (void *cls,
-	       void *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *tun;

@@ -72,7 +72,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                 _("%s request received, but have no datacache!\n"), "PUT");
     return;
   }
-  if (data_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (data_size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

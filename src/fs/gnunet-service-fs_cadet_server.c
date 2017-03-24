@@ -219,19 +219,21 @@ continue_writing (void *cls)
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
 static void
 handle_datastore_reply (void *cls,
-			const struct GNUNET_HashCode *key,
-			size_t size,
-			const void *data,
-			enum GNUNET_BLOCK_Type type,
-			uint32_t priority,
-			uint32_t anonymity,
-			struct GNUNET_TIME_Absolute expiration,
+                        const struct GNUNET_HashCode *key,
+                        size_t size,
+                        const void *data,
+                        enum GNUNET_BLOCK_Type type,
+                        uint32_t priority,
+                        uint32_t anonymity,
+                        uint32_t replication,
+                        struct GNUNET_TIME_Absolute expiration,
                         uint64_t uid)
 {
   struct CadetClient *sc = cls;
@@ -273,15 +275,16 @@ handle_datastore_reply (void *cls,
 		GNUNET_h2s (key));
     if (GNUNET_OK !=
 	GNUNET_FS_handle_on_demand_block (key,
-					  size,
-                                          data,
-                                          type,
-					  priority,
-                                          anonymity,
-					  expiration,
-                                          uid,
-					  &handle_datastore_reply,
-					  sc))
+                                    size,
+                                    data,
+                                    type,
+                                    priority,
+                                    anonymity,
+                                    replication,
+                                    expiration,
+                                    uid,
+                                    &handle_datastore_reply,
+                                    sc))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "On-demand encoding request failed\n");
@@ -289,7 +292,7 @@ handle_datastore_reply (void *cls,
     }
     return;
   }
-  if (msize > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize > GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     continue_writing (sc);
@@ -345,12 +348,13 @@ handle_request (void *cls,
 			    GNUNET_NO);
   refresh_timeout_task (sc);
   sc->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
-				     0,
-				     &sqm->query,
-				     ntohl (sqm->type),
-				     0 /* priority */,
-				     GSF_datastore_queue_size,
-				     &handle_datastore_reply,
+                                     0 /* next_uid */,
+                                     false /* random */,
+                                     &sqm->query,
+                                     ntohl (sqm->type),
+                                     0 /* priority */,
+                                     GSF_datastore_queue_size,
+                                     &handle_datastore_reply,
                                      sc);
   if (NULL == sc->qe)
   {

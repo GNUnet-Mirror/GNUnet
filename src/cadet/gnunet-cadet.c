@@ -920,32 +920,54 @@ main (int argc,
 {
   int res;
   const char helpstr[] = "Create tunnels and retrieve info about CADET's status.";
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
     /* I would use the terminology 'circuit' here...  --lynX */
-    {'C', "connection", "CONNECTION_ID",
-     gettext_noop ("Provide information about a particular connection"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
-    {'e', "echo", NULL,
-     gettext_noop ("Activate echo mode"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
-    {'d', "dump", NULL,
-     gettext_noop ("Dump debug information to STDERR"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &dump},
-    {'o', "open-port", "SHARED_SECRET",
-     gettext_noop ("Listen for connections using a shared secret among sender and recipient"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &listen_port},
-    {'p', "peer", "PEER_ID",
-     gettext_noop ("Provide information about a patricular peer"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &peer_id},
-    {'P', "peers", NULL,
-      gettext_noop ("Provide information about all peers"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
-    {'t', "tunnel", "TUNNEL_ID",
-     gettext_noop ("Provide information about a particular tunnel"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
-    {'T', "tunnels", NULL,
-     gettext_noop ("Provide information about all tunnels"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &request_tunnels},
+    GNUNET_GETOPT_OPTION_STRING ('C',
+                                 "connection",
+                                 "CONNECTION_ID",
+                                 gettext_noop ("Provide information about a particular connection"),
+                                 &conn_id),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+                                  "echo",
+                                  gettext_noop ("Activate echo mode"),
+                                  &echo), 
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+                                  "dump",
+                                  gettext_noop ("Dump debug information to STDERR"),
+                                  &dump),
+
+    GNUNET_GETOPT_OPTION_STRING ('o',
+                                 "open-port",
+                                 "SHARED_SECRET",
+                                 gettext_noop ("Listen for connections using a shared secret among sender and recipient"),
+                                 &listen_port),
+
+
+    GNUNET_GETOPT_OPTION_STRING ('p',
+                                 "peer",
+                                 "PEER_ID",
+                                 gettext_noop ("Provide information about a patricular peer"),
+                                 &peer_id),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('P',
+                                  "peers",
+                                  gettext_noop ("Provide information about all peers"),
+                                  &request_peers),
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "tunnel",
+                                 "TUNNEL_ID",
+                                 gettext_noop ("Provide information about a particular tunnel"),
+                                 &tunnel_id),
+
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('T',
+                                  "tunnels",
+                                  gettext_noop ("Provide information about all tunnels"),
+                                  &request_tunnels),
 
     GNUNET_GETOPT_OPTION_END
   };

@@ -599,7 +599,7 @@ transmit_ping_if_allowed (void *cls,
   ping.challenge = htonl (ve->challenge);
   ping.target = *pid;
 
-  if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (tsize >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     hsize = 0;

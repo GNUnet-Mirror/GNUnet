@@ -106,7 +106,7 @@ send_result_code (struct GNUNET_SERVICE_Client *client,
 
   if (NULL != err_msg)
     err_size = strnlen (err_msg,
-                        GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*res) - 1) + 1;
+                        GNUNET_MAX_MESSAGE_SIZE - sizeof (*res) - 1) + 1;
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg_extra (res, err_size,
                                GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);

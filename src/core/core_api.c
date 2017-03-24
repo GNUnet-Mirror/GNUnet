@@ -321,7 +321,7 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
 
   /* check message size for sanity */
   msize = ntohs (msg->size);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct SendMessage))
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct SendMessage))
   {
     GNUNET_break (0);
     GNUNET_MQ_impl_send_continue (mq);
@@ -796,7 +796,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->handlers = GNUNET_MQ_copy_handlers (handlers);
   h->hcnt = GNUNET_MQ_count_handlers (handlers);
   GNUNET_assert (h->hcnt <
-                 (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+                 (GNUNET_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to CORE service\n");

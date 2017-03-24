@@ -1121,7 +1121,7 @@ schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc)
     if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
       options |= SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY;
 
-    fit = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (*sm)) / sizeof (struct GNUNET_HashCode);
+    fit = (GNUNET_MAX_MESSAGE_SIZE - 1 - sizeof (*sm)) / sizeof (struct GNUNET_HashCode);
     todo = GNUNET_MIN (fit,
                        left);
     env = GNUNET_MQ_msg_extra (sm,

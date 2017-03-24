@@ -54,7 +54,7 @@ static unsigned int replication = 5;
 /**
  * Be verbose
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Use #GNUNET_DHT_DEMULTIPLEX_EVERYWHERE.
@@ -191,39 +191,6 @@ run (void *cls,
                   NULL);
 }
 
-
-/**
- * gnunet-dht-put command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'d', "data", "DATA",
-   gettext_noop ("the data to insert under the key"),
-   1, &GNUNET_GETOPT_set_string, &data},
-  {'e', "expiration", "EXPIRATION",
-   gettext_noop ("how long to store this entry in the dht (in seconds)"),
-   1, &GNUNET_GETOPT_set_relative_time, &expiration},
-  {'k', "key", "KEY",
-   gettext_noop ("the query key"),
-   1, &GNUNET_GETOPT_set_string, &query_key},
-  {'x', "demultiplex", NULL,
-   gettext_noop ("use DHT's demultiplex everywhere option"),
-   0, &GNUNET_GETOPT_set_one, &demultixplex_everywhere},
-  {'r', "replication", "LEVEL",
-   gettext_noop ("how many replicas to create"),
-   1, &GNUNET_GETOPT_set_uint, &replication},
-  {'R', "record", NULL,
-   gettext_noop ("use DHT's record route option"),
-   0, &GNUNET_GETOPT_set_one, &record_route},
-  {'t', "type", "TYPE",
-   gettext_noop ("the type to insert data as"),
-   1, &GNUNET_GETOPT_set_uint, &query_type},
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
 /**
  * Entry point for gnunet-dht-put
  *
@@ -234,6 +201,55 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+  
+    GNUNET_GETOPT_OPTION_STRING ('d',
+                                 "data",
+                                 "DATA",
+                                 gettext_noop ("the data to insert under the key"),
+                                 &data),
+  
+    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('e',
+                                            "expiration",
+                                            "EXPIRATION",
+                                            gettext_noop ("how long to store this entry in the dht (in seconds)"),
+                                            &expiration),
+  
+    GNUNET_GETOPT_OPTION_STRING ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
+  
+    GNUNET_GETOPT_OPTION_SET_ONE ('x',
+                                  "demultiplex",
+                                  gettext_noop ("use DHT's demultiplex everywhere option"),
+                                  &demultixplex_everywhere),
+  
+    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+                                   "replication",
+                                   "LEVEL",
+                                   gettext_noop ("how many replicas to create"),
+                                   &replication),
+  
+    GNUNET_GETOPT_OPTION_SET_ONE ('R',
+                                  "record",
+                                  gettext_noop ("use DHT's record route option"),
+                                  &record_route),
+  
+    GNUNET_GETOPT_OPTION_SET_UINT ('t',
+                                   "type",
+                                   "TYPE",
+                                   gettext_noop ("the type to insert data as"),
+                                   &query_type),
+  
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+  
+    GNUNET_GETOPT_OPTION_END
+  };
+
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
                                                  &argc, &argv))
     return 2;

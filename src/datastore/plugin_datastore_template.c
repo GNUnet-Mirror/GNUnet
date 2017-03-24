@@ -89,8 +89,8 @@ template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -104,7 +104,7 @@ template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_key (void *cls, uint64_t offset,
+template_plugin_get_key (void *cls, uint64_t next_uid, bool random,
                          const struct GNUNET_HashCode * key,
                          const struct GNUNET_HashCode * vhash,
                          enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
@@ -151,19 +151,17 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
- *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
  *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
@@ -172,9 +170,13 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param cons_cls continuation closure
  */
 static void
-template_plugin_update (void *cls, uint64_t uid, uint32_t delta,
+template_plugin_update (void *cls,
+                        uint64_t uid,
+                        uint32_t priority,
+                        uint32_t replication,
                         struct GNUNET_TIME_Absolute expire,
-                        PluginUpdateCont cont, void *cont_cls)
+                        PluginUpdateCont cont,
+                        void *cont_cls)
 {
   GNUNET_break (0);
   cont (cont_cls, GNUNET_SYSERR, "not implemented");
@@ -185,16 +187,15 @@ template_plugin_update (void *cls, uint64_t uid, uint32_t delta,
  * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param proc function to call on each matching value;
- *        will be called  with NULL if no value matches
+ *        Must not be zero (ANY).
+ * @param proc function to call on the matching value;
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_zero_anonymity (void *cls, uint64_t offset,
+template_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
                                     enum GNUNET_BLOCK_Type type,
                                     PluginDatumProcessor proc, void *proc_cls)
 {

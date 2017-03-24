@@ -66,7 +66,7 @@ static struct GNUNET_SCHEDULER_Task *httpd_task;
 /**
  * The port the service is running on (default 7776)
  */
-static unsigned long port = GNUNET_REST_SERVICE_PORT;
+static unsigned long long port = GNUNET_REST_SERVICE_PORT;
 
 /**
  * The listen socket of the service for IPv4
@@ -748,7 +748,7 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Service listens on port %lu\n",
+              "Service listens on port %llu\n",
               port);
   httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
                             0,
@@ -783,10 +783,12 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'p', "port", NULL,
-      gettext_noop ("listen on specified port (default: 7776)"), 1,
-      &GNUNET_GETOPT_set_ulong, &port},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_SET_ULONG ('p',
+                                    "port",
+                                    "PORT",
+                                    gettext_noop ("listen on specified port (default: 7776)"),
+                                    &port),
     GNUNET_GETOPT_OPTION_END
   };
   static const char* err_page =

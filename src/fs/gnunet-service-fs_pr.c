@@ -160,18 +160,25 @@ struct GSF_PendingRequest
   struct GNUNET_SCHEDULER_Task * warn_task;
 
   /**
-   * Current offset for querying our local datastore for results.
-   * Starts at a random value, incremented until we get the same
-   * UID again (detected using 'first_uid'), which is then used
-   * to termiante the iteration.
+   * Do we have a first UID yet?
    */
-  uint64_t local_result_offset;
+  bool have_first_uid;
+
+  /**
+   * Have we seen a NULL result yet?
+   */
+  bool seen_null;
 
   /**
    * Unique ID of the first result from the local datastore;
-   * used to detect wrap-around of the offset.
+   * used to terminate the loop.
    */
   uint64_t first_uid;
+
+  /**
+   * Result count.
+   */
+  size_t result_count;
 
   /**
    * How often have we retried this request via 'cadet'?
@@ -188,11 +195,6 @@ struct GSF_PendingRequest
    * Length of the 'replies_seen' array.
    */
   unsigned int replies_seen_size;
-
-  /**
-   * Do we have a first UID yet?
-   */
-  unsigned int have_first_uid;
 
 };
 
@@ -332,8 +334,6 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   if (NULL != target)
     extra += sizeof (struct GNUNET_PeerIdentity);
   pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest) + extra);
-  pr->local_result_offset =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   pr->public_data.query = *query;
   eptr = (struct GNUNET_HashCode *) &pr[1];
   if (NULL != target)
@@ -1340,255 +1340,19 @@ odc_warn_delay_task (void *cls)
 }
 
 
-/**
- * We're processing (local) results for a search request
- * from another peer.  Pass applicable results to the
- * peer and if we are done either clean up (operation
- * complete) or forward to other peers (more results possible).
- *
- * @param cls our closure (`struct GSF_PendingRequest *`)
- * @param key key for the content
- * @param size number of bytes in @a data
- * @param data content stored
- * @param type type of the content
- * @param priority priority of the content
- * @param anonymity anonymity-level for the content
- * @param expiration expiration time for the content
- * @param uid unique identifier for the datum;
- *        maybe 0 if no unique identifier is available
- */
+/* Call our continuation (if we have any) */
 static void
-process_local_reply (void *cls,
-                     const struct GNUNET_HashCode *key,
-                     size_t size,
-                     const void *data,
-                     enum GNUNET_BLOCK_Type type,
-                     uint32_t priority,
-                     uint32_t anonymity,
-                     struct GNUNET_TIME_Absolute expiration,
-                     uint64_t uid)
+call_continuation (struct GSF_PendingRequest *pr)
 {
-  struct GSF_PendingRequest *pr = cls;
-  GSF_LocalLookupContinuation cont;
-  struct ProcessReplyClosure prq;
-  struct GNUNET_HashCode query;
-  unsigned int old_rf;
+  GSF_LocalLookupContinuation cont = pr->llc_cont;
 
-  GNUNET_SCHEDULER_cancel (pr->warn_task);
-  pr->warn_task = NULL;
-  if (NULL != pr->qe)
-  {
-    pr->qe = NULL;
-    if (NULL == key)
-    {
-#if INSANE_STATISTICS
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# Datastore lookups concluded (no results)"),
-                                1, GNUNET_NO);
-#endif
-    }
-    if (GNUNET_NO == pr->have_first_uid)
-    {
-      pr->first_uid = uid;
-      pr->have_first_uid = 1;
-    }
-    else
-    {
-      if ((uid == pr->first_uid) && (key != NULL))
-      {
-        GNUNET_STATISTICS_update (GSF_stats,
-                                  gettext_noop
-                                  ("# Datastore lookups concluded (seen all)"),
-                                  1, GNUNET_NO);
-        key = NULL;             /* all replies seen! */
-      }
-      pr->have_first_uid++;
-      if ((pr->have_first_uid > MAX_RESULTS) && (key != NULL))
-      {
-        GNUNET_STATISTICS_update (GSF_stats,
-                                  gettext_noop
-                                  ("# Datastore lookups aborted (more than MAX_RESULTS)"),
-                                  1, GNUNET_NO);
-        key = NULL;             /* all replies seen! */
-      }
-    }
-  }
-  if (NULL == key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "No further local responses available.\n");
-#if INSANE_STATISTICS
-    if ((pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK) ||
-        (pr->public_data.type == GNUNET_BLOCK_TYPE_FS_IBLOCK))
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# requested DBLOCK or IBLOCK not found"), 1,
-                                GNUNET_NO);
-#endif
-    goto check_error_and_continue;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received reply for `%s' of type %d with UID %llu from datastore.\n",
-              GNUNET_h2s (key), type, (unsigned long long) uid);
-  if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Found ONDEMAND block, performing on-demand encoding\n");
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# on-demand blocks matched requests"), 1,
-                              GNUNET_NO);
-    pr->qe_start = GNUNET_TIME_absolute_get ();
-    pr->warn_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                      &odc_warn_delay_task, pr);
-    if (GNUNET_OK ==
-        GNUNET_FS_handle_on_demand_block (key, size, data, type, priority,
-                                          anonymity, expiration, uid,
-                                          &process_local_reply, pr))
-    {
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# on-demand lookups performed successfully"),
-                                1, GNUNET_NO);
-      return;                   /* we're done */
-    }
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# on-demand lookups failed"), 1,
-                              GNUNET_NO);
-    GNUNET_SCHEDULER_cancel (pr->warn_task);
-    pr->warn_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                      &warn_delay_task, pr);
-    pr->qe =
-        GNUNET_DATASTORE_get_key (GSF_dsh, pr->local_result_offset - 1,
-                                  &pr->public_data.query,
-                                  pr->public_data.type ==
-                                  GNUNET_BLOCK_TYPE_FS_DBLOCK ?
-                                  GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
-                                  (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : 1
-                                  /* queue priority */ ,
-                                  (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX :
-                                  GSF_datastore_queue_size
-                                  /* max queue size */ ,
-                                  &process_local_reply, pr);
-    if (NULL != pr->qe)
-      return;                   /* we're done */
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# Datastore lookups concluded (error queueing)"),
-                              1, GNUNET_NO);
-    goto check_error_and_continue;
-  }
-  old_rf = pr->public_data.results_found;
-  memset (&prq, 0, sizeof (prq));
-  prq.data = data;
-  prq.expiration = expiration;
-  prq.size = size;
-  if (GNUNET_OK !=
-      GNUNET_BLOCK_get_key (GSF_block_ctx, type, data, size, &query))
-  {
-    GNUNET_break (0);
-    GNUNET_DATASTORE_remove (GSF_dsh, key, size, data, -1, -1,
-                             NULL, NULL);
-    pr->qe_start = GNUNET_TIME_absolute_get ();
-    pr->warn_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                      &warn_delay_task, pr);
-    pr->qe =
-        GNUNET_DATASTORE_get_key (GSF_dsh, pr->local_result_offset - 1,
-                                  &pr->public_data.query,
-                                  pr->public_data.type ==
-                                  GNUNET_BLOCK_TYPE_FS_DBLOCK ?
-                                  GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
-                                  (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX : 1
-                                  /* queue priority */ ,
-                                  (0 !=
-                                   (GSF_PRO_PRIORITY_UNLIMITED &
-                                    pr->public_data.options)) ? UINT_MAX :
-                                  GSF_datastore_queue_size
-                                  /* max queue size */ ,
-                                  &process_local_reply, pr);
-    if (NULL == pr->qe)
-    {
-      GNUNET_STATISTICS_update (GSF_stats,
-                                gettext_noop
-                                ("# Datastore lookups concluded (error queueing)"),
-                                1, GNUNET_NO);
-      goto check_error_and_continue;
-    }
-    return;
-  }
-  prq.type = type;
-  prq.priority = priority;
-  prq.request_found = GNUNET_NO;
-  prq.anonymity_level = anonymity;
-  if ((0 == old_rf) && (0 == pr->public_data.results_found))
-    GSF_update_datastore_delay_ (pr->public_data.start_time);
-  prq.eo = GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO;
-  process_reply (&prq, key, pr);
-  pr->local_result = prq.eval;
-  if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
-  {
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# Datastore lookups concluded (found last result)"),
-                              1,
-                              GNUNET_NO);
-    goto check_error_and_continue;
-  }
-  if ((0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
-      ((GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
-       (pr->public_data.results_found > 5 + 2 * pr->public_data.priority)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Load too high, done with request\n");
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# Datastore lookups concluded (load too high)"),
-                              1,
-                              GNUNET_NO);
-    goto check_error_and_continue;
-  }
-  pr->qe_start = GNUNET_TIME_absolute_get ();
-  pr->warn_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                    &warn_delay_task,
-                                    pr);
-  pr->qe =
-      GNUNET_DATASTORE_get_key (GSF_dsh, pr->local_result_offset++,
-                                &pr->public_data.query,
-                                pr->public_data.type ==
-                                GNUNET_BLOCK_TYPE_FS_DBLOCK ?
-                                GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
-                                (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : 1
-                                /* queue priority */ ,
-                                (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX :
-                                GSF_datastore_queue_size
-                                /* max queue size */ ,
-                                &process_local_reply, pr);
-  /* check if we successfully queued another datastore request;
-   * if so, return, otherwise call our continuation (if we have
-   * any) */
-check_error_and_continue:
-  if (NULL != pr->qe)
-    return;
+  GNUNET_assert (NULL == pr->qe);
   if (NULL != pr->warn_task)
   {
     GNUNET_SCHEDULER_cancel (pr->warn_task);
     pr->warn_task = NULL;
   }
-  if (NULL == (cont = pr->llc_cont))
+  if (NULL == cont)
     return;                     /* no continuation */
   pr->llc_cont = NULL;
   if (0 != (GSF_PRO_LOCAL_ONLY & pr->public_data.options))
@@ -1604,7 +1368,8 @@ check_error_and_continue:
                GNUNET_TIME_UNIT_ZERO_ABS,
                GNUNET_TIME_UNIT_FOREVER_ABS,
                GNUNET_BLOCK_TYPE_ANY,
-               NULL, 0);
+               NULL,
+               0);
     }
     /* Finally, call our continuation to signal that we are
        done with local processing of this request; i.e. to
@@ -1614,6 +1379,272 @@ check_error_and_continue:
   }
 
   cont (pr->llc_cont_cls, pr, pr->local_result);
+}
+
+
+/* Update stats and call continuation */
+static void
+no_more_local_results (struct GSF_PendingRequest *pr)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "No further local responses available.\n");
+#if INSANE_STATISTICS
+  if ( (GNUNET_BLOCK_TYPE_FS_DBLOCK == pr->public_data.type) ||
+       (GNUNET_BLOCK_TYPE_FS_IBLOCK == pr->public_data.type) )
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# requested DBLOCK or IBLOCK not found"),
+                              1,
+                              GNUNET_NO);
+#endif
+  call_continuation (pr);
+}
+
+
+/* forward declaration */
+static void
+process_local_reply (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     size_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
+                     uint32_t replication,
+                     struct GNUNET_TIME_Absolute expiration,
+                     uint64_t uid);
+
+
+/* Start a local query */
+static void
+start_local_query (struct GSF_PendingRequest *pr,
+                   uint64_t next_uid,
+                   bool random)
+{
+  pr->qe_start = GNUNET_TIME_absolute_get ();
+  pr->warn_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &warn_delay_task,
+                                    pr);
+  pr->qe =
+      GNUNET_DATASTORE_get_key (GSF_dsh,
+                                next_uid,
+                                random,
+                                &pr->public_data.query,
+                                pr->public_data.type ==
+                                GNUNET_BLOCK_TYPE_FS_DBLOCK ?
+                                GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
+                                (0 !=
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX : 1
+                                /* queue priority */ ,
+                                (0 !=
+                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
+                                  public_data.options)) ? UINT_MAX :
+                                GSF_datastore_queue_size
+                                /* max queue size */ ,
+                                &process_local_reply, pr);
+  if (NULL != pr->qe)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ERROR Requesting `%s' of type %d with next_uid %llu from datastore.\n",
+              GNUNET_h2s (&pr->public_data.query),
+              pr->public_data.type,
+              (unsigned long long) next_uid);
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# Datastore lookups concluded (error queueing)"),
+                            1,
+                            GNUNET_NO);
+  call_continuation (pr);
+}
+
+
+/**
+ * We're processing (local) results for a search request
+ * from another peer.  Pass applicable results to the
+ * peer and if we are done either clean up (operation
+ * complete) or forward to other peers (more results possible).
+ *
+ * @param cls our closure (`struct GSF_PendingRequest *`)
+ * @param key key for the content
+ * @param size number of bytes in @a data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ */
+static void
+process_local_reply (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     size_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
+                     uint32_t replication,
+                     struct GNUNET_TIME_Absolute expiration,
+                     uint64_t uid)
+{
+  struct GSF_PendingRequest *pr = cls;
+  struct ProcessReplyClosure prq;
+  struct GNUNET_HashCode query;
+  unsigned int old_rf;
+
+  GNUNET_SCHEDULER_cancel (pr->warn_task);
+  pr->warn_task = NULL;
+  if (NULL == pr->qe)
+    goto called_from_on_demand;
+  pr->qe = NULL;
+  if ( (NULL == key) &&
+       pr->seen_null &&
+       !pr->have_first_uid) /* We have hit the end for the 2nd time with no results */
+  {
+    /* No results */
+#if INSANE_STATISTICS
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# Datastore lookups concluded (no results)"),
+                              1, GNUNET_NO);
+#endif
+    no_more_local_results (pr);
+    return;
+  }
+  if ( ( (NULL == key) &&
+         pr->seen_null ) || /* We have hit the end for the 2nd time OR */
+       ( pr->seen_null &&
+         pr->have_first_uid &&
+         (uid >= pr->first_uid) ) ) /* We have hit the end and past first UID */
+  {
+    /* Seen all results */
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# Datastore lookups concluded (seen all)"),
+                              1, GNUNET_NO);
+    no_more_local_results (pr);
+    return;
+  }
+  if (NULL == key)
+  {
+    GNUNET_assert (!pr->seen_null);
+    pr->seen_null = true;
+    start_local_query (pr,
+                       0 /* next_uid */,
+                       false /* random */);
+    return;
+  }
+  if (!pr->have_first_uid)
+  {
+    pr->first_uid = uid;
+    pr->have_first_uid = true;
+  }
+  pr->result_count++;
+  if (pr->result_count > MAX_RESULTS)
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# Datastore lookups aborted (more than MAX_RESULTS)"),
+                              1, GNUNET_NO);
+    no_more_local_results (pr);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received reply for `%s' of type %d with UID %llu from datastore.\n",
+              GNUNET_h2s (key), type, (unsigned long long) uid);
+  if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found ONDEMAND block, performing on-demand encoding\n");
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# on-demand blocks matched requests"), 1,
+                              GNUNET_NO);
+    pr->qe_start = GNUNET_TIME_absolute_get ();
+    pr->warn_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                      &odc_warn_delay_task, pr);
+    if (GNUNET_OK ==
+        GNUNET_FS_handle_on_demand_block (key,
+                                          size,
+                                          data,
+                                          type,
+                                          priority,
+                                          anonymity,
+                                          replication,
+                                          expiration,
+                                          uid,
+                                          &process_local_reply,
+                                          pr))
+    {
+      GNUNET_STATISTICS_update (GSF_stats,
+                                gettext_noop
+                                ("# on-demand lookups performed successfully"),
+                                1, GNUNET_NO);
+      return;                   /* we're done */
+    }
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# on-demand lookups failed"), 1,
+                              GNUNET_NO);
+    GNUNET_SCHEDULER_cancel (pr->warn_task);
+    start_local_query (pr,
+                       uid + 1 /* next_uid */,
+                       false /* random */);
+    return;
+  }
+called_from_on_demand:
+  old_rf = pr->public_data.results_found;
+  memset (&prq, 0, sizeof (prq));
+  prq.data = data;
+  prq.expiration = expiration;
+  prq.size = size;
+  if (GNUNET_OK !=
+      GNUNET_BLOCK_get_key (GSF_block_ctx, type, data, size, &query))
+  {
+    GNUNET_break (0);
+    GNUNET_DATASTORE_remove (GSF_dsh, key, size, data, -1, -1,
+                             NULL, NULL);
+    start_local_query (pr,
+                       uid + 1 /* next_uid */,
+                       false /* random */);
+    return;
+  }
+  prq.type = type;
+  prq.priority = priority;
+  prq.request_found = GNUNET_NO;
+  prq.anonymity_level = anonymity;
+  if ((0 == old_rf) && (0 == pr->public_data.results_found))
+    GSF_update_datastore_delay_ (pr->public_data.start_time);
+  prq.eo = GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO;
+  process_reply (&prq, key, pr);
+  pr->local_result = prq.eval;
+  if (GNUNET_BLOCK_EVALUATION_OK_LAST == prq.eval)
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# Datastore lookups concluded (found last result)"),
+                              1,
+                              GNUNET_NO);
+    call_continuation (pr);
+    return;
+  }
+  if ((0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
+      ((GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
+       (pr->public_data.results_found > 5 + 2 * pr->public_data.priority)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Load too high, done with request\n");
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# Datastore lookups concluded (load too high)"),
+                              1,
+                              GNUNET_NO);
+    call_continuation (pr);
+    return;
+  }
+  start_local_query (pr,
+                     uid + 1 /* next_uid */,
+                     false /* random */);
 }
 
 
@@ -1657,43 +1688,14 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;
-  pr->qe_start = GNUNET_TIME_absolute_get ();
-  pr->warn_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                    &warn_delay_task,
-                                    pr);
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Datastore lookups initiated"), 1,
                             GNUNET_NO);
 #endif
-  pr->qe =
-      GNUNET_DATASTORE_get_key (GSF_dsh, pr->local_result_offset++,
-                                &pr->public_data.query,
-                                pr->public_data.type ==
-                                GNUNET_BLOCK_TYPE_FS_DBLOCK ?
-                                GNUNET_BLOCK_TYPE_ANY : pr->public_data.type,
-                                (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX : 1
-                                /* queue priority */ ,
-                                (0 !=
-                                 (GSF_PRO_PRIORITY_UNLIMITED & pr->
-                                  public_data.options)) ? UINT_MAX :
-                                GSF_datastore_queue_size
-                                /* max queue size */ ,
-                                &process_local_reply, pr);
-  if (NULL != pr->qe)
-    return;
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop
-                            ("# Datastore lookups concluded (error queueing)"),
-                            1, GNUNET_NO);
-  GNUNET_SCHEDULER_cancel (pr->warn_task);
-  pr->warn_task = NULL;
-  pr->llc_cont = NULL;
-  if (NULL != cont)
-    cont (cont_cls, pr, pr->local_result);
+  start_local_query(pr,
+                    0 /* next_uid */,
+                    true /* random */);
 }
 
 

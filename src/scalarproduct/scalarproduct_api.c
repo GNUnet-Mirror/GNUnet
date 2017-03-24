@@ -268,7 +268,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
     GNUNET_free (h);
     return NULL;
   }
-  possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobComputationMessage))
+  possible = (GNUNET_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobComputationMessage))
     / sizeof (struct GNUNET_SCALARPRODUCT_Element);
   todo = GNUNET_MIN (possible,
                      element_count);
@@ -285,7 +285,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   element_count_transfered = todo;
   GNUNET_MQ_send (h->mq,
                   env);
-  possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (*mmsg))
+  possible = (GNUNET_MAX_MESSAGE_SIZE - 1 - sizeof (*mmsg))
     / sizeof (struct GNUNET_SCALARPRODUCT_Element);
   while (element_count_transfered < element_count)
   {
@@ -426,7 +426,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   h->cfg = cfg;
   h->key = *session_key;
 
-  possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct AliceComputationMessage))
+  possible = (GNUNET_MAX_MESSAGE_SIZE - 1 - sizeof (struct AliceComputationMessage))
       / sizeof (struct GNUNET_SCALARPRODUCT_Element);
   todo = GNUNET_MIN (possible,
                      element_count);
@@ -445,7 +445,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   GNUNET_MQ_send (h->mq,
                   env);
   element_count_transfered = todo;
-  possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (*mmsg))
+  possible = (GNUNET_MAX_MESSAGE_SIZE - 1 - sizeof (*mmsg))
     / sizeof (struct GNUNET_SCALARPRODUCT_Element);
   while (element_count_transfered < element_count)
   {

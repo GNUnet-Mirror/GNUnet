@@ -35,6 +35,7 @@
 #ifndef GNUNET_MQ_LIB_H
 #define GNUNET_MQ_LIB_H
 
+#include "gnunet_scheduler_lib.h"
 
 /**
  * Allocate an envelope, with extra space allocated after the space needed

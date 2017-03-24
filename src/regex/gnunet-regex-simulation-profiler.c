@@ -691,13 +691,20 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'t', "table", "TABLENAME",
-     gettext_noop ("name of the table to write DFAs"),
-     1, &GNUNET_GETOPT_set_string, &table_name},
-    {'p', "max-path-compression", "MAX_PATH_COMPRESSION",
-     gettext_noop ("maximum path compression length"),
-     1, &GNUNET_GETOPT_set_uint, &max_path_compression},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_OPTION_STRING ('t',
+                                 "table",
+                                 "TABLENAME",
+                                 gettext_noop ("name of the table to write DFAs"),
+                                 &table_name),
+
+    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+                                   "max-path-compression",
+                                   "MAX_PATH_COMPRESSION",
+                                   gettext_noop ("maximum path compression length"),
+                                   &max_path_compression),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

@@ -427,6 +427,26 @@ void
 GNUNET_JSON_post_parser_cleanup (void *con_cls);
 
 
+/* ****************** GETOPT JSON helper ******************* */
+
+
+/**
+ * Allow user to specify a JSON input value.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val set to the JSON specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_JSON_getopt (char shortName,
+                    const char *name,
+                    const char *argumentHelp,
+                    const char *description,
+                    json_t **json);
+
+
 #endif
 
 /* end of gnunet_json_lib.h */

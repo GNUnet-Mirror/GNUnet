@@ -378,28 +378,44 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'n', "name", "NAME",
-     gettext_noop ("limit output to statistics for the given NAME"), 1,
-     &GNUNET_GETOPT_set_string, &name},
-    {'p', "persistent", NULL,
-     gettext_noop ("make the value being set persistent"), 0,
-     &GNUNET_GETOPT_set_one, &persistent},
-    {'s', "subsystem", "SUBSYSTEM",
-     gettext_noop ("limit output to the given SUBSYSTEM"), 1,
-     &GNUNET_GETOPT_set_string, &subsystem},
-    {'q', "quiet", NULL,
-     gettext_noop ("just print the statistics value"), 0,
-     &GNUNET_GETOPT_set_one, &quiet},
-    {'w', "watch", NULL,
-     gettext_noop ("watch value continuously"), 0,
-     &GNUNET_GETOPT_set_one, &watch},
-     {'r', "remote", NULL,
-      gettext_noop ("connect to remote host"), 1,
-      &GNUNET_GETOPT_set_string, &remote_host},
-    {'o', "port", NULL,
-     gettext_noop ("port for remote host"), 1,
-     &GNUNET_GETOPT_set_uint, &remote_port},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_STRING ('n',
+                                 "name",
+                                 "NAME",
+                                 gettext_noop ("limit output to statistics for the given NAME"),
+                                 &name),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+                                  "persistent",
+                                  gettext_noop ("make the value being set persistent"),
+                                  &persistent),
+
+    GNUNET_GETOPT_OPTION_STRING ('s',
+                                 "subsystem",
+                                 "SUBSYSTEM",
+                                 gettext_noop ("limit output to the given SUBSYSTEM"),
+                                 &subsystem),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('q',
+                                  "quiet",
+                                  gettext_noop ("just print the statistics value"),
+                                  &quiet),
+
+    GNUNET_GETOPT_OPTION_SET_ONE ('w',
+                                  "watch",
+                                  gettext_noop ("watch value continuously"),
+                                  &watch),
+
+    GNUNET_GETOPT_OPTION_STRING ('r',
+                                 "remote",
+                                 "REMOTE",
+                                 gettext_noop ("connect to remote host"),
+                                 &remote_host),
+    GNUNET_GETOPT_OPTION_SET_ULONG ('o',
+                                    "port",
+                                    "PORT",
+                                    gettext_noop ("port for remote host"),
+                                    &remote_port),
     GNUNET_GETOPT_OPTION_END
   };
   remote_port = 0;
