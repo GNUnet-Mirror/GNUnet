@@ -241,6 +241,11 @@ static unsigned int caller_num_gen;
 static char *address;
 
 /**
+ * Automatically accept all calls
+ */
+static int auto_accept;
+
+/**
  * Activate echo mode
  */
 static int echo;
@@ -317,6 +322,10 @@ create_echo_handles (struct GNUNET_MICROPHONE_Handle **mic_handle,
 }
 
 
+static void
+accept_call (void *cls);
+
+
 /**
  * Function called with an event emitted by a phone.
  *
@@ -336,11 +345,6 @@ phone_event_handler (void *cls,
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
-    FPRINTF (stdout,
-             _("Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"),
-             GNUNET_GNSRECORD_pkey_to_zkey (caller_id),
-             caller_num_gen,
-             caller_num_gen);
     cl = GNUNET_new (struct CallList);
     cl->caller = caller;
     cl->caller_id = *caller_id;
@@ -348,6 +352,22 @@ phone_event_handler (void *cls,
     GNUNET_CONTAINER_DLL_insert (cl_head,
                                  cl_tail,
                                  cl);
+    if (GNUNET_YES == auto_accept)
+    {
+      FPRINTF (stdout,
+               _("Accepting call from `%s'.\n"),
+               GNUNET_GNSRECORD_pkey_to_zkey (caller_id));
+      GNUNET_SCHEDULER_add_now (&accept_call, cl);
+    }
+    else
+    {
+      FPRINTF (stdout,
+               _("Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"),
+               GNUNET_GNSRECORD_pkey_to_zkey (caller_id),
+               cl->caller_num,
+               cl->caller_num);
+    }
+
     break;
   case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
     for (cl = cl_head; NULL != cl; cl = cl->next)
@@ -651,6 +671,26 @@ do_call (const char *arg)
 }
 
 
+static void
+accept_call (void *cls)
+{
+  struct CallList *cl = cls;
+  GNUNET_assert (NULL != cl);
+  
+  GNUNET_CONTAINER_DLL_remove (cl_head,
+                               cl_tail,
+                               cl);
+  cl_active = cl;
+  peer_key = cl->caller_id;
+  phone_state = PS_ACCEPTED;
+  GNUNET_CONVERSATION_caller_pick_up (cl->caller,
+                                      &caller_event_handler,
+                                      cl,
+                                      speaker,
+                                      mic);
+}
+
+
 /**
  * Accepting an incoming call
  *
@@ -711,17 +751,8 @@ do_accept (const char *args)
              args);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (cl_head,
-                               cl_tail,
-                               cl);
-  cl_active = cl;
-  peer_key = cl->caller_id;
-  phone_state = PS_ACCEPTED;
-  GNUNET_CONVERSATION_caller_pick_up (cl->caller,
-                                      &caller_event_handler,
-                                      cl,
-                                      speaker,
-                                      mic);
+
+  accept_call (cl);
 }
 
 
@@ -1355,6 +1386,9 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "auto-accept", NULL,
+     gettext_noop ("automatically accepts all incoming calls (for measuring purposes)"),
+     0, &GNUNET_GETOPT_set_one, &auto_accept},
     {'e', "ego", "NAME",
      gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
      1, &GNUNET_GETOPT_set_string, &ego_name},
