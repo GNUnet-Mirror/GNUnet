@@ -64,40 +64,40 @@ main (int argc, char *argv[])
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options1[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "name",
                                   "description",
                                   &setme1),
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_GETOPT_CommandLineOption options2[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "name",
                                   "description",
                                   &setme1),
-    GNUNET_GETOPT_OPTION_SET_ONE ('N',
+    GNUNET_GETOPT_option_flag ('N',
                                   "number",
                                   "description",
                                   &setme2),
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_GETOPT_CommandLineOption options3[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('N',
+    GNUNET_GETOPT_option_flag ('N',
                                   "number",
                                   "description",
                                   &setme1),
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "name",
                                   "description",
                                   &setme2),
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_GETOPT_CommandLineOption options4[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "name",
                                   "description",
                                   &setme1),
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "name",
                                   "description",
                                   &setme2),

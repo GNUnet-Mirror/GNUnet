@@ -693,13 +693,13 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "table",
                                  "TABLENAME",
                                  gettext_noop ("name of the table to write DFAs"),
                                  &table_name),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "max-path-compression",
                                    "MAX_PATH_COMPRESSION",
                                    gettext_noop ("maximum path compression length"),

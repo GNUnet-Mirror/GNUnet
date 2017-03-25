@@ -3263,13 +3263,13 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_ULONG ('p',
+    GNUNET_GETOPT_option_ulong ('p',
                                     "port",
                                     NULL,
                                     gettext_noop ("listen on specified port (default: 7777)"),
                                     &port),
 
-    GNUNET_GETOPT_OPTION_STRING ('a',
+    GNUNET_GETOPT_option_string ('a',
                                  "authority",
                                  NULL,
                                  gettext_noop ("pem file to use as CA"),

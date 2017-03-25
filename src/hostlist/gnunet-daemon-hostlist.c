@@ -371,21 +371,21 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 #if HAVE_MHD
-    GNUNET_GETOPT_OPTION_SET_ONE ('a',
+    GNUNET_GETOPT_option_flag ('a',
                                   "advertise",
                                   gettext_noop ("advertise our hostlist to other peers"),
                                   &advertising),
 #endif
-    GNUNET_GETOPT_OPTION_SET_ONE ('b',
+    GNUNET_GETOPT_option_flag ('b',
                                   "bootstrap",
                                   gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
                                   &bootstrapping),
-    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+    GNUNET_GETOPT_option_flag ('e',
                                   "enable-learning",
                                   gettext_noop ("enable learning about hostlist servers from other peers"),
                                   &learning),
 #if HAVE_MHD
-    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+    GNUNET_GETOPT_option_flag ('p',
                                   "provide-hostlist",
                                   gettext_noop ("provide a hostlist server"),
                                   &provide_hostlist),

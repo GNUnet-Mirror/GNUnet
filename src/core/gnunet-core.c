@@ -172,7 +172,7 @@ main (int argc,
 {
   int res;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('m',
+    GNUNET_GETOPT_option_flag ('m',
                                   "monitor",
                                   gettext_noop ("provide information about all current connections (continuously)"),
                                   &monitor_connections),

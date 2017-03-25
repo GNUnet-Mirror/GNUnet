@@ -350,35 +350,35 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_STRING ('C',
+    GNUNET_GETOPT_option_string ('C',
                                  "create",
                                  "NAME",
                                  gettext_noop ("create ego NAME"),
                                  &create_ego),
 
-    GNUNET_GETOPT_OPTION_STRING ('D',
+    GNUNET_GETOPT_option_string ('D',
                                  "delete",
                                  "NAME",
                                  gettext_noop ("delete ego NAME "),
                                  &delete_ego),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_flag ('d',
                                   "display",
                                   gettext_noop ("display all egos"),
                                   &list),
     
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "ego",
                                  "NAME",
                                  gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"),
                                  &set_ego),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('m',
+    GNUNET_GETOPT_option_flag ('m',
                                   "monitor",
                                   gettext_noop ("run in monitor mode egos"),
                                   &monitor),
 
-    GNUNET_GETOPT_OPTION_STRING ('s',
+    GNUNET_GETOPT_option_string ('s',
                                  "set",
                                  "SUBSYSTEM",
                                  gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),

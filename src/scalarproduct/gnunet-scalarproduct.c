@@ -345,25 +345,25 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "elements",
                                  "\"key1,val1;key2,val2;...,keyn,valn;\"",
                                  gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
                                  &input_elements),
 
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "elements",
                                  "\"key1,val1;key2,val2;...,keyn,valn;\"",
                                  gettext_noop ("A comma separated list of elements to compare as vector with our remote peer."),
                                  &input_elements),
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "peer",
                                  "PEERID",
                                  gettext_noop ("[Optional] peer to calculate our scalarproduct with. If this parameter is not given, the service will wait for a remote peer to compute the request."),
                                  &input_peer_id),
 
-    GNUNET_GETOPT_OPTION_STRING ('k',
+    GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "TRANSACTION_ID",
                                  gettext_noop ("Transaction ID shared with peer."),

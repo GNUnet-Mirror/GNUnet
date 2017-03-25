@@ -778,31 +778,31 @@ main (int argc,
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('d',
+    GNUNET_GETOPT_option_string ('d',
                                  "dns",
                                  "IP",
                                  gettext_noop ("IP of recursive DNS resolver to use (required)"),
                                  &dns_ip),
 
-    GNUNET_GETOPT_OPTION_STRING ('f',
+    GNUNET_GETOPT_option_string ('f',
                                  "fcfs",
                                  "NAME",
                                  gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"),
                                  &fcfs_suffix),
 
-    GNUNET_GETOPT_OPTION_STRING ('s',
+    GNUNET_GETOPT_option_string ('s',
                                  "suffix",
                                  "SUFFIX",
                                  gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"),
                                  &dns_suffix),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "port",
                                    "UDPPORT",
                                    gettext_noop ("UDP port to listen on for inbound DNS requests; default: 2853"),
                                    &listen_port),
 
-    GNUNET_GETOPT_OPTION_STRING ('z',
+    GNUNET_GETOPT_option_string ('z',
                                  "zone",
                                  "PUBLICKEY",
                                  gettext_noop ("Public key of the GNS zone to use (overrides default)"),

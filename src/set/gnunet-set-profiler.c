@@ -427,54 +427,54 @@ int
 main (int argc, char **argv)
 {
    struct GNUNET_GETOPT_CommandLineOption options[] = {
-      GNUNET_GETOPT_OPTION_SET_UINT ('A',
+      GNUNET_GETOPT_option_uint ('A',
                                      "num-first",
                                      NULL,
                                      gettext_noop ("number of values"),
                                      &num_a),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('B',
+      GNUNET_GETOPT_option_uint ('B',
                                      "num-second",
                                      NULL,
                                      gettext_noop ("number of values"),
                                      &num_b),
 
-      GNUNET_GETOPT_OPTION_SET_ONE ('b',
+      GNUNET_GETOPT_option_flag ('b',
                                     "byzantine",
                                     gettext_noop ("use byzantine mode"),
                                     &byzantine),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('f',
+      GNUNET_GETOPT_option_uint ('f',
                                      "force-full",
                                      NULL,
                                      gettext_noop ("force sending full set"),
                                      &force_full),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('d',
+      GNUNET_GETOPT_option_uint ('d',
                                      "force-delta",
                                      NULL,
                                      gettext_noop ("number delta operation"),
                                      &force_delta),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('C',
+      GNUNET_GETOPT_option_uint ('C',
                                      "num-common",
                                      NULL,
                                      gettext_noop ("number of values"),
                                      &num_c),
 
-      GNUNET_GETOPT_OPTION_STRING ('x',
+      GNUNET_GETOPT_option_string ('x',
                                    "operation",
                                    NULL,
                                    gettext_noop ("operation to execute"),
                                    &op_str),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('w',
+      GNUNET_GETOPT_option_uint ('w',
                                      "element-size",
                                      NULL,
                                      gettext_noop ("element size"),
                                      &element_size),
 
-      GNUNET_GETOPT_OPTION_FILENAME ('s',
+      GNUNET_GETOPT_option_filename ('s',
                                      "statistics",
                                      "FILENAME",
                                      gettext_noop ("write statistics to file"),

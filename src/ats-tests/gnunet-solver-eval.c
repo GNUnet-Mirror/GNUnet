@@ -933,19 +933,19 @@ main (int argc, char *argv[])
 
   struct GNUNET_GETOPT_CommandLineOption options[] =
   {
-    GNUNET_GETOPT_OPTION_STRING ('s',
+    GNUNET_GETOPT_option_string ('s',
                                  "solver",
                                  NULL,
                                  gettext_noop ("solver to use"),
                                  &opt_solver),
 
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "experiment",
                                  NULL,
                                  gettext_noop ("experiment to use"),
                                  &opt_exp_file),
  
-    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+    GNUNET_GETOPT_option_flag ('e',
                                   "experiment",
                                   gettext_noop ("experiment to use"),
                                   &opt_verbose),

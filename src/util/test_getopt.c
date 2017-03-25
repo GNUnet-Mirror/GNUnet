@@ -56,7 +56,7 @@ testVerbose ()
   unsigned int vflags = 0;
 
   const struct GNUNET_GETOPT_CommandLineOption verboseoptionlist[] = {
-    GNUNET_GETOPT_OPTION_VERBOSE (&vflags),
+    GNUNET_GETOPT_option_verbose (&vflags),
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -83,7 +83,7 @@ testVersion ()
     NULL
   };
   const struct GNUNET_GETOPT_CommandLineOption versionoptionlist[] = {
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION),
+    GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -105,7 +105,7 @@ testAbout ()
     NULL
   };
   const struct GNUNET_GETOPT_CommandLineOption aboutoptionlist[] = {
-    GNUNET_GETOPT_OPTION_HELP ("Testing"),
+    GNUNET_GETOPT_option_help ("Testing"),
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -131,8 +131,8 @@ testLogOpts ()
   char *fn = NULL;
 
   const struct GNUNET_GETOPT_CommandLineOption logoptionlist[] = {
-    GNUNET_GETOPT_OPTION_LOGFILE (&fn),
-    GNUNET_GETOPT_OPTION_LOGLEVEL (&level),
+    GNUNET_GETOPT_option_logfile (&fn),
+    GNUNET_GETOPT_option_loglevel (&level),
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -173,16 +173,16 @@ testFlagNum ()
   unsigned long long lnum = 0;
 
   const struct GNUNET_GETOPT_CommandLineOption logoptionlist[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('f',
+    GNUNET_GETOPT_option_flag ('f',
                                   "--flag",
                                   "helptext",
                                   &flag),
-    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+    GNUNET_GETOPT_option_uint ('n',
                                    "--num",
                                    "ARG",
                                    "helptext",
                                    &num),
-    GNUNET_GETOPT_OPTION_SET_ULONG ('N',
+    GNUNET_GETOPT_option_ulong ('N',
                                     "--lnum",
                                     "ARG",
                                     "helptext",

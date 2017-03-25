@@ -838,42 +838,42 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "numeric",
                                   gettext_noop ("don't resolve host names"),
                                   &no_resolve),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('q',
+    GNUNET_GETOPT_option_flag ('q',
                                   "quiet",
                                   gettext_noop ("output only the identity strings"),
                                   &be_quiet),
-    GNUNET_GETOPT_OPTION_SET_ONE ('f',
+    GNUNET_GETOPT_option_flag ('f',
                                   "friends",
                                   gettext_noop ("include friend-only information"),
                                   &include_friend_only),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+    GNUNET_GETOPT_option_flag ('s',
                                   "self",
                                   gettext_noop ("output our own identity only"),
                                   &get_self),
     
-    GNUNET_GETOPT_OPTION_SET_ONE ('i',
+    GNUNET_GETOPT_option_flag ('i',
                                   "info",
                                   gettext_noop ("list all known peers"),
                                   &get_info),
 
-    GNUNET_GETOPT_OPTION_STRING ('d',
+    GNUNET_GETOPT_option_string ('d',
                                  "dump-hello",
                                  NULL,
                                  gettext_noop ("dump hello to file"),
                                  &dump_hello),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('g',
+    GNUNET_GETOPT_option_flag ('g',
                                   "get-hello",
                                   gettext_noop ("also output HELLO uri(s)"),
                                   &get_uri),
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "put-hello",
                                  "HELLO",
                                  gettext_noop ("add given HELLO uri to the database"),

@@ -307,34 +307,34 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+    GNUNET_GETOPT_option_uint ('a',
                                    "anonymity",
                                    "LEVEL",
                                    gettext_noop ("set the desired LEVEL of receiver-anonymity"),
                                    &anonymity),
 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "no-network",
                                   gettext_noop ("only search the local peer (no P2P network search)"),
                                   &local_only),
                                   
-    GNUNET_GETOPT_OPTION_STRING ('o',
+    GNUNET_GETOPT_option_string ('o',
                                  "output",
                                  "PREFIX",
                                  gettext_noop ("write search results to file starting with PREFIX"),
                                  &output_filename),                              
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t', 
+    GNUNET_GETOPT_option_relative_time ('t', 
                                             "timeout",
                                             "DELAY",
                                             gettext_noop ("automatically terminate search after DELAY"),
                                             &timeout),
 
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('N',
+    GNUNET_GETOPT_option_uint ('N',
                                    "results",
                                    "VALUE",
                                    gettext_noop ("automatically terminate search "

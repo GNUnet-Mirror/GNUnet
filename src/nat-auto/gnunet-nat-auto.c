@@ -340,28 +340,28 @@ main (int argc,
       char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('a',
+    GNUNET_GETOPT_option_flag ('a',
                                   "auto",
                                   gettext_noop ("run autoconfiguration"),
                                   &do_auto),
 
-    GNUNET_GETOPT_OPTION_STRING ('S',
+    GNUNET_GETOPT_option_string ('S',
                                  "section",
                                  "NAME",
                                  gettext_noop ("section name providing the configuration for the adapter"),
                                  &section_name),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+    GNUNET_GETOPT_option_flag ('t',
                                    "tcp",
                                    gettext_noop ("use TCP"),
                                    &use_tcp),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+    GNUNET_GETOPT_option_flag ('u',
                                    "udp",
                                    gettext_noop ("use UDP"),
                                    &use_udp),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('w',
+    GNUNET_GETOPT_option_flag ('w',
                                    "write",
                                    gettext_noop ("write configuration file (for autoconfiguration)"),
                                    &write_cfg),

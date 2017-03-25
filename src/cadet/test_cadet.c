@@ -959,13 +959,13 @@ main (int argc, char *argv[])
   const char *config_file;
   char port_id[] = "test port";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+    GNUNET_GETOPT_option_relative_time ('t',
                                             "time",
                                             "short_time",
                                             gettext_noop ("set short timeout"),
                                             &short_time),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('m',
+    GNUNET_GETOPT_option_uint ('m',
                                    "messages",
                                    "NUM_MESSAGES",
                                    gettext_noop ("set number of messages to send"),

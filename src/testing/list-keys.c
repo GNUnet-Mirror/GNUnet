@@ -83,7 +83,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 int main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] = {
-    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+    GNUNET_GETOPT_option_uint ('n',
                                    "num-keys",
                                    "COUNT",
                                    gettext_noop ("list COUNT number of keys"),

@@ -419,40 +419,40 @@ main (int argc,
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('i',
+    GNUNET_GETOPT_option_string ('i',
                                  "in",
                                  "ADDRESS",
                                  gettext_noop ("which IP and port are we locally using to bind/listen to"),
                                  &local_addr),
 
-    GNUNET_GETOPT_OPTION_STRING ('r',
+    GNUNET_GETOPT_option_string ('r',
                                  "remote",
                                  "ADDRESS",
                                  gettext_noop ("which remote IP and port should be asked for connection reversal"),
                                  &remote_addr),
 
-    GNUNET_GETOPT_OPTION_STRING ('S',
+    GNUNET_GETOPT_option_string ('S',
                                  "section",
                                  NULL,
                                  gettext_noop ("name of configuration section to find additional options, such as manual host punching data"),
                                  &section_name),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('s',
+    GNUNET_GETOPT_option_flag ('s',
                                   "stun",
                                   gettext_noop ("enable STUN processing"),
                                   &do_stun),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+    GNUNET_GETOPT_option_flag ('t',
                                   "tcp",
                                   gettext_noop ("use TCP"),
                                   &use_tcp),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+    GNUNET_GETOPT_option_flag ('u',
                                   "udp",
                                   gettext_noop ("use UDP"),
                                   &use_udp),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('W',
+    GNUNET_GETOPT_option_flag ('W',
                                   "watch",
                                   gettext_noop ("watch for connection reversal requests"),
                                   &listen_reversal),

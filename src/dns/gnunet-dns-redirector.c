@@ -231,19 +231,19 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_STRING ('4',
+    GNUNET_GETOPT_option_string ('4',
                                  "ipv4",
                                  "IPV4",
                                  gettext_noop ("set A records"),
                                  &n4),
 
-    GNUNET_GETOPT_OPTION_STRING ('6',
+    GNUNET_GETOPT_option_string ('6',
                                  "ipv4",
                                  "IPV6",
                                  gettext_noop ("set AAAA records"),
                                  &n6),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+    GNUNET_GETOPT_option_verbose (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
 

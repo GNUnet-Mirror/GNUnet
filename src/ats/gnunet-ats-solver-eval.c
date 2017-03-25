@@ -3289,29 +3289,29 @@ main (int argc, char *argv[])
 
   static struct GNUNET_GETOPT_CommandLineOption options[] =
   {
-    GNUNET_GETOPT_OPTION_STRING ('s',
+    GNUNET_GETOPT_option_string ('s',
                                  "solver",
                                  gettext_noop ("solver to use"),
                                  &opt_solver),
 
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "experiment"
                                  gettext_noop ("experiment to use"),
                                  &opt_exp_file),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&opt_verbose),
+    GNUNET_GETOPT_option_verbose (&opt_verbose),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('p', 
+    GNUNET_GETOPT_option_flag ('p', 
                                   "print",
                                   gettext_noop ("print logging"),
                                   &opt_print),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('f',
+    GNUNET_GETOPT_option_flag ('f',
                                   "file",
                                   gettext_noop ("save logging to disk"),
                                   &opt_save),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('d', 
+    GNUNET_GETOPT_option_flag ('d', 
                                   "dn",
                                   gettext_noop ("disable normalization"),
                                   &opt_disable_normalization),

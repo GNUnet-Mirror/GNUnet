@@ -278,19 +278,19 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "num-peers",
                                    "COUNT",
                                    gettext_noop ("create COUNT number of peers"),
                                    &num_peers),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('e',
+    GNUNET_GETOPT_option_uint ('e',
                                    "num-errors",
                                    "COUNT",
                                    gettext_noop ("tolerate COUNT number of continious timeout failures"),
                                    &num_cont_fails),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "non-interactive",
                                   gettext_noop ("run profiler in non-interactive mode where upon "
                                                 "testbed setup the profiler does not wait for a "
@@ -299,7 +299,7 @@ main (int argc, char *const *argv)
                                   &noninteractive),
 
 #if !ENABLE_SUPERMUC
-    GNUNET_GETOPT_OPTION_STRING ('H',
+    GNUNET_GETOPT_option_string ('H',
                                  "hosts",
                                  "FILENAME",
                                  gettext_noop ("name of the file with the login information for the testbed"),

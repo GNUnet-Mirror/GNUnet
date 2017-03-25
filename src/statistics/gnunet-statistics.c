@@ -379,39 +379,39 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_STRING ('n',
+    GNUNET_GETOPT_option_string ('n',
                                  "name",
                                  "NAME",
                                  gettext_noop ("limit output to statistics for the given NAME"),
                                  &name),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+    GNUNET_GETOPT_option_flag ('p',
                                   "persistent",
                                   gettext_noop ("make the value being set persistent"),
                                   &persistent),
 
-    GNUNET_GETOPT_OPTION_STRING ('s',
+    GNUNET_GETOPT_option_string ('s',
                                  "subsystem",
                                  "SUBSYSTEM",
                                  gettext_noop ("limit output to the given SUBSYSTEM"),
                                  &subsystem),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('q',
+    GNUNET_GETOPT_option_flag ('q',
                                   "quiet",
                                   gettext_noop ("just print the statistics value"),
                                   &quiet),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('w',
+    GNUNET_GETOPT_option_flag ('w',
                                   "watch",
                                   gettext_noop ("watch value continuously"),
                                   &watch),
 
-    GNUNET_GETOPT_OPTION_STRING ('r',
+    GNUNET_GETOPT_option_string ('r',
                                  "remote",
                                  "REMOTE",
                                  gettext_noop ("connect to remote host"),
                                  &remote_host),
-    GNUNET_GETOPT_OPTION_SET_ULONG ('o',
+    GNUNET_GETOPT_option_ulong ('o',
                                     "port",
                                     "PORT",
                                     gettext_noop ("port for remote host"),

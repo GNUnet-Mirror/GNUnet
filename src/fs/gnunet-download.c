@@ -300,46 +300,46 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+    GNUNET_GETOPT_option_uint ('a',
                                    "anonymity",
                                    "LEVEL",
                                    gettext_noop ("set the desired LEVEL of receiver-anonymity"),
                                    &anonymity),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('D',
+    GNUNET_GETOPT_option_flag ('D',
                                   "delete-incomplete",
                                   gettext_noop ("delete incomplete downloads (when aborted with CTRL-C)"),
                                   &delete_incomplete),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('n',
+    GNUNET_GETOPT_option_flag ('n',
                                   "no-network",
                                   gettext_noop ("only search the local peer (no P2P network search)"),
                                   &local_only), 
 
-    GNUNET_GETOPT_OPTION_STRING ('o',
+    GNUNET_GETOPT_option_string ('o',
                                  "output",
                                  "FILENAME",
                                  gettext_noop ("write the file to FILENAME"),
                                  &filename),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "parallelism",
                                    "DOWNLOADS",
                                    gettext_noop ("set the maximum number of parallel downloads that is allowed"),
                                    &parallelism),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+    GNUNET_GETOPT_option_uint ('r',
                                    "request-parallelism",
                                    "REQUESTS",
                                    gettext_noop ("set the maximum number of parallel requests for blocks that is allowed"),
                                    &request_parallelism), 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('R',
+    GNUNET_GETOPT_option_flag ('R',
                                   "recursive",
                                   gettext_noop ("download a GNUnet directory recursively"),
                                   &do_recursive),
 
-    GNUNET_GETOPT_OPTION_INCREMENT_VALUE ('V',
+    GNUNET_GETOPT_option_increment_uint ('V',
                                           "verbose",
                                           gettext_noop ("be verbose (print progress information)"),
                                           &verbose), 

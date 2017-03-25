@@ -348,17 +348,17 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('i',
+    GNUNET_GETOPT_option_flag ('i',
                                   "inbound-only",
                                   gettext_noop ("only monitor DNS queries"),
                                   &inbound_only),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('o',
+    GNUNET_GETOPT_option_flag ('o',
                                   "outbound-only",
                                   gettext_noop ("only monitor DNS queries"),
                                   &outbound_only),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+    GNUNET_GETOPT_option_verbose (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
 

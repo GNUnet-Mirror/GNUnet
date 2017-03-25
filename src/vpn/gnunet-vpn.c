@@ -287,51 +287,51 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('4',
+    GNUNET_GETOPT_option_flag ('4',
                                   "ipv4",
                                   gettext_noop ("request that result should be an IPv4 address"),
                                   &ipv4),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('6',
+    GNUNET_GETOPT_option_flag ('6',
                                   "ipv6",
                                   gettext_noop ("request that result should be an IPv6 address"),
                                   &ipv6),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('d',
+    GNUNET_GETOPT_option_relative_time ('d',
                                             "duration",
                                             "TIME",
                                             gettext_noop ("how long should the mapping be valid for new tunnels?"),
                                             &duration),
 
-    GNUNET_GETOPT_OPTION_STRING ('i',
+    GNUNET_GETOPT_option_string ('i',
                                  "ip",
                                  "IP",
                                  gettext_noop ("destination IP for the tunnel"),
                                  &target_ip),
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "peer",
                                  "PEERID",
                                  gettext_noop ("peer offering the service we would like to access"),
                                  &peer_id),
 
-    GNUNET_GETOPT_OPTION_STRING ('s', 
+    GNUNET_GETOPT_option_string ('s', 
                                  "service",
                                  "NAME",
                                  gettext_noop ("name of the service we would like to access"),
                                  &service_name),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('t',
+    GNUNET_GETOPT_option_flag ('t',
                                   "tcp",
                                   gettext_noop ("service is offered via TCP"),
                                   &tcp),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('u',
+    GNUNET_GETOPT_option_flag ('u',
                                   "udp",
                                   gettext_noop ("service is offered via UDP"),
                                   &udp),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+    GNUNET_GETOPT_option_verbose (&verbosity),
 
     GNUNET_GETOPT_OPTION_END
   };

@@ -761,35 +761,35 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('a',
+    GNUNET_GETOPT_option_uint ('a',
                                    "anonymity",
                                    "LEVEL",
                                    gettext_noop ("set the desired LEVEL of sender-anonymity"),
                                    &anonymity_level),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_flag ('d',
                                   "disable-creation-time",
                                   gettext_noop ("disable adding the creation time to the metadata of the uploaded file"),
                                   &do_disable_creation_time),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('D',
+    GNUNET_GETOPT_option_flag ('D',
                                   "disable-extractor",
                                   gettext_noop ("do not use libextractor to add keywords or metadata"),
                                   &disable_extractor),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "priority",
                                    "PRIORITY",
                                    gettext_noop ("specify the priority of the content"),
                                    &content_priority),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+    GNUNET_GETOPT_option_uint ('r',
                                    "replication",
                                    "LEVEL",
                                    gettext_noop ("set the desired replication LEVEL"),
                                    &replication_level),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
 
     GNUNET_GETOPT_OPTION_END
   };

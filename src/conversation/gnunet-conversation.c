@@ -1267,13 +1267,13 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('e',
+    GNUNET_GETOPT_option_string ('e',
                                  "ego",
                                  "NAME",
                                  gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
                                  &ego_name),
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "phone",
                                  "LINE",
                                  gettext_noop ("sets the LINE to use for the phone"),

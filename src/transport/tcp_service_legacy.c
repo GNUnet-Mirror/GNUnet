@@ -1392,15 +1392,15 @@ LEGACY_SERVICE_run (int argc, char *const *argv,
   const char *xdg;
 
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
-    GNUNET_GETOPT_OPTION_CFG_FILE (&opt_cfg_fn),
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_cfgfile (&opt_cfg_fn),
+    GNUNET_GETOPT_option_flag ('d',
                                   "daemonize",
                                   gettext_noop ("do daemonize (detach from terminal)"),
                                   &do_daemonize),
-    GNUNET_GETOPT_OPTION_HELP (NULL),
-    GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
-    GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION),
+    GNUNET_GETOPT_option_help (NULL),
+    GNUNET_GETOPT_option_loglevel (&loglev),
+    GNUNET_GETOPT_option_logfile (&logfile),
+    GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
   err = 1;

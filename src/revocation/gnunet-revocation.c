@@ -529,24 +529,24 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('f',
+    GNUNET_GETOPT_option_string ('f',
                                  "filename",
                                  "NAME",
                                  gettext_noop ("use NAME for the name of the revocation file"),
                                  &filename),
 
-    GNUNET_GETOPT_OPTION_STRING ('R',
+    GNUNET_GETOPT_option_string ('R',
                                  "revoke",
                                  "NAME",
                                  gettext_noop ("revoke the private key associated for the the private key associated with the ego NAME "),
                                  &revoke_ego), 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+    GNUNET_GETOPT_option_flag ('p',
                                   "perform",
                                   gettext_noop ("actually perform revocation, otherwise we just do the precomputation"),
                                   &perform),
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "test",
                                  "KEY",
                                  gettext_noop ("test if the public key KEY has been revoked"),

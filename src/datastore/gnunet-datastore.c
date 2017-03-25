@@ -250,7 +250,7 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_FILENAME ('s',
+    GNUNET_GETOPT_option_filename ('s',
                                    "sourcecfg",
                                    "FILENAME",
                                    gettext_noop ("specifies the configuration to use to access an alternative datastore; will merge that datastore into our current datastore"),
