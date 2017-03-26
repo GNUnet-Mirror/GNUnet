@@ -303,6 +303,11 @@ struct CadetChannel
   struct GNUNET_HashCode port;
 
   /**
+   * Hash'ed port of the channel with initiator and destination PID.
+   */
+  struct GNUNET_HashCode h_port;
+
+  /**
    * Counter for exponential backoff.
    */
   struct GNUNET_TIME_Relative retry_time;
@@ -402,6 +407,37 @@ GCCH_2s (const struct CadetChannel *ch)
                    (NULL == ch->owner) ? 0 : ntohl (ch->owner->ccn.channel_of_client),
                    (NULL == ch->dest) ? 0 : ntohl (ch->dest->ccn.channel_of_client));
   return buf;
+}
+
+
+/**
+ * Hash the @a port and @a initiator and @a listener to 
+ * calculate the "challenge" @a h_port we send to the other
+ * peer on #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN.
+ *
+ * @param[out] h_port set to the hash of @a port, @a initiator and @a listener
+ * @param port cadet port, as seen by CADET clients
+ * @param listener peer that is listining on @a port
+ */
+void
+GCCH_hash_port (struct GNUNET_HashCode *h_port,
+		const struct GNUNET_HashCode *port,
+		const struct GNUNET_PeerIdentity *listener)
+{
+  struct GNUNET_HashContext *hc;
+
+  hc = GNUNET_CRYPTO_hash_context_start ();
+  GNUNET_CRYPTO_hash_context_read (hc,
+				   port,
+				   sizeof (*port));
+  GNUNET_CRYPTO_hash_context_read (hc,
+				   listener,
+				   sizeof (*listener));
+  GNUNET_CRYPTO_hash_context_finish (hc,
+				     h_port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Calculated port hash %s\n",
+       GNUNET_h2s (h_port));
 }
 
 
@@ -566,7 +602,7 @@ send_channel_open (void *cls)
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
   msgcc.opt = htonl (options);
-  msgcc.port = ch->port;
+  msgcc.h_port = ch->h_port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
   if (NULL != ch->last_control_qe)
@@ -635,21 +671,24 @@ GCCH_channel_local_new (struct CadetClient *owner,
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   ch->owner = ccco;
   ch->port = *port;
+  GCCH_hash_port (&ch->h_port,
+		  port,
+		  GCP_get_id (destination));
   if (0 == memcmp (&my_full_id,
                    GCP_get_id (destination),
                    sizeof (struct GNUNET_PeerIdentity)))
   {
-    struct CadetClient *c;
+    struct OpenPort *op;
 
     ch->is_loopback = GNUNET_YES;
-    c = GNUNET_CONTAINER_multihashmap_get (open_ports,
-                                           port);
-    if (NULL == c)
+    op = GNUNET_CONTAINER_multihashmap_get (open_ports,
+					    &ch->h_port);
+    if (NULL == op)
     {
       /* port closed, wait for it to possibly open */
       ch->state = CADET_CHANNEL_LOOSE;
       (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
-                                                port,
+                                                &ch->h_port,
                                                 ch,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -659,7 +698,8 @@ GCCH_channel_local_new (struct CadetClient *owner,
     else
     {
       GCCH_bind (ch,
-                 c);
+                 op->c,
+		 &op->port);
     }
   }
   else
@@ -709,21 +749,21 @@ timeout_closed_cb (void *cls)
  *
  * @param t tunnel to the remote peer
  * @param ctn identifier of this channel in the tunnel
- * @param port desired local port
+ * @param h_port desired hash of local port
  * @param options options for the channel
  * @return handle to the new channel
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
                            struct GNUNET_CADET_ChannelTunnelNumber ctn,
-                           const struct GNUNET_HashCode *port,
+                           const struct GNUNET_HashCode *h_port,
                            uint32_t options)
 {
   struct CadetChannel *ch;
-  struct CadetClient *c;
+  struct OpenPort *op;
 
   ch = GNUNET_new (struct CadetChannel);
-  ch->port = *port;
+  ch->h_port = *h_port;
   ch->t = t;
   ch->ctn = ctn;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
@@ -736,14 +776,14 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
                             1,
                             GNUNET_NO);
 
-  c = GNUNET_CONTAINER_multihashmap_get (open_ports,
-                                         port);
-  if (NULL == c)
+  op = GNUNET_CONTAINER_multihashmap_get (open_ports,
+					  h_port);
+  if (NULL == op)
   {
     /* port closed, wait for it to possibly open */
     ch->state = CADET_CHANNEL_LOOSE;
     (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
-                                              port,
+                                              &ch->h_port,
                                               ch,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     GNUNET_assert (NULL == ch->retry_control_task);
@@ -759,7 +799,8 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   else
   {
     GCCH_bind (ch,
-               c);
+               op->c,
+	       &op->port);
   }
   GNUNET_STATISTICS_update (stats,
                             "# channels",
@@ -830,7 +871,7 @@ static void
 send_open_ack (void *cls)
 {
   struct CadetChannel *ch = cls;
-  struct GNUNET_CADET_ChannelManageMessage msg;
+  struct GNUNET_CADET_ChannelOpenAckMessage msg;
 
   ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -840,6 +881,7 @@ send_open_ack (void *cls)
   msg.header.size = htons (sizeof (msg));
   msg.reserved = htonl (0);
   msg.ctn = ch->ctn;
+  msg.port = ch->port;
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe = GCT_send (ch->t,
@@ -928,11 +970,13 @@ send_ack_to_client (struct CadetChannel *ch,
  * request and establish the link with the client.
  *
  * @param ch open incoming channel
- * @param c client listening on the respective port
+ * @param c client listening on the respective @a port
+ * @param port the port @a is listening on
  */
 void
 GCCH_bind (struct CadetChannel *ch,
-           struct CadetClient *c)
+           struct CadetClient *c,
+	   const struct GNUNET_HashCode *port)
 {
   uint32_t options;
   struct CadetChannelClient *cccd;
@@ -959,6 +1003,7 @@ GCCH_bind (struct CadetChannel *ch,
   cccd = GNUNET_new (struct CadetChannelClient);
   GNUNET_assert (NULL == ch->dest);
   ch->dest = cccd;
+  ch->port = *port;
   cccd->c = c;
   cccd->client_ready = GNUNET_YES;
   cccd->ccn = GSC_bind (c,
@@ -967,7 +1012,7 @@ GCCH_bind (struct CadetChannel *ch,
                         ? GCP_get (&my_full_id,
                                    GNUNET_YES)
                         : GCT_get_destination (ch->t),
-                        &ch->port,
+                        port,
                         options);
   GNUNET_assert (ntohl (cccd->ccn.channel_of_client) <
                  GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
@@ -976,7 +1021,8 @@ GCCH_bind (struct CadetChannel *ch,
   {
     ch->state = CADET_CHANNEL_OPEN_SENT;
     GCCH_handle_channel_open_ack (ch,
-                                  NULL);
+                                  NULL,
+				  port);
   }
   else
   {
@@ -1092,7 +1138,7 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
          target, but that never went anywhere. Nothing to do here. */
       break;
     case CADET_CHANNEL_LOOSE:
-      GSC_drop_loose_channel (&ch->port,
+      GSC_drop_loose_channel (&ch->h_port,
                               ch);
       break;
     default:
@@ -1107,14 +1153,17 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
 
 /**
  * We got an acknowledgement for the creation of the channel
- * (the port is open on the other side). Begin transmissions.
+ * (the port is open on the other side).  Verify that the
+ * other end really has the right port, and begin transmissions.
  *
  * @param ch channel to destroy
  * @param cti identifier of the connection that delivered the message
+ * @param port port number (needed to verify receiver knows the port)
  */
 void
 GCCH_handle_channel_open_ack (struct CadetChannel *ch,
-                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
+                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+			      const struct GNUNET_HashCode *port)
 {
   switch (ch->state)
   {
@@ -1130,6 +1179,15 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
     if (NULL == ch->owner)
     {
       /* We're not the owner, wrong direction! */
+      GNUNET_break_op (0);
+      return;
+    }
+    if (0 != memcmp (&ch->port,
+		     port,
+		     sizeof (struct GNUNET_HashCode)))
+    {
+      /* Other peer failed to provide the right port, 
+	 refuse connection. */
       GNUNET_break_op (0);
       return;
     }

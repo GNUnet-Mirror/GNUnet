@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -20,7 +19,7 @@
 */
 
 /**
- * @file cadet/gnunet-service-cadet-new_peer.h
+ * @file cadet/gnunet-service-cadet_peer.h
  * @brief Information we track per peer.
  * @author Bartlomiej Polot
  * @author Christian Grothoff

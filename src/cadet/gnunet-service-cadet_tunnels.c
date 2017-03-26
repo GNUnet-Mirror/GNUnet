@@ -2723,8 +2723,8 @@ handle_plaintext_channel_open (void *cls,
   if (NULL != ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received duplicate channel CHANNEL_OPEN on port %s from %s (%s), resending ACK\n",
-         GNUNET_h2s (&copen->port),
+         "Received duplicate channel CHANNEL_OPEN on h_port %s from %s (%s), resending ACK\n",
+         GNUNET_h2s (&copen->h_port),
          GCT_2s (t),
          GCCH_2s (ch));
     GCCH_handle_duplicate_open (ch,
@@ -2732,12 +2732,12 @@ handle_plaintext_channel_open (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received CHANNEL_OPEN on port %s from %s\n",
-       GNUNET_h2s (&copen->port),
+       "Received CHANNEL_OPEN on h_port %s from %s\n",
+       GNUNET_h2s (&copen->h_port),
        GCT_2s (t));
   ch = GCCH_channel_incoming_new (t,
                                   copen->ctn,
-                                  &copen->port,
+                                  &copen->h_port,
                                   ntohl (copen->opt));
   if (NULL != t->destroy_task)
   {
@@ -2762,7 +2762,7 @@ void
 GCT_send_channel_destroy (struct CadetTunnel *t,
                           struct GNUNET_CADET_ChannelTunnelNumber ctn)
 {
-  struct GNUNET_CADET_ChannelManageMessage msg;
+  struct GNUNET_CADET_ChannelDestroyMessage msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending DESTORY message for channel ID %u\n",
@@ -2788,7 +2788,7 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
  */
 static void
 handle_plaintext_channel_open_ack (void *cls,
-                                   const struct GNUNET_CADET_ChannelManageMessage *cm)
+                                   const struct GNUNET_CADET_ChannelOpenAckMessage *cm)
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
@@ -2811,7 +2811,8 @@ handle_plaintext_channel_open_ack (void *cls,
        GCCH_2s (ch),
        GCT_2s (t));
   GCCH_handle_channel_open_ack (ch,
-                                GCC_get_id (t->current_ct->cc));
+                                GCC_get_id (t->current_ct->cc),
+				&cm->port);
 }
 
 
@@ -2824,7 +2825,7 @@ handle_plaintext_channel_open_ack (void *cls,
  */
 static void
 handle_plaintext_channel_destroy (void *cls,
-                                  const struct GNUNET_CADET_ChannelManageMessage *cm)
+                                  const struct GNUNET_CADET_ChannelDestroyMessage *cm)
 {
   struct CadetTunnel *t = cls;
   struct CadetChannel *ch;
@@ -2915,11 +2916,11 @@ GCT_create_tunnel (struct CadetPeer *destination)
                              t),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_open_ack,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
-                             struct GNUNET_CADET_ChannelManageMessage,
+                             struct GNUNET_CADET_ChannelOpenAckMessage,
                              t),
     GNUNET_MQ_hd_fixed_size (plaintext_channel_destroy,
                              GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
-                             struct GNUNET_CADET_ChannelManageMessage,
+                             struct GNUNET_CADET_ChannelDestroyMessage,
                              t),
     GNUNET_MQ_handler_end ()
   };

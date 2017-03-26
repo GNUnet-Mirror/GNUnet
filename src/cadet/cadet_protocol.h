@@ -350,9 +350,9 @@ struct GNUNET_CADET_ChannelOpenMessage
   uint32_t opt GNUNET_PACKED;
 
   /**
-   * Destination port.
+   * Hash of destination port and listener.
    */
-  struct GNUNET_HashCode port;
+  struct GNUNET_HashCode h_port;
 
   /**
    * ID of the channel within the tunnel.
@@ -362,15 +362,42 @@ struct GNUNET_CADET_ChannelOpenMessage
 
 
 /**
- * Message to manage a Channel
- * (#GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK,
- * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY).
+ * Message to acknowledge opening a channel of type
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK.
  */
-struct GNUNET_CADET_ChannelManageMessage
+struct GNUNET_CADET_ChannelOpenAckMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK or
-   * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * ID of the channel
+   */
+  struct GNUNET_CADET_ChannelTunnelNumber ctn;
+
+  /**
+   * Port number of the channel, used to prove to the
+   * initiator that the receiver knows the port.
+   */
+  struct GNUNET_HashCode port;
+};
+
+
+/**
+ * Message to destroy a channel of type
+ * #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY.
+ */
+struct GNUNET_CADET_ChannelDestroyMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY
    */
   struct GNUNET_MessageHeader header;
 
