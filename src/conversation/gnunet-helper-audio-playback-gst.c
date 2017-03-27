@@ -56,7 +56,7 @@
 /**
  * Tokenizer for the data we get from stdin
  */
-struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+struct GNUNET_MessageStreamTokenizer *stdin_mst;
 
 /**
  * Main pipeline.
@@ -82,20 +82,20 @@ static int abort_read;
 
 static void
 sink_child_added (GstChildProxy *child_proxy,
-		  GObject *object, 
+		  GObject *object,
 		  gchar *name,
 		  gpointer user_data)
 {
   if (GST_IS_AUDIO_BASE_SRC (object))
     g_object_set (object,
-		  "buffer-time", (gint64) BUFFER_TIME, 
+		  "buffer-time", (gint64) BUFFER_TIME,
 		  "latency-time", (gint64) LATENCY_TIME,
 		  NULL);
 }
 
 
 static void
-ogg_pad_added (GstElement *element, 
+ogg_pad_added (GstElement *element,
 	       GstPad *pad,
 	       gpointer data)
 {
@@ -127,7 +127,7 @@ quit ()
 static gboolean
 bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bus message\n");
   switch (GST_MESSAGE_TYPE (msg))
   {
@@ -141,15 +141,15 @@ bus_call (GstBus *bus, GstMessage *msg, gpointer data)
     {
       gchar  *debug;
       GError *error;
-      
+
       gst_message_parse_error (msg, &error, &debug);
       g_free (debug);
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		  "Error: %s\n", 
+
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Error: %s\n",
 		  error->message);
       g_error_free (error);
-      
+
       quit ();
       break;
     }
@@ -196,7 +196,7 @@ feed_buffer_to_gst (const char *audio, size_t b_len)
   switch (flow)
   {
   case GST_FLOW_OK:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Fed %u bytes to the pipeline\n",
 		(unsigned int) b_len);
     break;
@@ -207,7 +207,7 @@ feed_buffer_to_gst (const char *audio, size_t b_len)
     break;
   case GST_FLOW_EOS:
     /* end of stream */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"EOS\n");
     break;
   default:
@@ -224,7 +224,6 @@ feed_buffer_to_gst (const char *audio, size_t b_len)
  */
 static int
 stdin_receiver (void *cls,
-		void *client,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
@@ -253,21 +252,21 @@ main (int argc, char **argv)
   uint64_t toff;
 
   typedef void (*SignalHandlerPointer) (int);
- 
+
   SignalHandlerPointer inthandler, termhandler;
 #ifdef DEBUG_READ_PURE_OGG
   int read_pure_ogg = getenv ("GNUNET_READ_PURE_OGG") ? 1 : 0;
 #endif
 
-  inthandler = signal (SIGINT, 
+  inthandler = signal (SIGINT,
 		       &signalhandler);
-  termhandler = signal (SIGTERM, 
+  termhandler = signal (SIGTERM,
 			&signalhandler);
-  
+
 #ifdef WINDOWS
   setmode (0, _O_BINARY);
 #endif
-  
+
   /* Initialisation */
   gst_init (&argc, &argv);
 
@@ -275,13 +274,13 @@ main (int argc, char **argv)
 		 GNUNET_log_setup ("gnunet-helper-audio-playback-gst",
 				   "WARNING",
 				   NULL));
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Audio sink starts\n");
-  
-  stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, 
-					NULL);
-  
+
+  stdin_mst = GNUNET_MST_create (&stdin_receiver,
+                                 NULL);
+
   /* Create gstreamer elements */
   pipeline = gst_pipeline_new ("audio-player");
   source   = gst_element_factory_make ("appsrc",        "audio-input");
@@ -298,13 +297,13 @@ main (int argc, char **argv)
     return -1;
   }
 
-  g_signal_connect (sink, 
+  g_signal_connect (sink,
 		    "child-added",
-		    G_CALLBACK (sink_child_added), 
+		    G_CALLBACK (sink_child_added),
 		    NULL);
-  g_signal_connect (demuxer, 
+  g_signal_connect (demuxer,
 		    "pad-added",
-		    G_CALLBACK (ogg_pad_added), 
+		    G_CALLBACK (ogg_pad_added),
 		    decoder);
 
   /* Keep a reference to it, we operate on it */
@@ -362,7 +361,7 @@ main (int argc, char **argv)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received %d bytes of audio data (total: %llu)\n",
 		(int) ret,
-		toff);
+		(unsigned long long) toff);
     if (0 == ret)
       break;
 #ifdef DEBUG_READ_PURE_OGG
@@ -372,20 +371,22 @@ main (int argc, char **argv)
     }
     else
 #endif
-    GNUNET_SERVER_mst_receive (stdin_mst, NULL,
-			       readbuf, ret,
-			       GNUNET_NO, GNUNET_NO);
+    GNUNET_MST_from_buffer (stdin_mst,
+                            readbuf,
+                            ret,
+                            GNUNET_NO,
+                            GNUNET_NO);
   }
-  GNUNET_SERVER_mst_destroy (stdin_mst);
+  GNUNET_MST_destroy (stdin_mst);
 
   signal (SIGINT, inthandler);
   signal (SIGINT, termhandler);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Returned, stopping playback\n");
   quit ();
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Deleting pipeline\n");
   gst_object_unref (GST_OBJECT (source));
   source = NULL;

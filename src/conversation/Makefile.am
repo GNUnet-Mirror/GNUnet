@@ -138,7 +138,7 @@ gnunet_helper_audio_record_CFLAGS = \
  $(GST_CFLAGS)
 
 gnunet_helper_audio_playback_SOURCES = \
-    gnunet_gst_test.c gnunet_gst.c
+    gnunet-helper-audio-playback-gst.c
 gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GST_LIBS) \
