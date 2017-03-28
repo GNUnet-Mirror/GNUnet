@@ -276,23 +276,34 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'p', "num-peers", "COUNT",
-     gettext_noop ("create COUNT number of peers"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers},
-    {'e', "num-errors", "COUNT",
-     gettext_noop ("tolerate COUNT number of continious timeout failures"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
-    {'n', "non-interactive", NULL,
-     gettext_noop ("run profiler in non-interactive mode where upon "
-                   "testbed setup the profiler does not wait for a "
-                   "keystroke but continues to run until a termination "
-                   "signal is received"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &noninteractive},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_uint ('p',
+                                   "num-peers",
+                                   "COUNT",
+                                   gettext_noop ("create COUNT number of peers"),
+                                   &num_peers),
+
+    GNUNET_GETOPT_option_uint ('e',
+                                   "num-errors",
+                                   "COUNT",
+                                   gettext_noop ("tolerate COUNT number of continious timeout failures"),
+                                   &num_cont_fails),
+
+    GNUNET_GETOPT_option_flag ('n',
+                                  "non-interactive",
+                                  gettext_noop ("run profiler in non-interactive mode where upon "
+                                                "testbed setup the profiler does not wait for a "
+                                                "keystroke but continues to run until a termination "
+                                                "signal is received"),
+                                  &noninteractive),
+
 #if !ENABLE_SUPERMUC
-    {'H', "hosts", "FILENAME",
-     gettext_noop ("name of the file with the login information for the testbed"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &hosts_file},
+    GNUNET_GETOPT_option_string ('H',
+                                 "hosts",
+                                 "FILENAME",
+                                 gettext_noop ("name of the file with the login information for the testbed"),
+                                 &hosts_file),
 #endif
     GNUNET_GETOPT_OPTION_END
   };

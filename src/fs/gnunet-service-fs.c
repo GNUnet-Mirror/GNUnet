@@ -38,7 +38,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_lc.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
@@ -1349,7 +1348,7 @@ run (void *cls,
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
 			       "fs",
                                "DATASTORE_QUEUE_SIZE");
-    dqs = 1024;
+    dqs = 32;
   }
   GSF_datastore_queue_size = (unsigned int) dqs;
   GSF_enable_randomized_delays =

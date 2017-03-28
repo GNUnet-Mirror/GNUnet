@@ -44,6 +44,24 @@ extern "C"
 
 
 /**
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Sized so that do not have to
+ * re-size the filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @param entry_count expected number of entries in the Bloom filter
+ * @param k number of bits set per entry
+ * @return must be a power of two and smaller or equal to 2^15.
+ */
+size_t
+GNUNET_BLOCK_GROUP_compute_bloomfilter_size (unsigned int entry_count,
+                                             unsigned int k);
+
+
+/**
  * Create a new block group that filters duplicates using a Bloom filter.
  *
  * @param ctx block context in which the block group is created

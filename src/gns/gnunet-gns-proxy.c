@@ -606,7 +606,7 @@ struct Socks5Request
    * Headers from response
    */
   struct HttpResponseHeader *header_tail;
-  
+
   /**
    * SSL Certificate status
    */
@@ -621,7 +621,7 @@ struct Socks5Request
 /**
  * The port the proxy is running on (default 7777)
  */
-static unsigned long port = GNUNET_GNS_PROXY_PORT;
+static unsigned long long port = GNUNET_GNS_PROXY_PORT;
 
 /**
  * The CA file (pem) to use for the proxy CA
@@ -693,16 +693,6 @@ static struct Socks5Request *s5r_tail;
  * The users local GNS master zone
  */
 static struct GNUNET_CRYPTO_EcdsaPublicKey local_gns_zone;
-
-/**
- * The users local shorten zone
- */
-static struct GNUNET_CRYPTO_EcdsaPrivateKey local_shorten_zone;
-
-/**
- * Is shortening enabled?
- */
-static int do_shorten;
 
 /**
  * The CA for SSL certificate generation
@@ -873,9 +863,10 @@ check_ssl_certificate (struct Socks5Request *s5r)
   gnutls_x509_crt_t x509_cert;
   int rc;
   const char *name;
-  
+
   s5r->ssl_checked = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "XXXXXX\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Checking SSL certificate\n");
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
@@ -1039,7 +1030,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   size_t delta_cdomain;
   int domain_matched;
   char *tok;
-  
+
   /* first, check SSL certificate */
   if ((GNUNET_YES != s5r->ssl_checked) &&
       (HTTPS_PORT == s5r->port))
@@ -1047,7 +1038,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
       if (GNUNET_OK != check_ssl_certificate (s5r))
         return 0;
   }
-  
+
   ndup = GNUNET_strndup (buffer, bytes);
   hdr_type = strtok (ndup, ":");
   if (NULL == hdr_type)
@@ -1287,7 +1278,7 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
   struct Socks5Request *s5r = cls;
   size_t len = size * nmemb;
   size_t to_copy;
-  
+
   if ( (0 == s5r->io_len) &&
        (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
   {
@@ -1763,7 +1754,7 @@ create_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Processing %u bytes UPLOAD\n",
 		(unsigned int) *upload_data_size);
-    
+
     /* FIXME: This must be set or a header with Transfer-Encoding: chunked. Else
      * upload callback is not called!
      */
@@ -1892,19 +1883,22 @@ mhd_connection_cb (void *cls,
       {
         if (GNUNET_NETWORK_get_fd (s5r->sock) == sock)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Context set...\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Context set...\n");
+          s5r->ssl_checked = GNUNET_NO;
           *con_cls = s5r;
           break;
         }
       }
-      s5r->ssl_checked = GNUNET_NO;
       break;
     case MHD_CONNECTION_NOTIFY_CLOSED:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection closed... cleaning up\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connection closed... cleaning up\n");
       s5r = *con_cls;
       if (NULL == s5r)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection stale!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Connection stale!\n");
         return;
       }
       cleanup_s5r (s5r);
@@ -2827,7 +2821,6 @@ do_s5r_read (void *cls)
                                                  &local_gns_zone,
                                                  GNUNET_DNSPARSER_TYPE_A,
                                                  GNUNET_NO /* only cached */,
-                                                 (GNUNET_YES == do_shorten) ? &local_shorten_zone : NULL,
                                                  &handle_gns_result,
                                                  s5r);
             break;
@@ -3115,7 +3108,7 @@ run_cont ()
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Proxy listens on port %lu\n",
+              "Proxy listens on port %llu\n",
               port);
 
   /* start MHD daemon for HTTP */
@@ -3137,46 +3130,6 @@ run_cont ()
   }
   httpd = hd;
   GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
-}
-
-
-/**
- * Method called to inform about the egos of the shorten zone of this peer.
- *
- * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
- * this function is only called ONCE, and 'NULL' being passed in
- * @a ego does indicate an error (i.e. name is taken or no default
- * value is known).  If @a ego is non-NULL and if '*ctx'
- * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of #GNUNET_IDENTITY_connect (if
- * that one was not NULL).
- *
- * @param cls closure, NULL
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_shorten_cb (void *cls,
-                     struct GNUNET_IDENTITY_Ego *ego,
-                     void **ctx,
-                     const char *name)
-{
-  id_op = NULL;
-  if (NULL == ego)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("No ego configured for `shorten-zone`\n"));
-  }
-  else
-  {
-    local_shorten_zone = *GNUNET_IDENTITY_ego_get_private_key (ego);
-    do_shorten = GNUNET_YES;
-  }
-  run_cont ();
 }
 
 
@@ -3216,10 +3169,7 @@ identity_master_cb (void *cls,
   }
   GNUNET_IDENTITY_ego_get_public_key (ego,
                                       &local_gns_zone);
-  id_op = GNUNET_IDENTITY_get (identity,
-                               "gns-short",
-                               &identity_shorten_cb,
-                               NULL);
+  run_cont ();
 }
 
 
@@ -3232,7 +3182,9 @@ identity_master_cb (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char* cafile_cfg = NULL;
@@ -3309,13 +3261,20 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'p', "port", NULL,
-      gettext_noop ("listen on specified port (default: 7777)"), 1,
-      &GNUNET_GETOPT_set_ulong, &port},
-    {'a', "authority", NULL,
-      gettext_noop ("pem file to use as CA"), 1,
-      &GNUNET_GETOPT_set_string, &cafile_opt},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_ulong ('p',
+                                    "port",
+                                    NULL,
+                                    gettext_noop ("listen on specified port (default: 7777)"),
+                                    &port),
+
+    GNUNET_GETOPT_option_string ('a',
+                                 "authority",
+                                 NULL,
+                                 gettext_noop ("pem file to use as CA"),
+                                 &cafile_opt),
+
     GNUNET_GETOPT_OPTION_END
   };
   static const char* page =
@@ -3323,22 +3282,26 @@ main (int argc, char *const *argv)
     "</head><body>cURL fail</body></html>";
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                                 &argc, &argv))
     return 2;
-  GNUNET_log_setup ("gnunet-gns-proxy", "WARNING", NULL);
-  curl_failure_response = MHD_create_response_from_buffer (strlen (page),
-                                                           (void*)page,
-                                                           MHD_RESPMEM_PERSISTENT);
+  GNUNET_log_setup ("gnunet-gns-proxy",
+                    "WARNING",
+                    NULL);
+  curl_failure_response
+    = MHD_create_response_from_buffer (strlen (page),
+                                       (void *) page,
+                                       MHD_RESPMEM_PERSISTENT);
 
   ret =
     (GNUNET_OK ==
-     GNUNET_PROGRAM_run (argc, argv, "gnunet-gns-proxy",
+     GNUNET_PROGRAM_run (argc, argv,
+                         "gnunet-gns-proxy",
                          _("GNUnet GNS proxy"),
                          options,
                          &run, NULL)) ? 0 : 1;
   MHD_destroy_response (curl_failure_response);
   GNUNET_free_non_null ((char *) argv);
-  GNUNET_CRYPTO_ecdsa_key_clear (&local_shorten_zone);
   return ret;
 }
 

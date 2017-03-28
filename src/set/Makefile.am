@@ -5,6 +5,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 pkgcfg_DATA = \
   set.conf
 
@@ -49,7 +51,7 @@ gnunet_set_ibf_profiler_LDADD = \
 
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c gnunet-service-set.h \
- gnunet-service-set_union.c \
+ gnunet-service-set_union.c gnunet-service-set_union.h \
  gnunet-service-set_intersection.c \
  ibf.c ibf.h \
  gnunet-service-set_union_strata_estimator.c gnunet-service-set_union_strata_estimator.h \
@@ -58,7 +60,7 @@ gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/cadet/libgnunetcadetnew.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   libgnunetset.la \
   $(GN_LIBINTL)
@@ -111,6 +113,20 @@ test_set_union_copy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetset.la
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_set_test.la
+
+libgnunet_plugin_block_set_test_la_SOURCES = \
+  plugin_block_set_test.c
+libgnunet_plugin_block_set_test_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_block_set_test_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 EXTRA_DIST = \
   test_set.conf

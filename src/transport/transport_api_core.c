@@ -425,7 +425,7 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
 
   GNUNET_assert (GNUNET_YES == n->is_ready);
   msize = ntohs (msg->size);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*obm))
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*obm))
   {
     GNUNET_break (0);
     GNUNET_MQ_impl_send_continue (mq);

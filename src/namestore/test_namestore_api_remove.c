@@ -98,19 +98,22 @@ remove_cont (void *cls,
 	     int32_t success,
 	     const char *emsg)
 {
+  nsqe = NULL;
   if (GNUNET_YES != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Records could not be removed: `%s'\n"), emsg);
-    if (endbadly_task != NULL)
+                _("Records could not be removed: `%s'\n"),
+                emsg);
+    if (NULL != endbadly_task)
       GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly,
+                                               NULL);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Records were removed, perform lookup\n");
   removed = GNUNET_YES;
-  if (endbadly_task != NULL)
+  if (NULL != endbadly_task)
     GNUNET_SCHEDULER_cancel (endbadly_task);
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
@@ -139,8 +142,11 @@ put_cont (void *cls, int32_t success,
 	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-					 0, NULL, &remove_cont, (void *) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         privkey,
+                                         name,
+					 0, NULL,
+                                         &remove_cont, (void *) name);
 }
 
 

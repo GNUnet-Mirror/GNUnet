@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2007, 2009, 2011, 2012, 2015 Christian Grothoff
+     Copyright (C) 2007, 2009, 2011, 2012, 2015, 2017 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,6 +22,19 @@
  * @file test_gns_vpn.c
  * @brief testcase for accessing VPN services via GNS
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
+ *
+ * This test requires libcurl/libgnurl *with* support for C-ARES.
+ * This is NOT the default on most platforms, which means the test
+ * will be skipped in many cases.   Compile libcurl/libgnurl with
+ * "--enable-ares" to get this test to pass.
+ *
+ * Furthermore, the test relies on gnunet-dns2gns being able to bind
+ * to port 53.  This means that 'setcap' has to have worked during
+ * 'make install'.  If this failed, but everything else is OK, the
+ * test may FAIL hard even though it is just an installation issue (we
+ * cannot conveniently test for the setcap to have worked).  However,
+ * you should get a warning that gnunet-dns2gns failed to 'bind'.
  */
 #include "platform.h"
 #if HAVE_CURL_CURL_H
@@ -39,7 +52,7 @@
 #define PORT 8080
 #define TEST_DOMAIN "www.gnu"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Return value for #main().
@@ -96,7 +109,10 @@ static struct CBC cbc;
 
 
 static size_t
-copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
+copy_buffer (void *ptr,
+             size_t size,
+             size_t nmemb,
+             void *ctx)
 {
   struct CBC *cbc = ctx;
 
@@ -173,6 +189,11 @@ do_shutdown (void *cls)
   {
     GNUNET_NAMESTORE_cancel (qe);
     qe = NULL;
+  }
+  if (NULL != namestore)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore);
+    namestore = NULL;
   }
   GNUNET_free_non_null (url);
   url = NULL;
@@ -280,6 +301,9 @@ curl_main ()
 static void
 start_curl (void *cls)
 {
+  CURLcode ec;
+
+  curl_task_id = NULL;
   GNUNET_asprintf (&url,
 		   "http://%s/hello_world",
 		   TEST_DOMAIN);
@@ -291,7 +315,18 @@ start_curl (void *cls)
   curl_easy_setopt (curl, CURLOPT_TIMEOUT, 150L);
   curl_easy_setopt (curl, CURLOPT_CONNECTTIMEOUT, 150L);
   curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1);
-
+  if (CURLE_OK !=
+      (ec = curl_easy_setopt (curl,
+                              CURLOPT_DNS_SERVERS,
+                              "127.0.0.1:53")))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "curl build without support for CURLOPT_DNS_SERVERS (%s), cannot run test\n",
+                curl_easy_strerror (ec));
+    global_ret = 77;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
@@ -299,14 +334,6 @@ start_curl (void *cls)
               "Beginning HTTP download from `%s'\n",
               url);
   curl_main ();
-}
-
-
-static void
-disco_ns (void* cls)
-{
-  GNUNET_NAMESTORE_disconnect (namestore);
-  namestore = NULL;
 }
 
 
@@ -328,9 +355,8 @@ commence_testing (void *cls,
                   const char *emsg)
 {
   qe = NULL;
-  GNUNET_SCHEDULER_add_now (&disco_ns, NULL);
-
-  if ((emsg != NULL) && (GNUNET_YES != success))
+  if ( (NULL != emsg) &&
+       (GNUNET_YES != success) )
   {
     fprintf (stderr,
 	     "NS failed to create record %s\n",
@@ -338,11 +364,14 @@ commence_testing (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
   /* wait a little bit before downloading, as we just created the record */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 1),
-                                &start_curl,
-                                NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Launching cURL request\n");
+  curl_task_id
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    &start_curl,
+                                    NULL);
 }
 
 
@@ -402,7 +431,6 @@ mhd_main ()
 
 
 
-
 /**
  * Open '/dev/null' and make the result the given
  * file descriptor.
@@ -448,9 +476,8 @@ fork_and_exec (const char *file,
   pid = fork ();
   if (-1 == pid)
   {
-    fprintf (stderr,
-	     "fork failed: %s\n",
-	     strerror (errno));
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "fork");
     return 1;
   }
   if (0 == pid)
@@ -464,10 +491,9 @@ fork_and_exec (const char *file,
     open_dev_null (1, O_WRONLY);
     (void) execv (file, cmd);
     /* can only get here on error */
-    fprintf (stderr,
-	     "exec `%s' failed: %s\n",
-	     file,
-	     strerror (errno));
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "exec",
+                              file);
     _exit (1);
   }
   /* keep running waitpid as long as the only error we get is 'EINTR' */
@@ -475,13 +501,20 @@ fork_and_exec (const char *file,
 	  (errno == EINTR) );
   if (-1 == ret)
   {
-    fprintf (stderr,
-	     "waitpid failed: %s\n",
-	     strerror (errno));
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "waitpid");
     return 1;
   }
-  if (! (WIFEXITED (status) && (0 == WEXITSTATUS (status))))
+  if (! (WIFEXITED (status) &&
+         (0 == WEXITSTATUS (status))) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Process `%s` returned status code %d/%d.\n",
+                file,
+                WIFEXITED (status),
+                WEXITSTATUS (status));
     return 1;
+  }
   /* child process completed and returned success, we're happy */
   return 0;
 }
@@ -572,6 +605,8 @@ identity_cb (void *cls,
                                                    &rd.data_size));
   rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating `www` record\n");
   qe = GNUNET_NAMESTORE_records_store (namestore,
                                        zone_key,
                                        "www",
@@ -593,15 +628,18 @@ run (void *cls,
   char *bin;
   char *bin_identity;
   char *bin_gns;
+  char *bin_arm;
   char *config;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test logic starting...\n");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "arm",
                                              "CONFIG",
                                              &config))
   {
-    fprintf (stderr,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
              "Failed to locate configuration file. Skipping test.\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -626,18 +664,27 @@ run (void *cls,
   {
     "gnunet-identity",
     "-e", "master-zone",
-    "-s", "gns-intercept",
+    "-s", "dns2gns",
+    "-c", config,
+    NULL
+  };
+  char *const arm_args[] =
+  {
+    "gnunet-arm",
+    "-i", "dns2gns",
     "-c", config,
     NULL
   };
   char *const gns_args[] =
   {
     "gnunet-gns",
-    "-u", "www.gns",
+    "-u", "www.gnu",
     "-c", config,
     NULL
   };
-  GNUNET_TESTING_peer_get_identity (peer, &id);
+
+  GNUNET_TESTING_peer_get_identity (peer,
+                                    &id);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
@@ -648,20 +695,24 @@ run (void *cls,
                    "%s/%s",
                    bin,
                    "gnunet-identity");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating `master-zone` ego\n");
   if (0 != fork_and_exec (bin_identity, identity_args))
   {
-    fprintf (stderr,
-             "Failed to run `gnunet-identity -C. Skipping test.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to run `gnunet-identity -C`. Skipping test.\n");
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
     GNUNET_free (bin);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Setting `master-zone` ego as default for `gns-master` and `dns2gns`\n");
   if (0 != fork_and_exec (bin_identity, identity2_args))
   {
-    fprintf (stderr,
-             "Failed to run `gnunet-identity -e. Skipping test.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to run `gnunet-identity -e`. Skipping test.\n");
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
@@ -670,8 +721,8 @@ run (void *cls,
   }
   if (0 != fork_and_exec (bin_identity, identity3_args))
   {
-    fprintf (stderr,
-             "Failed to run `gnunet-identity -e. Skipping test.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to run `gnunet-identity -e`. Skipping test.\n");
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
@@ -681,14 +732,17 @@ run (void *cls,
   GNUNET_free (bin_identity);
 
   /* do lookup just to launch GNS service */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Resolving `www.gnu` zone entry to launch GNS (will yield no answer yet)\n");
   GNUNET_asprintf (&bin_gns,
                    "%s/%s",
                    bin,
                    "gnunet-gns");
-  if (0 != fork_and_exec (bin_gns, gns_args))
+  if (0 != fork_and_exec (bin_gns,
+                          gns_args))
   {
-    fprintf (stderr,
-             "Failed to run `gnunet-gns -u. Skipping test.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to run `gnunet-gns -u. Skipping test.\n");
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_gns);
     GNUNET_free (config);
@@ -696,9 +750,27 @@ run (void *cls,
     return;
   }
   GNUNET_free (bin_gns);
+
+  GNUNET_asprintf (&bin_arm,
+                   "%s/%s",
+                   bin,
+                   "gnunet-arm");
+  if (0 != fork_and_exec (bin_arm,
+                          arm_args))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to run `gnunet-arm -i dns2gns. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (bin_arm);
+    GNUNET_free (config);
+    GNUNET_free (bin);
+    return;
+  }
+  GNUNET_free (bin_arm);
+
   GNUNET_free (config);
   GNUNET_free (bin);
-
+  sleep (1); /* give dns2gns chance to really run */
 
   namestore = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != namestore);
@@ -720,39 +792,15 @@ run (void *cls,
 
 
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
-  char *sbin_iptables;
   char *bin_vpn;
   char *bin_exit;
-  char *bin_dns;
-  char *srv_dns;
-  struct stat s;
-  gid_t my_gid;
-  char *const iptables_args[] =
-  {
-    "iptables", "-t", "mangle", "-L", "-v", NULL
-  };
 
-  if (0 == access ("/sbin/iptables", X_OK))
-    sbin_iptables = "/sbin/iptables";
-  else if (0 == access ("/usr/sbin/iptables", X_OK))
-    sbin_iptables = "/usr/sbin/iptables";
-  else
-  {
-    fprintf (stderr,
-	     "Executable iptables not found in approved directories: %s, skipping\n",
-	     strerror (errno));
-    return 77;
-  }
-
-  if (0 != fork_and_exec (sbin_iptables, iptables_args))
-  {
-    fprintf (stderr,
-             "Failed to run `iptables -t mangle -L -v'. Skipping test.\n");
-    return 77;
-  }
-
+  GNUNET_log_setup ("test-gns-vpn",
+                    "WARNING",
+                    NULL);
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
@@ -765,59 +813,26 @@ main (int argc, char *const *argv)
 
   bin_vpn = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
   bin_exit = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
-  bin_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
-  srv_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-service-dns");
   if ( (0 != geteuid ()) &&
        ( (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_vpn, GNUNET_YES, "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) || //ipv4 only please!
+	  GNUNET_OS_check_helper_binary (bin_vpn,
+                                         GNUNET_YES,
+                                         "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) || //ipv4 only please!
 	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_exit, GNUNET_YES, "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")) || //no nat, ipv4 only
-	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_dns, GNUNET_YES, NULL))) ) // TODO: once we have a windows-testcase, add test parameters here
+	  GNUNET_OS_check_helper_binary (bin_exit,
+                                         GNUNET_YES,
+                                         "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")) ) ) //no nat, ipv4 only
   {
     fprintf (stderr,
-	     "WARNING: gnunet-helper-{exit,vpn,dns} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
+	     "WARNING: gnunet-helper-{exit,vpn} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
     fprintf (stderr,
 	     "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
     GNUNET_free (bin_vpn);
     GNUNET_free (bin_exit);
-    GNUNET_free (bin_dns);
-    GNUNET_free (srv_dns);
     return 77;
   }
   GNUNET_free (bin_vpn);
   GNUNET_free (bin_exit);
-  my_gid = getgid ();
-  if ( (0 != stat (bin_dns, &s)) ||
-       (my_gid == s.st_gid) ||
-       ( (0 == (S_ISUID & s.st_mode)) && (0 != getuid()) ) )
-  {
-    fprintf (stderr,
-	     "WARNING: %s has wrong permissions (%d, %d, %d), refusing to run test (as it would have to fail).\n",
-             bin_dns,
-             (0 != stat (bin_dns, &s)),
-             (my_gid == s.st_gid),
-             (0 == (S_ISUID & s.st_mode)) || (0 != getuid()) );
-    GNUNET_free (bin_dns);
-    GNUNET_free (srv_dns);
-    return 77;
-  }
-  if ( (0 != stat (srv_dns, &s)) ||
-       (my_gid == s.st_gid) ||
-       (0 == (S_ISGID & s.st_mode)) )
-  {
-    fprintf (stderr,
-	     "WARNING: %s has wrong permissions (%d, %d, %d), refusing to run test (as it would have to fail).\n",
-             srv_dns,
-             (0 != stat (bin_dns, &s)),
-             (my_gid == s.st_gid),
-             (0 == (S_ISGID & s.st_mode)) );
-    GNUNET_free (bin_dns);
-    GNUNET_free (srv_dns);
-    return 77;
-  }
-  GNUNET_free (bin_dns);
-  GNUNET_free (srv_dns);
 
   dest_ip = "169.254.86.1";
   dest_af = AF_INET;
@@ -842,9 +857,11 @@ main (int argc, char *const *argv)
   }
 
 
-  if (0 != GNUNET_TESTING_peer_run ("test-gnunet-vpn",
-				    "test_gns_vpn.conf",
-				    &run, NULL))
+  if (0 !=
+      GNUNET_TESTING_peer_run ("test_gns_vpn",
+                               "test_gns_vpn.conf",
+                               &run,
+                               NULL))
     return 1;
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;

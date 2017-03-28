@@ -109,19 +109,16 @@ struct DecryptPeerInfo
 
 
 /**
+ * State we keep per client.
+ */
+struct ClientState;
+
+
+/**
  * Session to establish a threshold-shared secret.
  */
 struct KeygenSession
 {
-  /**
-   * Keygen sessions are held in a linked list.
-   */
-  struct KeygenSession *next;
-
-  /**
-   * Keygen sessions are held in a linked list.
-   */
-  struct KeygenSession *prev;
 
   /**
    * Current consensus, used for both DKG rounds.
@@ -129,15 +126,9 @@ struct KeygenSession
   struct GNUNET_CONSENSUS_Handle *consensus;
 
   /**
-   * Client that is interested in the result
-   * of this key generation session.
+   * Which client is this for?
    */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Message queue for 'client'
-   */
-  struct GNUNET_MQ_Handle *client_mq;
+  struct ClientState *cs;
 
   /**
    * Randomly generated coefficients of the polynomial for sharing our
@@ -223,15 +214,6 @@ struct KeygenSession
  */
 struct DecryptSession
 {
-  /**
-   * Decrypt sessions are stored in a linked list.
-   */
-  struct DecryptSession *next;
-
-  /**
-   * Decrypt sessions are stored in a linked list.
-   */
-  struct DecryptSession *prev;
 
   /**
    * Handle to the consensus over partial decryptions.
@@ -239,14 +221,9 @@ struct DecryptSession
   struct GNUNET_CONSENSUS_Handle *consensus;
 
   /**
-   * Client connected to us.
+   * Which client is this for?
    */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Message queue for 'client'.
-   */
-  struct GNUNET_MQ_Handle *client_mq;
+  struct ClientState *cs;
 
   /**
    * When should we start communicating for decryption?
@@ -279,24 +256,32 @@ struct DecryptSession
 
 
 /**
- * Decrypt sessions are held in a linked list.
+ * State we keep per client.
  */
-static struct DecryptSession *decrypt_sessions_head;
+struct ClientState
+{
+  /**
+   * Decrypt session of the client, if any.
+   */
+  struct DecryptSession *decrypt_session;
 
-/**
- * Decrypt sessions are held in a linked list.
- */
-static struct DecryptSession *decrypt_sessions_tail;
+  /**
+   * Keygen session of the client, if any.
+   */
+  struct KeygenSession *keygen_session;
 
-/**
- * Decrypt sessions are held in a linked list.
- */
-static struct KeygenSession *keygen_sessions_head;
+  /**
+   * Client this is about.
+   */
+  struct GNUNET_SERVICE_Client *client;
 
-/**
- * Decrypt sessions are held in a linked list.
- */
-static struct KeygenSession *keygen_sessions_tail;
+  /**
+   * MQ to talk to @a client.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+};
+
 
 /**
  * The ElGamal prime field order as libgcrypt mpi.
@@ -330,11 +315,6 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_peer_private_key;
  * Configuration of this service.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * Server for this service.
- */
-static struct GNUNET_SERVER_Handle *srv;
 
 
 /**
@@ -468,7 +448,8 @@ normalize_peers (struct GNUNET_PeerIdentity *listed,
     n += 1;
   }
 
-  normalized = GNUNET_new_array (n, struct GNUNET_PeerIdentity);
+  normalized = GNUNET_new_array (n,
+                                 struct GNUNET_PeerIdentity);
 
   if (GNUNET_NO == local_peer_in_list)
     normalized[n - 1] = my_peer;
@@ -558,10 +539,13 @@ compute_lagrange_coefficient (gcry_mpi_t coeff, unsigned int j,
 static void
 decrypt_session_destroy (struct DecryptSession *ds)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying decrypt session\n");
-
-  GNUNET_CONTAINER_DLL_remove (decrypt_sessions_head, decrypt_sessions_tail, ds);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "destroying decrypt session\n");
+  if (NULL != ds->cs)
+  {
+    ds->cs->decrypt_session = NULL;
+    ds->cs = NULL;
+  }
   if (NULL != ds->consensus)
   {
     GNUNET_CONSENSUS_destroy (ds->consensus);
@@ -570,8 +554,7 @@ decrypt_session_destroy (struct DecryptSession *ds)
 
   if (NULL != ds->info)
   {
-    unsigned int i;
-    for (i = 0; i < ds->share->num_peers; i++)
+    for (unsigned int i = 0; i < ds->share->num_peers; i++)
     {
       if (NULL != ds->info[i].partial_decryption)
       {
@@ -582,24 +565,10 @@ decrypt_session_destroy (struct DecryptSession *ds)
     GNUNET_free (ds->info);
     ds->info = NULL;
   }
-
   if (NULL != ds->share)
   {
     GNUNET_SECRETSHARING_share_destroy (ds->share);
     ds->share = NULL;
-  }
-
-  if (NULL != ds->client_mq)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying decrypt MQ\n");
-    GNUNET_MQ_destroy (ds->client_mq);
-    ds->client_mq = NULL;
-  }
-
-  if (NULL != ds->client)
-  {
-    GNUNET_SERVER_client_disconnect (ds->client);
-    ds->client = NULL;
   }
 
   GNUNET_free (ds);
@@ -630,14 +599,17 @@ keygen_info_destroy (struct KeygenPeerInfo *info)
 static void
 keygen_session_destroy (struct KeygenSession *ks)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying keygen session\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "destroying keygen session\n");
 
-  GNUNET_CONTAINER_DLL_remove (keygen_sessions_head, keygen_sessions_tail, ks);
-
+  if (NULL != ks->cs)
+  {
+    ks->cs->keygen_session = NULL;
+    ks->cs = NULL;
+  }
   if (NULL != ks->info)
   {
-    unsigned int i;
-    for (i = 0; i < ks->num_peers; i++)
+    for (unsigned int i = 0; i < ks->num_peers; i++)
       keygen_info_destroy (&ks->info[i]);
     GNUNET_free (ks->info);
     ks->info = NULL;
@@ -651,8 +623,7 @@ keygen_session_destroy (struct KeygenSession *ks)
 
   if (NULL != ks->presecret_polynomial)
   {
-    unsigned int i;
-    for (i = 0; i < ks->threshold; i++)
+    for (unsigned int i = 0; i < ks->threshold; i++)
     {
       GNUNET_assert (NULL != ks->presecret_polynomial[i]);
       gcry_mpi_release (ks->presecret_polynomial[i]);
@@ -661,38 +632,21 @@ keygen_session_destroy (struct KeygenSession *ks)
     GNUNET_free (ks->presecret_polynomial);
     ks->presecret_polynomial = NULL;
   }
-
-  if (NULL != ks->client_mq)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying keygen MQ\n");
-    GNUNET_MQ_destroy (ks->client_mq);
-    ks->client_mq = NULL;
-  }
-
   if (NULL != ks->my_share)
   {
     gcry_mpi_release (ks->my_share);
     ks->my_share = NULL;
   }
-
   if (NULL != ks->public_key)
   {
     gcry_mpi_release (ks->public_key);
     ks->public_key = NULL;
   }
-
   if (NULL != ks->peers)
   {
     GNUNET_free (ks->peers);
     ks->peers = NULL;
   }
-
-  if (NULL != ks->client)
-  {
-    GNUNET_SERVER_client_disconnect (ks->client);
-    ks->client = NULL;
-  }
-
   GNUNET_free (ks);
 }
 
@@ -706,11 +660,7 @@ keygen_session_destroy (struct KeygenSession *ks)
 static void
 cleanup_task (void *cls)
 {
-  while (NULL != decrypt_sessions_head)
-    decrypt_session_destroy (decrypt_sessions_head);
-
-  while (NULL != keygen_sessions_head)
-    keygen_session_destroy (keygen_sessions_head);
+  /* Nothing to do! */
 }
 
 
@@ -727,7 +677,8 @@ generate_presecret_polynomial (struct KeygenSession *ks)
   gcry_mpi_t v;
 
   GNUNET_assert (NULL == ks->presecret_polynomial);
-  ks->presecret_polynomial = GNUNET_new_array (ks->threshold, gcry_mpi_t);
+  ks->presecret_polynomial = GNUNET_new_array (ks->threshold,
+                                               gcry_mpi_t);
   for (i = 0; i < ks->threshold; i++)
   {
     v = ks->presecret_polynomial[i] = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS);
@@ -768,9 +719,9 @@ keygen_round1_new_element (void *cls,
   if (element->size != sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "keygen commit data with wrong size (%u) in consensus, "
-                " %lu expected\n",
-                element->size, sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData));
+                "keygen commit data with wrong size (%u) in consensus, %u expected\n",
+                (unsigned int) element->size,
+                (unsigned int) sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData));
     return;
   }
 
@@ -855,10 +806,13 @@ keygen_round2_conclude (void *cls)
     if (GNUNET_YES == ks->info[i].round2_valid)
       share->num_peers++;
 
-  share->peers = GNUNET_new_array (share->num_peers, struct GNUNET_PeerIdentity);
+  share->peers = GNUNET_new_array (share->num_peers,
+                                   struct GNUNET_PeerIdentity);
   share->sigmas =
-      GNUNET_new_array (share->num_peers, struct GNUNET_SECRETSHARING_FieldElement);
-  share->original_indices = GNUNET_new_array (share->num_peers, uint16_t);
+      GNUNET_new_array (share->num_peers,
+                        struct GNUNET_SECRETSHARING_FieldElement);
+  share->original_indices = GNUNET_new_array (share->num_peers,
+                                              uint16_t);
 
   /* maybe we're not even in the list of peers? */
   share->my_peer = share->num_peers;
@@ -907,7 +861,8 @@ keygen_round2_conclude (void *cls)
   GNUNET_SECRETSHARING_share_destroy (share);
   share = NULL;
 
-  GNUNET_MQ_send (ks->client_mq, ev);
+  GNUNET_MQ_send (ks->cs->mq,
+                  ev);
 }
 
 
@@ -1429,9 +1384,9 @@ keygen_round2_new_element (void *cls,
   if (element->size != expected_element_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "keygen round2 data with wrong size (%u) in consensus, "
-                " %lu expected\n",
-                element->size, expected_element_size);
+                "keygen round2 data with wrong size (%u) in consensus, %u expected\n",
+                (unsigned int) element->size,
+                (unsigned int) expected_element_size);
     return;
   }
 
@@ -1669,73 +1624,102 @@ insert_round1_element (struct KeygenSession *ks)
 
 
 /**
+ * Check that @a msg is well-formed.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_client_keygen (void *cls,
+                     const struct GNUNET_SECRETSHARING_CreateMessage *msg)
+{
+  unsigned int num_peers = ntohs (msg->num_peers);
+
+  if (ntohs (msg->header.size) - sizeof (*msg) !=
+      num_peers * sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Functions with this signature are called whenever a message is
  * received.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
-static void handle_client_keygen (void *cls,
-                                  struct GNUNET_SERVER_Client *client,
-                                  const struct GNUNET_MessageHeader
-                                  *message)
+static void
+handle_client_keygen (void *cls,
+                      const struct GNUNET_SECRETSHARING_CreateMessage *msg)
 {
-  const struct GNUNET_SECRETSHARING_CreateMessage *msg =
-      (const struct GNUNET_SECRETSHARING_CreateMessage *) message;
+  struct ClientState *cs = cls;
   struct KeygenSession *ks;
-  unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client requested key generation\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "client requested key generation\n");
+  if (NULL != cs->keygen_session)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (cs->client);
+    return;
+  }
   ks = GNUNET_new (struct KeygenSession);
-
-  /* FIXME: check if client already has some session */
-
-  GNUNET_CONTAINER_DLL_insert (keygen_sessions_head, keygen_sessions_tail, ks);
-
-  ks->client = client;
-  ks->client_mq = GNUNET_MQ_queue_for_server_client (client);
-
+  ks->cs = cs;
+  cs->keygen_session = ks;
   ks->deadline = GNUNET_TIME_absolute_ntoh (msg->deadline);
   ks->threshold = ntohs (msg->threshold);
   ks->num_peers = ntohs (msg->num_peers);
 
-  ks->peers = normalize_peers ((struct GNUNET_PeerIdentity *) &msg[1], ks->num_peers,
-                               &ks->num_peers, &ks->local_peer_idx);
+  ks->peers = normalize_peers ((struct GNUNET_PeerIdentity *) &msg[1],
+                               ks->num_peers,
+                               &ks->num_peers,
+                               &ks->local_peer_idx);
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "first round of consensus with %u peers\n", ks->num_peers);
-  ks->consensus = GNUNET_CONSENSUS_create (cfg, ks->num_peers, ks->peers, &msg->session_id,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "first round of consensus with %u peers\n",
+              ks->num_peers);
+  ks->consensus = GNUNET_CONSENSUS_create (cfg,
+                                           ks->num_peers,
+                                           ks->peers,
+                                           &msg->session_id,
                                            GNUNET_TIME_absolute_ntoh (msg->start),
                                            GNUNET_TIME_absolute_ntoh (msg->deadline),
-                                           keygen_round1_new_element, ks);
+                                           keygen_round1_new_element,
+                                           ks);
 
-  ks->info = GNUNET_new_array (ks->num_peers, struct KeygenPeerInfo);
+  ks->info = GNUNET_new_array (ks->num_peers,
+                               struct KeygenPeerInfo);
 
-  for (i = 0; i < ks->num_peers; i++)
+  for (unsigned int i = 0; i < ks->num_peers; i++)
     ks->info[i].peer = ks->peers[i];
 
   GNUNET_CRYPTO_paillier_create (&ks->info[ks->local_peer_idx].paillier_public_key,
                                  &ks->paillier_private_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Generated paillier key pair\n", ks->local_peer_idx);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Generated paillier key pair\n",
+              ks->local_peer_idx);
   generate_presecret_polynomial (ks);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Generated presecret polynomial\n", ks->local_peer_idx);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Generated presecret polynomial\n",
+              ks->local_peer_idx);
   insert_round1_element (ks);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Concluding for round 1\n", ks->local_peer_idx);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Concluding for round 1\n",
+              ks->local_peer_idx);
   GNUNET_CONSENSUS_conclude (ks->consensus,
                              keygen_round1_conclude,
                              ks);
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Waiting for round 1 elements ...\n", ks->local_peer_idx);
+  GNUNET_SERVICE_client_continue (cs->client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Waiting for round 1 elements ...\n",
+              ks->local_peer_idx);
 }
 
 
@@ -1771,20 +1755,24 @@ decrypt_conclude (void *cls)
     if (NULL != ds->info[i].partial_decryption)
       num++;
 
-  indices = GNUNET_malloc (num * sizeof (unsigned int));
+  indices = GNUNET_new_array (num,
+                              unsigned int);
   j = 0;
   for (i = 0; i < ds->share->num_peers; i++)
     if (NULL != ds->info[i].partial_decryption)
       indices[j++] = ds->info[i].original_index;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: decrypt conclude, with %u peers\n",
-              ds->share->my_peer, num);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "P%u: decrypt conclude, with %u peers\n",
+              ds->share->my_peer,
+              num);
 
   gcry_mpi_set_ui (prod, 1);
   for (i = 0; i < num; i++)
   {
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: index of %u: %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "P%u: index of %u: %u\n",
                 ds->share->my_peer, i, indices[i]);
     compute_lagrange_coefficient (lagrange, indices[i], indices, num);
     // w_i^{\lambda_i}
@@ -1801,7 +1789,8 @@ decrypt_conclude (void *cls)
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE);
   GNUNET_CRYPTO_mpi_print_unsigned (&msg->plaintext, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, m);
   msg->success = htonl (1);
-  GNUNET_MQ_send (ds->client_mq, ev);
+  GNUNET_MQ_send (ds->cs->mq,
+                  ev);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sent decrypt done to client\n");
 
@@ -1945,10 +1934,15 @@ decrypt_new_element (void *cls,
   {
     char *tmp1_str;
     char *tmp2_str;
+
     tmp1_str = mpi_to_str (tmp1);
     tmp2_str = mpi_to_str (tmp2);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%ld (eqn 1), expected %s got %s\n",
-                session->share->my_peer, info - session->info, tmp1_str, tmp2_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "P%u: Received invalid partial decryption from P%u (eqn 1), expected %s got %s\n",
+                session->share->my_peer,
+                (unsigned int) (info - session->info),
+                tmp1_str,
+                tmp2_str);
     GNUNET_free (tmp1_str);
     GNUNET_free (tmp2_str);
     goto cleanup;
@@ -1963,8 +1957,10 @@ decrypt_new_element (void *cls,
 
   if (0 != gcry_mpi_cmp (tmp1, tmp2))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%ld (eqn 2)\n",
-                session->share->my_peer, info - session->info);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "P%u: Received invalid partial decryption from P%u (eqn 2)\n",
+                session->share->my_peer,
+                (unsigned int) (info - session->info));
     goto cleanup;
   }
 
@@ -2100,40 +2096,63 @@ insert_decrypt_element (struct DecryptSession *ds)
 
 
 /**
+ * Check that @a msg is well-formed.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK (check deferred a bit)
+ */
+static int
+check_client_decrypt (void *cls,
+                      const struct GNUNET_SECRETSHARING_DecryptRequestMessage *msg)
+{
+  /* we check later, it's complicated */
+  return GNUNET_OK;
+}
+
+
+/**
  * Functions with this signature are called whenever a message is
  * received.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
-static void handle_client_decrypt (void *cls,
-                                   struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader
-                                   *message)
+static void
+handle_client_decrypt (void *cls,
+                       const struct GNUNET_SECRETSHARING_DecryptRequestMessage *msg)
 {
-  const struct GNUNET_SECRETSHARING_DecryptRequestMessage *msg =
-      (const void *) message;
+  struct ClientState *cs = cls;
   struct DecryptSession *ds;
   struct GNUNET_HashCode session_id;
-  unsigned int i;
 
+  if (NULL != cs->decrypt_session)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (cs->client);
+    return;
+  }
   ds = GNUNET_new (struct DecryptSession);
-  // FIXME: check if session already exists
-  GNUNET_CONTAINER_DLL_insert (decrypt_sessions_head, decrypt_sessions_tail, ds);
-  ds->client = client;
-  ds->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  cs->decrypt_session = ds;
+  ds->cs = cs;
   ds->start = GNUNET_TIME_absolute_ntoh (msg->start);
   ds->deadline = GNUNET_TIME_absolute_ntoh (msg->deadline);
   ds->ciphertext = msg->ciphertext;
 
-  ds->share = GNUNET_SECRETSHARING_share_read (&msg[1], ntohs (msg->header.size) - sizeof *msg, NULL);
-  // FIXME: probably should be break rather than assert
-  GNUNET_assert (NULL != ds->share);
+  ds->share = GNUNET_SECRETSHARING_share_read (&msg[1],
+                                               ntohs (msg->header.size) - sizeof (*msg),
+                                               NULL);
+  if (NULL == ds->share)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (cs->client);
+    return;
+  }
 
-  // FIXME: this is probably sufficient, but kdf/hash with all values would be nicer ...
-  GNUNET_CRYPTO_hash (&msg->ciphertext, sizeof (struct GNUNET_SECRETSHARING_Ciphertext), &session_id);
-
+  /* FIXME: this is probably sufficient, but kdf/hash with all values would be nicer ... */
+  GNUNET_CRYPTO_hash (&msg->ciphertext,
+                      sizeof (struct GNUNET_SECRETSHARING_Ciphertext),
+                      &session_id);
   ds->consensus = GNUNET_CONSENSUS_create (cfg,
                                            ds->share->num_peers,
                                            ds->share->peers,
@@ -2144,20 +2163,20 @@ static void handle_client_decrypt (void *cls,
                                            ds);
 
 
-  ds->info = GNUNET_new_array (ds->share->num_peers, struct DecryptPeerInfo);
-  for (i = 0; i < ds->share->num_peers; i++)
+  ds->info = GNUNET_new_array (ds->share->num_peers,
+                               struct DecryptPeerInfo);
+  for (unsigned int i = 0; i < ds->share->num_peers; i++)
   {
     ds->info[i].peer = ds->share->peers[i];
     ds->info[i].original_index = ds->share->original_indices[i];
   }
-
   insert_decrypt_element (ds);
-
-  GNUNET_CONSENSUS_conclude (ds->consensus, decrypt_conclude, ds);
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decrypting with %u peers\n",
+  GNUNET_CONSENSUS_conclude (ds->consensus,
+                             decrypt_conclude,
+                             ds);
+  GNUNET_SERVICE_client_continue (cs->client);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "decrypting with %u peers\n",
               ds->share->num_peers);
 }
 
@@ -2174,103 +2193,104 @@ init_crypto_constants (void)
 }
 
 
-static struct KeygenSession *
-keygen_session_get (struct GNUNET_SERVER_Client *client)
-{
-  struct KeygenSession *ks;
-  for (ks = keygen_sessions_head; NULL != ks; ks = ks->next)
-    if (ks->client == client)
-      return ks;
-  return NULL;
-}
-
-static struct DecryptSession *
-decrypt_session_get (struct GNUNET_SERVER_Client *client)
-{
-  struct DecryptSession *ds;
-  for (ds = decrypt_sessions_head; NULL != ds; ds = ds->next)
-    if (ds->client == client)
-      return ds;
-  return NULL;
-}
-
-
 /**
- * Clean up after a client has disconnected
- *
- * @param cls closure, unused
- * @param client the client to clean up after
- */
-static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  struct KeygenSession *ks;
-  struct DecryptSession *ds;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handling client disconnect\n");
-
-  ks = keygen_session_get (client);
-  if (NULL != ks)
-    keygen_session_destroy (ks);
-
-  ds = decrypt_session_get (client);
-  if (NULL != ds)
-    decrypt_session_destroy (ds);
-}
-
-
-/**
- * Process template requests.
+ * Initialize secretsharing service.
  *
  * @param cls closure
- * @param server the initialized server
  * @param c configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {handle_client_keygen, NULL, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE, 0},
-    {handle_client_decrypt, NULL, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT, 0},
-    {NULL, NULL, 0, 0}
-  };
   cfg = c;
-  srv = server;
   my_peer_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   if (NULL == my_peer_private_key)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not access host private key\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "could not access host private key\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   init_crypto_constants ();
-  if (GNUNET_OK != GNUNET_CRYPTO_get_peer_identity (cfg, &my_peer))
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_get_peer_identity (cfg,
+                                       &my_peer))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not retrieve host identity\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "could not retrieve host identity\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
 				 NULL);
 }
 
 
 /**
- * The main function for the template service.
+ * Callback called when a client connects to the service.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return @a c
  */
-int
-main (int argc, char *const *argv)
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "secretsharing",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+  struct ClientState *cs = GNUNET_new (struct ClientState);;
+
+  cs->client = c;
+  cs->mq = mq;
+  return cs;
 }
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  struct ClientState *cs = internal_cls;
+
+  if (NULL != cs->keygen_session)
+    keygen_session_destroy (cs->keygen_session);
+
+  if (NULL != cs->decrypt_session)
+    decrypt_session_destroy (cs->decrypt_session);
+  GNUNET_free (cs);
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("secretsharing",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (client_keygen,
+                        GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE,
+                        struct GNUNET_SECRETSHARING_CreateMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (client_decrypt,
+                        GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT,
+                        struct GNUNET_SECRETSHARING_DecryptRequestMessage,
+                        NULL),
+ GNUNET_MQ_handler_end ());

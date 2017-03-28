@@ -55,6 +55,8 @@ static struct GNUNET_HashCode session_id;
 
 static unsigned int peers_done = 0;
 
+static int dist_static;
+
 static unsigned *results_for_peer;
 
 /**
@@ -217,26 +219,45 @@ do_consensus ()
 {
   int unique_indices[replication];
   unsigned int i;
+  unsigned int j;
+  struct GNUNET_HashCode val;
+  struct GNUNET_SET_Element element;
 
-  for (i = 0; i < num_values; i++)
+  if (dist_static)
   {
-    unsigned int j;
-    struct GNUNET_HashCode val;
-    struct GNUNET_SET_Element element;
-
-    generate_indices (unique_indices);
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
-
-    element.data = &val;
-    element.size = sizeof (val);
-    for (j = 0; j < replication; j++)
+    for (i = 0; i < num_values; i++)
     {
-      int cid;
 
-      cid = unique_indices[j];
-      GNUNET_CONSENSUS_insert (consensus_handles[cid],
-                               &element,
-                               NULL, NULL);
+      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
+
+      element.data = &val;
+      element.size = sizeof (val);
+      for (j = 0; j < replication; j++)
+      {
+        GNUNET_CONSENSUS_insert (consensus_handles[j],
+                                 &element,
+                                 NULL, NULL);
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < num_values; i++)
+    {
+      generate_indices (unique_indices);
+      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
+
+      element.data = &val;
+      element.size = sizeof (val);
+      for (j = 0; j < replication; j++)
+      {
+        int cid;
+
+        cid = unique_indices[j];
+        GNUNET_CONSENSUS_insert (consensus_handles[cid],
+                                 &element,
+                                 NULL, NULL);
+      }
     }
   }
 
@@ -494,28 +515,55 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-      { 'n', "num-peers", NULL,
-        gettext_noop ("number of peers in consensus"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
-      { 'k', "value-replication", NULL,
-        gettext_noop ("how many peers (random selection without replacement) receive one value?"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &replication },
-      { 'x', "num-values", NULL,
-        gettext_noop ("number of values"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_values },
-      { 't', "timeout", NULL,
-        gettext_noop ("consensus timeout"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &conclude_timeout },
-      { 'd', "delay", NULL,
-        gettext_noop ("delay until consensus starts"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &consensus_delay },
-      { 's', "statistics", NULL,
-        gettext_noop ("write statistics to file"),
-        GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
-      { 'V', "verbose", NULL,
-        gettext_noop ("be more verbose (print received values)"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
+   struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+      GNUNET_GETOPT_option_uint ('n',
+                                     "num-peers",
+                                     NULL,
+                                     gettext_noop ("number of peers in consensus"),
+                                     &num_peers),
+
+      GNUNET_GETOPT_option_uint ('k',
+                                     "value-replication",
+                                     NULL,
+                                     gettext_noop ("how many peers (random selection without replacement) receive one value?"),
+                                     &replication),
+
+      GNUNET_GETOPT_option_uint ('x',
+                                     "num-values",
+                                     NULL,
+                                     gettext_noop ("number of values"),
+                                     &num_values),
+
+      GNUNET_GETOPT_option_relative_time ('t',
+                                              "timeout",
+                                              NULL,
+                                              gettext_noop ("consensus timeout"),
+                                              &conclude_timeout),
+
+
+      GNUNET_GETOPT_option_relative_time ('d',
+                                              "delay",
+                                              NULL,
+                                              gettext_noop ("delay until consensus starts"),
+                                              &consensus_delay),
+
+      GNUNET_GETOPT_option_filename ('s',
+                                     "statistics",
+                                     "FILENAME",
+                                     gettext_noop ("write statistics to file"),
+                                     &statistics_filename),
+
+      GNUNET_GETOPT_option_flag ('S',
+                                    "dist-static",
+                                    gettext_noop ("distribute elements to a static subset of good peers"),
+                                    &dist_static),
+
+      GNUNET_GETOPT_option_flag ('V',
+                                    "verbose",
+                                    gettext_noop ("be more verbose (print received values)"),
+                                    &verbose),
+
       GNUNET_GETOPT_OPTION_END
   };
   conclude_timeout = GNUNET_TIME_UNIT_SECONDS;

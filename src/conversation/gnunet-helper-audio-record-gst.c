@@ -352,9 +352,12 @@ main (int argc, char **argv)
         {
           if (-1 == ret)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Failed to write %u bytes at offset %u (total %u) in phase %d: %s\n",
-                (unsigned int) to_send - offset, (unsigned int) offset,
-                (unsigned int) (to_send + offset), phase, strerror (errno));
+                        "Failed to write %u bytes at offset %u (total %u) in phase %d: %s\n",
+                        (unsigned int) (to_send - offset),
+                        (unsigned int) offset,
+                        (unsigned int) (to_send + offset),
+                        phase,
+                        strerror (errno));
           abort_send = 1;
           break;
         }

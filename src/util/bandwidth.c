@@ -184,8 +184,8 @@ update_excess (struct GNUNET_BANDWIDTH_Tracker *av)
   }
   /* negative current_consumption means that we have savings */
   max_carry = ((uint64_t) av->available_bytes_per_s__) * av->max_carry_s__;
-  if (max_carry < GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    max_carry = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+  if (max_carry < GNUNET_MAX_MESSAGE_SIZE)
+    max_carry = GNUNET_MAX_MESSAGE_SIZE;
   if (max_carry > INT64_MAX)
     max_carry = INT64_MAX;
   left_bytes = current_consumption + max_carry;
@@ -224,10 +224,10 @@ update_excess (struct GNUNET_BANDWIDTH_Tracker *av)
 /**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
- * #GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.  So if the
+ * #GNUNET_MAX_MESSAGE_SIZE to accumulate.  So if the
  * bytes-per-second limit is so small that within 'max_carry_s' not
- * even #GNUNET_SERVER_MAX_MESSAGE_SIZE is allowed to accumulate, it is
- * ignored and replaced by #GNUNET_SERVER_MAX_MESSAGE_SIZE (which is in
+ * even #GNUNET_MAX_MESSAGE_SIZE is allowed to accumulate, it is
+ * ignored and replaced by #GNUNET_MAX_MESSAGE_SIZE (which is in
  * bytes).
  *
  * To stop notifications about updates and excess callbacks use
@@ -271,10 +271,10 @@ GNUNET_BANDWIDTH_tracker_init2 (struct GNUNET_BANDWIDTH_Tracker *av,
 /**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
- * #GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.  So if the
+ * #GNUNET_MAX_MESSAGE_SIZE to accumulate.  So if the
  * bytes-per-second limit is so small that within 'max_carry_s' not
- * even #GNUNET_SERVER_MAX_MESSAGE_SIZE is allowed to accumulate, it is
- * ignored and replaced by #GNUNET_SERVER_MAX_MESSAGE_SIZE (which is in
+ * even #GNUNET_MAX_MESSAGE_SIZE is allowed to accumulate, it is
+ * ignored and replaced by #GNUNET_MAX_MESSAGE_SIZE (which is in
  * bytes).
  *
  * @param av tracker to initialize
@@ -345,8 +345,8 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
     left_bytes = - av->consumption_since_last_update__;
     max_carry = ((unsigned long long) av->available_bytes_per_s__) *
                 av->max_carry_s__;
-    if (max_carry < GNUNET_SERVER_MAX_MESSAGE_SIZE)
-      max_carry = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+    if (max_carry < GNUNET_MAX_MESSAGE_SIZE)
+      max_carry = GNUNET_MAX_MESSAGE_SIZE;
     if (max_carry > INT64_MAX)
       max_carry = INT64_MAX;
     if (max_carry > left_bytes)

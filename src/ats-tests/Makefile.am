@@ -13,6 +13,7 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+if HAVE_EXPERIMENTAL
 if HAVE_LIBGLPK
  PERF_MLP = \
  perf_ats_mlp_transport_none \
@@ -21,6 +22,7 @@ if HAVE_LIBGLPK
  perf_ats_mlp_core_none \
  perf_ats_mlp_core_bandwidth \
  perf_ats_mlp_core_latency
+endif
 endif
 
 if HAVE_TESTING
@@ -140,7 +142,7 @@ perf_ats_proportional_transport_bandwidth_LDADD = \
 perf_ats_proportional_transport_bandwidth_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 perf_ats_proportional_core_latency_SOURCES = \
   perf_ats.c
 perf_ats_proportional_core_latency_LDADD = \

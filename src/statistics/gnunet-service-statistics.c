@@ -359,7 +359,7 @@ transmit (struct ClientEntry *ce,
 
   size = strlen (e->subsystem->service) + 1 +
     strlen (e->name) + 1;
-  GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (size < GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (m,
 			     size,
 			     GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);
@@ -776,7 +776,7 @@ check_watch (void *cls,
   size_t size;
   const char *service;
   const char *name;
-  
+
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
   if (size !=
       GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
@@ -870,7 +870,7 @@ handle_watch (void *cls,
 
 /**
  * Handle DISCONNECT-message.  Sync to disk and send
- * back a #GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM 
+ * back a #GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM
  * message.
  *
  * @param cls the `struct ClientEntry *`
@@ -984,6 +984,7 @@ client_disconnect_cb (void *cls,
       }
     }
   }
+  GNUNET_free (ce);
   if ( (0 == client_count) &&
        (GNUNET_YES == in_shutdown) )
     do_shutdown ();
@@ -992,7 +993,7 @@ client_disconnect_cb (void *cls,
 
 /**
  * We've read a `struct GNUNET_STATISTICS_SetMessage *` from
- * disk. Check that it is well-formed, and if so pass it to 
+ * disk. Check that it is well-formed, and if so pass it to
  * the handler for set messages.
  *
  * @param cls NULL

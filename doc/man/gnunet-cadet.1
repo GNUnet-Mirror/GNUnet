@@ -1,17 +1,52 @@
 .TH GNUNET\-CADET 1 "May 3, 2016" "GNUnet"
 
 .SH NAME
-gnunet\-cadet \- Print information about CADET tunnels and peers
+gnunet\-cadet \- Create or obtain information about CADET tunnels and peers
 
 .SH SYNOPSIS
 .B gnunet\-cadet
 .RI [ options ]
+.I [ \fIPEER_ID SHARED_SECRET\fR ]
 .br
 
 .SH DESCRIPTION
 \fBgnunet\-cadet\fP prints information about CADET tunnels and peers.
+It can also be used for command-line based CADET tunnels using the
+\fI-o SHARED_SECRET\fR option to open a port on a receiving PEER_ID
+and using "\fBgnunet\-cadet\fP \fIPEER_ID SHARED_SECRET\fR" to
+establish one circuit to that peer from any other peer. The receiving
+process will only accept one incoming circuit, but several commands
+using the same \fI-o\fR can be issued to satisfy multiple requests.
+For one-to-many communication \fBgnunet\-social\fP may be better
+suited, however.
 
-.SH OPTIONS
+.SH SPECIFIC OPTIONS
+.B
+.IP "\-C CONNECTION_ID,  \-\-connection=CONNECTION_ID"
+Provide information about a particular connection.
+.B
+.IP "\-d,  \-\-dump"
+Dump debug information to STDERR.
+.B
+.IP "\-e,  \-\-echo"
+Activate echo mode.
+.B
+.IP "\-o SHARED_SECRET,  \-\-open-port=SHARED_SECRET"
+Listen for connections using a shared secret among sender and recipient.
+.B
+.IP "\-p PEER_ID,  \-\-peer=PEER_ID"
+Provide information about a patricular peer.
+.B
+.IP "\-P,  \-\-peers"
+Provide information about all peers.
+.B
+.IP "\-t TUNNEL_ID,  \-\-tunnel=TUNNEL_ID"
+Provide information about a patricular tunnel.
+.B
+.IP "\-T,  \-\-tunnels"
+Provide information about all tunnels.
+
+.SH STANDARD OPTIONS
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
@@ -19,17 +54,11 @@ Use the configuration file FILENAME.
 .IP "\-h, \-\-help"
 Print short help on options.
 .B
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.B
 .IP "\-l LOGFILE, \-\-logfile=LOGFILE"
 Configure logging to write logs to LOGFILE.
 .B
-.IP "\-m, \-\-monitor"
-Provide information about all tunnels (continuously) NOT IMPLEMENTED.
-.B
-.IP "\-t OWNER\_ID:TUNNEL\_ID, \-\-tunnel=OWNER\_ID:TUNNEL\_ID"
-Provide information about a particular tunnel.
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.

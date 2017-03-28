@@ -31,11 +31,11 @@
 #include "gnunet_util_lib.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-os-network", __VA_ARGS__)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-os-network", syscall, filename)
 
 
-#if ! (HAVE_GETIFADDRS && HAVE_FREEIFADDRS)
+#if ! (HAVE_GETIFADDRS && HAVE_FREEIFADDRS) && !MINGW
 /**
  * Try to enumerate all network interfaces using 'ifconfig'.
  *

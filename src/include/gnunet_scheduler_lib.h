@@ -97,6 +97,84 @@ enum GNUNET_SCHEDULER_Reason
 
 
 /**
+ * Possible events on FDs, used as a bitmask.
+ * Modelled after GPollFD.
+ */
+enum GNUNET_SCHEDULER_EventType
+{
+
+  /**
+   * No event (useful for timeout).
+   */
+  GNUNET_SCHEDULER_ET_NONE = 0,
+
+  /**
+   * Data available for reading.
+   */
+  GNUNET_SCHEDULER_ET_IN = 1,
+
+  /**
+   * Buffer available for writing.
+   */
+  GNUNET_SCHEDULER_ET_OUT = 2,
+
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_ET_HUP = 4,
+
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_ET_ERR = 8,
+
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_ET_PRI = 16,
+
+  /**
+   *
+   */
+  GNUNET_SCHEDULER_ET_NVAL = 32
+
+};
+
+
+/**
+ * Information about an event relating to a file descriptor/socket.
+ */
+struct GNUNET_SCHEDULER_FdInfo
+{
+
+  /**
+   * GNUnet network socket the event is about, matches @a sock,
+   * NULL if this is about a file handle or if no network
+   * handle was given to the scheduler originally.
+   */
+  struct GNUNET_NETWORK_Handle *fd;
+
+  /**
+   * GNUnet file handle the event is about, matches @a sock,
+   * NULL if this is about a network socket or if no network
+   * handle was given to the scheduler originally.
+   */ 
+  struct GNUNET_DISK_FileHandle *fh;
+
+  /**
+   * Type of the event that was generated related to @e sock.
+   */
+  enum GNUNET_SCHEDULER_EventType et;
+
+  /**
+   * Underlying OS handle the event was about.
+   */
+  int sock;
+
+};
+
+
+/**
  * Context information passed to each scheduler task.
  */
 struct GNUNET_SCHEDULER_TaskContext
@@ -107,16 +185,29 @@ struct GNUNET_SCHEDULER_TaskContext
   enum GNUNET_SCHEDULER_Reason reason;
 
   /**
-   * Set of file descriptors ready for reading;
-   * note that additional bits may be set
-   * that were not in the original request
+   * Length of the following array.
+   */ 
+  unsigned int fds_len;
+
+  /**
+   * Array of length @e fds_len with information about ready FDs.
+   * Note that we use the same format regardless of the internal
+   * event loop that was used.  The given array should only contain
+   * information about file descriptors relevant to the current task.
+   */
+  const struct GNUNET_SCHEDULER_FdInfo *fds;  
+
+  /**
+   * Set of file descriptors ready for reading; note that additional
+   * bits may be set that were not in the original request.
+   * @deprecated
    */
   const struct GNUNET_NETWORK_FDSet *read_ready;
 
   /**
-   * Set of file descriptors ready for writing;
-   * note that additional bits may be set
-   * that were not in the original request.
+   * Set of file descriptors ready for writing; note that additional
+   * bits may be set that were not in the original request.
+   * @deprecated
    */
   const struct GNUNET_NETWORK_FDSet *write_ready;
 
@@ -124,13 +215,152 @@ struct GNUNET_SCHEDULER_TaskContext
 
 
 /**
+ * Function used by event-loop implementations to signal the scheduler
+ * that a particular @a task is ready due to an event of type @a et.
+ *
+ * This function will then queue the task to notify the application
+ * that the task is ready (with the respective priority).
+ *
+ * @param task the task that is ready
+ * @param et information about why the task is ready
+ */
+void
+GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
+			     enum GNUNET_SCHEDULER_EventType et);
+
+
+/**
+ * Handle to the scheduler's state to be used by the driver.
+ */
+struct GNUNET_SCHEDULER_Handle;
+
+
+/**
+ * Function called by the driver to tell the scheduler to run some of
+ * the tasks that are ready.  This function may return even though
+ * there are tasks left to run just to give other tasks a chance as
+ * well.  If we return #GNUNET_YES, the driver should call this
+ * function again as soon as possible, while if we return #GNUNET_NO
+ * it must block until the operating system has more work as the
+ * scheduler has no more work to do right now.
+ *
+ * @param sh scheduler handle that was given to the `loop`
+ * @return #GNUNET_OK if there are more tasks that are ready,
+ *          and thus we would like to run more (yield to avoid 
+ *          blocking other activities for too long)
+ *         #GNUNET_NO if we are done running tasks (yield to block)
+ *         #GNUNET_SYSERR on error
+ */
+int
+GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh);
+
+
+/**
+ * API a driver has to implement for
+ * #GNUNET_SCHEDULER_run_with_driver().
+ */
+struct GNUNET_SCHEDULER_Driver
+{
+
+  /**
+   * Closure to pass to the functions in this struct.
+   */
+  void *cls;
+
+  /**
+   * Add a @a task to be run if the conditions given
+   * in @a fdi are satisfied.
+   *
+   * @param cls closure
+   * @param task task to add
+   * @param fdi conditions to watch for
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+   *   (i.e. @a fdi too high or invalid)
+   */
+  int
+  (*add)(void *cls,
+	 struct GNUNET_SCHEDULER_Task *task,
+	 struct GNUNET_SCHEDULER_FdInfo *fdi);
+
+  /**
+   * Delete a @a task from the set of tasks to be run.
+   *
+   * @param cls closure
+   * @param task task to delete
+   * @param fdi conditions to watch for (must match @e add call)
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+   *   (i.e. @a task or @a fdi do not match prior @e add call)
+   */
+  int
+  (*del)(void *cls,
+	 struct GNUNET_SCHEDULER_Task *task,
+	 const struct GNUNET_SCHEDULER_FdInfo *fdi);
+
+  /**
+   * Set time at which we definitively want to get a wakeup call.
+   *
+   * @param cls closure
+   * @param dt time when we want to wake up next
+   */
+  void
+  (*set_wakeup)(void *cls,
+		struct GNUNET_TIME_Absolute dt);
+
+  /**
+   * Event loop's "main" function, to be called from
+   * #GNUNET_SCHEDULER_run_with_driver() to actually
+   * launch the loop.
+   *
+   * @param cls closure
+   * @param sh scheduler handle to pass to
+   *     #GNUNET_SCHEDULER_run_from_driver()
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+   */
+  int
+  (*loop)(void *cls,
+	  struct GNUNET_SCHEDULER_Handle *sh);
+  
+};
+
+
+/**
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 typedef void
 (*GNUNET_SCHEDULER_TaskCallback) (void *cls);
+
+
+/**
+ * Initialize and run scheduler.  This function will return when all
+ * tasks have completed.  On systems with signals, receiving a SIGTERM
+ * (and other similar signals) will cause #GNUNET_SCHEDULER_shutdown
+ * to be run after the active task is complete.  As a result, SIGTERM
+ * causes all shutdown tasks to be scheduled with reason
+ * #GNUNET_SCHEDULER_REASON_SHUTDOWN.  (However, tasks added
+ * afterwards will execute normally!).  Note that any particular
+ * signal will only shut down one scheduler; applications should
+ * always only create a single scheduler.
+ *
+ * @param driver drive to use for the event loop
+ * @param task task to run first (and immediately)
+ * @param task_cls closure of @a task
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ */
+int
+GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
+				  GNUNET_SCHEDULER_TaskCallback task,
+				  void *task_cls);
+
+
+/**
+ * Obtain the driver for using select() as the event loop.
+ *
+ * @return NULL on error
+ */
+const struct GNUNET_SCHEDULER_Driver *
+GNUNET_SCHEDULER_driver_select (void);
 
 
 /**
@@ -571,7 +801,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
  * Sets the select function to use in the scheduler (scheduler_select).
  *
  * @param new_select new select function to use (NULL to reset to default)
- * @param new_select_cls closure for 'new_select'
+ * @param new_select_cls closure for @a new_select
  */
 void
 GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,

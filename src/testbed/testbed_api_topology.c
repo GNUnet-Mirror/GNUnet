@@ -1147,9 +1147,11 @@ gen_topo_from_file (struct TopologyContext *tc,
              other_peer_id);
       while (('\n' != data[offset]) && ('|' != data[offset]) && (offset < fs))
         offset++;
-      if ('\n' == data[offset])
+      if ( (offset < fs) &&
+           ('\n' == data[offset]) )
         state = PEER_INDEX;
-      else if ('|' == data[offset])
+      else if ( (offset < fs) &&
+                ('|' == data[offset]) )
       {
         state = OTHER_PEER_INDEX;
         offset++;
@@ -1491,7 +1493,7 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
     {
       if (NULL != topology)
         *topology = (enum GNUNET_TESTBED_TopologyOption) cnt;
-      GNUNET_assert (GNUNET_TESTBED_TOPOLOGY_OPTION_END != *topology);
+      GNUNET_assert (GNUNET_TESTBED_TOPOLOGY_OPTION_END != (enum GNUNET_TESTBED_TopologyOption) cnt);
       return GNUNET_YES;
     }
   }

@@ -41,7 +41,7 @@ static unsigned int threshold = 2;
 /**
  * Should we try to decrypt a value after the key generation?
  */
-static unsigned int decrypt = GNUNET_NO;
+static int decrypt = GNUNET_NO;
 
 /**
  * When would we like to see the operation finished?
@@ -88,7 +88,7 @@ static unsigned int num_decrypted;
 
 static struct GNUNET_HashCode session_id;
 
-static int verbose;
+static unsigned int verbose;
 
 static struct GNUNET_SECRETSHARING_Plaintext reference_plaintext;
 
@@ -602,26 +602,41 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-      { 'n', "num-peers", NULL,
-        gettext_noop ("number of peers in consensus"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
-      { 'D', "delay", NULL,
-        gettext_noop ("dkg start delay"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &delay },
-      { 't', "timeout", NULL,
-        gettext_noop ("dkg timeout"),
-        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &timeout },
-      { 'k', "threshold", NULL,
-        gettext_noop ("threshold"),
-        GNUNET_YES, &GNUNET_GETOPT_set_uint, &threshold },
-      { 'd', "decrypt", NULL,
-        gettext_noop ("also profile decryption"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &decrypt },
-      { 'V', "verbose", NULL,
-        gettext_noop ("be more verbose (print received values)"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
-      GNUNET_GETOPT_OPTION_END
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_uint ('n',
+                                   "num-peers",
+                                   NULL,
+                                   gettext_noop ("number of peers in consensus"),
+                                   &num_peers),
+
+    GNUNET_GETOPT_option_relative_time ('D',
+                                            "delay",
+                                            NULL,
+                                            gettext_noop ("dkg start delay"),
+                                            &delay),
+
+    GNUNET_GETOPT_option_relative_time ('t',
+                                            "timeout",
+                                            NULL,
+                                            gettext_noop ("dkg timeout"),
+                                            &timeout),
+
+    GNUNET_GETOPT_option_uint ('k',
+                                   "threshold",
+                                   NULL,
+                                   gettext_noop ("threshold"),
+                                   &threshold),
+    
+    GNUNET_GETOPT_option_flag ('d',
+                                  "descrypt",
+                                  gettext_noop ("also profile decryption"),
+                                  &decrypt),
+
+
+    GNUNET_GETOPT_option_verbose (&verbose),
+
+    GNUNET_GETOPT_OPTION_END
   };
   delay = GNUNET_TIME_UNIT_ZERO;
   timeout = GNUNET_TIME_UNIT_MINUTES;

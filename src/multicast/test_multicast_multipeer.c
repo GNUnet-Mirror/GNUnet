@@ -35,7 +35,7 @@
 
 #define NUM_PEERS 2
 
-static struct GNUNET_TESTBED_Operation *op0; 
+static struct GNUNET_TESTBED_Operation *op0;
 static struct GNUNET_TESTBED_Operation *op1;
 static struct GNUNET_TESTBED_Operation *pi_op0;
 static struct GNUNET_TESTBED_Operation *pi_op1;
@@ -107,7 +107,6 @@ shutdown_task (void *cls)
 static void
 timeout_task (void *cls)
 {
-  timeout_tid = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      "Timeout!\n");
   result = GNUNET_SYSERR;
@@ -115,19 +114,34 @@ timeout_task (void *cls)
 }
 
 
-static void 
+static void
 member_join_request (void *cls,
                      const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
                      const struct GNUNET_MessageHeader *join_msg,
                      struct GNUNET_MULTICAST_JoinHandle *jh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Member sent a join request.\n");
-  
+
+}
+
+int notify (void *cls,
+            size_t *data_size,
+            void *data)
+{
+
+  char text[] = "ping";
+  *data_size = strlen(text)+1;
+  GNUNET_memcpy(data, text, *data_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "Member sents message to origin: %s\n", text);
+
+  return GNUNET_YES;
 }
 
 
-static void 
+static void
 member_join_decision (void *cls,
                       int is_admitted,
                       const struct GNUNET_PeerIdentity *peer,
@@ -135,57 +149,70 @@ member_join_decision (void *cls,
                       const struct GNUNET_PeerIdentity *relays,
                       const struct GNUNET_MessageHeader *join_msg)
 {
+  struct GNUNET_MULTICAST_MemberTransmitHandle *req;
+  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
               "Member received a decision from origin: %s\n", (GNUNET_YES == is_admitted)?"accepted":"rejected");
   
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown ();
+  if (GNUNET_YES == is_admitted)
+  {
+    req = GNUNET_MULTICAST_member_to_origin (member,
+                                             0,
+                                             notify,
+                                             NULL);
+    
+  }
 }
 
-static void 
+static void
 member_replay_frag ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "member replay frag...\n");
 }
 
-static void 
-member_replay_msg () 
+static void
+member_replay_msg ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "member replay msg...\n");
 }
 
-static void 
-member_message () 
+static void
+member_message ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "member message...\n");
+
+  // FIXME: not finished here
+  result = GNUNET_YES;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
-static void 
+static void
 origin_join_request (void *cls,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
                  const struct GNUNET_MessageHeader *join_msg,
-                 struct GNUNET_MULTICAST_JoinHandle *jh) 
+                 struct GNUNET_MULTICAST_JoinHandle *jh)
 {
   struct GNUNET_MessageHeader *join_resp;
 
   uint8_t data_size = ntohs (join_msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Dizzy: Mh, got a join request...\n");
+              "origin got a join request...\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "'%s'\n", (char *)&join_msg[1]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Dizzy: Oh, it's Bird! Let's get him in.\n");
+              "origin receives: '%s'\n", (char *)&join_msg[1]);
 
-  char data[] = "Hi, Bird. Come in!";
+  char data[] = "Come in!";
   data_size = strlen (data) + 1;
   join_resp = GNUNET_malloc (sizeof (join_resp) + data_size);
   join_resp->size = htons (sizeof (join_resp) + data_size);
   join_resp->type = htons (123);
   GNUNET_memcpy (&join_resp[1], data, data_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "origin sends: '%s'\n", data);
 
   GNUNET_MULTICAST_join_decision (jh,
                                   GNUNET_YES,
@@ -196,39 +223,64 @@ origin_join_request (void *cls,
   result = GNUNET_OK;
 }
 
-static void 
+static void
 origin_replay_frag (void *cls,
-                const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
-                uint64_t fragment_id,
-                uint64_t flags,
-                struct GNUNET_MULTICAST_ReplayHandle *rh)
+                    const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
+                    uint64_t fragment_id,
+                    uint64_t flags,
+                    struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay fraq msg\n");
 }
 
-static void 
+static void
 origin_replay_msg (void *cls,
-               const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
-               uint64_t message_id,
-               uint64_t fragment_offset,
-               uint64_t flags,
-               struct GNUNET_MULTICAST_ReplayHandle *rh) 
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
+                   uint64_t message_id,
+                   uint64_t fragment_offset,
+                   uint64_t flags,
+                   struct GNUNET_MULTICAST_ReplayHandle *rh) 
 {
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay msg\n");
 }
 
+
+int
+origin_notify (void *cls, 
+               size_t *data_size, 
+               void *data)
+{
+  char text[] = "pong";
+  *data_size = strlen(text)+1;
+  memcpy(data, text, *data_size); 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends (to all): %s\n", text);
+
+  return GNUNET_YES; 
+}
+
+
 static void
 origin_request (void *cls,
-            const struct GNUNET_MULTICAST_RequestHeader *req)
+                const struct GNUNET_MULTICAST_RequestHeader *req)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin request msg\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin receives: %s\n", (char *)&req[1]);
   
+  if (0 != strncmp ("ping", (char *)&req[1], 4)) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "origin didn't reveice a correct request");
+  }
+
+  GNUNET_MULTICAST_origin_to_all (origin,
+                                  0,
+                                  0,
+                                  origin_notify,
+                                  NULL);
 }
 
 static void
 origin_message (void *cls,
-            const struct GNUNET_MULTICAST_MessageHeader *msg) 
+                const struct GNUNET_MULTICAST_MessageHeader *msg) 
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin message msg\n");
 }
@@ -240,11 +292,11 @@ service_connect1 (void *cls,
                   void *ca_result,
                   const char *emsg)
 {
-  member = ca_result; 
+  member = ca_result;
 
   if (NULL != member)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to multicast service of member\n");
-  else 
+  else
     result = GNUNET_SYSERR;
 }
 
@@ -264,21 +316,21 @@ multicast_ca1 (void *cls,
                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_MessageHeader *join_msg;
-  
+
   // Get members keys
   member_key = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_CRYPTO_ecdsa_key_get_public (member_key, &member_pub_key);
   
-  char data[] = "Whut's up, Dizzy!";
+  char data[] = "Hi, can I enter?";
   uint8_t data_size = strlen (data) + 1;
   join_msg = GNUNET_malloc (sizeof (join_msg) + data_size);
   join_msg->size = htons (sizeof (join_msg) + data_size);
   join_msg->type = htons (123);
   GNUNET_memcpy (&join_msg[1], data, data_size);
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Members tries to join multicast group\n");
-  
+
   return GNUNET_MULTICAST_member_join (cfg,
                                        &group_pub_key,
                                        member_key,
@@ -301,13 +353,13 @@ peer_information_cb (void *cls,
                      const struct GNUNET_TESTBED_PeerInformation *pinfo,
                      const char *emsg)
 {
-  int i = (int) cls;
+  int i = (int) (long) cls;
 
   if (NULL == pinfo) {
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
-  
+
   peer_id[i] = pinfo->result.id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -376,13 +428,13 @@ service_connect0 (void *cls,
  * Function run when service multicast has started and is providing us
  * with a configuration file.
  */
-static void * 
+static void *
 multicast_ca0 (void *cls,
                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   group_key = GNUNET_CRYPTO_eddsa_key_create ();
   GNUNET_CRYPTO_eddsa_key_get_public (group_key, &group_pub_key);
-              
+
   return GNUNET_MULTICAST_origin_start (cfg,
                                         group_key,
                                         0,
@@ -433,7 +485,7 @@ testbed_master (void *cls,
      topology (FIXME)  */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connected to testbed_master()\n");
-              
+
   peers = p;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -451,9 +503,9 @@ testbed_master (void *cls,
                                         NULL);                   /* closure for the above two callbacks */
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
-  
+
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40),
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 48),
 					      &timeout_task, NULL);
 }
 

@@ -91,7 +91,7 @@ get_size (unsigned int iter)
 #ifndef LINUX
   /* FreeBSD/OSX etc. Unix DGRAMs do not work
    * with large messages */
-  if (0 == strcmp ("unix", test_plugin))
+  if (0 == strcmp ("unix", ccc->test_plugin))
     ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 1024);
 #endif
   ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 60000);
@@ -217,7 +217,7 @@ notify_receive (void *cls,
 {
   static int n;
   unsigned int s;
-  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char cbuf[GNUNET_MAX_MESSAGE_SIZE - 1];
 
   if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
     return;
@@ -228,10 +228,10 @@ notify_receive (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
-                ntohl (hdr->num),
+                (uint32_t) ntohl (hdr->num),
                 s,
                 ntohs (hdr->header.size),
-                ntohl (hdr->num));
+                (uint32_t) ntohl (hdr->num));
     ccc->global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -247,7 +247,7 @@ notify_receive (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u with bits %u, but body did not match\n",
-                ntohl (hdr->num),
+                (uint32_t) ntohl (hdr->num),
                 (unsigned char) ntohl (hdr->num));
     ccc->global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
@@ -258,7 +258,7 @@ notify_receive (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Got message %u of size %u\n",
-                ntohl (hdr->num),
+                (uint32_t) ntohl (hdr->num),
                 ntohs (hdr->header.size));
   }
 #endif
@@ -267,7 +267,7 @@ notify_receive (void *cls,
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Message id %u is bigger than maxmimum number of messages %u expected\n",
-                  ntohl (hdr->num),
+                  (uint32_t) ntohl (hdr->num),
                   TOTAL_MSGS / xhdr);
   }
   if (0 == (n % (TOTAL_MSGS / xhdr / 100)))

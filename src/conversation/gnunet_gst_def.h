@@ -65,20 +65,23 @@
 #include <gst/app/gstappsink.h>
 
 // sockets
+#ifndef MINGW
+#if HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
 #include <sys/socket.h>
-#include <fcntl.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#endif
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+#include <fcntl.h>
 
 
 //glib stuff
 //#include <glib.h>
 #include <glib-2.0/glib/gprintf.h>
-#include <glib-unix.h>
+//#include <glib-unix.h>
 
 // static struct AudioMessage *audio_message;
 
@@ -91,7 +94,7 @@ struct GNUNET_gstData {
 
   // things
   struct AudioMessage *audio_message;
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  struct GNUNET_MessageStreamTokenizer *stdin_mst;
   GstElement *appsrc;
   GstElement *appsink;
   //settings

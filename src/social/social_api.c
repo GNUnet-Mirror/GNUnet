@@ -2110,7 +2110,7 @@ GNUNET_SOCIAL_place_msg_proc_set (struct GNUNET_SOCIAL_Place *plc,
   GNUNET_assert (NULL != method_prefix);
   struct MsgProcRequest *mpreq;
   uint16_t method_size = strnlen (method_prefix,
-                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  GNUNET_MAX_MESSAGE_SIZE
                                   - sizeof (*mpreq)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
 
@@ -2159,7 +2159,7 @@ place_history_replay (struct GNUNET_SOCIAL_Place *plc,
 
   GNUNET_assert (NULL != method_prefix);
   uint16_t method_size = strnlen (method_prefix,
-                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  GNUNET_MAX_MESSAGE_SIZE
                                   - sizeof (*req)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
 
@@ -2285,7 +2285,7 @@ place_state_get (struct GNUNET_SOCIAL_Place *plc,
   look->op_id = GNUNET_OP_add (plc->op, &op_recv_state_result, look, NULL);
 
   GNUNET_assert (NULL != name);
-  size_t name_size = strnlen (name, GNUNET_SERVER_MAX_MESSAGE_SIZE
+  size_t name_size = strnlen (name, GNUNET_MAX_MESSAGE_SIZE
                               - sizeof (*req)) + 1;
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg_extra (req, name_size, type);
@@ -2426,7 +2426,7 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
   size_t relay_size = relay_count * sizeof (*relays);
   size_t payload_size = name_size + password_size + relay_size;
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (*preq) + payload_size)
+  if (GNUNET_MAX_MESSAGE_SIZE < sizeof (*preq) + payload_size)
     return GNUNET_SYSERR;
 
   struct GNUNET_MQ_Envelope *
@@ -2506,7 +2506,7 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
   struct ZoneAddNymRequest *nreq;
 
   size_t name_size = strlen (name) + 1;
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (*nreq) + name_size)
+  if (GNUNET_MAX_MESSAGE_SIZE < sizeof (*nreq) + name_size)
     return GNUNET_SYSERR;
 
   struct GNUNET_MQ_Envelope *

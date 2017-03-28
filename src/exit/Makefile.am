@@ -30,11 +30,11 @@ endif
 
 libexec_PROGRAMS = \
   gnunet-daemon-exit \
-  $(EXITBIN) 
+  $(EXITBIN)
 
 if MINGW
   gnunet_helper_exit_LDFLAGS = \
-    -no-undefined -Wl,--export-all-symbols 
+    -no-undefined -Wl,--export-all-symbols
 
   gnunet_helper_exit_LDADD = \
     -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
@@ -47,7 +47,7 @@ else
    gnunet-helper-exit.c
 endif
 gnunet_daemon_exit_SOURCES = \
- gnunet-daemon-exit.c exit.h 
+ gnunet-daemon-exit.c exit.h
 gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/dht/libgnunetdht.la \

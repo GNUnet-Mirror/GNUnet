@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,10 +22,10 @@
  * @file cadet/gnunet-service-cadet_dht.h
  * @brief cadet service; dealing with DHT requests and results
  * @author Bartlomiej Polot
+ * @author Christian Grothoff
  *
- * All functions in this file should use the prefix GMD (Gnunet Cadet Dht)
+ * All functions in this file should use the prefix GCD (Gnunet Cadet Dht)
  */
-
 #ifndef GNUNET_SERVICE_CADET_DHT_H
 #define GNUNET_SERVICE_CADET_DHT_H
 
@@ -40,23 +40,11 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+/**
+ * Handle for DHT search operation.
+ */
 struct GCD_search_handle;
 
-
-/**
- * Callback called on each path found over the DHT.
- *
- * @param cls Closure.
- * @param path An unchecked, unoptimized path to the target node.
- *             After callback will no longer be valid!
- */
-typedef void
-(*GCD_search_callback) (void *cls,
-                        const struct CadetPeerPath *path);
-
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
 
 /**
  * Initialize the DHT subsystem.
@@ -66,6 +54,7 @@ typedef void
 void
 GCD_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
+
 /**
  * Shut down the DHT subsystem.
  */
@@ -73,13 +62,31 @@ void
 GCD_shutdown (void);
 
 
+/**
+ * Function called by the HELLO subsystem whenever OUR hello
+ * changes. Re-triggers the DHT PUT immediately.
+ */
+void
+GCD_hello_update (void);
+
+/**
+ * Search DHT for paths to @a peeR_id
+ *
+ * @param peer_id peer to search for
+ * @return handle to abort search
+ */
 struct GCD_search_handle *
-GCD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GCD_search_callback callback, void *cls);
+GCD_search (const struct GNUNET_PeerIdentity *peer_id);
 
 
+/**
+ * Stop DHT search started with #GCD_search().
+ *
+ * @param h handle to search to stop
+ */
 void
 GCD_search_stop (struct GCD_search_handle *h);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -88,6 +95,6 @@ GCD_search_stop (struct GCD_search_handle *h);
 }
 #endif
 
-/* ifndef GNUNET_CADET_SERVICE_LOCAL_H */
+/* ifndef GNUNET_CADET_SERVICE_DHT_H */
 #endif
-/* end of gnunet-cadet-service_LOCAL.h */
+/* end of gnunet-service-cadet_dht.h */

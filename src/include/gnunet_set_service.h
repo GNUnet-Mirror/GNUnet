@@ -126,7 +126,7 @@ enum GNUNET_SET_Status
 
   /**
    * Element should be added to the result set
-   * of the remove peer, i.e. the remote peer is
+   * of the remote peer, i.e. the remote peer is
    * missing an element.
    *
    * Only applies to #GNUNET_SET_RESULT_SYMMETRIC
@@ -151,6 +151,7 @@ enum GNUNET_SET_Status
    */
   GNUNET_SET_STATUS_DONE
 };
+
 
 
 /**
@@ -181,7 +182,7 @@ enum GNUNET_SET_ResultMode
   GNUNET_SET_RESULT_REMOVED,
 
   /**
-   * Client gets only elements that have been removed from the set.
+   * Client gets only elements that have been added to the set.
    *
    * Only supported for set union.
    */
@@ -212,6 +213,58 @@ struct GNUNET_SET_Element
 
 
 /**
+ * Possible options to pass to a set operation.
+ *
+ * Used as tag for struct #GNUNET_SET_Option.
+ */
+enum GNUNET_SET_OptionType
+{
+  /**
+   * List terminator.
+   */
+  GNUNET_SET_OPTION_END=0,
+  /**
+   * Fail set operations when the other peer shows weird behavior
+   * that might by a Byzantine fault.
+   *
+   * For set union, 'v.num' is a lower bound on elements
+   * that the other peer must have in common with us.
+   */
+  GNUNET_SET_OPTION_BYZANTINE=1,
+  /**
+   * Do not use the optimized set operation, but send full sets.
+   * Might trigger Byzantine fault detection.
+   */
+  GNUNET_SET_OPTION_FORCE_FULL=2,
+  /**
+   * Only use optimized set operations, even though for this
+   * particular set operation they might be much slower.
+   * Might trigger Byzantine fault detection.
+   */
+  GNUNET_SET_OPTION_FORCE_DELTA=4,
+};
+
+
+/**
+ * Option for set operations.
+ */
+struct GNUNET_SET_Option
+{
+  /**
+   * Type of the option.
+   */
+  enum GNUNET_SET_OptionType type;
+
+  /**
+   * Value for the option, only used with some options.
+   */
+  union {
+    uint64_t num;
+  } v;
+};
+
+
+/**
  * Continuation used for some of the set operations
  *
  * @param cls closure
@@ -226,11 +279,13 @@ typedef void
  *
  * @param cls closure
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status see `enum GNUNET_SET_Status`
  */
 typedef void
 (*GNUNET_SET_ResultIterator) (void *cls,
                               const struct GNUNET_SET_Element *element,
+                              uint64_t current_size,
                               enum GNUNET_SET_Status status);
 
 /**
@@ -367,6 +422,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
                     const struct GNUNET_HashCode *app_id,
                     const struct GNUNET_MessageHeader *context_msg,
                     enum GNUNET_SET_ResultMode result_mode,
+                    struct GNUNET_SET_Option options[],
                     GNUNET_SET_ResultIterator result_cb,
                     void *result_cls);
 
@@ -420,6 +476,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
+                   struct GNUNET_SET_Option options[],
                    GNUNET_SET_ResultIterator result_cb,
                    void *result_cls);
 

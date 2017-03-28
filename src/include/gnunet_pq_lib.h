@@ -15,11 +15,11 @@
 */
 /**
  * @file include/gnunet_pq_lib.h
- * @brief helper functions for DB interactions
+ * @brief helper functions for Postgres DB interactions
  * @author Christian Grothoff
  */
-#ifndef GNUNET_PQ_LIB_H_
-#define GNUNET_PQ_LIB_H_
+#ifndef GNUNET_PQ_LIB_H
+#define GNUNET_PQ_LIB_H
 
 #include <libpq-fe.h>
 #include "gnunet_util_lib.h"
@@ -314,20 +314,6 @@ GNUNET_PQ_result_spec_fixed_size (const char *name,
  * @return array entry for the result specification to use
  */
 #define GNUNET_PQ_result_spec_auto_from_type(name, dst) GNUNET_PQ_result_spec_fixed_size (name, (dst), sizeof (*(dst)))
-
-
-/**
- * Variable-size result expected.
- *
- * @param name name of the field in the table
- * @param[out] dst where to store the result, allocated
- * @param[out] sptr where to store the size of @a dst
- * @return array entry for the result specification to use
- */
-struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size (const char *name,
-				     void **dst,
-				     size_t *sptr);
 
 
 /**

@@ -1,10 +1,8 @@
-gnunet-service-dht-xvine
 gnunet-dht-get
 gnunet-dht-monitor
 gnunet-dht-profiler
 gnunet-dht-put
 gnunet-service-dht
-gnunet-service-dht-whanau
 test_dht_2dtorus
 test_dht_api
 test_dht_line

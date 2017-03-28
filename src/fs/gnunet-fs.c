@@ -43,7 +43,7 @@ static int list_indexed_files;
 /**
  * Option -v given?
  */
-static int verbose;
+static unsigned int verbose;
 
 
 /**
@@ -112,11 +112,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'i', "list-indexed", NULL,
-     gettext_noop ("print a list of all indexed files"), 0,
-     &GNUNET_GETOPT_set_one, &list_indexed_files},
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_flag ('i',
+                                  "list-indexed",
+                                  gettext_noop ("print a list of all indexed files"),
+                                  &list_indexed_files),
+
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
 

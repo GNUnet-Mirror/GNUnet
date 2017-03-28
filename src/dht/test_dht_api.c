@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2015 GNUnet e.V.
+     Copyright (C) 2009, 2015, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,6 +20,7 @@
 /**
  * @file dht/test_dht_api.c
  * @brief base test case for dht api
+ * @author Christian Grothoff
  *
  * This test case tests DHT api to DUMMY DHT service communication.
  */
@@ -33,116 +34,70 @@
 /**
  * How long until we really give up on a particular testcase portion?
  */
-#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
-
-/**
- * How long until we give up on any particular operation (and retry)?
- */
-#define BASE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
-
-#define MTYPE 12345
-
-
-struct RetryContext
-{
-  /**
-   * When to really abort the operation.
-   */
-  struct GNUNET_TIME_Absolute real_timeout;
-
-  /**
-   * What timeout to set for the current attempt (increases)
-   */
-  struct GNUNET_TIME_Relative next_timeout;
-
-  /**
-   * The task identifier of the retry task, so it can be cancelled.
-   */
-  struct GNUNET_SCHEDULER_Task * retry_task;
-
-};
-
+#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 static struct GNUNET_DHT_Handle *dht_handle;
 
 static struct GNUNET_DHT_GetHandle *get_handle;
 
-struct RetryContext retry_context;
+static struct GNUNET_DHT_PutHandle *put_handle;
 
 static int ok = 1;
 
-static struct GNUNET_SCHEDULER_Task * die_task;
-
-
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
+static struct GNUNET_SCHEDULER_Task *die_task;
 
 
 static void
-end (void *cls)
+do_shutdown (void *cls)
 {
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task = NULL;
+  if (NULL != die_task)
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = NULL;
+  }
+  if (NULL != put_handle)
+  {
+    GNUNET_DHT_put_cancel (put_handle);
+    put_handle = NULL;
+  }
+  if (NULL != get_handle)
+  {
+    GNUNET_DHT_get_stop (get_handle);
+    get_handle = NULL;
+  }
   GNUNET_DHT_disconnect (dht_handle);
   dht_handle = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DHT disconnected, returning success!\n");
-  ok = 0;
 }
 
 
 static void
-end_badly ()
+end_badly (void *cls)
 {
-  /* do work here */
-  FPRINTF (stderr, "%s",  "Ending on an unhappy note.\n");
-  if (get_handle != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping get request!\n");
-    GNUNET_DHT_get_stop (get_handle);
-  }
-  if (retry_context.retry_task != NULL)
-    GNUNET_SCHEDULER_cancel (retry_context.retry_task);
-  GNUNET_DHT_disconnect (dht_handle);
-  dht_handle = NULL;
+  die_task = NULL;
+  FPRINTF (stderr,
+           "%s",
+           "Ending on an unhappy note.\n");
+  GNUNET_SCHEDULER_shutdown ();
   ok = 1;
 }
 
 
-/**
- * Signature of the main function of a task.
- *
- * @param cls closure
- */
 static void
-test_get_stop (void *cls)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Called test_get_stop!\n");
-  GNUNET_assert (NULL != dht_handle);
-  GNUNET_DHT_get_stop (get_handle);
-  get_handle = NULL;
-  GNUNET_SCHEDULER_add_now (&end, NULL);
-}
-
-
-static void
-test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                   const struct GNUNET_HashCode * key,
+test_get_iterator (void *cls,
+                   struct GNUNET_TIME_Absolute exp,
+                   const struct GNUNET_HashCode *key,
                    const struct GNUNET_PeerIdentity *get_path,
                    unsigned int get_path_length,
                    const struct GNUNET_PeerIdentity *put_path,
                    unsigned int put_path_length,
                    enum GNUNET_BLOCK_Type type,
-                   size_t size, const void *data)
+                   size_t size,
+                   const void *data)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_get_iterator called (we got a result), stopping get request!\n");
-  GNUNET_SCHEDULER_add_now (&test_get_stop,
-                            NULL);
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 0;
 }
 
 
@@ -153,31 +108,33 @@ test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param success result of PUT
  */
 static void
-test_get (void *cls, int success)
+test_get (void *cls,
+          int success)
 {
   struct GNUNET_HashCode hash;
 
+  put_handle = NULL;
   memset (&hash,
           42,
           sizeof (struct GNUNET_HashCode));
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called test_get!\n");
   GNUNET_assert (dht_handle != NULL);
-  retry_context.real_timeout = GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT);
-  retry_context.next_timeout = BASE_TIMEOUT;
+  get_handle = GNUNET_DHT_get_start (dht_handle,
+                                     GNUNET_BLOCK_TYPE_TEST,
+                                     &hash,
+                                     1,
+                                     GNUNET_DHT_RO_NONE,
+                                     NULL,
+                                     0,
+                                     &test_get_iterator,
+                                     NULL);
 
-  get_handle =
-      GNUNET_DHT_get_start (dht_handle,
-                            GNUNET_BLOCK_TYPE_TEST, &hash, 1,
-                            GNUNET_DHT_RO_NONE, NULL, 0, &test_get_iterator,
-                            NULL);
-
-  if (get_handle == NULL)
+  if (NULL == get_handle)
   {
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    ok = 1;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 }
@@ -193,29 +150,38 @@ run (void *cls,
   size_t data_size = 42;
 
   GNUNET_assert (ok == 1);
-  OKPP;
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, 1), &end_badly,
-                                    NULL);
-
-
-  memset (&hash, 42, sizeof (struct GNUNET_HashCode));
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  die_task = GNUNET_SCHEDULER_add_delayed (TOTAL_TIMEOUT,
+                                           &end_badly,
+                                           NULL);
+  memset (&hash,
+          42,
+          sizeof (struct GNUNET_HashCode));
   data = GNUNET_malloc (data_size);
   memset (data, 43, data_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_put!\n");
-  dht_handle = GNUNET_DHT_connect (cfg, 100);
-  GNUNET_assert (dht_handle != NULL);
-  GNUNET_DHT_put (dht_handle, &hash, 1, GNUNET_DHT_RO_NONE,
-                  GNUNET_BLOCK_TYPE_TEST, data_size, data,
-                  GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
-                  &test_get, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Called test_put!\n");
+  dht_handle = GNUNET_DHT_connect (cfg,
+                                   100);
+  GNUNET_assert (NULL != dht_handle);
+  put_handle = GNUNET_DHT_put (dht_handle,
+                               &hash,
+                               1,
+                               GNUNET_DHT_RO_NONE,
+                               GNUNET_BLOCK_TYPE_TEST,
+                               data_size,
+                               data,
+                               GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
+                               &test_get,
+                               NULL);
   GNUNET_free (data);
 }
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   if (0 != GNUNET_TESTING_peer_run ("test-dht-api",
 				    "test_dht_api_data.conf",

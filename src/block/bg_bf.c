@@ -77,6 +77,7 @@ bf_group_serialize_cb (struct GNUNET_BLOCK_Group *bg,
                                                  raw,
                                                  gi->bf_size))
   {
+    GNUNET_free (raw);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -229,6 +230,38 @@ GNUNET_BLOCK_GROUP_bf_test_and_set (struct GNUNET_BLOCK_Group *bg,
   GNUNET_CONTAINER_bloomfilter_add (gi->bf,
                                     &mhash);
   return GNUNET_NO;
+}
+
+
+/**
+ * How many bytes should a bloomfilter be if we have already seen
+ * entry_count responses?  Sized so that do not have to
+ * re-size the filter too often (to keep it cheap).
+ *
+ * Since other peers will also add entries but not resize the filter,
+ * we should generally pick a slightly larger size than what the
+ * strict math would suggest.
+ *
+ * @param entry_count expected number of entries in the Bloom filter
+ * @param k number of bits set per entry
+ * @return must be a power of two and smaller or equal to 2^15.
+ */
+size_t
+GNUNET_BLOCK_GROUP_compute_bloomfilter_size (unsigned int entry_count,
+                                             unsigned int k)
+{
+  size_t size;
+  unsigned int ideal = (entry_count * k) / 4;
+  uint16_t max = 1 << 15;
+
+  if (entry_count > max)
+    return max;
+  size = 8;
+  while ((size < max) && (size < ideal))
+    size *= 2;
+  if (size > max)
+    return max;
+  return size;
 }
 
 

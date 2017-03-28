@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2010 GNUnet e.V.
+     Copyright (C) 2010, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,9 +34,10 @@
 #define DEBUG_DHT GNUNET_EXTRA_LOGGING
 
 /**
- * How big is the BF we use for DHT blocks?
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
  */
-#define DHT_BF_SIZE 8
+#define BLOOMFILTER_K 16
 
 
 /**
@@ -59,9 +60,26 @@ block_plugin_dht_create_group (void *cls,
                                size_t raw_data_size,
                                va_list va)
 {
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = 8;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
   return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       DHT_BF_SIZE,
-                                       GNUNET_CONSTANTS_BLOOMFILTER_K,
+                                       bf_size,
+                                       BLOOMFILTER_K,
                                        type,
                                        nonce,
                                        raw_data,
@@ -74,6 +92,7 @@ block_plugin_dht_create_group (void *cls,
  * request evaluation, simply pass "NULL" for the @a reply_block.
  *
  * @param cls closure
+ * @param ctx context
  * @param type block type
  * @param group block group to check against
  * @param eo control flags
@@ -86,6 +105,7 @@ block_plugin_dht_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_dht_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
                            struct GNUNET_BLOCK_Group *group,
                            enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -217,7 +237,7 @@ libgnunet_plugin_block_dht_init (void *cls)
 void *
 libgnunet_plugin_block_dht_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

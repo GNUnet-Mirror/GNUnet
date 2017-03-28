@@ -290,7 +290,7 @@ add_unixpath (struct sockaddr **saddrs,
   if (GNUNET_YES == abstract)
     un->sun_path[0] = '\0';
 #endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
+#if HAVE_SOCKADDR_UN_SUN_LEN
   un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   *saddrs = (struct sockaddr *) un;
@@ -812,6 +812,7 @@ start_process (struct ServiceList *sl,
                        "%s %s",
                        fin_options,
                        optpos);
+      GNUNET_free (fin_options);
       GNUNET_free (optpos);
     }
     else
@@ -2224,7 +2225,7 @@ main (int argc,
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD,
                                    &sighandler_child_death);
-  ret = GNUNET_SERVICE_ruN_ (argc,
+  ret = GNUNET_SERVICE_run_ (argc,
                              argv,
                              "arm",
                              GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN,

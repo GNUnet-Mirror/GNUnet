@@ -534,10 +534,9 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
           for (i = 0; !found && i < interfaces4_len / sizeof (INTERFACE_INFO); i++)
           {
             struct sockaddr_in *m = (struct sockaddr_in *) &r->mask;
-            if (GNUNET_memcpy (&interfaces4[i].iiAddress.Address,
+            GNUNET_memcpy (&interfaces4[i].iiAddress.Address,
                 unicast->Address.lpSockaddr,
-                unicast->Address.iSockaddrLength) != 0)
-              continue;
+                unicast->Address.iSockaddrLength);
             found = 1;
             GNUNET_memcpy (&r->address, &interfaces4[i].iiAddress.Address,
                 sizeof (struct sockaddr_in));
@@ -557,10 +556,9 @@ EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
               interfaces6 != NULL && !found && i < interfaces6->iAddressCount;
               i++)
           {
-            if (GNUNET_memcpy (interfaces6->Address[i].lpSockaddr,
+            GNUNET_memcpy (interfaces6->Address[i].lpSockaddr,
                 unicast->Address.lpSockaddr,
-                unicast->Address.iSockaddrLength) != 0)
-              continue;
+                unicast->Address.iSockaddrLength);
             found = 1;
             GNUNET_memcpy (&r->address, interfaces6->Address[i].lpSockaddr,
                 sizeof (struct sockaddr_in6));

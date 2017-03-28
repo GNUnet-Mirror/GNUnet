@@ -77,7 +77,7 @@ PEERSTORE_create_record_mq_envelope (const char *sub_system,
                                      const char *key,
                                      const void *value,
                                      size_t value_size,
-                                     struct GNUNET_TIME_Absolute *expiry,
+                                     struct GNUNET_TIME_Absolute expiry,
                                      enum GNUNET_PEERSTORE_StoreOption options,
                                      uint16_t msg_type)
 {
@@ -97,8 +97,7 @@ PEERSTORE_create_record_mq_envelope (const char *sub_system,
   msg_size = ss_size + key_size + value_size;
   ev = GNUNET_MQ_msg_extra (srm, msg_size, msg_type);
   srm->key_size = htons (key_size);
-  if (NULL != expiry)
-    srm->expiry = *expiry;
+  srm->expiry = GNUNET_TIME_absolute_hton (expiry);
   if (NULL == peer)
     srm->peer_set = htons (GNUNET_NO);
   else
@@ -147,12 +146,9 @@ PEERSTORE_parse_record_message (const struct StoreRecordMessage *srm)
   record = GNUNET_new (struct GNUNET_PEERSTORE_Record);
   if (GNUNET_YES == ntohs (srm->peer_set))
   {
-    record->peer = GNUNET_new (struct GNUNET_PeerIdentity);
-    *record->peer = srm->peer;
+    record->peer = srm->peer;
   }
-  record->expiry = GNUNET_new (struct GNUNET_TIME_Absolute);
-
-  *(record->expiry) = srm->expiry;
+  record->expiry = GNUNET_TIME_absolute_ntoh (srm->expiry);
   dummy = (char *) &srm[1];
   if (ss_size > 0)
   {
@@ -167,7 +163,9 @@ PEERSTORE_parse_record_message (const struct StoreRecordMessage *srm)
   if (value_size > 0)
   {
     record->value = GNUNET_malloc (value_size);
-    GNUNET_memcpy (record->value, dummy, value_size);
+    GNUNET_memcpy (record->value,
+                   dummy,
+                   value_size);
   }
   record->value_size = value_size;
   return record;
@@ -184,8 +182,6 @@ PEERSTORE_destroy_record (struct GNUNET_PEERSTORE_Record *record)
 {
   if (NULL != record->sub_system)
     GNUNET_free (record->sub_system);
-  if (NULL != record->peer)
-    GNUNET_free (record->peer);
   if (NULL != record->key)
     GNUNET_free (record->key);
   if (NULL != record->value)
@@ -193,7 +189,5 @@ PEERSTORE_destroy_record (struct GNUNET_PEERSTORE_Record *record)
     GNUNET_free (record->value);
     record->value = 0;
   }
-  if (NULL != record->expiry)
-    GNUNET_free (record->expiry);
   GNUNET_free (record);
 }

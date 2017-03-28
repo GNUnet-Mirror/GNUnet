@@ -560,7 +560,6 @@ ogg_demux_and_decode ()
  */
 static int
 stdin_receiver (void *cls,
-		void *client,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
@@ -766,11 +765,13 @@ ogg_init ()
   ogg_sync_init (&oy);
 }
 
+
 static void
 drain_callback (pa_stream*s, int success, void *userdata)
 {
   pa_threaded_mainloop_signal (m, 0);
 }
+
 
 /**
  * The main function for the playback helper.
@@ -785,7 +786,7 @@ main (int argc, char *argv[])
   static unsigned long long toff;
 
   char readbuf[MAXLINE];
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  struct GNUNET_MessageStreamTokenizer *stdin_mst;
   char c;
   ssize_t ret;
 #ifdef DEBUG_READ_PURE_OGG
@@ -801,7 +802,7 @@ main (int argc, char *argv[])
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
     return 1;
   }
-  stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
+  stdin_mst = GNUNET_MST_create (&stdin_receiver, NULL);
   ogg_init ();
   pa_init ();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -844,11 +845,11 @@ main (int argc, char *argv[])
     }
     else
 #endif
-    GNUNET_SERVER_mst_receive (stdin_mst, NULL,
-			       readbuf, ret,
-			       GNUNET_NO, GNUNET_NO);
+    GNUNET_MST_from_buffer (stdin_mst,
+                            readbuf, ret,
+                            GNUNET_NO, GNUNET_NO);
   }
-  GNUNET_SERVER_mst_destroy (stdin_mst);
+  GNUNET_MST_destroy (stdin_mst);
   if (stream_out)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -580,11 +580,13 @@ handle_alices_cryptodata_message (void *cls,
  *
  * @param cls closure with the `struct BobServiceSession`
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status what has happened with the set intersection?
  */
 static void
 cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
+                                 uint64_t current_size,
                                  enum GNUNET_SET_Status status)
 {
   struct BobServiceSession *s = cls;
@@ -670,6 +672,7 @@ start_intersection (struct BobServiceSession *s)
                           &set_sid,
                           NULL,
                           GNUNET_SET_RESULT_REMOVED,
+                          (struct GNUNET_SET_Option[]) {{ 0 }},
                           &cb_intersection_element_removed,
                           s);
   if (GNUNET_OK !=
@@ -947,7 +950,7 @@ handle_bob_client_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client request, opening port %s!\n",
               GNUNET_h2s (&msg->session_key));
-  s->port = GNUNET_CADET_open_porT (my_cadet,
+  s->port = GNUNET_CADET_open_port (my_cadet,
                                     &msg->session_key,
                                     &cb_channel_incoming,
                                     s,
@@ -1051,7 +1054,7 @@ run (void *cls,
   /* We don't really do DLOG, so we can setup with very minimal resources */
   edc = GNUNET_CRYPTO_ecc_dlog_prepare (4 /* max value */,
                                         2 /* RAM */);
-  my_cadet = GNUNET_CADET_connecT (cfg);
+  my_cadet = GNUNET_CADET_connect (cfg);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   if (NULL == my_cadet)

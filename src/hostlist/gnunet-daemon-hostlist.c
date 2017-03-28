@@ -369,23 +369,26 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
 #if HAVE_MHD
-    {'a', "advertise", NULL,
-     gettext_noop ("advertise our hostlist to other peers"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &advertising},
+    GNUNET_GETOPT_option_flag ('a',
+                                  "advertise",
+                                  gettext_noop ("advertise our hostlist to other peers"),
+                                  &advertising),
 #endif
-    {'b', "bootstrap", NULL,
-     gettext_noop
-     ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &bootstrapping},
-    {'e', "enable-learning", NULL,
-     gettext_noop ("enable learning about hostlist servers from other peers"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &learning},
+    GNUNET_GETOPT_option_flag ('b',
+                                  "bootstrap",
+                                  gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
+                                  &bootstrapping),
+    GNUNET_GETOPT_option_flag ('e',
+                                  "enable-learning",
+                                  gettext_noop ("enable learning about hostlist servers from other peers"),
+                                  &learning),
 #if HAVE_MHD
-    {'p', "provide-hostlist", NULL,
-     gettext_noop ("provide a hostlist server"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &provide_hostlist},
+    GNUNET_GETOPT_option_flag ('p',
+                                  "provide-hostlist",
+                                  gettext_noop ("provide a hostlist server"),
+                                  &provide_hostlist),
 #endif
     GNUNET_GETOPT_OPTION_END
   };

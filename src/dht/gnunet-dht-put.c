@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 GNUnet e.V.
+     Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -54,7 +54,7 @@ static unsigned int replication = 5;
 /**
  * Be verbose
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Use #GNUNET_DHT_DEMULTIPLEX_EVERYWHERE.
@@ -148,7 +148,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Absolute expiration;
   enum GNUNET_DHT_RouteOption ro;
 
   cfg = c;
@@ -187,43 +186,10 @@ run (void *cls,
                   query_type,
                   strlen (data),
                   data,
-                  expiration,
+                  GNUNET_TIME_relative_to_absolute (expiration),
                   &message_sent_cont,
                   NULL);
 }
-
-
-/**
- * gnunet-dht-put command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'d', "data", "DATA",
-   gettext_noop ("the data to insert under the key"),
-   1, &GNUNET_GETOPT_set_string, &data},
-  {'e', "expiration", "EXPIRATION",
-   gettext_noop ("how long to store this entry in the dht (in seconds)"),
-   1, &GNUNET_GETOPT_set_relative_time, &expiration},
-  {'k', "key", "KEY",
-   gettext_noop ("the query key"),
-   1, &GNUNET_GETOPT_set_string, &query_key},
-  {'x', "demultiplex", NULL,
-   gettext_noop ("use DHT's demultiplex everywhere option"),
-   0, &GNUNET_GETOPT_set_one, &demultixplex_everywhere},
-  {'r', "replication", "LEVEL",
-   gettext_noop ("how many replicas to create"),
-   1, &GNUNET_GETOPT_set_uint, &replication},
-  {'R', "record", NULL,
-   gettext_noop ("use DHT's record route option"),
-   0, &GNUNET_GETOPT_set_one, &record_route},
-  {'t', "type", "TYPE",
-   gettext_noop ("the type to insert data as"),
-   1, &GNUNET_GETOPT_set_uint, &query_type},
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
 
 /**
  * Entry point for gnunet-dht-put
@@ -235,6 +201,55 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+  
+    GNUNET_GETOPT_option_string ('d',
+                                 "data",
+                                 "DATA",
+                                 gettext_noop ("the data to insert under the key"),
+                                 &data),
+  
+    GNUNET_GETOPT_option_relative_time ('e',
+                                            "expiration",
+                                            "EXPIRATION",
+                                            gettext_noop ("how long to store this entry in the dht (in seconds)"),
+                                            &expiration),
+  
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
+  
+    GNUNET_GETOPT_option_flag ('x',
+                                  "demultiplex",
+                                  gettext_noop ("use DHT's demultiplex everywhere option"),
+                                  &demultixplex_everywhere),
+  
+    GNUNET_GETOPT_option_uint ('r',
+                                   "replication",
+                                   "LEVEL",
+                                   gettext_noop ("how many replicas to create"),
+                                   &replication),
+  
+    GNUNET_GETOPT_option_flag ('R',
+                                  "record",
+                                  gettext_noop ("use DHT's record route option"),
+                                  &record_route),
+  
+    GNUNET_GETOPT_option_uint ('t',
+                                   "type",
+                                   "TYPE",
+                                   gettext_noop ("the type to insert data as"),
+                                   &query_type),
+  
+    GNUNET_GETOPT_option_verbose (&verbose),
+  
+    GNUNET_GETOPT_OPTION_END
+  };
+
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
                                                  &argc, &argv))
     return 2;

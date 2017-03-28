@@ -77,6 +77,7 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
 static void
 result_cb_set1 (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t current_size,
                 enum GNUNET_SET_Status status)
 {
   switch (status)
@@ -125,6 +126,7 @@ result_cb_set1 (void *cls,
 static void
 result_cb_set2 (void *cls,
                 const struct GNUNET_SET_Element *element,
+                uint64_t current_size,
                 enum GNUNET_SET_Status status)
 {
   switch (status)
@@ -184,6 +186,7 @@ listen_cb (void *cls,
   listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
                            GNUNET_SET_RESULT_SYMMETRIC,
+                           (struct GNUNET_SET_Option[]) { 0 },
                            &result_cb_set2,
                            NULL);
   GNUNET_SET_commit (oh2,
@@ -212,6 +215,7 @@ start (void *cls)
                             &app_id,
                             &context_msg,
                             GNUNET_SET_RESULT_SYMMETRIC,
+                            (struct GNUNET_SET_Option[]) { 0 },
                             &result_cb_set1, NULL);
   GNUNET_SET_commit (oh1, set1);
 }

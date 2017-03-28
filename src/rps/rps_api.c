@@ -389,12 +389,12 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
     n * sizeof (struct GNUNET_PeerIdentity);
   /* The number of peers that fits in one message together with
    * the respective header */
-  num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+  num_peers_max = (GNUNET_MAX_MESSAGE_SIZE -
       sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
     sizeof (struct GNUNET_PeerIdentity);
   tmp_peer_pointer = ids;
 
-  while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  while (GNUNET_MAX_MESSAGE_SIZE < size_needed)
   {
     ev = GNUNET_MQ_msg_extra (msg, num_peers_max * sizeof (struct GNUNET_PeerIdentity),
         GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
@@ -463,12 +463,12 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
     num_peers * sizeof (struct GNUNET_PeerIdentity);
   /* The number of peers that fit in one message together with
    * the respective header */
-  num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+  num_peers_max = (GNUNET_MAX_MESSAGE_SIZE -
       sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
     sizeof (struct GNUNET_PeerIdentity);
   tmp_peer_pointer = peer_ids;
 
-  while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  while (GNUNET_MAX_MESSAGE_SIZE < size_needed)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Too many peers to send at once, sending %" PRIu32 " (all we can so far)\n",

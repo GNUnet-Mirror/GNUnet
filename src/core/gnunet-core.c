@@ -476,25 +476,39 @@ main (int argc,
       char *const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'e', "echo", NULL,
-     gettext_noop ("activate echo mode"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
-    {'m', "monitor", NULL,
-     gettext_noop ("provide information about all current connections (continuously)"),
-     0, &GNUNET_GETOPT_set_one, &monitor_connections},
-    {'n', "count", "COUNT",
-     gettext_noop ("number of RTT measurements"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &ping_limit},
-    {'r', "measure-rtt", NULL,
-     gettext_noop ("measure round-trip time by sending packets to an echo-mode enabled peer"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt},
-    {'p', "peer", "PEER",
-     gettext_noop ("peer identity"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &peer},
-    {'w', "timeout", "SECONDS",
-     gettext_noop ("timeout for each RTT measurement"),
-     GNUNET_NO, &GNUNET_GETOPT_set_ulong, &ping_timeout_seconds},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('e',
+                               "echo",
+                               gettext_noop ("activate echo mode"),
+                               &echo),
+
+    GNUNET_GETOPT_option_flag ('m',
+                                  "monitor",
+                                  gettext_noop ("provide information about all current connections (continuously)"),
+                                  &monitor_connections),
+
+    GNUNET_GETOPT_option_ulong ('n',
+                                "count",
+                                "COUNT",
+                                gettext_noop ("number of RTT measurements"),
+                                &ping_limit),
+
+    GNUNET_GETOPT_option_flag ('r',
+                               "measure-rtt",
+                               gettext_noop ("measure round-trip time by sending packets to an echo-mode enabled peer"),
+                               &measure_rtt),
+
+    GNUNET_GETOPT_option_string ('p',
+                                 "peer",
+                                 "PEER",
+                                 gettext_noop ("peer identity"),
+                                 &peer),
+
+    GNUNET_GETOPT_option_ulong ('w',
+                                "timeout",
+                                "SECONDS",
+                                gettext_noop ("timeout for each RTT measurement"),
+                                &ping_timeout_seconds),
     GNUNET_GETOPT_OPTION_END
   };
 

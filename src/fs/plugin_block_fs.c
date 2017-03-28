@@ -28,7 +28,6 @@
 #include "gnunet_fs_service.h"
 #include "block_fs.h"
 #include "gnunet_signatures.h"
-#include "gnunet_constants.h"
 #include "gnunet_block_group_lib.h"
 
 
@@ -37,37 +36,6 @@
  * Do not change!
  */
 #define BLOOMFILTER_K 16
-
-
-/**
- * How many bytes should a bloomfilter be if we have already seen
- * entry_count responses?  Note that #GNUNET_CONSTANTS_BLOOMFILTER_K
- * gives us the number of bits set per entry.  Furthermore, we should
- * not re-size the filter too often (to keep it cheap).
- *
- * Since other peers will also add entries but not resize the filter,
- * we should generally pick a slightly larger size than what the
- * strict math would suggest.
- *
- * @param entry_count expected number of entries in the Bloom filter
- * @return must be a power of two and smaller or equal to 2^15.
- */
-static size_t
-compute_bloomfilter_size (unsigned int entry_count)
-{
-  size_t size;
-  unsigned int ideal = (entry_count * GNUNET_CONSTANTS_BLOOMFILTER_K) / 4;
-  uint16_t max = 1 << 15;
-
-  if (entry_count > max)
-    return max;
-  size = 8;
-  while ((size < max) && (size < ideal))
-    size *= 2;
-  if (size > max)
-    return max;
-  return size;
-}
 
 
 /**
@@ -96,14 +64,15 @@ block_plugin_fs_create_group (void *cls,
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_UBLOCK:
     guard = va_arg (va, const char *);
-    if (0 != memcmp (guard,
-                     "fs-seen-set-size",
-                     strlen ("fs-seen-set-size")))
+    if (0 != strcmp (guard,
+                     "seen-set-size"))
     {
       /* va-args invalid! bad bug, complain! */
       GNUNET_break (0);
@@ -111,10 +80,12 @@ block_plugin_fs_create_group (void *cls,
     }
     else
     {
-      size = compute_bloomfilter_size (va_arg (va, unsigned int));
+      size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                          BLOOMFILTER_K);
     }
     if (0 == size)
       size = raw_data_size; /* not for us to determine, use what we got! */
+    GNUNET_break (NULL == va_arg (va, const char *));
     return GNUNET_BLOCK_GROUP_bf_create (cls,
                                          size,
                                          BLOOMFILTER_K,
@@ -123,6 +94,7 @@ block_plugin_fs_create_group (void *cls,
                                          raw_data,
                                          raw_data_size);
   default:
+    GNUNET_break (NULL == va_arg (va, const char *));
     GNUNET_break (0);
     return NULL;
   }
@@ -137,6 +109,7 @@ block_plugin_fs_create_group (void *cls,
  * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg group to use for evaluation
  * @param eo control flags
@@ -149,6 +122,7 @@ block_plugin_fs_create_group (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_fs_evaluate (void *cls,
+                          struct GNUNET_BLOCK_Context *ctx,
                           enum GNUNET_BLOCK_Type type,
                           struct GNUNET_BLOCK_Group *bg,
                           enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -302,7 +276,7 @@ libgnunet_plugin_block_fs_init (void *cls)
 void *
 libgnunet_plugin_block_fs_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

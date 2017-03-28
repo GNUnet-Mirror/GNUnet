@@ -32,11 +32,19 @@
 #include "gnunet-service-core_typemap.h"
 
 /**
- * How many messages do we queue up at most for optional
- * notifications to a client?  (this can cause notifications
- * about outgoing messages to be dropped).
+ * How many messages do we queue up at most for any client? This can
+ * cause messages to be dropped if clients do not process them fast
+ * enough!  Note that this is a soft limit; we try
+ * to keep a few larger messages above the limit.
  */
-#define MAX_NOTIFY_QUEUE 1024
+#define SOFT_MAX_QUEUE 128
+
+/**
+ * How many messages do we queue up at most for any client? This can
+ * cause messages to be dropped if clients do not process them fast
+ * enough!  Note that this is the hard limit.
+ */
+#define HARD_MAX_QUEUE 256
 
 
 /**
@@ -799,7 +807,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage);
 
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -819,6 +827,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     struct GNUNET_MQ_Envelope *env;
     struct NotifyTrafficMessage *ntm;
     uint16_t mtype;
+    unsigned int qlen;
     int tm;
 
     tm = type_match (ntohs (msg->type),
@@ -834,6 +843,45 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND)) &&
 	 (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND)) )
       continue;
+
+    /* Drop messages if:
+       1) We are above the hard limit, or
+       2) We are above the soft limit, and a coin toss limited
+          to the message size (giving larger messages a
+          proportionally higher chance of being queued) falls
+          below the threshold. The threshold is based on where
+          we are between the soft and the hard limit, scaled
+          to match the range of message sizes we usually encounter
+          (i.e. up to 32k); so a 64k message has a 50% chance of
+          being kept if we are just barely below the hard max,
+          and a 99% chance of being kept if we are at the soft max.
+       The reason is to make it more likely to drop control traffic
+       (ACK, queries) which may be cummulative or highly redundant,
+       and cheap to drop than data traffic.  */
+    qlen = GNUNET_MQ_get_length (c->mq);
+    if ( (qlen >= HARD_MAX_QUEUE) ||
+         ( (qlen > SOFT_MAX_QUEUE) &&
+           ( (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                        ntohs (msg->size)) ) <
+             (qlen - SOFT_MAX_QUEUE) * 0x8000 /
+             (HARD_MAX_QUEUE - SOFT_MAX_QUEUE) ) ) )
+    {
+      char buf[1024];
+
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+                  "Dropping decrypted message of type %u as client is too busy (queue full)\n",
+                  (unsigned int) ntohs (msg->type));
+      GNUNET_snprintf (buf,
+                       sizeof (buf),
+                       gettext_noop ("# messages of type %u discarded (client busy)"),
+                       (unsigned int) ntohs (msg->type));
+      GNUNET_STATISTICS_update (GSC_stats,
+                                buf,
+                                1,
+                                GNUNET_NO);
+      continue;
+    }
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending %u message with %u bytes to client interested in messages of type %u.\n",
 		options,

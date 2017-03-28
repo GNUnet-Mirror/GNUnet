@@ -283,7 +283,7 @@ read_host_file (const char *fn,
                 int unlink_garbage,
                 struct ReadHostFileContext *r)
 {
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
+  char buffer[GNUNET_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   ssize_t size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
@@ -919,7 +919,7 @@ add_to_tc (void *cls,
   {
   	/* Copy public HELLO */
     hs = GNUNET_HELLO_size (pos->hello);
-    GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
+    GNUNET_assert (hs < GNUNET_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     env = GNUNET_MQ_msg_extra (im,
                                hs,
@@ -937,7 +937,7 @@ add_to_tc (void *cls,
   {
   	/* Copy friend only HELLO */
     hs = GNUNET_HELLO_size (pos->friend_only_hello);
-    GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
+    GNUNET_assert (hs < GNUNET_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     env = GNUNET_MQ_msg_extra (im,
                                hs,
@@ -977,7 +977,7 @@ discard_hosts_helper (void *cls,
                       const char *fn)
 {
   struct GNUNET_TIME_Absolute *now = cls;
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
+  char buffer[GNUNET_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
   int read_size;

@@ -122,6 +122,7 @@ check_count_iter (void *cls,
       return GNUNET_NO;
     }
     ci_cls->cont (ci_cls->cont_cls);
+    GNUNET_free (ci_cls);
     return GNUNET_NO;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -264,7 +265,8 @@ run (void *cls,
   GNUNET_TESTING_peer_get_identity (peer,
                                     &local_id);
 
-  set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  set1 = GNUNET_SET_create (cfg,
+                            GNUNET_SET_OPERATION_UNION);
   add_element_str (set1,
                    "333");
   add_element_str (set1,

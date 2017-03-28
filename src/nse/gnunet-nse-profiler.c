@@ -129,7 +129,7 @@ static int ok;
 /**
  * Be verbose (configuration option)
  */
-static int verbose;
+static unsigned int verbose;
 
 /**
  * Name of the file with the hosts to run the test over (configuration option)
@@ -835,28 +835,47 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'C', "connections", "COUNT",
-     gettext_noop ("limit to the number of connections to NSE services, 0 for none"),
-     1, &GNUNET_GETOPT_set_uint, &connection_limit},
-    {'d', "details", "FILENAME",
-     gettext_noop ("name of the file for writing connection information and statistics"),
-     1, &GNUNET_GETOPT_set_string, &data_filename},
-    {'H', "hosts", "FILENAME",
-     gettext_noop ("name of the file with the login information for the testbed"),
-     1, &GNUNET_GETOPT_set_string, &hosts_file},
-    {'o', "output", "FILENAME",
-     gettext_noop ("name of the file for writing the main results"),
-     1, &GNUNET_GETOPT_set_string, &output_filename},
-    {'p', "peers", "NETWORKSIZESPEC",
-     gettext_noop ("Number of peers to run in each round, separated by commas"),
-     1, &GNUNET_GETOPT_set_string, &num_peer_spec},
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_increment_value, &verbose},
-    {'w', "wait", "DELAY",
-     gettext_noop ("delay between rounds"),
-     1, &GNUNET_GETOPT_set_relative_time, &wait_time},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_uint ('C',
+                                   "connections",
+                                   "COUNT",
+                                   gettext_noop ("limit to the number of connections to NSE services, 0 for none"),
+                                   &connection_limit),
+    GNUNET_GETOPT_option_string ('d',
+                                 "details",
+                                 "FILENAME",
+                                 gettext_noop ("name of the file for writing connection information and statistics"),
+                                 &data_filename),
+
+    GNUNET_GETOPT_option_string ('H',
+                                 "hosts",
+                                 "FILENAME",
+                                 gettext_noop ("name of the file with the login information for the testbed"),
+                                 &hosts_file),
+
+    GNUNET_GETOPT_option_string ('o',
+                                 "output",
+                                 "FILENAME",
+                                 gettext_noop ("name of the file for writing the main results"),
+                                 &output_filename),
+
+
+    GNUNET_GETOPT_option_string ('p',
+                                 "peers",
+                                 "NETWORKSIZESPEC",
+                                 gettext_noop ("Number of peers to run in each round, separated by commas"),
+                                 &num_peer_spec),
+
+    GNUNET_GETOPT_option_increment_uint ('V',
+                                          "verbose",
+                                          gettext_noop ("be verbose (print progress information)"),
+                                          &verbose),
+
+    GNUNET_GETOPT_option_relative_time ('w',
+                                            "wait",
+                                            "DELAY",
+                                            gettext_noop ("delay between rounds"),
+                                            &wait_time),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

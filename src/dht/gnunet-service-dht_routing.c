@@ -209,6 +209,11 @@ process (void *cls,
                              rr->xquery_size,
                              pc->data,
                              pc->data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Result for %s of type %d was evaluated as %d\n",
+              GNUNET_h2s (key),
+              pc->type,
+              eval);
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
@@ -282,8 +287,7 @@ process (void *cls,
  * @param data_size number of bytes in data
  */
 void
-GDS_ROUTING_process (void *cls,
-                     enum GNUNET_BLOCK_Type type,
+GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute expiration_time,
                      const struct GNUNET_HashCode *key,
                      unsigned int put_path_length,

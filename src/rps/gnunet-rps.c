@@ -43,43 +43,7 @@ static struct GNUNET_RPS_Request_Handle *req_handle;
 /**
  * PeerID (Option --seed)
  */
-static struct GNUNET_PeerIdentity *peer_id;
-
-
-/**
- * Set an option of type 'struct GNUNET_PeerIdentity *' from the command line.
- * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
- * of this type.  It should be followed by a pointer to a value of
- * type 'struct GNUNET_PeerIdentity *', which will be allocated with the requested string.
- *
- * @param ctx command line processing context
- * @param scls additional closure (will point to the 'char *',
- *             which will be allocated)
- * @param option name of the option
- * @param value actual value of the option (a PeerID)
- * @return #GNUNET_OK
- */
-static int
-GNUNET_GETOPT_set_peerid (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                          void *scls, const char *option, const char *value)
-{
-  struct GNUNET_PeerIdentity **val = (struct GNUNET_PeerIdentity **) scls;
-
-  GNUNET_assert (NULL != value);
-  GNUNET_free_non_null (*val);
-  /* Not quite sure whether that is a sane way */
-  *val = GNUNET_new (struct GNUNET_PeerIdentity);
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_public_key_from_string (value,
-                                                  strlen (value),
-                                                  &((*val)->public_key)))
-  {
-    FPRINTF (stderr, "Invalid peer ID %s\n", value);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
+static struct GNUNET_PeerIdentity peer_id;
 
 
 /**
@@ -139,10 +103,13 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static uint64_t num_peers;
+  static struct GNUNET_PeerIdentity zero_pid;
 
   rps_handle = GNUNET_RPS_connect (cfg);
 
-  if (NULL == peer_id)
+  if (0 == memcmp (&zero_pid,
+                   &peer_id,
+                   sizeof (peer_id)))
   { /* Request n PeerIDs */
     /* If number was specified use it, else request single peer. */
     num_peers = (NULL == args[0]) ? 1 : atoi (args[0]);
@@ -153,8 +120,8 @@ run (void *cls,
   }
   else
   { /* Seed PeerID */
-    GNUNET_RPS_seed_ids (rps_handle, 1, peer_id);
-    FPRINTF (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (peer_id));
+    GNUNET_RPS_seed_ids (rps_handle, 1, &peer_id);
+    FPRINTF (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (&peer_id));
     ret = 0;
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
@@ -172,10 +139,12 @@ main (int argc, char *const *argv)
 {
   const char helpstr[] =
     "Get random GNUnet peers. If none is specified a single is requested.";
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'s', "seed", "PEER_ID",
-      gettext_noop ("Seed a PeerID"),
-      GNUNET_YES, &GNUNET_GETOPT_set_peerid, &peer_id},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_base32_auto ('s',
+                                          "seed",
+                                          "PEER_ID",
+                                          gettext_noop ("Seed a PeerID"),
+                                          &peer_id),
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==

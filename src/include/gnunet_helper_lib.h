@@ -38,7 +38,8 @@
 #define GNUNET_HELPER_LIB_H
 
 #include "gnunet_scheduler_lib.h"
-#include "gnunet_server_lib.h"
+#include "gnunet_mst_lib.h"
+
 
 /**
  * The handle to a helper process.
@@ -52,7 +53,8 @@ struct GNUNET_HELPER_Handle;
  *
  * @param cls the closure from GNUNET_HELPER_start()
  */
-typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls);
+typedef void
+(*GNUNET_HELPER_ExceptionCallback) (void *cls);
 
 
 /**
@@ -75,7 +77,7 @@ struct GNUNET_HELPER_Handle *
 GNUNET_HELPER_start (int with_control_pipe,
 		     const char *binary_name,
 		     char *const binary_argv[],
-		     GNUNET_SERVER_MessageTokenizerCallback cb,
+		     GNUNET_MessageTokenizerCallback cb,
 		     GNUNET_HELPER_ExceptionCallback exp_cb,
 		     void *cb_cls);
 

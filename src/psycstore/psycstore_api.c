@@ -809,7 +809,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
   if (NULL == method_prefix)
     method_prefix = "";
   uint16_t method_size = strnlen (method_prefix,
-                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  GNUNET_MAX_MESSAGE_SIZE
                                   - sizeof (*req)) + 1;
 
   struct GNUNET_MQ_Envelope *
@@ -875,7 +875,7 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
   if (NULL == method_prefix)
     method_prefix = "";
   uint16_t method_size = strnlen (method_prefix,
-                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  GNUNET_MAX_MESSAGE_SIZE
                                   - sizeof (*req)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
 

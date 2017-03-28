@@ -347,7 +347,7 @@ request_done (struct RequestRecord *rr)
   }
   reply_len += sizeof (struct GNUNET_TUN_UdpHeader);
   reply_len += rr->payload_length;
-  if (reply_len >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (reply_len >= GNUNET_MAX_MESSAGE_SIZE)
   {
     /* response too big, drop */
     GNUNET_break (0); /* how can this be? */
@@ -481,7 +481,7 @@ send_request_to_client (struct RequestRecord *rr,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Request *req;
 
-  if (sizeof (struct GNUNET_DNS_Request) + rr->payload_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (sizeof (struct GNUNET_DNS_Request) + rr->payload_length >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     cleanup_rr (rr);
@@ -882,11 +882,10 @@ handle_client_response (void *cls,
  * message is received by the tokenizer from the DNS hijack process.
  *
  * @param cls closure
- * @param client identification of the client
  * @param message the actual message, a DNS request we should handle
  */
 static int
-process_helper_messages (void *cls GNUNET_UNUSED, void *client,
+process_helper_messages (void *cls,
 			 const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;

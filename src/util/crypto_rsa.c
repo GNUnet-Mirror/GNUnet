@@ -25,7 +25,7 @@
 #include <gcrypt.h>
 #include "gnunet_crypto_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-rsa", __VA_ARGS__)
 
 
 /**
@@ -430,7 +430,7 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
   char *xts = "Blinding KDF extrator HMAC key";  /* Trusts bks' randomness more */
   struct RsaBlindingKey *blind;
   gcry_mpi_t n;
- 
+
   blind = GNUNET_new (struct RsaBlindingKey);
   GNUNET_assert( NULL != blind );
 
@@ -454,25 +454,25 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
 }
 
 
-/* 
+/*
 We originally added GNUNET_CRYPTO_kdf_mod_mpi for the benifit of the
 previous routine.
 
-There was previously a call to GNUNET_CRYPTO_kdf in 
+There was previously a call to GNUNET_CRYPTO_kdf in
   bkey = rsa_blinding_key_derive (len, bks);
-that gives exactly len bits where 
+that gives exactly len bits where
   len = GNUNET_CRYPTO_rsa_public_key_len (pkey);
 
 Now r = 2^(len-1)/pkey.n is the probability that a set high bit being
 okay, meaning bkey < pkey.n.  It follows that (1-r)/2 of the time bkey >
-pkey.n making the effective bkey be 
+pkey.n making the effective bkey be
   bkey mod pkey.n = bkey - pkey.n
 so the effective bkey has its high bit set with probability r/2.
 
 We expect r to be close to 1/2 if the exchange is honest, but the
 exchange can choose r otherwise.
 
-In blind signing, the exchange sees  
+In blind signing, the exchange sees
   B = bkey * S mod pkey.n
 On deposit, the exchange sees S so they can compute bkey' = B/S mod
 pkey.n for all B they recorded to see if bkey' has it's high bit set.
@@ -489,7 +489,7 @@ the wrong and right probabilities 1/3 and 1/4, respectively.
 I feared this gives the exchange a meaningful fraction of a bit of
 information per coin involved in the transaction.  It sounds damaging if
 numerous coins were involved.  And it could run across transactions in
-some scenarios. 
+some scenarios.
 
 We fixed this by using a more uniform deterministic pseudo-random number
 generator for blinding factors.  I do not believe this to be a problem
@@ -748,7 +748,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   }
 
   data = rsa_full_domain_hash (pkey, hash);
-  if (NULL == data) 
+  if (NULL == data)
     goto rsa_gcd_validate_failure;
 
   bkey = rsa_blinding_key_derive (pkey, bks);
@@ -771,7 +771,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (ne[0]);
   gcry_mpi_release (ne[1]);
   gcry_mpi_release (r_e);
-  rsa_blinding_key_free (bkey);  
+  rsa_blinding_key_free (bkey);
 
   *buf_size = numeric_mpi_alloc_n_print (data_r_e, buf);
   gcry_mpi_release (data_r_e);
@@ -917,7 +917,7 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   GNUNET_CRYPTO_rsa_public_key_free (pkey);
   if (NULL == v)   /* rsa_gcd_validate failed meaning */
     return NULL;   /* our *own* RSA key is malicious. */
- 
+
   sig = rsa_sign_mpi (key, v);
   gcry_mpi_release (v);
   return sig;
@@ -1077,11 +1077,11 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
   }
 
   bkey = rsa_blinding_key_derive (pkey, bks);
-  if (NULL == bkey) 
+  if (NULL == bkey)
   {
-    /* RSA key is malicious since rsa_gcd_validate failed here. 
+    /* RSA key is malicious since rsa_gcd_validate failed here.
      * It should have failed during GNUNET_CRYPTO_rsa_blind too though,
-     * so the exchange is being malicious in an unfamilair way, maybe 
+     * so the exchange is being malicious in an unfamilair way, maybe
      * just trying to crash us.  */
     GNUNET_break_op (0);
     gcry_mpi_release (n);
@@ -1096,10 +1096,10 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
                      n))
   {
     /* We cannot find r mod n, so gcd(r,n) != 1, which should get *
-     * caught above, but we handle it the same here.              */  
+     * caught above, but we handle it the same here.              */
     GNUNET_break_op (0);
     gcry_mpi_release (r_inv);
-    rsa_blinding_key_free (bkey);  
+    rsa_blinding_key_free (bkey);
     gcry_mpi_release (n);
     gcry_mpi_release (s);
     return NULL;
@@ -1144,11 +1144,11 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
   r = rsa_full_domain_hash (pkey, hash);
   if (NULL == r) {
     GNUNET_break_op (0);
-    /* RSA key is malicious since rsa_gcd_validate failed here. 
+    /* RSA key is malicious since rsa_gcd_validate failed here.
      * It should have failed during GNUNET_CRYPTO_rsa_blind too though,
-     * so the exchange is being malicious in an unfamilair way, maybe 
+     * so the exchange is being malicious in an unfamilair way, maybe
      * just trying to crash us.  Arguably, we've only an internal error
-     * though because we should've detected this in our previous call 
+     * though because we should've detected this in our previous call
      * to GNUNET_CRYPTO_rsa_unblind. */
     return GNUNET_NO;
   }

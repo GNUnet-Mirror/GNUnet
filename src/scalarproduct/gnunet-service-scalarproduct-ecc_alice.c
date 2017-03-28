@@ -687,11 +687,13 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
  *
  * @param cls closure with the `struct AliceServiceSession`
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status what has happened with the set intersection?
  */
 static void
 cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
+                                 uint64_t current_size,
                                  enum GNUNET_SET_Status status)
 {
   struct AliceServiceSession *s = cls;
@@ -788,6 +790,7 @@ cb_intersection_request_alice (void *cls,
   s->intersection_op
     = GNUNET_SET_accept (request,
                          GNUNET_SET_RESULT_REMOVED,
+                         (struct GNUNET_SET_Option[]) {{ 0 }},
                          &cb_intersection_element_removed,
                          s);
   if (NULL == s->intersection_op)
@@ -839,7 +842,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
               "Creating new channel for session with key %s.\n",
               GNUNET_h2s (&s->session_id));
   s->channel
-    = GNUNET_CADET_channel_creatE (my_cadet,
+    = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
                                    &s->session_id,
@@ -1170,7 +1173,7 @@ run (void *cls,
   GNUNET_CRYPTO_ecc_rnd_mpi (edc,
                              &my_privkey,
                              &my_privkey_inv);
-  my_cadet = GNUNET_CADET_connecT (cfg);
+  my_cadet = GNUNET_CADET_connect (cfg);
   if (NULL == my_cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

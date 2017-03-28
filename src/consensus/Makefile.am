@@ -5,6 +5,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 pkgcfg_DATA = \
   consensus.conf
 
@@ -16,8 +18,6 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-bin_PROGRAMS = \
- gnunet-consensus-profiler
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -67,12 +67,33 @@ libgnunetconsensus_la_LIBADD = \
 libgnunetconsensus_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_consensus.la
+
+libgnunet_plugin_block_consensus_la_SOURCES = \
+  plugin_block_consensus.c
+libgnunet_plugin_block_consensus_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_block_consensus_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
+
+if HAVE_TESTING
+bin_PROGRAMS = \
+ gnunet-consensus-profiler
+
 check_PROGRAMS = \
  test_consensus_api
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
+endif
 endif
 
 test_consensus_api_SOURCES = \

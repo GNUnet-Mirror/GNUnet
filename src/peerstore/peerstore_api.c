@@ -286,6 +286,10 @@ store_request_sent (void *cls)
 /*******************         CONNECTION FUNCTIONS         *********************/
 /******************************************************************************/
 
+
+/**
+ * Function called when we had trouble talking to the service.
+ */
 static void
 handle_client_error (void *cls,
                      enum GNUNET_MQ_Error error)
@@ -293,7 +297,7 @@ handle_client_error (void *cls,
   struct GNUNET_PEERSTORE_Handle *h = cls;
 
   LOG (GNUNET_ERROR_TYPE_ERROR,
-       _("Received an error notification from MQ of type: %d\n"),
+       "Received an error notification from MQ of type: %d\n",
        error);
   reconnect (h);
 }
@@ -341,7 +345,9 @@ iterate_timeout (void *cls)
   callback_cls = ic->callback_cls;
   GNUNET_PEERSTORE_iterate_cancel (ic);
   if (NULL != callback)
-    callback (callback_cls, NULL, _("timeout"));
+    callback (callback_cls,
+              NULL,
+              _("timeout"));
 }
 
 
@@ -510,7 +516,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
        "Storing value (size: %lu) for subsytem `%s', peer `%s', key `%s'\n",
        size, sub_system, GNUNET_i2s (peer), key);
   ev = PEERSTORE_create_record_mq_envelope (sub_system, peer, key, value, size,
-                                            &expiry, options,
+                                            expiry, options,
                                             GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
   sc = GNUNET_new (struct GNUNET_PEERSTORE_StoreContext);
 
@@ -684,8 +690,12 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PEERSTORE_IterateContext *ic;
 
-  ev = PEERSTORE_create_record_mq_envelope (sub_system, peer, key, NULL, 0,
+  ev = PEERSTORE_create_record_mq_envelope (sub_system,
+                                            peer,
+                                            key,
                                             NULL, 0,
+                                            GNUNET_TIME_UNIT_FOREVER_ABS,
+                                            0,
                                             GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
   ic = GNUNET_new (struct GNUNET_PEERSTORE_IterateContext);
 
@@ -756,7 +766,7 @@ handle_watch_record (void *cls,
     return;
   }
   PEERSTORE_hash_key (record->sub_system,
-                      record->peer,
+                      &record->peer,
                       record->key,
                       &keyhash);
   // FIXME: what if there are multiple watches for the same key?
@@ -848,9 +858,12 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
                                               &ic->peer,
                                               ic->key,
                                               NULL, 0,
-                                              NULL, 0,
+                                              GNUNET_TIME_UNIT_FOREVER_ABS,
+                                              0,
                                               GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
     GNUNET_MQ_send (h->mq, ev);
+    if (NULL != ic->timeout_task)
+      GNUNET_SCHEDULER_cancel (ic->timeout_task);
     ic->timeout_task
       = GNUNET_SCHEDULER_add_delayed (ic->timeout,
                                       &iterate_timeout,
@@ -863,7 +876,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
                                               sc->key,
                                               sc->value,
                                               sc->size,
-                                              &sc->expiry,
+                                              sc->expiry,
                                               sc->options,
                                               GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
     GNUNET_MQ_notify_sent (ev,

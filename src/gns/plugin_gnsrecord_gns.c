@@ -279,9 +279,10 @@ gns_string_to_value (void *cls,
         }
         *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
         *data = vpn = GNUNET_malloc (*data_size);
-        if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string ((char*) s_peer,
-                                                                     strlen (s_peer),
-                                                                     &vpn->peer.public_key))
+        if (GNUNET_OK !=
+            GNUNET_CRYPTO_eddsa_public_key_from_string ((char*) s_peer,
+                                                        strlen (s_peer),
+                                                        &vpn->peer.public_key))
         {
           GNUNET_free (vpn);
           *data_size = 0;
@@ -362,9 +363,14 @@ gns_string_to_value (void *cls,
         }
         *data_size = sizeof (struct GNUNET_GNSRECORD_ReverseRecord) + strlen (known_by) + 1;
         *data = rev = GNUNET_malloc (*data_size);
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey_str,
-                                                    strlen (pkey_str),
-                                                    &rev->pkey);
+        if (GNUNET_OK !=
+            GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey_str,
+                                                        strlen (pkey_str),
+                                                        &rev->pkey))
+        {
+          GNUNET_free (rev);
+          return GNUNET_SYSERR;
+        }
         rev->expiration = expiration;
         GNUNET_memcpy (&rev[1],
                        known_by,

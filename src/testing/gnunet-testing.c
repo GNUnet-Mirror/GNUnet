@@ -348,17 +348,35 @@ run_no_scheduler (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'C', "cfg", NULL, gettext_noop ("create unique configuration files"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &create_cfg},
-    {'k', "key", "FILENAME", gettext_noop ("extract hostkey file from pre-computed hostkey list"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &create_hostkey},
-    {'n', "number", "NUMBER", gettext_noop ("number of unique configuration files to create, or number of the hostkey to extract"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_no},
-    {'t', "template", "FILENAME", gettext_noop ("configuration template"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &create_cfg_template},
-    {'r', "run", "SERVICE", gettext_noop ("run the given service, wait on stdin for 'r' (restart) or 'q' (quit)"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &run_service_name},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('C',
+                                  "cfg",
+                                  gettext_noop ("create unique configuration files"),
+                                  &create_cfg),
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "FILENAME",
+                                 gettext_noop ("extract hostkey file from pre-computed hostkey list"),
+                                 &create_hostkey),
+
+    GNUNET_GETOPT_option_uint ('n',
+                                   "number",
+                                   "NUMBER",
+                                   gettext_noop ("number of unique configuration files to create, or number of the hostkey to extract"),
+                                   &create_no),
+
+
+    GNUNET_GETOPT_option_string ('t',
+                                 "template",
+                                 "FILENAME",
+                                 gettext_noop ("configuration template"),
+                                 &create_cfg_template),
+
+    GNUNET_GETOPT_option_string ('r',
+                                 "run",
+                                 "SERVICE",
+                                 gettext_noop ("run the given service, wait on stdin for 'r' (restart) or 'q' (quit)"),
+                                 &run_service_name),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

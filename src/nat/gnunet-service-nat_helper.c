@@ -221,6 +221,26 @@ restart_nat_server (void *cls)
   char ia[INET_ADDRSTRLEN];
 
   h->server_read_task = NULL;
+  GNUNET_assert (NULL !=
+		 inet_ntop (AF_INET,
+			    &h->internal_address,
+			    ia,
+			    sizeof (ia)));
+  /* Start the server process */
+  binary
+    = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
+  if (GNUNET_YES !=
+      GNUNET_OS_check_helper_binary (binary,
+                                     GNUNET_YES,
+                                     ia))
+  {
+    /* move instantly to max delay, as this is unlikely to be fixed */
+    h->server_retry_delay
+      = GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD;
+    GNUNET_free (binary);
+    try_again (h);
+    return;
+  }
   h->server_stdout
     = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES,
 			GNUNET_NO, GNUNET_YES);
@@ -228,21 +248,14 @@ restart_nat_server (void *cls)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
 			 "pipe");
+    GNUNET_free (binary);
     try_again (h);
     return;
   }
-  GNUNET_assert (NULL !=
-		 inet_ntop (AF_INET,
-			    &h->internal_address,
-			    ia,
-			    sizeof (ia)));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting `%s' at `%s'\n",
 	      "gnunet-helper-nat-server",
 	      ia);
-  /* Start the server process */
-  binary
-    = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
   h->server_proc
     = GNUNET_OS_start_process (GNUNET_NO,
 			       0,

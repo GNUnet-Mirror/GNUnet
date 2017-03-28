@@ -56,8 +56,10 @@ libgnunetblock_la_LDFLAGS = \
 libgnunetblockgroup_la_SOURCES = \
   bg_bf.c
 libgnunetblockgroup_la_LIBADD = \
+ libgnunetblock.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblockgroup_la_DEPENDENCIES = \
+ libgnunetblock.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblockgroup_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \

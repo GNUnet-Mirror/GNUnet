@@ -307,21 +307,30 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'b', "bits", "BITS",
-      gettext_noop ("number of bits to require for the proof of work"),
-      1, &GNUNET_GETOPT_set_ulong, &nse_work_required },
-    { 'k', "keyfile", "FILE",
-      gettext_noop ("file with private key, otherwise default is used"),
-      1, &GNUNET_GETOPT_set_filename, &pkfn },
-    { 'o', "outfile", "FILE",
-      gettext_noop ("file with proof of work, otherwise default is used"),
-      1, &GNUNET_GETOPT_set_filename, &pwfn },
-    { 't', "timeout", "TIME",
-      gettext_noop ("time to wait between calculations"),
-      1, &GNUNET_GETOPT_set_relative_time, &proof_find_delay },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_ulong ('b',
+                                    "bits",
+                                    "BITS",
+                                    gettext_noop ("number of bits to require for the proof of work"),
+                                    &nse_work_required),
+    GNUNET_GETOPT_option_filename ('k',
+                                   "keyfile",
+                                   "FILE",
+                                   gettext_noop ("file with private key, otherwise default is used"),
+                                   &pkfn),
+    GNUNET_GETOPT_option_filename ('o',
+                                   "outfile",
+                                   "FILE",
+                                   gettext_noop ("file with proof of work, otherwise default is used"),
+                                   &pwfn),
+    GNUNET_GETOPT_option_relative_time ('t',
+                                            "timeout",
+                                            "TIME",
+                                            gettext_noop ("time to wait between calculations"),
+                                            &proof_find_delay),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
@@ -334,7 +343,9 @@ main (int argc, char *const *argv)
          GNUNET_PROGRAM_run (argc, argv,
                              "gnunet-scrypt [OPTIONS] prooffile",
                              gettext_noop ("Manipulate GNUnet proof of work files"),
-                             options, &run, NULL)) ? 0 : 1;
+                             options,
+                             &run,
+                             NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   GNUNET_free_non_null (pwfn);
   return ret;

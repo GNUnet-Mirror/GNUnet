@@ -336,10 +336,9 @@ process_lookup_result (void *cls, uint32_t rd_count,
  * identified by the given public key and the shorten zone.
  *
  * @param pkey public key to use for the zone, can be NULL
- * @param shorten_key private key used for shortening, can be NULL
  */
 static void
-lookup_with_keys (struct LookupHandle *handle, const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key)
+lookup_with_public_key (struct LookupHandle *handle)
 {
   if (UINT32_MAX == handle->type)
   {
@@ -354,7 +353,6 @@ lookup_with_keys (struct LookupHandle *handle, const struct GNUNET_CRYPTO_EcdsaP
                                                 &handle->pkey,
                                                 handle->type,
                                                 handle->options,
-                                                shorten_key,
                                                 &process_lookup_result,
                                                 handle);
   }
@@ -365,55 +363,6 @@ lookup_with_keys (struct LookupHandle *handle, const struct GNUNET_CRYPTO_EcdsaP
   }
 }
 
-/**
- * Method called to with the ego we are to use for shortening
- * during the lookup.
- *
- * @param cls closure contains the public key to use
- * @param ego ego handle, NULL if not found
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_shorten_cb (void *cls,
-                     struct GNUNET_IDENTITY_Ego *ego,
-                     void **ctx,
-                     const char *name)
-{
-  struct LookupHandle *handle = cls;
-
-  handle->id_op = NULL;
-  if (NULL == ego)
-    lookup_with_keys (handle, NULL);
-  else
-    lookup_with_keys (handle,
-                      GNUNET_IDENTITY_ego_get_private_key (ego));
-}
-
-/**
- * Perform the actual resolution, starting with the zone
- * identified by the given public key.
- *
- * @param pkey public key to use for the zone
- */
-static void
-lookup_with_public_key (struct LookupHandle *handle)
-{
-  handle->pkeym = handle->pkey;
-  GNUNET_break (NULL == handle->id_op);
-  handle->id_op = GNUNET_IDENTITY_get (handle->identity,
-                                       "gns-short",
-                                       &identity_shorten_cb,
-                                       handle);
-  if (NULL == handle->id_op)
-  {
-    GNUNET_break (0);
-    lookup_with_keys (handle, NULL);
-  }
-}
 
 /**
  * Method called to with the ego we are to use for the lookup,
@@ -443,6 +392,7 @@ identity_zone_cb (void *cls,
   }
   json_decref(handle->json_root);
 }
+
 
 /**
  * Method called to with the ego we are to use for the lookup,

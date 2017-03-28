@@ -566,7 +566,7 @@ unix_address_to_sockaddr (const char *unixpath,
   GNUNET_memcpy (un->sun_path, unixpath, slen);
   un->sun_path[slen] = '\0';
   slen = sizeof (struct sockaddr_un);
-#if HAVE_SOCKADDR_IN_SIN_LEN
+#if HAVE_SOCKADDR_UN_SUN_LEN
   un->sun_len = (u_char) slen;
 #endif
   (*sock_len) = slen;
@@ -1229,7 +1229,7 @@ unix_plugin_select_read (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-  
+
   plugin->read_task = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
@@ -1252,7 +1252,7 @@ unix_plugin_select_write (void *cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
-  
+
   plugin->write_task = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY))

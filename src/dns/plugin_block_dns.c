@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -31,6 +31,61 @@
 #include "gnunet_block_plugin.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
+#include "gnunet_block_group_lib.h"
+
+
+/**
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
+ */
+#define BLOOMFILTER_K 16
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @param va variable arguments specific to @a type
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+static struct GNUNET_BLOCK_Group *
+block_plugin_dns_create_group (void *cls,
+                               enum GNUNET_BLOCK_Type type,
+                               uint32_t nonce,
+                               const void *raw_data,
+                               size_t raw_data_size,
+                               va_list va)
+{
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = 8;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
+  return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                       bf_size,
+                                       BLOOMFILTER_K,
+                                       type,
+                                       nonce,
+                                       raw_data,
+                                       raw_data_size);
+}
 
 
 /**
@@ -38,6 +93,7 @@
  * request evaluation, simply pass "NULL" for the reply_block.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
  * @param bg group to evaluate against
  * @param eo control flags
@@ -50,6 +106,7 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_dns_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
                            struct GNUNET_BLOCK_Group *bg,
                            enum GNUNET_BLOCK_EvaluationOptions eo,
@@ -60,6 +117,7 @@ block_plugin_dns_evaluate (void *cls,
                            size_t reply_block_size)
 {
   const struct GNUNET_DNS_Advertisement *ad;
+  struct GNUNET_HashCode phash;
 
   switch (type)
   {
@@ -101,6 +159,13 @@ block_plugin_dns_evaluate (void *cls,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
+    GNUNET_CRYPTO_hash (reply_block,
+                        reply_block_size,
+                        &phash);
+    if (GNUNET_YES ==
+        GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
+                                            &phash))
+      return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
   default:
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
@@ -147,6 +212,7 @@ libgnunet_plugin_block_dns_init (void *cls)
   api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_dns_evaluate;
   api->get_key = &block_plugin_dns_get_key;
+  api->create_group = &block_plugin_dns_create_group;
   api->types = types;
   return api;
 }

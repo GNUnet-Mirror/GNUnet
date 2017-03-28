@@ -671,7 +671,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *h,
   if (NULL == h->mq)
     return NULL;
   slen = strlen (service_name) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GetDefaultMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct GetDefaultMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -722,7 +722,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *h,
   if (NULL == h->mq)
     return NULL;
   slen = strlen (service_name) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct SetDefaultMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct SetDefaultMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -773,7 +773,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   if (NULL == h->mq)
     return NULL;
   slen = strlen (name) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct CreateRequestMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct CreateRequestMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -830,9 +830,9 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *h,
     return NULL;
   slen_old = strlen (old_name) + 1;
   slen_new = strlen (new_name) + 1;
-  if ( (slen_old >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-       (slen_old + slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct RenameMessage)) )
+  if ( (slen_old >= GNUNET_MAX_MESSAGE_SIZE) ||
+       (slen_new >= GNUNET_MAX_MESSAGE_SIZE) ||
+       (slen_old + slen_new >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct RenameMessage)) )
   {
     GNUNET_break (0);
     return NULL;
@@ -885,7 +885,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *h,
   if (NULL == h->mq)
     return NULL;
   slen = strlen (name) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct DeleteMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct DeleteMessage))
   {
     GNUNET_break (0);
     return NULL;

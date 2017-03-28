@@ -29,9 +29,9 @@
 #include "gnunet_resolver_service.h"
 #include "resolver.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "resolver-api", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-resolver-api", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "resolver-api", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-resolver-api", syscall)
 
 /**
  * Maximum supported length for a hostname
@@ -250,7 +250,7 @@ void
 GNUNET_RESOLVER_disconnect ()
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
-  
+
   while (NULL != (rh = req_head))
   {
     GNUNET_assert (GNUNET_SYSERR == rh->was_transmitted);
@@ -298,7 +298,7 @@ static void
 check_disconnect ()
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
-  
+
   for (rh = req_head; NULL != rh; rh = rh->next)
     if (GNUNET_SYSERR != rh->was_transmitted)
       return;
@@ -876,7 +876,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
 
   slen = strlen (hostname) + 1;
   if (slen + sizeof (struct GNUNET_RESOLVER_GetMessage) >=
-      GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;

@@ -263,6 +263,11 @@ struct GSC_KeyExchangeInfo
   struct GNUNET_MQ_Handle *mq;
 
   /**
+   * Our message stream tokenizer (for encrypted payload).
+   */
+  struct GNUNET_MessageStreamTokenizer *mst;
+
+  /**
    * PING message we transmit to the other peer.
    */
   struct PingMessage ping;
@@ -319,7 +324,7 @@ struct GSC_KeyExchangeInfo
    * last were received (good for accepting out-of-order packets and
    * estimating reliability of the connection)
    */
-  unsigned int last_packets_bitmap;
+  uint32_t last_packets_bitmap;
 
   /**
    * last sequence number received on this connection (highest)
@@ -368,11 +373,6 @@ static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
  * Current message we send for a key exchange.
  */
 static struct EphemeralKeyMessage current_ekm;
-
-/**
- * Our message stream tokenizer (for encrypted payload).
- */
-static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
 /**
  * DLL head.
@@ -702,6 +702,55 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
 
 
 /**
+ * Deliver P2P message to interested clients.  Invokes send twice,
+ * once for clients that want the full message, and once for clients
+ * that only want the header
+ *
+ * @param cls the `struct GSC_KeyExchangeInfo`
+ * @param m the message
+ */
+static int
+deliver_message (void *cls,
+                 const struct GNUNET_MessageHeader *m)
+{
+  struct GSC_KeyExchangeInfo *kx = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted message of type %d from %s\n",
+              ntohs (m->type),
+              GNUNET_i2s (kx->peer));
+  if (GNUNET_CORE_KX_STATE_UP != kx->status)
+  {
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# PAYLOAD dropped (out of order)"),
+                              1,
+                              GNUNET_NO);
+    return GNUNET_OK;
+  }
+  switch (ntohs (m->type))
+  {
+  case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
+  case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
+    GSC_SESSIONS_set_typemap (kx->peer, m);
+    return GNUNET_OK;
+  case GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP:
+    GSC_SESSIONS_confirm_typemap (kx->peer, m);
+    return GNUNET_OK;
+  default:
+    GSC_CLIENTS_deliver_message (kx->peer,
+                                 m,
+                                 ntohs (m->size),
+                                 GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
+    GSC_CLIENTS_deliver_message (kx->peer,
+                                 m,
+                                 sizeof (struct GNUNET_MessageHeader),
+                                 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Function called by transport to notify us that
  * a peer connected to us (on the network level).
  * Starts the key exchange with the given peer.
@@ -727,6 +776,8 @@ handle_transport_notify_connect (void *cls,
                             1,
                             GNUNET_NO);
   kx = GNUNET_new (struct GSC_KeyExchangeInfo);
+  kx->mst = GNUNET_MST_create (&deliver_message,
+                               kx);
   kx->mq = mq;
   kx->peer = pid;
   kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
@@ -801,6 +852,7 @@ handle_transport_notify_disconnect (void *cls,
   GNUNET_CONTAINER_DLL_remove (kx_head,
 			       kx_tail,
 			       kx);
+  GNUNET_MST_destroy (kx->mst);
   GNUNET_free (kx);
 }
 
@@ -1417,24 +1469,6 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 
 
 /**
- * Closure for #deliver_message()
- */
-struct DeliverMessageContext
-{
-
-  /**
-   * Key exchange context.
-   */
-  struct GSC_KeyExchangeInfo *kx;
-
-  /**
-   * Sender of the message.
-   */
-  const struct GNUNET_PeerIdentity *peer;
-};
-
-
-/**
  * We received an encrypted message.  Check that it is
  * well-formed (size-wise).
  *
@@ -1475,7 +1509,6 @@ handle_encrypted (void *cls,
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_AuthKey auth_key;
-  struct DeliverMessageContext dmc;
   uint16_t size = ntohs (m->header.size);
   char buf[size] GNUNET_ALIGN;
 
@@ -1573,7 +1606,7 @@ handle_encrypted (void *cls,
   }
   if (kx->last_sequence_number_received > snum)
   {
-    unsigned int rotbit = 1 << (kx->last_sequence_number_received - snum - 1);
+    uint32_t rotbit = 1U << (kx->last_sequence_number_received - snum - 1);
 
     if ((kx->last_packets_bitmap & rotbit) != 0)
     {
@@ -1620,15 +1653,12 @@ handle_encrypted (void *cls,
                             gettext_noop ("# bytes of payload decrypted"),
                             size - sizeof (struct EncryptedMessage),
                             GNUNET_NO);
-  dmc.kx = kx;
-  dmc.peer = kx->peer;
   if (GNUNET_OK !=
-      GNUNET_SERVER_mst_receive (mst,
-				 &dmc,
-                                 &buf[sizeof (struct EncryptedMessage)],
-                                 size - sizeof (struct EncryptedMessage),
-                                 GNUNET_YES,
-                                 GNUNET_NO))
+      GNUNET_MST_from_buffer (kx->mst,
+                              &buf[sizeof (struct EncryptedMessage)],
+                              size - sizeof (struct EncryptedMessage),
+                              GNUNET_YES,
+                              GNUNET_NO))
     GNUNET_break_op (0);
 }
 
@@ -1652,57 +1682,6 @@ handle_transport_notify_excess_bw (void *cls,
               GNUNET_i2s (pid));
   kx->has_excess_bandwidth = GNUNET_YES;
   GSC_SESSIONS_solicit (pid);
-}
-
-
-/**
- * Deliver P2P message to interested clients.  Invokes send twice,
- * once for clients that want the full message, and once for clients
- * that only want the header
- *
- * @param cls always NULL
- * @param client who sent us the message (struct GSC_KeyExchangeInfo)
- * @param m the message
- */
-static int
-deliver_message (void *cls,
-                 void *client,
-                 const struct GNUNET_MessageHeader *m)
-{
-  struct DeliverMessageContext *dmc = client;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted message of type %d from %s\n",
-              ntohs (m->type),
-              GNUNET_i2s (dmc->peer));
-  if (GNUNET_CORE_KX_STATE_UP != dmc->kx->status)
-  {
-    GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop ("# PAYLOAD dropped (out of order)"),
-                              1,
-                              GNUNET_NO);
-    return GNUNET_OK;
-  }
-  switch (ntohs (m->type))
-  {
-  case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
-  case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
-    GSC_SESSIONS_set_typemap (dmc->peer, m);
-    return GNUNET_OK;
-  case GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP:
-    GSC_SESSIONS_confirm_typemap (dmc->peer, m);
-    return GNUNET_OK;
-  default:
-    GSC_CLIENTS_deliver_message (dmc->peer,
-                                 m,
-                                 ntohs (m->size),
-                                 GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-    GSC_CLIENTS_deliver_message (dmc->peer,
-                                 m,
-                                 sizeof (struct GNUNET_MessageHeader),
-                                 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
-  }
-  return GNUNET_OK;
 }
 
 
@@ -1829,8 +1808,6 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
   rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
                                              &do_rekey,
                                              NULL);
-  mst = GNUNET_SERVER_mst_create (&deliver_message,
-				  NULL);
   transport
     = GNUNET_TRANSPORT_core_connect (GSC_cfg,
 				     &GSC_my_identity,
@@ -1873,11 +1850,6 @@ GSC_KX_done ()
   {
     GNUNET_free (my_private_key);
     my_private_key = NULL;
-  }
-  if (NULL != mst)
-  {
-    GNUNET_SERVER_mst_destroy (mst);
-    mst = NULL;
   }
   if (NULL != nc)
   {

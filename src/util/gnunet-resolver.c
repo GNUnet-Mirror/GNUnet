@@ -144,10 +144,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'r', "reverse", NULL,
-      gettext_noop ("perform a reverse lookup"),
-      0, &GNUNET_GETOPT_set_one, &reverse },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('r',
+                                  "reverse",
+                                  gettext_noop ("perform a reverse lookup"),
+                                  &reverse),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

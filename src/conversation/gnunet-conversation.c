@@ -1385,19 +1385,30 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "auto-accept", NULL,
-     gettext_noop ("automatically accepts all incoming calls (for measuring purposes)"),
-     0, &GNUNET_GETOPT_set_one, &auto_accept},
-    {'e', "ego", "NAME",
-     gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
-     1, &GNUNET_GETOPT_set_string, &ego_name},
-    {'E', "echo", NULL,
-     gettext_noop ("activate echo mode"),
-     0, &GNUNET_GETOPT_set_one, &echo},
-    {'p', "phone", "LINE",
-      gettext_noop ("sets the LINE to use for the phone"),
-     1, &GNUNET_GETOPT_set_string, &line},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_flag ('a',
+                               "auto-accept",
+                               gettext_noop ("automatically accepts all incoming calls (for measurement purposes)"),
+                               &auto_accept),
+
+    GNUNET_GETOPT_option_string ('e',
+                                 "ego",
+                                 "NAME",
+                                 gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
+                                 &ego_name),
+
+    GNUNET_GETOPT_option_flag ('E',
+                               "echo",
+                               gettext_noop ("activate echo mode"),
+                               &echo),
+
+    GNUNET_GETOPT_option_string ('p',
+                                 "phone",
+                                 "LINE",
+                                 gettext_noop ("sets the LINE to use for the phone"),
+                                 &line),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

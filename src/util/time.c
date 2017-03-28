@@ -27,7 +27,7 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-time", __VA_ARGS__)
 
 /**
  * Variable used to simulate clock skew.  Used for testing, never in production.

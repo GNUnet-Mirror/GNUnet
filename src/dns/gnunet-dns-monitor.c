@@ -52,7 +52,7 @@ static int ret;
 /**
  * Selected level of verbosity.
  */
-static int verbosity;
+static unsigned int verbosity;
 
 
 /**
@@ -346,14 +346,19 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'i', "inbound-only", NULL,
-     gettext_noop ("only monitor DNS queries"),
-     0, &GNUNET_GETOPT_set_one, &inbound_only},
-    {'o', "outbound-only", NULL,
-     gettext_noop ("only monitor DNS replies"),
-     0, &GNUNET_GETOPT_set_one, &outbound_only},
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_flag ('i',
+                                  "inbound-only",
+                                  gettext_noop ("only monitor DNS queries"),
+                                  &inbound_only),
+
+    GNUNET_GETOPT_option_flag ('o',
+                                  "outbound-only",
+                                  gettext_noop ("only monitor DNS queries"),
+                                  &outbound_only),
+
+    GNUNET_GETOPT_option_verbose (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
 

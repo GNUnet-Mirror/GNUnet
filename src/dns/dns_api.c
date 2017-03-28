@@ -317,7 +317,7 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
       return;
   }
   if (reply_length + sizeof (struct GNUNET_DNS_Response)
-      >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     GNUNET_free (rh);

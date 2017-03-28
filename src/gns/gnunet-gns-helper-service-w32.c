@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012 GNUnet e.V.
+     Copyright (C) 2012, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -48,6 +48,7 @@ DEFINE_DNS_GUID(SVCID_DNS_TYPE_SRV, 0x0021);
 DEFINE_GUID(SVCID_HOSTNAME, 0x0002a800, 0x0000, 0x0000, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
 DEFINE_GUID(SVCID_INET_HOSTADDRBYNAME, 0x0002a803, 0x0000, 0x0000, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
 
+
 struct request
 {
   /**
@@ -60,13 +61,22 @@ struct request
    */
   struct request *prev;
 
-  struct GNUNET_SERVER_Client *client;
+  /**
+   * Client that issued the request
+   */
+  struct GNUNET_SERVICE_Client *client;
+
   GUID sc;
+
   int af;
+
   wchar_t *name;
+
   char *u8name;
+
   struct GNUNET_GNS_LookupRequest *lookup_request;
 };
+
 
 /**
  * Head of the doubly-linked list (for cleanup).
@@ -99,14 +109,10 @@ static struct GNUNET_IDENTITY_Handle *identity;
 static struct GNUNET_CRYPTO_EcdsaPublicKey gns_master_pubkey;
 
 /**
- * Private key of the gns-short ego
- */
-static struct GNUNET_CRYPTO_EcdsaPrivateKey gns_short_privkey;
-
-/**
  * Set to 1 once egos are obtained.
  */
-static int got_egos = 0;
+static int got_egos;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -117,6 +123,7 @@ static void
 do_shutdown (void *cls)
 {
   struct request *rq;
+
   if (NULL != id_op)
   {
     GNUNET_IDENTITY_cancel (id_op);
@@ -130,8 +137,10 @@ do_shutdown (void *cls)
   while (NULL != (rq = rq_head))
   {
     if (NULL != rq->lookup_request)
-      GNUNET_GNS_lookup_cancel(rq->lookup_request);
-    GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
+      GNUNET_GNS_lookup_cancel (rq->lookup_request);
+    GNUNET_CONTAINER_DLL_remove (rq_head,
+                                 rq_tail,
+                                 rq);
     GNUNET_free_non_null (rq->name);
     if (rq->u8name)
       free (rq->u8name);
@@ -144,133 +153,6 @@ do_shutdown (void *cls)
   }
 }
 
-/**
- * Context for transmitting replies to clients.
- */
-struct TransmitCallbackContext
-{
-
-  /**
-   * We keep these in a doubly-linked list (for cleanup).
-   */
-  struct TransmitCallbackContext *next;
-
-  /**
-   * We keep these in a doubly-linked list (for cleanup).
-   */
-  struct TransmitCallbackContext *prev;
-
-  /**
-   * The message that we're asked to transmit.
-   */
-  struct GNUNET_MessageHeader *msg;
-
-  /**
-   * Handle for the transmission request.
-   */
-  struct GNUNET_SERVER_TransmitHandle *th;
-
-
-  /**
-   * Handle for the client to which to send
-   */
-  struct GNUNET_SERVER_Client *client;
-};
-
-
-/**
- * Head of the doubly-linked list (for cleanup).
- */
-static struct TransmitCallbackContext *tcc_head;
-
-/**
- * Tail of the doubly-linked list (for cleanup).
- */
-static struct TransmitCallbackContext *tcc_tail;
-
-/**
- * Have we already cleaned up the TCCs and are hence no longer
- * willing (or able) to transmit anything to anyone?
- */
-static int cleaning_done;
-
-
-/**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-transmit_callback (void *cls, size_t size, void *buf)
-{
-  struct TransmitCallbackContext *tcc = cls;
-  size_t msize;
-
-  tcc->th = NULL;
-  GNUNET_CONTAINER_DLL_remove (tcc_head, tcc_tail, tcc);
-  msize = ntohs (tcc->msg->size);
-  if (size == 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Transmission to client failed!\n"));
-    GNUNET_free (tcc->msg);
-    GNUNET_free (tcc);
-    return 0;
-  }
-  GNUNET_assert (size >= msize);
-  GNUNET_memcpy (buf, tcc->msg, msize);
-  GNUNET_free (tcc->msg);
-  GNUNET_free (tcc);
-  for (tcc = tcc_head; tcc; tcc = tcc->next)
-  {
-    if (NULL == tcc->th)
-    {
-      tcc->th = GNUNET_SERVER_notify_transmit_ready (tcc->client,
-          ntohs (tcc->msg->size),
-          GNUNET_TIME_UNIT_FOREVER_REL,
-          &transmit_callback, tcc);
-      break;
-    }
-  }
-  return msize;
-}
-
-
-/**
- * Transmit the given message to the client.
- *
- * @param client target of the message
- * @param msg message to transmit, will be freed!
- */
-static void
-transmit (struct GNUNET_SERVER_Client *client,
-	  struct GNUNET_MessageHeader *msg)
-{
-  struct TransmitCallbackContext *tcc;
-
-  if (GNUNET_YES == cleaning_done)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Shutdown in progress, aborting transmission.\n"));
-    GNUNET_free (msg);
-    return;
-  }
-  tcc = GNUNET_new (struct TransmitCallbackContext);
-  tcc->msg = msg;
-  tcc->client = client;
-  tcc->th = GNUNET_SERVER_notify_transmit_ready (client,
-      ntohs (msg->size),
-      GNUNET_TIME_UNIT_FOREVER_REL,
-      &transmit_callback, tcc);
-  GNUNET_CONTAINER_DLL_insert (tcc_head, tcc_tail, tcc);
-}
-
 
 #define MarshallPtr(ptr, base, type) \
   if (ptr) \
@@ -280,7 +162,6 @@ transmit (struct GNUNET_SERVER_Client *client,
 void
 MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
 {
-  int i;
   MarshallPtr (qs->lpszServiceInstanceName, qs, wchar_t);
   MarshallPtr (qs->lpServiceClassId, qs, GUID);
   MarshallPtr (qs->lpVersion, qs, WSAVERSION);
@@ -288,7 +169,7 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
   MarshallPtr (qs->lpszContext, qs, wchar_t);
   MarshallPtr (qs->lpafpProtocols, qs, AFPROTOCOLS);
   MarshallPtr (qs->lpszQueryString, qs, wchar_t);
-  for (i = 0; i < qs->dwNumberOfCsAddrs; i++)
+  for (int i = 0; i < qs->dwNumberOfCsAddrs; i++)
   {
     MarshallPtr (qs->lpcsaBuffer[i].LocalAddr.lpSockaddr, qs, SOCKADDR);
     MarshallPtr (qs->lpcsaBuffer[i].RemoteAddr.lpSockaddr, qs, SOCKADDR);
@@ -297,12 +178,13 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
   if (IsEqualGUID (&SVCID_INET_HOSTADDRBYNAME, sc) && qs->lpBlob != NULL && qs->lpBlob->pBlobData != NULL)
   {
     struct hostent *he;
+
     he = (struct hostent *) qs->lpBlob->pBlobData;
-    for (i = 0; he->h_aliases[i] != NULL; i++)
+    for (int i = 0; he->h_aliases[i] != NULL; i++)
       MarshallPtr (he->h_aliases[i], he, char);
     MarshallPtr (he->h_aliases, he, char *);
     MarshallPtr (he->h_name, he, char);
-    for (i = 0; he->h_addr_list[i] != NULL; i++)
+    for (int i = 0; he->h_addr_list[i] != NULL; i++)
       MarshallPtr (he->h_addr_list[i], he, void);
     MarshallPtr (he->h_addr_list, he, char *);
     MarshallPtr (qs->lpBlob->pBlobData, qs, void);
@@ -312,13 +194,16 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
 
 
 static void
-process_lookup_result (void* cls, uint32_t rd_count,
-    const struct GNUNET_GNSRECORD_Data *rd)
+process_lookup_result (void *cls,
+                       uint32_t rd_count,
+                       const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct request *rq = cls;
   int i, j, csanum;
-  struct request *rq = (struct request *) cls;
   struct GNUNET_W32RESOLVER_GetMessage *msg;
+  struct GNUNET_MQ_Envelope *msg_env;
   struct GNUNET_MessageHeader *msgend;
+  struct GNUNET_MQ_Envelope *msgend_env;
   WSAQUERYSETW *qs;
   size_t size;
   size_t size_recalc;
@@ -327,18 +212,20 @@ process_lookup_result (void* cls, uint32_t rd_count,
   size_t blobaddrcount = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Got lookup result with count %u for rq %p with client %p\n",
-      rd_count, rq, rq->client);
+              "Got lookup result with count %u for rq %p with client %p\n",
+              rd_count,
+              rq,
+              rq->client);
   rq->lookup_request = NULL;
 
-  if (rd_count == 0)
+  if (0 == rd_count)
   {
-    size = sizeof (struct GNUNET_MessageHeader);
-    msg = GNUNET_malloc (size);
-    msg->header.size = htons (size);
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
-    transmit (rq->client, &msg->header);
-    GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
+    msgend_env = GNUNET_MQ_msg (msgend, GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                    msgend_env);
+    GNUNET_CONTAINER_DLL_remove (rq_head,
+                                 rq_tail,
+                                 rq);
     GNUNET_free_non_null (rq->name);
     if (rq->u8name)
       free (rq->u8name);
@@ -396,9 +283,9 @@ process_lookup_result (void* cls, uint32_t rd_count,
     size += blobsize;
   }
   size_recalc = sizeof (struct GNUNET_W32RESOLVER_GetMessage) + sizeof (WSAQUERYSETW);
-  msg = GNUNET_malloc (size);
-  msg->header.size = htons (size - sizeof (struct GNUNET_MessageHeader));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
+  msg_env = GNUNET_MQ_msg_extra (msg,
+                                 size - sizeof (struct GNUNET_MessageHeader),
+                                 GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
   msg->af = htonl (rq->af);
   msg->sc_data1 = htonl (rq->sc.Data1);
   msg->sc_data2 = htons (rq->sc.Data2);
@@ -557,19 +444,24 @@ process_lookup_result (void* cls, uint32_t rd_count,
     }
     he->h_addr_list[j] = NULL;
   }
-  msgend = GNUNET_new (struct GNUNET_MessageHeader);
-
-  msgend->type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
-  msgend->size = htons (sizeof (struct GNUNET_MessageHeader));
+  msgend_env = GNUNET_MQ_msg (msgend, GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
 
   if ((char *) ptr - (char *) msg != size || size_recalc != size || size_recalc != ((char *) ptr - (char *) msg))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error in WSAQUERYSETW size calc: expected %lu, got %lu (recalc %lu)\n", size, (unsigned long) ((char *) ptr - (char *) msg), size_recalc);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error in WSAQUERYSETW size calc: expected %u, got %lu (recalc %u)\n",
+                size,
+                (unsigned long) ((char *) ptr - (char *) msg),
+                size_recalc);
   }
   MarshallWSAQUERYSETW (qs, &rq->sc);
-  transmit (rq->client, &msg->header);
-  transmit (rq->client, msgend);
-  GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                  msg_env);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (rq->client),
+                  msgend_env);
+  GNUNET_CONTAINER_DLL_remove (rq_head,
+                               rq_tail,
+                               rq);
   GNUNET_free_non_null (rq->name);
   if (rq->u8name)
     free (rq->u8name);
@@ -578,8 +470,10 @@ process_lookup_result (void* cls, uint32_t rd_count,
 
 
 static void
-get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
-    const wchar_t *name, int af, GUID sc)
+get_ip_from_hostname (struct GNUNET_SERVICE_Client *client,
+                      const wchar_t *name,
+                      int af,
+                      GUID sc)
 {
   struct request *rq;
   char *hostname;
@@ -610,10 +504,19 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Unknown GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
-                sc.Data1, sc.Data2, sc.Data3, sc.Data4[0], sc.Data4[1], sc.Data4[2],
-                sc.Data4[3], sc.Data4[4], sc.Data4[5], sc.Data4[6], sc.Data4[7]);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+                "Unknown GUID: %08lX-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+                sc.Data1,
+                sc.Data2,
+                sc.Data3,
+                sc.Data4[0],
+                sc.Data4[1],
+                sc.Data4[2],
+                sc.Data4[3],
+                sc.Data4[4],
+                sc.Data4[5],
+                sc.Data4[6],
+                sc.Data4[7]);
+    GNUNET_SERVICE_client_drop (client);
     return;
   }
 
@@ -640,24 +543,31 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   if (namelen)
   {
     rq->name = GNUNET_malloc ((namelen + 1) * sizeof (wchar_t));
-    GNUNET_memcpy (rq->name, name, (namelen + 1) * sizeof (wchar_t));
+    GNUNET_memcpy (rq->name,
+                   name,
+                   (namelen + 1) * sizeof (wchar_t));
     rq->u8name = hostname;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Launching a lookup for client %p with rq %p\n",
-              client, rq);
-
-  rq->lookup_request = GNUNET_GNS_lookup (gns, hostname, &gns_master_pubkey,
-      rtype, GNUNET_NO /* Use DHT */, &gns_short_privkey, &process_lookup_result,
-      rq);
-
+              client,
+              rq);
+  rq->lookup_request = GNUNET_GNS_lookup (gns,
+                                          hostname,
+                                          &gns_master_pubkey,
+                                          rtype,
+                                          GNUNET_NO /* Use DHT */,
+                                          &process_lookup_result,
+                                          rq);
   if (NULL != rq->lookup_request)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup launched, waiting for a reply\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_insert (rq_head, rq_tail, rq);
+    GNUNET_SERVICE_client_continue (client);
+    GNUNET_CONTAINER_DLL_insert (rq_head,
+                                 rq_tail,
+                                 rq);
   }
   else
   {
@@ -667,109 +577,104 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     if (rq->u8name)
       free (rq->u8name);
     GNUNET_free (rq);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVICE_client_drop (client);
   }
+}
+
+
+/**
+ * Check GET-message.
+ *
+ * @param cls identification of the client
+ * @param msg the actual message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_get (void *cls,
+            const struct GNUNET_W32RESOLVER_GetMessage *msg)
+{
+  uint16_t size;
+  const wchar_t *hostname;
+
+  if (! got_egos)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Not ready to process requests, lacking ego data\n"));
+    return GNUNET_SYSERR;
+  }
+  size = ntohs (msg->header.size) - sizeof (struct GNUNET_W32RESOLVER_GetMessage);
+  hostname = (const wchar_t *) &msg[1];
+  if (hostname[size / 2 - 1] != L'\0')
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
 /**
  * Handle GET-message.
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls identification of the client
+ * @param msg the actual message
  */
 static void
-handle_get (void *cls, struct GNUNET_SERVER_Client *client,
-            const struct GNUNET_MessageHeader *message)
+handle_get (void *cls,
+            const struct GNUNET_W32RESOLVER_GetMessage *msg)
 {
-  uint16_t msize;
-  const struct GNUNET_W32RESOLVER_GetMessage *msg;
+  struct GNUNET_SERVICE_Client *client = cls;
   GUID sc;
   uint16_t size;
-  int i;
   const wchar_t *hostname;
   int af;
 
-  if (!got_egos)
-  {
-    /*
-     * FIXME: be done with GNUNET_OK, put the get request into a queue?
-     * or postpone GNUNET_SERVER_add_handlers() until egos are obtained?
-     */
-    GNUNET_SERVER_receive_done (client, GNUNET_NO);
-    return;
-  }
-
-  msize = ntohs (message->size);
-  if (msize <= sizeof (struct GNUNET_W32RESOLVER_GetMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct GNUNET_W32RESOLVER_GetMessage *) message;
-  size = msize - sizeof (struct GNUNET_W32RESOLVER_GetMessage);
+  size = ntohs (msg->header.size) - sizeof (struct GNUNET_W32RESOLVER_GetMessage);
   af = ntohl (msg->af);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Got NBO GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
-      msg->sc_data1, msg->sc_data2, msg->sc_data3, msg->sc_data4[0], msg->sc_data4[1],
-      msg->sc_data4[2], msg->sc_data4[3], msg->sc_data4[4], msg->sc_data4[5],
-      msg->sc_data4[6], msg->sc_data4[7]);
+              "Got NBO GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+              msg->sc_data1,
+              msg->sc_data2,
+              msg->sc_data3,
+              msg->sc_data4[0],
+              msg->sc_data4[1],
+              msg->sc_data4[2],
+              msg->sc_data4[3],
+              msg->sc_data4[4],
+              msg->sc_data4[5],
+              msg->sc_data4[6],
+              msg->sc_data4[7]);
   sc.Data1 = ntohl (msg->sc_data1);
   sc.Data2 = ntohs (msg->sc_data2);
   sc.Data3 = ntohs (msg->sc_data3);
-  for (i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++)
     sc.Data4[i] = msg->sc_data4[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
-              sc.Data1, sc.Data2, sc.Data3, sc.Data4[0], sc.Data4[1], sc.Data4[2],
-              sc.Data4[3], sc.Data4[4], sc.Data4[5], sc.Data4[6], sc.Data4[7]);
-
+              "Got GUID: %08lX-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+              sc.Data1,
+              sc.Data2,
+              sc.Data3,
+              sc.Data4[0],
+              sc.Data4[1],
+              sc.Data4[2],
+              sc.Data4[3],
+              sc.Data4[4],
+              sc.Data4[5],
+              sc.Data4[6],
+              sc.Data4[7]);
   hostname = (const wchar_t *) &msg[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name of %u bytes (last word is 0x%0X): %*S\n",
-        size, hostname[size / 2 - 2], size / 2, hostname);
-  if (hostname[size / 2 - 1] != L'\0')
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name of length %u, not 0-terminated (%d-th word is 0x%0X): %*S\n",
-        size, size / 2 - 1, hostname[size / 2 - 1], size, hostname);
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  get_ip_from_hostname (client, hostname, af, sc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Name of %u bytes (last word is 0x%0X): %*S\n",
+              size,
+              hostname[size / 2 - 2],
+              size / 2,
+              hostname);
+  get_ip_from_hostname (client,
+                        hostname,
+                        af,
+                        sc);
 }
 
-
-/**
- * Method called to with the ego we are to use for shortening
- * during the lookup.
- *
- * @param cls closure (NULL, unused)
- * @param ego ego handle, NULL if not found
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_shorten_cb (void *cls,
-         struct GNUNET_IDENTITY_Ego *ego,
-         void **ctx,
-         const char *name)
-{
-  id_op = NULL;
-  if (NULL == ego)
-  {
-    fprintf (stderr,
-       _("Ego for `gns-short' not found. This is not really fatal, but i'll pretend that it is and refuse to perform a lookup.  Did you run gnunet-gns-import.sh?\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  gns_short_privkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  got_egos = 1;
-}
 
 /**
  * Method called to with the ego we are to use for the lookup,
@@ -785,22 +690,21 @@ identity_shorten_cb (void *cls,
  */
 static void
 identity_master_cb (void *cls,
-        struct GNUNET_IDENTITY_Ego *ego,
-        void **ctx,
-        const char *name)
+                    struct GNUNET_IDENTITY_Ego *ego,
+                    void **ctx,
+                    const char *name)
 {
   id_op = NULL;
   if (NULL == ego)
   {
-    fprintf (stderr,
-       _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_IDENTITY_ego_get_public_key (ego, &gns_master_pubkey);
-  id_op = GNUNET_IDENTITY_get (identity, "gns-short", &identity_shorten_cb,
-      NULL);
-  GNUNET_assert (NULL != id_op);
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+                                      &gns_master_pubkey);
+  got_egos = 1;
 }
 
 
@@ -808,59 +712,90 @@ identity_master_cb (void *cls,
  * Start up gns-helper-w32 service.
  *
  * @param cls closure
- * @param server the initialized server
  * @param cfg configuration to use
+ * @param service the initialized service
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_W32RESOLVER_REQUEST, 0},
-    {NULL, NULL, 0, 0}
-  };
-
   gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
   {
-    fprintf (stderr, _("Failed to connect to GNS\n"));
+    fprintf (stderr,
+             _("Failed to connect to GNS\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
-
-  identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
+  identity = GNUNET_IDENTITY_connect (cfg,
+                                      NULL,
+                                      NULL);
   if (NULL == identity)
   {
-    fprintf (stderr, _("Failed to connect to identity service\n"));
+    fprintf (stderr,
+             _("Failed to connect to identity service\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
-  id_op = GNUNET_IDENTITY_get (identity, "gns-master", &identity_master_cb,
-      NULL);
+  id_op = GNUNET_IDENTITY_get (identity,
+                               "gns-master",
+                               &identity_master_cb,
+                               NULL);
   GNUNET_assert (NULL != id_op);
-
-  GNUNET_SERVER_add_handlers (server, handlers);
 }
 
 
 /**
- * The main function for gns-helper-w32.
+ * Handle client connecting to the service.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @param cls NULL
+ * @param client the new client
+ * @param mq the message queue of @a client
+ * @return @a client
  */
-int
-main (int argc, char *const *argv)
+static void *
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
-  int ret;
-
-  ret = GNUNET_SERVICE_run (argc, argv, "gns-helper-service-w32",
-      GNUNET_SERVICE_OPTION_NONE, &run, NULL);
-  return (GNUNET_OK == ret) ? 0 : 1;
+  return client;
 }
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls should be equal to @a c
+ */
+static void
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *internal_cls)
+{
+  GNUNET_assert (internal_cls == client);
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("gns-helper-service-w32",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_var_size (get,
+                        GNUNET_MESSAGE_TYPE_W32RESOLVER_REQUEST,
+                        struct GNUNET_W32RESOLVER_GetMessage,
+                        NULL),
+ GNUNET_MQ_handler_end());
+
 
 /* end of gnunet-gns-helper-service-w32.c */

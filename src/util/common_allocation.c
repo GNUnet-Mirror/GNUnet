@@ -32,9 +32,9 @@
 #include <malloc/malloc.h>
 #endif
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-common-allocation",__VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-common-allocation", syscall)
 
 #ifndef INT_MAX
 #define INT_MAX 0x7FFFFFFF

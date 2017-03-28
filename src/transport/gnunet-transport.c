@@ -169,11 +169,6 @@ struct PeerResolutionContext
 #define BLOCKSIZE 4
 
 /**
- * Which peer should we connect to?
- */
-static char *cpid;
-
-/**
  * Handle to transport service.
  */
 static struct GNUNET_TRANSPORT_CoreHandle *handle;
@@ -315,7 +310,7 @@ static struct GNUNET_TRANSPORT_PluginMonitor *pm;
 
 /**
  * Identity of the peer we transmit to / connect to.
- * (equivalent to 'cpid' string).
+ * ('-p' command-line option).
  */
 static struct GNUNET_PeerIdentity pid;
 
@@ -327,7 +322,7 @@ static struct GNUNET_SCHEDULER_Task *op_timeout;
 /**
  * Selected level of verbosity.
  */
-static int verbosity;
+static unsigned int verbosity;
 
 /**
  * Resolver process handle.
@@ -518,7 +513,7 @@ operation_timeout (void *cls)
                _("Failed to resolve address for peer `%s'\n"),
                GNUNET_i2s (&cur->addrcp->peer));
 
-      GNUNET_CONTAINER_DLL_remove(rc_head, 
+      GNUNET_CONTAINER_DLL_remove(rc_head,
 				  rc_tail,
 				  cur);
       GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
@@ -876,7 +871,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
   else if ( (GNUNET_YES == iterate_connections) &&
-	    (GNUNET_TRANSPORT_is_connected(state)) ) 
+	    (GNUNET_TRANSPORT_is_connected(state)) )
   {
     /* Only connected peers, skip state */
     FPRINTF (stdout,
@@ -1236,10 +1231,9 @@ plugin_monitoring_cb (void *cls,
     }
     return; /* shutdown */
   }
-  if ( (NULL != cpid) &&
-       (0 != memcmp (&info->address->peer,
-                     cpid,
-                     sizeof (struct GNUNET_PeerIdentity))) )
+  if (0 != memcmp (&info->address->peer,
+                   &pid,
+                   sizeof (struct GNUNET_PeerIdentity)))
     return; /* filtered */
   if (NULL == addr)
   {
@@ -1388,21 +1382,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
+  static struct GNUNET_PeerIdentity zero_pid;
   int counter = 0;
   ret = 1;
 
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
-  if ( (NULL != cpid) &&
-       (GNUNET_OK !=
-        GNUNET_CRYPTO_eddsa_public_key_from_string (cpid,
-                                                    strlen (cpid),
-                                                    &pid.public_key)))
-  {
-    FPRINTF (stderr,
-             _("Failed to parse peer identity `%s'\n"),
-             cpid);
-    return;
-  }
 
   counter = benchmark_send + benchmark_receive + iterate_connections
       + monitor_connections + monitor_connects + do_disconnect +
@@ -1441,7 +1425,9 @@ run (void *cls,
 
   if (do_disconnect) /* -D: Disconnect from peer */
   {
-    if (NULL == cpid)
+    if (0 == memcmp (&zero_pid,
+                     &pid,
+                     sizeof (pid)))
     {
       FPRINTF (stderr,
                _("Option `%s' makes no sense without option `%s'.\n"),
@@ -1467,7 +1453,9 @@ run (void *cls,
   else if (benchmark_send || /* -s: Benchmark sending */
            measure_rtt)      /* -r Measure round-trip time to given peer */
   {
-    if (NULL == cpid)
+    if (0 == memcmp (&zero_pid,
+                     &pid,
+                     sizeof (pid)))
     {
       FPRINTF (stderr,
 	       _("Option `%s' makes no sense without option `%s'.\n"),
@@ -1523,7 +1511,7 @@ run (void *cls,
                              NULL),
       GNUNET_MQ_handler_end ()
     };
-    
+
     handle = GNUNET_TRANSPORT_core_connect (cfg,
 					    NULL,
 					    handlers,
@@ -1549,7 +1537,7 @@ run (void *cls,
   else if (iterate_connections) /* -i: List information about peers once */
   {
     pic = GNUNET_TRANSPORT_monitor_peers (cfg,
-                                          (NULL == cpid) ? NULL : &pid,
+                                          &pid,
                                           GNUNET_YES,
                                           &process_peer_iteration_cb,
                                           (void *) cfg);
@@ -1562,7 +1550,7 @@ run (void *cls,
     monitored_peers = GNUNET_CONTAINER_multipeermap_create (10,
 							    GNUNET_NO);
     pic = GNUNET_TRANSPORT_monitor_peers (cfg,
-					  (NULL == cpid) ? NULL : &pid,
+					  &pid,
                                           GNUNET_NO,
                                           &process_peer_monitoring_cb,
                                           NULL);
@@ -1610,47 +1598,63 @@ main (int argc,
       char * const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'a', "all", NULL,
-      gettext_noop ("print information for all peers (instead of only connected peers)"),
-      0, &GNUNET_GETOPT_set_one, &iterate_all },
-    { 'b', "benchmark", NULL,
-      gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
-      0, &GNUNET_GETOPT_set_one, &benchmark_receive },
-    { 'D', "disconnect",
-      NULL, gettext_noop ("disconnect from a peer"), 0,
-      &GNUNET_GETOPT_set_one, &do_disconnect },
-    { 'E', "echo", NULL,
-      gettext_noop ("activate echo mode"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo },
-    { 'r', "measure-rtt", NULL,
-      gettext_noop ("measure round trip time by sending packets to an echo-mode enabled peer"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &measure_rtt },
-    { 'N', "number", "NUMBER",
-      gettext_noop ("number of RTT measurements"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &number_rtt },
-    { 'i', "information", NULL,
-      gettext_noop ("provide information about all current connections (once)"),
-      0, &GNUNET_GETOPT_set_one, &iterate_connections },
-    { 'm', "monitor", NULL,
-      gettext_noop ("provide information about all current connections (continuously)"),
-      0, &GNUNET_GETOPT_set_one, &monitor_connections },
-    { 'e', "events", NULL,
-      gettext_noop ("provide information about all connects and disconnect events (continuously)"),
-      0, &GNUNET_GETOPT_set_one, &monitor_connects },
-    { 'n', "numeric",
-      NULL, gettext_noop ("do not resolve hostnames"), 0,
-      &GNUNET_GETOPT_set_one, &numeric },
-    { 'p', "peer", "PEER",
-      gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
-      &cpid },
-    { 'P', "plugins", NULL,
-      gettext_noop ("monitor plugin sessions"), 0, &GNUNET_GETOPT_set_one,
-      &monitor_plugins },
-    { 's', "send", NULL, gettext_noop
-      ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
-      &GNUNET_GETOPT_set_one, &benchmark_send },
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('a',
+                                  "all",
+                                  gettext_noop ("print information for all peers (instead of only connected peers)"),
+                                  &iterate_all),
+    GNUNET_GETOPT_option_flag ('b',
+                                  "benchmark",
+                                  gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
+                                  &benchmark_receive),
+    GNUNET_GETOPT_option_flag ('D',
+                                  "disconnect",
+                                  gettext_noop ("disconnect from a peer"),
+                                  &do_disconnect),
+    GNUNET_GETOPT_option_flag ('E',
+                                  "echo",
+                                  gettext_noop ("activate echo mode"),
+                                  &echo),
+    GNUNET_GETOPT_option_flag ('r',
+                                  "measure-rtt",
+                                  gettext_noop ("measure rount-trip time by sending packets to an echo-mode enabled peer"),
+                                  &measure_rtt),
+    GNUNET_GETOPT_option_uint ('N',
+                                  "number",
+                                  "NUMBER",
+                                  gettext_noop ("number of RTT measurements"),
+                                  &number_rtt),
+    GNUNET_GETOPT_option_flag ('i',
+                                  "information",
+                                  gettext_noop ("provide information about all current connections (once)"),
+                                  &iterate_connections),
+    GNUNET_GETOPT_option_flag ('m',
+                                  "monitor",
+                                  gettext_noop ("provide information about all current connections (continuously)"),
+                                  &monitor_connections),
+    GNUNET_GETOPT_option_flag ('e',
+                                  "events",
+                                  gettext_noop ("provide information about all connects and disconnect events (continuously)"),
+                                  &monitor_connects),
+    GNUNET_GETOPT_option_flag ('n',
+                                  "numeric",
+                                  gettext_noop ("do not resolve hostnames"),
+                                  &numeric),
+    GNUNET_GETOPT_option_base32_auto ('p',
+                                          "peer",
+                                          "PEER",
+                                          gettext_noop ("peer identity"),
+                                          &pid),
+    GNUNET_GETOPT_option_flag ('P',
+                                  "plugins",
+                                  gettext_noop ("monitor plugin sessions"),
+                                  &monitor_plugins),
+    GNUNET_GETOPT_option_flag ('s',
+                                  "send",
+                                  gettext_noop
+      ("send data for benchmarking to the other peer (until CTRL-C)"),
+                                  &benchmark_send),
+    GNUNET_GETOPT_option_verbose (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
 

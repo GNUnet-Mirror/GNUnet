@@ -71,6 +71,7 @@ GNUNET_TRANSPORT_TESTING_log_disconnect (void *cls,
               GNUNET_i2s (other),
               me->no,
               ps);
+  GNUNET_free (ps);
 }
 
 /* end of transport-testing-loggers.c */

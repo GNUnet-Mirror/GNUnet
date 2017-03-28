@@ -64,7 +64,6 @@ struct CpsRunContext
   enum RunPhase phase;
   unsigned int cnt;
   unsigned int i;
-  uint64_t offset;
 };
 
 
@@ -194,6 +193,7 @@ iterate_one_shot (void *cls,
                   enum GNUNET_BLOCK_Type type,
                   uint32_t priority,
                   uint32_t anonymity,
+                  uint32_t replication,
                   struct GNUNET_TIME_Absolute expiration,
                   uint64_t uid)
 {
@@ -308,7 +308,8 @@ test (void *cls)
                 "Looking for %s\n",
                 GNUNET_h2s (&key));
     crc->api->get_key (crc->api->cls,
-                       crc->offset++,
+                       0,
+                       false,
                        &key,
                        NULL,
                        GNUNET_BLOCK_TYPE_ANY,
@@ -317,11 +318,12 @@ test (void *cls)
     break;
   case RP_UPDATE:
     crc->api->update (crc->api->cls,
-		      guid,
-		      1,
-		      GNUNET_TIME_UNIT_ZERO_ABS,
+                      guid,
+                      1,
+                      1,
+                      GNUNET_TIME_UNIT_ZERO_ABS,
                       &update_continuation,
-		      crc);
+                      crc);
     break;
 
   case RP_ITER_ZERO:

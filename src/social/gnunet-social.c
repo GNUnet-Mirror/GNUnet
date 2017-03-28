@@ -67,10 +67,10 @@ static int op_guest_leave;
 static int op_guest_talk;
 
 /** --replay */
-static char *op_replay;
+static int op_replay;
 
 /** --replay-latest */
-static char *op_replay_latest;
+static int op_replay_latest;
 
 /** --look-at */
 static int op_look_at;
@@ -116,13 +116,13 @@ static char *opt_data;
 static char *opt_name;
 
 /** --start */
-static uint64_t opt_start;
+static unsigned long long opt_start;
 
 /** --until */
-static uint64_t opt_until;
+static unsigned long long opt_until;
 
 /** --limit */
-static int opt_limit;
+static unsigned long long opt_limit;
 
 
 /* global vars */
@@ -563,7 +563,7 @@ slicer_recv_method (void *cls,
               "%s (flags: %x)\n",
               message_id, method_name, ntohl (meth->flags));
   /* routing header is missing, so we just print double newline */
-  printf(".\n\n");
+  printf("\n");
   /* we output . instead of | to indicate that this is not proper PSYC syntax */
   /* FIXME: use libpsyc here */
 }
@@ -588,10 +588,11 @@ slicer_recv_modifier (void *cls,
               "Received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               message_id, oper, name, value_size, (const char *) value, value_size);
-#endif
+#else
   /* obviously not binary safe */
   printf("%c%s\t%.*s\n",
               oper, name, value_size, (const char *) value);
+#endif
 }
 
 
@@ -611,10 +612,11 @@ slicer_recv_data (void *cls,
               "Received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               message_id, data_size, (const char *) data);
-#endif
+#else
   /* obviously not binary safe */
   printf("%s\n%.*s\n",
               method_received, data_size, (const char *) data);
+#endif
 }
 
 
@@ -1016,6 +1018,7 @@ app_connected (void *cls)
       guest_enter (&place_pub_key, &peer);
     }
   }
+  printf(".\n");
 }
 
 
@@ -1161,6 +1164,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("--place missing or invalid.\n"));
+    /* FIXME: why does it segfault here? */
     exit_fail ();
     return;
   }
@@ -1195,7 +1199,7 @@ int
 main (int argc, char *const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
     /*
      * gnunet program options in addition to the ones below:
      *
@@ -1208,120 +1212,165 @@ main (int argc, char *const *argv)
 
     /* operations */
 
-    { 'A', "host-assign", NULL,
-      gettext_noop ("assign --name in state to --data"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_assign },
+    GNUNET_GETOPT_option_flag ('A',
+                                  "host-assign",
+                                  gettext_noop ("assign --name in state to --data"),
+                                  &op_host_assign),
 
-    { 'B', "guest-leave", NULL,
-      gettext_noop ("say good-bye and leave somebody else's place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_leave },
+    GNUNET_GETOPT_option_flag ('B',
+                                  "guest-leave",
+                                  gettext_noop ("say good-bye and leave somebody else's place"),
+                                  &op_guest_leave),
 
-    { 'C', "host-enter", NULL,
-      gettext_noop ("create a place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_enter },
+    GNUNET_GETOPT_option_flag ('C',
+                                  "host-enter",
+                                  gettext_noop ("create a place"),
+                                  &op_host_enter),
 
-    { 'D', "host-leave", NULL,
-      gettext_noop ("destroy a place we were hosting"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_leave },
+    GNUNET_GETOPT_option_flag ('C',
+                                  "host-enter",
+                                  gettext_noop ("create a place"),
+                                  &op_host_enter),
 
-    { 'E', "guest-enter", NULL,
-      gettext_noop ("enter somebody else's place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_enter },
+    GNUNET_GETOPT_option_flag ('D',
+                                  "host-leave",
+                                  gettext_noop ("destroy a place we were hosting"),
+                                  &op_host_leave),
 
-    { 'F', "look-for", NULL,
-      gettext_noop ("find state matching name prefix"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_look_for },
+    GNUNET_GETOPT_option_flag ('E',
+                                  "guest-enter",
+                                  gettext_noop ("enter somebody else's place"),
+                                  &op_guest_enter),
 
-    { 'H', "replay-latest", NULL,
-      gettext_noop ("replay history of messages up to the given --limit"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_replay_latest },
 
-    { 'N', "host-reconnect", NULL,
-      gettext_noop ("reconnect to a previously created place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_reconnect },
+    GNUNET_GETOPT_option_flag ('F',
+                                  "look-for",
+                                  gettext_noop ("find state matching name prefix"),
+                                  &op_look_for),
 
-    { 'P', "host-announce", NULL,
-      gettext_noop ("publish something to a place we are hosting"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_host_announce },
+    GNUNET_GETOPT_option_flag ('H',
+                                  "replay-latest",
+                                  gettext_noop ("replay history of messages up to the given --limit"),
+                                  &op_replay_latest),
 
-    { 'R', "guest-reconnect", NULL,
-      gettext_noop ("reconnect to a previously entered place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_reconnect },
+    GNUNET_GETOPT_option_flag ('N',
+                                  "host-reconnect",
+                                  gettext_noop ("reconnect to a previously created place"),
+                                  &op_host_reconnect),
 
-    { 'S', "look-at", NULL,
-      gettext_noop ("search for state matching exact name"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_look_at },
+    GNUNET_GETOPT_option_flag ('P',
+                                  "host-announce",
+                                  gettext_noop ("publish something to a place we are hosting"),
+                                  &op_host_announce),
 
-    { 'T', "guest-talk", NULL,
-      gettext_noop ("submit something to somebody's place"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_guest_talk },
+    GNUNET_GETOPT_option_flag ('R',
+                                  "guest-reconnect",
+                                  gettext_noop ("reconnect to a previously entered place"),
+                                  &op_guest_reconnect),
 
-    { 'U', "status", NULL,
-      gettext_noop ("list of egos and subscribed places"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_status },
+    GNUNET_GETOPT_option_flag ('S',
+                                  "look-at",
+                                  gettext_noop ("search for state matching exact name"),
+                                  &op_look_at),
 
-    { 'X', "replay", NULL,
-      gettext_noop ("extract and replay history between message IDs --start and --until"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &op_replay },
+    GNUNET_GETOPT_option_flag ('T',
+                                  "guest-talk",
+                                  gettext_noop ("submit something to somebody's place"),
+                                  &op_guest_talk),
+
+    GNUNET_GETOPT_option_flag ('U',
+                                  "status",
+                                  gettext_noop ("list of egos and subscribed places"),
+                                  &op_status),
+
+    GNUNET_GETOPT_option_flag ('X',
+                                  "replay",
+                                  gettext_noop ("extract and replay history between message IDs --start and --until"),
+                                  &op_replay),
 
 
     /* options */
 
-    { 'a', "app", "APPLICATION_ID",
-      gettext_noop ("application ID to use when connecting"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_app },
+    GNUNET_GETOPT_option_string ('a',
+                                 "app",
+                                 "APPLICATION_ID",
+                                 gettext_noop ("application ID to use when connecting"),
+                                 &opt_app),
 
-    { 'd', "data", "DATA",
-      gettext_noop ("message body or state value"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_data },
+    GNUNET_GETOPT_option_string ('d',
+                                 "data",
+                                 "DATA",
+                                 gettext_noop ("message body or state value"),
+                                 &opt_data),
 
-    { 'e', "ego", "NAME|PUBKEY",
-      gettext_noop ("name or public key of ego"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_ego },
+    GNUNET_GETOPT_option_string ('e',
+                                 "ego",
+                                 "NAME|PUBKEY",
+                                 gettext_noop ("name or public key of ego"),
+                                 &opt_ego),
 
-    { 'f', "follow", NULL,
-      gettext_noop ("wait for incoming messages"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_follow },
+    GNUNET_GETOPT_option_flag ('f',
+                                  "follow",
+                                  gettext_noop ("wait for incoming messages"),
+                                  &opt_follow),
 
-    { 'g', "gns", "GNS_NAME",
-      gettext_noop ("GNS name"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_gns },
+    GNUNET_GETOPT_option_string ('g',
+                                 "gns",
+                                 "GNS_NAME",
+                                 gettext_noop ("GNS name"),
+                                 &opt_gns),
 
-    { 'i', "peer", "PEER_ID",
-      gettext_noop ("peer ID for --guest-enter"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_peer },
+    GNUNET_GETOPT_option_string ('i',
+                                 "peer",
+                                 "PEER_ID",
+                                 gettext_noop ("peer ID for --guest-enter"),
+                                 &opt_peer),
 
-    { 'k', "name", "VAR_NAME",
-      gettext_noop ("name (key) to query from state"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_name },
+    GNUNET_GETOPT_option_string ('k',
+                                 "name",
+                                 "VAR_NAME",
+                                 gettext_noop ("name (key) to query from state"),
+                                 &opt_name),
 
-    { 'm', "method", "METHOD_NAME",
-      gettext_noop ("method name"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_method },
+    GNUNET_GETOPT_option_string ('m',
+                                 "method",
+                                 "METHOD_NAME",
+                                 gettext_noop ("method name"),
+                                 &opt_method),
 
-    { 'n', "limit", NULL,
-      gettext_noop ("number of messages to replay from history"),
-      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_limit },
+    GNUNET_GETOPT_option_ulong ('n',
+                                    "limit",
+                                    NULL,
+                                    gettext_noop ("number of messages to replay from history"),
+                                    &opt_limit),
 
-    { 'p', "place", "PUBKEY",
-      gettext_noop ("key address of place"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &opt_place },
+    GNUNET_GETOPT_option_string ('p',
+                                 "place",
+                                 "PUBKEY",
+                                 gettext_noop ("key address of place"),
+                                 &opt_place),
 
-    { 's', "start", NULL,
-      gettext_noop ("start message ID for history replay"),
-      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_start },
+    GNUNET_GETOPT_option_ulong ('s',
+                                    "start",
+                                    NULL,
+                                    gettext_noop ("start message ID for history replay"),
+                                    &opt_start),
 
-    { 'w', "welcome", NULL,
-      gettext_noop ("respond to entry requests by admitting all guests"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_welcome },
+    GNUNET_GETOPT_option_flag ('w',
+                                  "welcome",
+                                  gettext_noop ("respond to entry requests by admitting all guests"),
+                                  &opt_welcome),
 
-    { 'u', "until", NULL,
-      gettext_noop ("end message ID for history replay"),
-      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &opt_until },
+    GNUNET_GETOPT_option_ulong ('u',
+                                    "until",
+                                    NULL,
+                                    gettext_noop ("end message ID for history replay"),
+                                    &opt_until),
 
-    { 'y', "deny", NULL,
-      gettext_noop ("respond to entry requests by refusing all guests"),
-      GNUNET_NO, &GNUNET_GETOPT_set_one, &opt_deny },
+    GNUNET_GETOPT_option_flag ('y',
+                                  "deny",
+                                  gettext_noop ("respond to entry requests by refusing all guests"),
+                                  &opt_deny),
 
     GNUNET_GETOPT_OPTION_END
   };
@@ -1350,8 +1399,8 @@ main (int argc, char *const *argv)
     "gnunet-social --guest-leave --place <PUBKEY>\n"
     "gnunet-social --guest-talk --place <PUBKEY> --method <METHOD_NAME> --data <MESSAGE_BODY>\n"
     "\n"
-    "gnunet-social --history-replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
-    "gnunet-social --history-replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --replay --place <PUBKEY> --start <MSGID> --until <MSGID>  [--method <METHOD_PREFIX>]\n"
+    "gnunet-social --replay-latest --place <PUBKEY> --limit <MSG_LIMIT> [--method <METHOD_PREFIX>]\n"
     "\n"
     "gnunet-social --look-at --place <PUBKEY> --name <FULL_NAME>\n"
     "gnunet-social --look-for --place <PUBKEY> --name <NAME_PREFIX>\n";

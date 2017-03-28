@@ -206,7 +206,7 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_REGEX_Search *s;
   size_t slen = strlen (string) + 1;
 
-  if (slen + sizeof (struct RegexSearchMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (slen + sizeof (struct RegexSearchMessage) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Search string `%s' is too long!\n"),

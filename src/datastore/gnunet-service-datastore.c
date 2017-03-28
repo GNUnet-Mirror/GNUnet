@@ -286,6 +286,7 @@ delete_expired (void *cls);
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -302,12 +303,13 @@ expired_processor (void *cls,
                    enum GNUNET_BLOCK_Type type,
                    uint32_t priority,
                    uint32_t anonymity,
+                   uint32_t replication,
                    struct GNUNET_TIME_Absolute expiration,
                    uint64_t uid)
 {
   struct GNUNET_TIME_Absolute now;
 
-  if (key == NULL)
+  if (NULL == key)
   {
     expired_kill_task =
         GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
@@ -374,6 +376,7 @@ delete_expired (void *cls)
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -389,6 +392,7 @@ quota_processor (void *cls,
                  enum GNUNET_BLOCK_Type type,
                  uint32_t priority,
                  uint32_t anonymity,
+                 uint32_t replication,
                  struct GNUNET_TIME_Absolute expiration,
                  uint64_t uid)
 {
@@ -495,6 +499,7 @@ transmit_status (struct GNUNET_SERVICE_Client *client,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -509,6 +514,7 @@ transmit_item (void *cls,
                enum GNUNET_BLOCK_Type type,
                uint32_t priority,
                uint32_t anonymity,
+               uint32_t replication,
                struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
@@ -529,7 +535,7 @@ transmit_item (void *cls,
     return GNUNET_OK;
   }
   GNUNET_assert (sizeof (struct DataMessage) + size <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                 GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (dm,
                              size,
                              GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
@@ -538,8 +544,7 @@ transmit_item (void *cls,
   dm->type = htonl (type);
   dm->priority = htonl (priority);
   dm->anonymity = htonl (anonymity);
-  dm->replication = htonl (0);
-  dm->reserved = htonl (0);
+  dm->replication = htonl (replication);
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->uid = GNUNET_htonll (uid);
   dm->key = *key;
@@ -848,6 +853,7 @@ check_present_continuation (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -856,13 +862,14 @@ check_present_continuation (void *cls,
  */
 static int
 check_present (void *cls,
-	       const struct GNUNET_HashCode *key,
-	       uint32_t size,
+               const struct GNUNET_HashCode *key,
+               uint32_t size,
                const void *data,
-	       enum GNUNET_BLOCK_Type type,
-	       uint32_t priority,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
                uint32_t anonymity,
-	       struct GNUNET_TIME_Absolute expiration,
+               uint32_t replication,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct PutContext *pc = cls;
@@ -883,16 +890,17 @@ check_present (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Result already present in datastore\n");
-    /* FIXME: change API to allow increasing 'replication' counter */
-    if ((ntohl (dm->priority) > 0) ||
-        (GNUNET_TIME_absolute_ntoh (dm->expiration).abs_value_us >
-         expiration.abs_value_us))
+    if ( (ntohl (dm->priority) > 0) ||
+         (ntohl (dm->replication) > 0) ||
+         (GNUNET_TIME_absolute_ntoh (dm->expiration).abs_value_us >
+          expiration.abs_value_us) )
       plugin->api->update (plugin->api->cls,
-			   uid,
+                           uid,
                            ntohl (dm->priority),
+                           ntohl (dm->replication),
                            GNUNET_TIME_absolute_ntoh (dm->expiration),
                            &check_present_continuation,
-			   pc->client);
+                           pc->client);
     else
     {
       transmit_status (pc->client,
@@ -949,7 +957,7 @@ handle_put (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing PUT request for `%s' of type %u\n",
               GNUNET_h2s (&dm->key),
-              ntohl (dm->type));
+              (uint32_t) ntohl (dm->type));
   rid = ntohl (dm->rid);
   size = ntohl (dm->size);
   if (rid > 0)
@@ -984,12 +992,13 @@ handle_put (void *cls,
                         size,
                         &vhash);
     plugin->api->get_key (plugin->api->cls,
-			  0,
-			  &dm->key,
-			  &vhash,
+                          0,
+                          false,
+                          &dm->key,
+                          &vhash,
                           ntohl (dm->type),
-			  &check_present,
-			  pc);
+                          &check_present,
+                          pc);
     GNUNET_SERVICE_client_continue (client);
     return;
   }
@@ -1012,13 +1021,14 @@ handle_get (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing GET request of type %u\n",
-              ntohl (msg->type));
+              (uint32_t) ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET requests received"),
                             1,
                             GNUNET_NO);
   plugin->api->get_key (plugin->api->cls,
-                        GNUNET_ntohll (msg->offset),
+                        GNUNET_ntohll (msg->next_uid),
+                        msg->random,
                         NULL,
                         NULL,
                         ntohl (msg->type),
@@ -1043,7 +1053,7 @@ handle_get_key (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing GET request for `%s' of type %u\n",
               GNUNET_h2s (&msg->key),
-              ntohl (msg->type));
+              (uint32_t) ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET KEY requests received"),
                             1,
@@ -1062,14 +1072,15 @@ handle_get_key (void *cls,
                               1,
                               GNUNET_NO);
     transmit_item (client,
-                   NULL, 0, NULL, 0, 0, 0,
+                   NULL, 0, NULL, 0, 0, 0, 0,
                    GNUNET_TIME_UNIT_ZERO_ABS,
                    0);
     GNUNET_SERVICE_client_continue (client);
     return;
   }
   plugin->api->get_key (plugin->api->cls,
-                        GNUNET_ntohll (msg->offset),
+                        GNUNET_ntohll (msg->next_uid),
+                        msg->random,
                         &msg->key,
                         NULL,
                         ntohl (msg->type),
@@ -1131,7 +1142,7 @@ handle_get_zero_anonymity (void *cls,
                             1,
                             GNUNET_NO);
   plugin->api->get_zero_anonymity (plugin->api->cls,
-                                   GNUNET_ntohll (msg->offset),
+                                   GNUNET_ntohll (msg->next_uid),
                                    type,
                                    &transmit_item,
                                    client);
@@ -1150,6 +1161,7 @@ handle_get_zero_anonymity (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum
  * @return #GNUNET_OK to keep the item
@@ -1163,6 +1175,7 @@ remove_callback (void *cls,
                  enum GNUNET_BLOCK_Type type,
                  uint32_t priority,
                  uint32_t anonymity,
+                 uint32_t replication,
                  struct GNUNET_TIME_Absolute expiration,
                  uint64_t uid)
 {
@@ -1238,9 +1251,10 @@ handle_remove (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing REMOVE request for `%s' of type %u\n",
               GNUNET_h2s (&dm->key),
-              ntohl (dm->type));
+              (uint32_t) ntohl (dm->type));
   plugin->api->get_key (plugin->api->cls,
                         0,
+                        false,
                         &dm->key,
                         &vhash,
                         (enum GNUNET_BLOCK_Type) ntohl (dm->type),

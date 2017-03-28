@@ -115,6 +115,7 @@ noinst_LTLIBRARIES = \
 libgnunet_plugin_datastore_sqlite_la_SOURCES = \
   plugin_datastore_sqlite.c
 libgnunet_plugin_datastore_sqlite_la_LIBADD = \
+  $(top_builddir)/src/sq/libgnunetsq.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
