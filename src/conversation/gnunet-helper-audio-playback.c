@@ -606,6 +606,7 @@ stdin_receiver (void *cls,
              encode_latency.rel_value_us,
              network_rtt.rel_value_us,
              decode_latency.rel_value_us);
+    fflush (measurement_file);
 #endif
     break;
   default:
