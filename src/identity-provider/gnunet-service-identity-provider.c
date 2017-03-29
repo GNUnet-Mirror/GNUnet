@@ -442,6 +442,7 @@ handle_token_update (void *cls)
       {
         cur_value = GNUNET_CONTAINER_multihashmap_get (ego_entry->attr_map,
                                                        &key_hash);
+        GNUNET_assert (NULL != cur_value);
         GNUNET_CONTAINER_DLL_insert (new_token->attr_head,
                                      new_token->attr_tail,
                                      cur_value);

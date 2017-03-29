@@ -529,6 +529,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     handle->pkey_str = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
                                                           &key);
+    GNUNET_assert (NULL != handle->pkey_str);
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->pkey_str,
                                                     strlen(handle->pkey_str),

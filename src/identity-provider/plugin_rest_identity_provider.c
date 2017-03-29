@@ -580,6 +580,7 @@ issue_token_cont (struct GNUNET_REST_RequestHandle *con,
   }
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                  &key);
+  GNUNET_assert (NULL != nonce_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Request nonce: %s\n",
 	      nonce_str);
@@ -794,6 +795,7 @@ list_token_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   ego_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                &key);
+  GNUNET_assert (NULL != ego_val);
   //Remove non-matching egos
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;)
@@ -866,6 +868,7 @@ exchange_cont (void *cls,
   }
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                   &key);
+  GNUNET_assert (NULL != nonce_str);
   GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &expected_nonce));
 
   if (ticket_nonce != expected_nonce)
