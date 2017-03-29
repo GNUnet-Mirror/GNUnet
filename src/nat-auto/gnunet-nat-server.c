@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011 GNUnet e.V.
+     Copyright (C) 2011, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -31,9 +31,21 @@
 
 
 /**
- * Our server.
+ * Information we track per client.
  */
-static struct GNUNET_SERVER_Handle *server;
+struct ClientData
+{
+  /**
+   * Timeout task.
+   */
+  struct GNUNET_SCHEDULER_Task *tt;
+
+  /**
+   * Client handle.
+   */
+  struct GNUNET_SERVICE_Client *client;
+};
+
 
 /**
  * Our configuration.
@@ -56,6 +68,7 @@ try_anat (uint32_t dst_ipv4,
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in lsa;
   struct sockaddr_in rsa;
+  const struct sockaddr *sa;
   socklen_t sa_len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -77,11 +90,12 @@ try_anat (uint32_t dst_ipv4,
   rsa.sin_addr.s_addr = dst_ipv4;
   rsa.sin_port = htons (dport);
   sa_len = sizeof (lsa);
+  sa = (const struct sockaddr *) &lsa;
   h = GNUNET_NAT_register (cfg,
 			   "none",
                            is_tcp ? IPPROTO_TCP : IPPROTO_UDP,
                            1,
-			   (const struct sockaddr **) &lsa,
+			   &sa,
 			   &sa_len,
                            NULL, NULL, NULL);
   GNUNET_NAT_request_reversal (h,
@@ -246,21 +260,18 @@ try_send_udp (uint32_t dst_ipv4,
  * We've received a request to probe a NAT
  * traversal. Do it.
  *
- * @param cls unused
- * @param client handle to client (we always close)
+ * @param cls handle to client (we always close)
  * @param msg message with details about what to test
  */
 static void
-test (void *cls,
-      struct GNUNET_SERVER_Client *client,
-      const struct GNUNET_MessageHeader *msg)
+handle_test (void *cls,
+             const struct GNUNET_NAT_AUTO_TestMessage *tm)
 {
-  const struct GNUNET_NAT_AUTO_TestMessage *tm;
+  struct ClientData *cd = cls;
   uint16_t dport;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received test request\n");
-  tm = (const struct GNUNET_NAT_AUTO_TestMessage *) msg;
   dport = ntohs (tm->dport);
   if (0 == dport)
     try_anat (tm->dst_ipv4,
@@ -274,21 +285,7 @@ test (void *cls,
     try_send_udp (tm->dst_ipv4,
                   dport,
                   tm->data);
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_NO);
-}
-
-
-/**
- * Task run during shutdown.
- *
- * @param cls unused
- */
-static void
-shutdown_task (void *cls)
-{
-  GNUNET_SERVER_destroy (server);
-  server = NULL;
+  GNUNET_SERVICE_client_drop (cd->client);
 }
 
 
@@ -296,104 +293,111 @@ shutdown_task (void *cls)
  * Main function that will be run.
  *
  * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
+ * @param srv service handle
  */
 static void
 run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *srv)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&test, NULL, GNUNET_MESSAGE_TYPE_NAT_TEST,
-     sizeof (struct GNUNET_NAT_AUTO_TestMessage)},
-    {NULL, NULL, 0, 0}
-  };
-  unsigned int port;
-  struct sockaddr_in in4;
-  struct sockaddr_in6 in6;
-
-  socklen_t slen[] = {
-    sizeof (in4),
-    sizeof (in6),
-    0
-  };
-  struct sockaddr *sa[] = {
-    (struct sockaddr *) &in4,
-    (struct sockaddr *) &in6,
-    NULL
-  };
-
   cfg = c;
-  if ( (NULL == args[0]) ||
-       (1 != SSCANF (args[0], "%u", &port)) ||
-       (0 == port) ||
-       (65536 <= port) )
-  {
-    FPRINTF (stderr,
-             _("Please pass valid port number as the first argument! (got `%s')\n"),
-             args[0]);
-    return;
-  }
-  memset (&in4, 0, sizeof (in4));
-  memset (&in6, 0, sizeof (in6));
-  in4.sin_family = AF_INET;
-  in4.sin_port = htons ((uint16_t) port);
-  in6.sin6_family = AF_INET6;
-  in6.sin6_port = htons ((uint16_t) port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  in4.sin_len = sizeof (in4);
-  in6.sin6_len = sizeof (in6);
-#endif
-  server = GNUNET_SERVER_create (NULL,
-				 NULL,
-				 (struct sockaddr * const *) sa,
-				 slen,
-				 GNUNET_TIME_UNIT_SECONDS,
-				 GNUNET_YES);
-  GNUNET_SERVER_add_handlers (server,
-			      handlers);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
 }
 
 
 /**
- * Main function of gnunet-nat-server.
+ * Forcefully drops client after 1s.
  *
- * @param argc number of command-line arguments
- * @param argv command line
- * @return 0 on success, -1 on error
+ * @param cls our `struct ClientData` of a client to drop
  */
-int
-main (int argc, char *const argv[])
+static void
+force_timeout (void *cls)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct ClientData *cd = cls;
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
-    return 2;
-
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc,
-			  argv,
-			  "gnunet-nat-server [options] PORT",
-                          _("GNUnet NAT traversal test helper daemon"),
-			  options,
-                          &run,
-			  NULL))
-  {
-    GNUNET_free ((void*) argv);
-    return 1;
-  }
-  GNUNET_free ((void*) argv);
-  return 0;
+  cd->tt = NULL;
+  GNUNET_SERVICE_client_drop (cd->client);
 }
+
+
+
+/**
+ * Callback called when a client connects to the service.
+ *
+ * @param cls closure for the service
+ * @param c the new client that connected to the service
+ * @param mq the message queue used to send messages to the client
+ * @return our `struct ClientData`
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *c,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  struct ClientData *cd;
+
+  cd = GNUNET_new (struct ClientData);
+  cd->client = c;
+  cd->tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                         &force_timeout,
+                                         cd);
+  return cd;
+}
+
+
+/**
+ * Callback called when a client disconnected from the service
+ *
+ * @param cls closure for the service
+ * @param c the client that disconnected
+ * @param internal_cls our `struct ClientData`
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *c,
+		      void *internal_cls)
+{
+  struct ClientData *cd = internal_cls;
+
+  if (NULL != cd->tt)
+    GNUNET_SCHEDULER_cancel (cd->tt);
+  GNUNET_free (cd);
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("nat-server",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (test,
+			  GNUNET_MESSAGE_TYPE_NAT_TEST,
+			  struct GNUNET_NAT_AUTO_TestMessage,
+			  NULL),
+ GNUNET_MQ_handler_end ());
+
+
+#if defined(LINUX) && defined(__GLIBC__)
+#include <malloc.h>
+
+/**
+ * MINIMIZE heap size (way below 128k) since this process doesn't need much.
+ */
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
+{
+  mallopt (M_TRIM_THRESHOLD, 4 * 1024);
+  mallopt (M_TOP_PAD, 1 * 1024);
+  malloc_trim (0);
+}
+#endif
+
+
 
 
 /* end of gnunet-nat-server.c */

@@ -146,7 +146,7 @@ struct GNUNET_TRANSPORT_TESTING_InternalPeerContext
 
 /**
  * Information tracked per connected peer.
- */ 
+ */
 struct ConnectPairInfo
 {
   /**
@@ -235,7 +235,7 @@ my_nc (void *cls,
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
   struct ConnectPairInfo *cpi;
-  
+
   if (NULL != ccc->nc)
     ccc->nc (ccc->cls,
              ccc->p[ipi->off],
@@ -262,7 +262,7 @@ my_nd (void *cls,
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
   struct ConnectPairInfo *cpi = custom_cls;
-  
+
   if (NULL != ccc->nd)
     ccc->nd (ccc->cls,
              ccc->p[ipi->off],
@@ -535,13 +535,15 @@ GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
     ip[i].off = i;
     ip[i].ccc = ccc;
   }
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv,
-                      test_name_,
-                      "nohelp",
-                      options,
-                      &connect_check_run,
-                      ccc);
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+                          argv,
+                          test_name_,
+                          "nohelp",
+                          options,
+                          &connect_check_run,
+                          ccc))
+    return GNUNET_SYSERR;
   return ccc->global_ret;
 }
 

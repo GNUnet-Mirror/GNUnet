@@ -349,7 +349,7 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
   slen = strlen (watch->subsystem) + 1;
   nlen = strlen (watch->name) + 1;
   nsize = sizeof (struct GNUNET_MessageHeader) + slen + nlen;
-  if (nsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (nsize >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1098,7 +1098,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   slen1 = strlen (subsystem) + 1;
   slen2 = strlen (name) + 1;
   GNUNET_assert (slen1 + slen2 + sizeof (struct GNUNET_MessageHeader) <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                 GNUNET_MAX_MESSAGE_SIZE);
   ai = GNUNET_new (struct GNUNET_STATISTICS_GetHandle);
   ai->sh = handle;
   ai->subsystem = GNUNET_strdup (subsystem);
@@ -1246,7 +1246,7 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h,
   slen = strlen (h->subsystem) + 1;
   nlen = strlen (name) + 1;
   nsize = sizeof (struct GNUNET_STATISTICS_SetMessage) + slen + nlen;
-  if (nsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (nsize >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

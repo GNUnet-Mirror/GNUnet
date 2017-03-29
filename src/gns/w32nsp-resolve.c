@@ -22,6 +22,9 @@
  * @brief W32 integration for GNS
  * @author LRN
  */
+/* Instead of including gnunet_common.h */
+#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
+
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <nspapi.h>

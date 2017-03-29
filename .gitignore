@@ -8,6 +8,7 @@
 *.rej
 *.swp
 *.trs
+*.kdev4
 .deps/
 .libs/
 .svn/
@@ -35,3 +36,6 @@ src/*/*.conf
 stamp-h1
 test-driver
 INSTALL
+confdefs.h
+confdefs.c
+confdefs.err

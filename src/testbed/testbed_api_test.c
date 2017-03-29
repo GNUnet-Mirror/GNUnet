@@ -114,13 +114,16 @@ run (void *cls, char *const *args, const char *cfgfile,
  *        handle of each peer
  * @param cc_cls closure for cc
  * @param test_master task to run once the test is ready
- * @param test_master_cls closure for 'task'.
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param test_master_cls closure for @a test_master
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
-                         unsigned int num_peers, uint64_t event_mask,
-                         GNUNET_TESTBED_ControllerCallback cc, void *cc_cls,
+GNUNET_TESTBED_test_run (const char *testname,
+                         const char *cfg_filename,
+                         unsigned int num_peers,
+                         uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc,
+                         void *cc_cls,
                          GNUNET_TESTBED_TestMaster test_master,
                          void *test_master_cls)
 {
@@ -148,9 +151,8 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
   rc->event_mask = event_mask;
   rc->cc = cc;
   rc->cc_cls = cc_cls;
-  ret =
-      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          testname, "nohelp", options, &run, rc);
+  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                            testname, "nohelp", options, &run, rc);
   GNUNET_free (rc);
   GNUNET_free (argv2[0]);
   GNUNET_free (argv2[2]);

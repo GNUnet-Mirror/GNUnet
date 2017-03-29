@@ -104,13 +104,13 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_test.c \
   testbed_api_topology.c testbed_api_topology.h \
   testbed_api_sd.c testbed_api_sd.h \
-  testbed_api_barriers.c 
+  testbed_api_barriers.c
 libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- -lm \
+ -lm $(Z_LIBS) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(LTLIBINTL)
@@ -157,7 +157,7 @@ check_PROGRAMS = \
   $(underlay_testcases)
 
 if ENABLE_TEST_RUN
- AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
  TESTS = \
   test_testbed_api \
   test_testbed_api_sd \

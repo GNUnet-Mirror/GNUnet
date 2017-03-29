@@ -1150,17 +1150,18 @@ set_incoming_quota (struct NeighbourMapEntry *n,
     sqm.header.size = htons (sizeof (struct GNUNET_ATS_SessionQuotaMessage));
     sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
     sqm.quota = quota.value__;
-    (void) send_with_session (n,
-                              &sqm,
-                              sizeof (sqm),
-                              UINT32_MAX - 1,
-                              GNUNET_TIME_UNIT_FOREVER_REL,
-                              GNUNET_NO,
-                              NULL, NULL);
+    if (NULL != n->primary_address.session)
+      (void) send_with_session (n,
+                                &sqm,
+                                sizeof (sqm),
+                                UINT32_MAX - 1,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                GNUNET_NO,
+                                NULL, NULL);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Disconnecting peer `%4s' due to SET_QUOTA\n",
+              "Disconnecting peer `%s' due to SET_QUOTA\n",
               GNUNET_i2s (&n->id));
   if (GNUNET_YES == test_connected (n))
     GNUNET_STATISTICS_update (GST_stats,
@@ -2135,13 +2136,18 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
 {
   struct NeighbourMapEntry *n;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cowardly refusing to consider myself my neighbour!\n");
+    return NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new neighbour entry for `%s'\n",
 	      GNUNET_i2s (peer));
-  GNUNET_assert (0 !=
-                 memcmp (&GST_my_identity,
-                         peer,
-                         sizeof (struct GNUNET_PeerIdentity)));
   n = GNUNET_new (struct NeighbourMapEntry);
   n->id = *peer;
   n->ack_state = ACK_UNDEFINED;
@@ -2249,6 +2255,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
   {
     /* This is a new neighbour and set to not connected */
     n = setup_neighbour (peer);
+    GNUNET_assert (NULL != n);
   }
 
   /* Remember this SYN message in neighbour */
@@ -2318,6 +2325,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     /* Get rid of remains and re-try */
     free_neighbour (n);
     n = setup_neighbour (peer);
+    GNUNET_assert (NULL != n);
     /* Remember the SYN time stamp for ACK message */
     n->ack_state = ACK_SEND_SYN_ACK;
     n->connect_ack_timestamp = ts;
@@ -2495,6 +2503,12 @@ switch_address_bl_check_cont (void *cls,
   if (NULL == (n = lookup_neighbour (peer)))
   {
     n = setup_neighbour (peer);
+    if (NULL == n)
+    {
+      /* not sure how this can happen... */
+      GNUNET_break (0);
+      goto cleanup;
+    }
     n->state = GNUNET_TRANSPORT_PS_INIT_ATS;
   }
 

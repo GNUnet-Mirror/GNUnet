@@ -72,49 +72,18 @@ struct LookupMessage
   int16_t options GNUNET_PACKED;
 
   /**
-   * Is a shorten key attached?
+   * Always 0.
    */
-  int16_t have_key GNUNET_PACKED;
+  int16_t reserved GNUNET_PACKED;
 
   /**
    * the type of record to look up
    */
   int32_t type GNUNET_PACKED;
 
-  /**
-   * The key for shorten, if @e have_key is set
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey shorten_key;
-
   /* Followed by the zero-terminated name to look up */
 };
 
-
-/**
- * Message from client to GNS service to lookup records.
- */
-struct ReverseLookupMessage
-{
-  /**
-   * Header of type #GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /**
-   * Zone that is target for reverse lookup
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey zone_pkey;
-  
-  /**
-   * Root zone
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey root_pkey;
-};
 
 /**
  * Message from GNS service to client: new results.
@@ -138,24 +107,6 @@ struct LookupResultMessage
 
   /* followed by rd_count GNUNET_GNSRECORD_Data structs*/
 
-};
-
-/**
- * Message from GNS service to client: new results.
- */
-struct ReverseLookupResultMessage
-{
-  /**
-    * Header of type #GNUNET_MESSAGE_TYPE_GNS_REVERSE_LOOKUP_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /* followed by the resulting name of the reverse lookup */
 };
 
 

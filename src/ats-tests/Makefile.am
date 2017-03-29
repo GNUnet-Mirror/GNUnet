@@ -13,6 +13,7 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+if HAVE_EXPERIMENTAL
 if HAVE_LIBGLPK
  PERF_MLP = \
  perf_ats_mlp_transport_none \
@@ -21,6 +22,7 @@ if HAVE_LIBGLPK
  perf_ats_mlp_core_none \
  perf_ats_mlp_core_bandwidth \
  perf_ats_mlp_core_latency
+endif
 endif
 
 if HAVE_TESTING
@@ -44,7 +46,7 @@ check_PROGRAMS = \
  $(TESTING_TESTS)
 
 if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
 endif
 
@@ -140,7 +142,7 @@ perf_ats_proportional_transport_bandwidth_LDADD = \
 perf_ats_proportional_transport_bandwidth_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 perf_ats_proportional_core_latency_SOURCES = \
   perf_ats.c
 perf_ats_proportional_core_latency_LDADD = \

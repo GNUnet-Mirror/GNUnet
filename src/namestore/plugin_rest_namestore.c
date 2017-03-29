@@ -899,10 +899,11 @@ namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
   }
   handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                                         &key);
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
+  if ((NULL == handle->zkey_str) ||
+      (GNUNET_OK !=
+       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
                                                   strlen (handle->zkey_str),
-                                                  &pubkey))
+                                                   &pubkey)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Zkey invalid %s\n", handle->zkey_str);
@@ -1126,8 +1127,8 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   {
     type = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                               &key);
-
-    handle->type = GNUNET_GNSRECORD_typename_to_number (type);
+    if (NULL != type)
+      handle->type = GNUNET_GNSRECORD_typename_to_number (type);
   }
   name = get_name_from_url (handle->url);
   if (NULL != ego)

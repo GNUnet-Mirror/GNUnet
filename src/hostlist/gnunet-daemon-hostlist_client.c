@@ -350,7 +350,7 @@ callback_download (void *ptr,
                    size_t nmemb,
                    void *ctx)
 {
-  static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  static char download_buffer[GNUNET_MAX_MESSAGE_SIZE - 1];
   const char *cbuf = ptr;
   const struct GNUNET_MessageHeader *msg;
   struct HelloOffer *ho;
@@ -373,7 +373,7 @@ callback_download (void *ptr,
   left = total;
   while ((left > 0) || (download_pos > 0))
   {
-    cpy = GNUNET_MIN (left, GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - download_pos);
+    cpy = GNUNET_MIN (left, GNUNET_MAX_MESSAGE_SIZE - 1 - download_pos);
     GNUNET_memcpy (&download_buffer[download_pos], cbuf, cpy);
     cbuf += cpy;
     download_pos += cpy;
@@ -1042,7 +1042,7 @@ download_hostlist ()
 #if 0
   CURL_EASY_SETOPT (curl, CURLOPT_VERBOSE, 1);
 #endif
-  CURL_EASY_SETOPT (curl, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  CURL_EASY_SETOPT (curl, CURLOPT_BUFFERSIZE, GNUNET_MAX_MESSAGE_SIZE);
   if (0 == strncmp (current_url, "http", 4))
     CURL_EASY_SETOPT (curl, CURLOPT_USERAGENT, "GNUnet");
   CURL_EASY_SETOPT (curl, CURLOPT_CONNECTTIMEOUT, 60L);

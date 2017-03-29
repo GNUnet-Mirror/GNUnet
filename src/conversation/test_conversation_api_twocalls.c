@@ -187,7 +187,8 @@ play (void *cls,
     phone_i++;
   else
   {
-    LOG_DEBUG ("Received unexpected data %.*s\n",
+    LOG_DEBUG ("Received %u bytes of unexpected data `%.*s'\n",
+               (unsigned int) data_size,
                (int) data_size,
                (const char *) data);
   }

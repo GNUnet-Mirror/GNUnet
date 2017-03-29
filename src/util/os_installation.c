@@ -44,9 +44,9 @@
 #endif
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-os-installation", __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-os-installation", syscall, filename)
 
 
 /**
@@ -823,9 +823,13 @@ GNUNET_OS_check_helper_binary (const char *binary,
 #ifdef MINGW
   char *binaryexe;
 
-  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  if ( (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binaryexe, GNUNET_NO,
-						       NULL, NULL)) ||
+  GNUNET_asprintf (&binaryexe,
+                   "%s.exe",
+                   binary);
+  if ( (GNUNET_YES ==
+        GNUNET_STRINGS_path_is_absolute (binaryexe,
+                                         GNUNET_NO,
+                                         NULL, NULL)) ||
        (0 == strncmp (binary, "./", 2)) )
     p = GNUNET_strdup (binaryexe);
   else
@@ -840,16 +844,24 @@ GNUNET_OS_check_helper_binary (const char *binary,
   }
   GNUNET_free (binaryexe);
 #else
-  if ( (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binary, GNUNET_NO,
-						       NULL, NULL)) ||
+  if ( (GNUNET_YES ==
+        GNUNET_STRINGS_path_is_absolute (binary,
+                                         GNUNET_NO,
+                                         NULL,
+                                         NULL)) ||
        (0 == strncmp (binary, "./", 2)) )
+  {
     p = GNUNET_strdup (binary);
+  }
   else
   {
     p = get_path_from_PATH (binary);
     if (NULL != p)
     {
-      GNUNET_asprintf (&pf, "%s/%s", p, binary);
+      GNUNET_asprintf (&pf,
+                       "%s/%s",
+                       p,
+                       binary);
       GNUNET_free (p);
       p = pf;
     }
@@ -862,9 +874,12 @@ GNUNET_OS_check_helper_binary (const char *binary,
          binary);
     return GNUNET_SYSERR;
   }
-  if (0 != ACCESS (p, X_OK))
+  if (0 != ACCESS (p,
+                   X_OK))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", p);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "access",
+                       p);
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
@@ -873,22 +888,30 @@ GNUNET_OS_check_helper_binary (const char *binary,
   {
     /* as we run as root, we don't insist on SUID */
     GNUNET_free (p);
-    return GNUNET_OK;
+    return GNUNET_YES;
   }
 #endif
-  if (0 != STAT (p, &statbuf))
+  if (0 != STAT (p,
+                 &statbuf))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", p);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "stat",
+                       p);
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
-  if (check_suid){
+  if (check_suid)
+  {
 #ifndef MINGW
-    if ((0 != (statbuf.st_mode & S_ISUID)) && (0 == statbuf.st_uid))
+    if ( (0 != (statbuf.st_mode & S_ISUID)) &&
+         (0 == statbuf.st_uid) )
     {
       GNUNET_free (p);
       return GNUNET_YES;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Binary `%s' exists, but is not SUID\n"),
+                p);
     /* binary exists, but not SUID */
 #else
     STARTUPINFO start;

@@ -115,15 +115,23 @@ check_count_iter (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Expected count (what: %s) to be %u, but it's actually %u\n",
                   ci_cls->what,
-                  ci_cls->expected_count, ci_cls->ongoing_count);
+                  ci_cls->expected_count,
+                  ci_cls->ongoing_count);
       ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
       return GNUNET_NO;
     }
     ci_cls->cont (ci_cls->cont_cls);
+    GNUNET_free (ci_cls);
     return GNUNET_NO;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Set `%s' has element %.*s\n",
+              ci_cls->what,
+              (int) element->size,
+              (const char *) element->data);
 
-  ci_cls->ongoing_count += 1;
+  ci_cls->ongoing_count++;
   return GNUNET_YES;
 }
 
@@ -136,6 +144,10 @@ check_count (struct GNUNET_SET_Handle *set,
              void *cont_cls)
 {
   struct CountIterClosure *ci_cls = GNUNET_new (struct CountIterClosure);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Checking count of %s\n",
+              what);
 
   ci_cls->expected_count = expected_count;
   ci_cls->ongoing_count = 0;
@@ -162,7 +174,7 @@ check_new_set_count (void *cls)
 {
   check_count (set2,
                "new set",
-               4,
+               3,
                &test_done,
                NULL);
 }
@@ -172,15 +184,23 @@ static void
 copy_done (void *cls,
            struct GNUNET_SET_Handle *new_set)
 {
-  printf ("copy done\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "copy done\n");
   set2 = new_set;
-  remove_element_str (set2, "spam");
-  add_element_str (set2, "new1");
-  add_element_str (set2, "new2");
-  remove_element_str (set2, "new2");
-  remove_element_str (set2, "new3");
+  remove_element_str (set2,
+                      "k5555");
+  add_element_str (set2,
+                   "n66666");
+  add_element_str (set2,
+                   "new2butremoved");
+  remove_element_str (set2,
+                      "new2butremoved");
+  remove_element_str (set2,
+                      "new3justremoved");
   // Check that set1 didn't change.
-  check_count (set1, "old set", 3,
+  check_count (set1,
+               "old set",
+               3,
                &check_new_set_count,
                NULL);
 }
@@ -189,7 +209,8 @@ copy_done (void *cls,
 static void
 test_copy (void *cls)
 {
-  printf ("about to copy\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "about to copy\n");
   GNUNET_SET_copy_lazy (set1,
                         &copy_done,
                         NULL);
@@ -244,18 +265,27 @@ run (void *cls,
   GNUNET_TESTING_peer_get_identity (peer,
                                     &local_id);
 
-  set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
-  add_element_str (set1, "foo");
-  add_element_str (set1, "bar");
+  set1 = GNUNET_SET_create (cfg,
+                            GNUNET_SET_OPERATION_UNION);
+  add_element_str (set1,
+                   "333");
+  add_element_str (set1,
+                   "k444");
   /* duplicate -- ignored */
-  add_element_str (set1, "bar");
-  remove_element_str (set1, "foo");
+  add_element_str (set1,
+                   "k444");
+  remove_element_str (set1,
+                      "333");
   /* non-existent -- ignored */
-  remove_element_str (set1, "nonexist1");
-  add_element_str (set1, "spam");
+  remove_element_str (set1,
+                      "999999999");
+  add_element_str (set1,
+                   "k5555");
   /* duplicate -- ignored */
-  remove_element_str (set1, "foo");
-  add_element_str (set1, "eggs");
+  remove_element_str (set1,
+                      "333");
+  add_element_str (set1,
+                   "k2");
 
   check_count (set1,
                "initial test",

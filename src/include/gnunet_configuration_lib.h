@@ -281,8 +281,8 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle 
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       const char *section,
                                        const char *option,
                                        float *number);
 
@@ -452,9 +452,6 @@ GNUNET_CONFIGURATION_get_data (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const char *option,
                                void *buf,
                                size_t buf_size);
-
-
-
 
 
 /**

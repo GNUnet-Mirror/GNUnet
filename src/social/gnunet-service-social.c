@@ -1955,9 +1955,11 @@ handle_client_guest_enter_by_name (void *cls,
     GNUNET_memcpy (gcls->password, password, password_size);
   }
 
-  GNUNET_GNS_lookup (gns, gns_name, &greq->ego_pub_key,
-                     GNUNET_GNSRECORD_TYPE_PLACE, GNUNET_GNS_LO_DEFAULT,
-                     NULL, gns_result_guest_enter, gcls);
+  GNUNET_GNS_lookup (gns, gns_name,
+                     &greq->ego_pub_key,
+                     GNUNET_GNSRECORD_TYPE_PLACE,
+                     GNUNET_GNS_LO_DEFAULT,
+                     &gns_result_guest_enter, gcls);
 }
 
 

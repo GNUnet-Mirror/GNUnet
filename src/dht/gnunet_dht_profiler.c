@@ -1181,31 +1181,54 @@ main (int argc, char *const *argv)
 {
   int rc;
 
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'n', "peers", "COUNT",
-     gettext_noop ("number of peers to start"),
-     1, &GNUNET_GETOPT_set_uint, &num_peers},
-    {'s', "searches", "COUNT",
-     gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
-     1, &GNUNET_GETOPT_set_uint, &max_searches},
-    {'H', "hosts", "FILENAME",
-     gettext_noop ("name of the file with the login information for the testbed"),
-     1, &GNUNET_GETOPT_set_string, &hosts_file},
-    {'D', "delay", "DELAY",
-     gettext_noop ("delay between rounds for collecting statistics (default: 30 sec)"),
-     1, &GNUNET_GETOPT_set_relative_time, &delay_stats},
-    {'P', "PUT-delay", "DELAY",
-     gettext_noop ("delay to start doing PUTs (default: 1 sec)"),
-     1, &GNUNET_GETOPT_set_relative_time, &delay_put},
-    {'G', "GET-delay", "DELAY",
-     gettext_noop ("delay to start doing GETs (default: 5 min)"),
-     1, &GNUNET_GETOPT_set_relative_time, &delay_get},
-    {'r', "replication", "DEGREE",
-     gettext_noop ("replication degree for DHT PUTs"),
-     1, &GNUNET_GETOPT_set_uint, &replication},
-    {'t', "timeout", "TIMEOUT",
-     gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
-     1, &GNUNET_GETOPT_set_relative_time, &timeout},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_uint ('n',
+                                   "peers",
+                                   "COUNT",
+                                   gettext_noop ("number of peers to start"),
+                                   &num_peers),
+
+    GNUNET_GETOPT_option_uint ('s',
+                                   "searches",
+                                   "COUNT",
+                                   gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
+                                   &max_searches),
+
+    GNUNET_GETOPT_option_string ('H',
+                                 "hosts",
+                                 "FILENAME",
+                                 gettext_noop ("name of the file with the login information for the testbed"),
+                                 &hosts_file),
+
+    GNUNET_GETOPT_option_relative_time ('D',
+                                            "delay",
+                                            "DELAY",
+                                            gettext_noop ("delay between rounds for collecting statistics (default: 30 sec)"),
+                                            &delay_stats),
+
+    GNUNET_GETOPT_option_relative_time ('P',
+                                            "PUT-delay",
+                                            "DELAY",
+                                            gettext_noop ("delay to start doing PUTs (default: 1 sec)"),
+                                            &delay_put),
+
+    GNUNET_GETOPT_option_relative_time ('G',
+                                            "GET-delay",
+                                            "DELAY",
+                                            gettext_noop ("delay to start doing GETs (default: 5 min)"),
+                                            &delay_get),
+    GNUNET_GETOPT_option_uint ('r',
+                                   "replication",
+                                   "DEGREE",
+                                   gettext_noop ("replication degree for DHT PUTs"),
+                                   &replication),
+
+
+    GNUNET_GETOPT_option_relative_time ('t',
+                                            "timeout",
+                                            "TIMEOUT",
+                                            gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
+                                            &timeout),
     GNUNET_GETOPT_OPTION_END
   };
 

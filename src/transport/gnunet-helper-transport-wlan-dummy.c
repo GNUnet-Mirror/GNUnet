@@ -120,11 +120,11 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
  * type to the output forward and copy it to the buffer for stdout.
  *
  * @param cls the 'struct SendBuffer' to copy the converted message to
- * @param client unused
  * @param hdr inbound message from the FIFO
  */
 static int
-stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+stdin_send (void *cls,
+            const struct GNUNET_MessageHeader *hdr)
 {
   struct SendBuffer *write_pout = cls;
   const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *in;
@@ -166,11 +166,11 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
  * We read a full message from stdin.  Copy it to our send buffer.
  *
  * @param cls the 'struct SendBuffer' to copy to
- * @param client unused
  * @param hdr the message we received to copy to the buffer
  */
 static int
-file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+file_in_send (void *cls,
+              const struct GNUNET_MessageHeader *hdr)
 {
   struct SendBuffer *write_std = cls;
   uint16_t sendsize;
@@ -213,8 +213,8 @@ main (int argc, char *argv[])
   fd_set wfds;
   struct timeval tv;
   int retval;
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst = NULL;
-  struct GNUNET_SERVER_MessageStreamTokenizer *file_in_mst = NULL;
+  struct GNUNET_MessageStreamTokenizer *stdin_mst = NULL;
+  struct GNUNET_MessageStreamTokenizer *file_in_mst = NULL;
   struct GNUNET_TRANSPORT_WLAN_MacAddress macaddr;
   int first;
 
@@ -340,8 +340,8 @@ main (int argc, char *argv[])
   write_std.pos = 0;
   write_pout.size = 0;
   write_pout.pos = 0;
-  stdin_mst = GNUNET_SERVER_mst_create (&stdin_send, &write_pout);
-  file_in_mst = GNUNET_SERVER_mst_create (&file_in_send, &write_std);
+  stdin_mst = GNUNET_MST_create (&stdin_send, &write_pout);
+  file_in_mst = GNUNET_MST_create (&file_in_send, &write_std);
 
   /* Send 'random' mac address */
   macaddr.mac[0] = 0x13;
@@ -453,8 +453,9 @@ main (int argc, char *argv[])
       }
       else if (0 < readsize)
       {
-        GNUNET_SERVER_mst_receive (stdin_mst, NULL, readbuf, readsize,
-                                   GNUNET_NO, GNUNET_NO);
+        GNUNET_MST_from_buffer (stdin_mst,
+                                readbuf, readsize,
+                                GNUNET_NO, GNUNET_NO);
 
       }
       else
@@ -475,8 +476,9 @@ main (int argc, char *argv[])
       }
       else if (0 < readsize)
       {
-        GNUNET_SERVER_mst_receive (file_in_mst, NULL, readbuf, readsize,
-                                   GNUNET_NO, GNUNET_NO);
+        GNUNET_MST_from_buffer (file_in_mst,
+                                readbuf, readsize,
+                                GNUNET_NO, GNUNET_NO);
       }
       else
       {
@@ -489,9 +491,9 @@ main (int argc, char *argv[])
 end:
   /* clean up */
   if (NULL != stdin_mst)
-    GNUNET_SERVER_mst_destroy (stdin_mst);
+    GNUNET_MST_destroy (stdin_mst);
   if (NULL != file_in_mst)
-    GNUNET_SERVER_mst_destroy (file_in_mst);
+    GNUNET_MST_destroy (file_in_mst);
 
   if (NULL != fpout)
     fclose (fpout);

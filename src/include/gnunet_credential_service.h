@@ -262,8 +262,6 @@ typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
                                                                  uint32_t success);
 
 
-
-
 /**
  * Performs attribute verification.
  * Checks if there is a delegation chain from

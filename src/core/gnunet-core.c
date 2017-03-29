@@ -171,10 +171,11 @@ main (int argc,
       char *const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'m', "monitor", NULL,
-     gettext_noop ("provide information about all current connections (continuously)"),
-     0, &GNUNET_GETOPT_set_one, &monitor_connections},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('m',
+                                  "monitor",
+                                  gettext_noop ("provide information about all current connections (continuously)"),
+                                  &monitor_connections),
     GNUNET_GETOPT_OPTION_END
   };
 

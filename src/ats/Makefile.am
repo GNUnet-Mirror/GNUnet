@@ -21,13 +21,15 @@ endif
 lib_LTLIBRARIES = libgnunetats.la
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_ats_proportional.la \
-  $(GN_MLP_LIB) \
-  libgnunet_plugin_ats_ril.la
+  libgnunet_plugin_ats_proportional.la
 
+if HAVE_EXPERIMENTAL
+plugin_LTLIBRARIES += \
+  libgnunet_plugin_ats_ril.la
 if HAVE_LIBGLPK
 plugin_LTLIBRARIES += \
   libgnunet_plugin_ats_mlp.la
+endif
 endif
 
 libgnunetats_la_SOURCES = \
@@ -54,7 +56,6 @@ libgnunet_plugin_ats_proportional_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
 
-if HAVE_LIBGLPK
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
@@ -64,7 +65,6 @@ libgnunet_plugin_ats_mlp_la_LIBADD = \
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) \
   -lglpk
-endif
 
 libgnunet_plugin_ats_ril_la_SOURCES = \
   plugin_ats_ril.c
@@ -99,7 +99,7 @@ if HAVE_TESTING
 TESTING_TESTS = \
  test_ats_api_proportional \
  test_ats_reservation_api_proportional
-if HAVE_WACHS
+if HAVE_EXPERIMENTAL
 TESTING_TESTS += \
  test_ats_api_ril
 if HAVE_LIBGLPK
@@ -113,7 +113,7 @@ check_PROGRAMS = \
  $(TESTING_TESTS)
 
 if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
 endif
 

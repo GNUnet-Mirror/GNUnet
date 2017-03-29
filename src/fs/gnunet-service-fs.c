@@ -38,7 +38,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_lc.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
@@ -1177,7 +1176,6 @@ handle_client_unindex (void *cls,
 static void
 shutdown_task (void *cls)
 {
-  GSF_cadet_stop_client ();
   GSF_cadet_stop_server ();
   if (NULL != GSF_core)
   {
@@ -1320,7 +1318,6 @@ main_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   GSF_cadet_start_server ();
-  GSF_cadet_start_client ();
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
   return GNUNET_OK;
@@ -1351,7 +1348,7 @@ run (void *cls,
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
 			       "fs",
                                "DATASTORE_QUEUE_SIZE");
-    dqs = 1024;
+    dqs = 32;
   }
   GSF_datastore_queue_size = (unsigned int) dqs;
   GSF_enable_randomized_delays =

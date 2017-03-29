@@ -146,7 +146,7 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t slen;
 
   slen = strlen (regex) + 1;
-  if (slen + sizeof (struct AnnounceMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (slen + sizeof (struct AnnounceMessage) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Regex `%s' is too long!\n"),

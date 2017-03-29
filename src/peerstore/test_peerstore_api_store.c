@@ -39,6 +39,7 @@ static char *val3 = "test_peerstore_api_store_val3--";
 
 static int count = 0;
 
+
 static void
 test3_cont2 (void *cls,
              const struct GNUNET_PEERSTORE_Record *record,
@@ -49,7 +50,8 @@ test3_cont2 (void *cls,
   if (NULL != record)
   {
     GNUNET_assert ((strlen (val3) + 1) == record->value_size);
-    GNUNET_assert (0 == strcmp ((char *) val3, (char *) record->value));
+    GNUNET_assert (0 == strcmp ((char *) val3,
+                                (char *) record->value));
     count++;
     return;
   }
@@ -61,7 +63,8 @@ test3_cont2 (void *cls,
 
 
 static void
-test3_cont (void *cls, int success)
+test3_cont (void *cls,
+            int success)
 {
   if (GNUNET_YES != success)
     return;
@@ -71,7 +74,8 @@ test3_cont (void *cls, int success)
                             &pid,
                             key,
                             GNUNET_TIME_UNIT_SECONDS,
-                            &test3_cont2, NULL);
+                            &test3_cont2,
+                            NULL);
 }
 
 
@@ -81,9 +85,15 @@ test3_cont (void *cls, int success)
 static void
 test3 ()
 {
-  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val3, strlen (val3) + 1,
+  GNUNET_PEERSTORE_store (h,
+                          subsystem,
+                          &pid,
+                          key,
+                          val3,
+                          strlen (val3) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, &test3_cont,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          &test3_cont,
                           NULL);
 }
 
@@ -130,9 +140,15 @@ test2_cont (void *cls, int success)
 void
 test2 ()
 {
-  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val2, strlen (val2) + 1,
+  GNUNET_PEERSTORE_store (h,
+                          subsystem,
+                          &pid,
+                          key,
+                          val2,
+                          strlen (val2) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_MULTIPLE, &test2_cont,
+                          GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+                          &test2_cont,
                           NULL);
 }
 
@@ -163,8 +179,13 @@ test1_cont (void *cls, int success)
   if (GNUNET_YES != success)
     return;
   count = 0;
-  GNUNET_PEERSTORE_iterate (h, subsystem, &pid, key, GNUNET_TIME_UNIT_SECONDS,
-                            &test1_cont2, NULL);
+  GNUNET_PEERSTORE_iterate (h,
+                            subsystem,
+                            &pid,
+                            key,
+                            GNUNET_TIME_UNIT_SECONDS,
+                            &test1_cont2,
+                            NULL);
 }
 
 
@@ -174,9 +195,15 @@ test1_cont (void *cls, int success)
 static void
 test1 ()
 {
-  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val1, strlen (val1) + 1,
+  GNUNET_PEERSTORE_store (h,
+                          subsystem,
+                          &pid,
+                          key,
+                          val1,
+                          strlen (val1) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, &test1_cont,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          &test1_cont,
                           NULL);
 }
 
@@ -196,8 +223,10 @@ int
 main (int argc, char *argv[])
 {
   if (0 !=
-      GNUNET_TESTING_service_run ("test-gnunet-peerstore", "peerstore",
-                                  "test_peerstore_api_data.conf", &run, NULL))
+      GNUNET_TESTING_service_run ("test-gnunet-peerstore",
+                                  "peerstore",
+                                  "test_peerstore_api_data.conf",
+                                  &run, NULL))
     return 1;
   return ok;
 }

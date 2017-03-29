@@ -1404,27 +1404,42 @@ main (int argc, char *argv[])
   ph.total_iterations = 1;
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
-      { 'a', "addresses", NULL,
-          gettext_noop ("addresses to use"),
-          1, &GNUNET_GETOPT_set_uint, &ph.N_address },
-      { 's', "start", NULL,
-          gettext_noop ("start with peer"),
-          1, &GNUNET_GETOPT_set_uint, &ph.N_peers_start },
-      { 'e', "end", NULL,
-          gettext_noop ("end with peer"),
-          1, &GNUNET_GETOPT_set_uint, &ph.N_peers_end },
-      { 'i', "iterations", NULL,
-          gettext_noop ("number of iterations used for averaging (default: 1)"),
-          1, &GNUNET_GETOPT_set_uint, &ph.total_iterations },
-      { 'p', "percentage", NULL,
-          gettext_noop ("update a fix percentage of addresses"),
-          1, &GNUNET_GETOPT_set_uint, &ph.opt_update_percent },
-      { 'd', "data", NULL,
-          gettext_noop ("create data file"),
-          0, &GNUNET_GETOPT_set_one, &ph.create_datafile},
-      { 'u', "update", NULL,
-          gettext_noop ("measure updates"),
-          0, &GNUNET_GETOPT_set_one, &ph.measure_updates},
+
+      GNUNET_GETOPT_option_uint ('a',
+                                     "addresses",
+                                     gettext_noop ("addresses to use"),
+                                     &ph.N_address),
+
+      GNUNET_GETOPT_option_uint ('s',
+                                     "start",
+                                     gettext_noop ("start with peer"),
+                                     &ph.N_peers_start),
+
+      GNUNET_GETOPT_option_uint ('e',
+                                     "end",
+                                     gettext_noop ("end with peer"),
+                                     &ph.N_peers_end),
+
+      GNUNET_GETOPT_option_uint ('i',
+                                     "iterations",
+                                     gettext_noop ("number of iterations used for averaging (default: 1)"),
+                                     &ph.total_iterations),
+
+      GNUNET_GETOPT_option_uint ('p',
+                                     "percentage",
+                                     gettext_noop ("update a fix percentage of addresses"),
+                                     &ph.opt_update_percent),
+
+      GNUNET_GETOPT_option_flag ('d',
+                                    "data",
+                                    gettext_noop ("create data file"),
+                                    &ph.create_datafile),
+
+      GNUNET_GETOPT_option_flag ('u',
+                                    "update",
+                                    gettext_noop ("measure updates"),
+                                    &ph.measure_updates),
+
       GNUNET_GETOPT_OPTION_END
   };
 

@@ -57,6 +57,21 @@ struct SessionMessageEntry
   struct SessionMessageEntry *prev;
 
   /**
+   * How important is this message.
+   */
+  enum GNUNET_CORE_Priority priority;
+
+  /**
+   * Flag set to #GNUNET_YES if this is a typemap message.
+   */
+  int is_typemap;
+
+  /**
+   * Flag set to #GNUNET_YES if this is a typemap confirmation message.
+   */
+  int is_typemap_confirm;
+
+  /**
    * Deadline for transmission, 1s after we received it (if we
    * are not corking), otherwise "now".  Note that this message
    * does NOT expire past its deadline.
@@ -69,11 +84,6 @@ struct SessionMessageEntry
    * MessageEntry` itself!)
    */
   size_t size;
-
-  /**
-   * How important is this message.
-   */
-  enum GNUNET_CORE_Priority priority;
 
 };
 
@@ -275,14 +285,19 @@ transmit_typemap_task (void *cls)
   struct GNUNET_MessageHeader *hdr;
   struct GNUNET_TIME_Relative delay;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending TYPEMAP to %s\n",
+              GNUNET_i2s (session->peer));
   session->typemap_delay = GNUNET_TIME_STD_BACKOFF (session->typemap_delay);
   delay = session->typemap_delay;
   /* randomize a bit to avoid spont. sync */
   delay.rel_value_us +=
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000 * 1000);
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                1000 * 1000);
   session->typemap_task =
       GNUNET_SCHEDULER_add_delayed (delay,
-                                    &transmit_typemap_task, session);
+                                    &transmit_typemap_task,
+                                    session);
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# type map refreshes sent"),
                             1,
@@ -326,7 +341,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   struct Session *session;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating session for peer `%4s'\n",
+              "Creating session for peer `%s'\n",
               GNUNET_i2s (peer));
   session = GNUNET_new (struct Session);
   session->tmap = GSC_TYPEMAP_create ();
@@ -406,8 +421,14 @@ GSC_SESSIONS_confirm_typemap (const struct GNUNET_PeerIdentity *peer,
                               gettext_noop
                               ("# outdated typemap confirmations received"),
                               1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got outdated typemap confirmated from peer `%s'\n",
+                GNUNET_i2s (session->peer));
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got typemap confirmation from peer `%s'\n",
+              GNUNET_i2s (session->peer));
   if (NULL != session->typemap_task)
   {
     GNUNET_SCHEDULER_cancel (session->typemap_task);
@@ -502,9 +523,9 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client transmission request. queueing\n");
-  GNUNET_CONTAINER_DLL_insert (session->active_client_request_head,
-                               session->active_client_request_tail,
-                               car);
+  GNUNET_CONTAINER_DLL_insert_tail (session->active_client_request_head,
+                                    session->active_client_request_tail,
+                                    car);
   try_transmission (session);
 }
 
@@ -751,7 +772,15 @@ try_transmission (struct Session *session)
     while ( (NULL != (pos = session->sme_head)) &&
             (used + pos->size <= msize) )
     {
-      GNUNET_memcpy (&pbuf[used], &pos[1], pos->size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Adding message of type %d (%d/%d) to payload for %s\n",
+                  ntohs (((const struct GNUNET_MessageHeader *)&pos[1])->type),
+                  pos->is_typemap,
+                  pos->is_typemap_confirm,
+                  GNUNET_i2s (session->peer));
+      GNUNET_memcpy (&pbuf[used],
+                     &pos[1],
+                     pos->size);
       used += pos->size;
       GNUNET_CONTAINER_DLL_remove (session->sme_head,
                                    session->sme_tail,
@@ -799,8 +828,23 @@ do_restart_typemap_message (void *cls,
   struct SessionMessageEntry *sme;
   uint16_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarting sending TYPEMAP to %s\n",
+              GNUNET_i2s (session->peer));
   size = ntohs (hdr->size);
+  for (sme = session->sme_head; NULL != sme; sme = sme->next)
+  {
+    if (GNUNET_YES == sme->is_typemap)
+    {
+      GNUNET_CONTAINER_DLL_remove (session->sme_head,
+                                   session->sme_tail,
+                                   sme);
+      GNUNET_free (sme);
+      break;
+    }
+  }
   sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) + size);
+  sme->is_typemap = GNUNET_YES;
   GNUNET_memcpy (&sme[1],
 		 hdr,
 		 size);
@@ -924,18 +968,36 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
 
   nmap = GSC_TYPEMAP_get_from_message (msg);
   if (NULL == nmap)
+  {
+    GNUNET_break_op (0);
     return;                     /* malformed */
+  }
   session = find_session (peer);
   if (NULL == session)
   {
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received TYPEMAP from %s\n",
+              GNUNET_i2s (session->peer));
+  for (sme = session->sme_head; NULL != sme; sme = sme->next)
+  {
+    if (GNUNET_YES == sme->is_typemap_confirm)
+    {
+      GNUNET_CONTAINER_DLL_remove (session->sme_head,
+                                   session->sme_tail,
+                                   sme);
+      GNUNET_free (sme);
+      break;
+    }
+  }
   sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) +
                        sizeof (struct TypeMapConfirmationMessage));
   sme->deadline = GNUNET_TIME_absolute_get ();
   sme->size = sizeof (struct TypeMapConfirmationMessage);
   sme->priority = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
+  sme->is_typemap_confirm = GNUNET_YES;
   tmc = (struct TypeMapConfirmationMessage *) &sme[1];
   tmc->header.size = htons (sizeof (struct TypeMapConfirmationMessage));
   tmc->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP);
@@ -975,11 +1037,15 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
     return;
   session = find_session (peer);
   GNUNET_assert (NULL != session);
-  if (GNUNET_YES == GSC_TYPEMAP_test_match (session->tmap, &type, 1))
+  if (GNUNET_YES == GSC_TYPEMAP_test_match (session->tmap,
+                                            &type, 1))
     return;                     /* already in it */
-  nmap = GSC_TYPEMAP_extend (session->tmap, &type, 1);
+  nmap = GSC_TYPEMAP_extend (session->tmap,
+                             &type,
+                             1);
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
-                                              session->tmap, nmap);
+                                              session->tmap,
+                                              nmap);
   GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;
 }

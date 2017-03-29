@@ -778,7 +778,9 @@ pong_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   latency = GNUNET_TIME_absolute_get_duration (send_time);
   r = ntohl (msg->round_number);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u (%u) latency: %s\n",
-              get_index (peer), get_index (peer->dest), ntohl (msg->counter),
+              get_index (peer),
+              get_index (peer->dest),
+              (uint32_t) ntohl (msg->counter),
               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
 
   /* Online variance calculation */

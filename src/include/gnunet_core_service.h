@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2014, 2016 GNUnet e.V.
+     Copyright (C) 2009-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -194,57 +194,6 @@ GNUNET_CORE_get_mq_options (int cork,
 struct GNUNET_MQ_Handle *
 GNUNET_CORE_get_mq (const struct GNUNET_CORE_Handle *h,
 		    const struct GNUNET_PeerIdentity *pid);
-
-
-/**
- * Handle for a transmission request.
- */
-struct GNUNET_CORE_TransmitHandle;
-
-
-/**
- * Ask the core to call @a notify once it is ready to transmit the
- * given number of bytes to the specified @a target.  Must only be
- * called after a connection to the respective peer has been
- * established (and the client has been informed about this).  You may
- * have one request of this type pending for each connected peer at
- * any time.  If a peer disconnects, the application MUST call
- * #GNUNET_CORE_notify_transmit_ready_cancel() on the respective
- * transmission request, if one such request is pending.
- *
- * @param handle connection to core service
- * @param cork is corking allowed for this transmission?
- * @param priority how important is the message?
- * @param maxdelay how long can the message wait? Only effective if @a cork is #GNUNET_YES
- * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
- * @param notify_size how many bytes of buffer space does @a notify want?
- * @param notify function to call when buffer space is available;
- *        will be called with NULL on timeout; clients MUST cancel
- *        all pending transmission requests DURING the disconnect
- *        handler
- * @param notify_cls closure for @a notify
- * @return non-NULL if the notify callback was queued,
- *         NULL if we can not even queue the request (request already pending);
- *         if NULL is returned, @a notify will NOT be called.
- */
-struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
-                                   int cork,
-                                   enum GNUNET_CORE_Priority priority,
-                                   struct GNUNET_TIME_Relative maxdelay,
-                                   const struct GNUNET_PeerIdentity *target,
-                                   size_t notify_size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
-                                   void *notify_cls);
-
-
-/**
- * Cancel the specified transmission-ready notification.
- *
- * @param th handle that was returned by #GNUNET_CORE_notify_transmit_ready().
- */
-void
-GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th);
 
 
 /**

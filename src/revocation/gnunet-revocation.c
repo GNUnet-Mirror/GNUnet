@@ -527,19 +527,31 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'f', "filename", "NAME",
-     gettext_noop ("use NAME for the name of the revocation file"),
-     1, &GNUNET_GETOPT_set_string, &filename},
-    {'R', "revoke", "NAME",
-     gettext_noop ("revoke the private key associated for the the private key associated with the ego NAME "),
-     1, &GNUNET_GETOPT_set_string, &revoke_ego},
-    {'p', "perform", NULL,
-     gettext_noop ("actually perform revocation, otherwise we just do the precomputation"),
-     0, &GNUNET_GETOPT_set_one, &perform},
-    {'t', "test", "KEY",
-     gettext_noop ("test if the public key KEY has been revoked"),
-     1, &GNUNET_GETOPT_set_string, &test_ego},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_string ('f',
+                                 "filename",
+                                 "NAME",
+                                 gettext_noop ("use NAME for the name of the revocation file"),
+                                 &filename),
+
+    GNUNET_GETOPT_option_string ('R',
+                                 "revoke",
+                                 "NAME",
+                                 gettext_noop ("revoke the private key associated for the the private key associated with the ego NAME "),
+                                 &revoke_ego), 
+
+    GNUNET_GETOPT_option_flag ('p',
+                                  "perform",
+                                  gettext_noop ("actually perform revocation, otherwise we just do the precomputation"),
+                                  &perform),
+
+    GNUNET_GETOPT_option_string ('t',
+                                 "test",
+                                 "KEY",
+                                 gettext_noop ("test if the public key KEY has been revoked"),
+                                 &test_ego), 
+
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

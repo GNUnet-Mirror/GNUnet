@@ -3,3 +3,6 @@ gnunet-conversation
 gnunet-conversation-test
 gnunet-helper-audio-playback
 gnunet-helper-audio-record
+test_conversation_api
+test_conversation_api_reject
+test_conversation_api_twocalls

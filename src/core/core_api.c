@@ -204,6 +204,11 @@ disconnect_and_free_peer_entry (void *cls,
                                                        pr));
   GNUNET_MQ_destroy (pr->mq);
   GNUNET_assert (NULL == pr->mq);
+  if (NULL != pr->env)
+  {
+    GNUNET_MQ_discard (pr->env);
+    pr->env = NULL;
+  }
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -316,7 +321,7 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
 
   /* check message size for sanity */
   msize = ntohs (msg->size);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct SendMessage))
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct SendMessage))
   {
     GNUNET_break (0);
     GNUNET_MQ_impl_send_continue (mq);
@@ -331,7 +336,6 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   env = GNUNET_MQ_msg (smr,
                        GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->priority = htonl ((uint32_t) priority);
-  // smr->deadline = GNUNET_TIME_absolute_hton (deadline);
   smr->peer = pr->peer;
   smr->reserved = htonl (0);
   smr->size = htons (msize);
@@ -344,7 +348,6 @@ core_mq_send_impl (struct GNUNET_MQ_Handle *mq,
 				     GNUNET_MESSAGE_TYPE_CORE_SEND,
 				     msg);
   sm->priority = htonl ((uint32_t) priority);
-  // sm->deadline = GNUNET_TIME_absolute_hton (deadline);
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) cork);
   sm->reserved = htonl (0);
@@ -781,7 +784,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CORE_Handle *h;
-  unsigned int hcnt;
 
   h = GNUNET_new (struct GNUNET_CORE_Handle);
   h->cfg = cfg;
@@ -791,19 +793,10 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->disconnects = disconnects;
   h->peers = GNUNET_CONTAINER_multipeermap_create (128,
 						   GNUNET_NO);
-  hcnt = 0;
-  if (NULL != handlers)
-    while (NULL != handlers[hcnt].cb)
-      hcnt++;
-  h->handlers = GNUNET_new_array (hcnt + 1,
-                                  struct GNUNET_MQ_MessageHandler);
-  if (NULL != handlers)
-    GNUNET_memcpy (h->handlers,
-		   handlers,
-		   hcnt * sizeof (struct GNUNET_MQ_MessageHandler));
-  h->hcnt = hcnt;
-  GNUNET_assert (hcnt <
-                 (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+  h->handlers = GNUNET_MQ_copy_handlers (handlers);
+  h->hcnt = GNUNET_MQ_count_handlers (handlers);
+  GNUNET_assert (h->hcnt <
+                 (GNUNET_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to CORE service\n");
@@ -842,7 +835,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_MQ_destroy (handle->mq);
     handle->mq = NULL;
   }
-  GNUNET_free (handle->handlers);
+  GNUNET_free_non_null (handle->handlers);
   GNUNET_free (handle);
 }
 

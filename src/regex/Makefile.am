@@ -80,6 +80,7 @@ libgnunet_plugin_block_regex_la_SOURCES = \
 libgnunet_plugin_block_regex_la_LIBADD = \
  libgnunetregexblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/block/libgnunetblockgroup.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_block_regex_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
@@ -152,7 +153,7 @@ check_PROGRAMS = \
   test_regex_api
 
 if ENABLE_TEST_RUN
- AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
  TESTS = $(check_PROGRAMS)
 endif
 

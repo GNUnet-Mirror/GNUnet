@@ -73,7 +73,9 @@ libgnunet_plugin_peerstore_sqlite_la_SOURCES = \
   plugin_peerstore_sqlite.c
 libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
   libgnunetpeerstore.la  \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
+  $(top_builddir)/src/sq/libgnunetsq.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_peerstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
@@ -108,7 +110,7 @@ EXTRA_DIST = \
  test_peerstore_api_data.conf
 
 if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
 endif
 

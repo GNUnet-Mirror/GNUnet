@@ -138,7 +138,7 @@ static char *dns_ip;
 /**
  * UDP Port we listen on for inbound DNS requests.
  */
-static unsigned int listen_port = 2853;
+static unsigned int listen_port = 53;
 
 /**
  * Which GNS zone do we translate incoming DNS requests to?
@@ -483,7 +483,6 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 					 &my_zone,
 					 type,
 					 GNUNET_NO,
-					 NULL /* no shorten */,
 					 &result_processor,
 					 request);
   }
@@ -618,7 +617,7 @@ run_dnsd ()
   if (NULL != listen_socket4)
   {
     struct sockaddr_in v4;
-    
+
     memset (&v4, 0, sizeof (v4));
     v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -641,7 +640,7 @@ run_dnsd ()
   if (NULL != listen_socket6)
   {
     struct sockaddr_in6 v6;
-    
+
     memset (&v6, 0, sizeof (v6));
     v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -777,33 +776,53 @@ int
 main (int argc,
       char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'d', "dns", "IP",
-      gettext_noop ("IP of recursive DNS resolver to use (required)"), 1,
-      &GNUNET_GETOPT_set_string, &dns_ip},
-    {'f', "fcfs", "NAME",
-      gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
-      &GNUNET_GETOPT_set_string, &fcfs_suffix},
-    {'s', "suffix", "SUFFIX",
-      gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
-      &GNUNET_GETOPT_set_string, &dns_suffix},
-    {'p', "port", "UDPPORT",
-      gettext_noop ("UDP port to listen on for inbound DNS requests; default: 2853"), 1,
-      &GNUNET_GETOPT_set_uint, &listen_port},
-    {'z', "zone", "PUBLICKEY",
-      gettext_noop ("Public key of the GNS zone to use (overrides default)"), 1,
-      &GNUNET_GETOPT_set_string, &gns_zone_str},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_string ('d',
+                                 "dns",
+                                 "IP",
+                                 gettext_noop ("IP of recursive DNS resolver to use (required)"),
+                                 &dns_ip),
+
+    GNUNET_GETOPT_option_string ('f',
+                                 "fcfs",
+                                 "NAME",
+                                 gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"),
+                                 &fcfs_suffix),
+
+    GNUNET_GETOPT_option_string ('s',
+                                 "suffix",
+                                 "SUFFIX",
+                                 gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"),
+                                 &dns_suffix),
+
+    GNUNET_GETOPT_option_uint ('p',
+                                   "port",
+                                   "UDPPORT",
+                                   gettext_noop ("UDP port to listen on for inbound DNS requests; default: 2853"),
+                                   &listen_port),
+
+    GNUNET_GETOPT_option_string ('z',
+                                 "zone",
+                                 "PUBLICKEY",
+                                 gettext_noop ("Public key of the GNS zone to use (overrides default)"),
+                                 &gns_zone_str), 
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
-						 &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
-  GNUNET_log_setup ("gnunet-dns2gns", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-dns2gns",
+                    "WARNING",
+                    NULL);
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-dns2gns",
+       GNUNET_PROGRAM_run (argc, argv,
+                           "gnunet-dns2gns",
                            _("GNUnet DNS-to-GNS proxy (a DNS server)"),
 			   options,
                            &run, NULL)) ? 0 : 1;

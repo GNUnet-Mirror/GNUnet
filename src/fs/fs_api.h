@@ -1464,19 +1464,9 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_CRYPTO_FileHashContext *fhc;
 
   /**
-   * Which values have we seen already?
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *seen_dh;
-
-  /**
    * Overall size of the file.
    */
   uint64_t file_size;
-
-  /**
-   * Random offset given to #GNUNET_DATASTORE_get_key.
-   */
-  uint64_t roff;
 
   /**
    * When did we start?

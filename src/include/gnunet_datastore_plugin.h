@@ -93,6 +93,7 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum
  * @return #GNUNET_OK to keep the item
@@ -100,14 +101,15 @@ struct GNUNET_DATASTORE_PluginEnvironment
  */
 typedef int
 (*PluginDatumProcessor) (void *cls,
-			 const struct GNUNET_HashCode *key,
-			 uint32_t size,
-			 const void *data,
-			 enum GNUNET_BLOCK_Type type,
-			 uint32_t priority,
-			 uint32_t anonymity,
-			 struct GNUNET_TIME_Absolute expiration,
-			 uint64_t uid);
+                         const struct GNUNET_HashCode *key,
+                         uint32_t size,
+                         const void *data,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t priority,
+                         uint32_t anonymity,
+                         uint32_t replication,
+                         struct GNUNET_TIME_Absolute expiration,
+                         uint64_t uid);
 
 
 /**
@@ -204,9 +206,9 @@ typedef void
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
- * @param key key to match, never NULL
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
+ * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
  *        Note that for DBlocks there is no difference
@@ -215,17 +217,18 @@ typedef void
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
- *        proc should be called with NULL if there is no result
+ *        will be called with NULL if nothing matches
  * @param proc_cls closure for @a proc
  */
 typedef void
 (*PluginGetKey) (void *cls,
-		 uint64_t offset,
-		 const struct GNUNET_HashCode *key,
-		 const struct GNUNET_HashCode *vhash,
-		 enum GNUNET_BLOCK_Type type,
-		 PluginDatumProcessor proc,
-		 void *proc_cls);
+                 uint64_t next_uid,
+                 bool random,
+                 const struct GNUNET_HashCode *key,
+                 const struct GNUNET_HashCode *vhash,
+                 enum GNUNET_BLOCK_Type type,
+                 PluginDatumProcessor proc,
+                 void *proc_cls);
 
 
 /**
@@ -258,19 +261,18 @@ typedef void
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls closure
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -279,31 +281,31 @@ typedef void
  */
 typedef void
 (*PluginUpdate) (void *cls,
-		 uint64_t uid,
-		 int delta,
-		 struct GNUNET_TIME_Absolute expire,
-		 PluginUpdateCont cont,
-		 void *cont_cls);
+                 uint64_t uid,
+                 uint32_t priority,
+                 uint32_t replication,
+                 struct GNUNET_TIME_Absolute expire,
+                 PluginUpdateCont cont,
+                 void *cont_cls);
 
 
 /**
- * Select a single item from the datastore at the specified offset
- * (among those applicable).
+ * Select a single item from the datastore (among those applicable).
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
  *        Must not be zero (ANY).
- * @param proc function to call on the matching value
+ * @param proc function to call on the matching value;
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for @a proc
  */
 typedef void
 (*PluginGetType) (void *cls,
-		  uint64_t offset,
-		  enum GNUNET_BLOCK_Type type,
-		  PluginDatumProcessor proc,
-		  void *proc_cls);
+                  uint64_t next_uid,
+                  enum GNUNET_BLOCK_Type type,
+                  PluginDatumProcessor proc,
+                  void *proc_cls);
 
 
 /**
@@ -356,9 +358,6 @@ struct GNUNET_DATASTORE_PluginFunctions
 
   /**
    * Get datum (of the specified type) with anonymity level zero.
-   * This function is allowed to ignore the 'offset' argument
-   * and instead return a random result (with zero anonymity of
-   * the correct type) if implementing an offset is expensive.
    */
   PluginGetType get_zero_anonymity;
 

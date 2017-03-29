@@ -1309,7 +1309,7 @@ channel_history_replay (struct GNUNET_PSYC_Channel *chn,
 
   GNUNET_assert (NULL != method_prefix);
   uint16_t method_size = strnlen (method_prefix,
-                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  GNUNET_MAX_MESSAGE_SIZE
                                   - sizeof (*req)) + 1;
   GNUNET_assert ('\0' == method_prefix[method_size - 1]);
 
@@ -1454,7 +1454,7 @@ channel_state_get (struct GNUNET_PSYC_Channel *chn,
   sr->op_id = GNUNET_OP_add (chn->op, op_recv_state_result, sr, NULL);
 
   GNUNET_assert (NULL != name);
-  size_t name_size = strnlen (name, GNUNET_SERVER_MAX_MESSAGE_SIZE
+  size_t name_size = strnlen (name, GNUNET_MAX_MESSAGE_SIZE
                               - sizeof (*req)) + 1;
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg_extra (req, name_size, type);

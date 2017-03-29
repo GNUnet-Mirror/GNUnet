@@ -38,11 +38,11 @@
  */
 #define CURVE "Ed25519"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-ecc", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-crypto-ecc", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-crypto-ecc", syscall, filename)
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -488,6 +488,28 @@ struct GNUNET_CRYPTO_EcdhePrivateKey *
 GNUNET_CRYPTO_ecdhe_key_create ()
 {
   struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
+
+  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdhePrivateKey);
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdhe_key_create2 (priv))
+  {
+    GNUNET_free (priv);
+    return NULL;
+  }
+  return priv;
+}
+
+
+/**
+ * @ingroup crypto
+ * Create a new private key.  Clear with #GNUNET_CRYPTO_ecdhe_key_clear().
+ *
+ * @param[out] pk set to fresh private key;
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ */
+int
+GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
+{
   gcry_sexp_t priv_sexp;
   gcry_sexp_t s_keyparam;
   gcry_mpi_t d;
@@ -503,13 +525,13 @@ GNUNET_CRYPTO_ecdhe_key_create ()
                                   "(flags eddsa no-keytest)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
+    return GNUNET_SYSERR;
   }
   if (0 != (rc = gcry_pk_genkey (&priv_sexp, s_keyparam)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
     gcry_sexp_release (s_keyparam);
-    return NULL;
+    return GNUNET_SYSERR;
   }
   gcry_sexp_release (s_keyparam);
 #if EXTRA_CHECKS
@@ -517,20 +539,19 @@ GNUNET_CRYPTO_ecdhe_key_create ()
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
     gcry_sexp_release (priv_sexp);
-    return NULL;
+    return GNUNET_SYSERR;
   }
 #endif
   if (0 != (rc = key_from_sexp (&d, priv_sexp, "private-key", "d")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
     gcry_sexp_release (priv_sexp);
-    return NULL;
+    return GNUNET_SYSERR;
   }
   gcry_sexp_release (priv_sexp);
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdhePrivateKey);
-  GNUNET_CRYPTO_mpi_print_unsigned (priv->d, sizeof (priv->d), d);
+  GNUNET_CRYPTO_mpi_print_unsigned (pk->d, sizeof (pk->d), d);
   gcry_mpi_release (d);
-  return priv;
+  return GNUNET_OK;
 }
 
 

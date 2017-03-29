@@ -571,7 +571,7 @@ transmit_req_addr (struct AddressIteration *ai,
   msize = plugin_addr_len + plugin_name_length;
 
   GNUNET_assert (sizeof (struct PeerInformationMessage) + msize
-		 < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+		 < GNUNET_MAX_MESSAGE_SIZE);
   env = GNUNET_MQ_msg_extra (msg,
 			     msize,
 			     GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE);

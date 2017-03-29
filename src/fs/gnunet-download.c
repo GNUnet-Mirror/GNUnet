@@ -30,7 +30,7 @@
 
 static int ret;
 
-static int verbose;
+static unsigned int verbose;
 
 static int delete_incomplete;
 
@@ -299,33 +299,51 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "anonymity", "LEVEL",
-     gettext_noop ("set the desired LEVEL of receiver-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &anonymity},
-    {'D', "delete-incomplete", NULL,
-     gettext_noop ("delete incomplete downloads (when aborted with CTRL-C)"),
-     0, &GNUNET_GETOPT_set_one, &delete_incomplete},
-    {'n', "no-network", NULL,
-     gettext_noop ("only search the local peer (no P2P network search)"),
-     0, &GNUNET_GETOPT_set_one, &local_only},
-    {'o', "output", "FILENAME",
-     gettext_noop ("write the file to FILENAME"),
-     1, &GNUNET_GETOPT_set_string, &filename},
-    {'p', "parallelism", "DOWNLOADS",
-     gettext_noop
-     ("set the maximum number of parallel downloads that is allowed"),
-     1, &GNUNET_GETOPT_set_uint, &parallelism},
-    {'r', "request-parallelism", "REQUESTS",
-     gettext_noop
-     ("set the maximum number of parallel requests for blocks that is allowed"),
-     1, &GNUNET_GETOPT_set_uint, &request_parallelism},
-    {'R', "recursive", NULL,
-     gettext_noop ("download a GNUnet directory recursively"),
-     0, &GNUNET_GETOPT_set_one, &do_recursive},
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_increment_value, &verbose},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_uint ('a',
+                                   "anonymity",
+                                   "LEVEL",
+                                   gettext_noop ("set the desired LEVEL of receiver-anonymity"),
+                                   &anonymity),
+
+    GNUNET_GETOPT_option_flag ('D',
+                                  "delete-incomplete",
+                                  gettext_noop ("delete incomplete downloads (when aborted with CTRL-C)"),
+                                  &delete_incomplete),
+
+    GNUNET_GETOPT_option_flag ('n',
+                                  "no-network",
+                                  gettext_noop ("only search the local peer (no P2P network search)"),
+                                  &local_only), 
+
+    GNUNET_GETOPT_option_string ('o',
+                                 "output",
+                                 "FILENAME",
+                                 gettext_noop ("write the file to FILENAME"),
+                                 &filename),
+
+    GNUNET_GETOPT_option_uint ('p',
+                                   "parallelism",
+                                   "DOWNLOADS",
+                                   gettext_noop ("set the maximum number of parallel downloads that is allowed"),
+                                   &parallelism),
+
+    GNUNET_GETOPT_option_uint ('r',
+                                   "request-parallelism",
+                                   "REQUESTS",
+                                   gettext_noop ("set the maximum number of parallel requests for blocks that is allowed"),
+                                   &request_parallelism), 
+
+    GNUNET_GETOPT_option_flag ('R',
+                                  "recursive",
+                                  gettext_noop ("download a GNUnet directory recursively"),
+                                  &do_recursive),
+
+    GNUNET_GETOPT_option_increment_uint ('V',
+                                          "verbose",
+                                          gettext_noop ("be verbose (print progress information)"),
+                                          &verbose), 
+
     GNUNET_GETOPT_OPTION_END
   };
 

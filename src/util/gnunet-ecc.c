@@ -41,7 +41,7 @@ static int list_keys;
 /**
  * Flag for listing public key.
  */
-static int list_keys_count;
+static unsigned int list_keys_count;
 
 /**
  * Flag for printing public key.
@@ -406,36 +406,50 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   list_keys_count = UINT32_MAX;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'i', "iterate", "FILE",
-      gettext_noop ("list keys included in a file (for testing)"),
-      0, &GNUNET_GETOPT_set_one, &list_keys },
-    { 'e', "end=", "COUNT",
-      gettext_noop ("number of keys to list included in a file (for testing)"),
-      1, &GNUNET_GETOPT_set_uint, &list_keys_count },
-    { 'g', "generate-keys", "COUNT",
-      gettext_noop ("create COUNT public-private key pairs (for testing)"),
-      1, &GNUNET_GETOPT_set_uint, &make_keys },
-    { 'p', "print-public-key", NULL,
-      gettext_noop ("print the public key in ASCII format"),
-      0, &GNUNET_GETOPT_set_one, &print_public_key },
-    { 'E', "examples", NULL,
-      gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
-      0, &GNUNET_GETOPT_set_one, &print_examples_flag },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('i',
+                                  "iterate",
+                                  gettext_noop ("list keys included in a file (for testing)"),
+                                  &list_keys),
+    GNUNET_GETOPT_option_uint ('e',
+                                   "end=",
+                                   "COUNT",
+                                   gettext_noop ("number of keys to list included in a file (for testing)"),
+                                   &list_keys_count),
+    GNUNET_GETOPT_option_uint ('g',
+                                   "generate-keys",
+                                   "COUNT",
+                                   gettext_noop ("create COUNT public-private key pairs (for testing)"),
+                                   &make_keys),
+    GNUNET_GETOPT_option_flag ('p',
+                                  "print-public-key",
+                                  gettext_noop ("print the public key in ASCII format"),
+                                  &print_public_key),
+    GNUNET_GETOPT_option_flag ('E',
+                                  "examples",
+                                  gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
+                                  &print_examples_flag),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-ecc [OPTIONS] keyfile [VANITY_PREFIX]",
+	 GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-ecc [OPTIONS] keyfile [VANITY_PREFIX]",
 			     gettext_noop ("Manipulate GNUnet private ECC key files"),
-			     options, &run, NULL)) ? 0 : 1;
+			     options,
+                             &run,
+                             NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }

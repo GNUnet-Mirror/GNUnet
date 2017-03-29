@@ -1647,7 +1647,9 @@ deserialize_publish_file (void *cls,
                 filename, emsg);
     GNUNET_free (emsg);
   }
-  pc->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, pc);
+  pc->top = GNUNET_FS_make_top (h,
+                                &GNUNET_FS_publish_signal_suspend_,
+                                pc);
   return GNUNET_OK;
 cleanup:
   GNUNET_free_non_null (pc->nid);
@@ -2278,7 +2280,9 @@ deserialize_unindex_file (void *cls,
     GNUNET_break (0);
     goto cleanup;
   }
-  uc->top = GNUNET_FS_make_top (h, &GNUNET_FS_unindex_signal_suspend_, uc);
+  uc->top = GNUNET_FS_make_top (h,
+                                &GNUNET_FS_unindex_signal_suspend_,
+                                uc);
   pi.status = GNUNET_FS_STATUS_UNINDEX_RESUME;
   pi.value.unindex.specifics.resume.message = uc->emsg;
   GNUNET_FS_unindex_make_status_ (&pi, uc,
@@ -2537,7 +2541,6 @@ signal_download_resume (struct GNUNET_FS_DownloadContext *dc)
     signal_download_resume (dcc);
     dcc = dcc->next;
   }
-  GNUNET_FS_download_start_downloading_ (dc);
 }
 
 
@@ -2806,7 +2809,8 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
   if (GNUNET_FS_uri_test_loc (dc->uri))
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_FS_uri_loc_get_peer_identity (dc->uri, &dc->target));
+                   GNUNET_FS_uri_loc_get_peer_identity (dc->uri,
+                                                        &dc->target));
   if (NULL == dc->emsg)
   {
     dc->top_request = read_download_request (rh);
@@ -2816,10 +2820,14 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       goto cleanup;
     }
   }
-  dn = get_download_sync_filename (dc, dc->serialization, ".dir");
+  dn = get_download_sync_filename (dc,
+                                   dc->serialization,
+                                   ".dir");
   if (NULL != dn)
   {
-    if (GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES))
+    if (GNUNET_YES ==
+        GNUNET_DISK_directory_test (dn,
+                                    GNUNET_YES))
       GNUNET_DISK_directory_scan (dn,
                                   &deserialize_subdownload,
                                   dc);
@@ -2836,15 +2844,17 @@ deserialize_download (struct GNUNET_FS_Handle *h,
     dc->search = search;
     search->download = dc;
   }
-  if ((NULL == parent) && (NULL == search))
+  if ( (NULL == parent) &&
+       (NULL == search) )
   {
-    dc->top =
-        GNUNET_FS_make_top (dc->h,
+    dc->top
+      = GNUNET_FS_make_top (dc->h,
                             &GNUNET_FS_download_signal_suspend_,
                             dc);
     signal_download_resume (dc);
   }
   GNUNET_free (uris);
+  GNUNET_assert (NULL == dc->job_queue);
   dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_,
                                        dc);
   return;

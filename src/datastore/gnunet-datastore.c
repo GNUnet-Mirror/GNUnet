@@ -130,20 +130,23 @@ do_finish (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
 static void
 do_put (void *cls,
-	const struct GNUNET_HashCode *key,
-	size_t size,
+        const struct GNUNET_HashCode *key,
+        size_t size,
         const void *data,
-	enum GNUNET_BLOCK_Type type,
-	uint32_t priority,
-	uint32_t anonymity,
-	struct GNUNET_TIME_Absolute
-	expiration, uint64_t uid)
+        enum GNUNET_BLOCK_Type type,
+        uint32_t priority,
+        uint32_t anonymity,
+        uint32_t replication,
+        struct GNUNET_TIME_Absolute
+        expiration,
+        uint64_t uid)
 {
   qe = NULL;
   if ( (0 != offset) &&
@@ -154,13 +157,20 @@ do_put (void *cls,
   }
   if (0 == offset)
     first_uid = uid;
-  qe = GNUNET_DATASTORE_put (db_dst, 0,
-			     key, size, data, type,
-			     priority, anonymity,
-			     0 /* FIXME: replication is lost... */,
-			     expiration,
-			     0, 1,
-			     &do_finish, NULL);
+  qe = GNUNET_DATASTORE_put (db_dst,
+                             0,
+                             key,
+                             size,
+                             data,
+                             type,
+                             priority,
+                             anonymity,
+                             replication,
+                             expiration,
+                             0,
+                             1,
+                             &do_finish,
+                             NULL);
 }
 
 
@@ -171,7 +181,7 @@ static void
 do_get ()
 {
   qe = GNUNET_DATASTORE_get_key (db_src,
-				 offset,
+				 0, false,
 				 NULL, GNUNET_BLOCK_TYPE_ANY,
 				 0, 1,
 				 &do_put, NULL);
@@ -239,10 +249,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 's', "sourcecfg", "FILENAME",
-      gettext_noop ("specifies the configuration to use to access an alternative datastore; will merge that datastore into our current datastore"),
-      1, &GNUNET_GETOPT_set_filename, &alternative_cfg },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_filename ('s',
+                                   "sourcecfg",
+                                   "FILENAME",
+                                   gettext_noop ("specifies the configuration to use to access an alternative datastore; will merge that datastore into our current datastore"),
+                                       &alternative_cfg),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

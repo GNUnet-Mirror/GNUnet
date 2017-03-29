@@ -331,12 +331,14 @@ load_episode (struct Experiment *e,
             o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
           else
           {
-              fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
-                  op_counter, op, cur->id);
+              fprintf (stderr,
+                       "Invalid preference in operation %u `%s' in episode %u\n",
+                       op_counter,
+                       op,
+                       cur->id);
               GNUNET_free (type);
               GNUNET_free (op_name);
               GNUNET_free (op);
-              GNUNET_free (pref);
               GNUNET_free (sec_name);
               GNUNET_free_non_null (pref);
               GNUNET_free (o);
@@ -929,22 +931,35 @@ main (int argc, char *argv[])
   opt_log = GNUNET_NO;
   opt_plot = GNUNET_NO;
 
-  static struct GNUNET_GETOPT_CommandLineOption options[] =
+  struct GNUNET_GETOPT_CommandLineOption options[] =
   {
-    { 's', "solver", NULL,
-        gettext_noop ("solver to use"),
-        1, &GNUNET_GETOPT_set_string, &opt_solver},
-    {  'e', "experiment", NULL,
-      gettext_noop ("experiment to use"),
-      1, &GNUNET_GETOPT_set_string, &opt_exp_file},
-    {  'e', "experiment", NULL,
-      gettext_noop ("experiment to use"),
-      1, &GNUNET_GETOPT_set_one, &opt_verbose},
+    GNUNET_GETOPT_option_string ('s',
+                                 "solver",
+                                 NULL,
+                                 gettext_noop ("solver to use"),
+                                 &opt_solver),
+
+    GNUNET_GETOPT_option_string ('e',
+                                 "experiment",
+                                 NULL,
+                                 gettext_noop ("experiment to use"),
+                                 &opt_exp_file),
+ 
+    GNUNET_GETOPT_option_flag ('e',
+                                  "experiment",
+                                  gettext_noop ("experiment to use"),
+                                  &opt_verbose),
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc,
+                          argv, argv[0],
+                          NULL,
+                          options,
+                          &run, argv[0]))
+    return 1;
 
   return 0;
 }
-/* end of file ats-testing-experiment.c*/
+/* end of file gnunet-solver-eval.c*/

@@ -28,7 +28,7 @@
 #include "platform.h"
 #include "gnunet_container_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-container-multihashmap32", __VA_ARGS__)
 
 /**
  * An entry in the hash map.

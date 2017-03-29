@@ -514,10 +514,14 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'p', "port", "PORT",
-      gettext_noop ("Run HTTP serve on port PORT (default is 8888)"), 1,
-      &GNUNET_GETOPT_set_uint, &port},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_uint ('p',
+                                   "port",
+                                   "PORT",
+                                   gettext_noop ("Run HTTP serve on port PORT (default is 8888)"),
+                                   &port),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

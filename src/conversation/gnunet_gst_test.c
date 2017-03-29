@@ -18,7 +18,7 @@
   Boston, MA 02110-1301, USA.
 */
 /**
- * @file conversation/gnunet_gst.c
+ * @file conversation/gnunet_gst_test.c
  * @brief FIXME
  * @author Hark
  */
@@ -30,8 +30,7 @@ int
 main (int argc, char *argv[])
 {
   struct GNUNET_gstData *gst;
-  GstBus *bus;
-  GstMessage *msg;
+  // GstBus *bus;
   GstElement *gnunetsrc, *gnunetsink, *source, *sink, *encoder, *decoder;
 
 
@@ -137,7 +136,7 @@ main (int argc, char *argv[])
  }
   g_print ("Returned, stopping playback\n");
 
-  gst_object_unref (bus);
+  // gst_object_unref (bus);
   gst_element_set_state (GST_ELEMENT(gst->pipeline), GST_STATE_NULL);
   gst_object_unref (gst->pipeline);
 

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001, 2002, 2003, 2005, 2006 GNUnet e.V.
+     Copyright (C) 2001, 2002, 2003, 2005, 2006, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,6 +24,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+
 
 static int
 check ()
@@ -95,47 +96,57 @@ check ()
   if (ptrs[0] != NULL)
     return 9;
 
-	/* GNUNET_new_array_2d tests */
-	a2 = GNUNET_new_array_2d (17, 22, unsigned int);
-	for (i = 0; i < 17; i++)
-	{
-		for (j = 0; j < 22; j++)
-		{
-			if (0 != a2[i][j])
-				return 10;
-			a2[i][j] = i * 100 + j;
-		}
-	}
-	free (a2);
+  /* GNUNET_new_array_2d tests */
+  a2 = GNUNET_new_array_2d (17, 22, unsigned int);
+  for (i = 0; i < 17; i++)
+  {
+    for (j = 0; j < 22; j++)
+    {
+      if (0 != a2[i][j])
+      {
+        GNUNET_free (a2);
+        return 10;
+      }
+      a2[i][j] = i * 100 + j;
+    }
+  }
+  GNUNET_free (a2);
 
-	/* GNUNET_new_array_3d tests */
-	a3 = GNUNET_new_array_3d (2, 3, 4, char);
-	for (i = 0; i < 2; i++)
-	{
-		for (j = 0; j < 3; j++)
-		{
-			for (k = 0; k < 4; k++)
-			{
-				if (0 != a3[i][j][k])
-					return 11;
-				a3[i][j][k] = i * 100 + j * 10 + k;
-			}
-		}
-	}
-	free (a3);
-
+  /* GNUNET_new_array_3d tests */
+  a3 = GNUNET_new_array_3d (2, 3, 4, char);
+  for (i = 0; i < 2; i++)
+  {
+    for (j = 0; j < 3; j++)
+    {
+      for (k = 0; k < 4; k++)
+      {
+        if (0 != a3[i][j][k])
+        {
+          GNUNET_free (a3);
+          return 11;
+        }
+        a3[i][j][k] = i * 100 + j * 10 + k;
+      }
+    }
+  }
+  GNUNET_free (a3);
   return 0;
 }
+
 
 int
 main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-common-allocation", "WARNING", NULL);
+  GNUNET_log_setup ("test-common-allocation",
+                    "WARNING",
+                    NULL);
   ret = check ();
   if (ret != 0)
-    FPRINTF (stderr, "ERROR %d.\n", ret);
+    FPRINTF (stderr,
+             "ERROR %d.\n",
+             ret);
   return ret;
 }
 

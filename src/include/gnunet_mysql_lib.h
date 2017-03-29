@@ -61,10 +61,12 @@ struct GNUNET_MYSQL_StatementHandle;
  * @param cls user-defined argument
  * @param num_values number of elements in values
  * @param values values returned by MySQL
- * @return GNUNET_OK to continue iterating, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iterating, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_MYSQL_DataProcessor) (void *cls, unsigned int num_values,
-					   MYSQL_BIND * values);
+typedef int
+(*GNUNET_MYSQL_DataProcessor) (void *cls,
+                               unsigned int num_values,
+                               MYSQL_BIND * values);
 
 
 /**
@@ -102,7 +104,7 @@ GNUNET_MYSQL_statements_invalidate (struct GNUNET_MYSQL_Context *mc);
 /**
  * Get internal handle for a prepared statement.  This function should rarely
  * be used, and if, with caution!  On failures during the interaction with
- * the handle, you must call 'GNUNET_MYSQL_statements_invalidate'!
+ * the handle, you must call #GNUNET_MYSQL_statements_invalidate()!
  *
  * @param sh prepared statement to introspect
  * @return MySQL statement handle, NULL on error
@@ -129,8 +131,8 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
  *
  * @param mc mysql context
  * @param sql SQL statement to run
- * @return GNUNET_OK on success
- *         GNUNET_SYSERR if there was a problem
+ * @return #GNUNET_OK on success
+ *         #GNUNET_SYSERR if there was a problem
  */
 int
 GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,

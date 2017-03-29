@@ -17,9 +17,6 @@ if USE_COVERAGE
 endif
 
 
-bin_PROGRAMS = \
- gnunet-secretsharing-profiler
-
 libexec_PROGRAMS = \
  gnunet-service-secretsharing
 
@@ -56,12 +53,17 @@ libgnunetsecretsharing_la_LIBADD = \
 libgnunetsecretsharing_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+if HAVE_TESTING
+bin_PROGRAMS = \
+ gnunet-secretsharing-profiler
+
 check_PROGRAMS = \
  test_secretsharing_api
 
 if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
+endif
 endif
 
 test_secretsharing_api_SOURCES = \
@@ -73,4 +75,3 @@ test_secretsharing_api_LDADD = \
 
 EXTRA_DIST = \
   test_secretsharing.conf
-

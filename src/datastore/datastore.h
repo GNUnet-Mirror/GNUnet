@@ -119,9 +119,14 @@ struct GetKeyMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
+  uint64_t next_uid GNUNET_PACKED;
+
+  /**
+   * If true return a random result
+   */
+  uint32_t random GNUNET_PACKED;
 
   /**
    * Desired key.
@@ -148,9 +153,14 @@ struct GetMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
+  uint64_t next_uid GNUNET_PACKED;
+
+  /**
+   * If true return a random result
+   */
+  uint32_t random GNUNET_PACKED;
 
 };
 
@@ -172,38 +182,9 @@ struct GetZeroAnonymityMessage
   uint32_t type GNUNET_PACKED;
 
   /**
-   * Offset of the result.
+   * UID at which to start the search
    */
-  uint64_t offset GNUNET_PACKED;
-
-};
-
-
-/**
- * Message to the datastore service requesting an update
- * to the priority or expiration for some content.
- */
-struct UpdateMessage
-{
-  /**
-   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Desired priority increase.
-   */
-  int32_t priority GNUNET_PACKED;
-
-  /**
-   * Desired new expiration time.
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
-
-  /**
-   * Unique ID for the content.
-   */
-  uint64_t uid;
+  uint64_t next_uid GNUNET_PACKED;
 
 };
 
@@ -248,7 +229,7 @@ struct DataMessage
   uint32_t anonymity GNUNET_PACKED;
 
   /**
-   * Desired replication level. 0 from service to API.
+   * Desired replication level.
    */
   uint32_t replication GNUNET_PACKED;
 

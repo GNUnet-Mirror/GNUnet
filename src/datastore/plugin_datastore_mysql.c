@@ -150,31 +150,56 @@ struct Plugin
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
   struct GNUNET_MYSQL_StatementHandle *delete_entry_by_uid;
 
-#define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash) WHERE hash=?"
-  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash;
+#define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, uid"
 
-#define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash) WHERE hash=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "WHERE uid >= ? AND "\
+  "(rvalue >= ? OR 0 = ?) "\
+  "ORDER BY uid LIMIT 1"
+  struct GNUNET_MYSQL_StatementHandle *select_entry;
+
+#define SELECT_ENTRY_BY_HASH "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_hash) "\
+  "WHERE hash=? AND "\
+  "uid >= ? AND "\
+  "(rvalue >= ? OR 0 = ?) "\
+  "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash;
 
-#define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=?"
-  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_and_vhash;
-
-#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_hash_vhash) "\
+  "WHERE hash = ? AND "\
+  "vhash = ? AND "\
+  "uid >= ? AND "\
+  "(rvalue >= ? OR 0 = ?) "\
+  "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_vhash;
 
-#define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=?"
-  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_and_type;
-
-#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_hash_type_uid) "\
+  "WHERE hash = ? AND "\
+  "type = ? AND "\
+  "uid >= ? AND "\
+  "(rvalue >= ? OR 0 = ?) "\
+  "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_type;
 
-#define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=?"
-  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_vhash_and_type;
-
-#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT " RESULT_COLUMNS " "\
+  "FROM gn090 "\
+  "FORCE INDEX (idx_hash_vhash) "\
+  "WHERE hash = ? AND "\
+  "vhash = ? AND "\
+  "type = ? AND "\
+  "uid >= ? AND "\
+  "(rvalue >= ? OR 0 = ?) "\
+  "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_vhash_and_type;
 
-#define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=?"
+#define UPDATE_ENTRY "UPDATE gn090 SET "\
+  "prio = prio + ?, "\
+  "repl = repl + ?, "\
+  "expire = IF(expire >= ?, expire, ?) "\
+  "WHERE uid = ?"
   struct GNUNET_MYSQL_StatementHandle *update_entry;
 
 #define DEC_REPL "UPDATE gn090 SET repl=GREATEST (1, repl) - 1 WHERE uid=?"
@@ -183,22 +208,27 @@ struct Plugin
 #define SELECT_SIZE "SELECT SUM(LENGTH(value)+256) FROM gn090"
   struct GNUNET_MYSQL_StatementHandle *get_size;
 
-#define SELECT_IT_NON_ANONYMOUS "SELECT type,prio,anonLevel,expire,hash,value,uid "\
-   "FROM gn090 FORCE INDEX (idx_anonLevel_type_rvalue) "\
-   "WHERE anonLevel=0 AND type=? AND "\
-   "(rvalue >= ? OR"\
-   "  NOT EXISTS (SELECT 1 FROM gn090 FORCE INDEX (idx_anonLevel_type_rvalue) WHERE anonLevel=0 AND type=? AND rvalue>=?)) "\
-   "ORDER BY rvalue ASC LIMIT 1"
+#define SELECT_IT_NON_ANONYMOUS "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_anonLevel_type_rvalue) "\
+  "WHERE anonLevel=0 AND "\
+  "type=? AND "\
+  "uid >= ? "\
+  "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *zero_iter;
 
-#define SELECT_IT_EXPIRATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_expire) WHERE expire < ? ORDER BY expire ASC LIMIT 1"
+#define SELECT_IT_EXPIRATION "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_expire) "\
+  "WHERE expire < ? "\
+  "ORDER BY expire ASC LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_expiration;
 
-#define SELECT_IT_PRIORITY "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_prio) ORDER BY prio ASC LIMIT 1"
+#define SELECT_IT_PRIORITY "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_prio) "\
+  "ORDER BY prio ASC LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_priority;
 
-#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid "\
-  "FROM gn090 FORCE INDEX (idx_repl_rvalue) "\
+#define SELECT_IT_REPLICATION "SELECT " RESULT_COLUMNS " FROM gn090 "\
+  "FORCE INDEX (idx_repl_rvalue) "\
   "WHERE repl=? AND "\
   " (rvalue>=? OR"\
   "  NOT EXISTS (SELECT 1 FROM gn090 FORCE INDEX (idx_repl_rvalue) WHERE repl=? AND rvalue>=?)) "\
@@ -382,22 +412,18 @@ mysql_plugin_put (void *cls,
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
- *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our "struct Plugin*"
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -407,24 +433,26 @@ mysql_plugin_put (void *cls,
 static void
 mysql_plugin_update (void *cls,
                      uint64_t uid,
-                     int delta,
+                     uint32_t priority,
+                     uint32_t replication,
                      struct GNUNET_TIME_Absolute expire,
                      PluginUpdateCont cont,
                      void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t idelta = (uint32_t) delta;
   uint64_t lexpire = expire.abs_value_us;
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating value %llu adding %d to priority and maxing exp at %s\n",
+              "Updating value %llu adding %d to priority %d to replication and maxing exp at %s\n",
               (unsigned long long) uid,
-              delta,
-	      GNUNET_STRINGS_absolute_time_to_string (expire));
+              priority,
+              replication,
+              GNUNET_STRINGS_absolute_time_to_string (expire));
 
   struct GNUNET_MY_QueryParam params_update[] = {
-    GNUNET_MY_query_param_uint32 (&idelta),
+    GNUNET_MY_query_param_uint32 (&priority),
+    GNUNET_MY_query_param_uint32 (&replication),
     GNUNET_MY_query_param_uint64 (&lexpire),
     GNUNET_MY_query_param_uint64 (&lexpire),
     GNUNET_MY_query_param_uint64 (&uid),
@@ -471,6 +499,7 @@ execute_select (struct Plugin *plugin,
                 struct GNUNET_MY_QueryParam *params_select)
 {
   int ret;
+  uint32_t replication;
   uint32_t type;
   uint32_t priority;
   uint32_t anonymity;
@@ -480,6 +509,7 @@ execute_select (struct Plugin *plugin,
   struct GNUNET_HashCode key;
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_MY_ResultSpec results_select[] = {
+    GNUNET_MY_result_spec_uint32 (&replication),
     GNUNET_MY_result_spec_uint32 (&type),
     GNUNET_MY_result_spec_uint32 (&priority),
     GNUNET_MY_result_spec_uint32 (&anonymity),
@@ -496,7 +526,7 @@ execute_select (struct Plugin *plugin,
   if (GNUNET_OK != ret)
   {
     proc (proc_cls,
-          NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+          NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
@@ -505,7 +535,7 @@ execute_select (struct Plugin *plugin,
   if (GNUNET_OK != ret)
   {
     proc (proc_cls,
-          NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+          NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
@@ -527,6 +557,7 @@ execute_select (struct Plugin *plugin,
               type,
               priority,
               anonymity,
+              replication,
               expiration,
               uid);
   GNUNET_MY_cleanup_result (results_select);
@@ -544,8 +575,8 @@ execute_select (struct Plugin *plugin,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -560,7 +591,8 @@ execute_select (struct Plugin *plugin,
  */
 static void
 mysql_plugin_get_key (void *cls,
-                      uint64_t offset,
+                      uint64_t next_uid,
+                      bool random,
                       const struct GNUNET_HashCode *key,
                       const struct GNUNET_HashCode *vhash,
                       enum GNUNET_BLOCK_Type type,
@@ -568,121 +600,33 @@ mysql_plugin_get_key (void *cls,
                       void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  int ret;
-  uint64_t total;
-  struct GNUNET_MY_ResultSpec results_get[] = {
-    GNUNET_MY_result_spec_uint64 (&total),
-    GNUNET_MY_result_spec_end
-  };
+  uint64_t rvalue;
 
-  total = UINT64_MAX;
-  if (0 != type)
+  if (random)
   {
-    if (NULL != vhash)
-    {
-      struct GNUNET_MY_QueryParam params_get[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_auto_from_type (vhash),
-        GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_end
-      };
-
-      ret =
-        GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->count_entry_by_hash_vhash_and_type,
-                                 params_get);
-      GNUNET_break (GNUNET_OK == ret);
-      if (GNUNET_OK == ret)
-        ret =
-          GNUNET_MY_extract_result (plugin->count_entry_by_hash_vhash_and_type,
-                                    results_get);
-      if (GNUNET_OK == ret)
-        GNUNET_break (GNUNET_NO ==
-                      GNUNET_MY_extract_result (plugin->count_entry_by_hash_vhash_and_type,
-                                                NULL));
-    }
-    else
-    {
-      struct GNUNET_MY_QueryParam params_get[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_end
-      };
-
-      ret =
-        GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->count_entry_by_hash_and_type,
-                                 params_get);
-      GNUNET_break (GNUNET_OK == ret);
-      if (GNUNET_OK == ret)
-        ret =
-          GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_type,
-                                    results_get);
-      if (GNUNET_OK == ret)
-        GNUNET_break (GNUNET_NO ==
-                      GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_type,
-                                                NULL));
-    }
+    rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                       UINT64_MAX);
+    next_uid = 0;
   }
   else
-  {
-    if (NULL != vhash)
-    {
-      struct GNUNET_MY_QueryParam params_get[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_auto_from_type (vhash),
-        GNUNET_MY_query_param_end
-      };
+    rvalue = 0;
 
-      ret =
-        GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->count_entry_by_hash_and_vhash,
-                                 params_get);
-      GNUNET_break (GNUNET_OK == ret);
-      if (GNUNET_OK == ret)
-        ret =
-          GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_vhash,
-                                    results_get);
-      if (GNUNET_OK == ret)
-        GNUNET_break (GNUNET_NO ==
-                      GNUNET_MY_extract_result (plugin->count_entry_by_hash_and_vhash,
-                                                NULL));
-    }
-    else
-    {
-      struct GNUNET_MY_QueryParam params_get[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_end
-      };
-
-      ret =
-        GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->count_entry_by_hash,
-                                 params_get);
-      GNUNET_break (GNUNET_OK == ret);
-      if (GNUNET_OK == ret)
-        ret =
-          GNUNET_MY_extract_result (plugin->count_entry_by_hash,
-                                    results_get);
-      if (GNUNET_OK == ret)
-        GNUNET_break (GNUNET_NO ==
-                      GNUNET_MY_extract_result (plugin->count_entry_by_hash,
-                                                NULL));
-    }
-  }
-  if ( (GNUNET_OK != ret) ||
-       (0 >= total) )
+  if (NULL == key)
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-    return;
+    struct GNUNET_MY_QueryParam params_select[] = {
+      GNUNET_MY_query_param_uint64 (&next_uid),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_end
+    };
+
+    execute_select (plugin,
+                    plugin->select_entry,
+                    proc,
+                    proc_cls,
+                    params_select);
   }
-  offset = offset % total;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Obtaining %llu/%lld result for GET `%s'\n",
-              (unsigned long long) offset,
-              (unsigned long long) total,
-              GNUNET_h2s (key));
-  if (type != GNUNET_BLOCK_TYPE_ANY)
+  else if (type != GNUNET_BLOCK_TYPE_ANY)
   {
     if (NULL != vhash)
     {
@@ -690,7 +634,9 @@ mysql_plugin_get_key (void *cls,
         GNUNET_MY_query_param_auto_from_type (key),
         GNUNET_MY_query_param_auto_from_type (vhash),
         GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_uint64 (&next_uid),
+        GNUNET_MY_query_param_uint64 (&rvalue),
+        GNUNET_MY_query_param_uint64 (&rvalue),
         GNUNET_MY_query_param_end
       };
 
@@ -705,7 +651,9 @@ mysql_plugin_get_key (void *cls,
       struct GNUNET_MY_QueryParam params_select[] = {
         GNUNET_MY_query_param_auto_from_type (key),
         GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_uint64 (&next_uid),
+        GNUNET_MY_query_param_uint64 (&rvalue),
+        GNUNET_MY_query_param_uint64 (&rvalue),
         GNUNET_MY_query_param_end
       };
 
@@ -723,7 +671,9 @@ mysql_plugin_get_key (void *cls,
       struct GNUNET_MY_QueryParam params_select[] = {
         GNUNET_MY_query_param_auto_from_type (key),
         GNUNET_MY_query_param_auto_from_type (vhash),
-        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_uint64 (&next_uid),
+        GNUNET_MY_query_param_uint64 (&rvalue),
+        GNUNET_MY_query_param_uint64 (&rvalue),
         GNUNET_MY_query_param_end
       };
 
@@ -737,7 +687,9 @@ mysql_plugin_get_key (void *cls,
     {
       struct GNUNET_MY_QueryParam params_select[] = {
         GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_uint64 (&offset),
+        GNUNET_MY_query_param_uint64 (&next_uid),
+        GNUNET_MY_query_param_uint64 (&rvalue),
+        GNUNET_MY_query_param_uint64 (&rvalue),
         GNUNET_MY_query_param_end
       };
 
@@ -756,28 +708,26 @@ mysql_plugin_get_key (void *cls,
  * Get a zero-anonymity datum from the datastore.
  *
  * @param cls our `struct Plugin *`
- * @param offset offset of the result
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param proc function to call on a matching value or NULL
+ *        Must not be zero (ANY).
+ * @param proc function to call on a matching value;
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for @a proc
  */
 static void
 mysql_plugin_get_zero_anonymity (void *cls,
-                                 uint64_t offset,
+                                 uint64_t next_uid,
                                  enum GNUNET_BLOCK_Type type,
                                  PluginDatumProcessor proc,
                                  void *proc_cls)
 {
   struct Plugin *plugin = cls;
   uint32_t typei = (uint32_t) type;
-  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                              UINT64_MAX);
+
   struct GNUNET_MY_QueryParam params_zero_iter[] = {
     GNUNET_MY_query_param_uint32 (&typei),
-    GNUNET_MY_query_param_uint64 (&rvalue),
-    GNUNET_MY_query_param_uint32 (&typei),
-    GNUNET_MY_query_param_uint64 (&rvalue),
+    GNUNET_MY_query_param_uint64 (&next_uid),
     GNUNET_MY_query_param_end
   };
 
@@ -824,6 +774,7 @@ struct ReplCtx
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -839,6 +790,7 @@ repl_proc (void *cls,
            enum GNUNET_BLOCK_Type type,
            uint32_t priority,
            uint32_t anonymity,
+           uint32_t replication,
            struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
 {
@@ -854,6 +806,7 @@ repl_proc (void *cls,
                   type,
                   priority,
                   anonymity,
+                  replication,
                   expiration,
                   uid);
   if (NULL != key)
@@ -921,7 +874,7 @@ mysql_plugin_get_replication (void *cls,
                                plugin->max_repl,
                                params_get))
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
@@ -929,7 +882,7 @@ mysql_plugin_get_replication (void *cls,
       GNUNET_MY_extract_result (plugin->max_repl,
                                 results_get))
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   GNUNET_break (GNUNET_NO ==
@@ -1071,6 +1024,7 @@ struct ExpiCtx
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
@@ -1086,6 +1040,7 @@ expi_proc (void *cls,
            enum GNUNET_BLOCK_Type type,
            uint32_t priority,
            uint32_t anonymity,
+           uint32_t replication,
            struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
 {
@@ -1111,6 +1066,7 @@ expi_proc (void *cls,
                    type,
                    priority,
                    anonymity,
+                   replication,
                    expiration,
                    uid);
 }
@@ -1212,6 +1168,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
        ") ENGINE=InnoDB") || MRUNS ("SET AUTOCOMMIT = 1") ||
       PINIT (plugin->insert_entry, INSERT_ENTRY) ||
       PINIT (plugin->delete_entry_by_uid, DELETE_ENTRY_BY_UID) ||
+      PINIT (plugin->select_entry, SELECT_ENTRY) ||
       PINIT (plugin->select_entry_by_hash, SELECT_ENTRY_BY_HASH) ||
       PINIT (plugin->select_entry_by_hash_and_vhash,
              SELECT_ENTRY_BY_HASH_AND_VHASH) ||
@@ -1219,13 +1176,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              SELECT_ENTRY_BY_HASH_AND_TYPE) ||
       PINIT (plugin->select_entry_by_hash_vhash_and_type,
              SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE) ||
-      PINIT (plugin->count_entry_by_hash, COUNT_ENTRY_BY_HASH) ||
       PINIT (plugin->get_size, SELECT_SIZE) ||
-      PINIT (plugin->count_entry_by_hash_and_vhash,
-             COUNT_ENTRY_BY_HASH_AND_VHASH) ||
-      PINIT (plugin->count_entry_by_hash_and_type, COUNT_ENTRY_BY_HASH_AND_TYPE)
-      || PINIT (plugin->count_entry_by_hash_vhash_and_type,
-                COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE) ||
       PINIT (plugin->update_entry, UPDATE_ENTRY) ||
       PINIT (plugin->dec_repl, DEC_REPL) ||
       PINIT (plugin->zero_iter, SELECT_IT_NON_ANONYMOUS) ||

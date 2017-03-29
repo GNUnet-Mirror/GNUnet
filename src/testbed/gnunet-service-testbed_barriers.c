@@ -478,7 +478,7 @@ GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg)
   LOG_DEBUG ("Launching testbed-barrier service\n");
   barrier_map = GNUNET_CONTAINER_multihashmap_create (3,
                                                       GNUNET_YES);
-  ctx = GNUNET_SERVICE_starT ("testbed-barrier",
+  ctx = GNUNET_SERVICE_start ("testbed-barrier",
                               cfg,
                               &connect_cb,
                               &disconnect_cb,
@@ -524,7 +524,7 @@ GST_barriers_destroy ()
                                                         NULL));
   GNUNET_CONTAINER_multihashmap_destroy (barrier_map);
   GNUNET_assert (NULL != ctx);
-  GNUNET_SERVICE_stoP (ctx);
+  GNUNET_SERVICE_stop (ctx);
 }
 
 

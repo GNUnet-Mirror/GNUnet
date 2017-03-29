@@ -91,7 +91,7 @@ handle_revocation_query_response (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Revocation query result: %d\n",
-              ntohl (qrm->is_valid));
+              (uint32_t) ntohl (qrm->is_valid));
   q->func (q->func_cls,
            ntohl (qrm->is_valid));
   GNUNET_REVOCATION_query_cancel (q);
@@ -225,7 +225,7 @@ handle_revocation_response (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Revocation transmission result: %d\n",
-              ntohl (rrm->is_valid));
+              (uint32_t) ntohl (rrm->is_valid));
   h->func (h->func_cls,
            ntohl (rrm->is_valid));
   GNUNET_REVOCATION_revoke_cancel (h);

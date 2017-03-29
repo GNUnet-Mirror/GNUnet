@@ -90,7 +90,7 @@ static unsigned int NUM_PEERS = 3;
 /**
  * Task called to disconnect peers.
  */
-static struct GNUNET_SCHEDULER_Task * timeout_task;
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * Task to do DHT_puts
@@ -107,7 +107,7 @@ static unsigned int monitor_counter;
  * Terminates active get operations and shuts down
  * the testbed.
  *
- * @param cls the 'struct GNUNET_DHT_TestContext'
+ * @param cls the `struct GNUNET_DHT_TEST_Context`
  */
 static void
 shutdown_task (void *cls)
@@ -133,6 +133,26 @@ shutdown_task (void *cls)
   GNUNET_free (monitors);
   GNUNET_SCHEDULER_cancel (put_task);
   GNUNET_DHT_TEST_cleanup (ctx);
+  if (NULL != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
+}
+
+
+/**
+ * Task run on success or timeout to clean up.
+ * Terminates active get operations and shuts down
+ * the testbed.
+ *
+ * @param cls NULL
+ */
+static void
+timeout_task_cb (void *cls)
+{
+  timeout_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -157,12 +177,12 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 		 const struct GNUNET_PeerIdentity *get_path,
 		 unsigned int get_path_length,
 		 const struct GNUNET_PeerIdentity *put_path,
-		 unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+		 unsigned int put_path_length,
+                 enum GNUNET_BLOCK_Type type,
 		 size_t size, const void *data)
 {
   struct GetOperation *get_op = cls;
   struct GNUNET_HashCode want;
-  struct GNUNET_DHT_TestContext *ctx;
 
   if (sizeof (struct GNUNET_HashCode) != size)
   {
@@ -186,8 +206,7 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   /* all DHT GET operations successful; terminate! */
   ok = 0;
-  ctx = GNUNET_SCHEDULER_cancel (timeout_task);
-  timeout_task = GNUNET_SCHEDULER_add_now (&shutdown_task, ctx);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -202,11 +221,10 @@ do_puts (void *cls)
   struct GNUNET_DHT_Handle **hs = cls;
   struct GNUNET_HashCode key;
   struct GNUNET_HashCode value;
-  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Putting values into DHT\n");
-  for (i = 0; i < NUM_PEERS; i++)
+  for (unsigned int i = 0; i < NUM_PEERS; i++)
   {
     GNUNET_CRYPTO_hash (&i, sizeof (i), &key);
     GNUNET_CRYPTO_hash (&key, sizeof (key), &value);
@@ -360,7 +378,8 @@ run (void *cls,
 
   GNUNET_assert (NUM_PEERS == num_peers);
   my_peers = peers;
-  monitors = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_MonitorHandle *));
+  monitors = GNUNET_new_array (num_peers,
+                               struct GNUNET_DHT_MonitorHandle *);
   for (i = 0; i < num_peers; i++)
     monitors[i] = GNUNET_DHT_monitor_start (dhts[i],
 					    GNUNET_BLOCK_TYPE_ANY,
@@ -392,7 +411,10 @@ run (void *cls,
     }
   }
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-					       &shutdown_task, ctx);
+					       &timeout_task_cb,
+                                               NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 ctx);
 }
 
 

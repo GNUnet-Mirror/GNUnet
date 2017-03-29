@@ -859,7 +859,7 @@ handle_p2p_reply (void *cls,
   size_t msize;
 
   GNUNET_assert (data_len + sizeof (struct PutMessage) <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE);
+                 GNUNET_MAX_MESSAGE_SIZE);
   GNUNET_assert (peerreq->pr == pr);
   prd = GSF_pending_request_get_data_ (pr);
   if (NULL == data)
@@ -883,7 +883,7 @@ handle_p2p_reply (void *cls,
                             gettext_noop ("# replies received for other peers"),
                             1, GNUNET_NO);
   msize = sizeof (struct PutMessage) + data_len;
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;

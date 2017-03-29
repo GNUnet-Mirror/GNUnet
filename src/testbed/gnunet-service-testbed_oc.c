@@ -371,7 +371,7 @@ GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc)
 /**
  * Timeout task for cancelling a forwarded overlay connect connect
  *
- * @param cls the ForwardedOverlayConnectContext
+ * @param cls the `struct ForwardedOperationContext`
  */
 static void
 forwarded_overlay_connect_timeout (void *cls)

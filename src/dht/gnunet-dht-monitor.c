@@ -280,27 +280,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              NULL);
 }
 
-
-/**
- * gnunet-dht-monitor command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'k', "key", "KEY",
-   gettext_noop ("the query key"),
-   1, &GNUNET_GETOPT_set_string, &query_key},
-  {'t', "type", "TYPE",
-   gettext_noop ("the type of data to look for"),
-   1, &GNUNET_GETOPT_set_uint, &block_type},
-  {'T', "timeout", "TIMEOUT",
-   gettext_noop ("how long should the monitor command run"),
-   1, &GNUNET_GETOPT_set_relative_time, &timeout_request},
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
-
-
 /**
  * Entry point for gnunet-dht-monitor
  *
@@ -311,6 +290,35 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+  
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
+  
+    GNUNET_GETOPT_option_uint ('t',
+                                   "type",
+                                   "TYPE",
+                                   gettext_noop ("the type of data to look for"),
+                                   &block_type),
+  
+    GNUNET_GETOPT_option_relative_time ('T',
+                                            "timeout",
+                                            "TIMEOUT",
+                                            gettext_noop ("how long should the monitor command run"),
+                                            &timeout_request),
+  
+    GNUNET_GETOPT_option_flag ('V',
+                                  "verbose",
+                                  gettext_noop ("be verbose (print progress information)"),
+                                  &verbose),
+  
+    GNUNET_GETOPT_OPTION_END
+  };
+
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 

@@ -399,7 +399,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
               (unsigned int) distance);
   size = sizeof (struct GNUNET_DV_ReceivedMessage) +
     ntohs (message->size);
-  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0); /* too big */
     return;
@@ -537,7 +537,7 @@ forward_payload (struct DirectNeighbor *target,
     return;
   }
   if (sizeof (struct RouteMessage) + ntohs (payload->size)
-      >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
@@ -1346,11 +1346,13 @@ check_target_added (void *cls,
  *
  * @param cls the `struct DirectNeighbor` we're building the consensus with
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param current_size current set size
  * @param status see `enum GNUNET_SET_Status`
  */
 static void
 handle_set_union_result (void *cls,
 			 const struct GNUNET_SET_Element *element,
+                         uint64_t current_size,
 			 enum GNUNET_SET_Status status)
 {
   struct DirectNeighbor *neighbor = cls;
@@ -1528,6 +1530,7 @@ listen_set_union (void *cls,
 					GNUNET_SET_OPERATION_UNION);
   neighbor->set_op = GNUNET_SET_accept (request,
 					GNUNET_SET_RESULT_ADDED,
+                                        (struct GNUNET_SET_Option[]) {{ 0 }},
 					&handle_set_union_result,
 					neighbor);
   neighbor->consensus_insertion_offset = 0;
@@ -1558,6 +1561,7 @@ initiate_set_union (void *cls)
                                          &neighbor->real_session_id,
                                          NULL,
                                          GNUNET_SET_RESULT_ADDED,
+                                         (struct GNUNET_SET_Option[]) {{ 0 }},
                                          &handle_set_union_result,
                                          neighbor);
   neighbor->consensus_insertion_offset = 0;

@@ -499,7 +499,7 @@ schedule_next_hello (void *cls)
   /* find applicable HELLOs */
   fah.peer = pl;
   fah.result = NULL;
-  fah.max_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1;
+  fah.max_size = GNUNET_MAX_MESSAGE_SIZE - 1;
   fah.next_adv = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &find_advertisable_hello,

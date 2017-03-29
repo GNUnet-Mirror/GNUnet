@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2013 GNUnet e.V.
+     Copyright (C) 2012-2013, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -66,16 +66,6 @@ static char *zone_ego_name;
 static char *public_key;
 
 /**
- * Reverse key
- */
-static char *reverse_key;
-
-/**
- * Reverse key
- */
-static struct GNUNET_CRYPTO_EcdsaPublicKey rkey;
-
-/**
  * Set to GNUNET_GNS_LO_LOCAL_MASTER if we are looking up in the master zone.
  */
 static enum GNUNET_GNS_LocalOptions local_options;
@@ -94,11 +84,6 @@ static int rtype;
  * Handle to lookup request
  */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
-
-/**
- * Handle to reverse lookup request
- */
-static struct GNUNET_GNS_ReverseLookupRequest *rev_lookup_request;
 
 /**
  * Lookup an ego with the identity service.
@@ -174,24 +159,6 @@ do_timeout (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-static void
-process_reverse_result (void *cls,
-                        const char *name)
-{
-  rev_lookup_request = NULL;
-  if (NULL == name)
-  {
-    printf ("No name found.\n");
-    return;
-  }
-  if (raw)
-    printf ("%s\n", name);
-  else
-    printf ("%s is known as %s\n",
-            reverse_key,
-            name);
-  GNUNET_SCHEDULER_shutdown ();
-}
 
 /**
  * Function called with the result of a GNS lookup.
@@ -201,7 +168,8 @@ process_reverse_result (void *cls,
  * @param rd array of @a rd_count records with the results
  */
 static void
-process_lookup_result (void *cls, uint32_t rd_count,
+process_lookup_result (void *cls,
+                       uint32_t rd_count,
 		       const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *name = cls;
@@ -253,11 +221,9 @@ process_lookup_result (void *cls, uint32_t rd_count,
  * identified by the given public key and the shorten zone.
  *
  * @param pkey public key to use for the zone, can be NULL
- * @param shorten_key private key used for shortening, can be NULL
  */
 static void
-lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
-		  const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key)
+lookup_with_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   if (NULL != lookup_type)
     rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
@@ -277,17 +243,8 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 					pkey,
 					rtype,
 					local_options,
-					shorten_key,
 					&process_lookup_result,
 					lookup_name);
-  }
-  else if (NULL != reverse_key)
-  {
-    rev_lookup_request = GNUNET_GNS_reverse_lookup (gns,
-                                                &rkey,
-                                                pkey,
-                                                &process_reverse_result,
-                                                NULL);
   }
   else
   {
@@ -295,63 +252,6 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 	     _("Please specify name to lookup!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-}
-
-
-/**
- * Method called to with the ego we are to use for shortening
- * during the lookup.
- *
- * @param cls closure contains the public key to use
- * @param ego ego handle, NULL if not found
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_shorten_cb (void *cls,
-		     struct GNUNET_IDENTITY_Ego *ego,
-		     void **ctx,
-		     const char *name)
-{
-  struct GNUNET_CRYPTO_EcdsaPublicKey *pkeym = cls;
-
-  id_op = NULL;
-  if (NULL == ego)
-    lookup_with_keys (pkeym, NULL);
-  else
-    lookup_with_keys (pkeym,
-		      GNUNET_IDENTITY_ego_get_private_key (ego));
-  GNUNET_free (pkeym);
-}
-
-
-/**
- * Perform the actual resolution, starting with the zone
- * identified by the given public key.
- *
- * @param pkey public key to use for the zone
- */
-static void
-lookup_with_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
-{
-  struct GNUNET_CRYPTO_EcdsaPublicKey *pkeym;
-
-  GNUNET_assert (NULL != pkey);
-  pkeym = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  *pkeym = *pkey;
-  GNUNET_break (NULL == id_op);
-  id_op = GNUNET_IDENTITY_get (identity,
-			       "gns-short",
-			       &identity_shorten_cb,
-			       pkeym);
-  if (NULL == id_op)
-  {
-    GNUNET_break (0);
-    lookup_with_keys (pkey, NULL);
   }
 }
 
@@ -449,7 +349,6 @@ run (void *cls,
 
   cfg = c;
   gns = GNUNET_GNS_connect (cfg);
-  identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   if (NULL == gns)
   {
     fprintf (stderr,
@@ -457,22 +356,13 @@ run (void *cls,
     return;
   }
   tt = GNUNET_SCHEDULER_add_delayed (timeout,
-                                     &do_timeout, NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-  if (NULL != reverse_key)
-  {
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_key,
-                                                    strlen (reverse_key),
-                                                    &rkey))
-    {
-      fprintf (stderr,
-               _("Reverse key `%s' is not well-formed\n"),
-               reverse_key);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
-  }
+                                     &do_timeout,
+                                     NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  identity = GNUNET_IDENTITY_connect (cfg,
+                                      NULL,
+                                      NULL);
   if (NULL != public_key)
   {
     if (GNUNET_OK !=
@@ -488,20 +378,6 @@ run (void *cls,
     }
     lookup_with_public_key (&pkey);
     return;
-  }
-  if (NULL != reverse_key)
-  {
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_key,
-                                                    strlen (reverse_key),
-                                                    &rkey))
-    {
-      fprintf (stderr,
-               _("Reverse key `%s' is not well-formed\n"),
-               reverse_key);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
   }
   if (NULL != zone_ego_name)
   {
@@ -541,42 +417,62 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'u', "lookup", "NAME",
-      gettext_noop ("Lookup a record for the given name"), 1,
-      &GNUNET_GETOPT_set_string, &lookup_name},
-    {'t', "type", "TYPE",
-      gettext_noop ("Specify the type of the record to lookup"), 1,
-      &GNUNET_GETOPT_set_string, &lookup_type},
-    { 'T', "timeout", "DELAY",
-      gettext_noop ("Specify timeout for the lookup"), 1,
-      &GNUNET_GETOPT_set_relative_time, &timeout },
-    {'r', "raw", NULL,
-      gettext_noop ("No unneeded output"), 0,
-      &GNUNET_GETOPT_set_one, &raw},
-    {'p', "public-key", "PKEY",
-      gettext_noop ("Specify the public key of the zone to lookup the record in"), 1,
-      &GNUNET_GETOPT_set_string, &public_key},
-    {'z', "zone", "NAME",
-      gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
-      &GNUNET_GETOPT_set_string, &zone_ego_name},
-    {'R', "reverse", "PKEY",
-      gettext_noop ("Specify the public key of the zone to reverse lookup a name for"), 1,
-      &GNUNET_GETOPT_set_string, &reverse_key},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_string ('u',
+                                 "lookup",
+                                 "NAME",
+                                 gettext_noop ("Lookup a record for the given name"),
+                                 &lookup_name),
+
+    GNUNET_GETOPT_option_string ('t',
+                                 "type",
+                                 "TYPE",
+                                 gettext_noop ("Specify the type of the record to lookup"),
+                                 &lookup_type),
+
+    GNUNET_GETOPT_option_relative_time ('T',
+                                            "timeout",
+                                            "DELAY",
+                                            gettext_noop ("Specify timeout for the lookup"),
+                                            &timeout),
+
+    GNUNET_GETOPT_option_flag ('r',
+                                  "raw",
+                                  gettext_noop ("No unneeded output"),
+                                  &raw),
+
+    GNUNET_GETOPT_option_string ('p',
+                                 "public-key",
+                                 "PKEY",
+                                 gettext_noop ("Specify the public key of the zone to lookup the record in"),
+                                 &public_key),
+    
+    GNUNET_GETOPT_option_string ('z',
+                                 "zone",
+                                 "NAME",
+                                 gettext_noop ("Specify the name of the ego of the zone to lookup the record in"),
+                                 &zone_ego_name),
+
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
   timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                                 &argc, &argv))
     return 2;
 
-  GNUNET_log_setup ("gnunet-gns", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-gns",
+                    "WARNING",
+                    NULL);
   ret =
     (GNUNET_OK ==
-     GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
+     GNUNET_PROGRAM_run (argc, argv,
+                         "gnunet-gns",
                          _("GNUnet GNS resolver tool"),
                          options,
                          &run, NULL)) ? 0 : 1;

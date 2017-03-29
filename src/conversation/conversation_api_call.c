@@ -603,7 +603,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                         &my_zone,
                                         GNUNET_GNSRECORD_TYPE_PHONE,
                                         GNUNET_NO,
-                                        NULL /* FIXME: add shortening support */,
                                         &handle_gns_response, call);
   GNUNET_assert (NULL != call->gns_lookup);
   return call;

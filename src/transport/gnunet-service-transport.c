@@ -150,11 +150,11 @@ struct TransportClient
 
   /**
    * What type of client is this?
-   */ 
+   */
   enum ClientType type;
 
   union {
-  
+
     /**
      * Peer identity to monitor the addresses of.
      * Zero to monitor all neighbours.  Valid if
@@ -172,21 +172,21 @@ struct TransportClient
        * if we're performing one that has been cancelled).
        */
       struct GST_BlacklistCheck *bc;
-      
+
       /**
        * Set to #GNUNET_YES if we're currently waiting for a reply.
        */
       int waiting_for_reply;
-      
+
       /**
        * #GNUNET_YES if we have to call receive_done for this client
        */
       int call_receive_done;
-            
+
     } blacklist;
-    
+
   } details;
-  
+
 };
 
 
@@ -272,7 +272,7 @@ struct AddressToStringContext
  */
 struct SendTransmitContinuationContext
 {
-  
+
   /**
    * Client that made the request.
    */
@@ -563,7 +563,7 @@ client_disconnect_cb (void *cls,
 					     bc);
     }
     break;
-  }		   
+  }
   GNUNET_free (tc);
 }
 
@@ -793,7 +793,7 @@ handle_client_send (void *cls,
 		    const struct OutboundMessage *obm)
 {
   static unsigned long long uuid_gen;
-  struct TransportClient *tc = cls;  
+  struct TransportClient *tc = cls;
   const struct GNUNET_MessageHeader *obmm;
   struct SendTransmitContinuationContext *stcc;
 
@@ -937,7 +937,7 @@ check_client_address_to_string (void *cls,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
-}    
+}
 
 
 /**
@@ -950,7 +950,7 @@ static void
 handle_client_address_to_string (void *cls,
 				 const struct AddressLookupMessage *alum)
 {
-  struct TransportClient *tc = cls;  
+  struct TransportClient *tc = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   const char *plugin_name;
   const char *address;
@@ -1308,7 +1308,7 @@ handle_client_monitor_plugins (void *cls,
 			       const struct GNUNET_MessageHeader *message)
 {
   struct TransportClient *tc = cls;
-  
+
   GNUNET_SERVICE_client_mark_monitor (tc->client);
   GNUNET_SERVICE_client_disable_continue_warning (tc->client);
   GNUNET_notification_context_add (plugin_nc,
@@ -1690,9 +1690,10 @@ GST_receive_callback (void *cls,
     goto end;
   type = ntohs (message->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message with type %u from peer `%s'\n",
+              "Received message with type %u from peer `%s' at %s\n",
               type,
-              GNUNET_i2s (&address->peer));
+              GNUNET_i2s (&address->peer),
+              GST_plugins_a2s (address));
 
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# bytes total received"),
@@ -2226,7 +2227,7 @@ handle_client_set_metric (void *cls,
 			  const struct TrafficMetricMessage *tm)
 {
   struct TransportClient *tc = cls;
-  
+
   GST_manipulation_set_metric (tm);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -2375,7 +2376,7 @@ handle_client_blacklist_reply (void *cls,
   bc = tc->details.blacklist.bc;
   tc->details.blacklist.bc = NULL;
   tc->details.blacklist.waiting_for_reply = GNUNET_NO;
-  tc->details.blacklist.call_receive_done = GNUNET_YES; 
+  tc->details.blacklist.call_receive_done = GNUNET_YES;
   if (NULL != bc)
   {
     /* only run this if the blacklist check has not been
@@ -2808,7 +2809,7 @@ run (void *cls,
 #if HAVE_GETRLIMIT
   {
     struct rlimit r_file;
-  
+
     if (0 == getrlimit (RLIMIT_NOFILE,
 			&r_file))
     {
@@ -2893,7 +2894,7 @@ GNUNET_SERVICE_MAIN
 			GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
 			struct OutboundMessage,
 			NULL),
- GNUNET_MQ_hd_var_size (client_address_to_string,			
+ GNUNET_MQ_hd_var_size (client_address_to_string,
 			GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING,
 			struct AddressLookupMessage,
 			NULL),
@@ -2913,7 +2914,7 @@ GNUNET_SERVICE_MAIN
 			  GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC,
 			  struct TrafficMetricMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (client_monitor_plugins, 
+ GNUNET_MQ_hd_fixed_size (client_monitor_plugins,
 			  GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START,
 			  struct GNUNET_MessageHeader,
 			  NULL),

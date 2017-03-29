@@ -70,7 +70,7 @@ enum GNUNET_TESTBED_TopologyOption topology;
 /**
  * The number of peers to include in the topology
  */
-static int num_peers;
+static unsigned int num_peers;
 
 /**
  * program result
@@ -335,11 +335,15 @@ int
 main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] = {
-    {'p', "num-peers", "COUNT",
-     gettext_noop ("create COUNT number of peers"),
-     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers},
+
+    GNUNET_GETOPT_option_uint ('p',
+                                   "num-peers",
+                                   "COUNT",
+                                   gettext_noop ("create COUNT number of peers"),
+                                   &num_peers),
     GNUNET_GETOPT_OPTION_END
   };
+
   int ret;
 
   exit_result = GNUNET_SYSERR;

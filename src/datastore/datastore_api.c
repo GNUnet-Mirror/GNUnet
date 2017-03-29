@@ -33,6 +33,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datastore-api",__VA_ARGS__)
 
+#define DELAY_WARN_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
 /**
  * Collect an instane number of statistics?  May cause excessive IPC.
  */
@@ -136,6 +138,12 @@ struct GNUNET_DATASTORE_QueueEntry
    * transmission.
    */
   struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * Task we run if this entry stalls the queue and we
+   * need to warn the user.
+   */
+  struct GNUNET_SCHEDULER_Task *delay_warn_task;
 
   /**
    * Priority in the queue.
@@ -269,7 +277,32 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
   h->queue_size--;
   if (NULL != qe->env)
     GNUNET_MQ_discard (qe->env);
+  if (NULL != qe->delay_warn_task)
+    GNUNET_SCHEDULER_cancel (qe->delay_warn_task);
   GNUNET_free (qe);
+}
+
+
+/**
+ * Task that logs an error after some time.
+ *
+ * @param qe `struct GNUNET_DATASTORE_QueueEntry` about which the error is
+ */
+static void
+delay_warning (void *cls)
+{
+  struct GNUNET_DATASTORE_QueueEntry *qe = cls;
+
+  qe->delay_warn_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Request %p of type %u at head of datastore queue for more than %s\n",
+              qe,
+              (unsigned int) qe->response_type,
+              GNUNET_STRINGS_relative_time_to_string (DELAY_WARN_TIMEOUT,
+                                                      GNUNET_YES));
+  qe->delay_warn_task = GNUNET_SCHEDULER_add_delayed (DELAY_WARN_TIMEOUT,
+                                                      &delay_warning,
+                                                      qe);
 }
 
 
@@ -290,8 +323,14 @@ mq_error_handler (void *cls,
        "MQ error, reconnecting to DATASTORE\n");
   do_disconnect (h);
   qe = h->queue_head;
-  if ( (NULL != qe) &&
-       (NULL == qe->env) )
+  if (NULL == qe)
+    return;
+  if (NULL != qe->delay_warn_task)
+  {
+    GNUNET_SCHEDULER_cancel (qe->delay_warn_task);
+    qe->delay_warn_task = NULL;
+  }
+  if (NULL == qe->env)
   {
     union QueueContext qc = qe->qc;
     uint16_t rt = qe->response_type;
@@ -313,7 +352,11 @@ mq_error_handler (void *cls,
         qc.rc.proc (qc.rc.proc_cls,
                     NULL,
                     0,
-                    NULL, 0, 0, 0,
+                    NULL,
+                    0,
+                    0,
+                    0,
+                    0,
                     GNUNET_TIME_UNIT_ZERO_ABS,
                     0);
       break;
@@ -429,7 +472,11 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
         qe->qc.rc.proc (qe->qc.rc.proc_cls,
                         NULL,
                         0,
-                        NULL, 0, 0, 0,
+                        NULL,
+                        0,
+                        0,
+                        0,
+                        0,
                         GNUNET_TIME_UNIT_ZERO_ABS,
                         0);
       break;
@@ -498,8 +545,17 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *pos;
   unsigned int c;
 
-  c = 0;
-  pos = h->queue_head;
+  if ( (NULL != h->queue_tail) &&
+       (h->queue_tail->priority >= queue_priority) )
+  {
+    c = h->queue_size;
+    pos = NULL;
+  }
+  else
+  {
+    c = 0;
+    pos = h->queue_head;
+  }
   while ( (NULL != pos) &&
           (c < max_queue_size) &&
           (pos->priority >= queue_priority) )
@@ -585,6 +641,10 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
          "Not connected\n");
     return;
   }
+  GNUNET_assert (NULL == qe->delay_warn_task);
+  qe->delay_warn_task = GNUNET_SCHEDULER_add_delayed (DELAY_WARN_TIMEOUT,
+                                                      &delay_warning,
+                                                      qe);
   GNUNET_MQ_send (h->mq,
                   qe->env);
   qe->env = NULL;
@@ -773,6 +833,7 @@ handle_data (void *cls,
              ntohl (dm->type),
              ntohl (dm->priority),
              ntohl (dm->anonymity),
+             ntohl (dm->replication),
              GNUNET_TIME_absolute_ntoh (dm->expiration),
              GNUNET_ntohll (dm->uid));
 }
@@ -832,6 +893,7 @@ handle_data_end (void *cls,
              NULL,
              0,
              NULL,
+             0,
              0,
              0,
              0,
@@ -949,7 +1011,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   struct DataMessage *dm;
   union QueueContext qc;
 
-  if (size + sizeof (*dm) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (size + sizeof (*dm) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;
@@ -970,8 +1032,6 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->priority = htonl (priority);
   dm->anonymity = htonl (anonymity);
   dm->replication = htonl (replication);
-  dm->reserved = htonl (0);
-  dm->uid = GNUNET_htonll (0);
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->key = *key;
   GNUNET_memcpy (&dm[1],
@@ -1126,72 +1186,6 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Update a value in the datastore.
- *
- * @param h handle to the datastore
- * @param uid identifier for the value
- * @param priority how much to increase the priority of the value
- * @param expiration new expiration value should be MAX of existing and this argument
- * @param queue_priority ranking of this request in the priority queue
- * @param max_queue_size at what queue size should this request be dropped
- *        (if other requests of higher priority are in the queue)
- * @param cont continuation to call when done
- * @param cont_cls closure for @a cont
- * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
- */
-struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
-                         uint64_t uid,
-                         uint32_t priority,
-                         struct GNUNET_TIME_Absolute expiration,
-                         unsigned int queue_priority,
-                         unsigned int max_queue_size,
-                         GNUNET_DATASTORE_ContinuationWithStatus cont,
-                         void *cont_cls)
-{
-  struct GNUNET_DATASTORE_QueueEntry *qe;
-  struct GNUNET_MQ_Envelope *env;
-  struct UpdateMessage *um;
-  union QueueContext qc;
-
-  if (NULL == cont)
-    cont = &drop_status_cont;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to update entry %llu raising priority by %u and expiration to %s\n",
-       uid,
-       (unsigned int) priority,
-       GNUNET_STRINGS_absolute_time_to_string (expiration));
-  env = GNUNET_MQ_msg (um,
-                       GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE);
-  um->priority = htonl (priority);
-  um->expiration = GNUNET_TIME_absolute_hton (expiration);
-  um->uid = GNUNET_htonll (uid);
-
-  qc.sc.cont = cont;
-  qc.sc.cont_cls = cont_cls;
-  qe = make_queue_entry (h,
-                         env,
-                         queue_priority,
-                         max_queue_size,
-                         GNUNET_MESSAGE_TYPE_DATASTORE_STATUS,
-                         &qc);
-  if (NULL == qe)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Could not create queue entry for UPDATE\n");
-    return NULL;
-  }
-  GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# UPDATE requests executed"), 1,
-                            GNUNET_NO);
-  process_queue (h);
-  return qe;
-}
-
-
-/**
  * Explicitly remove some content from the database.
  * The @a cont continuation will be called with `status`
  * #GNUNET_OK" if content was removed, #GNUNET_NO
@@ -1226,7 +1220,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   union QueueContext qc;
 
-  if (sizeof (*dm) + size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (sizeof (*dm) + size >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;
@@ -1240,13 +1234,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
   env = GNUNET_MQ_msg_extra (dm,
                              size,
                              GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE);
-  dm->rid = htonl (0);
   dm->size = htonl (size);
-  dm->type = htonl (0);
-  dm->priority = htonl (0);
-  dm->anonymity = htonl (0);
-  dm->uid = GNUNET_htonll (0);
-  dm->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_ZERO_ABS);
   dm->key = *key;
   GNUNET_memcpy (&dm[1],
           data,
@@ -1339,10 +1327,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
  * Get a single zero-anonymity value from the datastore.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (modulo num-results); set to
- *               a random 64-bit value initially; then increment by
- *               one each time; detect that all results have been found by uid
- *               being again the first uid ever returned.
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
@@ -1356,7 +1341,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-                                     uint64_t offset,
+                                     uint64_t next_uid,
                                      unsigned int queue_priority,
                                      unsigned int max_queue_size,
                                      enum GNUNET_BLOCK_Type type,
@@ -1371,13 +1356,12 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
   GNUNET_assert (NULL != proc);
   GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to get %llu-th zero-anonymity entry of type %d\n",
-       (unsigned long long) offset,
+       "Asked to get a zero-anonymity entry of type %d\n",
        type);
   env = GNUNET_MQ_msg (m,
                        GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY);
   m->type = htonl ((uint32_t) type);
-  m->offset = GNUNET_htonll (offset);
+  m->next_uid = GNUNET_htonll (next_uid);
   qc.rc.proc = proc;
   qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h,
@@ -1406,10 +1390,8 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  * will only be called once.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (modulo num-results); set to
- *               a random 64-bit value initially; then increment by
- *               one each time; detect that all results have been found by uid
- *               being again the first uid ever returned.
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
  * @param type desired type, 0 for any
  * @param queue_priority ranking of this request in the priority queue
@@ -1423,7 +1405,8 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
-                          uint64_t offset,
+                          uint64_t next_uid,
+                          bool random,
                           const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
@@ -1447,14 +1430,16 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
     env = GNUNET_MQ_msg (gm,
                          GNUNET_MESSAGE_TYPE_DATASTORE_GET);
     gm->type = htonl (type);
-    gm->offset = GNUNET_htonll (offset);
+    gm->next_uid = GNUNET_htonll (next_uid);
+    gm->random = random;
   }
   else
   {
     env = GNUNET_MQ_msg (gkm,
                          GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY);
     gkm->type = htonl (type);
-    gkm->offset = GNUNET_htonll (offset);
+    gkm->next_uid = GNUNET_htonll (next_uid);
+    gkm->random = random;
     gkm->key = *key;
   }
   qc.rc.proc = proc;

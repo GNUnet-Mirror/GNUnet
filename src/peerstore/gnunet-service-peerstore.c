@@ -260,15 +260,23 @@ record_iterator (void *cls,
     GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cls_record->client),
                     env);
     if (NULL == emsg)
+    {
       GNUNET_SERVICE_client_continue (cls_record->client);
+    }
     else
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to iterate: %s\n",
+                  emsg);
       GNUNET_SERVICE_client_drop (cls_record->client);
+    }
     PEERSTORE_destroy_record (cls_record);
     return;
   }
 
   env = PEERSTORE_create_record_mq_envelope (record->sub_system,
-                                             record->peer,
+                                             &record->peer,
                                              record->key,
                                              record->value,
                                              record->value_size,
@@ -301,7 +309,7 @@ watch_notifier_it (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found a watcher to update.\n");
   env = PEERSTORE_create_record_mq_envelope (record->sub_system,
-                                             record->peer,
+                                             &record->peer,
                                              record->key,
                                              record->value,
                                              record->value_size,
@@ -325,7 +333,7 @@ watch_notifier (struct GNUNET_PEERSTORE_Record *record)
   struct GNUNET_HashCode keyhash;
 
   PEERSTORE_hash_key (record->sub_system,
-                      record->peer,
+                      &record->peer,
                       record->key,
                       &keyhash);
   GNUNET_CONTAINER_multihashmap_get_multiple (watchers,
@@ -434,17 +442,18 @@ handle_iterate (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Iterate request: ss `%s', peer `%s', key `%s'\n",
               record->sub_system,
-              (NULL == record->peer) ? "NULL" : GNUNET_i2s (record->peer),
+              GNUNET_i2s (&record->peer),
               (NULL == record->key) ? "NULL" : record->key);
   record->client = client;
   if (GNUNET_OK !=
       db->iterate_records (db->cls,
                            record->sub_system,
-                           record->peer,
+                           (ntohs (srm->peer_set)) ? &record->peer : NULL,
                            record->key,
                            &record_iterator,
                            record))
   {
+    GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     PEERSTORE_destroy_record (record);
   }
@@ -470,6 +479,7 @@ store_record_continuation (void *cls,
   }
   else
   {
+    GNUNET_break (0);
     GNUNET_SERVICE_client_drop (record->client);
   }
   PEERSTORE_destroy_record (record);
@@ -496,7 +506,6 @@ check_store (void *cls,
     return GNUNET_SYSERR;
   }
   if ( (NULL == record->sub_system) ||
-       (NULL == record->peer) ||
        (NULL == record->key) )
   {
     GNUNET_break (0);
@@ -523,24 +532,25 @@ handle_store (void *cls,
 
   record = PEERSTORE_parse_record_message (srm);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request. Sub system `%s' Peer `%s Key `%s' Options: %d.\n",
+              "Received a store request. Sub system `%s' Peer `%s Key `%s' Options: %u.\n",
 	      record->sub_system,
-              GNUNET_i2s (record->peer),
+              GNUNET_i2s (&record->peer),
 	      record->key,
-              ntohl (srm->options));
+              (uint32_t) ntohl (srm->options));
   record->client = client;
   if (GNUNET_OK !=
       db->store_record (db->cls,
                         record->sub_system,
-                        record->peer,
+                        &record->peer,
                         record->key,
                         record->value,
                         record->value_size,
-                        *record->expiry,
+                        record->expiry,
                         ntohl (srm->options),
                         &store_record_continuation,
                         record))
   {
+    GNUNET_break (0);
     PEERSTORE_destroy_record (record);
     GNUNET_SERVICE_client_drop (client);
     return;

@@ -30,7 +30,7 @@
 
 static int ret;
 
-static int verbose;
+static unsigned int verbose;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -162,10 +162,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'V', "verbose", NULL,
-     gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+
+    GNUNET_GETOPT_option_verbose (&verbose),
+
     GNUNET_GETOPT_OPTION_END
   };
 

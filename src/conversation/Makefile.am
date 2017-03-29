@@ -101,7 +101,7 @@ libexec_PROGRAMS += \
   $(AUDIO_HELPER_RECD) \
   $(AUDIO_HELPER_PLAY)
 
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 if ENABLE_TEST_RUN
 TESTS = $(AUDIO_TESTS)
 endif
@@ -138,7 +138,7 @@ gnunet_helper_audio_record_CFLAGS = \
  $(GST_CFLAGS)
 
 gnunet_helper_audio_playback_SOURCES = \
-    gnunet_gst_test.c gnunet_gst.c
+    gnunet-helper-audio-playback-gst.c
 gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GST_LIBS) \

@@ -424,11 +424,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DATASTORE_PUT 95
 
 /**
- * Message sent by datastore client to update data.
- */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE 96
-
-/**
  * Message sent by datastore client to get data.
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_GET 97
@@ -1645,6 +1640,12 @@ extern "C"
  * Demand the whole element from the other
  * peer, given only the hash code.
  */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL 565
+
+/**
+ * Demand the whole element from the other
+ * peer, given only the hash code.
+ */
 #define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND 566
 
 /**
@@ -1799,6 +1800,19 @@ extern "C"
  * lazily copied set.
  */
 #define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT 596
+
+/**
+ * Request all missing elements from the other peer,
+ * based on their sets and the elements we previously sent
+ * with #GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE 597
+
+/**
+ * Send a set element, not as response to a demand but because
+ * we're sending the full set.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT 598
 
 
 /*******************************************************************************
@@ -2664,8 +2678,19 @@ extern "C"
 
 /**
  * Hop-by-hop, connection dependent ACK.
+ *
+ * @deprecated
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_HOP_BY_HOP_ENCRYPTED_ACK 1005
+
+/**
+ * We do not bother with ACKs for
+ * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
+ * poll for one if we got nothing for a while and start to be worried.
+ *
+ * @deprecated
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
 
 /**
  * Axolotl key exchange.
@@ -2678,11 +2703,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED 1008
 
 /**
- * We do not bother with ACKs for
- * #GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED messages, but we instead
- * poll for one if we got nothing for a while and start to be worried.
+ * Axolotl key exchange response with authentication.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED_POLL 1006
+#define GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH 1009
 
 
 
@@ -2720,6 +2743,8 @@ extern "C"
 
 /**
  * Reject the creation of a channel
+ *
+ * @deprecated
  */
 #define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN_NACK_DEPRECATED 1016
 

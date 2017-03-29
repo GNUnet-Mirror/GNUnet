@@ -6,3 +6,4 @@ test_peerstore_api_store
 test_peerstore_api_sync
 test_peerstore_api_watch
 test_plugin_peerstore_sqlite
+test_plugin_peerstore_flat

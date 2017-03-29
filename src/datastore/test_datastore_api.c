@@ -130,8 +130,6 @@ enum RunPhase
   RP_PUT_MULTIPLE_NEXT = 8,
   RP_GET_MULTIPLE = 9,
   RP_GET_MULTIPLE_NEXT = 10,
-  RP_UPDATE = 11,
-  RP_UPDATE_VALIDATE = 12,
 
   /**
    * Execution failed with some kind of error.
@@ -158,8 +156,6 @@ struct CpsRunContext
   void *data;
   size_t size;
 
-  uint64_t uid;
-  uint64_t offset;
   uint64_t first_uid;
 };
 
@@ -235,6 +231,7 @@ check_value (void *cls,
              enum GNUNET_BLOCK_Type type,
              uint32_t priority,
              uint32_t anonymity,
+             uint32_t replication,
              struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
 {
@@ -269,7 +266,6 @@ check_value (void *cls,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity (i));
   GNUNET_assert (expiration.abs_value_us == get_expiration (i).abs_value_us);
-  crc->offset++;
   if (crc->i == 0)
   {
     crc->phase = RP_DEL;
@@ -288,6 +284,7 @@ delete_value (void *cls,
               enum GNUNET_BLOCK_Type type,
               uint32_t priority,
               uint32_t anonymity,
+              uint32_t replication,
               struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
 {
@@ -313,6 +310,7 @@ check_nothing (void *cls,
                enum GNUNET_BLOCK_Type type,
                uint32_t priority,
                uint32_t anonymity,
+               uint32_t replication,
                struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
@@ -334,6 +332,7 @@ check_multiple (void *cls,
                 enum GNUNET_BLOCK_Type type,
                 uint32_t priority,
                 uint32_t anonymity,
+                uint32_t replication,
                 struct GNUNET_TIME_Absolute expiration,
                 uint64_t uid)
 {
@@ -345,44 +344,15 @@ check_multiple (void *cls,
   case RP_GET_MULTIPLE:
     crc->phase = RP_GET_MULTIPLE_NEXT;
     crc->first_uid = uid;
-    crc->offset++;
     break;
   case RP_GET_MULTIPLE_NEXT:
     GNUNET_assert (uid != crc->first_uid);
-    crc->phase = RP_UPDATE;
+    crc->phase = RP_DONE;
     break;
   default:
     GNUNET_break (0);
     crc->phase = RP_ERROR;
     break;
-  }
-  if (priority == get_priority (42))
-    crc->uid = uid;
-  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
-}
-
-
-static void
-check_update (void *cls,
-              const struct GNUNET_HashCode *key,
-              size_t size,
-              const void *data,
-              enum GNUNET_BLOCK_Type type,
-              uint32_t priority,
-              uint32_t anonymity,
-              struct GNUNET_TIME_Absolute expiration,
-              uint64_t uid)
-{
-  struct CpsRunContext *crc = cls;
-
-  GNUNET_assert (key != NULL);
-  if ((anonymity == get_anonymity (42)) && (size == get_size (42)) &&
-      (priority == get_priority (42) + 100))
-    crc->phase = RP_DONE;
-  else
-  {
-    GNUNET_assert (size == get_size (43));
-    crc->offset++;
   }
   GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
@@ -428,7 +398,8 @@ run_continuation (void *cls)
                         sizeof (int),
                         &crc->key);
     GNUNET_DATASTORE_get_key (datastore,
-                              crc->offset,
+                              0,
+                              false,
                               &crc->key,
                               get_type (crc->i),
                               1,
@@ -445,7 +416,8 @@ run_continuation (void *cls)
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_assert (NULL !=
                    GNUNET_DATASTORE_get_key (datastore,
-                                             crc->offset,
+                                             0,
+                                             false,
                                              &crc->key,
                                              get_type (crc->i),
                                              1,
@@ -478,9 +450,15 @@ run_continuation (void *cls)
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
-                                             get_type (crc->i), 1, 1,
-                                             &check_nothing, crc));
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             0,
+                                             false,
+                                             &crc->key,
+                                             get_type (crc->i),
+                                             1,
+                                             1,
+                                             &check_nothing,
+                                             crc));
     break;
   case RP_RESERVE:
     crc->phase = RP_PUT_MULTIPLE;
@@ -511,37 +489,26 @@ run_continuation (void *cls)
   case RP_GET_MULTIPLE:
     GNUNET_assert (NULL !=
                    GNUNET_DATASTORE_get_key (datastore,
-                                             crc->offset,
+                                             0,
+                                             false,
                                              &crc->key,
-                                             get_type (42), 1, 1,
-                                             &check_multiple, crc));
+                                             get_type (42),
+                                             1,
+                                             1,
+                                             &check_multiple,
+                                             crc));
     break;
   case RP_GET_MULTIPLE_NEXT:
     GNUNET_assert (NULL !=
                    GNUNET_DATASTORE_get_key (datastore,
-                                             crc->offset,
+                                             crc->first_uid + 1,
+                                             false,
                                              &crc->key,
                                              get_type (42),
-                                             1, 1,
-                                             &check_multiple, crc));
-    break;
-  case RP_UPDATE:
-    GNUNET_assert (crc->uid > 0);
-    crc->phase = RP_UPDATE_VALIDATE;
-    GNUNET_DATASTORE_update (datastore,
-                             crc->uid, 100,
-                             get_expiration (42), 1,
-                             1,
-                             &check_success, crc);
-    break;
-  case RP_UPDATE_VALIDATE:
-    GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_key (datastore,
-                                             crc->offset,
-                                             &crc->key,
-                                             get_type (42),
-                                             1, 1,
-                                             &check_update, crc));
+                                             1,
+                                             1,
+                                             &check_multiple,
+                                             crc));
     break;
   case RP_DONE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

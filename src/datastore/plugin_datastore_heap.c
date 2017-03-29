@@ -323,19 +323,19 @@ struct GetContext
 {
 
   /**
-   * Desired result offset / number of results.
+   * Lowest uid to consider.
    */
-  uint64_t offset;
+  uint64_t next_uid;
 
   /**
-   * The plugin.
+   * Value with lowest uid >= next_uid found so far.
    */
-  struct Plugin *plugin;
+  struct Value *value;
 
   /**
    * Requested value hash.
    */
-  const struct GNUNET_HashCode * vhash;
+  const struct GNUNET_HashCode *vhash;
 
   /**
    * Requested type.
@@ -343,68 +343,15 @@ struct GetContext
   enum GNUNET_BLOCK_Type type;
 
   /**
-   * Function to call with the result.
+   * If true, return a random value
    */
-  PluginDatumProcessor proc;
+  bool random;
 
-  /**
-   * Closure for 'proc'.
-   */
-  void *proc_cls;
 };
 
 
 /**
- * Test if a value matches the specification from the 'get' context
- *
- * @param gc query
- * @param value the value to check against the query
- * @return GNUNET_YES if the value matches
- */
-static int
-match (const struct GetContext *gc,
-       struct Value *value)
-{
-  struct GNUNET_HashCode vh;
-
-  if ( (gc->type != GNUNET_BLOCK_TYPE_ANY) &&
-       (gc->type != value->type) )
-    return GNUNET_NO;
-  if (NULL != gc->vhash)
-  {
-    GNUNET_CRYPTO_hash (&value[1], value->size, &vh);
-    if (0 != memcmp (&vh, gc->vhash, sizeof (struct GNUNET_HashCode)))
-      return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * Count number of matching values.
- *
- * @param cls the 'struct GetContext'
- * @param key unused
- * @param val the 'struct Value'
- * @return GNUNET_YES (continue iteration)
- */
-static int
-count_iterator (void *cls,
-		const struct GNUNET_HashCode *key,
-		void *val)
-{
-  struct GetContext *gc = cls;
-  struct Value *value = val;
-
-  if (GNUNET_NO == match (gc, value))
-    return GNUNET_OK;
-  gc->offset++;
-  return GNUNET_OK;
-}
-
-
-/**
- * Obtain matching value at 'offset'.
+ * Obtain the matching value with the lowest uid >= next_uid.
  *
  * @param cls the 'struct GetContext'
  * @param key unused
@@ -418,23 +365,29 @@ get_iterator (void *cls,
 {
   struct GetContext *gc = cls;
   struct Value *value = val;
+  struct GNUNET_HashCode vh;
 
-  if (GNUNET_NO == match (gc, value))
+  if ( (gc->type != GNUNET_BLOCK_TYPE_ANY) &&
+       (gc->type != value->type) )
     return GNUNET_OK;
-  if (0 != gc->offset--)
+  if (NULL != gc->vhash)
+  {
+    GNUNET_CRYPTO_hash (&value[1], value->size, &vh);
+    if (0 != memcmp (&vh, gc->vhash, sizeof (struct GNUNET_HashCode)))
+      return GNUNET_OK;
+  }
+  if (gc->random)
+  {
+    gc->value = value;
+    return GNUNET_NO;
+  }
+  if ( (uint64_t) (intptr_t) value < gc->next_uid)
     return GNUNET_OK;
-  if (GNUNET_NO ==
-      gc->proc (gc->proc_cls,
-		key,
-		value->size,
-		&value[1],
-		value->type,
-		value->priority,
-		value->anonymity,
-	    value->expiration,
-		(uint64_t) (long) value))
-    delete_value (gc->plugin, value);
-  return GNUNET_NO;
+  if ( (NULL != gc->value) &&
+       (value > gc->value) )
+    return GNUNET_OK;
+  gc->value = value;
+  return GNUNET_OK;
 }
 
 
@@ -442,8 +395,8 @@ get_iterator (void *cls,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
+ * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -457,7 +410,7 @@ get_iterator (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_key (void *cls, uint64_t offset,
+heap_plugin_get_key (void *cls, uint64_t next_uid, bool random,
 		     const struct GNUNET_HashCode *key,
 		     const struct GNUNET_HashCode *vhash,
 		     enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
@@ -466,24 +419,13 @@ heap_plugin_get_key (void *cls, uint64_t offset,
   struct Plugin *plugin = cls;
   struct GetContext gc;
 
-  gc.plugin = plugin;
-  gc.offset = 0;
+  gc.value = NULL;
+  gc.next_uid = next_uid;
+  gc.random = random;
   gc.vhash = vhash;
   gc.type = type;
-  gc.proc = proc;
-  gc.proc_cls = proc_cls;
   if (NULL == key)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
-					   &count_iterator,
-					   &gc);
-    if (0 == gc.offset)
-    {
-      proc (proc_cls,
-	    NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-    gc.offset = offset % gc.offset;
     GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
 					   &get_iterator,
 					   &gc);
@@ -492,19 +434,27 @@ heap_plugin_get_key (void *cls, uint64_t offset,
   {
     GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
 						key,
-						&count_iterator,
-						&gc);
-    if (0 == gc.offset)
-    {
-      proc (proc_cls,
-	    NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-    gc.offset = offset % gc.offset;
-    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
-						key,
 						&get_iterator,
 						&gc);
+  }
+  if (NULL == gc.value)
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
+  if (GNUNET_NO ==
+      proc (proc_cls,
+            &gc.value->key,
+            gc.value->size,
+            &gc.value[1],
+            gc.value->type,
+            gc.value->priority,
+            gc.value->anonymity,
+            gc.value->replication,
+            gc.value->expiration,
+            (uint64_t) (intptr_t) gc.value))
+  {
+    delete_value (plugin, gc.value);
   }
 }
 
@@ -531,8 +481,7 @@ heap_plugin_get_replication (void *cls,
   value = GNUNET_CONTAINER_heap_remove_root (plugin->by_replication);
   if (NULL == value)
   {
-    proc (proc_cls,
-	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (value->replication > 0)
@@ -552,14 +501,15 @@ heap_plugin_get_replication (void *cls,
   }
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (long) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 
@@ -582,38 +532,37 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   value = GNUNET_CONTAINER_heap_peek (plugin->by_expiration);
   if (NULL == value)
   {
-    proc (proc_cls,
-	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (long) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 
 
 /**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
+ * Update the priority, replication and expiration for a particular
+ * unique ID in the datastore.  If the expiration time in value is
+ * different than the time found in the datastore, the higher value
+ * should be kept.  The specified priority and replication is added
+ * to the existing value.
  *
  * @param cls our `struct Plugin *`
  * @param uid unique identifier of the datum
- * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
+ * @param priority by how much should the priority
+ *     change?
+ * @param replication by how much should the replication
+ *     change?
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
@@ -622,15 +571,16 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  */
 static void
 heap_plugin_update (void *cls,
-		    uint64_t uid,
-		    int delta,
-		    struct GNUNET_TIME_Absolute expire,
-		    PluginUpdateCont cont,
-		    void *cont_cls)
+                    uint64_t uid,
+                    uint32_t priority,
+                    uint32_t replication,
+                    struct GNUNET_TIME_Absolute expire,
+                    PluginUpdateCont cont,
+                    void *cont_cls)
 {
   struct Value *value;
 
-  value = (struct Value*) (long) uid;
+  value = (struct Value*) (intptr_t) uid;
   GNUNET_assert (NULL != value);
   if (value->expiration.abs_value_us != expire.abs_value_us)
   {
@@ -638,10 +588,15 @@ heap_plugin_update (void *cls,
     GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
 				       expire.abs_value_us);
   }
-  if ( (delta < 0) && (value->priority < - delta) )
-    value->priority = 0;
+  /* Saturating adds, don't overflow */
+  if (value->priority > UINT32_MAX - priority)
+    value->priority = UINT32_MAX;
   else
-    value->priority += delta;
+    value->priority += priority;
+  if (value->replication > UINT32_MAX - replication)
+    value->replication = UINT32_MAX;
+  else
+    value->replication += replication;
   cont (cont_cls, GNUNET_OK, NULL);
 }
 
@@ -650,63 +605,53 @@ heap_plugin_update (void *cls,
  * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
- * @param offset offset of the result (modulo num-results);
- *               specific ordering does not matter for the offset
+ * @param next_uid return the result with lowest uid >= next_uid
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
+ *        Must not be zero (ANY).
  * @param proc function to call on each matching value;
- *        will be called  with NULL if no value matches
+ *        will be called with NULL if no value matches
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_zero_anonymity (void *cls, uint64_t offset,
+heap_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
 				enum GNUNET_BLOCK_Type type,
 				PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct ZeroAnonByType *zabt;
-  struct Value *value;
-  uint64_t count;
+  struct Value *value = NULL;
 
-  count = 0;
   for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
   {
     if ( (type != GNUNET_BLOCK_TYPE_ANY) &&
-	 (type != zabt->type) )
+         (type != zabt->type) )
       continue;
-    count += zabt->array_pos;
+    for (int i = 0; i < zabt->array_pos; ++i)
+    {
+      if ( (uint64_t) (intptr_t) zabt->array[i] < next_uid)
+        continue;
+      if ( (NULL != value) &&
+           (zabt->array[i] > value) )
+        continue;
+      value = zabt->array[i];
+    }
   }
-  if (0 == count)
+  if (NULL == value)
   {
-    proc (proc_cls,
-	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  offset = offset % count;
-  for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
-  {
-    if ( (type != GNUNET_BLOCK_TYPE_ANY) &&
-	 (type != zabt->type) )
-      continue;
-    if (offset >= zabt->array_pos)
-    {
-      offset -= zabt->array_pos;
-      continue;
-    }
-    break;
-  }
-  GNUNET_assert (NULL != zabt);
-  value = zabt->array[offset];
   if (GNUNET_NO ==
       proc (proc_cls,
-	    &value->key,
-	    value->size,
-	    &value[1],
-	    value->type,
-	    value->priority,
-	    value->anonymity,
-	    value->expiration,
-	    (uint64_t) (long) value))
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
     delete_value (plugin, value);
 }
 

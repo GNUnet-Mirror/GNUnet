@@ -33,7 +33,16 @@
 #include "gnunet_socks.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-client",__VA_ARGS__)
+
+/**
+ * Timeout we use on TCP connect before trying another
+ * result from the DNS resolver.  Actual value used
+ * is this value divided by the number of address families.
+ * Default is 5s.
+ */
+#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 
 
 /**
@@ -298,6 +307,11 @@ recv_message (void *cls,
 
   if (GNUNET_YES == cstate->in_destroy)
     return GNUNET_SYSERR;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message of type %u and size %u from %s\n",
+       ntohs (msg->type),
+       ntohs (msg->size),
+       cstate->service_name);
   GNUNET_MQ_inject_message (cstate->mq,
                             msg);
   if (GNUNET_YES == cstate->in_destroy)
@@ -491,8 +505,8 @@ try_unixpath (const char *service_name,
         s_un.sun_path[0] = '\0';
     }
 #endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    un.sun_len = (u_char) sizeof (struct sockaddr_un);
+#if HAVE_SOCKADDR_UN_SUN_LEN
+    s_un.sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
     sock = GNUNET_NETWORK_socket_create (AF_UNIX,
                                          SOCK_STREAM,
@@ -510,6 +524,8 @@ try_unixpath (const char *service_name,
       GNUNET_free (unixpath);
       return sock;
     }
+    if (NULL != sock)
+      GNUNET_NETWORK_socket_close (sock);
   }
   GNUNET_free_non_null (unixpath);
 #endif
@@ -649,7 +665,7 @@ try_connect_using_address (void *cls,
   GNUNET_CONTAINER_DLL_insert (cstate->ap_head,
                                cstate->ap_tail,
                                ap);
-  ap->task = GNUNET_SCHEDULER_add_write_net (GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+  ap->task = GNUNET_SCHEDULER_add_write_net (CONNECT_RETRY_TIMEOUT,
 					     ap->sock,
 					     &connect_probe_continuation,
 					     ap);
@@ -753,7 +769,7 @@ start_connect (void *cls)
   cstate->dns_active
     = GNUNET_RESOLVER_ip_get (cstate->hostname,
 			      AF_UNSPEC,
-                              GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
+                              CONNECT_RETRY_TIMEOUT,
                               &try_connect_using_address,
 			      cstate);
 }
@@ -877,4 +893,4 @@ GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return cstate->mq;
 }
 
-/* end of client_new.c */
+/* end of client.c */

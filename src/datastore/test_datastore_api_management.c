@@ -58,7 +58,6 @@ struct CpsRunContext
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   enum RunPhase phase;
-  uint64_t offset;
 };
 
 
@@ -138,9 +137,15 @@ check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiratio
 
 
 static void
-check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
-             const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-             uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_value (void *cls,
+             const struct GNUNET_HashCode *key,
+             size_t size,
+             const void *data,
+             enum GNUNET_BLOCK_Type type,
+             uint32_t priority,
+             uint32_t anonymity,
+             uint32_t replication,
+             struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -159,7 +164,6 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity (i));
   GNUNET_assert (expiration.abs_value_us == get_expiration (i).abs_value_us);
-  crc->offset++;
   crc->i--;
   if (crc->i == 0)
     crc->phase = RP_DONE;
@@ -168,9 +172,15 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_nothing (void *cls,
+               const struct GNUNET_HashCode *key,
+               size_t size,
+               const void *data,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
+               uint32_t anonymity,
+               uint32_t replication,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -221,8 +231,13 @@ run_continuation (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-    GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1,
+    GNUNET_DATASTORE_get_key (datastore,
+                              0,
+                              false,
+                              &crc->key,
+                              get_type (crc->i),
+                              1,
+                              1,
                               &check_value,
                               crc);
     break;
@@ -230,8 +245,13 @@ run_continuation (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET(f)",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-    GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
-                              get_type (crc->i), 1, 1,
+    GNUNET_DATASTORE_get_key (datastore,
+                              0,
+                              false,
+                              &crc->key,
+                              get_type (crc->i),
+                              1,
+                              1,
                               &check_nothing,
                               crc);
     break;
@@ -298,7 +318,21 @@ run (void *cls,
 
 
 /**
- * check if plugin is actually working 
+ * Function called when disk utilization changes, does nothing.
+ *
+ * @param cls closure
+ * @param delta change in utilization
+ */
+static void
+ignore_payload_cb (void *cls,
+                   int delta)
+{
+  /* do nothing */
+}
+
+
+/**
+ * check if plugin is actually working
  */
 static int
 test_plugin (const char *cfg_name)
@@ -307,7 +341,7 @@ test_plugin (const char *cfg_name)
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct GNUNET_DATASTORE_PluginEnvironment env;
-  
+
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_load (cfg,
@@ -321,6 +355,7 @@ test_plugin (const char *cfg_name)
   }
   memset (&env, 0, sizeof (env));
   env.cfg = cfg;
+  env.duc = &ignore_payload_cb;
   GNUNET_snprintf (libname,
 		   sizeof (libname),
                    "libgnunet_plugin_datastore_%s",

@@ -28,11 +28,11 @@
 #include "gnunet_strings_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-disk", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-disk", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-disk", syscall, filename)
 
 /**
  * Block size for IO for copying files.
@@ -329,8 +329,10 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
     BY_HANDLE_FILE_INFORMATION info;
     int succ;
 
-    fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ, 0);
-    if (fh == NULL)
+    fh = GNUNET_DISK_file_open (filename,
+                                GNUNET_DISK_OPEN_READ,
+                                GNUNET_DISK_PERM_NONE);
+    if (NULL == fh)
       return GNUNET_SYSERR;
     succ = GetFileInformationByHandle (fh->h, &info);
     GNUNET_DISK_file_close (fh);
@@ -1191,7 +1193,7 @@ GNUNET_DISK_fn_write (const char *fn,
   fh = GNUNET_DISK_file_open (fn,
                               GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE
                               | GNUNET_DISK_OPEN_CREATE, mode);
-  if (!fh)
+  if (! fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_write (fh, buffer, n);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
@@ -1756,9 +1758,10 @@ GNUNET_DISK_file_open (const char *fn,
 
 
 /**
- * Close an open file
+ * Close an open file.
+ *
  * @param h file handle
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
@@ -1773,7 +1776,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   ret = GNUNET_OK;
 
 #if MINGW
-  if (!CloseHandle (h->h))
+  if (! CloseHandle (h->h))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
@@ -1781,7 +1784,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   }
   if (h->oOverlapRead)
   {
-    if (!CloseHandle (h->oOverlapRead->hEvent))
+    if (! CloseHandle (h->oOverlapRead->hEvent))
     {
       SetErrnoFromWinError (GetLastError ());
       LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
@@ -1822,7 +1825,6 @@ struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
 {
   struct GNUNET_DISK_FileHandle *fh;
-
   DWORD dwret;
   enum GNUNET_FILE_Type ftype;
 
@@ -1836,10 +1838,13 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
     break;
   case FILE_TYPE_UNKNOWN:
-    if (GetLastError () == NO_ERROR || GetLastError () == ERROR_INVALID_HANDLE)
+    if ( (GetLastError () == NO_ERROR) ||
+         (GetLastError () == ERROR_INVALID_HANDLE) )
     {
       if (0 != ResetEvent (osfh))
         ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
+      else
+        return NULL;
     }
     else
       return NULL;

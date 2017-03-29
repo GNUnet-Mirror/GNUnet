@@ -63,7 +63,7 @@ static char *section_name;
 /**
  * Should we run autoconfiguration?
  */
-static unsigned int do_auto;
+static int do_auto;
 
 /**
  * Handle to a NAT test operation.
@@ -174,6 +174,9 @@ auto_config_cb (void *cls,
 	      GNUNET_NAT_AUTO_status2string (result),
 	      nat_type);
 
+  if (NULL == diff)
+    return;
+
   /* Shortcut: if there are no changes suggested, bail out early. */
   if (GNUNET_NO ==
       GNUNET_CONFIGURATION_is_dirty (diff))
@@ -186,20 +189,16 @@ auto_config_cb (void *cls,
      to the user */
   new_cfg = write_cfg ? GNUNET_CONFIGURATION_dup (cfg) : NULL;
 
-  if (NULL != diff)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		_("Suggested configuration changes:\n"));
-    GNUNET_CONFIGURATION_iterate_section_values (diff,
-						 "nat",
-						 &auto_conf_iter,
-						 new_cfg);
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              _("Suggested configuration changes:\n"));
+  GNUNET_CONFIGURATION_iterate_section_values (diff,
+                                               "nat",
+                                               &auto_conf_iter,
+                                               new_cfg);
 
   /* If desired, write configuration to file; we write only the
      changes to the defaults to keep things compact. */
-  if ( (write_cfg) &&
-       (NULL != diff) )
+  if (write_cfg)
   {
     struct GNUNET_CONFIGURATION_Handle *def_cfg;
 
@@ -298,8 +297,8 @@ run (void *cls,
   if (do_auto)
   {
     ah = GNUNET_NAT_AUTO_autoconfig_start (c,
-				      &auto_config_cb,
-				      NULL);
+                                           &auto_config_cb,
+                                           NULL);
   }
 
   if (use_tcp && use_udp)
@@ -340,22 +339,32 @@ int
 main (int argc,
       char *const argv[])
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "auto", NULL,
-     gettext_noop ("run autoconfiguration"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &do_auto },
-    {'S', "section", "NAME",
-     gettext_noop ("section name providing the configuration for the adapter"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &section_name },
-    {'t', "tcp", NULL,
-     gettext_noop ("use TCP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_tcp },
-    {'u', "udp", NULL,
-     gettext_noop ("use UDP"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &use_udp },
-    {'w', "write", NULL,
-     gettext_noop ("write configuration file (for autoconfiguration)"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &write_cfg },
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('a',
+                                  "auto",
+                                  gettext_noop ("run autoconfiguration"),
+                                  &do_auto),
+
+    GNUNET_GETOPT_option_string ('S',
+                                 "section",
+                                 "NAME",
+                                 gettext_noop ("section name providing the configuration for the adapter"),
+                                 &section_name),
+
+    GNUNET_GETOPT_option_flag ('t',
+                                   "tcp",
+                                   gettext_noop ("use TCP"),
+                                   &use_tcp),
+
+    GNUNET_GETOPT_option_flag ('u',
+                                   "udp",
+                                   gettext_noop ("use UDP"),
+                                   &use_udp),
+
+    GNUNET_GETOPT_option_flag ('w',
+                                   "write",
+                                   gettext_noop ("write configuration file (for autoconfiguration)"),
+                                   &write_cfg),
     GNUNET_GETOPT_OPTION_END
   };
 

@@ -32,9 +32,10 @@
  *
  * @{
  */
-#ifndef GNUNET_MQ_H
-#define GNUNET_MQ_H
+#ifndef GNUNET_MQ_LIB_H
+#define GNUNET_MQ_LIB_H
 
+#include "gnunet_scheduler_lib.h"
 
 /**
  * Allocate an envelope, with extra space allocated after the space needed
@@ -269,6 +270,66 @@ typedef void
 
 
 /**
+ * Insert @a env into the envelope DLL starting at @a env_head
+ * Note that @a env must not be in any MQ while this function
+ * is used with DLLs defined outside of the MQ module.  This
+ * is just in case some application needs to also manage a
+ * FIFO of envelopes independent of MQ itself and wants to
+ * re-use the pointers internal to @a env.  Use with caution.
+ *
+ * @param[in|out] env_head of envelope DLL
+ * @param[in|out] env_tail tail of envelope DLL
+ * @param[in|out] env element to insert at the tail
+ */
+void
+GNUNET_MQ_dll_insert_tail (struct GNUNET_MQ_Envelope **env_head,
+                           struct GNUNET_MQ_Envelope **env_tail,
+                           struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Remove @a env from the envelope DLL starting at @a env_head.
+ * Note that @a env must not be in any MQ while this function
+ * is used with DLLs defined outside of the MQ module. This
+ * is just in case some application needs to also manage a
+ * FIFO of envelopes independent of MQ itself and wants to
+ * re-use the pointers internal to @a env.  Use with caution.
+ *
+ * @param[in|out] env_head of envelope DLL
+ * @param[in|out] env_tail tail of envelope DLL
+ * @param[in|out] env element to remove from the DLL
+ */
+void
+GNUNET_MQ_dll_remove (struct GNUNET_MQ_Envelope **env_head,
+                      struct GNUNET_MQ_Envelope **env_tail,
+                      struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Copy an array of handlers.
+ *
+ * Useful if the array has been delared in local memory and needs to be
+ * persisted for future use.
+ *
+ * @param handlers Array of handlers to be copied.
+ * @return A newly allocated array of handlers.
+ *         Needs to be freed with #GNUNET_free.
+ */
+struct GNUNET_MQ_MessageHandler *
+GNUNET_MQ_copy_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
+ * Count the handlers in a handler array.
+ *
+ * @param handlers Array of handlers to be counted.
+ * @return The number of handlers in the array.
+ */
+unsigned int
+GNUNET_MQ_count_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
+
+
+/**
  * Message handler for a specific message type.
  */
 struct GNUNET_MQ_MessageHandler
@@ -413,7 +474,6 @@ struct GNUNET_MQ_MessageHandler
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
-
                 uint16_t size,
                 uint16_t type);
 
@@ -451,6 +511,17 @@ GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
 
 
 /**
+ * Function to copy an envelope.  The envelope must not yet
+ * be in any queue or have any options or callbacks set.
+ *
+ * @param env envelope to copy
+ * @return copy of @a env
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env);
+
+
+/**
  * Function to obtain the last envelope in the queue.
  *
  * @param mq message queue to interrogate
@@ -485,6 +556,17 @@ GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
 const void *
 GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
 			   uint64_t *flags);
+
+
+/**
+ * Remove the first envelope that has not yet been sent from the message
+ * queue and return it.
+ *
+ * @param mq queue to remove envelope from
+ * @return NULL if queue is empty (or has no envelope that is not under transmission)
+ */
+struct GNUNET_MQ_Envelope *
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -717,7 +799,7 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
  * try to send the next message until #gnunet_mq_impl_send_continue
  * is called.
  *
- * only useful for implementing message queues, results in undefined
+ * Only useful for implementing message queues, results in undefined
  * behavior if not used carefully.
  *
  * @param mq message queue to send the next message with

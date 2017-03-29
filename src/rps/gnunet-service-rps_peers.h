@@ -117,11 +117,15 @@ typedef int
  *
  * @param fn_valid_peers filename of the file used to store valid peer ids
  * @param cadet_h cadet handle
+ * @param disconnect_handler Disconnect handler
+ * @param c_handlers cadet handlers
  * @param own_id own peer identity
  */
 void
 Peers_initialise (char* fn_valid_peers,
                   struct GNUNET_CADET_Handle *cadet_h,
+                  GNUNET_CADET_DisconnectEventHandler disconnect_handler,
+                  const struct GNUNET_MQ_MessageHandler *c_handlers,
                   const struct GNUNET_PeerIdentity *own_id);
 
 /**
@@ -259,6 +263,18 @@ int
 Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags);
 
 /**
+ * @brief Get the flags for the channel in @a role for @a peer.
+ *
+ * @param peer Peer to get the channel flags for.
+ * @param role Role of channel to get flags for
+ *
+ * @return The flags.
+ */
+uint32_t *
+Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
+                        enum Peers_ChannelRole role);
+
+/**
  * @brief Check whether we have information about the given peer.
  *
  * FIXME probably deprecated. Make this the new _online.
@@ -312,8 +328,6 @@ Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer);
  * @param cls The closure
  * @param channel The channel the peer wants to establish
  * @param initiator The peer's peer ID
- * @param port The port the channel is being established over
- * @param options Further options
  *
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
@@ -321,9 +335,7 @@ Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer);
 void *
 Peers_handle_inbound_channel (void *cls,
                               struct GNUNET_CADET_Channel *channel,
-                              const struct GNUNET_PeerIdentity *initiator,
-                              const struct GNUNET_HashCode *port,
-                              enum GNUNET_CADET_ChannelOption options);
+                              const struct GNUNET_PeerIdentity *initiator);
 
 /**
  * @brief Check whether a sending channel towards the given peer exists
@@ -379,8 +391,7 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer);
  */
 void
 Peers_cleanup_destroyed_channel (void *cls,
-                                 const struct GNUNET_CADET_Channel *channel,
-                                 void *channel_ctx);
+                                 const struct GNUNET_CADET_Channel *channel);
 
 /**
  * @brief Send a message to another peer.
@@ -410,5 +421,17 @@ Peers_send_message (const struct GNUNET_PeerIdentity *peer,
 int
 Peers_schedule_operation (const struct GNUNET_PeerIdentity *peer,
                           const PeerOp peer_op);
+
+/**
+ * @brief Get the recv_channel of @a peer.
+ * Needed to correctly handle (call #GNUNET_CADET_receive_done()) incoming
+ * messages.
+ *
+ * @param peer The peer to get the recv_channel from.
+ *
+ * @return The recv_channel.
+ */
+struct GNUNET_CADET_Channel *
+Peers_get_recv_channel (const struct GNUNET_PeerIdentity *peer);
 
 /* end of gnunet-service-rps_peers.h */

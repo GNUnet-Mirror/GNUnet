@@ -552,7 +552,7 @@ setup_plugin_environment ()
 
 
 static int
-handle_helper_message (void *cls, void *client,
+handle_helper_message (void *cls,
                        const struct GNUNET_MessageHeader *hdr)
 {
   return GNUNET_OK;

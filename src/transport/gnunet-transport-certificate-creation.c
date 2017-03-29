@@ -44,7 +44,7 @@ make_dev_zero (int fd,
   GNUNET_assert (-1 != z);
   if (z == fd)
     return;
-  dup2 (z, fd);
+  GNUNET_break (fd == dup2 (z, fd));
   GNUNET_assert (0 == close (z));
 }
 #endif

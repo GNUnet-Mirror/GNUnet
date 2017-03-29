@@ -1,0 +1,36 @@
+- URGENT:
+  + if 'client-not-ready', we do not ACK at all, and sender keeps
+    retransmitting again and again; would be good to do flow-control notification instead
+    of not ACKing that we got the data but are simply not ready for more!
+  + Congestion/flow control (CHANNEL):
+    estimate max bandwidth using bursts and use to for CONGESTION CONTROL!
+    (and figure out how/where to use this!)
+
+- HIGH: revisit handling of 'unbuffered' traffic! (CHANNEL/TUNNEL)
+        (need to push down through tunnel into connection selection);
+        At Tunnel-level, try to create connections that match channel
+        preferences (buffered/unbuffered) and select connections for
+        channel traffic that match channel preferences.
+        BUT: not sure this is ideal, discloses traffic type to
+        routers. We don't want that! (Maybe revise decision to do this?)
+
+- HIGH: revisit handling of 'buffered' traffic: 4 is a rather small buffer; (CHANNEL)
+        maybe reserve more bits in 'options' to allow for buffer size control?
+        Or: maybe even better, calculated required buffer size based on latency
+        and throughput (and available memory)
+
+- HIGH: if we receive BROKEN messages, cut down corresponding PATH (up to the
+        point of breakage) as well as connection/route (CORE)
+
+- OPTIMIZATION: proper connection evaluation during connection management:
+  + TUNNELS:
+    * consider quality of current connection set when deciding
+      how often to do maintenance
+    * interact with PEER to drive DHT GET/PUT operations based
+      on how much we like our connections
+
+
+- OPTIMIZATION: optimize stopping/restarting DHT search to situations
+  where we actually need it (i.e. not if we have a direct connection,
+  or if we already have plenty of good short ones, or maybe even
+  to take a break if we have some connections and have searched a lot (?)) (PEER)

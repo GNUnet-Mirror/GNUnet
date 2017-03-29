@@ -22,9 +22,11 @@
  * @file gns/plugin_block_gns.c
  * @brief blocks used for GNS records
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
+#include "gnunet_block_group_lib.h"
 #include "gnunet_block_plugin.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_signatures.h"
@@ -36,6 +38,59 @@
 #define BLOOMFILTER_K 16
 
 /**
+ * How big is the BF we use for GNS blocks?
+ */
+#define GNS_BF_SIZE 8
+
+
+/**
+ * Create a new block group.
+ *
+ * @param ctx block context in which the block group is created
+ * @param type type of the block for which we are creating the group
+ * @param nonce random value used to seed the group creation
+ * @param raw_data optional serialized prior state of the group, NULL if unavailable/fresh
+ * @param raw_data_size number of bytes in @a raw_data, 0 if unavailable/fresh
+ * @param va variable arguments specific to @a type
+ * @return block group handle, NULL if block groups are not supported
+ *         by this @a type of block (this is not an error)
+ */
+static struct GNUNET_BLOCK_Group *
+block_plugin_gns_create_group (void *cls,
+                               enum GNUNET_BLOCK_Type type,
+                               uint32_t nonce,
+                               const void *raw_data,
+                               size_t raw_data_size,
+                               va_list va)
+{
+  unsigned int bf_size;
+  const char *guard;
+
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
+  else
+  {
+    GNUNET_break (0);
+    bf_size = GNS_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
+  return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                       bf_size,
+                                       BLOOMFILTER_K,
+                                       type,
+                                       nonce,
+                                       raw_data,
+                                       raw_data_size);
+}
+
+
+/**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
@@ -43,11 +98,11 @@
  * be done with the "get_key" function.
  *
  * @param cls closure
+ * @param ctx block context
  * @param type block type
+ * @param bg block group to use for evaluation
  * @param eo control flags
  * @param query original query (hash)
- * @param bf pointer to bloom filter associated with @a query; possibly updated (!)
- * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on @a type)
  * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
@@ -56,11 +111,11 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_gns_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
                            enum GNUNET_BLOCK_Type type,
+                           struct GNUNET_BLOCK_Group *bg,
                            enum GNUNET_BLOCK_EvaluationOptions eo,
                            const struct GNUNET_HashCode *query,
-                           struct GNUNET_CONTAINER_BloomFilter **bf,
-                           int32_t bf_mutator,
                            const void *xquery,
                            size_t xquery_size,
                            const void *reply_block,
@@ -69,7 +124,6 @@ block_plugin_gns_evaluate (void *cls,
   const struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_HashCode h;
   struct GNUNET_HashCode chash;
-  struct GNUNET_HashCode mhash;
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
@@ -110,21 +164,13 @@ block_plugin_gns_evaluate (void *cls,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-  if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-      if (NULL != *bf)
-	{
-	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
-	    return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-	}
-      else
-	{
-	  *bf = GNUNET_CONTAINER_bloomfilter_init(NULL, 8, BLOOMFILTER_K);
-	}
-      GNUNET_CONTAINER_bloomfilter_add(*bf, &mhash);
-    }
+  GNUNET_CRYPTO_hash (reply_block,
+                      reply_block_size,
+                      &chash);
+  if (GNUNET_YES ==
+      GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
+                                          &chash))
+    return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 
@@ -141,9 +187,11 @@ block_plugin_gns_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                         const void *reply_block, size_t reply_block_size,
-                         struct GNUNET_HashCode *key)
+block_plugin_gns_get_key (void *cls,
+                          enum GNUNET_BLOCK_Type type,
+                          const void *reply_block,
+                          size_t reply_block_size,
+                          struct GNUNET_HashCode *key)
 {
   const struct GNUNET_GNSRECORD_Block *block;
 
@@ -178,6 +226,7 @@ libgnunet_plugin_block_gns_init (void *cls)
   api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_gns_evaluate;
   api->get_key = &block_plugin_gns_get_key;
+  api->create_group = &block_plugin_gns_create_group;
   api->types = types;
   return api;
 }
@@ -189,7 +238,7 @@ libgnunet_plugin_block_gns_init (void *cls)
 void *
 libgnunet_plugin_block_gns_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

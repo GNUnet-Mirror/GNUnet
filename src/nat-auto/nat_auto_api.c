@@ -42,7 +42,7 @@ struct GNUNET_NAT_AUTO_AutoHandle
    * Configuration we use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Message queue for communicating with the NAT service.
    */
@@ -206,8 +206,8 @@ ah_error_handler (void *cls,
  */
 struct GNUNET_NAT_AUTO_AutoHandle *
 GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     GNUNET_NAT_AUTO_AutoResultCallback cb,
-			     void *cb_cls)
+                                  GNUNET_NAT_AUTO_AutoResultCallback cb,
+                                  void *cb_cls)
 {
   struct GNUNET_NAT_AUTO_AutoHandle *ah = GNUNET_new (struct GNUNET_NAT_AUTO_AutoHandle);
   struct GNUNET_MQ_MessageHandler handlers[] = {
@@ -224,7 +224,7 @@ GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   buf = GNUNET_CONFIGURATION_serialize (cfg,
 					&size);
-  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*req))
+  if (size > GNUNET_MAX_MESSAGE_SIZE - sizeof (*req))
   {
     GNUNET_break (0);
     GNUNET_free (buf);

@@ -40,6 +40,7 @@ libgnunet_plugin_block_dht_la_SOURCES = \
 libgnunet_plugin_block_dht_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/block/libgnunetblockgroup.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_block_dht_la_LDFLAGS = \
@@ -48,12 +49,6 @@ libgnunet_plugin_block_dht_la_LDFLAGS = \
 
 libexec_PROGRAMS = \
  gnunet-service-dht
-
-if HAVE_EXPERIMENTAL
-libexec_PROGRAMS += \
- gnunet-service-dht-xvine \
- gnunet-service-dht-whanau
-endif
 
 noinst_PROGRAMS = \
  gnunet-dht-monitor \
@@ -73,44 +68,6 @@ gnunet_service_dht_SOURCES = \
  gnunet-service-dht_neighbours.c gnunet-service-dht_neighbours.h \
  gnunet-service-dht_routing.c gnunet-service-dht_routing.h
 gnunet_service_dht_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/nse/libgnunetnse.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -lm
-
-gnunet_service_dht_xvine_SOURCES = \
- gnunet-service-xdht.c gnunet-service-dht.h \
- gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
- gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
- gnunet-service-xdht_neighbours.c gnunet-service-xdht_neighbours.h \
- gnunet-service-xdht_routing.c gnunet-service-xdht_routing.h
-
-gnunet_service_dht_xvine_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/nse/libgnunetnse.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -lm
-
-gnunet_service_dht_whanau_SOURCES = \
- gnunet-service-wdht.c gnunet-service-wdht.h \
- gnunet-service-dht_datacache.c gnunet-service-dht_datacache.h \
- gnunet-service-dht_nse.c gnunet-service-dht_nse.h \
- gnunet-service-wdht_neighbours.c gnunet-service-dht_neighbours.h
-gnunet_service_dht_whanau_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/nse/libgnunetnse.la \
@@ -180,7 +137,7 @@ if HAVE_EXPERIMENTAL
 endif
 
 if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_line \
@@ -254,7 +211,7 @@ check_SCRIPTS = \
   test_dht_tools.py
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g' -e 's,[@]bindir[@],$(bindir),g'
 
 %.py: %.py.in Makefile
 	$(do_subst) < $(srcdir)/$< > $@
