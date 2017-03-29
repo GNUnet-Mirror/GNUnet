@@ -75,7 +75,7 @@ struct CadetClient
    * Handle to communicate with the client
    */
   struct GNUNET_MQ_Handle *mq;
-
+  
   /**
    * Client handle.
    */
@@ -83,7 +83,7 @@ struct CadetClient
 
   /**
    * Ports that this client has declared interest in.
-   * Indexed by port, contains *Client.
+   * Indexed by port, contains `struct OpenPort`
    */
   struct GNUNET_CONTAINER_MultiHashMap *ports;
 
@@ -98,6 +98,7 @@ struct CadetClient
    */
   unsigned int id;
 };
+
 
 /******************************************************************************/
 /***********************      GLOBAL VARIABLES     ****************************/
@@ -151,14 +152,15 @@ static struct CadetClient *clients_tail;
 static unsigned int next_client_id;
 
 /**
- * All ports clients of this peer have opened.
+ * All ports clients of this peer have opened.  Maps from
+ * a hashed port to a `struct OpenPort`.
  */
 struct GNUNET_CONTAINER_MultiHashMap *open_ports;
 
 /**
  * Map from ports to channels where the ports were closed at the
  * time we got the inbound connection.
- * Indexed by port, contains `struct CadetChannel`.
+ * Indexed by h_port, contains `struct CadetChannel`.
  */
 struct GNUNET_CONTAINER_MultiHashMap *loose_channels;
 
@@ -436,11 +438,11 @@ shutdown_task (void *cls)
 
 
 /**
- * We had a remote connection @a value to port @a port before
+ * We had a remote connection @a value to port @a h_port before
  * client @a cls opened port @a port.  Bind them now.
  *
  * @param cls the `struct CadetClient`
- * @param port the port
+ * @param h_port the hashed port
  * @param value the `struct CadetChannel`
  * @return #GNUNET_YES (iterate over all such channels)
  */
@@ -449,15 +451,16 @@ bind_loose_channel (void *cls,
                     const struct GNUNET_HashCode *port,
                     void *value)
 {
-  struct CadetClient *c = cls;
+  struct OpenPort *op = cls;
   struct CadetChannel *ch = value;
 
   GCCH_bind (ch,
-             c);
+             op->c,
+	     &op->port);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (loose_channels,
-                                                       port,
-                                                       value));
+                                                       &op->h_port,
+                                                       ch));
   return GNUNET_YES;
 }
 
@@ -476,6 +479,7 @@ handle_port_open (void *cls,
                   const struct GNUNET_CADET_PortMessage *pmsg)
 {
   struct CadetClient *c = cls;
+  struct OpenPort *op;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Open port %s requested by %s\n",
@@ -483,11 +487,17 @@ handle_port_open (void *cls,
        GSC_2s (c));
   if (NULL == c->ports)
     c->ports = GNUNET_CONTAINER_multihashmap_create (4,
-                                                      GNUNET_NO);
+						     GNUNET_NO);
+  op = GNUNET_new (struct OpenPort);
+  op->c = c;
+  op->port = pmsg->port;
+  GCCH_hash_port (&op->h_port,
+		  &pmsg->port,
+		  &my_full_id);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (c->ports,
-                                         &pmsg->port,
-                                         c,
+                                         &op->port,
+                                         op,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_break (0);
@@ -495,13 +505,13 @@ handle_port_open (void *cls,
     return;
   }
   (void) GNUNET_CONTAINER_multihashmap_put (open_ports,
-                                            &pmsg->port,
-                                            c,
+                                            &op->h_port,
+                                            op,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_CONTAINER_multihashmap_get_multiple (loose_channels,
-                                              &pmsg->port,
+                                              &op->h_port,
                                               &bind_loose_channel,
-                                              c);
+                                              op);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -520,24 +530,29 @@ handle_port_close (void *cls,
                    const struct GNUNET_CADET_PortMessage *pmsg)
 {
   struct CadetClient *c = cls;
+  struct OpenPort *op;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Closing port %s as requested by %s\n",
        GNUNET_h2s (&pmsg->port),
        GSC_2s (c));
-  if (GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap_remove (c->ports,
-                                            &pmsg->port,
-                                            c))
+  op = GNUNET_CONTAINER_multihashmap_get (c->ports,
+					  &pmsg->port);
+  if (NULL == op)
   {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
   GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (c->ports,
+						       &op->port,
+						       op));
+  GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (open_ports,
-                                                       &pmsg->port,
-                                                       c));
+                                                       &op->h_port,
+                                                       op));
+  GNUNET_free (op);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -1214,16 +1229,16 @@ GSC_handle_remote_channel_destroy (struct CadetClient *c,
  * A client that created a loose channel that was not bound to a port
  * disconnected, drop it from the #loose_channels list.
  *
- * @param port the port the channel was trying to bind to
+ * @param h_port the hashed port the channel was trying to bind to
  * @param ch the channel that was lost
  */
 void
-GSC_drop_loose_channel (const struct GNUNET_HashCode *port,
+GSC_drop_loose_channel (const struct GNUNET_HashCode *h_port,
                         struct CadetChannel *ch)
 {
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (loose_channels,
-                                                       port,
+                                                       h_port,
                                                        ch));
 }
 
@@ -1264,30 +1279,33 @@ channel_destroy_iterator (void *cls,
 /**
  * Remove client's ports from the global hashmap on disconnect.
  *
- * @param cls Closure (unused).
- * @param key the port.
- * @param value the `struct CadetClient` to remove
+ * @param cls the `struct CadetClient`
+ * @param port the port.
+ * @param value the `struct OpenPort` to remove
  * @return #GNUNET_OK, keep iterating.
  */
 static int
 client_release_ports (void *cls,
-                      const struct GNUNET_HashCode *key,
+                      const struct GNUNET_HashCode *port,
                       void *value)
 {
-  struct CadetClient *c = value;
+  struct CadetClient *c = cls;
+  struct OpenPort *op = value;
 
+  GNUNET_assert (c == op->c);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Closing port %s due to %s disconnect.\n",
-       GNUNET_h2s (key),
+       GNUNET_h2s (port),
        GSC_2s (c));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (open_ports,
-                                                       key,
-                                                       value));
+                                                       &op->h_port,
+                                                       op));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (c->ports,
-                                                       key,
-                                                       value));
+                                                       port,
+                                                       op));
+  GNUNET_free (op);
   return GNUNET_OK;
 }
 

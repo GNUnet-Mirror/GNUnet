@@ -157,30 +157,30 @@ main (int argc, char *const *argv)
 {
 	struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-                GNUNET_GETOPT_OPTION_FILENAME ('d',
+                GNUNET_GETOPT_option_filename ('d',
                                                "description",
                                                "FILE",
                                                gettext_noop ("description of the item to be sold"),
                                                &fndesc),
 
-                GNUNET_GETOPT_OPTION_FILENAME ('p',
+                GNUNET_GETOPT_option_filename ('p',
                                                "pricemap",
                                                "FILE",
                                                gettext_noop ("mapping of possible prices"),
                                                &fnprices),
 
-                GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('r',
+                GNUNET_GETOPT_option_relative_time ('r',
                                                         "roundtime",
                                                         "DURATION",
                                                         gettext_noop ("max duration per round"),
                                                         &dround),
 
-                GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('s',
+                GNUNET_GETOPT_option_relative_time ('s',
                                                         "regtime",
                                                         "DURATION",
                                                         gettext_noop ("duration until auction starts"),
                                                         &dstart),
-                GNUNET_GETOPT_OPTION_SET_UINT ('m',
+                GNUNET_GETOPT_option_uint ('m',
                                                "m",
                                                "NUMBER",
                                                gettext_noop ("number of items to sell\n"
@@ -188,12 +188,12 @@ main (int argc, char *const *argv)
 			                                     ">0 for vickrey/M+1st price auction"),
                                                &m), 
 
-                GNUNET_GETOPT_OPTION_SET_ONE ('u',
+                GNUNET_GETOPT_option_flag ('u',
                                               "public",
                                               gettext_noop ("public auction outcome"),
                                               &outcome),
 
-                GNUNET_GETOPT_OPTION_SET_ONE ('i',
+                GNUNET_GETOPT_option_flag ('i',
                                               "interactive",
                                               gettext_noop ("keep running in foreground until auction completes"),
                                               &interactive),

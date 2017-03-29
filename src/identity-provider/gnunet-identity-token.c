@@ -160,13 +160,13 @@ main(int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "token",
                                  NULL,
                                  gettext_noop ("GNUid token"),
                                  &token),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('p',
+    GNUNET_GETOPT_option_flag ('p',
                                   "print",
                                   gettext_noop ("Print token contents"),
                                   &print_token),

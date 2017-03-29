@@ -205,19 +205,19 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+    GNUNET_GETOPT_option_uint ('n',
                                    "num-peers",
                                    "COUNT",
                                    gettext_noop ("run the experiment with COUNT peers"),
                                    &num_peers),
 
-    GNUNET_GETOPT_OPTION_STRING ('H',
+    GNUNET_GETOPT_option_string ('H',
                                  "hosts",
                                  "HOSTFILE",
                                  gettext_noop ("specifies name of a file with the HOSTS the testbed should use"),
                                  &host_filename),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+    GNUNET_GETOPT_option_relative_time ('t',
                                             "timeout",
                                             "DELAY",
                                             gettext_noop ("automatically terminate experiment after DELAY"),

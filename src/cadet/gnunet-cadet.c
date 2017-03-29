@@ -922,49 +922,49 @@ main (int argc,
   const char helpstr[] = "Create tunnels and retrieve info about CADET's status.";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     /* I would use the terminology 'circuit' here...  --lynX */
-    GNUNET_GETOPT_OPTION_STRING ('C',
+    GNUNET_GETOPT_option_string ('C',
                                  "connection",
                                  "CONNECTION_ID",
                                  gettext_noop ("Provide information about a particular connection"),
                                  &conn_id),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('e',
+    GNUNET_GETOPT_option_flag ('e',
                                   "echo",
                                   gettext_noop ("Activate echo mode"),
                                   &echo), 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_flag ('d',
                                   "dump",
                                   gettext_noop ("Dump debug information to STDERR"),
                                   &dump),
 
-    GNUNET_GETOPT_OPTION_STRING ('o',
+    GNUNET_GETOPT_option_string ('o',
                                  "open-port",
                                  "SHARED_SECRET",
                                  gettext_noop ("Listen for connections using a shared secret among sender and recipient"),
                                  &listen_port),
 
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "peer",
                                  "PEER_ID",
                                  gettext_noop ("Provide information about a patricular peer"),
                                  &peer_id),
 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('P',
+    GNUNET_GETOPT_option_flag ('P',
                                   "peers",
                                   gettext_noop ("Provide information about all peers"),
                                   &request_peers),
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "tunnel",
                                  "TUNNEL_ID",
                                  gettext_noop ("Provide information about a particular tunnel"),
                                  &tunnel_id),
 
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('T',
+    GNUNET_GETOPT_option_flag ('T',
                                   "tunnels",
                                   gettext_noop ("Provide information about all tunnels"),
                                   &request_tunnels),

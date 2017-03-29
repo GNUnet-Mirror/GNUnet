@@ -226,13 +226,13 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_STRING ('n',
+    GNUNET_GETOPT_option_string ('n',
                                  "name",
                                  "NAME",
                                  gettext_noop ("name of the record to add/delete/display"),
                                  &name),
 
-    GNUNET_GETOPT_OPTION_STRING ('z',
+    GNUNET_GETOPT_option_string ('z',
                                  "zone",
                                  "PKEY",
                                  gettext_noop ("spezifies the public key of the zone to look in"),

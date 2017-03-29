@@ -336,7 +336,7 @@ main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "num-peers",
                                    "COUNT",
                                    gettext_noop ("create COUNT number of peers"),

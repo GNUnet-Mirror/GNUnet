@@ -197,13 +197,14 @@ do_put (struct CpsRunContext *crc)
 
 static int
 iterate_zeros (void *cls,
-	       const struct GNUNET_HashCode *key,
-	       uint32_t size,
+               const struct GNUNET_HashCode *key,
+               uint32_t size,
                const void *data,
-	       enum GNUNET_BLOCK_Type type,
-	       uint32_t priority,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
                uint32_t anonymity,
-	       struct GNUNET_TIME_Absolute expiration,
+               uint32_t replication,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -253,14 +254,15 @@ iterate_zeros (void *cls,
 
 static int
 expiration_get (void *cls,
-		const struct GNUNET_HashCode *key,
-		uint32_t size,
+                const struct GNUNET_HashCode *key,
+                uint32_t size,
                 const void *data,
-		enum GNUNET_BLOCK_Type type,
+                enum GNUNET_BLOCK_Type type,
                 uint32_t priority,
-		uint32_t anonymity,
+                uint32_t anonymity,
+                uint32_t replication,
                 struct GNUNET_TIME_Absolute expiration,
-		uint64_t uid)
+                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
@@ -305,14 +307,15 @@ expiration_get (void *cls,
 
 static int
 replication_get (void *cls,
-		 const struct GNUNET_HashCode *key,
-		 uint32_t size,
+                 const struct GNUNET_HashCode *key,
+                 uint32_t size,
                  const void *data,
-		 enum GNUNET_BLOCK_Type type,
+                 enum GNUNET_BLOCK_Type type,
                  uint32_t priority,
-		 uint32_t anonymity,
+                 uint32_t anonymity,
+                 uint32_t replication,
                  struct GNUNET_TIME_Absolute expiration,
-		 uint64_t uid)
+                 uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;

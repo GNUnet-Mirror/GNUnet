@@ -161,7 +161,7 @@ struct GNUNET_GETOPT_CommandLineOption
  * @param about string with brief description of the application
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_HELP (const char *about);
+GNUNET_GETOPT_option_help (const char *about);
 
 
 /**
@@ -171,7 +171,7 @@ GNUNET_GETOPT_OPTION_HELP (const char *about);
  * @param version string with the version number
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_VERSION (const char *version);
+GNUNET_GETOPT_option_version (const char *version);
 
 
 
@@ -181,7 +181,7 @@ GNUNET_GETOPT_OPTION_VERSION (const char *version);
  * @param[out] logfn set to the name of the logfile
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_LOGFILE (char **logfn);
+GNUNET_GETOPT_option_logfile (char **logfn);
 
 
 /**
@@ -194,7 +194,7 @@ GNUNET_GETOPT_OPTION_LOGFILE (char **logfn);
  * @param[out] str set to the string
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_STRING (char shortName,
+GNUNET_GETOPT_option_string (char shortName,
                              const char *name,
                              const char *argumentHelp,
                              const char *description,
@@ -210,7 +210,7 @@ GNUNET_GETOPT_OPTION_STRING (char shortName,
  * @param[out] str set to the string
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_FILENAME (char shortName,
+GNUNET_GETOPT_option_filename (char shortName,
                                const char *name,
                                const char *argumentHelp,
                                const char *description,
@@ -229,7 +229,7 @@ GNUNET_GETOPT_OPTION_FILENAME (char shortName,
  * @param val_size size of @a val in bytes
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
+GNUNET_GETOPT_option_base32_fixed_size (char shortName,
                                             const char *name,
                                             const char *argumentHelp,
                                             const char *description,
@@ -249,8 +249,8 @@ GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
  * @param[out] val binary value decoded from Crockford Base32-encoded argument;
  *             size is determined by type (sizeof (*val)).
  */
-#define GNUNET_GETOPT_OPTION_SET_BASE32_AUTO(shortName,name,argumentHelp,description,val) \
-  GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE(shortName,name,argumentHelp,description,val,sizeof(*val))
+#define GNUNET_GETOPT_option_base32_auto(shortName,name,argumentHelp,description,val) \
+  GNUNET_GETOPT_option_base32_fixed_size(shortName,name,argumentHelp,description,val,sizeof(*val))
 
 
 /**
@@ -263,7 +263,7 @@ GNUNET_GETOPT_OPTION_SET_BASE32_FIXED_SIZE (char shortName,
  * @param[out] val set to 1 if the option is present
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_ONE (char shortName,
+GNUNET_GETOPT_option_flag (char shortName,
                               const char *name,
                               const char *description,
                               int *val);
@@ -279,7 +279,7 @@ GNUNET_GETOPT_OPTION_SET_ONE (char shortName,
  * @param[out] val set to the value specified at the command line
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_UINT (char shortName,
+GNUNET_GETOPT_option_uint (char shortName,
                                const char *name,
                                const char *argumentHelp,
                                const char *description,
@@ -296,7 +296,7 @@ GNUNET_GETOPT_OPTION_SET_UINT (char shortName,
  * @param[out] val set to the value specified at the command line
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_ULONG (char shortName,
+GNUNET_GETOPT_option_ulong (char shortName,
                                 const char *name,
                                 const char *argumentHelp,
                                 const char *description,
@@ -314,7 +314,7 @@ GNUNET_GETOPT_OPTION_SET_ULONG (char shortName,
  * @param[out] val set to the time specified at the command line
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME (char shortName,
+GNUNET_GETOPT_option_relative_time (char shortName,
                                         const char *name,
                                         const char *argumentHelp,
                                         const char *description,
@@ -332,7 +332,7 @@ GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME (char shortName,
  * @param[out] val set to the time specified at the command line
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_SET_ABSOLUTE_TIME (char shortName,
+GNUNET_GETOPT_option_absolute_time (char shortName,
                                         const char *name,
                                         const char *argumentHelp,
                                         const char *description,
@@ -349,7 +349,7 @@ GNUNET_GETOPT_OPTION_SET_ABSOLUTE_TIME (char shortName,
  * @param[out] val set to 1 if the option is present
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_INCREMENT_VALUE (char shortName,
+GNUNET_GETOPT_option_increment_uint (char shortName,
                                       const char *name,
                                       const char *description,
                                       unsigned int *val);
@@ -362,7 +362,7 @@ GNUNET_GETOPT_OPTION_INCREMENT_VALUE (char shortName,
  * @param[out] level set to the log level
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_LOGLEVEL (char **level);
+GNUNET_GETOPT_option_loglevel (char **level);
 
 
 /**
@@ -372,7 +372,7 @@ GNUNET_GETOPT_OPTION_LOGLEVEL (char **level);
  * @param[out] level set to the verbosity level
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_VERBOSE (unsigned int *level);
+GNUNET_GETOPT_option_verbose (unsigned int *level);
 
 
 /**
@@ -381,7 +381,7 @@ GNUNET_GETOPT_OPTION_VERBOSE (unsigned int *level);
  * @param[out] logfn set to the name of the logfile
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_LOGFILE (char **logfn);
+GNUNET_GETOPT_option_logfile (char **logfn);
 
 
 /**
@@ -390,7 +390,7 @@ GNUNET_GETOPT_OPTION_LOGFILE (char **logfn);
  * @param[out] fn set to the name of the configuration file
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_CFG_FILE (char **fn);
+GNUNET_GETOPT_option_cfgfile (char **fn);
 
 
 /**
@@ -400,7 +400,7 @@ GNUNET_GETOPT_OPTION_CFG_FILE (char **fn);
  * @return @a opt with the mandatory flag set.
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_GETOPT_OPTION_MANDATORY (struct GNUNET_GETOPT_CommandLineOption opt);
+GNUNET_GETOPT_option_mandatory (struct GNUNET_GETOPT_CommandLineOption opt);
 
 
 /**

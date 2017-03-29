@@ -29,7 +29,6 @@
 #define GNUNET_SERVICE_CADET_H
 
 #include "gnunet_util_lib.h"
-#define NEW_CADET 1
 #include "cadet_protocol.h"
 
 /**
@@ -146,6 +145,30 @@ struct CadetTConnection
 
 
 /**
+ * Port opened by a client.
+ */
+struct OpenPort
+{
+
+  /**
+   * Client that opened the port.
+   */
+  struct CadetClient *c;
+
+  /**
+   * Port number.
+   */
+  struct GNUNET_HashCode port;
+
+  /**
+   * Port hashed with our PID (matches incoming OPEN messages).
+   */
+  struct GNUNET_HashCode h_port;
+  
+};
+
+
+/**
  * Active path through the network (used by a tunnel).  There may
  * be at most one connection per path.
  */
@@ -193,7 +216,8 @@ extern struct GNUNET_PeerIdentity my_full_id;
 extern struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
- * All ports clients of this peer have opened.
+ * All ports clients of this peer have opened.  Maps from
+ * a hashed port to a `struct OpenPort`.
  */
 extern struct GNUNET_CONTAINER_MultiHashMap *open_ports;
 
@@ -206,7 +230,7 @@ extern struct GNUNET_CONTAINER_MultiShortmap *connections;
 /**
  * Map from ports to channels where the ports were closed at the
  * time we got the inbound connection.
- * Indexed by port, contains `struct CadetChannel`.
+ * Indexed by h_port, contains `struct CadetChannel`.
  */
 extern struct GNUNET_CONTAINER_MultiHashMap *loose_channels;
 
@@ -268,11 +292,11 @@ GSC_handle_remote_channel_destroy (struct CadetClient *c,
  * A client that created a loose channel that was not bound to a port
  * disconnected, drop it from the #loose_channels list.
  *
- * @param port the port the channel was trying to bind to
+ * @param h_port the hashed port the channel was trying to bind to
  * @param ch the channel that was lost
  */
 void
-GSC_drop_loose_channel (const struct GNUNET_HashCode *port,
+GSC_drop_loose_channel (const struct GNUNET_HashCode *h_port,
                         struct CadetChannel *ch);
 
 

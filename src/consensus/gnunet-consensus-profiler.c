@@ -517,49 +517,49 @@ main (int argc, char **argv)
 {
    struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('n',
+      GNUNET_GETOPT_option_uint ('n',
                                      "num-peers",
                                      NULL,
                                      gettext_noop ("number of peers in consensus"),
                                      &num_peers),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('k',
+      GNUNET_GETOPT_option_uint ('k',
                                      "value-replication",
                                      NULL,
                                      gettext_noop ("how many peers (random selection without replacement) receive one value?"),
                                      &replication),
 
-      GNUNET_GETOPT_OPTION_SET_UINT ('x',
+      GNUNET_GETOPT_option_uint ('x',
                                      "num-values",
                                      NULL,
                                      gettext_noop ("number of values"),
                                      &num_values),
 
-      GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+      GNUNET_GETOPT_option_relative_time ('t',
                                               "timeout",
                                               NULL,
                                               gettext_noop ("consensus timeout"),
                                               &conclude_timeout),
 
 
-      GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('d',
+      GNUNET_GETOPT_option_relative_time ('d',
                                               "delay",
                                               NULL,
                                               gettext_noop ("delay until consensus starts"),
                                               &consensus_delay),
 
-      GNUNET_GETOPT_OPTION_FILENAME ('s',
+      GNUNET_GETOPT_option_filename ('s',
                                      "statistics",
                                      "FILENAME",
                                      gettext_noop ("write statistics to file"),
                                      &statistics_filename),
 
-      GNUNET_GETOPT_OPTION_SET_ONE ('S',
+      GNUNET_GETOPT_option_flag ('S',
                                     "dist-static",
                                     gettext_noop ("distribute elements to a static subset of good peers"),
                                     &dist_static),
 
-      GNUNET_GETOPT_OPTION_SET_ONE ('V',
+      GNUNET_GETOPT_option_flag ('V',
                                     "verbose",
                                     gettext_noop ("be more verbose (print received values)"),
                                     &verbose),

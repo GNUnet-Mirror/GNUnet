@@ -239,37 +239,37 @@ main (int argc, char *const *argv)
 
   struct GNUNET_GETOPT_CommandLineOption options[] = {
   
-    GNUNET_GETOPT_OPTION_STRING ('k',
+    GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "KEY",
                                  gettext_noop ("the query key"),
                                  &query_key),
   
-    GNUNET_GETOPT_OPTION_SET_UINT ('r',
+    GNUNET_GETOPT_option_uint ('r',
                                    "replication",
                                    "LEVEL",
                                    gettext_noop ("how many parallel requests (replicas) to create"),
                                    &replication),
   
   
-    GNUNET_GETOPT_OPTION_SET_UINT ('t',
+    GNUNET_GETOPT_option_uint ('t',
                                    "type",
                                    "TYPE",
                                    gettext_noop ("the type of data to look for"),
                                    &query_type),
   
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('T',
+    GNUNET_GETOPT_option_relative_time ('T',
                                             "timeout",
                                             "TIMEOUT",
                                             gettext_noop ("how long to execute this query before giving up?"),
                                             &timeout_request),
   
-    GNUNET_GETOPT_OPTION_SET_ONE ('x',
+    GNUNET_GETOPT_option_flag ('x',
                                   "demultiplex",
                                   gettext_noop ("use DHT's demultiplex everywhere option"),
                                   &demultixplex_everywhere),
   
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
 

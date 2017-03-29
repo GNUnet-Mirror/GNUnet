@@ -94,7 +94,7 @@ struct GNUNET_gstData {
 
   // things
   struct AudioMessage *audio_message;
-  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  struct GNUNET_MessageStreamTokenizer *stdin_mst;
   GstElement *appsrc;
   GstElement *appsink;
   //settings

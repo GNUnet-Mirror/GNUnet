@@ -145,7 +145,7 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('r',
+    GNUNET_GETOPT_option_flag ('r',
                                   "reverse",
                                   gettext_noop ("perform a reverse lookup"),
                                   &reverse),

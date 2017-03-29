@@ -140,7 +140,7 @@ main (int argc, char *const *argv)
   const char helpstr[] =
     "Get random GNUnet peers. If none is specified a single is requested.";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_BASE32_AUTO ('s',
+    GNUNET_GETOPT_option_base32_auto ('s',
                                           "seed",
                                           "PEER_ID",
                                           gettext_noop ("Seed a PeerID"),

@@ -349,30 +349,30 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ONE ('C',
+    GNUNET_GETOPT_option_flag ('C',
                                   "cfg",
                                   gettext_noop ("create unique configuration files"),
                                   &create_cfg),
-    GNUNET_GETOPT_OPTION_STRING ('k',
+    GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "FILENAME",
                                  gettext_noop ("extract hostkey file from pre-computed hostkey list"),
                                  &create_hostkey),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+    GNUNET_GETOPT_option_uint ('n',
                                    "number",
                                    "NUMBER",
                                    gettext_noop ("number of unique configuration files to create, or number of the hostkey to extract"),
                                    &create_no),
 
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "template",
                                  "FILENAME",
                                  gettext_noop ("configuration template"),
                                  &create_cfg_template),
 
-    GNUNET_GETOPT_OPTION_STRING ('r',
+    GNUNET_GETOPT_option_string ('r',
                                  "run",
                                  "SERVICE",
                                  gettext_noop ("run the given service, wait on stdin for 'r' (restart) or 'q' (quit)"),

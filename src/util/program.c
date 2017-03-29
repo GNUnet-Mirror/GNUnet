@@ -148,11 +148,11 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   struct GNUNET_GETOPT_CommandLineOption defoptions[] = {
-    GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
-    GNUNET_GETOPT_OPTION_HELP (binaryHelp),
-    GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
-    GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION)
+    GNUNET_GETOPT_option_cfgfile (&cc.cfgfile),
+    GNUNET_GETOPT_option_help (binaryHelp),
+    GNUNET_GETOPT_option_loglevel (&loglev),
+    GNUNET_GETOPT_option_logfile (&logfile),
+    GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION)
   };
   struct GNUNET_GETOPT_CommandLineOption *allopts;
   const char *gargs;

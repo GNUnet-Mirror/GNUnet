@@ -422,36 +422,36 @@ main (int argc,
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_STRING ('u',
+    GNUNET_GETOPT_option_string ('u',
                                  "lookup",
                                  "NAME",
                                  gettext_noop ("Lookup a record for the given name"),
                                  &lookup_name),
 
-    GNUNET_GETOPT_OPTION_STRING ('t',
+    GNUNET_GETOPT_option_string ('t',
                                  "type",
                                  "TYPE",
                                  gettext_noop ("Specify the type of the record to lookup"),
                                  &lookup_type),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('T',
+    GNUNET_GETOPT_option_relative_time ('T',
                                             "timeout",
                                             "DELAY",
                                             gettext_noop ("Specify timeout for the lookup"),
                                             &timeout),
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('r',
+    GNUNET_GETOPT_option_flag ('r',
                                   "raw",
                                   gettext_noop ("No unneeded output"),
                                   &raw),
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "public-key",
                                  "PKEY",
                                  gettext_noop ("Specify the public key of the zone to lookup the record in"),
                                  &public_key),
     
-    GNUNET_GETOPT_OPTION_STRING ('z',
+    GNUNET_GETOPT_option_string ('z',
                                  "zone",
                                  "NAME",
                                  gettext_noop ("Specify the name of the ego of the zone to lookup the record in"),

@@ -784,7 +784,7 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_ULONG ('p',
+    GNUNET_GETOPT_option_ulong ('p',
                                     "port",
                                     "PORT",
                                     gettext_noop ("listen on specified port (default: 7776)"),

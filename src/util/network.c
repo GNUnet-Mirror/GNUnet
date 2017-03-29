@@ -1697,6 +1697,64 @@ initialize_select_thread ()
 
 #endif
 
+/**
+ * Test if the given @a port is available.
+ *
+ * @param ipproto transport protocol to test (i.e. IPPROTO_TCP)
+ * @param port port number to test
+ * @return #GNUNET_OK if the port is available, #GNUNET_NO if not
+ */
+int
+GNUNET_NETWORK_test_port_free (int ipproto,
+			       uint16_t port)
+{
+  struct GNUNET_NETWORK_Handle *socket;
+  int bind_status;
+  int socktype;
+  char open_port_str[6];
+  struct addrinfo hint;
+  struct addrinfo *ret;
+  struct addrinfo *ai;
+
+  GNUNET_snprintf (open_port_str,
+		   sizeof (open_port_str),
+		   "%u",
+		   (unsigned int) port);
+  socktype = (IPPROTO_TCP == ipproto)
+    ? SOCK_STREAM
+    : SOCK_DGRAM;
+  ret = NULL;
+  memset (&hint, 0, sizeof (hint));
+  hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
+  hint.ai_socktype = socktype;
+  hint.ai_protocol = ipproto;
+  hint.ai_addrlen = 0;
+  hint.ai_addr = NULL;
+  hint.ai_canonname = NULL;
+  hint.ai_next = NULL;
+  hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
+  GNUNET_assert (0 == getaddrinfo (NULL,
+				   open_port_str,
+				   &hint,
+				   &ret));
+  for (ai = ret; NULL != ai; ai = ai->ai_next)
+  {
+    socket = GNUNET_NETWORK_socket_create (ai->ai_family,
+					   ai->ai_socktype,
+					   ai->ai_protocol);
+    if (NULL == socket)
+      continue;
+    bind_status = GNUNET_NETWORK_socket_bind (socket,
+					      ai->ai_addr,
+					      ai->ai_addrlen);
+    GNUNET_NETWORK_socket_close (socket);
+    if (GNUNET_OK != bind_status)
+      break;
+  }
+  freeaddrinfo (ret);
+  return bind_status;
+}
+
 
 #ifndef MINGW
 /**

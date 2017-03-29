@@ -246,31 +246,31 @@ main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('A',
+    GNUNET_GETOPT_option_uint ('A',
                                    "asize",
                                    NULL,
                                    gettext_noop ("number of element in set A-B"),
                                    &asize),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('B',
+    GNUNET_GETOPT_option_uint ('B',
                                    "bsize",
                                    NULL,
                                    gettext_noop ("number of element in set B-A"),
                                    &bsize),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('C',
+    GNUNET_GETOPT_option_uint ('C',
                                    "csize",
                                    NULL,
                                    gettext_noop ("number of common elements in A and B"),
                                    &csize),
     
-    GNUNET_GETOPT_OPTION_SET_UINT ('k',
+    GNUNET_GETOPT_option_uint ('k',
                                    "hash-num",
                                    NULL,
                                    gettext_noop ("hash num"),
                                    &hash_num),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('s',
+    GNUNET_GETOPT_option_uint ('s',
                                    "ibf-size",
                                    NULL,
                                    gettext_noop ("ibf size"),

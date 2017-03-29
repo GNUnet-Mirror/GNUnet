@@ -164,7 +164,7 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
 
     GNUNET_GETOPT_OPTION_END
   };

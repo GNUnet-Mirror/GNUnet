@@ -604,37 +604,37 @@ main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('n',
+    GNUNET_GETOPT_option_uint ('n',
                                    "num-peers",
                                    NULL,
                                    gettext_noop ("number of peers in consensus"),
                                    &num_peers),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('D',
+    GNUNET_GETOPT_option_relative_time ('D',
                                             "delay",
                                             NULL,
                                             gettext_noop ("dkg start delay"),
                                             &delay),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+    GNUNET_GETOPT_option_relative_time ('t',
                                             "timeout",
                                             NULL,
                                             gettext_noop ("dkg timeout"),
                                             &timeout),
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('k',
+    GNUNET_GETOPT_option_uint ('k',
                                    "threshold",
                                    NULL,
                                    gettext_noop ("threshold"),
                                    &threshold),
     
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_flag ('d',
                                   "descrypt",
                                   gettext_noop ("also profile decryption"),
                                   &decrypt),
 
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
 
     GNUNET_GETOPT_OPTION_END
   };

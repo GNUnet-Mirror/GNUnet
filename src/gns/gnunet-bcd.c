@@ -516,7 +516,7 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_UINT ('p',
+    GNUNET_GETOPT_option_uint ('p',
                                    "port",
                                    "PORT",
                                    gettext_noop ("Run HTTP serve on port PORT (default is 8888)"),

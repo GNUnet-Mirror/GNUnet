@@ -1479,32 +1479,32 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_FILENAME ('o',
+    GNUNET_GETOPT_option_filename ('o',
                                    "output-file",
                                    "FILENAME",
                                    gettext_noop ("name of the file for writing statistics"),
                                    &data_filename),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('t',
+    GNUNET_GETOPT_option_relative_time ('t',
                                             "matching-timeout",
                                             "TIMEOUT",
                                             gettext_noop ("wait TIMEOUT before ending the experiment"),
                                             &search_timeout_time), 
 
-    GNUNET_GETOPT_OPTION_FILENAME ('p',
+    GNUNET_GETOPT_option_filename ('p',
                                    "policy-dir",
                                    "DIRECTORY",
                                    gettext_noop ("directory with policy files"),
                                    &policy_dir),
 
 
-    GNUNET_GETOPT_OPTION_FILENAME ('s',
+    GNUNET_GETOPT_option_filename ('s',
                                    "strings-file",
                                    "FILENAME",
                                    gettext_noop ("name of file with input strings"),
                                    &strings_file),
 
-    GNUNET_GETOPT_OPTION_FILENAME ('H',
+    GNUNET_GETOPT_option_filename ('H',
                                    "hosts-file",
                                    "FILENAME",
                                    gettext_noop ("name of file with hosts' names"),

@@ -114,12 +114,12 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_OPTION_SET_ONE ('i',
+    GNUNET_GETOPT_option_flag ('i',
                                   "list-indexed",
                                   gettext_noop ("print a list of all indexed files"),
                                   &list_indexed_files),
 
-    GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
 

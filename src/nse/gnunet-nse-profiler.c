@@ -836,42 +836,42 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_SET_UINT ('C',
+    GNUNET_GETOPT_option_uint ('C',
                                    "connections",
                                    "COUNT",
                                    gettext_noop ("limit to the number of connections to NSE services, 0 for none"),
                                    &connection_limit),
-    GNUNET_GETOPT_OPTION_STRING ('d',
+    GNUNET_GETOPT_option_string ('d',
                                  "details",
                                  "FILENAME",
                                  gettext_noop ("name of the file for writing connection information and statistics"),
                                  &data_filename),
 
-    GNUNET_GETOPT_OPTION_STRING ('H',
+    GNUNET_GETOPT_option_string ('H',
                                  "hosts",
                                  "FILENAME",
                                  gettext_noop ("name of the file with the login information for the testbed"),
                                  &hosts_file),
 
-    GNUNET_GETOPT_OPTION_STRING ('o',
+    GNUNET_GETOPT_option_string ('o',
                                  "output",
                                  "FILENAME",
                                  gettext_noop ("name of the file for writing the main results"),
                                  &output_filename),
 
 
-    GNUNET_GETOPT_OPTION_STRING ('p',
+    GNUNET_GETOPT_option_string ('p',
                                  "peers",
                                  "NETWORKSIZESPEC",
                                  gettext_noop ("Number of peers to run in each round, separated by commas"),
                                  &num_peer_spec),
 
-    GNUNET_GETOPT_OPTION_INCREMENT_VALUE ('V',
+    GNUNET_GETOPT_option_increment_uint ('V',
                                           "verbose",
                                           gettext_noop ("be verbose (print progress information)"),
                                           &verbose),
 
-    GNUNET_GETOPT_OPTION_SET_RELATIVE_TIME ('w',
+    GNUNET_GETOPT_option_relative_time ('w',
                                             "wait",
                                             "DELAY",
                                             gettext_noop ("delay between rounds"),

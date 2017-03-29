@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -42,6 +41,21 @@
  * the connection from the "local" client.
  */
 struct CadetChannel;
+
+
+/**
+ * Hash the @a port and @a initiator and @a listener to 
+ * calculate the "challenge" @a h_port we send to the other
+ * peer on #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN.
+ *
+ * @param[out] h_port set to the hash of @a port, @a initiator and @a listener
+ * @param port cadet port, as seen by CADET clients
+ * @param listener peer that is listining on @a port
+ */
+void
+GCCH_hash_port (struct GNUNET_HashCode *h_port,
+		const struct GNUNET_HashCode *port,
+		const struct GNUNET_PeerIdentity *listener);
 
 
 /**
@@ -101,11 +115,13 @@ GCCH_channel_local_new (struct CadetClient *owner,
  * request and establish the link with the client.
  *
  * @param ch open incoming channel
- * @param c client listening on the respective port
+ * @param c client listening on the respective @a port
+ * @param port port number @a c is listening on
  */
 void
 GCCH_bind (struct CadetChannel *ch,
-           struct CadetClient *c);
+           struct CadetClient *c,
+	   const struct GNUNET_HashCode *port);
 
 
 /**
@@ -142,14 +158,14 @@ GCCH_tunnel_up (struct CadetChannel *ch);
  * @param t tunnel to the remote peer
  * @param chid identifier of this channel in the tunnel
  * @param origin peer to who initiated the channel
- * @param port desired local port
+ * @param h_port hash of desired local port
  * @param options options for the channel
  * @return handle to the new channel
  */
 struct CadetChannel *
 GCCH_channel_incoming_new (struct CadetTunnel *t,
                            struct GNUNET_CADET_ChannelTunnelNumber chid,
-                           const struct GNUNET_HashCode *port,
+                           const struct GNUNET_HashCode *h_port,
                            uint32_t options);
 
 
@@ -201,10 +217,12 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  * @param ch channel to destroy
  * @param cti identifier of the connection that delivered the message,
  *        NULL if the ACK was inferred because we got payload or are on loopback
+ * @param port port number (needed to verify receiver knows the port)
  */
 void
 GCCH_handle_channel_open_ack (struct CadetChannel *ch,
-                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+			      const struct GNUNET_HashCode *port);
 
 
 /**

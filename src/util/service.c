@@ -1722,15 +1722,15 @@ GNUNET_SERVICE_run_ (int argc,
   int err;
 
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
-    GNUNET_GETOPT_OPTION_CFG_FILE (&opt_cfg_filename),
-    GNUNET_GETOPT_OPTION_SET_ONE ('d',
+    GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
+    GNUNET_GETOPT_option_flag ('d',
                                   "daemonize",
                                   gettext_noop ("do daemonize (detach from terminal)"),
                                   &do_daemonize),
-    GNUNET_GETOPT_OPTION_HELP (NULL),
-    GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
-    GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION),
+    GNUNET_GETOPT_option_help (NULL),
+    GNUNET_GETOPT_option_loglevel (&loglev),
+    GNUNET_GETOPT_option_logfile (&logfile),
+    GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
 
