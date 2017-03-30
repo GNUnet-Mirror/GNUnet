@@ -1046,7 +1046,7 @@ main (int argc,
                                gettext_noop ("provide information about all peers"),
                                &measure_rtt),
 
-    GNUNET_GETOPT_option_uint ('c',
+    GNUNET_GETOPT_option_uint ('n',
                                "count",
                                "COUNT",
                                gettext_noop ("number of RTT measurements"),
