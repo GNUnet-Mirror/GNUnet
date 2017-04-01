@@ -475,10 +475,7 @@ src/util/plugin.c
 src/util/program.c
 src/util/resolver_api.c
 src/util/scheduler.c
-src/util/server_mst.c
-src/util/server_nc.c
-src/util/server_tc.c
-src/util/service_new.c
+src/util/service.c
 src/util/signal.c
 src/util/socks.c
 src/util/speedup.c
