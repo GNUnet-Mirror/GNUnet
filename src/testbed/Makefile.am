@@ -106,7 +106,6 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_sd.c testbed_api_sd.h \
   testbed_api_barriers.c
 libgnunettestbed_la_LIBADD = $(XLIB) \
- $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
