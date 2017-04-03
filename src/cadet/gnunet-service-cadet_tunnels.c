@@ -73,6 +73,14 @@
  */
 #define MAX_KEY_GAP 256
 
+#define MEASURE_CRYPTO_DELAY 1
+
+#ifdef MEASURE_CRYPTO_DELAY
+#include <inttypes.h>
+#define OFF_T_MAX (off_t)(1<<sizeof(off_t))-1
+#define ENC_DELAY_FILE "cadet_encryption_delay.csv"
+#define DEC_DELAY_FILE "cadet_decryption_delay.csv"
+#endif
 
 /**
  * Struct to old keys for skipped messages while advancing the Axolotl ratchet.
@@ -449,6 +457,10 @@ struct CadetTunnel
    */
   int kx_auth_requested;
 
+#ifdef MEASURE_CRYPTO_DELAY
+  FILE *enc_delay_file;
+  FILE *dec_delay_file;
+#endif
 };
 
 
@@ -2065,6 +2077,12 @@ destroy_tunnel (void *cls)
     GNUNET_free (t->unverified_ax);
   }
   cleanup_ax (&t->ax);
+#ifdef MEASURE_CRYPTO_DELAY
+  FCLOSE (t->enc_delay_file);
+  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX);
+  FCLOSE (t->dec_delay_file);
+  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (t->dec_delay_file), 0, OFF_T_MAX);
+#endif
   GNUNET_assert (NULL == t->destroy_task);
   GNUNET_free (t);
 }
@@ -2943,6 +2961,24 @@ GCT_create_tunnel (struct CadetPeer *destination)
                                          t);
   t->mst = GNUNET_MST_create (&handle_decrypted,
                               t);
+
+#ifdef MEASURE_CRYPTO_DELAY
+  t->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
+  t->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
+  int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+  int dec_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->dec_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+  if (GNUNET_OK != enc_lock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cannot store measuring values: " ENC_DELAY_FILE " is opened from somewhere else");
+  }
+  if (GNUNET_OK != dec_lock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cannot store measuring values: " DEC_DELAY_FILE " is opened from somewhere else");
+  }
+
+#endif
   return t;
 }
 
@@ -3083,6 +3119,10 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
   }
 
   decrypted_size = -1;
+
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Absolute dec_start_time = GNUNET_TIME_absolute_get ();
+#endif
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
     /* We have well-established key material available,
@@ -3162,6 +3202,16 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
              &t->ax);
     return;
   }
+
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative dec_delay =
+    GNUNET_TIME_absolute_get_duration (dec_start_time);
+
+  FPRINTF (t->dec_delay_file,
+           "%" PRIu64 "\n",
+           dec_delay.rel_value_us);
+  fflush (t->dec_delay_file);
+#endif
   GNUNET_STATISTICS_update (stats,
                             "# decrypted bytes",
                             decrypted_size,
@@ -3213,10 +3263,22 @@ GCT_send (struct CadetTunnel *t,
   env = GNUNET_MQ_msg_extra (ax_msg,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED);
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Absolute enc_start_time = GNUNET_TIME_absolute_get ();
+#endif
   t_ax_encrypt (&t->ax,
                 &ax_msg[1],
                 message,
                 payload_size);
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative enc_delay =
+    GNUNET_TIME_absolute_get_duration (enc_start_time); 
+
+  FPRINTF (t->enc_delay_file,
+           "%" PRIu64 "\n",
+           enc_delay.rel_value_us);
+  fflush (t->enc_delay_file);
+#endif
   GNUNET_STATISTICS_update (stats,
                             "# encrypted bytes",
                             payload_size,
