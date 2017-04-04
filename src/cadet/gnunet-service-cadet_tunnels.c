@@ -73,8 +73,6 @@
  */
 #define MAX_KEY_GAP 256
 
-#define MEASURE_CRYPTO_DELAY 1
-
 #ifdef MEASURE_CRYPTO_DELAY
 #include <inttypes.h>
 #define OFF_T_MAX (off_t)(1<<sizeof(off_t))-1
@@ -458,6 +456,8 @@ struct CadetTunnel
   int kx_auth_requested;
 
 #ifdef MEASURE_CRYPTO_DELAY
+  int measure_enc_delay;
+  struct GNUNET_TIME_Relative dec_delay;
   FILE *enc_delay_file;
   FILE *dec_delay_file;
 #endif
@@ -2682,6 +2682,12 @@ handle_plaintext_data (void *cls,
                               msg->ctn);
     return;
   }
+#ifdef MEASURE_CRYPTO_DELAY
+  FPRINTF (t->dec_delay_file,
+           "%" PRIu64 "\n",
+           t->dec_delay.rel_value_us);
+  fflush (t->dec_delay_file);
+#endif
   GCCH_handle_channel_plaintext_data (ch,
                                       GCC_get_id (t->current_ct->cc),
                                       msg);
@@ -2963,6 +2969,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
                               t);
 
 #ifdef MEASURE_CRYPTO_DELAY
+  t->measure_enc_delay = GNUNET_NO;
   t->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
   t->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
   int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
@@ -3163,13 +3170,13 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     }
   }
 #ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative dec_delay =
+  t->dec_delay =
     GNUNET_TIME_absolute_get_duration (dec_start_time);
 
-  FPRINTF (t->dec_delay_file,
-           "%" PRIu64 "\n",
-           dec_delay.rel_value_us);
-  fflush (t->dec_delay_file);
+  //FPRINTF (t->dec_delay_file,
+  //         "%" PRIu64 "\n",
+  //         dec_delay.rel_value_us);
+  //fflush (t->dec_delay_file);
 #endif
 
   if (NULL != t->unverified_ax)
@@ -3290,13 +3297,16 @@ GCT_send (struct CadetTunnel *t,
           &t->ax.HKs,
           &ax_msg->hmac);
 #ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative enc_delay =
-    GNUNET_TIME_absolute_get_duration (enc_start_time); 
+  if (GNUNET_YES == t->measure_enc_delay)
+  {
+    struct GNUNET_TIME_Relative enc_delay =
+      GNUNET_TIME_absolute_get_duration (enc_start_time); 
 
-  FPRINTF (t->enc_delay_file,
-           "%" PRIu64 "\n",
-           enc_delay.rel_value_us);
-  fflush (t->enc_delay_file);
+    FPRINTF (t->enc_delay_file,
+             "%" PRIu64 "\n",
+             enc_delay.rel_value_us);
+    fflush (t->enc_delay_file);
+  }
 #endif
 
   tq = GNUNET_malloc (sizeof (*tq));
@@ -3315,6 +3325,21 @@ GCT_send (struct CadetTunnel *t,
                                 t);
   return tq;
 }
+
+
+#ifdef MEASURE_CRYPTO_DELAY
+struct CadetTunnelQueueEntry *
+GCT_send_and_measure_delay (struct CadetTunnel *t,
+                            const struct GNUNET_MessageHeader *message,
+                            GCT_SendContinuation cont,
+                            void *cont_cls)
+{
+  t->measure_enc_delay = GNUNET_YES;
+  struct CadetTunnelQueueEntry * ret = GCT_send (t, message, cont, cont_cls);
+  t->measure_enc_delay = GNUNET_NO;
+  return ret;
+}
+#endif
 
 
 /**

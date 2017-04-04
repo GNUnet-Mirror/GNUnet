@@ -31,6 +31,9 @@
 #include "gnunet_util_lib.h"
 #include "cadet_protocol.h"
 
+#define MEASURE_CRYPTO_DELAY 1
+
+
 /**
  * A client to the CADET service.  Each client gets a unique handle.
  */

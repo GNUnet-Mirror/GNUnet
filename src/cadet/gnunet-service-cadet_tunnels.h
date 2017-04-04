@@ -230,6 +230,14 @@ GCT_send (struct CadetTunnel *t,
           GCT_SendContinuation cont,
           void *cont_cls);
 
+#ifdef MEASURE_CRYPTO_DELAY
+struct CadetTunnelQueueEntry *
+GCT_send_and_measure_delay (struct CadetTunnel *t,
+                            const struct GNUNET_MessageHeader *message,
+                            GCT_SendContinuation cont,
+                            void *cont_cls);
+#endif
+
 
 /**
  * Cancel a previously sent message while it's in the queue.

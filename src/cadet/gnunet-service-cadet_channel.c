@@ -1916,10 +1916,17 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     ch->retry_data_task = NULL;
   }
+#ifdef MEASURE_CRYPTO_DELAY
+  crm->qe = GCT_send_and_measure_delay (ch->t,
+                                        &crm->data_message->header,
+                                        &data_sent_cb,
+                                        crm);
+#else
   crm->qe = GCT_send (ch->t,
                       &crm->data_message->header,
                       &data_sent_cb,
                       crm);
+#endif
   GNUNET_assert (NULL == ch->retry_data_task);
   return GNUNET_OK;
 }
