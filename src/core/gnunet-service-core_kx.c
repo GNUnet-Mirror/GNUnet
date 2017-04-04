@@ -64,6 +64,14 @@
  */
 #define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
 
+#define MEASURE_CRYPTO_DELAY 1
+
+#ifdef MEASURE_CRYPTO_DELAY
+#include <inttypes.h>
+#define OFF_T_MAX (off_t)(1<<sizeof(off_t))-1
+#define ENC_DELAY_FILE "core_encryption_delay.csv"
+#define DEC_DELAY_FILE "core_decryption_delay.csv"
+#endif
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -351,6 +359,10 @@ struct GSC_KeyExchangeInfo
    */
   enum GNUNET_CORE_KxState status;
 
+#ifdef MEASURE_CRYPTO_DELAY
+  FILE *enc_delay_file;
+  FILE *dec_delay_file;
+#endif
 };
 
 
@@ -785,6 +797,22 @@ handle_transport_notify_connect (void *cls,
 			       kx_tail,
 			       kx);
   kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
+#ifdef MEASURE_CRYPTO_DELAY
+  kx->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
+  kx->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
+  int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (kx->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+  int dec_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (kx->dec_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+  if (GNUNET_OK != enc_lock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cannot store measuring values: " ENC_DELAY_FILE " is opened from somewhere else");
+  }
+  if (GNUNET_OK != dec_lock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cannot store measuring values: " DEC_DELAY_FILE " is opened from somewhere else");
+  }
+#endif
   monitor_notify_all (kx);
   GNUNET_CRYPTO_hash (pid,
                       sizeof (struct GNUNET_PeerIdentity),
@@ -853,6 +881,12 @@ handle_transport_notify_disconnect (void *cls,
 			       kx_tail,
 			       kx);
   GNUNET_MST_destroy (kx->mst);
+#ifdef MEASURE_CRYPTO_DELAY
+  FCLOSE (kx->enc_delay_file);
+  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (kx->enc_delay_file), 0, OFF_T_MAX);
+  FCLOSE (kx->dec_delay_file);
+  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (kx->dec_delay_file), 0, OFF_T_MAX);
+#endif
   GNUNET_free (kx);
 }
 
@@ -1441,6 +1475,9 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 			     payload_size,
 			     GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Absolute enc_start_time = GNUNET_TIME_absolute_get ();
+#endif
   derive_iv (&iv,
              &kx->encrypt_key,
              ph->iv_seed,
@@ -1462,6 +1499,15 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                       &em->sequence_number,
                       used - ENCRYPTED_HEADER_SIZE,
                       &em->hmac);
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative enc_delay =
+    GNUNET_TIME_absolute_get_duration (enc_start_time);
+
+  FPRINTF (kx->enc_delay_file,
+           "%" PRIu64 "\n",
+           enc_delay.rel_value_us);
+  fflush (kx->enc_delay_file);
+#endif
   kx->has_excess_bandwidth = GNUNET_NO;
   GNUNET_MQ_send (kx->mq,
 		  env);
@@ -1540,6 +1586,9 @@ handle_encrypted (void *cls,
     return;
   }
 
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Absolute dec_start_time = GNUNET_TIME_absolute_get ();
+#endif
   /* validate hash */
   derive_auth_key (&auth_key,
                    &kx->decrypt_key,
@@ -1573,6 +1622,15 @@ handle_encrypted (void *cls,
     GNUNET_break_op (0);
     return;
   }
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative dec_delay =
+    GNUNET_TIME_absolute_get_duration (dec_start_time);
+
+  FPRINTF (kx->dec_delay_file,
+           "%" PRIu64 "\n",
+           dec_delay.rel_value_us);
+  fflush (kx->dec_delay_file);
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from %s\n",
               (unsigned int) (size - ENCRYPTED_HEADER_SIZE),
