@@ -3162,6 +3162,16 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
                                                t);
     }
   }
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative dec_delay =
+    GNUNET_TIME_absolute_get_duration (dec_start_time);
+
+  FPRINTF (t->dec_delay_file,
+           "%" PRIu64 "\n",
+           dec_delay.rel_value_us);
+  fflush (t->dec_delay_file);
+#endif
+
   if (NULL != t->unverified_ax)
   {
     /* We had unverified KX material that was useless; so increment
@@ -3203,15 +3213,6 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
     return;
   }
 
-#ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative dec_delay =
-    GNUNET_TIME_absolute_get_duration (dec_start_time);
-
-  FPRINTF (t->dec_delay_file,
-           "%" PRIu64 "\n",
-           dec_delay.rel_value_us);
-  fflush (t->dec_delay_file);
-#endif
   GNUNET_STATISTICS_update (stats,
                             "# decrypted bytes",
                             decrypted_size,
@@ -3270,15 +3271,6 @@ GCT_send (struct CadetTunnel *t,
                 &ax_msg[1],
                 message,
                 payload_size);
-#ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative enc_delay =
-    GNUNET_TIME_absolute_get_duration (enc_start_time); 
-
-  FPRINTF (t->enc_delay_file,
-           "%" PRIu64 "\n",
-           enc_delay.rel_value_us);
-  fflush (t->enc_delay_file);
-#endif
   GNUNET_STATISTICS_update (stats,
                             "# encrypted bytes",
                             payload_size,
@@ -3297,6 +3289,15 @@ GCT_send (struct CadetTunnel *t,
           0,
           &t->ax.HKs,
           &ax_msg->hmac);
+#ifdef MEASURE_CRYPTO_DELAY
+  struct GNUNET_TIME_Relative enc_delay =
+    GNUNET_TIME_absolute_get_duration (enc_start_time); 
+
+  FPRINTF (t->enc_delay_file,
+           "%" PRIu64 "\n",
+           enc_delay.rel_value_us);
+  fflush (t->enc_delay_file);
+#endif
 
   tq = GNUNET_malloc (sizeof (*tq));
   tq->t = t;
