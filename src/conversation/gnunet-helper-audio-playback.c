@@ -596,12 +596,12 @@ stdin_receiver (void *cls,
       GNUNET_TIME_absolute_get_difference (encode_end_time, decode_begin_time);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"received: encode_begin_time = %" PRId64 ", encode_end_time = %" PRId64 ", audio->header.size = %u\n",
+		"received: encode_begin_time = %" PRIu64 ", encode_end_time = %" PRIu64 ", audio->header.size = %u\n",
 		encode_begin_time.abs_value_us,
 		encode_end_time.abs_value_us,
                 ntohs (audio->header.size));
 
-    FPRINTF (measurement_file, "%" PRId64 ",%" PRId64 ",%" PRId64 "\n",
+    FPRINTF (measurement_file, "%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
              encode_latency.rel_value_us,
              network_rtt.rel_value_us,
              decode_latency.rel_value_us);
