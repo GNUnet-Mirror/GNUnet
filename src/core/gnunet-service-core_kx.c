@@ -64,8 +64,6 @@
  */
 #define MAX_MESSAGE_AGE GNUNET_TIME_UNIT_DAYS
 
-#define MEASURE_CRYPTO_DELAY 1
-
 #ifdef MEASURE_CRYPTO_DELAY
 #include <inttypes.h>
 #define OFF_T_MAX (off_t)(1<<sizeof(off_t))-1
@@ -360,6 +358,8 @@ struct GSC_KeyExchangeInfo
   enum GNUNET_CORE_KxState status;
 
 #ifdef MEASURE_CRYPTO_DELAY
+  int measure_enc_delay;
+  struct GNUNET_TIME_Relative dec_delay;
   FILE *enc_delay_file;
   FILE *dec_delay_file;
 #endif
@@ -749,6 +749,12 @@ deliver_message (void *cls,
     GSC_SESSIONS_confirm_typemap (kx->peer, m);
     return GNUNET_OK;
   default:
+#ifdef MEASURE_CRYPTO_DELAY
+  FPRINTF (kx->dec_delay_file,
+           "%" PRIu64 "\n",
+           kx->dec_delay.rel_value_us);
+  fflush (kx->dec_delay_file);
+#endif
     GSC_CLIENTS_deliver_message (kx->peer,
                                  m,
                                  ntohs (m->size),
@@ -798,6 +804,7 @@ handle_transport_notify_connect (void *cls,
 			       kx);
   kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
 #ifdef MEASURE_CRYPTO_DELAY
+  kx->measure_enc_delay = GNUNET_NO;
   kx->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
   kx->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
   int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (kx->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
@@ -1500,18 +1507,34 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                       used - ENCRYPTED_HEADER_SIZE,
                       &em->hmac);
 #ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative enc_delay =
-    GNUNET_TIME_absolute_get_duration (enc_start_time);
+  if (GNUNET_YES == kx->measure_enc_delay)
+  {
+    struct GNUNET_TIME_Relative enc_delay =
+      GNUNET_TIME_absolute_get_duration (enc_start_time);
 
-  FPRINTF (kx->enc_delay_file,
-           "%" PRIu64 "\n",
-           enc_delay.rel_value_us);
-  fflush (kx->enc_delay_file);
+    FPRINTF (kx->enc_delay_file,
+             "%" PRIu64 "\n",
+             enc_delay.rel_value_us);
+    fflush (kx->enc_delay_file);
+  }
 #endif
   kx->has_excess_bandwidth = GNUNET_NO;
   GNUNET_MQ_send (kx->mq,
 		  env);
 }
+
+
+#ifdef MEASURE_CRYPTO_DELAY
+void
+GSC_KX_encrypt_and_transmit_measure_encryption_delay (struct GSC_KeyExchangeInfo *kx,
+                                                      const void *payload,
+			                              size_t payload_size)
+{
+  kx->measure_enc_delay = GNUNET_YES;
+  GSC_KX_encrypt_and_transmit (kx, payload, payload_size);
+  kx->measure_enc_delay = GNUNET_NO;
+}
+#endif
 
 
 /**
@@ -1623,13 +1646,13 @@ handle_encrypted (void *cls,
     return;
   }
 #ifdef MEASURE_CRYPTO_DELAY
-  struct GNUNET_TIME_Relative dec_delay =
+  kx->dec_delay =
     GNUNET_TIME_absolute_get_duration (dec_start_time);
-
-  FPRINTF (kx->dec_delay_file,
-           "%" PRIu64 "\n",
-           dec_delay.rel_value_us);
-  fflush (kx->dec_delay_file);
+  
+  //FPRINTF (kx->dec_delay_file,
+  //         "%" PRIu64 "\n",
+  //         dec_delay.rel_value_us);
+  //fflush (kx->dec_delay_file);
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from %s\n",

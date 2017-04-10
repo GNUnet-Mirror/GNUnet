@@ -49,6 +49,14 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 			     size_t payload_size);
 
 
+#ifdef MEASURE_CRYPTO_DELAY
+void
+GSC_KX_encrypt_and_transmit_measure_encryption_delay (struct GSC_KeyExchangeInfo *kx,
+                                                      const void *payload,
+			                              size_t payload_size);
+#endif
+
+
 /**
  * Initialize KX subsystem.
  *

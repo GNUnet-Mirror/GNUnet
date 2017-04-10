@@ -802,9 +802,15 @@ try_transmission (struct Session *session)
                            GNUNET_NO);
     /* now actually transmit... */
     session->ready_to_transmit = GNUNET_NO;
+#ifdef MEASURE_CRYPTO_DELAY
+    GSC_KX_encrypt_and_transmit_measure_encryption_delay (session->kx,
+                                                          pbuf,
+                                                          used);
+#else
     GSC_KX_encrypt_and_transmit (session->kx,
                                  pbuf,
                                  used);
+#endif
   }
 }
 

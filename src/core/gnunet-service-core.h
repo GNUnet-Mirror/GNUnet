@@ -31,6 +31,8 @@
 #include "core.h"
 #include "gnunet-service-core_typemap.h"
 
+#define MEASURE_CRYPTO_DELAY 1
+
 
 /**
  * Opaque handle to a client.
