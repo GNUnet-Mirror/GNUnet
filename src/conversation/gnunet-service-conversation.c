@@ -666,9 +666,10 @@ handle_client_audio_message (void *cls,
   if (NULL != ch->env)
   {
     /* NOTE: we may want to not do this and instead combine the data */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Bandwidth insufficient; dropping current audio data segment\n");
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Bandwidth insufficient; dropping previous audio data segment\n");
+    GNUNET_MQ_send_cancel (ch->env);
+    ch->env = NULL;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
