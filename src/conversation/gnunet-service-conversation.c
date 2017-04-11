@@ -1270,6 +1270,14 @@ handle_client_register_message (void *cls,
                                        NULL,
                                        &inbound_end,
                                        cadet_handlers);
+  if (NULL == line->port)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Could not open line, port %s already in use!\n"),
+                GNUNET_h2s (&msg->line_port));
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
   GNUNET_SERVICE_client_continue (line->client);
 }
 

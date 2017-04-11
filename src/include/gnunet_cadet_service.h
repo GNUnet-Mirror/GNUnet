@@ -221,7 +221,7 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
  *                       Can be NULL.
  * @param disconnects Function called when a channel is disconnected.
  * @param handlers Callbacks for messages we care about, NULL-terminated.
- * @return Port handle.
+ * @return Port handle, NULL if port is in use
  */
 struct GNUNET_CADET_Port *
 GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
