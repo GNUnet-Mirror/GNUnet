@@ -519,8 +519,7 @@ handle_data (void *cls,
     waiting_for_pong = GNUNET_NO;
     rtt = GNUNET_TIME_absolute_get_duration (payload);
     FPRINTF (stdout,
-             "%d,%" PRIu64 "\n",
-             ping_count,
+             "%" PRIu64 "\n",
              rtt.rel_value_us);
     send_ping (NULL);
     return;

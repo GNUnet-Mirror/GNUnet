@@ -802,8 +802,7 @@ handle_dummy (void *cls,
       GNUNET_TIME_absolute_get_duration (start_time);
     waiting_for_pong = GNUNET_NO;
     FPRINTF (stdout,
-            "%d,%" PRIu64 "\n",
-            ping_count,
+            "%" PRIu64 "\n",
             latency.rel_value_us);
     send_ping (cls);
   }
