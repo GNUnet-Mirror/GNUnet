@@ -46,6 +46,8 @@ extern "C"
  */
 #define HIGH_BIT ((uint32_t) (1LL << 31))
 
+#define MEASURE_CODEC_DELAY 1
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
@@ -58,18 +60,6 @@ struct AudioMessage
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO
    */
   struct GNUNET_MessageHeader header;
-
-  // FIXME: make compilation of record_timestamp and network_send_timestamp optional
-  /**
-   * the timestamp the record helper sets before encoding
-   */
-  struct GNUNET_TIME_AbsoluteNBO encode_begin_time; 
-
-  /**
-   * the round-trip time the conversation api calculates when receiving an
-   * echo from the other call participant
-   */
-  struct GNUNET_TIME_AbsoluteNBO encode_end_time;
 
   /* followed by audio data */
   

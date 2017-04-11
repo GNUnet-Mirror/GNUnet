@@ -41,7 +41,6 @@
 #include <ogg/ogg.h>
 
 #define DEBUG_RECORD_PURE_OGG 1
-#define DEBUG_MEASURE_LATENCY 1
 
 /**
  * Sampling rate
@@ -146,6 +145,8 @@ static pa_sample_spec sample_spec = {
   .rate = SAMPLING_RATE,
   .channels = CHANNELS
 };
+
+static FILE *encode_timestamps_file;
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -264,18 +265,6 @@ static int64_t enc_granulepos;
 static int dump_pure_ogg;
 #endif
 
-#ifdef DEBUG_MEASURE_LATENCY
-/**
- * timestamp for latency measurements
- */
-static struct GNUNET_TIME_Absolute encode_begin_time;
-
-/**
- * timestamp for latency measurements
- */
-static struct GNUNET_TIME_Absolute encode_end_time;
-#endif
-
 /**
  * Pulseaudio shutdown task
  */
@@ -283,6 +272,9 @@ static void
 quit (int ret)
 {
   mainloop_api->quit (mainloop_api, ret);
+#ifdef MEASURE_CODEC_DELAY
+  FCLOSE (encode_timestamps_file);
+#endif
   exit (ret);
 }
 
@@ -313,10 +305,6 @@ write_page (ogg_page *og)
   size_t msg_size;
   msg_size = sizeof (struct AudioMessage) + og->header_len + og->body_len;
   audio_message->header.size = htons ((uint16_t) msg_size);
-#ifdef DEBUG_MEASURE_LATENCY
-  audio_message->encode_begin_time = GNUNET_TIME_absolute_hton (encode_begin_time);
-  audio_message->encode_end_time = GNUNET_TIME_absolute_hton (encode_end_time);
-#endif
   GNUNET_memcpy (&audio_message[1], og->header, og->header_len);
   GNUNET_memcpy (((char *) &audio_message[1]) + og->header_len, og->body, og->body_len);
 
@@ -333,13 +321,6 @@ write_page (ogg_page *og)
   else
 #endif
   {
-#ifdef DEBUG_MEASURE_LATENCY
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"sending: encode_begin_time = %" PRId64 ", encode_end_time = %" PRId64 ", msg_size = %lu\n",
-		encode_begin_time.abs_value_us,
-		encode_end_time.abs_value_us,
-		msg_size);
-#endif
     write_data ((const char *) audio_message, msg_size);
   }
 }
@@ -362,14 +343,19 @@ packetizer ()
 	    &transmit_buffer[transmit_buffer_index],
 	    pcm_length);
     transmit_buffer_index += pcm_length;
-#ifdef DEBUG_MEASURE_LATENCY
-    encode_begin_time = GNUNET_TIME_absolute_get ();
+#ifdef MEASURE_CODEC_DELAY
+    struct GNUNET_TIME_Absolute encode_begin_time = GNUNET_TIME_absolute_get ();
 #endif
     len =
       opus_encode_float (enc, pcm_buffer, FRAME_SIZE, opus_data,
 			 MAX_PAYLOAD_BYTES);
-#ifdef DEBUG_MEASURE_LATENCY
-    encode_end_time = GNUNET_TIME_absolute_get ();
+#ifdef MEASURE_CODEC_DELAY
+    struct GNUNET_TIME_Absolute encode_end_time = GNUNET_TIME_absolute_get ();
+    FPRINTF (encode_timestamps_file,
+	     "%" PRIu64 ",%" PRIu64 "\n",
+	     encode_begin_time.abs_value_us,
+	     encode_end_time.abs_value_us);
+    fflush (encode_timestamps_file);
 #endif
     if (len < 0)
     {
@@ -801,6 +787,9 @@ main (int argc, char *argv[])
 
 #ifdef DEBUG_RECORD_PURE_OGG
   dump_pure_ogg = getenv ("GNUNET_RECORD_PURE_OGG") ? 1 : 0;
+#endif
+#ifdef MEASURE_CODEC_DELAY
+  encode_timestamps_file = FOPEN ("conversation_encode_timestamps.csv", "w");
 #endif
   ogg_init ();
   opus_init ();
