@@ -47,8 +47,9 @@ libgnunetsecretsharing_la_SOURCES = \
   secretsharing_api.c \
   secretsharing_common.c \
   secretsharing.h
-libgnunetsecretsharing_la_LIBADD = \
+libgnunetsecretsharing_la_LIBADD = \ 
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBGCRYPT_LIBS) \
   $(LTLIBINTL)
 libgnunetsecretsharing_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)

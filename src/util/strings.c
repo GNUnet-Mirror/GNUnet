@@ -818,6 +818,7 @@ GNUNET_STRINGS_get_short_name (const char *filename)
 {
   const char *short_fn = filename;
   const char *ss;
+
   while (NULL != (ss = strstr (short_fn, DIR_SEPARATOR_STR))
       && (ss[1] != '\0'))
     short_fn = 1 + ss;
