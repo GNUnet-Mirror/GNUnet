@@ -49,7 +49,6 @@ enum RunPhase
   RP_ERROR = 0,
   RP_PUT,
   RP_GET,
-  RP_UPDATE,
   RP_ITER_ZERO,
   RP_REPL_GET,
   RP_EXPI_GET,
@@ -168,8 +167,13 @@ do_put (struct CpsRunContext *crc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "putting type %u, anon %u under key %s\n", i + 1, i,
 	      GNUNET_h2s (&key));
-  crc->api->put (crc->api->cls, &key, size, value, i + 1 /* type */ ,
-                 prio, i /* anonymity */ ,
+  crc->api->put (crc->api->cls,
+                 &key,
+                 false /* absent */,
+                 size,
+                 value, i + 1 /* type */ ,
+                 prio,
+                 i /* anonymity */ ,
                  0 /* replication */ ,
                  GNUNET_TIME_relative_to_absolute
                    (GNUNET_TIME_relative_multiply
@@ -177,7 +181,8 @@ do_put (struct CpsRunContext *crc)
                       60 * 60 * 60 * 1000 +
                       GNUNET_CRYPTO_random_u32
                       (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-                 put_continuation, crc);
+                 put_continuation,
+                 crc);
   i++;
 }
 
@@ -264,19 +269,6 @@ cleaning_task (void *cls)
 
 
 static void
-update_continuation (void *cls,
-		     int status,
-		     const char *msg)
-{
-  struct CpsRunContext *crc = cls;
-
-  GNUNET_assert (GNUNET_OK == status);
-  crc->phase++;
-  GNUNET_SCHEDULER_add_now (&test, crc);
-}
-
-
-static void
 test (void *cls)
 {
   struct CpsRunContext *crc = cls;
@@ -316,16 +308,6 @@ test (void *cls)
                        &iterate_one_shot,
                        crc);
     break;
-  case RP_UPDATE:
-    crc->api->update (crc->api->cls,
-                      guid,
-                      1,
-                      1,
-                      GNUNET_TIME_UNIT_ZERO_ABS,
-                      &update_continuation,
-                      crc);
-    break;
-
   case RP_ITER_ZERO:
     if (crc->cnt == 1)
     {

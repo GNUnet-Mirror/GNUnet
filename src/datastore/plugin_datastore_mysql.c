@@ -198,8 +198,8 @@ struct Plugin
 #define UPDATE_ENTRY "UPDATE gn090 SET "\
   "prio = prio + ?, "\
   "repl = repl + ?, "\
-  "expire = IF(expire >= ?, expire, ?) "\
-  "WHERE uid = ?"
+  "expire = GREATEST(expire, ?) "\
+  "WHERE hash = ? AND vhash = ?"
   struct GNUNET_MYSQL_StatementHandle *update_entry;
 
 #define DEC_REPL "UPDATE gn090 SET repl=GREATEST (1, repl) - 1 WHERE uid=?"
@@ -330,6 +330,7 @@ mysql_plugin_estimate_size (void *cls,
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
@@ -343,6 +344,7 @@ mysql_plugin_estimate_size (void *cls,
 static void
 mysql_plugin_put (void *cls,
                   const struct GNUNET_HashCode *key,
+                  bool absent,
                   uint32_t size,
                   const void *data,
                   enum GNUNET_BLOCK_Type type,
@@ -355,9 +357,54 @@ mysql_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   uint64_t lexpiration = expiration.abs_value_us;
+  struct GNUNET_HashCode vhash;
+
+  GNUNET_CRYPTO_hash (data,
+                      size,
+                      &vhash);
+  if (!absent)
+  {
+    struct GNUNET_MY_QueryParam params_update[] = {
+      GNUNET_MY_query_param_uint32 (&priority),
+      GNUNET_MY_query_param_uint32 (&replication),
+      GNUNET_MY_query_param_uint64 (&lexpiration),
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_auto_from_type (&vhash),
+      GNUNET_MY_query_param_end
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_MY_exec_prepared (plugin->mc,
+                                 plugin->update_entry,
+                                 params_update))
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_SYSERR,
+            _("MySQL statement run failure"));
+      return;
+    }
+
+    MYSQL_STMT *stmt = GNUNET_MYSQL_statement_get_stmt (plugin->update_entry);
+    my_ulonglong rows = mysql_stmt_affected_rows (stmt);
+
+    GNUNET_break (GNUNET_NO ==
+                  GNUNET_MY_extract_result (plugin->update_entry,
+                                            NULL));
+    if (0 != rows)
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_NO,
+            NULL);
+      return;
+    }
+  }
+
   uint64_t lrvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                UINT64_MAX);
-  struct GNUNET_HashCode vhash;
   struct GNUNET_MY_QueryParam params_insert[] = {
     GNUNET_MY_query_param_uint32 (&replication),
     GNUNET_MY_query_param_uint32 (&type),
@@ -377,9 +424,6 @@ mysql_plugin_put (void *cls,
     cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
     return;
   }
-  GNUNET_CRYPTO_hash (data,
-                      size,
-                      &vhash);
 
   if (GNUNET_OK !=
       GNUNET_MY_exec_prepared (plugin->mc,
@@ -407,76 +451,6 @@ mysql_plugin_put (void *cls,
         key,
         size,
         GNUNET_OK,
-        NULL);
-}
-
-
-/**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our "struct Plugin*"
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-mysql_plugin_update (void *cls,
-                     uint64_t uid,
-                     uint32_t priority,
-                     uint32_t replication,
-                     struct GNUNET_TIME_Absolute expire,
-                     PluginUpdateCont cont,
-                     void *cont_cls)
-{
-  struct Plugin *plugin = cls;
-  uint64_t lexpire = expire.abs_value_us;
-  int ret;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating value %llu adding %d to priority %d to replication and maxing exp at %s\n",
-              (unsigned long long) uid,
-              priority,
-              replication,
-              GNUNET_STRINGS_absolute_time_to_string (expire));
-
-  struct GNUNET_MY_QueryParam params_update[] = {
-    GNUNET_MY_query_param_uint32 (&priority),
-    GNUNET_MY_query_param_uint32 (&replication),
-    GNUNET_MY_query_param_uint64 (&lexpire),
-    GNUNET_MY_query_param_uint64 (&lexpire),
-    GNUNET_MY_query_param_uint64 (&uid),
-    GNUNET_MY_query_param_end
-  };
-
-  ret = GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->update_entry,
-                                 params_update);
-
-  if (GNUNET_OK != ret)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to update value %llu\n",
-                (unsigned long long) uid);
-  }
-  else
-  {
-    GNUNET_break (GNUNET_NO ==
-                  GNUNET_MY_extract_result (plugin->update_entry,
-                                            NULL));
-  }
-  cont (cont_cls,
-        ret,
         NULL);
 }
 
@@ -1197,7 +1171,6 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &mysql_plugin_estimate_size;
   api->put = &mysql_plugin_put;
-  api->update = &mysql_plugin_update;
   api->get_key = &mysql_plugin_get_key;
   api->get_replication = &mysql_plugin_get_replication;
   api->get_expiration = &mysql_plugin_get_expiration;

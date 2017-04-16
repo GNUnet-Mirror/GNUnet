@@ -195,10 +195,89 @@ heap_plugin_estimate_size (void *cls, unsigned long long *estimate)
 
 
 /**
+ * Closure for iterator for updating.
+ */
+struct UpdateContext
+{
+  /**
+   * Number of bytes in 'data'.
+   */
+  uint32_t size;
+
+  /**
+   * Pointer to the data.
+   */
+  const void *data;
+
+  /**
+   * Priority of the value.
+   */
+  uint32_t priority;
+
+  /**
+   * Replication level for the value.
+   */
+  uint32_t replication;
+
+  /**
+   * Expiration time for this value.
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
+   * True if the value was found and updated.
+   */
+  bool updated;
+};
+
+
+/**
+ * Update the matching value.
+ *
+ * @param cls the 'struct UpdateContext'
+ * @param key unused
+ * @param val the 'struct Value'
+ * @return GNUNET_YES (continue iteration), GNUNET_NO if value was found
+ */
+static int
+update_iterator (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *val)
+{
+  struct UpdateContext *uc = cls;
+  struct Value *value = val;
+
+  if (value->size != uc->size)
+    return GNUNET_YES;
+  if (0 != memcmp (value->data, uc->data, uc->size))
+    return GNUNET_YES;
+  uc->expiration = GNUNET_TIME_absolute_max (value->expiration,
+                                             uc->expiration);
+  if (value->expiration.abs_value_us != uc->expiration.abs_value_us)
+  {
+    value->expiration = uc->expiration;
+    GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
+                                       value->expiration.abs_value_us);
+  }
+  /* Saturating adds, don't overflow */
+  if (value->priority > UINT32_MAX - uc->priority)
+    value->priority = UINT32_MAX;
+  else
+    value->priority += uc->priority;
+  if (value->replication > UINT32_MAX - uc->replication)
+    value->replication = UINT32_MAX;
+  else
+    value->replication += uc->replication;
+  uc->updated = true;
+  return GNUNET_NO;
+}
+
+/**
  * Store an item in the datastore.
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in data
  * @param data content stored
  * @param type type of the content
@@ -211,19 +290,40 @@ heap_plugin_estimate_size (void *cls, unsigned long long *estimate)
  */
 static void
 heap_plugin_put (void *cls,
-		 const struct GNUNET_HashCode * key,
-		 uint32_t size,
-		 const void *data,
-		 enum GNUNET_BLOCK_Type type,
-		 uint32_t priority, uint32_t anonymity,
-		 uint32_t replication,
-		 struct GNUNET_TIME_Absolute expiration,
-		 PluginPutCont cont,
-		 void *cont_cls)
+                 const struct GNUNET_HashCode *key,
+                 bool absent,
+                 uint32_t size,
+                 const void *data,
+                 enum GNUNET_BLOCK_Type type,
+                 uint32_t priority,
+                 uint32_t anonymity,
+                 uint32_t replication,
+                 struct GNUNET_TIME_Absolute expiration,
+                 PluginPutCont cont,
+                 void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
 
+  if (!absent) {
+    struct UpdateContext uc;
+
+    uc.size = size;
+    uc.data = data;
+    uc.priority = priority;
+    uc.replication = replication;
+    uc.expiration = expiration;
+    uc.updated = false;
+    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
+                                                key,
+                                                &update_iterator,
+                                                &uc);
+    if (uc.updated)
+    {
+      cont (cont_cls, key, size, GNUNET_NO, NULL);
+      return;
+    }
+  }
   value = GNUNET_malloc (sizeof (struct Value) + size);
   value->key = *key;
   value->data = &value[1];
@@ -551,57 +651,6 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 
 
 /**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our `struct Plugin *`
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-heap_plugin_update (void *cls,
-                    uint64_t uid,
-                    uint32_t priority,
-                    uint32_t replication,
-                    struct GNUNET_TIME_Absolute expire,
-                    PluginUpdateCont cont,
-                    void *cont_cls)
-{
-  struct Value *value;
-
-  value = (struct Value*) (intptr_t) uid;
-  GNUNET_assert (NULL != value);
-  if (value->expiration.abs_value_us != expire.abs_value_us)
-  {
-    value->expiration = expire;
-    GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
-				       expire.abs_value_us);
-  }
-  /* Saturating adds, don't overflow */
-  if (value->priority > UINT32_MAX - priority)
-    value->priority = UINT32_MAX;
-  else
-    value->priority += priority;
-  if (value->replication > UINT32_MAX - replication)
-    value->replication = UINT32_MAX;
-  else
-    value->replication += replication;
-  cont (cont_cls, GNUNET_OK, NULL);
-}
-
-
-/**
  * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
@@ -758,7 +807,6 @@ libgnunet_plugin_datastore_heap_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &heap_plugin_estimate_size;
   api->put = &heap_plugin_put;
-  api->update = &heap_plugin_update;
   api->get_key = &heap_plugin_get_key;
   api->get_replication = &heap_plugin_get_replication;
   api->get_expiration = &heap_plugin_get_expiration;

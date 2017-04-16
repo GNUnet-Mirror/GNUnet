@@ -62,6 +62,7 @@ template_plugin_estimate_size (void *cls, unsigned long long *estimate)
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in data
  * @param data content stored
  * @param type type of the content
@@ -73,11 +74,17 @@ template_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param cont_cls continuation closure
  */
 static void
-template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                     const void *data, enum GNUNET_BLOCK_Type type,
-                     uint32_t priority, uint32_t anonymity,
+template_plugin_put (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     bool absent,
+                     uint32_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
                      uint32_t replication,
-                     struct GNUNET_TIME_Absolute expiration, PluginPutCont cont,
+                     struct GNUNET_TIME_Absolute expiration,
+                     PluginPutCont cont,
                      void *cont_cls)
 {
   GNUNET_break (0);
@@ -151,39 +158,6 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 
 
 /**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our "struct Plugin*"
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-template_plugin_update (void *cls,
-                        uint64_t uid,
-                        uint32_t priority,
-                        uint32_t replication,
-                        struct GNUNET_TIME_Absolute expire,
-                        PluginUpdateCont cont,
-                        void *cont_cls)
-{
-  GNUNET_break (0);
-  cont (cont_cls, GNUNET_SYSERR, "not implemented");
-}
-
-
-/**
  * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
@@ -248,7 +222,6 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &template_plugin_estimate_size;
   api->put = &template_plugin_put;
-  api->update = &template_plugin_update;
   api->get_key = &template_plugin_get_key;
   api->get_replication = &template_plugin_get_replication;
   api->get_expiration = &template_plugin_get_expiration;

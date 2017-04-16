@@ -134,7 +134,8 @@ typedef void
  * @param cls closure
  * @param key key for the item stored
  * @param size size of the item stored
- * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param status #GNUNET_OK if inserted, #GNUNET_NO if updated,
+ *        or #GNUNET_SYSERROR if error
  * @param msg error message on error
  */
 typedef void
@@ -152,6 +153,7 @@ typedef void
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
@@ -165,15 +167,16 @@ typedef void
 typedef void
 (*PluginPut) (void *cls,
               const struct GNUNET_HashCode *key,
-	      uint32_t size,
-	      const void *data,
-	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      uint32_t replication,
-	      struct GNUNET_TIME_Absolute expiration,
-	      PluginPutCont cont,
-	      void *cont_cls);
+              bool absent,
+              uint32_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              uint32_t replication,
+              struct GNUNET_TIME_Absolute expiration,
+              PluginPutCont cont,
+              void *cont_cls);
 
 
 /**
@@ -248,48 +251,6 @@ typedef void
 
 
 /**
- * Update continuation.
- *
- * @param cls closure
- * @param status #GNUNET_OK or #GNUNET_SYSERR
- * @param msg error message on error
- */
-typedef void
-(*PluginUpdateCont) (void *cls,
-		     int status,
-		     const char *msg);
-
-
-/**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls closure
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-typedef void
-(*PluginUpdate) (void *cls,
-                 uint64_t uid,
-                 uint32_t priority,
-                 uint32_t replication,
-                 struct GNUNET_TIME_Absolute expire,
-                 PluginUpdateCont cont,
-                 void *cont_cls);
-
-
-/**
  * Select a single item from the datastore (among those applicable).
  *
  * @param cls closure
@@ -340,16 +301,6 @@ struct GNUNET_DATASTORE_PluginFunctions
    * Function to store an item in the datastore.
    */
   PluginPut put;
-
-  /**
-   * Update the priority for a particular key in the datastore.  If
-   * the expiration time in value is different than the time found in
-   * the datastore, the higher value should be kept.  For the
-   * anonymity level, the lower value is to be used.  The specified
-   * priority should be added to the existing priority, ignoring the
-   * priority in value.
-   */
-  PluginUpdate update;
 
   /**
    * Get a particular datum matching a given hash from the datastore.
