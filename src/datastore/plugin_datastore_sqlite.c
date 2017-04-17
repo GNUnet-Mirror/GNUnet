@@ -88,6 +88,11 @@ struct Plugin
   sqlite3 *dbh;
 
   /**
+   * Precompiled SQL for remove_key.
+   */
+  sqlite3_stmt *remove;
+
+  /**
    * Precompiled SQL for deletion.
    */
   sqlite3_stmt *delRow;
@@ -182,10 +187,6 @@ create_indices (sqlite3 * dbh)
   /* create indices */
   if ((SQLITE_OK !=
        sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)",
-                     NULL, NULL, NULL)) ||
-      (SQLITE_OK !=
-       sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)",
                      NULL, NULL, NULL)) ||
       (SQLITE_OK !=
        sqlite3_exec (dbh,
@@ -415,15 +416,21 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     "WHERE _ROWID_ >= ? AND "
                     "(rvalue >= ? OR 0 = ?) AND "
                     "(hash = ? OR 0 = ?) AND "
-                    "(vhash = ? OR 0 = ?) AND "
                     "(type = ? OR 0 = ?) "
                     "ORDER BY _ROWID_ ASC LIMIT 1",
                     &plugin->get)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "DELETE FROM gn090 WHERE _ROWID_ = ?",
-                    &plugin->delRow))
-       )
+                    &plugin->delRow)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "DELETE FROM gn090 "
+                    "WHERE hash = ? AND "
+                    "value = ? "
+                    "LIMIT 1",
+                    &plugin->remove)) ||
+       false)
   {
     LOG_SQLITE (plugin,
                 GNUNET_ERROR_TYPE_ERROR,
@@ -448,6 +455,8 @@ database_shutdown (struct Plugin *plugin)
   sqlite3_stmt *stmt;
 #endif
 
+  if (NULL != plugin->remove)
+    sqlite3_finalize (plugin->remove);
   if (NULL != plugin->delRow)
     sqlite3_finalize (plugin->delRow);
   if (NULL != plugin->update)
@@ -845,15 +854,10 @@ sqlite_plugin_get_zero_anonymity (void *cls,
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param proc function to call on each matching value;
- *        will be called once with a NULL value at the end
+ * @param proc function to call on the matching value;
+ *        will be called with NULL if nothing matches
  * @param proc_cls closure for @a proc
  */
 static void
@@ -861,7 +865,6 @@ sqlite_plugin_get_key (void *cls,
                        uint64_t next_uid,
                        bool random,
                        const struct GNUNET_HashCode *key,
-                       const struct GNUNET_HashCode *vhash,
                        enum GNUNET_BLOCK_Type type,
                        PluginDatumProcessor proc,
                        void *proc_cls)
@@ -872,15 +875,12 @@ sqlite_plugin_get_key (void *cls,
   uint32_t type32 = (uint32_t) type;
   uint16_t use_type = GNUNET_BLOCK_TYPE_ANY != type;
   uint16_t use_key = NULL != key;
-  uint16_t use_vhash = NULL != vhash;
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint64 (&next_uid),
     GNUNET_SQ_query_param_uint64 (&rvalue),
     GNUNET_SQ_query_param_uint16 (&use_rvalue),
     GNUNET_SQ_query_param_auto_from_type (key),
     GNUNET_SQ_query_param_uint16 (&use_key),
-    GNUNET_SQ_query_param_auto_from_type (vhash),
-    GNUNET_SQ_query_param_uint16 (&use_vhash),
     GNUNET_SQ_query_param_uint32 (&type32),
     GNUNET_SQ_query_param_uint16 (&use_type),
     GNUNET_SQ_query_param_end
@@ -1186,6 +1186,79 @@ sqlite_plugin_drop (void *cls)
 
 
 /**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+static void
+sqlite_plugin_remove_key (void *cls,
+                          const struct GNUNET_HashCode *key,
+                          uint32_t size,
+                          const void *data,
+                          PluginRemoveCont cont,
+                          void *cont_cls)
+{
+  struct Plugin *plugin = cls;
+  struct GNUNET_SQ_QueryParam params[] = {
+    GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_fixed_size (data, size),
+    GNUNET_SQ_query_param_end
+  };
+
+  if (GNUNET_OK !=
+      GNUNET_SQ_bind (plugin->remove,
+                      params))
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_SYSERR,
+          "bind failed");
+    return;
+  }
+  if (SQLITE_DONE != sqlite3_step (plugin->remove))
+  {
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->remove);
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_SYSERR,
+          "sqlite3_step failed");
+    return;
+  }
+  int changes = sqlite3_changes (plugin->dbh);
+  GNUNET_SQ_reset (plugin->dbh,
+                   plugin->remove);
+  if (0 == changes)
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_NO,
+          NULL);
+    return;
+  }
+  if (NULL != plugin->env->duc)
+    plugin->env->duc (plugin->env->cls,
+                      -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
+  cont (cont_cls,
+        key,
+        size,
+        GNUNET_OK,
+        NULL);
+}
+
+
+/**
  * Get an estimate of how much space the database is
  * currently using.
  *
@@ -1286,6 +1359,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
   api->get_zero_anonymity = &sqlite_plugin_get_zero_anonymity;
   api->get_keys = &sqlite_plugin_get_keys;
   api->drop = &sqlite_plugin_drop;
+  api->remove_key = &sqlite_plugin_remove_key;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "sqlite",
                    _("Sqlite database running\n"));

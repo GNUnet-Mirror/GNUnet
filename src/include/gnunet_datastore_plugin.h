@@ -212,11 +212,6 @@ typedef void
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
@@ -228,10 +223,46 @@ typedef void
                  uint64_t next_uid,
                  bool random,
                  const struct GNUNET_HashCode *key,
-                 const struct GNUNET_HashCode *vhash,
                  enum GNUNET_BLOCK_Type type,
                  PluginDatumProcessor proc,
                  void *proc_cls);
+
+
+/**
+ * Remove continuation.
+ *
+ * @param cls closure
+ * @param key key for the content removed
+ * @param size number of bytes removed
+ * @param status #GNUNET_OK if removed, #GNUNET_NO if not found,
+ *        or #GNUNET_SYSERROR if error
+ * @param msg error message on error
+ */
+typedef void
+(*PluginRemoveCont) (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t size,
+                     int status,
+                     const char *msg);
+
+
+/**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+typedef void
+(*PluginRemoveKey) (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    uint32_t size,
+                    const void *data,
+                    PluginRemoveCont cont,
+                    void *cont_cls);
 
 
 /**
@@ -339,6 +370,10 @@ struct GNUNET_DATASTORE_PluginFunctions
    */
   PluginGetKeys get_keys;
 
+  /**
+   * Function to remove an item from the database.
+   */
+  PluginRemoveKey remove_key;
 };
 
 #endif

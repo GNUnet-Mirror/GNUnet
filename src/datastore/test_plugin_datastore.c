@@ -52,6 +52,7 @@ enum RunPhase
   RP_ITER_ZERO,
   RP_REPL_GET,
   RP_EXPI_GET,
+  RP_REMOVE,
   RP_DROP
 };
 
@@ -153,7 +154,7 @@ do_put (struct CpsRunContext *crc)
   /* most content is 32k */
   size = 32 * 1024;
 
-  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)   /* but some of it is less! */
+  if (0 != i && GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)   /* but some of it is less! */
     size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
   size = size - (size & 7);     /* always multiple of 8 */
 
@@ -217,6 +218,25 @@ iterate_one_shot (void *cls,
   GNUNET_SCHEDULER_add_now (&test,
                             crc);
   return GNUNET_OK;
+}
+
+
+static void
+remove_continuation (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t size,
+                     int status,
+                     const char *msg)
+{
+  struct CpsRunContext *crc = cls;
+
+  GNUNET_assert (NULL != key);
+  GNUNET_assert (32768 == size);
+  GNUNET_assert (GNUNET_OK == status);
+  GNUNET_assert (NULL == msg);
+  crc->phase++;
+  GNUNET_SCHEDULER_add_now (&test,
+                            crc);
 }
 
 
@@ -303,7 +323,6 @@ test (void *cls)
                        0,
                        false,
                        &key,
-                       NULL,
                        GNUNET_BLOCK_TYPE_ANY,
                        &iterate_one_shot,
                        crc);
@@ -324,6 +343,23 @@ test (void *cls)
   case RP_EXPI_GET:
     crc->api->get_expiration (crc->api->cls, &iterate_one_shot, crc);
     break;
+  case RP_REMOVE:
+    {
+      struct GNUNET_HashCode key;
+      uint32_t size = 32768;
+      char value[size];
+
+      gen_key (0, &key);
+      memset (value, 0, size);
+      value[0] = crc->i;
+      crc->api->remove_key (crc->api->cls,
+                            &key,
+                            size,
+                            value,
+                            &remove_continuation,
+                            crc);
+      break;
+    }
   case RP_DROP:
     crc->api->drop (crc->api->cls);
     GNUNET_SCHEDULER_add_now (&cleaning_task, crc);

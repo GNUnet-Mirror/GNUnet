@@ -99,11 +99,6 @@ template_plugin_put (void *cls,
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on each matching value;
@@ -111,10 +106,12 @@ template_plugin_put (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_key (void *cls, uint64_t next_uid, bool random,
-                         const struct GNUNET_HashCode * key,
-                         const struct GNUNET_HashCode * vhash,
-                         enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
+template_plugin_get_key (void *cls,
+                         uint64_t next_uid,
+                         bool random,
+                         const struct GNUNET_HashCode *key,
+                         enum GNUNET_BLOCK_Type type,
+                         PluginDatumProcessor proc,
                          void *proc_cls)
 {
   GNUNET_break (0);
@@ -204,6 +201,29 @@ template_get_keys (void *cls,
 
 
 /**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+static void
+template_plugin_remove_key (void *cls,
+                            const struct GNUNET_HashCode *key,
+                            uint32_t size,
+                            const void *data,
+                            PluginRemoveCont cont,
+                            void *cont_cls)
+{
+  GNUNET_break (0);
+  cont (cont_cls, key, size, GNUNET_SYSERR, "not implemented");
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
@@ -228,6 +248,7 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->get_zero_anonymity = &template_plugin_get_zero_anonymity;
   api->drop = &template_plugin_drop;
   api->get_keys = &template_get_keys;
+  api->remove_key = &template_plugin_remove_key;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "template",
                    _("Template database running\n"));
   return api;
