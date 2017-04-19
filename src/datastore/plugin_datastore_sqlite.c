@@ -427,8 +427,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         sq_prepare (plugin->dbh,
                     "DELETE FROM gn090 "
                     "WHERE hash = ? AND "
-                    "value = ? "
-                    "LIMIT 1",
+                    "value = ? ",
                     &plugin->remove)) ||
        false)
   {
