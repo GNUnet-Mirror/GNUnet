@@ -610,6 +610,83 @@ GNUNET_JSON_spec_absolute_time (const char *name,
 
 
 /**
+ * Parse given JSON object to absolute time.
+ *
+ * @param cls closure, NULL
+ * @param root the json object representing data
+ * @param[out] spec where to write the data
+ * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
+ */
+static int
+parse_abs_time_nbo (void *cls,
+		    json_t *root,
+		    struct GNUNET_JSON_Specification *spec)
+{
+  struct GNUNET_TIME_AbsoluteNBO *abs = spec->ptr;
+  const char *val;
+  unsigned long long int tval;
+  struct GNUNET_TIME_Absolute a;
+
+  val = json_string_value (root);
+  if (NULL == val)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ( (0 == strcasecmp (val,
+                         "/forever/")) ||
+       (0 == strcasecmp (val,
+                         "/end of time/")) ||
+       (0 == strcasecmp (val,
+                         "/never/")) )
+  {
+    *abs = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
+    return GNUNET_OK;
+  }
+  if (1 != sscanf (val,
+                   "/Date(%llu)/",
+                   &tval))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
+  a.abs_value_us = tval * 1000LL * 1000LL;
+  if ( (a.abs_value_us) / 1000LL / 1000LL != tval)
+  {
+    /* Integer overflow */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *abs = GNUNET_TIME_absolute_hton (a);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Absolute time in network byte order.
+ *
+ * @param name name of the JSON field
+ * @param[out] at where to store the absolute time found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_absolute_time_nbo (const char *name,
+				    struct GNUNET_TIME_AbsoluteNBO *at)
+{
+  struct GNUNET_JSON_Specification ret = {
+    .parser = &parse_abs_time_nbo,
+    .cleaner = NULL,
+    .cls = NULL,
+    .field = name,
+    .ptr = at,
+    .ptr_size = sizeof (uint64_t),
+    .size_ptr = NULL
+  };
+  return ret;
+}
+
+
+/**
  * Parse given JSON object to relative time.
  *
  * @param cls closure, NULL

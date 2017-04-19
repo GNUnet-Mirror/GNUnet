@@ -150,6 +150,12 @@ struct Plugin
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
   struct GNUNET_MYSQL_StatementHandle *delete_entry_by_uid;
 
+#define DELETE_ENTRY_BY_HASH_VALUE "DELETE FROM gn090 "\
+  "WHERE hash = ? AND "\
+  "value = ? "\
+  "LIMIT 1"
+  struct GNUNET_MYSQL_StatementHandle *delete_entry_by_hash_value;
+
 #define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, uid"
 
 #define SELECT_ENTRY "SELECT " RESULT_COLUMNS " FROM gn090 "\
@@ -159,21 +165,12 @@ struct Plugin
   struct GNUNET_MYSQL_StatementHandle *select_entry;
 
 #define SELECT_ENTRY_BY_HASH "SELECT " RESULT_COLUMNS " FROM gn090 "\
-  "FORCE INDEX (idx_hash) "\
+  "FORCE INDEX (idx_hash_type_uid) "\
   "WHERE hash=? AND "\
   "uid >= ? AND "\
   "(rvalue >= ? OR 0 = ?) "\
   "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash;
-
-#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT " RESULT_COLUMNS " FROM gn090 "\
-  "FORCE INDEX (idx_hash_vhash) "\
-  "WHERE hash = ? AND "\
-  "vhash = ? AND "\
-  "uid >= ? AND "\
-  "(rvalue >= ? OR 0 = ?) "\
-  "ORDER BY uid LIMIT 1"
-  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_vhash;
 
 #define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT " RESULT_COLUMNS " FROM gn090 "\
   "FORCE INDEX (idx_hash_type_uid) "\
@@ -184,22 +181,11 @@ struct Plugin
   "ORDER BY uid LIMIT 1"
   struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_type;
 
-#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT " RESULT_COLUMNS " "\
-  "FROM gn090 "\
-  "FORCE INDEX (idx_hash_vhash) "\
-  "WHERE hash = ? AND "\
-  "vhash = ? AND "\
-  "type = ? AND "\
-  "uid >= ? AND "\
-  "(rvalue >= ? OR 0 = ?) "\
-  "ORDER BY uid LIMIT 1"
-  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_vhash_and_type;
-
 #define UPDATE_ENTRY "UPDATE gn090 SET "\
   "prio = prio + ?, "\
   "repl = repl + ?, "\
-  "expire = IF(expire >= ?, expire, ?) "\
-  "WHERE uid = ?"
+  "expire = GREATEST(expire, ?) "\
+  "WHERE hash = ? AND vhash = ?"
   struct GNUNET_MYSQL_StatementHandle *update_entry;
 
 #define DEC_REPL "UPDATE gn090 SET repl=GREATEST (1, repl) - 1 WHERE uid=?"
@@ -330,6 +316,7 @@ mysql_plugin_estimate_size (void *cls,
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
@@ -343,6 +330,7 @@ mysql_plugin_estimate_size (void *cls,
 static void
 mysql_plugin_put (void *cls,
                   const struct GNUNET_HashCode *key,
+                  bool absent,
                   uint32_t size,
                   const void *data,
                   enum GNUNET_BLOCK_Type type,
@@ -355,9 +343,54 @@ mysql_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   uint64_t lexpiration = expiration.abs_value_us;
+  struct GNUNET_HashCode vhash;
+
+  GNUNET_CRYPTO_hash (data,
+                      size,
+                      &vhash);
+  if (!absent)
+  {
+    struct GNUNET_MY_QueryParam params_update[] = {
+      GNUNET_MY_query_param_uint32 (&priority),
+      GNUNET_MY_query_param_uint32 (&replication),
+      GNUNET_MY_query_param_uint64 (&lexpiration),
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_auto_from_type (&vhash),
+      GNUNET_MY_query_param_end
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_MY_exec_prepared (plugin->mc,
+                                 plugin->update_entry,
+                                 params_update))
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_SYSERR,
+            _("MySQL statement run failure"));
+      return;
+    }
+
+    MYSQL_STMT *stmt = GNUNET_MYSQL_statement_get_stmt (plugin->update_entry);
+    my_ulonglong rows = mysql_stmt_affected_rows (stmt);
+
+    GNUNET_break (GNUNET_NO ==
+                  GNUNET_MY_extract_result (plugin->update_entry,
+                                            NULL));
+    if (0 != rows)
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_NO,
+            NULL);
+      return;
+    }
+  }
+
   uint64_t lrvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                UINT64_MAX);
-  struct GNUNET_HashCode vhash;
   struct GNUNET_MY_QueryParam params_insert[] = {
     GNUNET_MY_query_param_uint32 (&replication),
     GNUNET_MY_query_param_uint32 (&type),
@@ -377,9 +410,6 @@ mysql_plugin_put (void *cls,
     cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
     return;
   }
-  GNUNET_CRYPTO_hash (data,
-                      size,
-                      &vhash);
 
   if (GNUNET_OK !=
       GNUNET_MY_exec_prepared (plugin->mc,
@@ -407,76 +437,6 @@ mysql_plugin_put (void *cls,
         key,
         size,
         GNUNET_OK,
-        NULL);
-}
-
-
-/**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our "struct Plugin*"
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-mysql_plugin_update (void *cls,
-                     uint64_t uid,
-                     uint32_t priority,
-                     uint32_t replication,
-                     struct GNUNET_TIME_Absolute expire,
-                     PluginUpdateCont cont,
-                     void *cont_cls)
-{
-  struct Plugin *plugin = cls;
-  uint64_t lexpire = expire.abs_value_us;
-  int ret;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating value %llu adding %d to priority %d to replication and maxing exp at %s\n",
-              (unsigned long long) uid,
-              priority,
-              replication,
-              GNUNET_STRINGS_absolute_time_to_string (expire));
-
-  struct GNUNET_MY_QueryParam params_update[] = {
-    GNUNET_MY_query_param_uint32 (&priority),
-    GNUNET_MY_query_param_uint32 (&replication),
-    GNUNET_MY_query_param_uint64 (&lexpire),
-    GNUNET_MY_query_param_uint64 (&lexpire),
-    GNUNET_MY_query_param_uint64 (&uid),
-    GNUNET_MY_query_param_end
-  };
-
-  ret = GNUNET_MY_exec_prepared (plugin->mc,
-                                 plugin->update_entry,
-                                 params_update);
-
-  if (GNUNET_OK != ret)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to update value %llu\n",
-                (unsigned long long) uid);
-  }
-  else
-  {
-    GNUNET_break (GNUNET_NO ==
-                  GNUNET_MY_extract_result (plugin->update_entry,
-                                            NULL));
-  }
-  cont (cont_cls,
-        ret,
         NULL);
 }
 
@@ -578,11 +538,6 @@ execute_select (struct Plugin *plugin,
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key key to match, never NULL
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value,
@@ -594,7 +549,6 @@ mysql_plugin_get_key (void *cls,
                       uint64_t next_uid,
                       bool random,
                       const struct GNUNET_HashCode *key,
-                      const struct GNUNET_HashCode *vhash,
                       enum GNUNET_BLOCK_Type type,
                       PluginDatumProcessor proc,
                       void *proc_cls)
@@ -628,79 +582,37 @@ mysql_plugin_get_key (void *cls,
   }
   else if (type != GNUNET_BLOCK_TYPE_ANY)
   {
-    if (NULL != vhash)
-    {
-      struct GNUNET_MY_QueryParam params_select[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_auto_from_type (vhash),
-        GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_uint64 (&next_uid),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_end
-      };
+    struct GNUNET_MY_QueryParam params_select[] = {
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_uint32 (&type),
+      GNUNET_MY_query_param_uint64 (&next_uid),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_end
+    };
 
-      execute_select (plugin,
-                      plugin->select_entry_by_hash_vhash_and_type,
-                      proc,
-                      proc_cls,
-                      params_select);
-    }
-    else
-    {
-      struct GNUNET_MY_QueryParam params_select[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_uint32 (&type),
-        GNUNET_MY_query_param_uint64 (&next_uid),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_end
-      };
-
-      execute_select (plugin,
-                      plugin->select_entry_by_hash_and_type,
-                      proc,
-                      proc_cls,
-                      params_select);
-    }
+    execute_select (plugin,
+                    plugin->select_entry_by_hash_and_type,
+                    proc,
+                    proc_cls,
+                    params_select);
   }
   else
   {
-    if (NULL != vhash)
-    {
-      struct GNUNET_MY_QueryParam params_select[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_auto_from_type (vhash),
-        GNUNET_MY_query_param_uint64 (&next_uid),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_end
-      };
+    struct GNUNET_MY_QueryParam params_select[] = {
+      GNUNET_MY_query_param_auto_from_type (key),
+      GNUNET_MY_query_param_uint64 (&next_uid),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_uint64 (&rvalue),
+      GNUNET_MY_query_param_end
+    };
 
-      execute_select (plugin,
-                      plugin->select_entry_by_hash_and_vhash,
-                      proc,
-                      proc_cls,
-                      params_select);
-    }
-    else
-    {
-      struct GNUNET_MY_QueryParam params_select[] = {
-        GNUNET_MY_query_param_auto_from_type (key),
-        GNUNET_MY_query_param_uint64 (&next_uid),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_uint64 (&rvalue),
-        GNUNET_MY_query_param_end
-      };
-
-      execute_select (plugin,
-                      plugin->select_entry_by_hash,
-                      proc,
-                      proc_cls,
-                      params_select);
-    }
+    execute_select (plugin,
+                    plugin->select_entry_by_hash,
+                    proc,
+                    proc_cls,
+                    params_select);
   }
-
 }
 
 
@@ -1124,6 +1036,69 @@ mysql_plugin_drop (void *cls)
 
 
 /**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+static void
+mysql_plugin_remove_key (void *cls,
+                         const struct GNUNET_HashCode *key,
+                         uint32_t size,
+                         const void *data,
+                         PluginRemoveCont cont,
+                         void *cont_cls)
+{
+  struct Plugin *plugin = cls;
+  struct GNUNET_MY_QueryParam params_delete[] = {
+    GNUNET_MY_query_param_auto_from_type (key),
+    GNUNET_MY_query_param_fixed_size (data, size),
+    GNUNET_MY_query_param_end
+  };
+
+  if (GNUNET_OK !=
+      GNUNET_MY_exec_prepared (plugin->mc,
+                               plugin->delete_entry_by_hash_value,
+                               params_delete))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Removing key `%s' from gn090 table failed\n",
+                GNUNET_h2s (key));
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_SYSERR,
+          _("MySQL statement run failure"));
+    return;
+  }
+
+  MYSQL_STMT *stmt = GNUNET_MYSQL_statement_get_stmt (plugin->delete_entry_by_hash_value);
+  my_ulonglong rows = mysql_stmt_affected_rows (stmt);
+
+  if (0 == rows)
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_NO,
+          NULL);
+    return;
+  }
+  plugin->env->duc (plugin->env->cls,
+                    -size);
+  cont (cont_cls,
+        key,
+        size,
+        GNUNET_OK,
+        NULL);
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the `struct GNUNET_DATASTORE_PluginEnvironment *`
@@ -1158,24 +1133,20 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
        " hash BINARY(64) NOT NULL DEFAULT '',"
        " vhash BINARY(64) NOT NULL DEFAULT '',"
        " value BLOB NOT NULL DEFAULT ''," " uid BIGINT NOT NULL AUTO_INCREMENT,"
-       " PRIMARY KEY (uid)," " INDEX idx_hash (hash(64)),"
-       " INDEX idx_hash_uid (hash(64),uid),"
-       " INDEX idx_hash_vhash (hash(64),vhash(64)),"
+       " PRIMARY KEY (uid),"
        " INDEX idx_hash_type_uid (hash(64),type,rvalue),"
-       " INDEX idx_prio (prio)," " INDEX idx_repl_rvalue (repl,rvalue),"
+       " INDEX idx_prio (prio),"
+       " INDEX idx_repl_rvalue (repl,rvalue),"
        " INDEX idx_expire (expire),"
        " INDEX idx_anonLevel_type_rvalue (anonLevel,type,rvalue)"
        ") ENGINE=InnoDB") || MRUNS ("SET AUTOCOMMIT = 1") ||
       PINIT (plugin->insert_entry, INSERT_ENTRY) ||
       PINIT (plugin->delete_entry_by_uid, DELETE_ENTRY_BY_UID) ||
+      PINIT (plugin->delete_entry_by_hash_value, DELETE_ENTRY_BY_HASH_VALUE) ||
       PINIT (plugin->select_entry, SELECT_ENTRY) ||
       PINIT (plugin->select_entry_by_hash, SELECT_ENTRY_BY_HASH) ||
-      PINIT (plugin->select_entry_by_hash_and_vhash,
-             SELECT_ENTRY_BY_HASH_AND_VHASH) ||
       PINIT (plugin->select_entry_by_hash_and_type,
              SELECT_ENTRY_BY_HASH_AND_TYPE) ||
-      PINIT (plugin->select_entry_by_hash_vhash_and_type,
-             SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE) ||
       PINIT (plugin->get_size, SELECT_SIZE) ||
       PINIT (plugin->update_entry, UPDATE_ENTRY) ||
       PINIT (plugin->dec_repl, DEC_REPL) ||
@@ -1184,7 +1155,8 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
       PINIT (plugin->select_priority, SELECT_IT_PRIORITY) ||
       PINIT (plugin->max_repl, SELECT_MAX_REPL) ||
       PINIT (plugin->get_all_keys, GET_ALL_KEYS) ||
-      PINIT (plugin->select_replication, SELECT_IT_REPLICATION))
+      PINIT (plugin->select_replication, SELECT_IT_REPLICATION) ||
+      false)
   {
     GNUNET_MYSQL_context_destroy (plugin->mc);
     GNUNET_free (plugin);
@@ -1197,13 +1169,13 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &mysql_plugin_estimate_size;
   api->put = &mysql_plugin_put;
-  api->update = &mysql_plugin_update;
   api->get_key = &mysql_plugin_get_key;
   api->get_replication = &mysql_plugin_get_replication;
   api->get_expiration = &mysql_plugin_get_expiration;
   api->get_zero_anonymity = &mysql_plugin_get_zero_anonymity;
   api->get_keys = &mysql_plugin_get_keys;
   api->drop = &mysql_plugin_drop;
+  api->remove_key = &mysql_plugin_remove_key;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "mysql",
                    _("Mysql database running\n"));
   return api;

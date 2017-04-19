@@ -134,7 +134,8 @@ typedef void
  * @param cls closure
  * @param key key for the item stored
  * @param size size of the item stored
- * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param status #GNUNET_OK if inserted, #GNUNET_NO if updated,
+ *        or #GNUNET_SYSERROR if error
  * @param msg error message on error
  */
 typedef void
@@ -152,6 +153,7 @@ typedef void
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
@@ -165,15 +167,16 @@ typedef void
 typedef void
 (*PluginPut) (void *cls,
               const struct GNUNET_HashCode *key,
-	      uint32_t size,
-	      const void *data,
-	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      uint32_t replication,
-	      struct GNUNET_TIME_Absolute expiration,
-	      PluginPutCont cont,
-	      void *cont_cls);
+              bool absent,
+              uint32_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              uint32_t replication,
+              struct GNUNET_TIME_Absolute expiration,
+              PluginPutCont cont,
+              void *cont_cls);
 
 
 /**
@@ -209,11 +212,6 @@ typedef void
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
@@ -225,10 +223,46 @@ typedef void
                  uint64_t next_uid,
                  bool random,
                  const struct GNUNET_HashCode *key,
-                 const struct GNUNET_HashCode *vhash,
                  enum GNUNET_BLOCK_Type type,
                  PluginDatumProcessor proc,
                  void *proc_cls);
+
+
+/**
+ * Remove continuation.
+ *
+ * @param cls closure
+ * @param key key for the content removed
+ * @param size number of bytes removed
+ * @param status #GNUNET_OK if removed, #GNUNET_NO if not found,
+ *        or #GNUNET_SYSERROR if error
+ * @param msg error message on error
+ */
+typedef void
+(*PluginRemoveCont) (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t size,
+                     int status,
+                     const char *msg);
+
+
+/**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+typedef void
+(*PluginRemoveKey) (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    uint32_t size,
+                    const void *data,
+                    PluginRemoveCont cont,
+                    void *cont_cls);
 
 
 /**
@@ -245,48 +279,6 @@ typedef void
 (*PluginGetRandom) (void *cls,
 		    PluginDatumProcessor proc,
 		    void *proc_cls);
-
-
-/**
- * Update continuation.
- *
- * @param cls closure
- * @param status #GNUNET_OK or #GNUNET_SYSERR
- * @param msg error message on error
- */
-typedef void
-(*PluginUpdateCont) (void *cls,
-		     int status,
-		     const char *msg);
-
-
-/**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls closure
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-typedef void
-(*PluginUpdate) (void *cls,
-                 uint64_t uid,
-                 uint32_t priority,
-                 uint32_t replication,
-                 struct GNUNET_TIME_Absolute expire,
-                 PluginUpdateCont cont,
-                 void *cont_cls);
 
 
 /**
@@ -342,16 +334,6 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginPut put;
 
   /**
-   * Update the priority for a particular key in the datastore.  If
-   * the expiration time in value is different than the time found in
-   * the datastore, the higher value should be kept.  For the
-   * anonymity level, the lower value is to be used.  The specified
-   * priority should be added to the existing priority, ignoring the
-   * priority in value.
-   */
-  PluginUpdate update;
-
-  /**
    * Get a particular datum matching a given hash from the datastore.
    */
   PluginGetKey get_key;
@@ -388,6 +370,10 @@ struct GNUNET_DATASTORE_PluginFunctions
    */
   PluginGetKeys get_keys;
 
+  /**
+   * Function to remove an item from the database.
+   */
+  PluginRemoveKey remove_key;
 };
 
 #endif

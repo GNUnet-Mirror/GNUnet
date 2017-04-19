@@ -263,6 +263,17 @@ GNUNET_JSON_spec_absolute_time (const char *name,
 
 
 /**
+ * Absolute time in network byte order.
+ *
+ * @param name name of the JSON field
+ * @param[out] at where to store the absolute time found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_absolute_time_nbo (const char *name,
+				    struct GNUNET_TIME_AbsoluteNBO *at);
+
+
+/**
  * Relative time.
  *
  * @param name name of the JSON field

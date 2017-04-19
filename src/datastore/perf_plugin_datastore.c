@@ -181,8 +181,14 @@ do_put (struct CpsRunContext *crc)
   value[0] = crc->i;
   GNUNET_memcpy (&value[4], &i, sizeof (i));
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
-  crc->api->put (crc->api->cls, &key, size, value, 1 + i % 4 /* type */ ,
-                 prio, i % 4 /* anonymity */ ,
+  crc->api->put (crc->api->cls,
+                 &key,
+                 false /* absent */,
+                 size,
+                 value,
+                 1 + i % 4 /* type */ ,
+                 prio,
+                 i % 4 /* anonymity */ ,
                  0 /* replication */ ,
                  GNUNET_TIME_relative_to_absolute
                  (GNUNET_TIME_relative_multiply
@@ -190,7 +196,8 @@ do_put (struct CpsRunContext *crc)
                     60 * 60 * 60 * 1000 +
                     GNUNET_CRYPTO_random_u32
                       (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-                 put_continuation, crc);
+                 put_continuation,
+                 crc);
   i++;
 }
 

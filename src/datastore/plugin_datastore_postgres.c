@@ -119,9 +119,6 @@ init_connection (struct Plugin *plugin)
                                "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
                                "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
         (GNUNET_OK !=
          GNUNET_POSTGRES_exec (plugin->dbh,
@@ -183,9 +180,8 @@ init_connection (struct Plugin *plugin)
                    "WHERE oid >= $1::bigint AND "
                    "(rvalue >= $2 OR 0 = $3::smallint) AND "
                    "(hash = $4 OR 0 = $5::smallint) AND "
-                   "(vhash = $6 OR 0 = $7::smallint) AND "
-                   "(type = $8 OR 0 = $9::smallint) "
-                   "ORDER BY oid ASC LIMIT 1", 9)) ||
+                   "(type = $6 OR 0 = $7::smallint) "
+                   "ORDER BY oid ASC LIMIT 1", 7)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "put",
                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
@@ -195,8 +191,8 @@ init_connection (struct Plugin *plugin)
                    "UPDATE gn090 "
                    "SET prio = prio + $1, "
                    "repl = repl + $2, "
-                   "expire = CASE WHEN expire < $3 THEN $3 ELSE expire END "
-                   "WHERE oid = $4", 4)) ||
+                   "expire = GREATEST(expire, $3) "
+                   "WHERE hash = $4 AND vhash = $5", 5)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "decrepl",
                    "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
@@ -222,6 +218,10 @@ init_connection (struct Plugin *plugin)
                    "ORDER BY repl DESC,RANDOM() LIMIT 1", 0)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1)) ||
+      (GNUNET_OK !=
+       GNUNET_POSTGRES_prepare (plugin->dbh, "remove", "DELETE FROM gn090 "
+         "WHERE hash = $1 AND "
+         "value = $2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh, "get_keys", "SELECT hash FROM gn090", 0)))
   {
@@ -288,6 +288,7 @@ postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
  *
  * @param cls closure with the `struct Plugin`
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in data
  * @param data content stored
  * @param type type of the content
@@ -300,23 +301,70 @@ postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
  */
 static void
 postgres_plugin_put (void *cls,
-		     const struct GNUNET_HashCode *key,
-		     uint32_t size,
+                     const struct GNUNET_HashCode *key,
+                     bool absent,
+                     uint32_t size,
                      const void *data,
-		     enum GNUNET_BLOCK_Type type,
+                     enum GNUNET_BLOCK_Type type,
                      uint32_t priority,
-		     uint32_t anonymity,
+                     uint32_t anonymity,
                      uint32_t replication,
                      struct GNUNET_TIME_Absolute expiration,
-		     PluginPutCont cont,
+                     PluginPutCont cont,
                      void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t utype = type;
   struct GNUNET_HashCode vhash;
+  PGresult *ret;
+
+  GNUNET_CRYPTO_hash (data,
+                      size,
+                      &vhash);
+
+  if (!absent)
+  {
+    struct GNUNET_PQ_QueryParam params[] = {
+      GNUNET_PQ_query_param_uint32 (&priority),
+      GNUNET_PQ_query_param_uint32 (&replication),
+      GNUNET_PQ_query_param_absolute_time (&expiration),
+      GNUNET_PQ_query_param_auto_from_type (key),
+      GNUNET_PQ_query_param_auto_from_type (&vhash),
+      GNUNET_PQ_query_param_end
+    };
+    ret = GNUNET_PQ_exec_prepared (plugin->dbh,
+                                   "update",
+                                   params);
+    if (GNUNET_OK !=
+        GNUNET_POSTGRES_check_result (plugin->dbh,
+                                      ret,
+                                      PGRES_COMMAND_OK,
+                                      "PQexecPrepared",
+                                      "update"))
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_SYSERR,
+            _("Postgress exec failure"));
+      return;
+    }
+    /* What an awful API, this function really does return a string */
+    bool affected = 0 != strcmp ("0", PQcmdTuples (ret));
+    PQclear (ret);
+    if (affected)
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_NO,
+            NULL);
+      return;
+    }
+  }
+
+  uint32_t utype = type;
   uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               UINT64_MAX);
-  PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&replication),
     GNUNET_PQ_query_param_uint32 (&utype),
@@ -330,7 +378,6 @@ postgres_plugin_put (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  GNUNET_CRYPTO_hash (data, size, &vhash);
   ret = GNUNET_PQ_exec_prepared (plugin->dbh,
 				 "put",
 				 params);
@@ -489,11 +536,6 @@ process_result (struct Plugin *plugin,
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on the matching value;
@@ -505,7 +547,6 @@ postgres_plugin_get_key (void *cls,
                          uint64_t next_uid,
                          bool random,
                          const struct GNUNET_HashCode *key,
-                         const struct GNUNET_HashCode *vhash,
                          enum GNUNET_BLOCK_Type type,
                          PluginDatumProcessor proc,
                          void *proc_cls)
@@ -514,7 +555,6 @@ postgres_plugin_get_key (void *cls,
   uint32_t utype = type;
   uint16_t use_rvalue = random;
   uint16_t use_key = NULL != key;
-  uint16_t use_vhash = NULL != vhash;
   uint16_t use_type = GNUNET_BLOCK_TYPE_ANY != type;
   uint64_t rvalue;
   struct GNUNET_PQ_QueryParam params[] = {
@@ -523,8 +563,6 @@ postgres_plugin_get_key (void *cls,
     GNUNET_PQ_query_param_uint16 (&use_rvalue),
     GNUNET_PQ_query_param_auto_from_type (key),
     GNUNET_PQ_query_param_uint16 (&use_key),
-    GNUNET_PQ_query_param_auto_from_type (vhash),
-    GNUNET_PQ_query_param_uint16 (&use_vhash),
     GNUNET_PQ_query_param_uint32 (&utype),
     GNUNET_PQ_query_param_uint16 (&use_type),
     GNUNET_PQ_query_param_end
@@ -750,67 +788,6 @@ postgres_plugin_get_expiration (void *cls,
 
 
 /**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our `struct Plugin *`
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-postgres_plugin_update (void *cls,
-                        uint64_t uid,
-                        uint32_t priority,
-                        uint32_t replication,
-                        struct GNUNET_TIME_Absolute expire,
-                        PluginUpdateCont cont,
-                        void *cont_cls)
-{
-  struct Plugin *plugin = cls;
-  uint32_t oid = (uint32_t) uid;
-  struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_uint32 (&priority),
-    GNUNET_PQ_query_param_uint32 (&replication),
-    GNUNET_PQ_query_param_absolute_time (&expire),
-    GNUNET_PQ_query_param_uint32 (&oid),
-    GNUNET_PQ_query_param_end
-  };
-  PGresult *ret;
-
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "update",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-				    ret,
-				    PGRES_COMMAND_OK,
-				    "PQexecPrepared",
-				    "update"))
-  {
-    cont (cont_cls,
-	  GNUNET_SYSERR,
-	  NULL);
-    return;
-  }
-  PQclear (ret);
-  cont (cont_cls,
-	GNUNET_OK,
-	NULL);
-}
-
-
-/**
  * Get all of the keys in the datastore.
  *
  * @param cls closure with the `struct Plugin *`
@@ -868,6 +845,74 @@ postgres_plugin_drop (void *cls)
 
 
 /**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+static void
+postgres_plugin_remove_key (void *cls,
+                            const struct GNUNET_HashCode *key,
+                            uint32_t size,
+                            const void *data,
+                            PluginRemoveCont cont,
+                            void *cont_cls)
+{
+  struct Plugin *plugin = cls;
+  PGresult *ret;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_fixed_size (data, size),
+    GNUNET_PQ_query_param_end
+  };
+  ret = GNUNET_PQ_exec_prepared (plugin->dbh,
+                                 "remove",
+                                 params);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    ret,
+                                    PGRES_COMMAND_OK,
+                                    "PQexecPrepared",
+                                    "remove"))
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_SYSERR,
+          _("Postgress exec failure"));
+    return;
+  }
+  /* What an awful API, this function really does return a string */
+  bool affected = 0 != strcmp ("0", PQcmdTuples (ret));
+  PQclear (ret);
+  if (!affected)
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_NO,
+          NULL);
+    return;
+  }
+  plugin->env->duc (plugin->env->cls,
+                    - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "datastore-postgres",
+                   "Deleted %u bytes from database\n",
+                   (unsigned int) size);
+  cont (cont_cls,
+        key,
+        size,
+        GNUNET_OK,
+        NULL);
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the `struct GNUNET_DATASTORE_PluginEnvironment*`
@@ -891,13 +936,13 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &postgres_plugin_estimate_size;
   api->put = &postgres_plugin_put;
-  api->update = &postgres_plugin_update;
   api->get_key = &postgres_plugin_get_key;
   api->get_replication = &postgres_plugin_get_replication;
   api->get_expiration = &postgres_plugin_get_expiration;
   api->get_zero_anonymity = &postgres_plugin_get_zero_anonymity;
   api->get_keys = &postgres_plugin_get_keys;
   api->drop = &postgres_plugin_drop;
+  api->remove_key = &postgres_plugin_remove_key;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "datastore-postgres",
                    _("Postgres database running\n"));

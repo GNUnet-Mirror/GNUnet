@@ -62,6 +62,7 @@ template_plugin_estimate_size (void *cls, unsigned long long *estimate)
  *
  * @param cls closure
  * @param key key for the item
+ * @param absent true if the key was not found in the bloom filter
  * @param size number of bytes in data
  * @param data content stored
  * @param type type of the content
@@ -73,11 +74,17 @@ template_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param cont_cls continuation closure
  */
 static void
-template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                     const void *data, enum GNUNET_BLOCK_Type type,
-                     uint32_t priority, uint32_t anonymity,
+template_plugin_put (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     bool absent,
+                     uint32_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
                      uint32_t replication,
-                     struct GNUNET_TIME_Absolute expiration, PluginPutCont cont,
+                     struct GNUNET_TIME_Absolute expiration,
+                     PluginPutCont cont,
                      void *cont_cls)
 {
   GNUNET_break (0);
@@ -92,11 +99,6 @@ template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
  * @param next_uid return the result with lowest uid >= next_uid
  * @param random if true, return a random result instead of using next_uid
  * @param key maybe NULL (to match all entries)
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
  * @param proc function to call on each matching value;
@@ -104,10 +106,12 @@ template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_key (void *cls, uint64_t next_uid, bool random,
-                         const struct GNUNET_HashCode * key,
-                         const struct GNUNET_HashCode * vhash,
-                         enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
+template_plugin_get_key (void *cls,
+                         uint64_t next_uid,
+                         bool random,
+                         const struct GNUNET_HashCode *key,
+                         enum GNUNET_BLOCK_Type type,
+                         PluginDatumProcessor proc,
                          void *proc_cls)
 {
   GNUNET_break (0);
@@ -147,39 +151,6 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
                                 void *proc_cls)
 {
   GNUNET_break (0);
-}
-
-
-/**
- * Update the priority, replication and expiration for a particular
- * unique ID in the datastore.  If the expiration time in value is
- * different than the time found in the datastore, the higher value
- * should be kept.  The specified priority and replication is added
- * to the existing value.
- *
- * @param cls our "struct Plugin*"
- * @param uid unique identifier of the datum
- * @param priority by how much should the priority
- *     change?
- * @param replication by how much should the replication
- *     change?
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param cont continuation called with success or failure status
- * @param cons_cls continuation closure
- */
-static void
-template_plugin_update (void *cls,
-                        uint64_t uid,
-                        uint32_t priority,
-                        uint32_t replication,
-                        struct GNUNET_TIME_Absolute expire,
-                        PluginUpdateCont cont,
-                        void *cont_cls)
-{
-  GNUNET_break (0);
-  cont (cont_cls, GNUNET_SYSERR, "not implemented");
 }
 
 
@@ -230,6 +201,29 @@ template_get_keys (void *cls,
 
 
 /**
+ * Remove a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure for @a cont
+ */
+static void
+template_plugin_remove_key (void *cls,
+                            const struct GNUNET_HashCode *key,
+                            uint32_t size,
+                            const void *data,
+                            PluginRemoveCont cont,
+                            void *cont_cls)
+{
+  GNUNET_break (0);
+  cont (cont_cls, key, size, GNUNET_SYSERR, "not implemented");
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
@@ -248,13 +242,13 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->cls = plugin;
   api->estimate_size = &template_plugin_estimate_size;
   api->put = &template_plugin_put;
-  api->update = &template_plugin_update;
   api->get_key = &template_plugin_get_key;
   api->get_replication = &template_plugin_get_replication;
   api->get_expiration = &template_plugin_get_expiration;
   api->get_zero_anonymity = &template_plugin_get_zero_anonymity;
   api->drop = &template_plugin_drop;
   api->get_keys = &template_get_keys;
+  api->remove_key = &template_plugin_remove_key;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "template",
                    _("Template database running\n"));
   return api;
