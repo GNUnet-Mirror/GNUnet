@@ -32,6 +32,12 @@
 #include "cadet.h"
 
 /**
+ * the size of the ping packets' payload used for RTT measurements
+ */
+#define PING_PAYLOAD_SIZE 300
+
+
+/**
  * Option -P.
  */
 static int request_peers;
@@ -398,7 +404,10 @@ send_ping (void *cls)
   }
 
   echo_time = GNUNET_TIME_absolute_get ();
-  struct GNUNET_TIME_AbsoluteNBO payload = GNUNET_TIME_absolute_hton (echo_time);
+  char payload[PING_PAYLOAD_SIZE];
+  struct GNUNET_TIME_AbsoluteNBO *timestamp = (struct GNUNET_TIME_AbsoluteNBO *) payload;
+  *timestamp = GNUNET_TIME_absolute_hton (echo_time);
+  
   env = GNUNET_MQ_msg_extra (msg,
                              sizeof (payload),
                              GNUNET_MESSAGE_TYPE_CADET_CLI);
@@ -490,7 +499,7 @@ handle_data (void *cls,
     struct GNUNET_TIME_AbsoluteNBO *payload_nbo;
     struct GNUNET_TIME_Absolute payload;
     struct GNUNET_TIME_Relative rtt;
-    size_t expected_size = sizeof (*message) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
+    size_t expected_size = sizeof (*message) + PING_PAYLOAD_SIZE;
 
     if (! waiting_for_pong)
     {

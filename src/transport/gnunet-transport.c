@@ -43,6 +43,11 @@
  */
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+/**
+ * the size of the ping packets' payload used for RTT measurements
+ */
+#define PING_PAYLOAD_SIZE 300 + 145 + 218
+
 
 /**
  * Context to store name resolutions for valiation
@@ -211,12 +216,22 @@ static int measure_rtt;
 /**
  * the number of RTT measurements to be done
  */
-static unsigned int number_rtt;
+static unsigned int ping_limit;
 
 /**
- * the period after which the next ping is sent
+ * the ping timeout given as command line argument
  */
-static struct GNUNET_TIME_Relative measure_period;
+static unsigned int ping_timeout_seconds;
+
+/**
+ * the time span we are waiting for a ping response before sending the next ping
+ */
+static struct GNUNET_TIME_Relative ping_timeout;
+
+/**
+ * echo reply timeout task
+ */
+static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 /**
  * are re waiting for an echo reply?
@@ -227,6 +242,11 @@ static int waiting_for_pong;
  * identifier of the last ping we sent
  */
 static uint16_t ping_count;
+
+/**
+ * Time of the last echo request
+ */
+static struct GNUNET_TIME_Absolute echo_time;
 
 /**
  * Option -i.
@@ -570,9 +590,9 @@ send_benchmark (void *cls)
 static void
 send_ping (void *cls)
 {
-  struct GNUNET_MQ_Handle *mq = cls;
-  struct GNUNET_MessageHeader *m;
   struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Handle *mq = cls;
 
   GNUNET_assert (mq != NULL);
 
@@ -581,24 +601,36 @@ send_ping (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ping %d timed out.\n",
                 ping_count);
-    waiting_for_pong = GNUNET_NO;
   }
 
-  if (number_rtt != 0 && ping_count == number_rtt)
+  if (ping_limit != 0 && ping_count == ping_limit)
   {
-    ret = 0;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  env = GNUNET_MQ_msg_extra (m, sizeof (ping_count), GNUNET_MESSAGE_TYPE_DUMMY);
-  GNUNET_memcpy (&m[1], &ping_count, sizeof (ping_count));
-  GNUNET_MQ_send (mq, env);
-  start_time = GNUNET_TIME_absolute_get();
-  if (measure_period.rel_value_us != GNUNET_TIME_UNIT_ZERO.rel_value_us)
-  {
-    GNUNET_SCHEDULER_add_delayed (measure_period, &send_ping, mq);
-  }
+
+  echo_time = GNUNET_TIME_absolute_get ();
+  char payload[PING_PAYLOAD_SIZE];
+  struct GNUNET_TIME_AbsoluteNBO *timestamp = (struct GNUNET_TIME_AbsoluteNBO *) payload;
+  *timestamp = GNUNET_TIME_absolute_hton (echo_time);
+
+  env = GNUNET_MQ_msg_extra (msg,
+                             sizeof (payload),
+                             GNUNET_MESSAGE_TYPE_DUMMY);
+  GNUNET_memcpy (&msg[1],
+                 &payload,
+                 sizeof (payload));
+  GNUNET_MQ_send (mq,
+                  env);
   ping_count++;
+  waiting_for_pong = GNUNET_YES;
+
+  if (ping_timeout.rel_value_us != 0)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task =
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
+  }
 }
 
 
@@ -786,7 +818,11 @@ static void
 handle_dummy (void *cls,
 	      const struct GNUNET_MessageHeader *message)
 {
-  if (benchmark_receive)
+  size_t payload_size = ntohs (message->size) - sizeof (*message);
+  
+  struct GNUNET_MQ_Handle *mq = cls;
+
+  if (GNUNET_YES == benchmark_receive)
   {
     if (verbosity > 0)
       FPRINTF (stdout,
@@ -796,39 +832,62 @@ handle_dummy (void *cls,
       start_time = GNUNET_TIME_absolute_get ();
     traffic_received += ntohs (message->size);
   }
-  if (measure_rtt)
+
+  if (GNUNET_YES == echo)
   {
-    struct GNUNET_TIME_Relative latency =
-      GNUNET_TIME_absolute_get_duration (start_time);
-    waiting_for_pong = GNUNET_NO;
-    FPRINTF (stdout,
-            "%" PRIu64 "\n",
-            latency.rel_value_us);
-    send_ping (cls);
-  }
-  if (echo)
-  {
-    GNUNET_assert (NULL != handle);
-    //struct GNUNET_MQ_Handle *mq = GNUNET_TRANSPORT_core_get_mq (handle, &pid);
-    struct GNUNET_MQ_Handle *mq = cls;
-    struct GNUNET_MessageHeader *m;
     struct GNUNET_MQ_Envelope *env;
-    uint16_t message_size = ntohs (message->size);
-    uint16_t size = message_size - sizeof (*message);
+    struct GNUNET_MessageHeader *msg;
 
-    GNUNET_assert (mq != NULL);
+    env = GNUNET_MQ_msg_extra (msg,
+                               payload_size,
+                               GNUNET_MESSAGE_TYPE_DUMMY);
+    GNUNET_memcpy (&msg[1],
+                   &message[1],
+                   payload_size);
+    GNUNET_MQ_send (mq,
+                    env);
+    return;
+  }
 
-    if (size != sizeof (uint16_t))
+  if (GNUNET_YES == measure_rtt)
+  {
+    struct GNUNET_TIME_AbsoluteNBO *payload_nbo;
+    struct GNUNET_TIME_Absolute payload;
+    struct GNUNET_TIME_Relative rtt;
+    //size_t expected_size = sizeof (*message) + sizeof (struct GNUNET_TIME_AbsoluteNBO);
+    size_t expected_size = sizeof (*message) + PING_PAYLOAD_SIZE;
+
+    if (! waiting_for_pong)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "received unexpected payload, ignoring.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "received unexpected echo response, dropping.\n");
       return;
     }
-    env = GNUNET_MQ_msg_extra (m, size, GNUNET_MESSAGE_TYPE_DUMMY);
-    GNUNET_memcpy (&m[1], &message[1], size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "pong!\n");
-    GNUNET_MQ_send (mq, env);
+
+    if (ntohs (message->size) != expected_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "received invalid ping response, dropping.\n");
+      return;
+    }
+
+    payload_nbo = (struct GNUNET_TIME_AbsoluteNBO *) &message[1];
+    payload = GNUNET_TIME_absolute_ntoh (*payload_nbo);
+
+    if (payload.abs_value_us != echo_time.abs_value_us)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "received echo response after timeout, dropping.\n");
+      return;
+    }
+
+    waiting_for_pong = GNUNET_NO;
+    rtt = GNUNET_TIME_absolute_get_duration (payload);
+    FPRINTF (stdout,
+             "%" PRIu64 "\n",
+             rtt.rel_value_us);
+    send_ping (mq);
+    return;
   }
 }
 
@@ -1463,15 +1522,6 @@ run (void *cls,
       return;
     }
 
-    if (number_rtt > UINT16_MAX)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "the given --number is outside the allowed range 0..%u\n",
-                  UINT16_MAX);
-      ret = 2;
-      return;
-    }
-
     struct GNUNET_MQ_MessageHandler handlers[] = {
       GNUNET_MQ_hd_var_size (dummy,
                              GNUNET_MESSAGE_TYPE_DUMMY,
@@ -1495,10 +1545,21 @@ run (void *cls,
       ret = 1;
       return;
     }
-    start_time = GNUNET_TIME_absolute_get ();
-    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                               &operation_timeout,
-                                               NULL);
+    
+    if (GNUNET_YES == benchmark_send)
+    {
+      start_time = GNUNET_TIME_absolute_get ();
+      op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                                 &operation_timeout,
+                                                 NULL);
+    }
+
+    if (GNUNET_YES == measure_rtt)
+    {
+      ping_timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                    ping_timeout_seconds);
+      waiting_for_pong = GNUNET_NO;
+    }
   }
   else if (benchmark_receive || /* -b: Benchmark receiving */
            echo)                /* -e: Activate echo mode */
@@ -1619,10 +1680,15 @@ main (int argc,
                                   gettext_noop ("measure rount-trip time by sending packets to an echo-mode enabled peer"),
                                   &measure_rtt),
     GNUNET_GETOPT_option_uint ('N',
-                                  "number",
-                                  "NUMBER",
+                                  "count",
+                                  "COUNT",
                                   gettext_noop ("number of RTT measurements"),
-                                  &number_rtt),
+                                  &ping_limit),
+    GNUNET_GETOPT_option_uint ('w',
+                                  "timeout",
+                                  "SECONDS",
+                                  gettext_noop ("timeout for each RTT measurement"),
+                                  &ping_timeout_seconds),
     GNUNET_GETOPT_option_flag ('i',
                                   "information",
                                   gettext_noop ("provide information about all current connections (once)"),
@@ -1656,9 +1722,6 @@ main (int argc,
     GNUNET_GETOPT_option_verbose (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
-
-  // TODO: get measure_period from command line option
-  measure_period = GNUNET_TIME_UNIT_ZERO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
