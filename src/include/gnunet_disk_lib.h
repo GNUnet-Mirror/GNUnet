@@ -331,7 +331,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_DISK_file_size (const char *filename, uint64_t *size,
+GNUNET_DISK_file_size (const char *filename,
+                       uint64_t *size,
                        int include_symbolic_links,
                        int single_file_mode);
 

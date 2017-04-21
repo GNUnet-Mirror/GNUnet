@@ -49,10 +49,10 @@ enum RunPhase
   RP_ERROR = 0,
   RP_PUT,
   RP_GET,
-  RP_UPDATE,
   RP_ITER_ZERO,
   RP_REPL_GET,
   RP_EXPI_GET,
+  RP_REMOVE,
   RP_DROP
 };
 
@@ -154,7 +154,7 @@ do_put (struct CpsRunContext *crc)
   /* most content is 32k */
   size = 32 * 1024;
 
-  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)   /* but some of it is less! */
+  if (0 != i && GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)   /* but some of it is less! */
     size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
   size = size - (size & 7);     /* always multiple of 8 */
 
@@ -168,8 +168,13 @@ do_put (struct CpsRunContext *crc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "putting type %u, anon %u under key %s\n", i + 1, i,
 	      GNUNET_h2s (&key));
-  crc->api->put (crc->api->cls, &key, size, value, i + 1 /* type */ ,
-                 prio, i /* anonymity */ ,
+  crc->api->put (crc->api->cls,
+                 &key,
+                 false /* absent */,
+                 size,
+                 value, i + 1 /* type */ ,
+                 prio,
+                 i /* anonymity */ ,
                  0 /* replication */ ,
                  GNUNET_TIME_relative_to_absolute
                    (GNUNET_TIME_relative_multiply
@@ -177,7 +182,8 @@ do_put (struct CpsRunContext *crc)
                       60 * 60 * 60 * 1000 +
                       GNUNET_CRYPTO_random_u32
                       (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-                 put_continuation, crc);
+                 put_continuation,
+                 crc);
   i++;
 }
 
@@ -212,6 +218,25 @@ iterate_one_shot (void *cls,
   GNUNET_SCHEDULER_add_now (&test,
                             crc);
   return GNUNET_OK;
+}
+
+
+static void
+remove_continuation (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t size,
+                     int status,
+                     const char *msg)
+{
+  struct CpsRunContext *crc = cls;
+
+  GNUNET_assert (NULL != key);
+  GNUNET_assert (32768 == size);
+  GNUNET_assert (GNUNET_OK == status);
+  GNUNET_assert (NULL == msg);
+  crc->phase++;
+  GNUNET_SCHEDULER_add_now (&test,
+                            crc);
 }
 
 
@@ -264,19 +289,6 @@ cleaning_task (void *cls)
 
 
 static void
-update_continuation (void *cls,
-		     int status,
-		     const char *msg)
-{
-  struct CpsRunContext *crc = cls;
-
-  GNUNET_assert (GNUNET_OK == status);
-  crc->phase++;
-  GNUNET_SCHEDULER_add_now (&test, crc);
-}
-
-
-static void
 test (void *cls)
 {
   struct CpsRunContext *crc = cls;
@@ -311,21 +323,10 @@ test (void *cls)
                        0,
                        false,
                        &key,
-                       NULL,
                        GNUNET_BLOCK_TYPE_ANY,
                        &iterate_one_shot,
                        crc);
     break;
-  case RP_UPDATE:
-    crc->api->update (crc->api->cls,
-                      guid,
-                      1,
-                      1,
-                      GNUNET_TIME_UNIT_ZERO_ABS,
-                      &update_continuation,
-                      crc);
-    break;
-
   case RP_ITER_ZERO:
     if (crc->cnt == 1)
     {
@@ -342,6 +343,23 @@ test (void *cls)
   case RP_EXPI_GET:
     crc->api->get_expiration (crc->api->cls, &iterate_one_shot, crc);
     break;
+  case RP_REMOVE:
+    {
+      struct GNUNET_HashCode key;
+      uint32_t size = 32768;
+      char value[size];
+
+      gen_key (0, &key);
+      memset (value, 0, size);
+      value[0] = crc->i;
+      crc->api->remove_key (crc->api->cls,
+                            &key,
+                            size,
+                            value,
+                            &remove_continuation,
+                            crc);
+      break;
+    }
   case RP_DROP:
     crc->api->drop (crc->api->cls);
     GNUNET_SCHEDULER_add_now (&cleaning_task, crc);

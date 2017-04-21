@@ -464,19 +464,21 @@ continue_after_remove (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
 static void
 process_kblock_for_unindex (void *cls,
-			    const struct GNUNET_HashCode *key,
-			    size_t size,
+                            const struct GNUNET_HashCode *key,
+                            size_t size,
                             const void *data,
-			    enum GNUNET_BLOCK_Type type,
-			    uint32_t priority,
-			    uint32_t anonymity,
-			    struct GNUNET_TIME_Absolute expiration,
+                            enum GNUNET_BLOCK_Type type,
+                            uint32_t priority,
+                            uint32_t anonymity,
+                            uint32_t replication,
+                            struct GNUNET_TIME_Absolute expiration,
                             uint64_t uid)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;

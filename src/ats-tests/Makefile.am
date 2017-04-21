@@ -1,4 +1,4 @@
-# This Makefile.am is in the public domain
+#t This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
@@ -60,6 +60,7 @@ libgnunetatstesting_la_SOURCES = \
 libgnunetatstesting_la_LIBADD = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunetatstesting_la_DEPENDENCIES = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \

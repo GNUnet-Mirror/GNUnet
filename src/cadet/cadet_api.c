@@ -1583,7 +1583,7 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param window_changes Function called when the transmit window size changes.
  * @param disconnects Function called when a channel is disconnected.
  * @param handlers Callbacks for messages we care about, NULL-terminated.
- * @return Port handle.
+ * @return Port handle, NULL if port is in use
  */
 struct GNUNET_CADET_Port *
 GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
@@ -1604,17 +1604,21 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
   p = GNUNET_new (struct GNUNET_CADET_Port);
   p->cadet = h;
   p->id = *port;
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (h->ports,
+                                         &p->id,
+                                         p,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_free (p);
+    return NULL;
+  }
   p->connects = connects;
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
   p->handlers = GNUNET_MQ_copy_handlers (handlers);
 
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_put (h->ports,
-						    &p->id,
-						    p,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN);

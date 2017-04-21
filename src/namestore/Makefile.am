@@ -114,7 +114,6 @@ libgnunetnamestore_la_SOURCES = \
 libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunetnamestore_la_LDFLAGS = \

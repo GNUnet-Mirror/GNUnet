@@ -1,6 +1,6 @@
-.TH gnunet\-datastore "1" "30 May 2013" "GNUnet"
+.TH gnunet\-datastore "1" "13 April 2017" "GNUnet"
 .SH NAME
-gnunet\-datastore \- merge or convert GNUnet datastore databases
+gnunet\-datastore \- dump or insert (restore) GNUnet datastore databases
 
 .SH SYNOPSIS
 .B gnunet\-datastore
@@ -8,26 +8,32 @@ gnunet\-datastore \- merge or convert GNUnet datastore databases
 .SH DESCRIPTION
 .PP
 
-gnunet\-datastore can be used to convert or merge GNUnet datastores.  This is useful if a datastore is to be migrated between SQL databases, i.e. from sqlite to postgres or vice versa.  gnunet\-datastore basically takes two configuration files (which must specify different databases) and reads in all of the data from the datasource (\-s option) and copies it to the destination (\-c option).  Note that replication level information is lost in the process at this time.
+gnunet\-datastore can be used to backup and restore or merge GNUnet datastores.  This is useful if a datastore is to be migrated between SQL databases, i.e. from sqlite to postgres or vice versa.  gnunet\-datastore will dump the entire contents of the database or insert a dump file into the database.
 
 .TP
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
-configuration file to use for the destination database
+configuration file to use
+.TP
+\fB\-d\fR, \fB\-\-dump\fR
+dump all records to a file
+.TP
+\fB\-f \fIFILENAME\fR, \fB\-\-file=FILENAME\fR
+file to dump to or insert from.  Otherwise stdin/stdout are used.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 print help page
 .TP
+\fB\-i\fR, \fB\-\-insert\fR
+insert from dump file
+.TP
 \fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
 Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
 .TP
-\fB\-s \fIFILENAME\fR, \fB\-\-sourcecfg=FILENAME\fR
-configuration file to use for the source database
+\fB\-l \fIFILENAME\fR, \fB\-\-logfile=FILENAME\fR
+configure logging to write logs to FILENAME
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number
-.TP
-\fB\-V\fR, \fB\-\-verbose\fR
-be verbose
 
 .SH NOTES
 
