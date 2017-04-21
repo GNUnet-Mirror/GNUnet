@@ -772,7 +772,6 @@ backward_resolution (void* cls,
                                                     ds_entry->issuer_key, //issuer_key,
                                                     GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
                                                     GNUNET_GNS_LO_DEFAULT,
-                                                    NULL, //shorten_key, always NULL
                                                     &backward_resolution,
                                                     ds_entry);
       GNUNET_free (lookup_attribute);
@@ -855,7 +854,6 @@ delegation_chain_resolution_start (void* cls)
                                                 &vrh->issuer_key, //issuer_key,
                                                 GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
                                                 GNUNET_GNS_LO_DEFAULT,
-                                                NULL, //shorten_key, always NULL
                                                 &backward_resolution,
                                                 ds_entry);
 }

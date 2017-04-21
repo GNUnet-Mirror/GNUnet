@@ -108,17 +108,17 @@ static char *issuer_attr;
 /**
  * Verify mode
  */
-static uint32_t verify;
+static int verify;
 
 /**
  * Issue mode
  */
-static uint32_t create_cred;
+static int create_cred;
 
 /**
  * Collect mode
  */
-static uint32_t collect;
+static int collect;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -537,34 +537,49 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'I', "issue", NULL,
-      gettext_noop ("create credential"), 0,
-      &GNUNET_GETOPT_set_one, &create_cred},
-    {'V', "verify", NULL,
-      gettext_noop ("verify credential against attribute"), 0,
-      &GNUNET_GETOPT_set_one, &verify},
-    {'s', "subject", "PKEY",
-      gettext_noop ("The public key of the subject to lookup the credential for"), 1,
-      &GNUNET_GETOPT_set_string, &subject_key},
-    {'b', "credential", "CRED",
-      gettext_noop ("The name of the credential presented by the subject"), 1,
-      &GNUNET_GETOPT_set_string, &subject_credential},
-    {'i', "issuer", "PKEY",
-      gettext_noop ("The public key of the authority to verify the credential against"), 1,
-      &GNUNET_GETOPT_set_string, &issuer_key},
-    {'e', "ego", "EGO",
-      gettext_noop ("The ego to use"), 1,
-      &GNUNET_GETOPT_set_string, &ego_name},
-    {'a', "attribute", "ATTR",
-      gettext_noop ("The issuer attribute to verify against or to issue"), 1, 
-      &GNUNET_GETOPT_set_string, &issuer_attr},
-    {'T', "ttl", "EXP",
-      gettext_noop ("The time to live for the credential"), 1,
-      &GNUNET_GETOPT_set_string, &expiration},
-    {'g', "collect", NULL,
-      gettext_noop ("collect credentials"), 0,
-      &GNUNET_GETOPT_set_one, &collect},
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag ('I',
+                               "issue",
+                               gettext_noop ("create credential"),
+                               &create_cred),
+    GNUNET_GETOPT_option_flag ('V',
+                               "verify",
+                               gettext_noop ("verify credential against attribute"),
+                               &verify),
+    GNUNET_GETOPT_option_string ('s',
+                                 "subject",
+                                 "PKEY",
+                                 gettext_noop ("The public key of the subject to lookup the credential for"),
+                                 &subject_key),
+    GNUNET_GETOPT_option_string ('b',
+                                 "credential",
+                                 "CRED",
+                                 gettext_noop ("The name of the credential presented by the subject"),
+                                 &subject_credential),
+    GNUNET_GETOPT_option_string ('i',
+                                 "issuer",
+                                 "PKEY",
+                                 gettext_noop ("The public key of the authority to verify the credential against"),
+                                 &issuer_key),
+    GNUNET_GETOPT_option_string ('e',
+                                 "ego",
+                                 "EGO",
+                                 gettext_noop ("The ego to use"),
+                                 &ego_name),
+    GNUNET_GETOPT_option_string ('a',
+                                 "attribute",
+                                 "ATTR",
+                                 gettext_noop ("The issuer attribute to verify against or to issue"),
+                                 &issuer_attr),
+    GNUNET_GETOPT_option_string ('T',
+                                 "ttl",
+                                 "EXP",
+                                 gettext_noop ("The time to live for the credential"),
+                                 &expiration),
+    GNUNET_GETOPT_option_flag ('g',
+                               "collect",
+                               gettext_noop ("collect credentials"),
+                               &collect),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

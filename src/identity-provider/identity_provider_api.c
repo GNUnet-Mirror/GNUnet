@@ -443,7 +443,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
   slen = strlen (scopes) + 1;
   if (NULL != vattr)
     slen += strlen (vattr) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct IssueMessage))
   {
     GNUNET_break (0);
     return NULL;

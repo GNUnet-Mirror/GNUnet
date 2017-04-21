@@ -399,7 +399,7 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
        "Trying to collect `%s' in CREDENTIAL\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1;
-  if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*vr))
+  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
     return NULL;
@@ -475,7 +475,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
        "Trying to verify `%s' in CREDENTIAL\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1 + clen;
-  if (nlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*vr))
+  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
     return NULL;
