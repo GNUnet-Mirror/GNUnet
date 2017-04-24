@@ -961,13 +961,13 @@ handle_verify (void *cls,
   for (i=0;i<credentials_count;i++) {
     cr_entry = GNUNET_new (struct CredentialRecordEntry);
     cr_entry->credential = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) +
-                                          strlen (credentials[i].issuer_attribute) + 1);
+                                          credentials[i].issuer_attribute_len);
     GNUNET_memcpy (cr_entry->credential,
                    &credentials[i],
                    sizeof (struct GNUNET_CREDENTIAL_Credential));
     GNUNET_memcpy (&cr_entry->credential[1],
                    credentials[i].issuer_attribute,
-                   strlen (credentials[i].issuer_attribute));
+                   credentials[i].issuer_attribute_len);
     cr_entry->credential->issuer_attribute = (char*)&cr_entry->credential[1];
     GNUNET_CONTAINER_DLL_insert_tail (vrh->cred_chain_head,
                                       vrh->cred_chain_tail,
