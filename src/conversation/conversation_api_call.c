@@ -25,6 +25,7 @@
  * @author Andreas Fuchs
  * @author Christian Grothoff
  */
+#include <inttypes.h>
 #include "platform.h"
 #include "gnunet_conversation_service.h"
 #include "gnunet_gnsrecord_lib.h"
@@ -145,6 +146,9 @@ struct GNUNET_CONVERSATION_Call
    */
   enum CallState state;
 
+#ifdef MEASURE_DELAY
+  FILE *rtt_delays_file; 
+#endif
 };
 
 
@@ -174,12 +178,28 @@ transmit_call_audio (void *cls,
   struct ClientAudioMessage *am;
 
   GNUNET_assert (CS_ACTIVE == call->state);
+#ifdef MEASURE_DELAY
+  struct GNUNET_TIME_AbsoluteNBO timestamp =
+    GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+  e = GNUNET_MQ_msg_extra (am,
+                           data_size + sizeof (struct GNUNET_TIME_AbsoluteNBO),
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  struct GNUNET_TIME_AbsoluteNBO *payload = (struct GNUNET_TIME_AbsoluteNBO *) &am[1];
+  GNUNET_memcpy (payload,
+                 &timestamp,
+                 sizeof (timestamp));
+  GNUNET_memcpy (&payload[1],
+                 data,
+                 data_size);
+#else
+
   e = GNUNET_MQ_msg_extra (am,
                            data_size,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   GNUNET_memcpy (&am[1],
                  data,
                  data_size);
+#endif
   GNUNET_MQ_send (call->mq,
                   e);
 }
@@ -422,9 +442,39 @@ handle_call_audio (void *cls,
        have had delayed data on the unreliable channel */
     break;
   case CS_ACTIVE:
+  {
+#ifdef MEASURE_DELAY
+    struct GNUNET_TIME_AbsoluteNBO *timestamp_nbo =
+      (struct GNUNET_TIME_AbsoluteNBO *) &am[1];
+    if (call->rtt_delays_file)
+    {
+      struct GNUNET_TIME_Absolute timestamp =
+        GNUNET_TIME_absolute_ntoh (*timestamp_nbo);
+      struct GNUNET_TIME_Relative delay = GNUNET_TIME_absolute_get_duration (timestamp);
+      int print_ret = FPRINTF (call->rtt_delays_file,
+                               "%" PRIu64 "\n",
+                               delay.rel_value_us);
+      if (print_ret < 0)
+      {
+        FCLOSE (call->rtt_delays_file);
+        call->rtt_delays_file = NULL;
+      }
+      else
+      {
+        fflush (call->rtt_delays_file);
+      }
+    }
+    uint16_t audio_message_size =
+      ntohs (am->header.size) - sizeof (struct GNUNET_TIME_AbsoluteNBO);
+    call->speaker->play (call->speaker->cls,
+                         audio_message_size - sizeof (struct ClientAudioMessage),
+                         &timestamp_nbo[1]);
+  }
+#else
     call->speaker->play (call->speaker->cls,
                          ntohs (am->header.size) - sizeof (struct ClientAudioMessage),
                          &am[1]);
+#endif
     break;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call);
@@ -526,7 +576,8 @@ call_error_handler (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Connection to conversation service lost, trying to reconnect\n"));
+              _("Connection to conversation service lost, error: %d trying to reconnect\n"),
+              error);
   fail_call (call);
 }
 
@@ -637,6 +688,9 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   call->state = CS_LOOKUP;
   GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
+#ifdef MEASURE_DELAY
+  call->rtt_delays_file = FOPEN ("conversation_rtt_delays.csv", "w");
+#endif
   if (GNUNET_YES == is_gns_address (call->callee))
   {
     call->gns_lookup = GNUNET_GNS_lookup (call->gns,
@@ -676,6 +730,13 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
 {
+#ifdef MEASURE_DELAY
+  if (call->rtt_delays_file)
+  {
+    FCLOSE (call->rtt_delays_file);
+    call->rtt_delays_file = NULL;
+  }
+#endif
   if ( (NULL != call->speaker) &&
        (CS_ACTIVE == call->state) )
     call->speaker->disable_speaker (call->speaker->cls);

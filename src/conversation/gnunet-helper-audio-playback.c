@@ -121,11 +121,11 @@ static int preskip;
 
 static float gain;
 
-#ifdef MEASURE_CODEC_DELAY
+#ifdef MEASURE_DELAY
 /**
  * output file for latency measurement
  */
-static FILE *decode_timestamps_file;
+static FILE *decode_delays_file;
 #endif
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -346,8 +346,9 @@ static void
 quit (int ret)
 {
   mainloop_api->quit (mainloop_api, ret);
-#ifdef MEASURE_CODEC_DELAY
-  FCLOSE (decode_timestamps_file);
+#ifdef MEASURE_DELAY
+  if (decode_delays_file)
+    FCLOSE (decode_delays_file);
 #endif
   exit (ret);
 }
@@ -571,7 +572,7 @@ stdin_receiver (void *cls,
     audio = (struct AudioMessage *) msg;
     payload_len = ntohs (audio->header.size) - sizeof (struct AudioMessage);
 
-#ifdef MEASURE_CODEC_DELAY
+#ifdef MEASURE_DELAY
     struct GNUNET_TIME_Absolute decode_begin_time = GNUNET_TIME_absolute_get ();
 #endif
 
@@ -582,13 +583,24 @@ stdin_receiver (void *cls,
     ogg_sync_wrote (&oy, payload_len);
 
     ogg_demux_and_decode ();
-#ifdef MEASURE_CODEC_DELAY
-    struct GNUNET_TIME_Absolute decode_end_time = GNUNET_TIME_absolute_get ();
-    FPRINTF (decode_timestamps_file,
-             "%" PRIu64 ",%" PRIu64 "\n",
-             decode_begin_time.abs_value_us,
-             decode_end_time.abs_value_us);
-    fflush (decode_timestamps_file);
+#ifdef MEASURE_DELAY
+    if (decode_delays_file)
+    {
+      struct GNUNET_TIME_Relative decode_delay =
+        GNUNET_TIME_absolute_get_duration (decode_begin_time);
+      int print_ret = FPRINTF (decode_delays_file,
+                               "%" PRIu64 "\n",
+                               decode_delay.rel_value_us);
+      if (print_ret < 0)
+      {
+        FCLOSE (decode_delays_file);
+        decode_delays_file = NULL;
+      }
+      else
+      {
+        fflush (decode_delays_file);
+      }
+    }
 #endif
     break;
   default:
@@ -798,8 +810,8 @@ main (int argc, char *argv[])
 #ifdef DEBUG_DUMP_DECODED_OGG
   dump_to_stdout = getenv ("GNUNET_DUMP_DECODED_OGG") ? 1 : 0;
 #endif
-#ifdef MEASURE_CODEC_DELAY
-  decode_timestamps_file = FOPEN ("conversation_decode_timestamps.csv", "w");
+#ifdef MEASURE_DELAY
+  decode_delays_file = FOPEN ("conversation_decode_delays.csv", "w");
 #endif
   while (1)
   {

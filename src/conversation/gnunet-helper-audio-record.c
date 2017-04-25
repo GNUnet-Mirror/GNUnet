@@ -146,7 +146,7 @@ static pa_sample_spec sample_spec = {
   .channels = CHANNELS
 };
 
-static FILE *encode_timestamps_file;
+static FILE *encode_delays_file;
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -272,8 +272,9 @@ static void
 quit (int ret)
 {
   mainloop_api->quit (mainloop_api, ret);
-#ifdef MEASURE_CODEC_DELAY
-  FCLOSE (encode_timestamps_file);
+#ifdef MEASURE_DELAY
+  if (encode_delays_file)
+    FCLOSE (encode_delays_file);
 #endif
   exit (ret);
 }
@@ -343,19 +344,30 @@ packetizer ()
 	    &transmit_buffer[transmit_buffer_index],
 	    pcm_length);
     transmit_buffer_index += pcm_length;
-#ifdef MEASURE_CODEC_DELAY
+#ifdef MEASURE_DELAY
     struct GNUNET_TIME_Absolute encode_begin_time = GNUNET_TIME_absolute_get ();
 #endif
     len =
       opus_encode_float (enc, pcm_buffer, FRAME_SIZE, opus_data,
 			 MAX_PAYLOAD_BYTES);
-#ifdef MEASURE_CODEC_DELAY
-    struct GNUNET_TIME_Absolute encode_end_time = GNUNET_TIME_absolute_get ();
-    FPRINTF (encode_timestamps_file,
-	     "%" PRIu64 ",%" PRIu64 "\n",
-	     encode_begin_time.abs_value_us,
-	     encode_end_time.abs_value_us);
-    fflush (encode_timestamps_file);
+#ifdef MEASURE_DELAY
+    if (encode_delays_file)
+    {
+      struct GNUNET_TIME_Relative encode_delay =
+	GNUNET_TIME_absolute_get_duration (encode_begin_time);
+      int print_ret = FPRINTF (encode_delays_file,
+			       "%" PRIu64 "\n",
+               		       encode_delay.rel_value_us);
+      if (print_ret < 0)
+      {
+	FCLOSE (encode_delays_file);
+	encode_delays_file = NULL;
+      }
+      else
+      {
+	fflush (encode_delays_file);
+      }
+    }
 #endif
     if (len < 0)
     {
@@ -788,8 +800,8 @@ main (int argc, char *argv[])
 #ifdef DEBUG_RECORD_PURE_OGG
   dump_pure_ogg = getenv ("GNUNET_RECORD_PURE_OGG") ? 1 : 0;
 #endif
-#ifdef MEASURE_CODEC_DELAY
-  encode_timestamps_file = FOPEN ("conversation_encode_timestamps.csv", "w");
+#ifdef MEASURE_DELAY
+  encode_delays_file = FOPEN ("conversation_encode_delays.csv", "w");
 #endif
   ogg_init ();
   opus_init ();

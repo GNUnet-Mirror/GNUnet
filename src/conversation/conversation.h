@@ -46,7 +46,7 @@ extern "C"
  */
 #define HIGH_BIT ((uint32_t) (1LL << 31))
 
-#define MEASURE_CODEC_DELAY 1
+#define MEASURE_DELAY 1
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
