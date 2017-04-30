@@ -240,6 +240,11 @@ shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shutdown\n");
+  if (NULL != lp)
+  {
+    GNUNET_CADET_close_port (lp);
+    lp = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
@@ -281,6 +286,13 @@ read_stdio (void *cls)
   char buf[60000];
   ssize_t data_size;
 
+  if (NULL == ch)
+  {
+    /**
+     * ignore input if the other side disconnected
+     */
+    return;
+  }
   rd_task = NULL;
   data_size = read (0,
                     buf,
@@ -324,60 +336,6 @@ listen_stdio ()
                                          &read_stdio,
                                          NULL);
   GNUNET_NETWORK_fdset_destroy (rs);
-}
-
-
-/**
- * Function called whenever a channel is destroyed.  Should clean up
- * any associated state.
- *
- * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
- *
- * @param cls closure
- * @param channel connection to the other end (henceforth invalid)
- */
-static void
-channel_ended (void *cls,
-               const struct GNUNET_CADET_Channel *channel)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Channel ended!\n");
-  GNUNET_assert (channel == ch);
-  ch = NULL;
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Method called whenever another peer has added us to a channel
- * the other peer initiated.
- * Only called (once) upon reception of data with a message type which was
- * subscribed to in #GNUNET_CADET_connect.
- *
- * A call to #GNUNET_CADET_channel_destroy causes the channel to be ignored.
- * In this case the handler MUST return NULL.
- *
- * @param cls closure
- * @param channel new handle to the channel
- * @param initiator peer that started the channel
- * @return initial channel context for the channel, we use @a channel
- */
-static void *
-channel_incoming (void *cls,
-                  struct GNUNET_CADET_Channel *channel,
-                  const struct GNUNET_PeerIdentity *initiator)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Incoming connection from %s\n",
-              GNUNET_i2s_full (initiator));
-  GNUNET_assert (NULL == ch);
-  GNUNET_assert (NULL != lp);
-  GNUNET_CADET_close_port (lp);
-  lp = NULL;
-  ch = channel;
-  if (GNUNET_NO == echo)
-    listen_stdio ();
-  return channel;
 }
 
 
@@ -556,6 +514,82 @@ handle_data (void *cls,
     off += done;
   }
 }
+
+
+/**
+ * Method called whenever another peer has added us to a channel
+ * the other peer initiated.
+ * Only called (once) upon reception of data with a message type which was
+ * subscribed to in #GNUNET_CADET_connect.
+ *
+ * A call to #GNUNET_CADET_channel_destroy causes the channel to be ignored.
+ * In this case the handler MUST return NULL.
+ *
+ * @param cls closure
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
+ * @return initial channel context for the channel, we use @a channel
+ */
+static void *
+channel_incoming (void *cls,
+                  struct GNUNET_CADET_Channel *channel,
+                  const struct GNUNET_PeerIdentity *initiator)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Incoming connection from %s\n",
+              GNUNET_i2s_full (initiator));
+  GNUNET_assert (NULL == ch);
+  GNUNET_assert (NULL != lp);
+  GNUNET_CADET_close_port (lp);
+  lp = NULL;
+  ch = channel;
+  if (GNUNET_NO == echo)
+    listen_stdio ();
+  return channel;
+}
+
+
+/**
+ * Function called whenever a channel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
+ *
+ * @param cls closure
+ * @param channel connection to the other end (henceforth invalid)
+ */
+static void
+channel_ended (void *cls,
+               const struct GNUNET_CADET_Channel *channel)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection lost\n");
+  GNUNET_assert (channel == ch);
+  ch = NULL;
+  if (NULL != listen_port)
+  {
+    struct GNUNET_MQ_MessageHandler handlers[] = {
+      GNUNET_MQ_hd_var_size (data,
+                           GNUNET_MESSAGE_TYPE_CADET_CLI,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+      GNUNET_MQ_handler_end ()
+    };
+    lp = GNUNET_CADET_open_port (mh,
+                                 &porthash,
+                                 &channel_incoming,
+                                 NULL,
+                                 NULL /* window changes */,
+                                 &channel_ended,
+                                 handlers);
+  }
+  else
+  {
+    GNUNET_SCHEDULER_shutdown ();
+  }
+}
+
+
 
 
 /**
