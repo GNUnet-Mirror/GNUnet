@@ -464,6 +464,9 @@ handle_call_audio (void *cls,
         fflush (call->rtt_delays_file);
       }
     }
+    //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    //            "header.size: %d\n",
+    //            am->header.size);
     uint16_t audio_message_size =
       ntohs (am->header.size) - sizeof (struct GNUNET_TIME_AbsoluteNBO);
     call->speaker->play (call->speaker->cls,

@@ -574,6 +574,9 @@ stdin_receiver (void *cls,
 
 #ifdef MEASURE_DELAY
     struct GNUNET_TIME_Absolute decode_begin_time = GNUNET_TIME_absolute_get ();
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "payload_len: %lu\n",
+                payload_len);
 #endif
 
     /*Get the ogg buffer for writing*/

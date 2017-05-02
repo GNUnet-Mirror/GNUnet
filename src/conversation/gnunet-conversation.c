@@ -294,6 +294,9 @@ static void speaker_play (void *cls,
   struct EchoMicrophone *mic = cls;
   GNUNET_assert (mic);
   GNUNET_assert (mic->rdc);
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  //            "data_size: %lu\n",
+  //            data_size);
   // playing means echoing by pretending we recorded audio data
   mic->rdc (mic->rdc_cls, data_size, data);
 }

@@ -78,6 +78,35 @@
 #define OFF_T_MAX (off_t)(1<<sizeof(off_t))-1
 #define ENC_DELAY_FILE "cadet_encryption_delay.csv"
 #define DEC_DELAY_FILE "cadet_decryption_delay.csv"
+
+static FILE* open_measurement_file (const char* filename)
+{
+  FILE *file = FOPEN (filename, "w");
+  int lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (file),
+                                    0,
+                                    OFF_T_MAX,
+                                    GNUNET_YES);
+  if (GNUNET_OK != lock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cannot store measuring values: %s is opened from somewhere else",
+                filename);
+    FCLOSE (file);
+    return NULL;
+  }
+  return file;
+}
+
+static void close_measurement_file (FILE *file)
+{
+  if (NULL != file)
+  {
+    FCLOSE (file);
+    GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (file),
+                             0,
+                             OFF_T_MAX);
+  }
+}
 #endif
 
 /**
@@ -1968,6 +1997,10 @@ GCT_add_channel (struct CadetTunnel *t,
     break;
   case CADET_TUNNEL_KEY_OK:
     /* We are ready. Tell the new channel that we are up. */
+//#ifdef MEASURE_CRYPTO_DELAY
+//    t->enc_delay_file = open_measurement_file (ENC_DELAY_FILE);
+//    t->dec_delay_file = open_measurement_file (DEC_DELAY_FILE);
+//#endif
     GCCH_tunnel_up (ch);
     break;
   }
@@ -2077,12 +2110,10 @@ destroy_tunnel (void *cls)
     GNUNET_free (t->unverified_ax);
   }
   cleanup_ax (&t->ax);
-#ifdef MEASURE_CRYPTO_DELAY
-  FCLOSE (t->enc_delay_file);
-  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX);
-  FCLOSE (t->dec_delay_file);
-  GNUNET_DISK_file_unlock (GNUNET_DISK_get_handle_from_native (t->dec_delay_file), 0, OFF_T_MAX);
-#endif
+//#ifdef MEASURE_CRYPTO_DELAY
+//  close_measurement_file (t->enc_delay_file);
+//  close_measurement_file (t->dec_delay_file);
+//#endif
   GNUNET_assert (NULL == t->destroy_task);
   GNUNET_free (t);
 }
@@ -2108,6 +2139,7 @@ GCT_remove_channel (struct CadetTunnel *t,
                  GNUNET_CONTAINER_multihashmap32_remove (t->channels,
                                                          ntohl (ctn.cn),
                                                          ch));
+
   if ( (0 ==
         GCT_count_channels (t)) &&
        (NULL == t->destroy_task) )
@@ -2116,6 +2148,12 @@ GCT_remove_channel (struct CadetTunnel *t,
       = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
                                       &destroy_tunnel,
                                       t);
+#ifdef MEASURE_CRYPTO_DELAY
+    close_measurement_file (t->enc_delay_file);
+    t->enc_delay_file = NULL;
+    close_measurement_file (t->dec_delay_file);
+    t->dec_delay_file = NULL;
+#endif
   }
 }
 
@@ -2683,6 +2721,13 @@ handle_plaintext_data (void *cls,
     return;
   }
 #ifdef MEASURE_CRYPTO_DELAY
+  if (NULL == t->dec_delay_file)
+  {
+    /**
+     * new measurement starts
+     */
+    t->dec_delay_file = open_measurement_file (DEC_DELAY_FILE);
+  }
   FPRINTF (t->dec_delay_file,
            "%" PRIu64 "\n",
            t->dec_delay.rel_value_us);
@@ -2795,6 +2840,10 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.reserved = htonl (0);
   msg.ctn = ctn;
+//#ifdef MEASURE_CRYPTO_DELAY
+//  close_measurement_file (t->enc_delay_file);
+//  close_measurement_file (t->dec_delay_file);
+//#endif
   GCT_send (t,
             &msg.header,
             NULL,
@@ -2970,21 +3019,23 @@ GCT_create_tunnel (struct CadetPeer *destination)
 
 #ifdef MEASURE_CRYPTO_DELAY
   t->measure_enc_delay = GNUNET_NO;
-  t->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
-  t->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
-  int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
-  int dec_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->dec_delay_file), 0, OFF_T_MAX, GNUNET_YES);
-  if (GNUNET_OK != enc_lock)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "cannot store measuring values: " ENC_DELAY_FILE " is opened from somewhere else");
-  }
-  if (GNUNET_OK != dec_lock)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "cannot store measuring values: " DEC_DELAY_FILE " is opened from somewhere else");
-  }
-
+//  t->enc_delay_file = open_measurement_file (ENC_DELAY_FILE);
+//  t->dec_delay_file = open_measurement_file (DEC_DELAY_FILE);
+//
+//  //t->enc_delay_file = FOPEN (ENC_DELAY_FILE, "w");
+//  //t->dec_delay_file = FOPEN (DEC_DELAY_FILE, "w");
+//  //int enc_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->enc_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+//  //int dec_lock = GNUNET_DISK_file_lock (GNUNET_DISK_get_handle_from_native (t->dec_delay_file), 0, OFF_T_MAX, GNUNET_YES);
+//  //if (GNUNET_OK != enc_lock)
+//  //{
+//  //  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+//  //              "cannot store measuring values: " ENC_DELAY_FILE " is opened from somewhere else");
+//  //}
+//  //if (GNUNET_OK != dec_lock)
+//  //{
+//  //  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+//  //              "cannot store measuring values: " DEC_DELAY_FILE " is opened from somewhere else");
+//  //}
 #endif
   return t;
 }
@@ -3299,6 +3350,14 @@ GCT_send (struct CadetTunnel *t,
 #ifdef MEASURE_CRYPTO_DELAY
   if (GNUNET_YES == t->measure_enc_delay)
   {
+    if (NULL == t->enc_delay_file)
+    {
+      /**
+       * new measurement starts
+       */
+      t->enc_delay_file = open_measurement_file (ENC_DELAY_FILE);
+    }
+
     struct GNUNET_TIME_Relative enc_delay =
       GNUNET_TIME_absolute_get_duration (enc_start_time); 
 
