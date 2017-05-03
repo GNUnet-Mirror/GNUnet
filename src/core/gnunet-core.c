@@ -121,6 +121,7 @@ send_ping (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ping %d timed out.\n",
                 ping_count);
+    ping_timeout_task = NULL;
   }
 
   if (ping_limit != 0 && ping_count == ping_limit)
