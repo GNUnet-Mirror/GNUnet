@@ -88,7 +88,7 @@ static struct GNUNET_TIME_Relative ping_timeout;
 /**
  * echo reply timeout task
  */
-static struct GNUNET_SCHEDULER_Task *timeout_task;
+static struct GNUNET_SCHEDULER_Task *ping_timeout_task;
 
 /**
  * are we waiting for an echo reply?
@@ -146,9 +146,12 @@ send_ping (void *cls)
 
   if (ping_timeout.rel_value_us != 0)
   {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task =
-      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
+    if (NULL != ping_timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    }
+    ping_timeout_task =
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, mq);
   }
 
 }
@@ -251,6 +254,11 @@ handle_dummy (void *cls,
 static void
 shutdown_task (void *cls)
 {
+  if (NULL != ping_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    ping_timeout_task = NULL;
+  }
   if (NULL != mh)
   {
     GNUNET_CORE_monitor_stop (mh);

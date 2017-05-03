@@ -100,7 +100,7 @@ static struct GNUNET_TIME_Relative ping_timeout;
 /**
  * ping timeout task
  */
-static struct GNUNET_SCHEDULER_Task *timeout_task;
+static struct GNUNET_SCHEDULER_Task *ping_timeout_task;
 
 /**
  * are we waiting for an echo reply?
@@ -245,6 +245,11 @@ shutdown_task (void *cls)
     GNUNET_CADET_close_port (lp);
     lp = NULL;
   }
+  if (NULL != ping_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    ping_timeout_task = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
@@ -379,8 +384,11 @@ send_ping (void *cls)
 
   if (ping_timeout.rel_value_us != 0)
   {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task =
+    if (NULL != ping_timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    }
+    ping_timeout_task =
       GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
   }
 }
