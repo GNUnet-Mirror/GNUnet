@@ -597,9 +597,22 @@ send_ping (void *cls)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Handle *mq = cls;
+  struct GNUNET_MQ_Handle *mq = GNUNET_TRANSPORT_core_get_mq (handle, &pid);
 
   GNUNET_assert (mq != NULL);
+
+  if (ping_limit != 0 && ping_count == ping_limit)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (NULL == mq)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "cannot send ping to peer, not connected");
+    return;
+  }
 
   if (GNUNET_YES == waiting_for_pong)
   {
@@ -607,12 +620,12 @@ send_ping (void *cls)
                 "ping %d timed out.\n",
                 ping_count);
     ping_timeout_task = NULL;
+    waiting_for_pong = GNUNET_NO;
   }
 
-  if (ping_limit != 0 && ping_count == ping_limit)
+  else
   {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    ping_count++;
   }
 
   echo_time = GNUNET_TIME_absolute_get ();
@@ -628,7 +641,6 @@ send_ping (void *cls)
                  sizeof (payload));
   GNUNET_MQ_send (mq,
                   env);
-  ping_count++;
   waiting_for_pong = GNUNET_YES;
 
   if (ping_timeout.rel_value_us != 0)
@@ -638,7 +650,7 @@ send_ping (void *cls)
       GNUNET_SCHEDULER_cancel (ping_timeout_task);
     }
     ping_timeout_task =
-      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, mq);
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
   }
 }
 
@@ -684,7 +696,7 @@ notify_connect (void *cls,
   {
     ping_count = 0;
     waiting_for_pong = GNUNET_NO;
-    send_ping (mq);
+    send_ping (NULL);
   }
   return mq;
 }
@@ -895,7 +907,7 @@ handle_dummy (void *cls,
     FPRINTF (stdout,
              "%" PRIu64 "\n",
              rtt.rel_value_us);
-    send_ping (mq);
+    send_ping (NULL);
     return;
   }
 }

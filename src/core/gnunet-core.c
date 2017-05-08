@@ -114,20 +114,34 @@ send_ping (void *cls)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Handle *mq = cls;
-
-  if (GNUNET_YES == waiting_for_pong)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "ping %d timed out.\n",
-                ping_count);
-    ping_timeout_task = NULL;
-  }
+  struct GNUNET_MQ_Handle *mq = GNUNET_CORE_get_mq (service_handle, &peer_id);
 
   if (ping_limit != 0 && ping_count == ping_limit)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
+  }
+
+  if (NULL == mq)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "cannot send ping to peer, not connected");
+    return;
+  }
+
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    FPRINTF (stdout, "-1\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+    ping_timeout_task = NULL;
+    waiting_for_pong = GNUNET_NO;
+  }
+
+  else
+  {
+    ping_count++;
   }
 
   echo_time = GNUNET_TIME_absolute_get ();
@@ -142,8 +156,11 @@ send_ping (void *cls)
                  sizeof (payload));
   GNUNET_MQ_send (mq,
                   env);
-  ping_count++;
   waiting_for_pong = GNUNET_YES;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "sending ping %" PRIu64 "\n",
+              echo_time.abs_value_us);
 
   if (ping_timeout.rel_value_us != 0)
   {
@@ -152,7 +169,7 @@ send_ping (void *cls)
       GNUNET_SCHEDULER_cancel (ping_timeout_task);
     }
     ping_timeout_task =
-      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, mq);
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, NULL);
   }
 
 }
@@ -240,7 +257,7 @@ handle_dummy (void *cls,
     FPRINTF (stdout,
              "%" PRIu64 "\n",
              rtt.rel_value_us);
-    send_ping (mq);
+    send_ping (NULL);
     return;
   }
 }
@@ -373,7 +390,7 @@ peer_connect_cb (void *cls,
                    peer,
                    sizeof (struct GNUNET_PeerIdentity))))
   {
-    send_ping (mq); 
+    send_ping (NULL); 
   }
 
   return mq;

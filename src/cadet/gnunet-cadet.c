@@ -352,19 +352,34 @@ send_ping (void *cls)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
-
-  if (GNUNET_YES == waiting_for_pong)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "ping %d timed out.\n",
-                ping_count);
-    ping_timeout_task = NULL;
-  }
+  struct GNUNET_MQ_Handle *mq = GNUNET_CADET_get_mq (ch);
 
   if (ping_limit != 0 && ping_count == ping_limit)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
+  }
+
+  if (NULL == mq)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "cannot send ping to peer, not connected");
+    return;
+  }
+
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    FPRINTF (stdout, "-1\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+    ping_timeout_task = NULL;
+    waiting_for_pong = GNUNET_NO;
+  }
+
+  else
+  {
+    ping_count++;
   }
 
   echo_time = GNUNET_TIME_absolute_get ();
@@ -378,9 +393,8 @@ send_ping (void *cls)
   GNUNET_memcpy (&msg[1],
                  &payload,
                  sizeof (payload));
-  GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
+  GNUNET_MQ_send (mq,
                   env);
-  ping_count++;
   waiting_for_pong = GNUNET_YES;
 
   if (ping_timeout.rel_value_us != 0)
