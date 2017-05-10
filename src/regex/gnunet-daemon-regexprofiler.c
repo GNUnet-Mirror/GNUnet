@@ -340,7 +340,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
   GNUNET_free (policy_dir);
-  regex = REGEX_TEST_combine (components);
+  regex = REGEX_TEST_combine (components, 16);
   REGEX_TEST_free_from_file (components);
 
   /* Announcing regexes from policy_filename */
