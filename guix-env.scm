@@ -1,5 +1,5 @@
 ;;; This file is part of GNUnet.
-;;; Copyright (C) 2016 GNUnet e.V.
+;;; Copyright (C) 2016, 2017 GNUnet e.V.
 ;;;
 ;;; GNUnet is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published
@@ -16,46 +16,30 @@
 ;;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;;; Boston, MA 02110-1301, USA.
 ;;;
-;;;
-;;; Author: N. Gillmann <ngillmann@runbox.com>
-;;;
-;;; Parts borrowed here from pubstrate:
-;;; Pubstrate is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;;; General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with Pubstrate.  If not, see <http://www.gnu.org/licenses/>.
-;;;
-;;; Parts borrowed here from guile-sdl2:
-;;; Guile-sdl2 is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;;; General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU Lesser General Public
-;;; License along with guile-sdl2.  If not, see
-;;; <http://www.gnu.org/licenses/>.
-
 ;; Guix package for GNUnet development
 ;;
 ;; INSTALL
+;; -------
 ;;
 ;; To build and install the package in the user environment, use:
 ;;
-;; .. to be documented
+;; guix package --install-from-file=guix-env.scm
 ;;
 ;; BUILD ONLY
+;; ----------
 ;;
 ;; Precondition for using this file is that you run Guix and have a
 ;; development setup for this setup, which involves a version of Guile in
 ;; your PATH.
 ;;
-;; Simply run "guix build -f guix-env.scm"
+;; guix build -f guix-env.scm
 ;;
 ;; We'd like to provide advanced functions such as guix environment specific
 ;; gnunet-svn package, but this is subject to tests right now.
+;;
+;; Further versions of GNUnet for Guix can currently be found in
+;; https://git.pragmatique.xyz/ng0-packages/log.html, mirrored at
+;; https://notabug.org/ng0/ng0-packages
 
 (use-modules
  (ice-9 popen)
@@ -104,23 +88,6 @@
 
 (define %source-dir (dirname (current-filename)))
 
-(define git-file?
-  (let* ((pipe (with-directory-excursion %source-dir
-                 (open-pipe* OPEN_READ "git" "ls-files")))
-         (files (let loop ((lines '()))
-                  (match (read-line pipe)
-                    ((? eof-object?)
-                     (reverse lines))
-                    (line
-                     (loop (cons line lines))))))
-         (status (close-pipe pipe)))
-    (lambda (file stat)
-      (match (stat:type stat)
-        ('directory #t)
-        ((or 'regular 'symlink)
-         (any (cut string-suffix? <> file) files))
-        (_ #f)))))
-
 (define gnunet-git
   (package
     (name "gnunet-git")
@@ -128,7 +95,6 @@
     (source
      (local-file %source-dir
                  #:recursive? #t))
-                 ;;#:select? git-file?)) ; XXX: FIXME.
     (build-system gnu-build-system)
     (inputs
      `(("glpk" ,glpk)
