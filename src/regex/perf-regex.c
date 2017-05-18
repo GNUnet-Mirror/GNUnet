@@ -80,13 +80,14 @@ main (int argc, char *const *argv)
   char *buffer;
   char *regex;
   int compression;
+  unsigned int alphabet_size;
   long size;
 
   GNUNET_log_setup ("perf-regex", "DEBUG", NULL);
-  if (3 != argc)
+  if (4 != argc)
   {
     fprintf (stderr,
-	     "Usage: %s REGEX_FILE COMPRESSION\n",
+	     "Usage: %s REGEX_FILE ALPHABET_SIZE COMPRESSION\n",
 	     argv[0]);
     return 1;
   }
@@ -98,9 +99,13 @@ main (int argc, char *const *argv)
 	     argv[1]);
     return 2;
   }
-  compression = atoi (argv[2]);
-
-  buffer = REGEX_TEST_combine (regexes);
+  alphabet_size = atoi (argv[2]);
+  compression = atoi (argv[3]);
+  printf ("********* PERF-REGEX *********'\n");
+  printf ("Using:\n file '%s'\n Alphabet size %u\n compression %d\n",
+          argv[1], alphabet_size, compression);
+  fflush(stdout);
+  buffer = REGEX_TEST_combine (regexes, alphabet_size);
   GNUNET_asprintf (&regex, "GNUNET_REGEX_PROFILER_(%s)(0|1)*", buffer);
   size = strlen (regex);
 

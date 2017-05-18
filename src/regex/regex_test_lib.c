@@ -1,6 +1,6 @@
 /*
  *  This file is part of GNUnet
- *  Copyright (C) 2012 GNUnet e.V.
+ *  Copyright (C) 2012-2017 GNUnet e.V.
  *
  *  GNUnet is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published
@@ -32,27 +32,17 @@
 /**
  * Struct to hold the tree formed by prefix-combining the regexes.
  */
-struct RegexCombineCtx {
+struct RegexCombineCtx
+{
+  /**
+   * Child nodes with same prefix and token.
+   */
+  struct RegexCombineCtx **children;
 
   /**
-   * Next node with same prefix but different token.
+   * Alphabet size (how many @a children there are)
    */
-  struct RegexCombineCtx *next;
-
-  /**
-   * Prev node with same prefix but different token.
-   */
-  struct RegexCombineCtx *prev;
-
-  /**
-   * First child node with same prefix and token.
-   */
-  struct RegexCombineCtx *head;
-
-  /**
-   * Last child node.
-   */
-  struct RegexCombineCtx *tail;
+  unsigned int size;
 
   /**
    * Token.
@@ -60,30 +50,133 @@ struct RegexCombineCtx {
   char *s;
 };
 
-/*
+
+/**
+ * Char 2 int
+ *
+ * Convert a character into its int value depending on the base used
+ *
+ * @param c Char
+ * @param size base (2, 8 or 16(hex))
+ *
+ * @return Int in range [0, (base-1)]
+ */
+static int
+c2i (char c, int size)
+{
+  switch (size)
+  {
+    case 2:
+    case 8:
+      return c - '0';
+      break;
+    case 16:
+      if (c >= '0' && c <= '9')
+        return c - '0';
+      else if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+      else if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Cannot convert char %c in base %u\n",
+                    c, size);
+        GNUNET_assert (0);
+      }
+      break;
+    default:
+      GNUNET_assert (0);
+  }
+}
+
+
+/**
+ * Printf spaces to indent the regex tree
+ *
+ * @param n Indentation level
+ */
 static void
 space (int n)
 {
   int i;
   for (i = 0; i < n; i++)
-    printf ("  ");
+    fprintf (stderr, "| ");
 }
 
+
+/**
+ * Printf the combined regex ctx.
+ *
+ * @param ctx The ctx to printf
+ * @param level Indentation level to start with
+ */
 static void
 debugctx (struct RegexCombineCtx *ctx, int level)
 {
-  struct RegexCombineCtx *p;
-  space (level);
+  return;
+  unsigned int i;
   if (NULL != ctx->s)
-    printf ("'%s'\n", ctx->s);
-  else
-    printf ("NULL\n");
-  for (p = ctx->head; NULL != p; p = p->next)
   {
-    debugctx (p, level + 1);
+    space (level - 1);
+    fprintf (stderr, "%u:'%s'\n", c2i(ctx->s[0], ctx->size), ctx->s);
+  }
+  else
+    fprintf (stderr, "ROOT (base %u)\n", ctx->size);
+  for (i = 0; i < ctx->size; i++)
+  {
+    if (NULL != ctx->children[i])
+    {
+      space (level);
+      debugctx (ctx->children[i], level + 1);
+    }
+  }
+  fflush(stderr);
+}
+
+
+/**
+ * Add a single regex to a context, combining with exisiting regex by-prefix.
+ *
+ * @param ctx Context with 0 or more regexes.
+ * @param regex Regex to add.
+ */
+static void
+regex_add (struct RegexCombineCtx *ctx, const char *regex);
+
+
+/**
+ * Create and initialize a new RegexCombineCtx.
+ *
+ * @param alphabet_size Size of the alphabet (and the Trie array)
+ */
+static struct RegexCombineCtx *
+new_regex_ctx (unsigned int alphabet_size)
+{
+  struct RegexCombineCtx *ctx;
+  size_t array_size;
+
+  array_size = sizeof(struct RegexCombineCtx *) * alphabet_size;
+  ctx = GNUNET_new (struct RegexCombineCtx);
+  ctx->children = GNUNET_malloc (array_size);
+  ctx->size = alphabet_size;
+
+  return ctx;
+}
+
+static void
+move_children (struct RegexCombineCtx *dst, const struct RegexCombineCtx *src)
+{
+  size_t array_size;
+
+  array_size = sizeof(struct RegexCombineCtx *) * src->size;
+  memcpy (dst->children, src->children, array_size);
+  for (int i = 0; i < src->size; i++)
+  {
+    src->children[i] = NULL;
   }
 }
-*/
+
 
 /**
  * Extract a string from all prefix-combined regexes.
@@ -96,6 +189,7 @@ static char *
 regex_combine (struct RegexCombineCtx *ctx)
 {
   struct RegexCombineCtx *p;
+  unsigned int i;
   size_t len;
   char *regex;
   char *tmp;
@@ -105,9 +199,14 @@ regex_combine (struct RegexCombineCtx *ctx)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new combine %s\n", ctx->s);
   regex = GNUNET_strdup ("");
   opt = GNUNET_NO;
-  for (p = ctx->head; NULL != p; p = p->next)
+  for (i = 0; i < ctx->size; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding '%s' to innner %s\n", p->s, ctx->s);
+    p = ctx->children[i];
+    if (NULL == p)
+      continue;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "adding '%s' to innner %s\n",
+                p->s, ctx->s);
     s = regex_combine (p);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  total '%s'\n", s);
     if (strlen(s) == 0)
@@ -171,10 +270,10 @@ get_prefix_length (const char *s1, const char *s2)
   l2 = strlen (s2);
   limit = l1 > l2 ? l2 : l1;
 
-  for (i = 1; i <= limit; i++)
+  for (i = 0; i < limit; i++)
   {
-    if (0 != strncmp (s1, s2, i))
-      return i - 1;
+    if (s1[i] != s2[i])
+      return i;
   }
   return limit;
 }
@@ -194,13 +293,19 @@ get_longest_prefix (struct RegexCombineCtx *ctx, const char *regex)
 {
   struct RegexCombineCtx *p;
   struct RegexCombineCtx *best;
+  unsigned int i;
   unsigned int l;
   unsigned int best_l;
 
   best_l = 0;
   best = NULL;
-  for (p = ctx->head; NULL != p; p = p->next)
+
+  for (i = 0; i < ctx->size; i++)
   {
+    p = ctx->children[i];
+    if (NULL == p)
+      continue;
+
     l = get_prefix_length (p->s, regex);
     if (l > best_l)
     {
@@ -210,6 +315,103 @@ get_longest_prefix (struct RegexCombineCtx *ctx, const char *regex)
     }
   }
   return best;
+}
+
+static void
+regex_add_multiple (struct RegexCombineCtx *ctx,
+                    const char *regex,
+                    struct RegexCombineCtx **children)
+{
+  char tmp[2];
+  long unsigned int i;
+  size_t l;
+  struct RegexCombineCtx *newctx;
+  unsigned int count;
+
+  if ('(' != regex[0])
+  {
+    GNUNET_assert (0);
+  }
+
+  /* Does the regex cover *all* possible children? Then don't add any,
+   * as it will be covered by the post-regex "(a-z)*"
+   */
+  l = strlen (regex);
+  count = 0;
+  for (i = 1UL; i < l; i++)
+  {
+    if (regex[i] != '|' && regex[i] != ')')
+    {
+      count++;
+    }
+  }
+  if (count == ctx->size)
+  {
+    return;
+  }
+
+  /* Add every component as a child node */
+  tmp[1] = '\0';
+  for (i = 1UL; i < l; i++)
+  {
+    if (regex[i] != '|' && regex[i] != ')')
+    {
+      tmp[0] = regex[i];
+      newctx = new_regex_ctx(ctx->size);
+      newctx->s = GNUNET_strdup (tmp);
+      if (children != NULL)
+        memcpy (newctx->children, children, sizeof (*children) * ctx->size);
+      ctx->children[c2i(tmp[0], ctx->size)] = newctx;
+    }
+  }
+}
+
+/**
+ * Add a single regex to a context, splitting the exisiting state.
+ *
+ * We only had a partial match, split existing state, truncate the current node
+ * so it only contains the prefix, add suffix(es) as children.
+ *
+ * @param ctx Context to split.
+ * @param len Lenght of ctx->s
+ * @param prefix_l Lenght of common prefix of the new regex and @a ctx->s
+ */
+static void
+regex_split (struct RegexCombineCtx *ctx,
+             unsigned int len,
+             unsigned int prefix_l)
+{
+  struct RegexCombineCtx *newctx;
+  unsigned int idx;
+  char *suffix;
+
+  suffix = GNUNET_malloc (len - prefix_l + 1);
+  strncpy (suffix, &ctx->s[prefix_l], len - prefix_l + 1);
+
+  /* Suffix saved, truncate current node so it only contains the prefix,
+   * copy any children nodes to put as grandchildren and initialize new empty
+   * children array.
+   */
+  ctx->s[prefix_l] = '\0';
+
+  /* If the suffix is an OR expression, add multiple children */
+  if ('(' == suffix[0])
+  {
+    struct RegexCombineCtx **tmp;
+
+    tmp = ctx->children;
+    ctx->children = GNUNET_malloc (sizeof(*tmp) * ctx->size);
+    regex_add_multiple (ctx, suffix, tmp);
+    GNUNET_free (tmp);
+    return;
+  }
+
+  /* The suffix is a normal string, add as one node */
+  newctx = new_regex_ctx (ctx->size);
+  newctx->s = suffix;
+  move_children (newctx, ctx);
+  idx = c2i(suffix[0], ctx->size);
+  ctx->children[idx] = newctx;
 }
 
 
@@ -224,17 +426,31 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
 {
   struct RegexCombineCtx *p;
   struct RegexCombineCtx *newctx;
+  long unsigned int l;
   unsigned int prefix_l;
   const char *rest_r;
   const char *rest_s;
   size_t len;
+  int idx;
 
-  if (0 == strlen (regex))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "regex_add '%s' into '%s'\n",
+              regex, ctx->s);
+  l = strlen (regex);
+  if (0UL == l)
     return;
 
-  p = get_longest_prefix (ctx, regex);
-  if (NULL != p) /* There is some prefix match, reduce regex and try again */
+  /* If the regex is in the form of (a|b|c), add every character separately */
+  if ('(' == regex[0])
   {
+    regex_add_multiple (ctx, regex, NULL);
+    return;
+  }
+
+  p = get_longest_prefix (ctx, regex);
+  if (NULL != p)
+  {
+    /* There is some prefix match, reduce regex and try again */
     prefix_l = get_prefix_length (p->s, regex);
     rest_s = &p->s[prefix_l];
     rest_r = &regex[prefix_l];
@@ -243,35 +459,29 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "rest r '%s'\n", rest_r);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "rest s '%s'\n", rest_s);
     len = strlen (p->s);
-    if (prefix_l < len) /* only partial match, split existing state */
+    if (prefix_l < len)
     {
-      newctx = GNUNET_new (struct RegexCombineCtx);
-      newctx->head = p->head;
-      newctx->tail = p->tail;
-      newctx->s = GNUNET_malloc(len - prefix_l + 1);
-      strncpy (newctx->s, rest_s, len - prefix_l + 1);
-
-      p->head = newctx;
-      p->tail = newctx;
-      p->s[prefix_l] = '\0';
+      regex_split (p, len, prefix_l);
     }
     regex_add (p, rest_r);
     return;
   }
+
   /* There is no prefix match, add new */
-  if (NULL == ctx->head && NULL != ctx->s)
+  idx = c2i(regex[0], ctx->size);
+  if (NULL == ctx->children[idx] && NULL != ctx->s)
   {
     /* this was the end before, add empty string */
-    newctx = GNUNET_new (struct RegexCombineCtx);
+    newctx = new_regex_ctx (ctx->size);
     newctx->s = GNUNET_strdup ("");
-    GNUNET_CONTAINER_DLL_insert (ctx->head, ctx->tail, newctx);
+    ctx->children[idx] = newctx;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " no match\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " new state %s\n", regex);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " under %s\n", ctx->s);
-  newctx = GNUNET_new (struct RegexCombineCtx);
+  newctx = new_regex_ctx(ctx->size);
   newctx->s = GNUNET_strdup (regex);
-  GNUNET_CONTAINER_DLL_insert (ctx->head, ctx->tail, newctx);
+  ctx->children[idx] = newctx;
 }
 
 
@@ -283,45 +493,53 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
 static void
 regex_ctx_destroy (struct RegexCombineCtx *ctx)
 {
-  struct RegexCombineCtx *p;
-  struct RegexCombineCtx *next;
+  unsigned int i;
 
-  for (p = ctx->head; NULL != p; p = next)
+  if (NULL == ctx)
+    return;
+
+  for (i = 0; i < ctx->size; i++)
   {
-    next = p->next;
-    regex_ctx_destroy (p);
+    regex_ctx_destroy (ctx->children[i]);
   }
   GNUNET_free_non_null (ctx->s); /* 's' on root node is null */
+  GNUNET_free (ctx->children);
   GNUNET_free (ctx);
 }
 
 
 /**
- * Return a prefix-combine regex that matches the same strings as
+ * Combine an array of regexes into a single prefix-shared regex.
+ * Returns a prefix-combine regex that matches the same strings as
  * any of the original regexes.
  *
  * WARNING: only useful for reading specific regexes for specific applications,
  *          namely the gnunet-regex-profiler / gnunet-regex-daemon.
  *          This function DOES NOT support arbitrary regex combining.
+ *
+ * @param regexes A NULL-terminated array of regexes.
+ * @param alphabet_size Size of the alphabet the regex uses.
+ *
+ * @return A string with a single regex that matches any of the original regexes
  */
 char *
-REGEX_TEST_combine (char * const regexes[])
+REGEX_TEST_combine (char * const regexes[], unsigned int alphabet_size)
 {
   unsigned int i;
   char *combined;
   const char *current;
   struct RegexCombineCtx *ctx;
 
-  ctx = GNUNET_new (struct RegexCombineCtx);
+  ctx = new_regex_ctx (alphabet_size);
   for (i = 0; regexes[i]; i++)
   {
     current = regexes[i];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex %u: %s\n", i, current);
     regex_add (ctx, current);
-    /* debugctx (ctx, 0); */
+    debugctx (ctx, 0);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nCombining...\n");
-  /* debugctx (ctx, 0); */
+  debugctx (ctx, 0);
 
   combined = regex_combine (ctx);
 

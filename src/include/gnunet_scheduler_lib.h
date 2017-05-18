@@ -158,7 +158,7 @@ struct GNUNET_SCHEDULER_FdInfo
    * GNUnet file handle the event is about, matches @a sock,
    * NULL if this is about a network socket or if no network
    * handle was given to the scheduler originally.
-   */ 
+   */
   struct GNUNET_DISK_FileHandle *fh;
 
   /**
@@ -186,7 +186,7 @@ struct GNUNET_SCHEDULER_TaskContext
 
   /**
    * Length of the following array.
-   */ 
+   */
   unsigned int fds_len;
 
   /**
@@ -195,7 +195,7 @@ struct GNUNET_SCHEDULER_TaskContext
    * event loop that was used.  The given array should only contain
    * information about file descriptors relevant to the current task.
    */
-  const struct GNUNET_SCHEDULER_FdInfo *fds;  
+  const struct GNUNET_SCHEDULER_FdInfo *fds;
 
   /**
    * Set of file descriptors ready for reading; note that additional
@@ -246,7 +246,7 @@ struct GNUNET_SCHEDULER_Handle;
  *
  * @param sh scheduler handle that was given to the `loop`
  * @return #GNUNET_OK if there are more tasks that are ready,
- *          and thus we would like to run more (yield to avoid 
+ *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
  *         #GNUNET_SYSERR on error
@@ -319,7 +319,7 @@ struct GNUNET_SCHEDULER_Driver
   int
   (*loop)(void *cls,
 	  struct GNUNET_SCHEDULER_Handle *sh);
-  
+
 };
 
 

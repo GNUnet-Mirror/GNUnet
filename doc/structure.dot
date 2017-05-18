@@ -38,7 +38,6 @@ splines = true;
   pt -> vpn;
   pt -> dns;
   pt -> dnsparser;
-  dv -> ats;
   dns -> tun;
   dns -> dnsstub;
   zonemaster [shape=house];
@@ -58,7 +57,7 @@ splines = true;
   namestore -> gnsrecord;
   dnsparser -> gnsrecord [style=dotted,color=blue];
   conversation -> gnsrecord [style=dotted,color=blue];
-  gns -> gnsrecord [style=dotted,color=blue];
+  gns -> gnsrecord;
   dht -> core;
   dht -> nse;
   dht -> block;
@@ -75,7 +74,6 @@ splines = true;
   conversation [shape=house];
   conversation -> cadet;
   conversation -> gns;
-  conversation -> identity;
   conversation -> speaker;
   conversation -> microphone;
   speaker [shape=diamond];
@@ -96,10 +94,6 @@ splines = true;
   transport -> peerinfo;
   transport -> nat;
   transport -> fragmentation;
-  dv [shape=egg];
-  dv -> transport [color=blue,style=dotted];
-  dv -> core;
-  dv -> set;
   consensus -> set;
   consensus -> cadet;
   scalarproduct -> set;
@@ -113,163 +107,18 @@ splines = true;
   dnsparser [shape=diamond];
   dnsstub [shape=diamond];
 
-  secushare [shape=house,style=dashed];
-  multicast [style=dashed];
-  psyc [style=dashed];
-  social -> psyc [style=dashed];
-  social -> gns [style=dashed];
-  psyc -> psycstore [style=dashed];
+  secushare [shape=house];
+  multicast;
+  psyc;
+  social -> psyc;
+  social -> gns;
+  psyc -> psycstore;
   psycstore;
-  social [style=dashed];
-  secushare -> social [style=dashed];
-  secushare -> identity [style=dashed];
-  psyc -> multicast [style=dashed];
-  multicast -> cadet [style=dashed];
+  social;
+  secushare -> social;
+  psyc -> multicast;
+  multicast -> cadet;
 
-  reuters [shape=house,style=dashed];
-  reuters -> scalarproduct [style=dashed];
-
-  rps [style=dashed];
-  topology -> rps [style=dashed];
-  rps -> core [style=dashed];
+  rps;
+  rps -> core;
 }
-
-
-// this is what we have, excluding libs and stores
-digraph dependencies_no_libs {
-splines = true;
-
-  voting [shape=house];
-  voting -> consensus;
-  voting -> identity;
-  voting -> cadet;
-  voting -> secretsharing;
-  secretsharing -> consensus;
-
-  fs [shape=house];
-  fs -> dht;
-  fs -> core;
-  fs -> cadet;
-  fs -> ats;
-  fs -> identity;
-  exit [shape=box];
-  exit -> cadet;
-  vpn -> cadet;
-  vpn -> regex;
-  pt [shape=house];
-  pt -> cadet;
-  pt -> vpn;
-  pt -> dns;
-  dv -> ats;
-  gns [shape=house];
-  gns -> dns;
-  gns -> dht;
-  gns -> revocation;
-  gns -> vpn;
-  gns -> identity;
-  revocation -> core;
-  revocation -> set;
-  dht -> core;
-  dht -> nse;
-  nse -> core;
-  cadet -> core [weight=2];
-  cadet -> dht;
-  conversation [shape=house];
-  conversation -> cadet;
-  conversation -> gns;
-  conversation -> identity;
-  regex -> dht;
-  core -> transport;
-  topology [shape=box];
-  topology -> transport;
-  topology -> core;
-  hostlist [shape=box];
-  hostlist -> core;
-  transport -> ats;
-  dv [shape=egg];
-  dv -> transport [color=blue,style=dotted];
-  dv -> core;
-  dv -> set;
-  consensus -> set;
-  consensus -> cadet;
-  scalarproduct -> set;
-  scalarproduct -> cadet;
-  set -> cadet;
-
-
-  secushare [shape=house,style=dashed];
-  multicast [style=dashed];
-  psyc [style=dashed];
-  social -> psyc [style=dashed];
-  social -> gns [style=dashed];
-  social [style=dashed];
-  secushare -> social [style=dashed];
-  secushare -> identity [style=dashed];
-  psyc -> multicast [style=dashed];
-  multicast -> cadet [style=dashed];
-
-  reuters [shape=house,style=dashed];
-  reuters -> scalarproduct [style=dashed];
-
-  rps [style=dashed];
-  topology -> rps [style=dashed];
-  rps -> core [style=dashed];
-}
-
-
-// this is what we have, excluding and details
-digraph dependencies_no_details {
-splines = true;
-
-  voting [shape=house];
-  voting -> consensus;
-  voting -> cadet;
-  voting -> secretsharing;
-  secretsharing -> consensus;
-
-  fs [shape=house];
-  fs -> dht;
-  fs -> core;
-  fs -> cadet;
-  vpn -> cadet;
-  vpn -> dht;
-  pt [shape=house];
-  pt -> cadet;
-  pt -> vpn;
-  gns [shape=house];
-  gns -> dht;
-  gns -> revocation;
-  gns -> vpn;
-  revocation -> core;
-  revocation -> set;
-  dht -> core;
-  dht -> nse;
-  nse -> core;
-  cadet -> core [weight=2];
-  cadet -> dht;
-  conversation [shape=house];
-  conversation -> cadet;
-  conversation -> gns;
-  core -> transport;
-  consensus -> set;
-  consensus -> cadet;
-  scalarproduct -> set;
-  scalarproduct -> cadet;
-  set -> cadet;
-
-
-  secushare [shape=house,style=dashed];
-  multicast [style=dashed];
-  psyc [style=dashed];
-  social -> psyc [style=dashed];
-  social -> gns [style=dashed];
-  social [style=dashed];
-  secushare -> social [style=dashed];
-  psyc -> multicast [style=dashed];
-  multicast -> cadet [style=dashed];
-
-  reuters [shape=house,style=dashed];
-  reuters -> scalarproduct [style=dashed];
-}
-
-

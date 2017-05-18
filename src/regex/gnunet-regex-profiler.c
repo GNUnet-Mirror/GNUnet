@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011 - 2013 GNUnet e.V.
+     Copyright (C) 2011 - 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1198,6 +1198,94 @@ master_controller_cb (void *cls,
 /***************************  TESTBED PEER SETUP  *****************************/
 /******************************************************************************/
 
+/**
+ * Process the text buffer counting the non-empty lines and separating them
+ * with NULL characters, for later ease of copy using (as)printf.
+ *
+ * @param data Memory buffer with strings.
+ * @param data_size Size of the @a data buffer in bytes.
+ * @param str_max Maximum number of strings to return.
+ * @return Positive number of lines found in the buffer,
+ *         #GNUNET_SYSERR otherwise.
+ */
+static int
+count_and_separate_strings (char *data,
+                            uint64_t data_size,
+                            unsigned int str_max)
+{
+  char *buf;            // Keep track of last string to skip blank lines
+  unsigned int offset;
+  unsigned int str_cnt;
+
+  buf = data;
+  offset = 0;
+  str_cnt = 0;
+  while ( (offset < (data_size - 1)) && (str_cnt < str_max) )
+  {
+    offset++;
+    if ( ((data[offset] == '\n')) &&
+         (buf != &data[offset]) )
+    {
+      data[offset] = '\0';
+      str_cnt++;
+      buf = &data[offset + 1];
+    }
+    else if ( (data[offset] == '\n') ||
+              (data[offset] == '\0') )
+      buf = &data[offset + 1];
+  }
+  return str_cnt;
+}
+
+
+/**
+ * Allocate a string array and fill it with the prefixed strings
+ * from a pre-processed, NULL-separated memory region.
+ *
+ * @param data Preprocessed memory with strings
+ * @param data_size Size of the @a data buffer in bytes.
+ * @param strings Address of the string array to be created.
+ *                Must be freed by caller if function end in success.
+ * @param str_cnt String count. The @a data buffer should contain
+ *                at least this many NULL-separated strings.
+ * @return #GNUNET_OK in ase of success, #GNUNET_SYSERR otherwise.
+ *         In case of error @a strings must not be freed.
+ */
+static int
+create_string_array (char *data, uint64_t data_size,
+                     char ***strings, unsigned int str_cnt)
+{
+  uint64_t offset;
+  uint64_t len;
+  unsigned int i;
+
+  *strings = GNUNET_malloc (sizeof (char *) * str_cnt);
+  offset = 0;
+  for (i = 0; i < str_cnt; i++)
+  {
+    len = strlen (&data[offset]);
+    if (offset + len >= data_size)
+    {
+      GNUNET_free (*strings);
+      *strings = NULL;
+      return GNUNET_SYSERR;
+    }
+    if (0 == len) // empty line
+    {
+      offset++;
+      i--;
+      continue;
+    }
+
+    GNUNET_asprintf (&(*strings)[i],
+                     "%s%s",
+                     regex_prefix,
+                     &data[offset]);
+    offset += len + 1;
+  }
+  return GNUNET_OK;
+}
+
 
 /**
  * Load search strings from given filename. One search string per line.
@@ -1214,17 +1302,14 @@ load_search_strings (const char *filename,
 		     unsigned int limit)
 {
   char *data;
-  char *buf;
   uint64_t filesize;
-  unsigned int offset;
   int str_cnt;
-  unsigned int i;
 
+  /* Sanity checks */
   if (NULL == filename)
   {
     return GNUNET_SYSERR;
   }
-
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1236,7 +1321,12 @@ load_search_strings (const char *filename,
                              &filesize,
                              GNUNET_YES,
                              GNUNET_YES))
-    filesize = 0;
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Search strings file %s cannot be read.\n",
+                filename);
+    return GNUNET_SYSERR;
+  }
   if (0 == filesize)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1244,6 +1334,8 @@ load_search_strings (const char *filename,
                 filename);
     return GNUNET_SYSERR;
   }
+
+  /* Read data into memory */
   data = GNUNET_malloc (filesize + 1);
   if (filesize != GNUNET_DISK_fn_read (filename,
                                        data,
@@ -1255,32 +1347,12 @@ load_search_strings (const char *filename,
          filename);
     return GNUNET_SYSERR;
   }
-  buf = data;
-  offset = 0;
-  str_cnt = 0;
-  while ( (offset < (filesize - 1)) && (str_cnt < limit) )
+
+  /* Process buffer and build array */
+  str_cnt = count_and_separate_strings (data, filesize, limit);
+  if (GNUNET_OK != create_string_array (data, filesize, strings, str_cnt))
   {
-    offset++;
-    if ( ((data[offset] == '\n')) &&
-         (buf != &data[offset]) )
-    {
-      data[offset] = '\0';
-      str_cnt++;
-      buf = &data[offset + 1];
-    }
-    else if ( (data[offset] == '\n') ||
-              (data[offset] == '\0') )
-      buf = &data[offset + 1];
-  }
-  *strings = GNUNET_malloc (sizeof (char *) * str_cnt);
-  offset = 0;
-  for (i = 0; i < str_cnt; i++)
-  {
-    GNUNET_asprintf (&(*strings)[i],
-                     "%s%s",
-                     regex_prefix,
-                     &data[offset]);
-    offset += strlen (&data[offset]) + 1;
+    str_cnt = GNUNET_SYSERR;
   }
   GNUNET_free (data);
   return str_cnt;

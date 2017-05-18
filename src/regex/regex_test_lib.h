@@ -38,15 +38,23 @@ extern "C"
 #endif
 #endif
 
+
 /**
  * Combine an array of regexes into a single prefix-shared regex.
+ * Returns a prefix-combine regex that matches the same strings as
+ * any of the original regexes.
+ *
+ * WARNING: only useful for reading specific regexes for specific applications,
+ *          namely the gnunet-regex-profiler / gnunet-regex-daemon.
+ *          This function DOES NOT support arbitrary regex combining.
  *
  * @param regexes A NULL-terminated array of regexes.
+ * @param alphabet_size Size of the alphabet the regex uses.
  *
  * @return A string with a single regex that matches any of the original regexes
  */
 char *
-REGEX_TEST_combine(char * const regexes[]);
+REGEX_TEST_combine (char * const regexes[], unsigned int alphabet_size);
 
 
 /**
