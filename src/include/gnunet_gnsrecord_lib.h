@@ -114,9 +114,9 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_CREDENTIAL 65547
 
 /**
- * Record type for reverse lookups
+ * Record type for policies
  */
-#define GNUNET_GNSRECORD_TYPE_REVERSE 65548
+#define GNUNET_GNSRECORD_TYPE_POLICY 65548
 
 /**
  * Record type for reverse lookups

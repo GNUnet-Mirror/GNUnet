@@ -125,6 +125,10 @@ credential_value_to_string (void *cls,
      GNUNET_free (cred);
      return cred_str;
    }
+   case GNUNET_GNSRECORD_TYPE_POLICY:
+   {
+     return GNUNET_strdup (data);
+   }
    default:
    return NULL;
   }
@@ -242,6 +246,12 @@ credential_string_to_value (void *cls,
                                                              (char**)data);
         return GNUNET_OK;
       }
+    case GNUNET_GNSRECORD_TYPE_POLICY:
+      {
+        *data_size = strlen (s);
+        *data = GNUNET_strdup (s);
+        return GNUNET_OK;
+      }
     default:
       return GNUNET_SYSERR;
   }
@@ -258,6 +268,7 @@ static struct {
 } name_map[] = {
   { "CRED", GNUNET_GNSRECORD_TYPE_CREDENTIAL },
   { "ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE },
+  { "POLICY", GNUNET_GNSRECORD_TYPE_POLICY },
   { NULL, UINT32_MAX }
 };
 
