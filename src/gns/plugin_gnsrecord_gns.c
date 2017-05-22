@@ -140,30 +140,6 @@ gns_value_to_string (void *cls,
       GNUNET_free (ival);
       return box_str;
     }
-  case GNUNET_GNSRECORD_TYPE_REVERSE:
-    {
-      struct GNUNET_GNSRECORD_ReverseRecord rev;
-      char *rev_str;
-      char *pkey_str;
-
-      if (data_size < sizeof (struct GNUNET_GNSRECORD_ReverseRecord))
-        return NULL; /* malformed */
-
-      memcpy (&rev,
-              data,
-              sizeof (rev));
-      cdata = data;
-      pkey_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&rev.pkey);
-
-      GNUNET_asprintf (&rev_str,
-                       "%s %s %"SCNu64,
-                       &cdata[sizeof (rev)],
-                       pkey_str,
-                       rev.expiration.abs_value_us);
-      GNUNET_free (pkey_str);
-      return rev_str;
-
-    }
   default:
     return NULL;
   }
@@ -335,48 +311,6 @@ gns_string_to_value (void *cls,
         GNUNET_free (bval);
         return GNUNET_OK;
       }
-    case GNUNET_GNSRECORD_TYPE_REVERSE:
-      {
-        struct GNUNET_GNSRECORD_ReverseRecord *rev;
-        char known_by[253 + 1];
-        struct GNUNET_TIME_Absolute expiration;
-
-        /* TODO: From crypto_ecc.c
-         * Why is this not a constant???
-         */
-        size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
-        if (enclen % 5 > 0)
-          enclen += 5 - enclen % 5;
-        enclen /= 5; /* 260/5 = 52 */
-        char pkey_str[enclen + 1];
-
-        if (3 != SSCANF (s,
-                         "%253s %52s %"SCNu64,
-                         known_by,
-                         pkey_str,
-                         &expiration.abs_value_us))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Unable to parse REVERSE record string `%s'\n"),
-                      s);
-          return GNUNET_SYSERR;
-        }
-        *data_size = sizeof (struct GNUNET_GNSRECORD_ReverseRecord) + strlen (known_by) + 1;
-        *data = rev = GNUNET_malloc (*data_size);
-        if (GNUNET_OK !=
-            GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey_str,
-                                                        strlen (pkey_str),
-                                                        &rev->pkey))
-        {
-          GNUNET_free (rev);
-          return GNUNET_SYSERR;
-        }
-        rev->expiration = expiration;
-        GNUNET_memcpy (&rev[1],
-                       known_by,
-                       strlen (known_by));
-        return GNUNET_OK;
-      }
     default:
       return GNUNET_SYSERR;
   }
@@ -397,7 +331,6 @@ static struct {
   { "VPN", GNUNET_GNSRECORD_TYPE_VPN },
   { "GNS2DNS", GNUNET_GNSRECORD_TYPE_GNS2DNS },
   { "BOX", GNUNET_GNSRECORD_TYPE_BOX },
-  { "REVERSE", GNUNET_GNSRECORD_TYPE_REVERSE },
   { NULL, UINT32_MAX }
 };
 
