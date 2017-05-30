@@ -377,7 +377,7 @@ GNUNET_CREDENTIAL_credential_issue (
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_Request *vr);
+GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *vr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

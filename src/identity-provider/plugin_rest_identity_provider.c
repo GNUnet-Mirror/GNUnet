@@ -402,6 +402,8 @@ token_creat_cont (void *cls,
   char *ticket_str;
   char *token_str;
   char *result_str;
+  
+  handle->idp_op = NULL;
 
   if (NULL == ticket)
   {

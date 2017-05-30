@@ -1015,6 +1015,10 @@ cleanup_issue_handle (struct IssueHandle *handle)
     ticket_destroy (handle->ticket);
   if (NULL != handle->label)
     GNUNET_free (handle->label);
+  if (NULL != handle->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
+  if (NULL != handle->credential_request)
+    GNUNET_CREDENTIAL_request_cancel (handle->credential_request);
   GNUNET_free (handle);
 }
 
@@ -1484,160 +1488,6 @@ handle_exchange_message (void *cls,
 
 }
 
-
-static void
-find_existing_token_error (void *cls)
-{
-  struct IssueHandle *handle = cls;
-  cleanup_issue_handle (handle);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error looking for existing token\n");
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-}
-
-
-static void
-find_existing_token_finished (void *cls)
-{
-  struct IssueHandle *handle = cls;
-  uint64_t rnd_key;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              ">>> No existing token found\n");
-  rnd_key =
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                              UINT64_MAX);
-  GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
-                                sizeof (uint64_t),
-                                &handle->label);
-  handle->ns_it = NULL;
-  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                         &handle->iss_key,
-                                                         &attr_collect_error,
-                                                         handle,
-                                                         &attr_collect,
-                                                         handle,
-                                                         &attr_collect_finished,
-                                                         handle);
-}
-
-
-/**
- *
- * Look for existing token
- *
- * @param cls the identity entry
- * @param zone the identity
- * @param lbl the name of the record
- * @param rd_count number of records
- * @param rd record data
- *
- */
-static void
-find_existing_token (void *cls,
-                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                     const char *lbl,
-                     unsigned int rd_count,
-                     const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct IssueHandle *handle = cls;
-  const struct GNUNET_GNSRECORD_Data *token_metadata_record;
-  struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key;
-  struct GNUNET_HashCode key;
-  int scope_count_token;
-  char *scope;
-  char *tmp_scopes;
-
-  //There should be only a single record for a token under a label
-  if (2 != rd_count)
-  {
-    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-    return;
-  }
-
-  if (rd[0].record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA)
-  {
-    token_metadata_record = &rd[0];
-  }
-  else
-  {
-    token_metadata_record = &rd[1];
-  }
-  if (token_metadata_record->record_type != GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA)
-  {
-    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-    return;
-  }
-  ecdhe_privkey = *((struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data);
-  aud_key =
-    (struct GNUNET_CRYPTO_EcdsaPublicKey *)(token_metadata_record->data+sizeof(struct GNUNET_CRYPTO_EcdhePrivateKey));
-  tmp_scopes = GNUNET_strdup ((char*) aud_key+sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-
-  if (0 != memcmp (aud_key, &handle->aud_key,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
-  {
-    char *tmp2 = GNUNET_STRINGS_data_to_string_alloc (aud_key,
-                                                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-    //Audience does not match!
-    char *tmp = GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA,
-                                                  token_metadata_record->data,
-                                                  token_metadata_record->data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Token does not match audience %s vs %s. Moving on\n",
-                tmp2,
-                tmp);
-    GNUNET_free (tmp_scopes);
-    GNUNET_free (tmp2);
-    GNUNET_free (tmp);
-    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-    return;
-  }
-
-  scope = strtok (tmp_scopes, ",");
-  scope_count_token = 0;
-  while (NULL != scope)
-  {
-    GNUNET_CRYPTO_hash (scope,
-                        strlen (scope),
-                        &key);
-
-    if ((NULL != handle->attr_map) &&
-        (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (handle->attr_map, &key)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Issued token does not include `%s'. Moving on\n", scope);
-      GNUNET_free (tmp_scopes);
-      GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-      return;
-    }
-    scope_count_token++;
-    scope = strtok (NULL, ",");
-  }
-  GNUNET_free (tmp_scopes);
-  //All scopes in token are also in request. Now
-  //Check length
-  if ((NULL != handle->attr_map) &&
-      (GNUNET_CONTAINER_multihashmap_size (handle->attr_map) == scope_count_token))
-  {
-    //We have an existing token
-    handle->label = GNUNET_strdup (lbl);
-    handle->ns_it = NULL;
-    handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                           &handle->iss_key,
-                                                           &attr_collect_error,
-                                                           handle,
-                                                           &attr_collect,
-                                                           handle,
-                                                           &attr_collect_finished,
-                                                           handle);
-
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Nuber of attributes in token do not match request\n");
-  //No luck
-  GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-}
-
 /**
  * Checks an issue message
  *
@@ -1684,6 +1534,7 @@ handle_issue_message (void *cls,
   char *scopes_tmp;
   char *scope;
   const char *v_attrs;
+  uint64_t rnd_key;
   struct GNUNET_HashCode key;
   struct IssueHandle *issue_handle;
   struct VerifiedAttributeEntry *vattr_entry;
@@ -1733,14 +1584,20 @@ handle_issue_message (void *cls,
   issue_handle->scopes = GNUNET_strdup (scopes);
   issue_handle->token = token_create (&issue_handle->iss_pkey,
                                       &issue_handle->aud_key);
+  rnd_key =
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+                              UINT64_MAX);
+  GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
+                                sizeof (uint64_t),
+                                &issue_handle->label);
 
   issue_handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                               &im->iss_key,
-                                                               &find_existing_token_error,
+                                                               &issue_handle->iss_key,
+                                                               &attr_collect_error,
                                                                issue_handle,
-                                                               &find_existing_token,
+                                                               &attr_collect,
                                                                issue_handle,
-                                                               &find_existing_token_finished,
+                                                               &attr_collect_finished,
                                                                issue_handle);
 }
 

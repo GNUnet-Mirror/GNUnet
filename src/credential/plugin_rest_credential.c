@@ -177,7 +177,7 @@ cleanup_handle (struct RequestHandle *handle)
   if (NULL != handle->subject_attr)
     GNUNET_free (handle->subject_attr);
   if (NULL != handle->verify_request)
-    GNUNET_CREDENTIAL_verify_cancel (handle->verify_request);
+    GNUNET_CREDENTIAL_request_cancel (handle->verify_request);
   if (NULL != handle->credential)
     GNUNET_CREDENTIAL_disconnect (handle->credential);
   if (NULL != handle->id_op)

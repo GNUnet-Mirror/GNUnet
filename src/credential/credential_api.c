@@ -348,7 +348,7 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * @param lr the verify request to cancel
  */
 void
-GNUNET_CREDENTIAL_verify_cancel (struct GNUNET_CREDENTIAL_Request *vr)
+GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *vr)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = vr->credential_handle;
 

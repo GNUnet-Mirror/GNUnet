@@ -130,7 +130,7 @@ do_shutdown (void *cls)
 {
   if (NULL != verify_request)
   {
-    GNUNET_CREDENTIAL_verify_cancel (verify_request);
+    GNUNET_CREDENTIAL_request_cancel (verify_request);
     verify_request = NULL;
   }
   if (NULL != credential)
