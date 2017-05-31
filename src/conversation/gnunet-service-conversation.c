@@ -1114,7 +1114,7 @@ handle_client_call_message (void *cls,
                                              ch,
                                              &msg->target,
                                              &msg->line_port,
-                                             GNUNET_CADET_OPTION_RELIABLE,
+                                             GNUNET_CADET_OPTION_NOBUFFER,
                                              NULL,
                                              &inbound_end,
                                              cadet_handlers);

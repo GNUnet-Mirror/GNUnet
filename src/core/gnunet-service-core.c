@@ -18,6 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 
+#include <inttypes.h>
 /**
  * @file core/gnunet-service-core.c
  * @brief high-level P2P messaging
@@ -306,6 +307,10 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   smr->peer = car->target;
   GNUNET_MQ_send (c->mq,
 		  env);
+  //struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  //            "CORE_SEND_READY %" PRIu64 "\n",
+  //            now.abs_value_us);
 }
 
 

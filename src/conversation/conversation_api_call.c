@@ -147,7 +147,8 @@ struct GNUNET_CONVERSATION_Call
   enum CallState state;
 
 #ifdef MEASURE_DELAY
-  FILE *rtt_delays_file; 
+  FILE *rtt_file; 
+  FILE *page_sizes_file;
 #endif
 };
 
@@ -191,6 +192,10 @@ transmit_call_audio (void *cls,
   GNUNET_memcpy (&payload[1],
                  data,
                  data_size);
+  FPRINTF (call->page_sizes_file,
+           "%lu\n",
+           data_size + sizeof (struct GNUNET_TIME_AbsoluteNBO));
+  fflush (call->page_sizes_file);
 #else
 
   e = GNUNET_MQ_msg_extra (am,
@@ -446,22 +451,22 @@ handle_call_audio (void *cls,
 #ifdef MEASURE_DELAY
     struct GNUNET_TIME_AbsoluteNBO *timestamp_nbo =
       (struct GNUNET_TIME_AbsoluteNBO *) &am[1];
-    if (call->rtt_delays_file)
+    if (call->rtt_file)
     {
       struct GNUNET_TIME_Absolute timestamp =
         GNUNET_TIME_absolute_ntoh (*timestamp_nbo);
       struct GNUNET_TIME_Relative delay = GNUNET_TIME_absolute_get_duration (timestamp);
-      int print_ret = FPRINTF (call->rtt_delays_file,
+      int print_ret = FPRINTF (call->rtt_file,
                                "%" PRIu64 "\n",
                                delay.rel_value_us);
       if (print_ret < 0)
       {
-        FCLOSE (call->rtt_delays_file);
-        call->rtt_delays_file = NULL;
+        FCLOSE (call->rtt_file);
+        call->rtt_file = NULL;
       }
       else
       {
-        fflush (call->rtt_delays_file);
+        fflush (call->rtt_file);
       }
     }
     //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -692,7 +697,8 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
 #ifdef MEASURE_DELAY
-  call->rtt_delays_file = FOPEN ("conversation_rtt_delays.csv", "w");
+  call->rtt_file = FOPEN ("conversation_rtt_call.csv", "w");
+  call->page_sizes_file = FOPEN("conversation_page_sizes.csv", "w");
 #endif
   if (GNUNET_YES == is_gns_address (call->callee))
   {
@@ -734,10 +740,15 @@ void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
 {
 #ifdef MEASURE_DELAY
-  if (call->rtt_delays_file)
+  if (NULL != call->rtt_file)
   {
-    FCLOSE (call->rtt_delays_file);
-    call->rtt_delays_file = NULL;
+    FCLOSE (call->rtt_file);
+    call->rtt_file = NULL;
+  }
+  if (NULL != call->page_sizes_file)
+  {
+    FCLOSE (call->page_sizes_file);
+    call->page_sizes_file = NULL;
   }
 #endif
   if ( (NULL != call->speaker) &&

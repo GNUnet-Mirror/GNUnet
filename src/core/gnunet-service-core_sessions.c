@@ -936,7 +936,7 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
   {
     sme->deadline =
         GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_MAX_CORK_DELAY);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Mesage corked, delaying transmission\n");
   }
   pos = session->sme_head;

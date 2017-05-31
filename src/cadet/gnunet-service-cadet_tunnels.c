@@ -30,6 +30,8 @@
  *   + interact with PEER to drive DHT GET/PUT operations based
  *     on how much we like our connections
  */
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
@@ -3322,6 +3324,10 @@ GCT_send (struct CadetTunnel *t,
   env = GNUNET_MQ_msg_extra (ax_msg,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_TUNNEL_ENCRYPTED);
+  //struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  //            "CADET_TUNNEL_ENCRYPTED %" PRIu64 "\n",
+  //            now.abs_value_us);
 #ifdef MEASURE_CRYPTO_DELAY
   struct GNUNET_TIME_Absolute enc_start_time = GNUNET_TIME_absolute_get ();
 #endif

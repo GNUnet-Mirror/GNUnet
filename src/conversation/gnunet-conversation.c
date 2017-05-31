@@ -23,6 +23,8 @@
  * @author Simon Dieterle
  * @author Andreas Fuchs
  */
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -37,6 +39,11 @@
  * Maximum length allowed for the command line input.
  */
 #define MAX_MESSAGE_LENGTH 1024
+
+/**
+ * size of the ping packets for RTT measurement
+ */
+#define PING_PAYLOAD_SIZE 300 - sizeof(struct GNUNET_MessageHeader) - sizeof (uint32_t)
 
 #define XSTRINGIFY(x) STRINGIFY(x)
 
@@ -251,12 +258,62 @@ static int auto_accept;
 static int echo;
 
 /**
+ * Activate round-trip time measurements
+ */
+static int measure_rtt;
+
+/**
+ * Time of last echo request
+ */
+static struct GNUNET_TIME_Absolute echo_time;
+
+/**
+ * the number of RTT measurements to be done
+ */
+static unsigned int ping_limit;
+
+/**
+ * the ping timeout given as command line argument
+ */
+static unsigned int ping_timeout_seconds;
+
+/**
+ * the time span we are waiting for a ping response before sending the next ping
+ */
+static struct GNUNET_TIME_Relative ping_timeout;
+
+/**
+ * ping timeout task
+ */
+static struct GNUNET_SCHEDULER_Task *ping_timeout_task;
+
+static struct GNUNET_TIME_Relative ping_interval;
+
+static struct GNUNET_SCHEDULER_Task *send_ping_task;
+
+
+/**
+ * are we waiting for an echo reply?
+ */
+static int waiting_for_pong;
+
+/**
+ * identifier of the last ping we sent
+ */
+static unsigned int ping_count;
+
+/**
+ * csv file where RTT values are stored
+ */
+FILE *rtt_delays_file;
+
+/**
  * Be verbose.
  */
 static int verbose;
 
 
-struct EchoMicrophone
+struct DummyMicrophone
 {
   GNUNET_MICROPHONE_RecordedDataCallback rdc;
   void *rdc_cls;
@@ -269,29 +326,178 @@ static void dummy (void *cls)
 }
 
 
-static int mic_enable (void *cls,
-                       GNUNET_MICROPHONE_RecordedDataCallback rdc,
-                       void *rdc_cls)
+static int echo_mic_enable (void *cls,
+                            GNUNET_MICROPHONE_RecordedDataCallback rdc,
+                            void *rdc_cls)
 {
-  struct EchoMicrophone *mic = cls;
+  struct DummyMicrophone *mic = cls;
   GNUNET_assert (mic);
   mic->rdc = rdc;
   mic->rdc_cls = rdc_cls;
   return GNUNET_OK;
 }
 
+static void
+do_reject (const char *args);
 
-static int speaker_enable (void *cls)
+
+static void send_ping (void *cls)
+{
+  struct DummyMicrophone *mic = cls; 
+  GNUNET_assert (mic);
+
+  if (ping_limit != 0 && ping_count == ping_limit)
+  {
+    do_reject (NULL);
+    return;
+  }
+
+  if (GNUNET_YES == waiting_for_pong)
+  {
+    FPRINTF (rtt_delays_file, "-1\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ping %d timed out.\n",
+                ping_count);
+    ping_timeout_task = NULL;
+    waiting_for_pong = GNUNET_NO;
+  }
+
+  else
+  {
+    send_ping_task = NULL;
+    ping_count++;
+  }
+
+  echo_time = GNUNET_TIME_absolute_get ();
+  char payload[PING_PAYLOAD_SIZE];
+  struct GNUNET_TIME_AbsoluteNBO *timestamp = (struct GNUNET_TIME_AbsoluteNBO *) payload;
+  *timestamp = GNUNET_TIME_absolute_hton (echo_time);
+
+  // timeout
+  
+  mic->rdc (mic->rdc_cls, PING_PAYLOAD_SIZE, payload);
+  waiting_for_pong = GNUNET_YES;
+
+  if (ping_timeout.rel_value_us != 0)
+  {
+    if (NULL != ping_timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    }
+    ping_timeout_task =
+      GNUNET_SCHEDULER_add_delayed (ping_timeout, send_ping, mic);
+  }
+}
+
+
+static int ping_mic_enable (void *cls,
+                            GNUNET_MICROPHONE_RecordedDataCallback rdc,
+                            void *rdc_cls)
+{
+  struct DummyMicrophone *mic = cls;
+  GNUNET_assert (mic);
+  GNUNET_assert (measure_rtt);
+  mic->rdc = rdc;
+  mic->rdc_cls = rdc_cls;
+  waiting_for_pong = GNUNET_NO;
+  ping_count = 0;
+  rtt_delays_file = FOPEN ("conversation_rtt_ping.csv", "w");
+  send_ping (mic);
+  return GNUNET_OK;
+}
+
+
+static void ping_mic_disable (void *cls)
+{
+  GNUNET_assert (measure_rtt);
+
+  if (NULL != rtt_delays_file)
+  {
+    FCLOSE (rtt_delays_file);
+    rtt_delays_file = NULL;
+  }
+  if (NULL != ping_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (ping_timeout_task);
+    ping_timeout_task = NULL;
+  }
+  if (NULL != send_ping_task)
+  {
+    GNUNET_SCHEDULER_cancel (send_ping_task);
+    ping_timeout_task = NULL;
+  }
+  waiting_for_pong = GNUNET_NO;
+}
+
+
+static int ping_speaker_enable (void *cls)
 {
   return GNUNET_OK;
 }
 
 
-static void speaker_play (void *cls,
-                          size_t data_size,
-                          const void *data)
+static void ping_speaker_play (void *cls,
+                               size_t data_size,
+                               const void *data)
 {
-  struct EchoMicrophone *mic = cls;
+  struct DummyMicrophone *mic = cls;
+  GNUNET_assert (NULL != mic);
+  GNUNET_assert (GNUNET_YES == measure_rtt);
+
+  const struct GNUNET_TIME_AbsoluteNBO *payload_nbo;
+  struct GNUNET_TIME_Absolute payload;
+  struct GNUNET_TIME_Relative rtt;
+  
+  if (! waiting_for_pong)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "received unexpected echo response, dropping.\n");
+    return;
+  }
+
+  if (data_size != PING_PAYLOAD_SIZE)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "received invalid ping response, dropping.\n");
+    return;
+  }
+
+  payload_nbo = (const struct GNUNET_TIME_AbsoluteNBO *) data;
+  payload = GNUNET_TIME_absolute_ntoh (*payload_nbo);
+
+  if (payload.abs_value_us != echo_time.abs_value_us)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "received echo response after timeout, dropping.\n");
+    return;
+  }
+
+  waiting_for_pong = GNUNET_NO;
+  rtt = GNUNET_TIME_absolute_get_duration (payload);
+  FPRINTF (rtt_delays_file,
+           "%" PRIu64 "\n",
+           rtt.rel_value_us);
+  fflush (rtt_delays_file);
+
+  send_ping_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_subtract (ping_interval, rtt),
+                                  send_ping,
+                                  mic);
+  //send_ping (mic);
+}
+
+
+static int echo_speaker_enable (void *cls)
+{
+  return GNUNET_OK;
+}
+
+
+static void echo_speaker_play (void *cls,
+                               size_t data_size,
+                               const void *data)
+{
+  struct DummyMicrophone *mic = cls;
   GNUNET_assert (mic);
   GNUNET_assert (mic->rdc);
   //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -308,14 +514,14 @@ create_echo_handles (struct GNUNET_MICROPHONE_Handle **mic_handle,
 {
   struct GNUNET_SPEAKER_Handle *speaker = GNUNET_new (struct GNUNET_SPEAKER_Handle);
   struct GNUNET_MICROPHONE_Handle *microphone = GNUNET_new (struct GNUNET_MICROPHONE_Handle);
-  struct EchoMicrophone *mic_cls = GNUNET_new (struct EchoMicrophone);
+  struct DummyMicrophone *mic_cls = GNUNET_new (struct DummyMicrophone);
 
-  microphone->enable_microphone = mic_enable;
+  microphone->enable_microphone = echo_mic_enable;
   microphone->disable_microphone = dummy;
   microphone->destroy_microphone = dummy;
   microphone->cls = mic_cls;
-  speaker->enable_speaker = speaker_enable;
-  speaker->play = speaker_play;
+  speaker->enable_speaker = echo_speaker_enable;
+  speaker->play = echo_speaker_play;
   speaker->disable_speaker = dummy;
   speaker->destroy_speaker = dummy;
   speaker->cls = mic_cls;
@@ -323,6 +529,32 @@ create_echo_handles (struct GNUNET_MICROPHONE_Handle **mic_handle,
   *mic_handle = microphone;
   *speaker_handle = speaker;
 }
+
+static void
+create_ping_handles (struct GNUNET_MICROPHONE_Handle **mic_handle,
+                     struct GNUNET_SPEAKER_Handle **speaker_handle)
+{
+  struct GNUNET_SPEAKER_Handle *speaker = GNUNET_new (struct GNUNET_SPEAKER_Handle);
+  struct GNUNET_MICROPHONE_Handle *microphone = GNUNET_new (struct GNUNET_MICROPHONE_Handle);
+  struct DummyMicrophone *mic_cls = GNUNET_new (struct DummyMicrophone);
+
+  microphone->enable_microphone = ping_mic_enable;
+  microphone->disable_microphone = ping_mic_disable;
+  microphone->destroy_microphone = ping_mic_disable;
+  microphone->cls = mic_cls;
+  speaker->enable_speaker = ping_speaker_enable;
+  speaker->play = ping_speaker_play;
+  speaker->disable_speaker = dummy;
+  speaker->destroy_speaker = dummy;
+  speaker->cls = mic_cls;
+
+  *mic_handle = microphone;
+  *speaker_handle = speaker;
+}
+
+
+
+
 
 
 static void
@@ -1331,6 +1563,15 @@ run (void *cls,
     create_echo_handles (&mic, &speaker);
   }
 
+  else if (measure_rtt)
+  {
+    ping_timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                  ping_timeout_seconds);
+    ping_interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                   300);
+    create_ping_handles(&mic, &speaker);
+  }
+
   else
   {
     speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
@@ -1411,6 +1652,24 @@ main (int argc, char *const *argv)
                                  "LINE",
                                  gettext_noop ("sets the LINE to use for the phone"),
                                  &line),
+
+    GNUNET_GETOPT_option_flag ('r',
+                               "measure-rtt",
+                               gettext_noop ("activate RTT measurement"),
+                               &measure_rtt),
+
+    GNUNET_GETOPT_option_uint ('n',
+                               "count",
+                               "COUNT",
+                               gettext_noop ("number off RTT measurements"),
+                               &ping_limit),
+
+    GNUNET_GETOPT_option_uint ('w',
+                               "timeout",
+                               "SECONDS",
+                               gettext_noop ("timeout for each RTT measurement"),
+                               &ping_timeout_seconds),
+                              
 
     GNUNET_GETOPT_OPTION_END
   };

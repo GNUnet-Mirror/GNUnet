@@ -102,6 +102,10 @@ static struct GNUNET_TIME_Relative ping_timeout;
  */
 static struct GNUNET_SCHEDULER_Task *ping_timeout_task;
 
+static struct GNUNET_TIME_Relative ping_interval;
+
+static struct GNUNET_SCHEDULER_Task *send_ping_task;
+
 /**
  * are we waiting for an echo reply?
  */
@@ -121,11 +125,6 @@ static int dump;
  * Time of last echo request.
  */
 static struct GNUNET_TIME_Absolute echo_time;
-
-/**
- * Task for next echo request.
- */
-static struct GNUNET_SCHEDULER_Task *echo_task;
 
 /**
  * Peer to connect to.
@@ -250,6 +249,11 @@ shutdown_task (void *cls)
     GNUNET_SCHEDULER_cancel (ping_timeout_task);
     ping_timeout_task = NULL;
   }
+  if (NULL != send_ping_task)
+  {
+    GNUNET_SCHEDULER_cancel (send_ping_task);
+    send_ping_task = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
@@ -264,11 +268,6 @@ shutdown_task (void *cls)
   {
     GNUNET_SCHEDULER_cancel (rd_task);
     rd_task = NULL;
-  }
-  if (NULL != echo_task)
-  {
-    GNUNET_SCHEDULER_cancel (echo_task);
-    echo_task = NULL;
   }
   if (NULL != job)
   {
@@ -379,6 +378,7 @@ send_ping (void *cls)
 
   else
   {
+    send_ping_task = NULL;
     ping_count++;
   }
 
@@ -511,7 +511,11 @@ handle_data (void *cls,
     FPRINTF (stdout,
              "%" PRIu64 "\n",
              rtt.rel_value_us);
-    send_ping (NULL);
+    send_ping_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_subtract (ping_interval, rtt),
+                                    send_ping,
+                                    NULL);
+    //send_ping (NULL);
     return;
   }
 
@@ -1040,6 +1044,9 @@ run (void *cls,
   {
     ping_timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                                   ping_timeout_seconds);
+
+    ping_interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                   300);
     waiting_for_pong = GNUNET_NO;
     send_ping (NULL);
   }
@@ -1108,7 +1115,7 @@ main (int argc,
 
     GNUNET_GETOPT_option_flag ('r',
                                "measure-rtt",
-                               gettext_noop ("provide information about all peers"),
+                               gettext_noop ("Active RTT measurements"),
                                &measure_rtt),
 
     GNUNET_GETOPT_option_uint ('n',

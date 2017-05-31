@@ -233,6 +233,10 @@ static struct GNUNET_TIME_Relative ping_timeout;
  */
 static struct GNUNET_SCHEDULER_Task *ping_timeout_task;
 
+static struct GNUNET_TIME_Relative ping_interval;
+
+static struct GNUNET_SCHEDULER_Task *send_ping_task;
+
 /**
  * are re waiting for an echo reply?
  */
@@ -423,6 +427,11 @@ shutdown_task (void *cls)
   {
     GNUNET_SCHEDULER_cancel (ping_timeout_task);
     ping_timeout_task = NULL;
+  }
+  if (NULL != send_ping_task)
+  {
+    GNUNET_SCHEDULER_cancel (send_ping_task);
+    send_ping_task = NULL;
   }
   if (NULL != pic)
   {
@@ -616,6 +625,7 @@ send_ping (void *cls)
 
   if (GNUNET_YES == waiting_for_pong)
   {
+    FPRINTF (stdout, "-1\n");
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ping %d timed out.\n",
                 ping_count);
@@ -625,6 +635,7 @@ send_ping (void *cls)
 
   else
   {
+    send_ping_task = NULL;
     ping_count++;
   }
 
@@ -907,7 +918,11 @@ handle_dummy (void *cls,
     FPRINTF (stdout,
              "%" PRIu64 "\n",
              rtt.rel_value_us);
-    send_ping (NULL);
+    send_ping_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_subtract (ping_interval, rtt),
+                                    send_ping,
+                                    NULL);
+    //send_ping (NULL);
     return;
   }
 }
@@ -1579,6 +1594,9 @@ run (void *cls,
     {
       ping_timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                                     ping_timeout_seconds);
+
+      ping_interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                     300);
       waiting_for_pong = GNUNET_NO;
     }
   }
