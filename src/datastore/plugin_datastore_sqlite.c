@@ -305,7 +305,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        ENULL));
   CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh,
-                       "PRAGMA page_size=4092", NULL, NULL,
+                       "PRAGMA page_size=4096", NULL, NULL,
                        ENULL));
 
   CHECK (SQLITE_OK ==
