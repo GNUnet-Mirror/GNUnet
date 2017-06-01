@@ -84,116 +84,95 @@ struct Plugin
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
 {
+  struct GNUNET_PQ_ExecuteStatement es[] = {
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS channels (\n"
+                            " id SERIAL,\n"
+                            " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
+                            " max_state_message_id BIGINT,\n"
+                            " state_hash_message_id BIGINT,\n"
+                            " PRIMARY KEY(id)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE UNIQUE INDEX IF NOT EXISTS channel_pub_key_idx \n"
+                            " ON channels (pub_key)"),
+    GNUNET_PQ_make_execute ("CREATE OR REPLACE FUNCTION get_chan_id(BYTEA) RETURNS INTEGER AS \n"
+                            " 'SELECT id FROM channels WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
+                            "RETURNS NULL ON NULL INPUT"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS slaves (\n"
+                            " id SERIAL,\n"
+                            " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
+                            " PRIMARY KEY(id)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE UNIQUE INDEX IF NOT EXISTS slaves_pub_key_idx \n"
+                            " ON slaves (pub_key)"),
+    GNUNET_PQ_make_execute ("CREATE OR REPLACE FUNCTION get_slave_id(BYTEA) RETURNS INTEGER AS \n"
+                            " 'SELECT id FROM slaves WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
+                            "RETURNS NULL ON NULL INPUT"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS membership (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  slave_id BIGINT NOT NULL REFERENCES slaves(id),\n"
+                            "  did_join INT NOT NULL,\n"
+                            "  announced_at BIGINT NOT NULL,\n"
+                            "  effective_since BIGINT NOT NULL,\n"
+                            "  group_generation BIGINT NOT NULL\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
+                            "ON membership (channel_id, slave_id)"),
+    /** @todo messages table: add method_name column */
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS messages (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  hop_counter INT NOT NULL,\n"
+                            "  signature BYTEA CHECK (LENGTH(signature)=64),\n"
+                            "  purpose BYTEA CHECK (LENGTH(purpose)=8),\n"
+                            "  fragment_id BIGINT NOT NULL,\n"
+                            "  fragment_offset BIGINT NOT NULL,\n"
+                            "  message_id BIGINT NOT NULL,\n"
+                            "  group_generation BIGINT NOT NULL,\n"
+                            "  multicast_flags INT NOT NULL,\n"
+                            "  psycstore_flags INT NOT NULL,\n"
+                            "  data BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, fragment_id),\n"
+                            "  UNIQUE (channel_id, message_id, fragment_offset)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS state (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  name TEXT NOT NULL,\n"
+                            "  value_current BYTEA,\n"
+                            "  value_signed BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, name)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS state_sync (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  name TEXT NOT NULL,\n"
+                            "  value BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, name)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_EXECUTE_STATEMENT_END
+  };
+
   /* Open database and precompile statements */
-  plugin->dbh = GNUNET_POSTGRES_connect (plugin->cfg,
-                                         "psycstore-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                            "psycstore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-
-  /* Create tables */
-  if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS channels (\n"
-                              " id SERIAL,\n"
-                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
-                              " max_state_message_id BIGINT,\n"
-                              " state_hash_message_id BIGINT,\n"
-                              " PRIMARY KEY(id)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE UNIQUE INDEX IF NOT EXISTS channel_pub_key_idx \n"
-                              " ON channels (pub_key)")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE OR REPLACE FUNCTION get_chan_id(BYTEA) RETURNS INTEGER AS \n"
-                              " 'SELECT id FROM channels WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
-                              "RETURNS NULL ON NULL INPUT")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS slaves (\n"
-                              " id SERIAL,\n"
-                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
-                              " PRIMARY KEY(id)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE UNIQUE INDEX IF NOT EXISTS slaves_pub_key_idx \n"
-                              " ON slaves (pub_key)")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE OR REPLACE FUNCTION get_slave_id(BYTEA) RETURNS INTEGER AS \n"
-                              " 'SELECT id FROM slaves WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
-                              "RETURNS NULL ON NULL INPUT")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS membership (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  slave_id BIGINT NOT NULL REFERENCES slaves(id),\n"
-                              "  did_join INT NOT NULL,\n"
-                              "  announced_at BIGINT NOT NULL,\n"
-                              "  effective_since BIGINT NOT NULL,\n"
-                              "  group_generation BIGINT NOT NULL\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
-                              "ON membership (channel_id, slave_id)")) ||
-
-  /** @todo messages table: add method_name column */
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS messages (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  hop_counter INT NOT NULL,\n"
-                              "  signature BYTEA CHECK (LENGTH(signature)=64),\n"
-                              "  purpose BYTEA CHECK (LENGTH(purpose)=8),\n"
-                              "  fragment_id BIGINT NOT NULL,\n"
-                              "  fragment_offset BIGINT NOT NULL,\n"
-                              "  message_id BIGINT NOT NULL,\n"
-                              "  group_generation BIGINT NOT NULL,\n"
-                              "  multicast_flags INT NOT NULL,\n"
-                              "  psycstore_flags INT NOT NULL,\n"
-                              "  data BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, fragment_id),\n"
-                              "  UNIQUE (channel_id, message_id, fragment_offset)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS state (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value_current BYTEA,\n"
-                              "  value_signed BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
-                              ")" "WITH OIDS")) ||
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS state_sync (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
-                              ")" "WITH OIDS")))
+  if (GNUNET_OK !=
+      GNUNET_PQ_exec_statements (plugin->dbh,
+                                 es))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
-
 
   /* Prepare statements */
   if ((GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
@@ -842,7 +821,6 @@ fragment_row (struct Plugin *plugin,
   void *purpose = NULL;
   size_t signature_size;
   size_t purpose_size;
-
   uint64_t fragment_id;
   uint64_t fragment_offset;
   uint64_t message_id;
@@ -852,9 +830,7 @@ fragment_row (struct Plugin *plugin,
   size_t buf_size;
   int ret = GNUNET_SYSERR;
   struct GNUNET_MULTICAST_MessageHeader *mp;
-
   uint32_t msg_flags;
-
   struct GNUNET_PQ_ResultSpec results[] = {
     GNUNET_PQ_result_spec_uint32 ("hop_counter", &hop_counter),
     GNUNET_PQ_result_spec_variable_size ("signature", &signature, &signature_size),
@@ -964,8 +940,6 @@ fragment_get (void *cls,
               void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_uint64 (&first_fragment_id),
@@ -973,7 +947,12 @@ fragment_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_fragments", params_select, returned_fragments, cb, cb_cls);
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_fragments",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1002,7 +981,11 @@ fragment_get_latest (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_latest_fragments", params_select, returned_fragments, cb, cb_cls);
+  return fragment_select (plugin,
+                          "select_latest_fragments",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1024,11 +1007,6 @@ message_get (void *cls,
              void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
-  if (0 == fragment_limit)
-    fragment_limit = INT64_MAX;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_uint64 (&first_message_id),
@@ -1037,7 +1015,14 @@ message_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_messages", params_select, returned_fragments, cb, cb_cls);
+  if (0 == fragment_limit)
+    fragment_limit = INT64_MAX;
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_messages",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1057,8 +1042,6 @@ message_get_latest (void *cls,
                     void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_auto_from_type (channel_key),
@@ -1066,7 +1049,12 @@ message_get_latest (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_latest_messages", params_select, returned_fragments, cb, cb_cls);
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_latest_messages",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1255,7 +1243,8 @@ state_assign (struct Plugin *plugin, const char *stmt,
 
 
 static int
-update_message_id (struct Plugin *plugin, const char *stmt,
+update_message_id (struct Plugin *plugin,
+                   const char *stmt,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t message_id)
 {

@@ -1,6 +1,6 @@
  /*
   * This file is part of GNUnet
-  * Copyright (C) 2009-2013, 2016 GNUnet e.V.
+  * Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
   *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
@@ -75,30 +75,6 @@ struct Plugin
 
 
 /**
- * Create our database indices.
- *
- * @param dbh handle to the database
- */
-static void
-create_indices (PGconn * dbh)
-{
-  /* create indices */
-  if ( (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
-       (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)")) ||
-       (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)")) ||
-       (GNUNET_OK !=
-        GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_label ON ns097records (label)")) )
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Failed to create indices\n"));
-}
-
-
-/**
  * Initialize the database connections and associated
  * data structures (create tables and indices
  * as needed as well).
@@ -109,10 +85,30 @@ create_indices (PGconn * dbh)
 static int
 database_setup (struct Plugin *plugin)
 {
-  PGresult *res;
+  struct GNUNET_PQ_ExecuteStatement es_temporary =
+    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS ns097records ("
+                            " zone_private_key BYTEA NOT NULL DEFAULT '',"
+                            " pkey BYTEA DEFAULT '',"
+                            " rvalue BYTEA NOT NULL DEFAULT '',"
+                            " record_count INTEGER NOT NULL DEFAULT 0,"
+                            " record_data BYTEA NOT NULL DEFAULT '',"
+                            " label TEXT NOT NULL DEFAULT ''"
+                            ")"
+                            "WITH OIDS");
+  struct GNUNET_PQ_ExecuteStatement es_default =
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns097records ("
+                            " zone_private_key BYTEA NOT NULL DEFAULT '',"
+                            " pkey BYTEA DEFAULT '',"
+                            " rvalue BYTEA NOT NULL DEFAULT '',"
+                            " record_count INTEGER NOT NULL DEFAULT 0,"
+                            " record_data BYTEA NOT NULL DEFAULT '',"
+                            " label TEXT NOT NULL DEFAULT ''"
+                            ")"
+                            "WITH OIDS");
+  const struct GNUNET_PQ_ExecuteStatement *cr;
 
-  plugin->dbh = GNUNET_POSTGRES_connect (plugin->cfg,
-					 "namestore-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                            "namestore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
   if (GNUNET_YES ==
@@ -120,80 +116,70 @@ database_setup (struct Plugin *plugin)
 					    "namestore-postgres",
 					    "TEMPORARY_TABLE"))
   {
-    res =
-      PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE IF NOT EXISTS ns097records ("
-	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
-	      " pkey BYTEA DEFAULT '',"
-	      " rvalue BYTEA NOT NULL DEFAULT '',"
-	      " record_count INTEGER NOT NULL DEFAULT 0,"
-	      " record_data BYTEA NOT NULL DEFAULT '',"
-	      " label TEXT NOT NULL DEFAULT ''"
-	      ")" "WITH OIDS");
+    cr = &es_temporary;
   }
   else
   {
-    res =
-      PQexec (plugin->dbh,
-              "CREATE TABLE IF NOT EXISTS ns097records ("
-	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
-	      " pkey BYTEA DEFAULT '',"
-	      " rvalue BYTEA NOT NULL DEFAULT '',"
-	      " record_count INTEGER NOT NULL DEFAULT 0,"
-	      " record_data BYTEA NOT NULL DEFAULT '',"
-	      " label TEXT NOT NULL DEFAULT ''"
-	      ")" "WITH OIDS");
+    cr = &es_default;
   }
-  if ( (NULL == res) ||
-       ((PQresultStatus (res) != PGRES_COMMAND_OK) &&
-        (0 != strcmp ("42P07",    /* duplicate table */
-                      PQresultErrorField
-                      (res,
-                       PG_DIAG_SQLSTATE)))))
-  {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, res,
-                                         PGRES_COMMAND_OK, "CREATE TABLE",
-					 "ns097records");
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  create_indices (plugin->dbh);
 
-  if ((GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"store_records",
-				"INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
-                                "($1, $2, $3, $4, $5, $6)", 6)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"delete_records",
-				"DELETE FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"zone_to_name",
-				"SELECT record_count,record_data,label FROM ns097records"
-                                " WHERE zone_private_key=$1 AND pkey=$2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_zone",
-				"SELECT record_count,record_data,label FROM ns097records"
-                                " WHERE zone_private_key=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_all_zones",
-				"SELECT record_count,record_data,label,zone_private_key"
-				" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "lookup_label",
-                                "SELECT record_count,record_data,label"
-                                " FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2)))
   {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
+    struct GNUNET_PQ_ExecuteStatement es[] = {
+      *cr,
+      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_reverse "
+                                  "ON ns097records (zone_private_key,pkey)"),
+      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_iter "
+                                  "ON ns097records (zone_private_key,rvalue)"),
+      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS it_iter "
+                                  "ON ns097records (rvalue)"),
+      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_label "
+                                  "ON ns097records (label)"),
+      GNUNET_PQ_EXECUTE_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_exec_statements (plugin->dbh,
+                                   es))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
   }
+
+  {
+    struct GNUNET_PQ_PreparedStatement ps[] = {
+      GNUNET_PQ_make_prepare ("store_records",
+                              "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
+                              "($1, $2, $3, $4, $5, $6)", 6),
+      GNUNET_PQ_make_prepare ("delete_records",
+                              "DELETE FROM ns097records "
+                              "WHERE zone_private_key=$1 AND label=$2", 2),
+      GNUNET_PQ_make_prepare ("zone_to_name",
+                              "SELECT record_count,record_data,label FROM ns097records"
+                              " WHERE zone_private_key=$1 AND pkey=$2", 2),
+      GNUNET_PQ_make_prepare ("iterate_zone",
+                              "SELECT record_count,record_data,label FROM ns097records "
+                              "WHERE zone_private_key=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2),
+      GNUNET_PQ_make_prepare ("iterate_all_zones",
+                              "SELECT record_count,record_data,label,zone_private_key"
+                              " FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1),
+      GNUNET_PQ_make_prepare ("lookup_label",
+                              "SELECT record_count,record_data,label "
+                              "FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2),
+      GNUNET_PQ_PREPARED_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_prepare_statements (plugin->dbh,
+                                      ps))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
+  }
+
   return GNUNET_OK;
 }
 
@@ -221,19 +207,19 @@ namestore_postgres_store_records (void *cls,
   uint64_t rvalue;
   uint32_t rd_count_nbo = htonl ((uint32_t) rd_count);
   size_t data_size;
-  unsigned int i;
 
   memset (&pkey, 0, sizeof (pkey));
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
       GNUNET_memcpy (&pkey,
-              rd[i].data,
-              rd[i].data_size);
+                     rd[i].data,
+                     rd[i].data_size);
       break;
     }
-  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                     UINT64_MAX);
   data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
   {
@@ -262,9 +248,10 @@ namestore_postgres_store_records (void *cls,
     const int paramFormats[] = { 1, 1, 1, 1, 1, 1 };
     PGresult *res;
 
-    if (data_size != GNUNET_GNSRECORD_records_serialize (rd_count, rd,
-							 data_size, data))
-    {
+    if (data_size !=
+        GNUNET_GNSRECORD_records_serialize (rd_count, rd,
+                                            data_size, data))
+      {
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
@@ -301,7 +288,8 @@ static int
 get_record_and_call_iterator (struct Plugin *plugin,
                               PGresult *res,
 			      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+			      GNUNET_NAMESTORE_RecordIterator iter,
+                              void *iter_cls)
 {
   const char *data;
   size_t data_size;
@@ -311,7 +299,9 @@ get_record_and_call_iterator (struct Plugin *plugin,
   unsigned int cnt;
 
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_TUPLES_OK,
                                     "PQexecPrepared",
 				    "iteration"))
   {

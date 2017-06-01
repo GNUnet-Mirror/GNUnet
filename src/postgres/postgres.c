@@ -161,48 +161,6 @@ GNUNET_POSTGRES_prepare_ (PGconn *dbh,
 
 
 /**
- * Connect to a postgres database
- *
- * @param cfg configuration
- * @param section configuration section to use to get Postgres configuration options
- * @return the postgres handle
- */
-PGconn *
-GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
-                         const char *section)
-{
-  PGconn *dbh;
-  char *conninfo;
-
-  /* Open database and precompile statements */
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-					     section,
-					     "CONFIG",
-					     &conninfo))
-    conninfo = NULL;
-  dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
-
-  if (NULL != dbh)
-  {
-    if (PQstatus (dbh) != CONNECTION_OK)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "postgres",
-                       _("Unable to connect to Postgres database '%s': %s\n"),
-                       conninfo,
-                       PQerrorMessage (dbh));
-      PQfinish (dbh);
-      dbh = NULL;
-    }
-  }
-  // FIXME: warn about out-of-memory when dbh is NULL?
-  GNUNET_free_non_null (conninfo);
-  return dbh;
-}
-
-
-/**
  * Delete the row identified by the given rowid (qid
  * in postgres).
  *

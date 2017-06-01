@@ -68,8 +68,8 @@ init_connection (struct Plugin *plugin)
 {
   PGresult *ret;
 
-  plugin->dbh = GNUNET_POSTGRES_connect (plugin->env->cfg,
-					 "datacache-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
+                                            "datacache-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
   ret =

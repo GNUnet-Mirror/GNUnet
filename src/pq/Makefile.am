@@ -15,6 +15,10 @@ endif
 
 libgnunetpq_la_SOURCES = \
   pq.c \
+  pq_connect.c \
+  pq_eval.c \
+  pq_exec.c \
+  pq_prepare.c \
   pq_query_helper.c \
   pq_result_helper.c
 libgnunetpq_la_LIBADD = -lpq \
