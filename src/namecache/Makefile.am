@@ -133,7 +133,6 @@ libgnunet_plugin_namecache_postgres_la_SOURCES = \
   plugin_namecache_postgres.c
 libgnunet_plugin_namecache_postgres_la_LIBADD = \
   libgnunetnamecache.la  \
-  $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/pq/libgnunetpq.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \

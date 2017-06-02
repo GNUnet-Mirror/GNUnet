@@ -27,7 +27,6 @@
 #include "gnunet_namecache_plugin.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_gnsrecord_lib.h"
-#include "gnunet_postgres_lib.h"
 #include "gnunet_pq_lib.h"
 #include "namecache.h"
 
