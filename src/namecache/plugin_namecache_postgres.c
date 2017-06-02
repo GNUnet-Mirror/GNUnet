@@ -32,26 +32,6 @@
 #include "namecache.h"
 
 
-/**
- * After how many ms "busy" should a DB operation fail for good?
- * A low value makes sure that we are more responsive to requests
- * (especially PUTs).  A high value guarantees a higher success
- * rate (SELECTs in iterate can take several seconds despite LIMIT=1).
- *
- * The default value of 1s should ensure that users do not experience
- * huge latencies while at the same time allowing operations to succeed
- * with reasonable probability.
- */
-#define BUSY_TIMEOUT_MS 1000
-
-
-/**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' on file 'filename'
- * with the message given by strerror(errno).
- */
-#define LOG_POSTGRES(db, level, cmd) do { GNUNET_log_from (level, "namecache-postgres", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
-
 #define LOG(kind,...) GNUNET_log_from (kind, "namecache-postgres", __VA_ARGS__)
 
 
@@ -174,19 +154,12 @@ namecache_postgres_expire_blocks (struct Plugin *plugin)
     GNUNET_PQ_query_param_absolute_time (&now),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_PQ_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "expire_blocks",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "expire_blocks"))
-    return;
-  PQclear (res);
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "expire_blocks",
+                                            params);
+  GNUNET_break (GNUNET_PQ_STATUS_HARD_ERROR != res);
 }
 
 
@@ -207,19 +180,12 @@ delete_old_block (struct Plugin *plugin,
     GNUNET_PQ_query_param_absolute_time_nbo (&expiration_time),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_PQ_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "delete_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "delete_block"))
-    return;
-  PQclear (res);
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "delete_block",
+                                            params);
+  GNUNET_break (GNUNET_PQ_STATUS_HARD_ERROR != res);
 }
 
 
@@ -245,7 +211,7 @@ namecache_postgres_cache_block (void *cls,
     GNUNET_PQ_query_param_absolute_time_nbo (&block->expiration_time),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_PQ_QueryStatus res;
 
   namecache_postgres_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key,
@@ -260,17 +226,11 @@ namecache_postgres_cache_block (void *cls,
                     &query,
                     block->expiration_time);
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "cache_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "cache_block"))
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "cache_block",
+                                            params);
+  if (0 > res)
     return GNUNET_SYSERR;
-  PQclear (res);
   return GNUNET_OK;
 }
 
@@ -292,39 +252,37 @@ namecache_postgres_lookup_block (void *cls,
                                  void *iter_cls)
 {
   struct Plugin *plugin = cls;
+  size_t bsize;
+  struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (query),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
-  unsigned int cnt;
-  size_t bsize;
-  const struct GNUNET_GNSRECORD_Block *block;
+  struct GNUNET_PQ_ResultSpec rs[] = {
+    GNUNET_PQ_result_spec_variable_size ("block",
+                                         (void **) &block,
+                                         &bsize),
+    GNUNET_PQ_result_spec_end
+  };
+  enum GNUNET_PQ_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "lookup_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-				    "lookup_block"))
+  res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
+                                                  "lookup_block",
+                                                  params,
+                                                  rs);
+  if (0 > res)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Failing lookup (postgres error)\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Failing lookup block in namecache (postgres error)\n");
     return GNUNET_SYSERR;
   }
-  if (0 == (cnt = PQntuples (res)))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
-    PQclear (res);
     return GNUNET_NO;
   }
-  GNUNET_assert (1 == cnt);
-  GNUNET_assert (1 != PQnfields (res));
-  bsize = PQgetlength (res, 0, 0);
-  block = (const struct GNUNET_GNSRECORD_Block *) PQgetvalue (res, 0, 0);
   if ( (bsize < sizeof (*block)) ||
        (bsize != ntohl (block->purpose.size) +
         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
@@ -333,11 +291,12 @@ namecache_postgres_lookup_block (void *cls,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Failing lookup (corrupt block)\n");
-    PQclear (res);
+    GNUNET_PQ_cleanup_result (rs);
     return GNUNET_SYSERR;
   }
-  iter (iter_cls, block);
-  PQclear (res);
+  iter (iter_cls,
+        block);
+  GNUNET_PQ_cleanup_result (rs);
   return GNUNET_OK;
 }
 
@@ -383,7 +342,7 @@ libgnunet_plugin_namecache_postgres_init (void *cls)
   api->cache_block = &namecache_postgres_cache_block;
   api->lookup_block = &namecache_postgres_lookup_block;
   LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Postgres database running\n"));
+       "Postgres namecache plugin running\n");
   return api;
 }
 
@@ -404,7 +363,7 @@ libgnunet_plugin_namecache_postgres_done (void *cls)
   plugin->cfg = NULL;
   GNUNET_free (api);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "postgres plugin is finished\n");
+       "Postgres namecache plugin is finished\n");
   return NULL;
 }
 
