@@ -57,8 +57,11 @@ GNUNET_PQ_eval_result (PGconn *connection,
                        const char *statement_name,
                        PGresult *result)
 {
-  if (PGRES_COMMAND_OK !=
-      PQresultStatus (result))
+  ExecStatusType est;
+
+  est = PQresultStatus (result);
+  if ( (PGRES_COMMAND_OK != est) &&
+       (PGRES_TUPLES_OK != est) )
   {
     const char *sqlstate;
 
