@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_postgres_lib.h"
+#include "gnunet_pq_lib.h"
 #include "gnunet_datacache_plugin.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datacache-postgres", __VA_ARGS__)
@@ -66,115 +67,67 @@ struct Plugin
 static int
 init_connection (struct Plugin *plugin)
 {
-  PGresult *ret;
+  struct GNUNET_PQ_ExecuteStatement es[] = {
+    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS gn090dc ("
+                            "  type INTEGER NOT NULL DEFAULT 0,"
+                            "  discard_time BIGINT NOT NULL DEFAULT 0,"
+                            "  key BYTEA NOT NULL DEFAULT '',"
+                            "  value BYTEA NOT NULL DEFAULT '',"
+                            "  path BYTEA DEFAULT '')"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_key ON gn090dc (key)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_dt ON gn090dc (discard_time)"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn090dc ALTER key SET STORAGE PLAIN"),
+    GNUNET_PQ_EXECUTE_STATEMENT_END
+  };
+  struct GNUNET_PQ_PreparedStatement ps[] = {
+    GNUNET_PQ_make_prepare ("getkt",
+                            "SELECT discard_time,type,value,path FROM gn090dc "
+                            "WHERE key=$1 AND type=$2",
+                            2),
+    GNUNET_PQ_make_prepare ("getk",
+                            "SELECT discard_time,type,value,path FROM gn090dc "
+                            "WHERE key=$1",
+                            1),
+    GNUNET_PQ_make_prepare ("getm",
+                            "SELECT length(value) AS len,oid,key FROM gn090dc "
+                            "ORDER BY discard_time ASC LIMIT 1",
+                            0),
+    GNUNET_PQ_make_prepare ("get_random",
+                            "SELECT discard_time,type,value,path,key FROM gn090dc "
+                            "ORDER BY key ASC LIMIT 1 OFFSET $1",
+                            1),
+    GNUNET_PQ_make_prepare ("get_closest",
+                            "SELECT discard_time,type,value,path,key FROM gn090dc "
+                            "WHERE key>=$1 ORDER BY key ASC LIMIT $2",
+                            1),
+    GNUNET_PQ_make_prepare ("delrow",
+                            "DELETE FROM gn090dc WHERE oid=$1",
+                            1),
+    GNUNET_PQ_make_prepare ("put",
+                            "INSERT INTO gn090dc (type, discard_time, key, value, path) "
+                            "VALUES ($1, $2, $3, $4, $5)",
+                            5),
+    GNUNET_PQ_PREPARED_STATEMENT_END
+  };
 
   plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
                                             "datacache-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-  ret =
-      PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE IF NOT EXISTS gn090dc ("
-              "  type INTEGER NOT NULL DEFAULT 0,"
-              "  discard_time BIGINT NOT NULL DEFAULT 0,"
-              "  key BYTEA NOT NULL DEFAULT '',"
-              "  value BYTEA NOT NULL DEFAULT '',"
-              "  path BYTEA DEFAULT '')"
-	      "WITH OIDS");
-  if ( (ret == NULL) ||
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
-	(0 != strcmp ("42P07",    /* duplicate table */
-		      PQresultErrorField
-		      (ret,
-		       PG_DIAG_SQLSTATE)))))
-  {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, ret,
-					 PGRES_COMMAND_OK,
-                                         "CREATE TABLE",
-					 "gn090dc");
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  if (PQresultStatus (ret) == PGRES_COMMAND_OK)
-  {
-    if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_key ON gn090dc (key)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_dt ON gn090dc (discard_time)")))
-    {
-      PQclear (ret);
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
-  PQclear (ret);
-  ret =
-      PQexec (plugin->dbh,
-              "ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL");
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "ALTER TABLE",
-                                    "gn090dc"))
+      GNUNET_PQ_exec_statements (plugin->dbh,
+                                 es))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
-  PQclear (ret);
-  ret = PQexec (plugin->dbh,
-                "ALTER TABLE gn090dc ALTER key SET STORAGE PLAIN");
+
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "ALTER TABLE",
-                                    "gn090dc"))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  PQclear (ret);
-  if ((GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "getkt",
-                                "SELECT discard_time,type,value,path FROM gn090dc "
-                                "WHERE key=$1 AND type=$2 ", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "getk",
-                                "SELECT discard_time,type,value,path FROM gn090dc "
-                                "WHERE key=$1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "getm",
-                                "SELECT length(value),oid,key FROM gn090dc "
-                                "ORDER BY discard_time ASC LIMIT 1", 0)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "get_random",
-                                "SELECT discard_time,type,value,path,key FROM gn090dc "
-                                "ORDER BY key ASC LIMIT 1 OFFSET $1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "get_closest",
-                                "SELECT discard_time,type,value,path,key FROM gn090dc "
-                                "WHERE key>=$1 ORDER BY key ASC LIMIT $2", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "delrow",
-                                "DELETE FROM gn090dc WHERE oid=$1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-                                "put",
-                                "INSERT INTO gn090dc (type, discard_time, key, value, path) "
-                                "VALUES ($1, $2, $3, $4, $5)", 5)))
+      GNUNET_PQ_prepare_statements (plugin->dbh,
+                                    ps))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -189,7 +142,7 @@ init_connection (struct Plugin *plugin)
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
- * @param size number of bytes in @a data
+ * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
@@ -200,7 +153,7 @@ init_connection (struct Plugin *plugin)
 static ssize_t
 postgres_plugin_put (void *cls,
                      const struct GNUNET_HashCode *key,
-                     size_t size,
+                     size_t data_size,
                      const char *data,
                      enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute discard_time,
@@ -208,36 +161,125 @@ postgres_plugin_put (void *cls,
 		     const struct GNUNET_PeerIdentity *path_info)
 {
   struct Plugin *plugin = cls;
-  PGresult *ret;
-  uint32_t btype = htonl (type);
-  uint64_t bexpi = GNUNET_TIME_absolute_hton (discard_time).abs_value_us__;
-
-  const char *paramValues[] = {
-    (const char *) &btype,
-    (const char *) &bexpi,
-    (const char *) key,
-    (const char *) data,
-    (const char *) path_info
+  uint32_t type32 = (uint32_t) type;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_uint32 (&type32),
+    GNUNET_PQ_query_param_absolute_time (&discard_time),
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_fixed_size (data, data_size),
+    GNUNET_PQ_query_param_fixed_size (path_info,
+                                      path_info_len * sizeof (struct GNUNET_PeerIdentity)),
+    GNUNET_PQ_query_param_end
   };
-  int paramLengths[] = {
-    sizeof (btype),
-    sizeof (bexpi),
-    sizeof (struct GNUNET_HashCode),
-    size,
-    path_info_len * sizeof (struct GNUNET_PeerIdentity)
-  };
-  const int paramFormats[] = { 1, 1, 1, 1, 1 };
+  enum GNUNET_PQ_QueryStatus ret;
 
-  ret =
-      PQexecPrepared (plugin->dbh, "put", 5, paramValues, paramLengths,
-                      paramFormats, 1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret,
-				    PGRES_COMMAND_OK, "PQexecPrepared", "put"))
+  ret = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "put",
+                                            params);
+  if (0 > ret)
     return -1;
   plugin->num_items++;
-  PQclear (ret);
-  return size + OVERHEAD;
+  return data_size + OVERHEAD;
+}
+
+
+/**
+ * Closure for #handle_results.
+ */
+struct HandleResultContext
+{
+
+  /**
+   * Function to call on each result, may be NULL.
+   */
+  GNUNET_DATACACHE_Iterator iter;
+
+  /**
+   * Closure for @e iter.
+   */
+  void *iter_cls;
+
+  /**
+   * Key used.
+   */
+  const struct GNUNET_HashCode *key;
+};
+
+
+/**
+ * Function to be called with the results of a SELECT statement
+ * that has returned @a num_results results.  Parse the result
+ * and call the callback given in @a cls
+ *
+ * @param cls closure of type `struct HandleResultContext`
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+static void
+handle_results (void *cls,
+                PGresult *result,
+                unsigned int num_results)
+{
+  struct HandleResultContext *hrc = cls;
+
+  for (unsigned int i=0;i<num_results;i++)
+  {
+    struct GNUNET_TIME_Absolute expiration_time;
+    uint32_t type;
+    void *data;
+    size_t data_size;
+    struct GNUNET_PeerIdentity *path;
+    size_t path_len;
+    struct GNUNET_PQ_ResultSpec rs[] = {
+      GNUNET_PQ_result_spec_absolute_time ("discard_time",
+                                           &expiration_time),
+      GNUNET_PQ_result_spec_uint32 ("type",
+                                    &type),
+      GNUNET_PQ_result_spec_variable_size ("value",
+                                           &data,
+                                           &data_size),
+      GNUNET_PQ_result_spec_variable_size ("path",
+                                           (void **) &path,
+                                           &path_len),
+      GNUNET_PQ_result_spec_end
+    };
+
+    if (GNUNET_YES !=
+        GNUNET_PQ_extract_result (result,
+                                  rs,
+                                  i))
+    {
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      path_len = 0;
+    }
+    path_len %= sizeof (struct GNUNET_PeerIdentity);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Found result of size %u bytes and type %u in database\n",
+	 (unsigned int) data_size,
+         (unsigned int) type);
+    if ( (NULL != hrc->iter) &&
+         (GNUNET_SYSERR ==
+          hrc->iter (hrc->iter_cls,
+                     hrc->key,
+                     data_size,
+                     data,
+                     (enum GNUNET_BLOCK_Type) type,
+                     expiration_time,
+                     path_len,
+                     path)) )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Ending iteration (client error)\n");
+      GNUNET_PQ_cleanup_result (rs);
+      return;
+    }
+    GNUNET_PQ_cleanup_result (rs);
+  }
 }
 
 
@@ -260,94 +302,30 @@ postgres_plugin_get (void *cls,
                      void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t btype = htonl (type);
-
-  const char *paramValues[] = {
-    (const char *) key,
-    (const char *) &btype
+  uint32_t type32 = (uint32_t) type;
+  struct GNUNET_PQ_QueryParam paramk[] = {
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_end
   };
-  int paramLengths[] = {
-    sizeof (struct GNUNET_HashCode),
-    sizeof (btype)
+  struct GNUNET_PQ_QueryParam paramkt[] = {
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_uint32 (&type32),
+    GNUNET_PQ_query_param_end
   };
-  const int paramFormats[] = { 1, 1 };
-  struct GNUNET_TIME_Absolute expiration_time;
-  uint32_t size;
-  unsigned int cnt;
-  unsigned int i;
-  unsigned int path_len;
-  const struct GNUNET_PeerIdentity *path;
-  PGresult *res;
+  enum GNUNET_PQ_QueryStatus res;
+  struct HandleResultContext hr_ctx;
 
-  res =
-      PQexecPrepared (plugin->dbh, (type == 0) ? "getk" : "getkt",
-                      (type == 0) ? 1 : 2, paramValues, paramLengths,
-                      paramFormats, 1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-				    (type == 0) ? "getk" : "getkt"))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Ending iteration (postgres error)\n");
+  hr_ctx.iter = iter;
+  hr_ctx.iter_cls = iter_cls;
+  hr_ctx.key = key;
+  res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                              (0 == type) ? "getk" : "getkt",
+                                              (0 == type) ? paramk : paramkt,
+                                              &handle_results,
+                                              &hr_ctx);
+  if (res < 0)
     return 0;
-  }
-
-  if (0 == (cnt = PQntuples (res)))
-  {
-    /* no result */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Ending iteration (no more results)\n");
-    PQclear (res);
-    return 0;
-  }
-  if (iter == NULL)
-  {
-    PQclear (res);
-    return cnt;
-  }
-  if ( (4 != PQnfields (res)) ||
-       (sizeof (uint64_t) != PQfsize (res, 0)) ||
-       (sizeof (uint32_t) != PQfsize (res, 1)))
-  {
-    GNUNET_break (0);
-    PQclear (res);
-    return 0;
-  }
-  for (i = 0; i < cnt; i++)
-  {
-    expiration_time.abs_value_us =
-        GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
-    type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
-    size = PQgetlength (res, i, 2);
-    path_len = PQgetlength (res, i, 3);
-    if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_break (0);
-      path_len = 0;
-    }
-    path_len %= sizeof (struct GNUNET_PeerIdentity);
-    path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, i, 3);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Found result of size %u bytes and type %u in database\n",
-	 (unsigned int) size, (unsigned int) type);
-    if (GNUNET_SYSERR ==
-        iter (iter_cls, key, size, PQgetvalue (res, i, 2),
-              (enum GNUNET_BLOCK_Type) type,
-	      expiration_time,
-	      path_len,
-	      path))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Ending iteration (client error)\n");
-      PQclear (res);
-      return cnt;
-    }
-  }
-  PQclear (res);
-  return cnt;
+  return res;
 }
 
 
@@ -362,54 +340,53 @@ static int
 postgres_plugin_del (void *cls)
 {
   struct Plugin *plugin = cls;
+  struct GNUNET_PQ_QueryParam pempty[] = {
+    GNUNET_PQ_query_param_end
+  };
   uint32_t size;
   uint32_t oid;
   struct GNUNET_HashCode key;
-  PGresult *res;
+  struct GNUNET_PQ_ResultSpec rs[] = {
+    GNUNET_PQ_result_spec_uint32 ("len",
+                                  &size),
+    GNUNET_PQ_result_spec_uint32 ("oid",
+                                  &oid),
+    GNUNET_PQ_result_spec_auto_from_type ("key",
+                                          &key),
+    GNUNET_PQ_result_spec_end
+  };
+  enum GNUNET_PQ_QueryStatus res;
+  struct GNUNET_PQ_QueryParam dparam[] = {
+    GNUNET_PQ_query_param_uint32 (&oid),
+    GNUNET_PQ_query_param_end
+  };
 
-  res = PQexecPrepared (plugin->dbh,
-                        "getm",
-                        0, NULL, NULL, NULL, 1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-                                    "getm"))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Ending iteration (postgres error)\n");
-    return 0;
-  }
-  if (0 == PQntuples (res))
+  res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
+                                                  "getm",
+                                                  pempty,
+                                                  rs);
+  if (0 > res)
+    return GNUNET_SYSERR;
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-  if ((3 != PQnfields (res)) || (sizeof (size) != PQfsize (res, 0)) ||
-      (sizeof (oid) != PQfsize (res, 1)) ||
-      (sizeof (struct GNUNET_HashCode) != PQgetlength (res, 0, 2)))
-  {
-    GNUNET_break (0);
-    PQclear (res);
     return 0;
   }
-  size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
-  oid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
-  GNUNET_memcpy (&key, PQgetvalue (res, 0, 2), sizeof (struct GNUNET_HashCode));
-  PQclear (res);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_delete_by_rowid (plugin->dbh,
-                                       "delrow",
-                                       oid))
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "delrow",
+                                            dparam);
+  if (0 > res)
+  {
+    GNUNET_PQ_cleanup_result (rs);
     return GNUNET_SYSERR;
+  }
   plugin->num_items--;
   plugin->env->delete_notify (plugin->env->cls,
                               &key,
                               size + OVERHEAD);
+  GNUNET_PQ_cleanup_result (rs);
   return GNUNET_OK;
 }
 
