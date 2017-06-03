@@ -196,13 +196,6 @@ database_setup (struct Plugin *plugin)
                               "VALUES (get_chan_id($1),\n"
                               "        get_slave_id($2),\n"
                               "        $3, $4, $5, $6)", 6),
-      GNUNET_PQ_make_prepare ("insert_membership",
-                              "INSERT INTO membership\n"
-                              " (channel_id, slave_id, did_join, announced_at,\n"
-                              "  effective_since, group_generation)\n"
-                              "VALUES (get_chan_id($1),\n"
-                              "        get_slave_id($2),\n"
-                              "        $3, $4, $5, $6)", 6),
       GNUNET_PQ_make_prepare ("select_membership",
                               "SELECT did_join FROM membership\n"
                               "WHERE channel_id = get_chan_id($1)\n"
