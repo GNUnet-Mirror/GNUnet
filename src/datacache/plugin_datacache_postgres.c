@@ -405,22 +405,34 @@ postgres_plugin_get_random (void *cls,
                             void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  unsigned int off;
-  uint32_t off_be;
+  uint32_t off;
   struct GNUNET_TIME_Absolute expiration_time;
-  uint32_t size;
-  unsigned int path_len;
-  const struct GNUNET_PeerIdentity *path;
-  const struct GNUNET_HashCode *key;
-  unsigned int type;
-  PGresult *res;
-  const char *paramValues[] = {
-    (const char *) &off_be
+  size_t data_size;
+  void *data;
+  size_t path_len;
+  struct GNUNET_PeerIdentity *path;
+  struct GNUNET_HashCode key;
+  uint32_t type;
+  enum GNUNET_PQ_QueryStatus res;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_uint32 (&off),
+    GNUNET_PQ_query_param_end
   };
-  int paramLengths[] = {
-    sizeof (off_be)
+  struct GNUNET_PQ_ResultSpec rs[] = {
+    GNUNET_PQ_result_spec_absolute_time ("discard_time",
+                                         &expiration_time),
+    GNUNET_PQ_result_spec_uint32 ("type",
+                                  &type),
+    GNUNET_PQ_result_spec_variable_size ("value",
+                                         &data,
+                                         &data_size),
+    GNUNET_PQ_result_spec_variable_size ("path",
+                                         (void **) &path,
+                                         &path_len),
+    GNUNET_PQ_result_spec_auto_from_type ("key",
+                                          &key),
+    GNUNET_PQ_result_spec_end
   };
-  const int paramFormats[] = { 1 };
 
   if (0 == plugin->num_items)
     return 0;
@@ -428,62 +440,40 @@ postgres_plugin_get_random (void *cls,
     return 1;
   off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                   plugin->num_items);
-  off_be = htonl (off);
-  res =
-    PQexecPrepared (plugin->dbh, "get_random",
-                    1, paramValues, paramLengths, paramFormats,
-                    1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-				    "get_random"))
+  res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
+                                                  "get_random",
+                                                  params,
+                                                  rs);
+  if (0 > res)
   {
     GNUNET_break (0);
     return 0;
   }
-  if (0 == PQntuples (res))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
   {
     GNUNET_break (0);
     return 0;
   }
-  if ( (5 != PQnfields (res)) ||
-       (sizeof (uint64_t) != PQfsize (res, 0)) ||
-       (sizeof (uint32_t) != PQfsize (res, 1)) ||
-       (sizeof (struct GNUNET_HashCode) != PQfsize (res, 4)) )
-  {
-    GNUNET_break (0);
-    PQclear (res);
-    return 0;
-  }
-  expiration_time.abs_value_us =
-    GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 0));
-  type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
-  size = PQgetlength (res, 0, 2);
-  path_len = PQgetlength (res, 0, 3);
   if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     path_len = 0;
   }
   path_len %= sizeof (struct GNUNET_PeerIdentity);
-  path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, 0, 3);
-  key = (const struct GNUNET_HashCode *) PQgetvalue (res, 0, 4);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Found random value with key %s of size %u bytes and type %u in database\n",
-       GNUNET_h2s (key),
-       (unsigned int) size,
+       GNUNET_h2s (&key),
+       (unsigned int) data_size,
        (unsigned int) type);
   (void) iter (iter_cls,
-               key,
-               size,
-               PQgetvalue (res, 0, 2),
+               &key,
+               data_size,
+               data,
                (enum GNUNET_BLOCK_Type) type,
                expiration_time,
                path_len,
                path);
-  PQclear (res);
+  GNUNET_PQ_cleanup_result (rs);
   return 1;
 }
 
