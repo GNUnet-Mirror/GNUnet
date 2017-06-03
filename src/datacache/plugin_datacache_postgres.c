@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_postgres_lib.h"
 #include "gnunet_pq_lib.h"
 #include "gnunet_datacache_plugin.h"
 
