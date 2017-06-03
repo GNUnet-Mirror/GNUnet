@@ -386,21 +386,14 @@ static int
 exec_channel (struct Plugin *plugin, const char *stmt,
               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key)
 {
-  PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", stmt))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-
-  PQclear (ret);
 
   return GNUNET_OK;
 }
@@ -412,23 +405,15 @@ exec_channel (struct Plugin *plugin, const char *stmt,
 static int
 transaction_begin (struct Plugin *plugin, enum Transactions transaction)
 {
-  PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_begin", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_begin"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_begin", params))
     return GNUNET_SYSERR;
-  }
 
   plugin->transaction = transaction;
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -439,23 +424,14 @@ transaction_begin (struct Plugin *plugin, enum Transactions transaction)
 static int
 transaction_commit (struct Plugin *plugin)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_commit", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_commit"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_commit", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   plugin->transaction = TRANSACTION_NONE;
   return GNUNET_OK;
 }
@@ -467,23 +443,14 @@ transaction_commit (struct Plugin *plugin)
 static int
 transaction_rollback (struct Plugin *plugin)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_rollback", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_rollback"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_rollback", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   plugin->transaction = TRANSACTION_NONE;
   return GNUNET_OK;
 }
@@ -493,24 +460,15 @@ static int
 channel_key_store (struct Plugin *plugin,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_channel_key", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_channel_key"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_channel_key", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -519,24 +477,15 @@ static int
 slave_key_store (struct Plugin *plugin,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (slave_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_slave_key", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_slave_key"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_slave_key", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -558,7 +507,6 @@ postgres_membership_store (void *cls,
                            uint64_t effective_since,
                            uint64_t group_generation)
 {
-  PGresult *ret;
   struct Plugin *plugin = cls;
 
   uint32_t idid_join = (uint32_t)did_join;
@@ -587,17 +535,10 @@ postgres_membership_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_membership", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_membership"))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_membership", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -673,7 +614,6 @@ fragment_store (void *cls,
                 const struct GNUNET_MULTICAST_MessageHeader *msg,
                 uint32_t psycstore_flags)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
@@ -716,15 +656,10 @@ fragment_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_fragment", params_insert);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_fragment"))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_fragment", params_insert))
     return GNUNET_SYSERR;
 
-  PQclear (res);
   return GNUNET_OK;
 }
 
@@ -741,7 +676,6 @@ message_add_flags (void *cls,
                    uint64_t message_id,
                    uint32_t psycstore_flags)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   struct GNUNET_PQ_QueryParam params_update[] = {
@@ -751,14 +685,10 @@ message_add_flags (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "update_message_flags", params_update);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared","update_message_flags"))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "update_message_flags", params_update))
     return GNUNET_SYSERR;
 
-  PQclear (res);
   return GNUNET_OK;
 }
 
@@ -1173,8 +1103,6 @@ state_assign (struct Plugin *plugin, const char *stmt,
               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
               const char *name, const void *value, size_t value_size)
 {
-  PGresult *res;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_string (name),
@@ -1182,16 +1110,9 @@ state_assign (struct Plugin *plugin, const char *stmt,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-  }
-
-  PQclear (res);
 
   return GNUNET_OK;
 }
@@ -1203,24 +1124,15 @@ update_message_id (struct Plugin *plugin,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t message_id)
 {
-  PGresult *res;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint64 (&message_id),
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-  }
-
-  PQclear (res);
 
   return GNUNET_OK;
 }
