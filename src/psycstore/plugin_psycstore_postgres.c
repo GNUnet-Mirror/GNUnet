@@ -556,12 +556,9 @@ membership_test (void *cls,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                  uint64_t message_id)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   uint32_t did_join = 0;
-
-  int ret = GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
@@ -570,35 +567,17 @@ membership_test (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "select_membership", params_select);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared", "select_membership"))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint32 ("did_join", &did_join),
     GNUNET_PQ_result_spec_end
   };
 
-  switch (GNUNET_PQ_extract_result (res, results_select, 0))
-  {
-    case GNUNET_OK:
-      ret = GNUNET_YES;
-      break;
+  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, "select_membership", 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-    default:
-      ret = GNUNET_NO;
-      break;
-  }
-
-  PQclear (res);
-
-  return ret;
+  return GNUNET_OK;
 }
 
 /**
@@ -1002,7 +981,6 @@ counters_message_get (void *cls,
                       uint64_t *max_message_id,
                       uint64_t *max_group_generation)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   const char *stmt = "select_counters_message";
@@ -1012,15 +990,6 @@ counters_message_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint64 ("fragment_id", max_fragment_id),
     GNUNET_PQ_result_spec_uint64 ("message_id", max_message_id),
@@ -1028,14 +997,10 @@ counters_message_get (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_OK != GNUNET_PQ_extract_result (res, results_select, 0))
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_PQ_cleanup_result(results_select);
-  PQclear (res);
+  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
   return GNUNET_OK;
 }
@@ -1052,44 +1017,26 @@ counters_state_get (void *cls,
                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                     uint64_t *max_state_message_id)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   const char *stmt = "select_counters_state";
-
-  int ret = GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint64 ("max_state_message_id", max_state_message_id),
     GNUNET_PQ_result_spec_end
   };
 
-  ret = GNUNET_PQ_extract_result (res, results_select, 0);
+  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != ret)
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_PQ_cleanup_result(results_select);
-  PQclear (res);
-
-  return ret;
+  return GNUNET_OK;
 }
 
 
@@ -1343,10 +1290,7 @@ static int
 state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
            const char *name, GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
-  PGresult *res;
-
   struct Plugin *plugin = cls;
-  int ret = GNUNET_SYSERR;
 
   const char *stmt = "select_state_one";
 
@@ -1359,41 +1303,18 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
   void *value_current = NULL;
   size_t value_size = 0;
 
-  struct GNUNET_PQ_ResultSpec results[] = {
+  struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_variable_size ("value_current", &value_current, &value_size),
     GNUNET_PQ_result_spec_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
+  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-  if (PQntuples (res) == 0)
-  {
-    PQclear (res);
-    ret = GNUNET_NO;
-  }
-
-  ret = GNUNET_PQ_extract_result (res, results, 0);
-
-  if (GNUNET_OK != ret)
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  ret = cb (cb_cls, name, value_current,
+  return cb (cb_cls, name, value_current,
             value_size);
-
-  GNUNET_PQ_cleanup_result(results);
-  PQclear (res);
-
-  return ret;
 }
 
 
