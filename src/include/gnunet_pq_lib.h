@@ -523,9 +523,9 @@ GNUNET_PQ_eval_result (PGconn *connection,
  * @param statement_name name of the statement
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @return status code from the result, mapping PQ status
- *         codes to `enum GNUNET_PQ_QueryStatus`.  Never
- *         returns positive values as this function does
- *         not look at the result set.
+ *         codes to `enum GNUNET_PQ_QueryStatus`.   If the
+ *         statement was a DELETE or UPDATE statement, the
+ *         number of affected rows is returned.
  */
 enum GNUNET_PQ_QueryStatus
 GNUNET_PQ_eval_prepared_non_select (PGconn *connection,

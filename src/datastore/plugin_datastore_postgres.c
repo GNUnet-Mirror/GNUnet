@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2009-2016 GNUnet e.V.
+     Copyright (C) 2009-2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -70,161 +70,103 @@ struct Plugin
 static int
 init_connection (struct Plugin *plugin)
 {
-  PGresult *ret;
+  struct GNUNET_PQ_ExecuteStatement es[] = {
+    /* FIXME: PostgreSQL does not have unsigned integers! This is ok for the type column because
+     * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
+     * we do math or inequality tests, so we can't handle the entire range of uint32_t.
+     * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
+     * PostgreSQL also recommends against using WITH OIDS.
+     */
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS gn090 ("
+                            "  repl INTEGER NOT NULL DEFAULT 0,"
+                            "  type INTEGER NOT NULL DEFAULT 0,"
+                            "  prio INTEGER NOT NULL DEFAULT 0,"
+                            "  anonLevel INTEGER NOT NULL DEFAULT 0,"
+                            "  expire BIGINT NOT NULL DEFAULT 0,"
+                            "  rvalue BIGINT NOT NULL DEFAULT 0,"
+                            "  hash BYTEA NOT NULL DEFAULT '',"
+                            "  vhash BYTEA NOT NULL DEFAULT '',"
+                            "  value BYTEA NOT NULL DEFAULT '')"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_prio_anon ON gn090 (prio,anonLevel)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn090 ALTER value SET STORAGE EXTERNAL"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn090 ALTER hash SET STORAGE PLAIN"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn090 ALTER vhash SET STORAGE PLAIN"),
+    GNUNET_PQ_EXECUTE_STATEMENT_END
+  };
+#define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, oid"
+  struct GNUNET_PQ_PreparedStatement ps[] = {
+    GNUNET_PQ_make_prepare ("get",
+                            "SELECT " RESULT_COLUMNS " FROM gn090 "
+                            "WHERE oid >= $1::bigint AND "
+                            "(rvalue >= $2 OR 0 = $3::smallint) AND "
+                            "(hash = $4 OR 0 = $5::smallint) AND "
+                            "(type = $6 OR 0 = $7::smallint) "
+                            "ORDER BY oid ASC LIMIT 1",
+                            7),
+    GNUNET_PQ_make_prepare ("put",
+                            "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
+                            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                            9),
+    GNUNET_PQ_make_prepare ("update",
+                            "UPDATE gn090 "
+                            "SET prio = prio + $1, "
+                            "repl = repl + $2, "
+                            "expire = GREATEST(expire, $3) "
+                            "WHERE hash = $4 AND vhash = $5",
+                            5),
+    GNUNET_PQ_make_prepare ("decrepl",
+                            "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
+                            "WHERE oid = $1",
+                            1),
+    GNUNET_PQ_make_prepare ("select_non_anonymous",
+                            "SELECT " RESULT_COLUMNS " FROM gn090 "
+                            "WHERE anonLevel = 0 AND type = $1 AND oid >= $2::bigint "
+                            "ORDER BY oid ASC LIMIT 1",
+                            2),
+    GNUNET_PQ_make_prepare ("select_expiration_order",
+                            "(SELECT " RESULT_COLUMNS " FROM gn090 "
+                            "WHERE expire < $1 ORDER BY prio ASC LIMIT 1) "
+                            "UNION "
+                            "(SELECT " RESULT_COLUMNS " FROM gn090 "
+                            "ORDER BY prio ASC LIMIT 1) "
+                            "ORDER BY expire ASC LIMIT 1",
+                            1),
+    GNUNET_PQ_make_prepare ("select_replication_order",
+                            "SELECT " RESULT_COLUMNS " FROM gn090 "
+                            "ORDER BY repl DESC,RANDOM() LIMIT 1",
+                            0),
+    GNUNET_PQ_make_prepare ("delrow",
+                            "DELETE FROM gn090 " "WHERE oid=$1",
+                            1),
+    GNUNET_PQ_make_prepare ("remove", "DELETE FROM gn090 "
+                            "WHERE hash = $1 AND "
+                            "value = $2",
+                            2),
+    GNUNET_PQ_make_prepare ("get_keys",
+                            "SELECT hash FROM gn090",
+                            0),
+    GNUNET_PQ_PREPARED_STATEMENT_END
+  };
+#undef RESULT_COLUMNS
 
   plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
                                             "datastore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
 
-  /* FIXME: PostgreSQL does not have unsigned integers! This is ok for the type column because
-   * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
-   * we do math or inequality tests, so we can't handle the entire range of uint32_t.
-   * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
-   * PostgreSQL also recommends against using WITH OIDS.
-   */
-  ret =
-      PQexec (plugin->dbh,
-              "CREATE TABLE IF NOT EXISTS gn090 ("
-              "  repl INTEGER NOT NULL DEFAULT 0,"
-              "  type INTEGER NOT NULL DEFAULT 0,"
-              "  prio INTEGER NOT NULL DEFAULT 0,"
-              "  anonLevel INTEGER NOT NULL DEFAULT 0,"
-              "  expire BIGINT NOT NULL DEFAULT 0,"
-              "  rvalue BIGINT NOT NULL DEFAULT 0,"
-              "  hash BYTEA NOT NULL DEFAULT '',"
-              "  vhash BYTEA NOT NULL DEFAULT '',"
-              "  value BYTEA NOT NULL DEFAULT '')"
-              "WITH OIDS");
-  if ( (NULL == ret) ||
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
-        (0 != strcmp ("42P07",    /* duplicate table */
-                      PQresultErrorField
-                      (ret,
-                       PG_DIAG_SQLSTATE)))))
-  {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh,
-                                         ret,
-                                         PGRES_COMMAND_OK,
-                                         "CREATE TABLE",
-                                         "gn090");
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-
-  if (PQresultStatus (ret) == PGRES_COMMAND_OK)
-  {
-    if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_prio ON gn090 (prio)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_prio_anon ON gn090 (prio,anonLevel)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
-        (GNUNET_OK !=
-         GNUNET_POSTGRES_exec (plugin->dbh,
-                               "CREATE INDEX IF NOT EXISTS idx_expire_hash ON gn090 (expire,hash)")))
-    {
-      PQclear (ret);
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
-  PQclear (ret);
-
-  ret =
-      PQexec (plugin->dbh,
-              "ALTER TABLE gn090 ALTER value SET STORAGE EXTERNAL");
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  PQclear (ret);
-  ret = PQexec (plugin->dbh, "ALTER TABLE gn090 ALTER hash SET STORAGE PLAIN");
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  PQclear (ret);
-  ret = PQexec (plugin->dbh, "ALTER TABLE gn090 ALTER vhash SET STORAGE PLAIN");
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  PQclear (ret);
-#define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, oid"
-  if ((GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "get",
-                   "SELECT " RESULT_COLUMNS " FROM gn090 "
-                   "WHERE oid >= $1::bigint AND "
-                   "(rvalue >= $2 OR 0 = $3::smallint) AND "
-                   "(hash = $4 OR 0 = $5::smallint) AND "
-                   "(type = $6 OR 0 = $7::smallint) "
-                   "ORDER BY oid ASC LIMIT 1", 7)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "put",
-                   "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", 9)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "update",
-                   "UPDATE gn090 "
-                   "SET prio = prio + $1, "
-                   "repl = repl + $2, "
-                   "expire = GREATEST(expire, $3) "
-                   "WHERE hash = $4 AND vhash = $5", 5)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "decrepl",
-                   "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
-                   "WHERE oid = $1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "select_non_anonymous",
-                   "SELECT " RESULT_COLUMNS " FROM gn090 "
-                   "WHERE anonLevel = 0 AND type = $1 AND oid >= $2::bigint "
-                   "ORDER BY oid ASC LIMIT 1",
-                   2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "select_expiration_order",
-                   "(SELECT " RESULT_COLUMNS " FROM gn090 "
-                    "WHERE expire < $1 ORDER BY prio ASC LIMIT 1) "
-                   "UNION "
-                   "(SELECT " RESULT_COLUMNS " FROM gn090 "
-                    "ORDER BY prio ASC LIMIT 1) "
-                   "ORDER BY expire ASC LIMIT 1",
-                   1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "select_replication_order",
-                   "SELECT " RESULT_COLUMNS " FROM gn090 "
-                   "ORDER BY repl DESC,RANDOM() LIMIT 1", 0)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "remove", "DELETE FROM gn090 "
-         "WHERE hash = $1 AND "
-         "value = $2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh, "get_keys", "SELECT hash FROM gn090", 0)))
+  if ( (GNUNET_OK !=
+        GNUNET_PQ_exec_statements (plugin->dbh,
+                                   es)) ||
+       (GNUNET_OK !=
+        GNUNET_PQ_prepare_statements (plugin->dbh,
+                                      ps)) )
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -316,13 +258,12 @@ postgres_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode vhash;
-  PGresult *ret;
+  enum GNUNET_PQ_QueryStatus ret;
 
   GNUNET_CRYPTO_hash (data,
                       size,
                       &vhash);
-
-  if (!absent)
+  if (! absent)
   {
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_uint32 (&priority),
@@ -332,15 +273,10 @@ postgres_plugin_put (void *cls,
       GNUNET_PQ_query_param_auto_from_type (&vhash),
       GNUNET_PQ_query_param_end
     };
-    ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-                                   "update",
-                                   params);
-    if (GNUNET_OK !=
-        GNUNET_POSTGRES_check_result (plugin->dbh,
-                                      ret,
-                                      PGRES_COMMAND_OK,
-                                      "PQexecPrepared",
-                                      "update"))
+    ret = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                              "update",
+                                              params);
+    if (0 > ret)
     {
       cont (cont_cls,
             key,
@@ -349,9 +285,7 @@ postgres_plugin_put (void *cls,
             _("Postgress exec failure"));
       return;
     }
-    /* What an awful API, this function really does return a string */
-    bool affected = 0 != strcmp ("0", PQcmdTuples (ret));
-    PQclear (ret);
+    bool affected = (0 != ret);
     if (affected)
     {
       cont (cont_cls,
@@ -363,44 +297,47 @@ postgres_plugin_put (void *cls,
     }
   }
 
-  uint32_t utype = type;
-  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                              UINT64_MAX);
-  struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_uint32 (&replication),
-    GNUNET_PQ_query_param_uint32 (&utype),
-    GNUNET_PQ_query_param_uint32 (&priority),
-    GNUNET_PQ_query_param_uint32 (&anonymity),
-    GNUNET_PQ_query_param_absolute_time (&expiration),
-    GNUNET_PQ_query_param_uint64 (&rvalue),
-    GNUNET_PQ_query_param_auto_from_type (key),
-    GNUNET_PQ_query_param_auto_from_type (&vhash),
-    GNUNET_PQ_query_param_fixed_size (data, size),
-    GNUNET_PQ_query_param_end
-  };
-
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "put",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-				    ret,
-				    PGRES_COMMAND_OK,
-				    "PQexecPrepared", "put"))
   {
-    cont (cont_cls, key, size,
-	  GNUNET_SYSERR,
-	  _("Postgress exec failure"));
-    return;
+    uint32_t utype = (uint32_t) type;
+    uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                UINT64_MAX);
+    struct GNUNET_PQ_QueryParam params[] = {
+      GNUNET_PQ_query_param_uint32 (&replication),
+      GNUNET_PQ_query_param_uint32 (&utype),
+      GNUNET_PQ_query_param_uint32 (&priority),
+      GNUNET_PQ_query_param_uint32 (&anonymity),
+      GNUNET_PQ_query_param_absolute_time (&expiration),
+      GNUNET_PQ_query_param_uint64 (&rvalue),
+      GNUNET_PQ_query_param_auto_from_type (key),
+      GNUNET_PQ_query_param_auto_from_type (&vhash),
+      GNUNET_PQ_query_param_fixed_size (data, size),
+      GNUNET_PQ_query_param_end
+    };
+
+    ret = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                              "put",
+                                              params);
+    if (0 > ret)
+    {
+      cont (cont_cls,
+            key,
+            size,
+            GNUNET_SYSERR,
+            "Postgress exec failure");
+      return;
+    }
   }
-  PQclear (ret);
   plugin->env->duc (plugin->env->cls,
 		    size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "datastore-postgres",
                    "Stored %u bytes in database\n",
 		   (unsigned int) size);
-  cont (cont_cls, key, size, GNUNET_OK, NULL);
+  cont (cont_cls,
+        key,
+        size,
+        GNUNET_OK,
+        NULL);
 }
 
 
@@ -864,21 +801,17 @@ postgres_plugin_remove_key (void *cls,
                             void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  PGresult *ret;
+  enum GNUNET_PQ_QueryStatus ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (key),
     GNUNET_PQ_query_param_fixed_size (data, size),
     GNUNET_PQ_query_param_end
   };
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh,
-                                 "remove",
-                                 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "remove"))
+
+  ret = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "remove",
+                                            params);
+  if (0 > ret)
   {
     cont (cont_cls,
           key,
@@ -887,10 +820,7 @@ postgres_plugin_remove_key (void *cls,
           _("Postgress exec failure"));
     return;
   }
-  /* What an awful API, this function really does return a string */
-  bool affected = 0 != strcmp ("0", PQcmdTuples (ret));
-  PQclear (ret);
-  if (!affected)
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == ret)
   {
     cont (cont_cls,
           key,
