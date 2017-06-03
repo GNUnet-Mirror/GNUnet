@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2009, 2010, 2012, 2015 GNUnet e.V.
+     Copyright (C) 2006, 2009, 2010, 2012, 2015, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -479,6 +479,97 @@ postgres_plugin_get_random (void *cls,
 
 
 /**
+ * Closure for #extract_result_cb.
+ */
+struct ExtractResultContext
+{
+  /**
+   * Function to call for each result found.
+   */
+  GNUNET_DATACACHE_Iterator iter;
+
+  /**
+   * Closure for @e iter.
+   */
+  void *iter_cls;
+
+};
+
+
+/**
+ * Function to be called with the results of a SELECT statement
+ * that has returned @a num_results results.  Calls the `iter`
+ * from @a cls for each result.
+ *
+ * @param cls closure with the `struct ExtractResultContext`
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+static void
+extract_result_cb (void *cls,
+                   PGresult *result,
+                   unsigned int num_results)
+{
+  struct ExtractResultContext *erc = cls;
+
+  if (NULL == erc->iter)
+    return;
+  for (unsigned int i=0;i<num_results;i++)
+  {
+    struct GNUNET_TIME_Absolute expiration_time;
+    uint32_t type;
+    void *data;
+    size_t data_size;
+    struct GNUNET_PeerIdentity *path;
+    size_t path_len;
+    struct GNUNET_HashCode key;
+    struct GNUNET_PQ_ResultSpec rs[] = {
+      GNUNET_PQ_result_spec_absolute_time ("",
+                                           &expiration_time),
+      GNUNET_PQ_result_spec_uint32 ("type",
+                                    &type),
+      GNUNET_PQ_result_spec_variable_size ("value",
+                                           &data,
+                                           &data_size),
+      GNUNET_PQ_result_spec_variable_size ("path",
+                                           (void **) &path,
+                                           &path_len),
+      GNUNET_PQ_result_spec_auto_from_type ("key",
+                                            &key),
+      GNUNET_PQ_result_spec_end
+    };
+
+    if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      path_len = 0;
+    }
+    path_len %= sizeof (struct GNUNET_PeerIdentity);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Found result of size %u bytes and type %u in database\n",
+	 (unsigned int) data_size,
+         (unsigned int) type);
+    if (GNUNET_SYSERR ==
+        erc->iter (erc->iter_cls,
+                   &key,
+                   data_size,
+                   data,
+                   (enum GNUNET_BLOCK_Type) type,
+                   expiration_time,
+                   path_len,
+                   path))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Ending iteration (client error)\n");
+      GNUNET_PQ_cleanup_result (rs);
+      break;
+    }
+    GNUNET_PQ_cleanup_result (rs);
+  }
+}
+
+
+/**
  * Iterate over the results that are "close" to a particular key in
  * the datacache.  "close" is defined as numerically larger than @a
  * key (when interpreted as a circular address space), with small
@@ -499,105 +590,36 @@ postgres_plugin_get_closest (void *cls,
                              void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  uint32_t nbo_limit = htonl (num_results);
-  const char *paramValues[] = {
-    (const char *) key,
-    (const char *) &nbo_limit,
+  uint32_t num_results32 = (uint32_t) num_results;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_auto_from_type (key),
+    GNUNET_PQ_query_param_uint32 (&num_results32),
+    GNUNET_PQ_query_param_end
   };
-  int paramLengths[] = {
-    sizeof (struct GNUNET_HashCode),
-    sizeof (nbo_limit)
+  enum GNUNET_PQ_QueryStatus res;
+  struct ExtractResultContext erc;
 
-  };
-  const int paramFormats[] = { 1, 1 };
-  struct GNUNET_TIME_Absolute expiration_time;
-  uint32_t size;
-  unsigned int type;
-  unsigned int cnt;
-  unsigned int i;
-  unsigned int path_len;
-  const struct GNUNET_PeerIdentity *path;
-  PGresult *res;
-
-  res =
-      PQexecPrepared (plugin->dbh,
-                      "get_closest",
-                      2,
-                      paramValues,
-                      paramLengths,
-                      paramFormats,
-                      1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-				    "get_closest"))
+  erc.iter = iter;
+  erc.iter_cls = iter_cls;
+  res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                              "get_closest",
+                                              params,
+                                              &extract_result_cb,
+                                              &erc);
+  if (0 > res)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (postgres error)\n");
     return 0;
   }
-
-  if (0 == (cnt = PQntuples (res)))
+  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
-    PQclear (res);
     return 0;
   }
-  if (NULL == iter)
-  {
-    PQclear (res);
-    return cnt;
-  }
-  if ( (5 != PQnfields (res)) ||
-       (sizeof (uint64_t) != PQfsize (res, 0)) ||
-       (sizeof (uint32_t) != PQfsize (res, 1)) ||
-       (sizeof (struct GNUNET_HashCode) != PQfsize (res, 4)) )
-  {
-    GNUNET_break (0);
-    PQclear (res);
-    return 0;
-  }
-  for (i = 0; i < cnt; i++)
-  {
-    expiration_time.abs_value_us =
-        GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
-    type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
-    size = PQgetlength (res, i, 2);
-    path_len = PQgetlength (res, i, 3);
-    if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_break (0);
-      path_len = 0;
-    }
-    path_len %= sizeof (struct GNUNET_PeerIdentity);
-    path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, i, 3);
-    key = (const struct GNUNET_HashCode *) PQgetvalue (res, i, 4);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Found result of size %u bytes and type %u in database\n",
-	 (unsigned int) size,
-         (unsigned int) type);
-    if (GNUNET_SYSERR ==
-        iter (iter_cls,
-              key,
-              size,
-              PQgetvalue (res, i, 2),
-              (enum GNUNET_BLOCK_Type) type,
-	      expiration_time,
-	      path_len,
-	      path))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Ending iteration (client error)\n");
-      PQclear (res);
-      return cnt;
-    }
-  }
-  PQclear (res);
-  return cnt;
+  return res;
 }
 
 
