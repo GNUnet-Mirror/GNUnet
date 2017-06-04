@@ -84,6 +84,7 @@ GNUNET_PQ_prepare_statements (PGconn *connection,
       PQclear (ret);
       return GNUNET_SYSERR;
     }
+    PQclear (ret);
   }
   return GNUNET_OK;
 }
