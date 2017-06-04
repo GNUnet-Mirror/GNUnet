@@ -25,6 +25,7 @@
  * @author Gabor X Toth
  * @author Christian Grothoff
  * @author Christophe Genevey
+ * @author Jeffrey Burdges
  */
 
 #include "platform.h"
@@ -672,59 +673,72 @@ message_add_flags (void *cls,
 }
 
 
-static int
-fragment_row (struct Plugin *plugin,
-              const char *stmt,
-              PGresult *res,
-              GNUNET_PSYCSTORE_FragmentCallback cb,
-              void *cb_cls,
-              uint64_t *returned_fragments)
+/**
+ * Closure for #fragment_rows.
+ */
+struct FragmentRowsContext {
+  GNUNET_PSYCSTORE_FragmentCallback cb;
+  void *cb_cls;
+
+  uint64_t *returned_fragments;
+
+  /* I preserved this but I do not see the point since
+   * it cannot stop the loop early and gets overwritten ?? */
+  int ret;
+};
+
+
+/**
+ * Callback that retrieves the results of a SELECT statement
+ * reading form the messages table.
+ *
+ * Only passed to GNUNET_PQ_eval_prepared_multi_select and
+ * has type GNUNET_PQ_PostgresResultHandler.
+ *
+ * @param cls closure
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+void fragment_rows (void *cls,
+                    PGresult *res,
+                    unsigned int num_results)
 {
-  uint32_t hop_counter;
-  void *signature = NULL;
-  void *purpose = NULL;
-  size_t signature_size;
-  size_t purpose_size;
-  uint64_t fragment_id;
-  uint64_t fragment_offset;
-  uint64_t message_id;
-  uint64_t group_generation;
-  uint32_t flags;
-  void *buf;
-  size_t buf_size;
-  int ret = GNUNET_SYSERR;
-  struct GNUNET_MULTICAST_MessageHeader *mp;
-  uint32_t msg_flags;
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_uint32 ("hop_counter", &hop_counter),
-    GNUNET_PQ_result_spec_variable_size ("signature", &signature, &signature_size),
-    GNUNET_PQ_result_spec_variable_size ("purpose", &purpose, &purpose_size),
-    GNUNET_PQ_result_spec_uint64 ("fragment_id", &fragment_id),
-    GNUNET_PQ_result_spec_uint64 ("fragment_offset", &fragment_offset),
-    GNUNET_PQ_result_spec_uint64 ("message_id", &message_id),
-    GNUNET_PQ_result_spec_uint64 ("group_generation", &group_generation),
-    GNUNET_PQ_result_spec_uint32 ("multicast_flags", &msg_flags),
-    GNUNET_PQ_result_spec_uint32 ("psycstore_flags", &flags),
-    GNUNET_PQ_result_spec_variable_size ("data", &buf, &buf_size),
-    GNUNET_PQ_result_spec_end
-  };
+  struct FragmentRowsContext *c = cls;
 
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-                                    stmt))
+  for (unsigned int i=0;i<num_results;i++)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failing fragment lookup (postgres error)\n");
-    return GNUNET_SYSERR;
-  }
+    uint32_t hop_counter;
+    void *signature = NULL;
+    void *purpose = NULL;
+    size_t signature_size;
+    size_t purpose_size;
+    uint64_t fragment_id;
+    uint64_t fragment_offset;
+    uint64_t message_id;
+    uint64_t group_generation;
+    uint32_t flags;
+    void *buf;
+    size_t buf_size;
+    uint32_t msg_flags;
+    struct GNUNET_PQ_ResultSpec results[] = {
+      GNUNET_PQ_result_spec_uint32 ("hop_counter", &hop_counter),
+      GNUNET_PQ_result_spec_variable_size ("signature", &signature, &signature_size),
+      GNUNET_PQ_result_spec_variable_size ("purpose", &purpose, &purpose_size),
+      GNUNET_PQ_result_spec_uint64 ("fragment_id", &fragment_id),
+      GNUNET_PQ_result_spec_uint64 ("fragment_offset", &fragment_offset),
+      GNUNET_PQ_result_spec_uint64 ("message_id", &message_id),
+      GNUNET_PQ_result_spec_uint64 ("group_generation", &group_generation),
+      GNUNET_PQ_result_spec_uint32 ("multicast_flags", &msg_flags),
+      GNUNET_PQ_result_spec_uint32 ("psycstore_flags", &flags),
+      GNUNET_PQ_result_spec_variable_size ("data", &buf, &buf_size),
+      GNUNET_PQ_result_spec_end
+    };
+    struct GNUNET_MULTICAST_MessageHeader *mp;
 
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
+    if (GNUNET_YES != GNUNET_PQ_extract_result (res, results, i))
     {
-      break;
+      GNUNET_PQ_cleanup_result(results);  /* missing previously, a memory leak?? */
+      break;  /* nothing more?? */
     }
 
     mp = GNUNET_malloc (sizeof (*mp) + buf_size);
@@ -733,11 +747,9 @@ fragment_row (struct Plugin *plugin,
     mp->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
     mp->hop_counter = htonl (hop_counter);
     GNUNET_memcpy (&mp->signature,
-                   signature,
-                   signature_size);
+                   signature, signature_size);
     GNUNET_memcpy (&mp->purpose,
-                   purpose,
-                   purpose_size);
+                   purpose, purpose_size);
     mp->fragment_id = GNUNET_htonll (fragment_id);
     mp->fragment_offset = GNUNET_htonll (fragment_offset);
     mp->message_id = GNUNET_htonll (message_id);
@@ -745,15 +757,12 @@ fragment_row (struct Plugin *plugin,
     mp->flags = htonl(msg_flags);
 
     GNUNET_memcpy (&mp[1],
-                   buf,
-                   buf_size);
+                   buf, buf_size);
     GNUNET_PQ_cleanup_result(results);
-    ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
-    if (NULL != returned_fragments)
-      (*returned_fragments)++;
+    c->ret = c->cb (c->cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
+    if (NULL != c->returned_fragments)
+      (*c->returned_fragments)++;
   }
-
-  return ret;
 }
 
 
@@ -765,26 +774,19 @@ fragment_select (struct Plugin *plugin,
                  GNUNET_PSYCSTORE_FragmentCallback cb,
                  void *cb_cls)
 {
-  PGresult *res;
-  int ret = GNUNET_SYSERR;
+  /* Stack based closure */
+  struct FragmentRowsContext frc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .returned_fragments = returned_fragments,
+    .ret = GNUNET_SYSERR
+  };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_YES ==
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared", stmt))
-  {
-    if (PQntuples (res) == 0)
-      ret = GNUNET_NO;
-    else
-    {
-      ret = fragment_row (plugin, stmt, res, cb, cb_cls, returned_fragments);
-    }
-    PQclear (res);
-  }
-
-  return ret;
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params,
+                                                &fragment_rows, &frc))
+    return GNUNET_SYSERR;
+  return frc.ret;  /* GNUNET_OK ?? */
 }
 
 /**
@@ -938,9 +940,7 @@ message_get_fragment (void *cls,
                       GNUNET_PSYCSTORE_FragmentCallback cb,
                       void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_SYSERR;
   const char *stmt = "select_message_fragment";
 
   struct GNUNET_PQ_QueryParam params_select[] = {
@@ -950,21 +950,19 @@ message_get_fragment (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK == GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    if (PQntuples (res) == 0)
-      ret = GNUNET_NO;
-    else
-      ret = fragment_row (plugin, stmt, res, cb, cb_cls, NULL);
+  /* Stack based closure */
+  struct FragmentRowsContext frc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .returned_fragments = NULL,
+    .ret = GNUNET_SYSERR
+  };
 
-    PQclear (res);
-  }
-
-  return ret;
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &fragment_rows, &frc))
+    return GNUNET_SYSERR;
+  return frc.ret;  /* GNUNET_OK ?? */
 }
 
 /**
@@ -1356,6 +1354,11 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     GNUNET_PQ_result_spec_end
   };
 
+/*
++  enum GNUNET_PQ_QueryStatus res;
++  struct ExtractResultContext erc;
+*/
+
   res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
   if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
                                                  res,
@@ -1382,6 +1385,13 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
   PQclear (res);
 
   return ret;
+
+/*
+  erc.iter = iter;
+  erc.iter_cls = iter_cls;
+  res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh, stmt, params_select,
++                                              &extract_result_cb, &erc);
+*/
 }
 
 
