@@ -1318,7 +1318,7 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
 
 
 /**
- * Closure for #fragment_rows.
+ * Closure for #get_state_cb.
  */
 struct GetStateContext {
   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key;
@@ -1345,7 +1345,8 @@ struct GetStateContext {
  * @param result the postgres result
  * @param num_result the number of results in @a result
  */
-void get_state (void *cls,
+static void 
+get_state_cb (void *cls,
                 PGresult *res,
                 unsigned int num_results)
 {
@@ -1409,7 +1410,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
 
   if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
                                                 stmt, params_select,
-                                                &get_state, &gsc))
+                                                &get_state_cb, &gsc))
     return GNUNET_SYSERR;
   return gsc.ret;  /* GNUNET_OK ?? */
 }
@@ -1445,7 +1446,7 @@ state_get_signed (void *cls,
 
   if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
                                                 stmt, params_select,
-                                                &get_state, &gsc))
+                                                &get_state_cb, &gsc))
     return GNUNET_SYSERR;
   return gsc.ret;  /* GNUNET_OK ?? */
 }
