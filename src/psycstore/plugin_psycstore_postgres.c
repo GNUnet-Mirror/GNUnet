@@ -1316,6 +1316,64 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
 }
 
 
+
+/**
+ * Closure for #fragment_rows.
+ */
+struct GetStateContext {
+  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key;
+  // const char *name,
+  GNUNET_PSYCSTORE_StateCallback cb;
+  void *cb_cls;
+
+  const char *value_id;
+
+  /* I preserved this but I do not see the point since
+   * it cannot stop the loop early and gets overwritten ?? */
+  int ret;
+};
+
+
+/**
+ * Callback that retrieves the results of a SELECT statement
+ * reading form the state table.
+ *
+ * Only passed to GNUNET_PQ_eval_prepared_multi_select and
+ * has type GNUNET_PQ_PostgresResultHandler.
+ *
+ * @param cls closure
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+void get_state (void *cls,
+                PGresult *res,
+                unsigned int num_results)
+{
+  struct GetStateContext *c = cls;
+
+  for (unsigned int i=0;i<num_results;i++)
+  {
+    char *name = "";
+    void *value = NULL;
+    size_t value_size = 0;
+
+    struct GNUNET_PQ_ResultSpec results[] = {
+      GNUNET_PQ_result_spec_string ("name", &name),
+      GNUNET_PQ_result_spec_variable_size (c->value_id, &value, &value_size),
+      GNUNET_PQ_result_spec_end
+    };
+
+    if (GNUNET_YES != GNUNET_PQ_extract_result (res, results, i))
+    {
+      GNUNET_PQ_cleanup_result(results);  /* previously invoked via PQclear?? */
+      break;  /* nothing more?? */
+    }
+
+    c->ret = c->cb (c->cb_cls, (const char *) name, value, value_size);
+    GNUNET_PQ_cleanup_result(results);
+  }
+}
+
 /**
  * Retrieve all state variables for a channel with the given prefix.
  *
@@ -1328,9 +1386,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
                   const char *name, GNUNET_PSYCSTORE_StateCallback cb,
                   void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_NO;
 
   const char *stmt = "select_state_prefix";
 
@@ -1344,54 +1400,18 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     GNUNET_PQ_query_param_end
   };
 
-  char *name2 = "";
-  void *value_current = NULL;
-  size_t value_size = 0;
-
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_string ("name", &name2),
-    GNUNET_PQ_result_spec_variable_size ("value_current", &value_current, &value_size),
-    GNUNET_PQ_result_spec_end
+  struct GetStateContext gsc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .value_id = "value_current",
+    .ret = GNUNET_NO
   };
 
-/*
-+  enum GNUNET_PQ_QueryStatus res;
-+  struct ExtractResultContext erc;
-*/
-
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &get_state, &gsc))
     return GNUNET_SYSERR;
-  }
-
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
-    {
-      break;
-    }
-
-    ret = cb (cb_cls, (const char *) name2,
-              value_current,
-              value_size);
-    GNUNET_PQ_cleanup_result(results);
-  }
-
-  PQclear (res);
-
-  return ret;
-
-/*
-  erc.iter = iter;
-  erc.iter_cls = iter_cls;
-  res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh, stmt, params_select,
-+                                              &extract_result_cb, &erc);
-*/
+  return gsc.ret;  /* GNUNET_OK ?? */
 }
 
 
@@ -1407,9 +1427,7 @@ state_get_signed (void *cls,
                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                   GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_NO;
 
   const char *stmt = "select_state_signed";
 
@@ -1418,43 +1436,18 @@ state_get_signed (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  char *name = "";
-  void *value_signed = NULL;
-  size_t value_size = 0;
-
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_string ("name", &name),
-    GNUNET_PQ_result_spec_variable_size ("value_signed", &value_signed, &value_size),
-    GNUNET_PQ_result_spec_end
+  struct GetStateContext gsc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .value_id = "value_signed",
+    .ret = GNUNET_NO
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &get_state, &gsc))
     return GNUNET_SYSERR;
-  }
-
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
-    {
-      break;
-    }
-
-    ret = cb (cb_cls, (const char *) name,
-              value_signed,
-              value_size);
-
-    GNUNET_PQ_cleanup_result (results);
-  }
-
-  PQclear (res);
-
-  return ret;
+  return gsc.ret;  /* GNUNET_OK ?? */
 }
 
 
