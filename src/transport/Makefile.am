@@ -10,7 +10,7 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   transport.conf
 
-
+if HAVE_EXPERIMENTAL
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
@@ -121,6 +121,8 @@ if MINGW
 endif
 endif
 
+# end of HAVE_EXPERIMENTAL
+endif
 
 
 if !MINGW
