@@ -35,7 +35,6 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "psycstore.h"
-#include "gnunet_postgres_lib.h"
 #include "gnunet_pq_lib.h"
 
 /**

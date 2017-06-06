@@ -1681,7 +1681,6 @@ pkgconfig/gnunetnat.pc
 pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
 pkgconfig/gnunetpq.pc
-pkgconfig/gnunetpostgres.pc
 pkgconfig/gnunetpsyc.pc
 pkgconfig/gnunetpsycstore.pc
 pkgconfig/gnunetregex.pc

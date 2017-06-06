@@ -90,7 +90,6 @@ gnunetinclude_HEADERS = \
   gnunet_peerstore_service.h \
   gnunet_plugin_lib.h \
   gnunet_pq_lib.h \
-  gnunet_postgres_lib.h \
   gnunet_psycstore_plugin.h \
   gnunet_psycstore_service.h \
   gnunet_psyc_service.h \

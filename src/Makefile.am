@@ -49,7 +49,7 @@ if HAVE_MYSQL
 endif
 
 if HAVE_POSTGRESQL
- POSTGRES_DIR = pq postgres
+ POSTGRES_DIR = pq 
 endif
 
 if HAVE_MHD
