@@ -1610,7 +1610,6 @@ src/peerinfo-tool/Makefile
 src/peerstore/Makefile
 src/peerstore/peerstore.conf
 src/pq/Makefile
-src/postgres/Makefile
 src/psycutil/Makefile
 src/psyc/Makefile
 src/psyc/psyc.conf

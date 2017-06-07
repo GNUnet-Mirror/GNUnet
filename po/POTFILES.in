@@ -265,8 +265,11 @@ src/peerstore/peerstore_api.c
 src/peerstore/peerstore_common.c
 src/peerstore/plugin_peerstore_flat.c
 src/peerstore/plugin_peerstore_sqlite.c
-src/postgres/postgres.c
 src/pq/pq.c
+src/pq/pq_connect.c
+src/pq/pq_eval.c
+src/pq/pq_exec.c
+src/pq/pq_prepare.c
 src/pq/pq_query_helper.c
 src/pq/pq_result_helper.c
 src/psyc/gnunet-service-psyc.c
@@ -493,7 +496,6 @@ src/zonemaster/gnunet-service-zonemaster.c
 src/fs/fs_api.h
 src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h
-src/include/gnunet_postgres_lib.h
 src/include/gnunet_time_lib.h
 src/rps/rps-test_util.h
 src/scalarproduct/scalarproduct.h
