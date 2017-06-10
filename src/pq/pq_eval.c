@@ -93,6 +93,23 @@ GNUNET_PQ_eval_result (PGconn *connection,
                        PQerrorMessage (connection));
       return GNUNET_PQ_STATUS_SOFT_ERROR;
     }
+    if (0 == strcmp (sqlstate,
+                     PQ_DIAG_SQLSTATE_UNIQUE_VIOLATION))
+    {
+      /* Likely no need to retry, INSERT of "same" data. */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "pq",
+                       "Query `%s' failed with unique violation: %s/%s/%s/%s/%s\n",
+                       statement_name,
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_PRIMARY),
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_DETAIL),
+                       PQresultErrorMessage (result),
+                       PQresStatus (PQresultStatus (result)),
+                       PQerrorMessage (connection));
+      return GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS;
+    }
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      "pq",
                      "Query `%s' failed with result: %s/%s/%s/%s/%s\n",
@@ -121,7 +138,10 @@ GNUNET_PQ_eval_result (PGconn *connection,
  * @return status code from the result, mapping PQ status
  *         codes to `enum GNUNET_PQ_QueryStatus`.  If the
  *         statement was a DELETE or UPDATE statement, the
- *         number of affected rows is returned.
+ *         number of affected rows is returned.; if the
+ *         statment was an INSERT statement, and no row
+ *         was added due to a UNIQUE violation, we return
+ *         zero; if INSERT was successful, we return one.
  */
 enum GNUNET_PQ_QueryStatus
 GNUNET_PQ_eval_prepared_non_select (PGconn *connection,

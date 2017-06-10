@@ -525,7 +525,10 @@ GNUNET_PQ_eval_result (PGconn *connection,
  * @return status code from the result, mapping PQ status
  *         codes to `enum GNUNET_PQ_QueryStatus`.   If the
  *         statement was a DELETE or UPDATE statement, the
- *         number of affected rows is returned.
+ *         number of affected rows is returned; if the
+ *         statment was an INSERT statement, and no row
+ *         was added due to a UNIQUE violation, we return
+ *         zero; if INSERT was successful, we return one.
  */
 enum GNUNET_PQ_QueryStatus
 GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
