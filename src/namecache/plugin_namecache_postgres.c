@@ -153,12 +153,12 @@ namecache_postgres_expire_blocks (struct Plugin *plugin)
     GNUNET_PQ_query_param_absolute_time (&now),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
                                             "expire_blocks",
                                             params);
-  GNUNET_break (GNUNET_PQ_STATUS_HARD_ERROR != res);
+  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -179,12 +179,12 @@ delete_old_block (struct Plugin *plugin,
     GNUNET_PQ_query_param_absolute_time_nbo (&expiration_time),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
                                             "delete_block",
                                             params);
-  GNUNET_break (GNUNET_PQ_STATUS_HARD_ERROR != res);
+  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -210,7 +210,7 @@ namecache_postgres_cache_block (void *cls,
     GNUNET_PQ_query_param_absolute_time_nbo (&block->expiration_time),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   namecache_postgres_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key,
@@ -263,7 +263,7 @@ namecache_postgres_lookup_block (void *cls,
                                          &bsize),
     GNUNET_PQ_result_spec_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
                                                   "lookup_block",
@@ -275,7 +275,7 @@ namecache_postgres_lookup_block (void *cls,
 	 "Failing lookup block in namecache (postgres error)\n");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,

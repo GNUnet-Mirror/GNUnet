@@ -170,7 +170,7 @@ postgres_plugin_put (void *cls,
                                       path_info_len * sizeof (struct GNUNET_PeerIdentity)),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus ret;
+  enum GNUNET_DB_QueryStatus ret;
 
   ret = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
                                             "put",
@@ -311,7 +311,7 @@ postgres_plugin_get (void *cls,
     GNUNET_PQ_query_param_uint32 (&type32),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct HandleResultContext hr_ctx;
 
   hr_ctx.iter = iter;
@@ -354,7 +354,7 @@ postgres_plugin_del (void *cls)
                                           &key),
     GNUNET_PQ_result_spec_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct GNUNET_PQ_QueryParam dparam[] = {
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end
@@ -366,7 +366,7 @@ postgres_plugin_del (void *cls)
                                                   rs);
   if (0 > res)
     return GNUNET_SYSERR;
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -412,7 +412,7 @@ postgres_plugin_get_random (void *cls,
   struct GNUNET_PeerIdentity *path;
   struct GNUNET_HashCode key;
   uint32_t type;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&off),
     GNUNET_PQ_query_param_end
@@ -448,7 +448,7 @@ postgres_plugin_get_random (void *cls,
     GNUNET_break (0);
     return 0;
   }
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
   {
     GNUNET_break (0);
     return 0;
@@ -595,7 +595,7 @@ postgres_plugin_get_closest (void *cls,
     GNUNET_PQ_query_param_uint32 (&num_results32),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct ExtractResultContext erc;
 
   erc.iter = iter;
@@ -611,7 +611,7 @@ postgres_plugin_get_closest (void *cls,
 	 "Ending iteration (postgres error)\n");
     return 0;
   }
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == res)
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,

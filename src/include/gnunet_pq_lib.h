@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2016 GNUnet e.V.
+  Copyright (C) 2016, 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -23,7 +23,7 @@
 
 #include <libpq-fe.h>
 #include "gnunet_util_lib.h"
-
+#include "gnunet_db_lib.h"
 
 /* ************************* pq_query_helper.c functions ************************ */
 
@@ -466,36 +466,6 @@ GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
 
 
 /**
- * Status code returned from functions running PQ commands.
- * Can be combined with a function that returns the number
- * of results, so non-negative values indicate success.
- */
-enum GNUNET_PQ_QueryStatus
-{
-  /**
-   * A hard error occurred, retrying will not help.
-   */
-  GNUNET_PQ_STATUS_HARD_ERROR = -2,
-
-  /**
-   * A soft error occurred, retrying the transaction may succeed.
-   */
-  GNUNET_PQ_STATUS_SOFT_ERROR = -1,
-
-  /**
-   * The transaction succeeded, but yielded zero results.
-   */
-  GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS = 0,
-
-  /**
-   * The transaction succeeded, and yielded one result.
-   */
-  GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT = 1
-
-};
-
-
-/**
  * Check the @a result's error code to see what happened.
  * Also logs errors.
  *
@@ -503,12 +473,12 @@ enum GNUNET_PQ_QueryStatus
  * @param statement_name name of the statement that created @a result
  * @param result result to check
  * @return status code from the result, mapping PQ status
- *         codes to `enum GNUNET_PQ_QueryStatus`.  Never
+ *         codes to `enum GNUNET_DB_QueryStatus`.  Never
  *         returns positive values as this function does
  *         not look at the result set.
  * @deprecated (low level, let's see if we can do with just the high-level functions)
  */
-enum GNUNET_PQ_QueryStatus
+enum GNUNET_DB_QueryStatus
 GNUNET_PQ_eval_result (PGconn *connection,
                        const char *statement_name,
                        PGresult *result);
@@ -523,14 +493,14 @@ GNUNET_PQ_eval_result (PGconn *connection,
  * @param statement_name name of the statement
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @return status code from the result, mapping PQ status
- *         codes to `enum GNUNET_PQ_QueryStatus`.   If the
+ *         codes to `enum GNUNET_DB_QueryStatus`.   If the
  *         statement was a DELETE or UPDATE statement, the
  *         number of affected rows is returned; if the
  *         statment was an INSERT statement, and no row
  *         was added due to a UNIQUE violation, we return
  *         zero; if INSERT was successful, we return one.
  */
-enum GNUNET_PQ_QueryStatus
+enum GNUNET_DB_QueryStatus
 GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
                                     const char *statement_name,
                                     const struct GNUNET_PQ_QueryParam *params);
@@ -563,9 +533,9 @@ typedef void
  * @param rh function to call with the result set, NULL to ignore
  * @param rh_cls closure to pass to @a rh
  * @return status code from the result, mapping PQ status
- *         codes to `enum GNUNET_PQ_QueryStatus`.
+ *         codes to `enum GNUNET_DB_QueryStatus`.
  */
-enum GNUNET_PQ_QueryStatus
+enum GNUNET_DB_QueryStatus
 GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
                                       const char *statement_name,
                                       const struct GNUNET_PQ_QueryParam *params,
@@ -578,7 +548,7 @@ GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
  * which must return a single result in @a connection using the given
  * @a params.  Stores the result (if any) in @a rs, which the caller
  * must then clean up using #GNUNET_PQ_cleanup_result() if the return
- * value was #GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT.  Returns the
+ * value was #GNUNET_DB_STATUS_SUCCESS_ONE_RESULT.  Returns the
  * resulting session status.
  *
  * @param connection connection to execute the statement in
@@ -586,9 +556,9 @@ GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @param[in,out] rs result specification to use for storing the result of the query
  * @return status code from the result, mapping PQ status
- *         codes to `enum GNUNET_PQ_QueryStatus`.
+ *         codes to `enum GNUNET_DB_QueryStatus`.
  */
-enum GNUNET_PQ_QueryStatus
+enum GNUNET_DB_QueryStatus
 GNUNET_PQ_eval_prepared_singleton_select (PGconn *connection,
                                           const char *statement_name,
                                           const struct GNUNET_PQ_QueryParam *params,

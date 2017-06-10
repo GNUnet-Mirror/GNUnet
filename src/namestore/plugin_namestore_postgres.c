@@ -216,7 +216,7 @@ namestore_postgres_store_records (void *cls,
       GNUNET_PQ_query_param_string (label),
       GNUNET_PQ_query_param_end
     };
-    enum GNUNET_PQ_QueryStatus res;
+    enum GNUNET_DB_QueryStatus res;
 
     if (data_size !=
         GNUNET_GNSRECORD_records_serialize (rd_count, rd,
@@ -229,7 +229,7 @@ namestore_postgres_store_records (void *cls,
     res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
                                               "store_records",
                                               params);
-    if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS != res)
+    if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS != res)
       return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -362,7 +362,7 @@ namestore_postgres_lookup_records (void *cls,
     GNUNET_PQ_query_param_end
   };
   struct ParserContext pc;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   pc.iter = iter;
   pc.iter_cls = iter_cls;
@@ -397,7 +397,7 @@ namestore_postgres_iterate_records (void *cls,
                                     void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct ParserContext pc;
 
   pc.iter = iter;
@@ -459,7 +459,7 @@ namestore_postgres_zone_to_name (void *cls,
     GNUNET_PQ_query_param_auto_from_type (value_zone),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
   struct ParserContext pc;
 
   pc.iter = iter;

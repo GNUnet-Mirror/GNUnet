@@ -198,7 +198,7 @@ postgres_plugin_estimate_size (void *cls,
                                   &total),
     GNUNET_PQ_result_spec_end
   };
-  enum GNUNET_PQ_QueryStatus ret;
+  enum GNUNET_DB_QueryStatus ret;
 
   if (NULL == estimate)
     return;
@@ -206,7 +206,7 @@ postgres_plugin_estimate_size (void *cls,
                                                   "estimate_size",
                                                   params,
                                                   rs);
-  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT != ret)
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT != ret)
   {
     *estimate = 0LL;
     return;
@@ -247,7 +247,7 @@ postgres_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode vhash;
-  enum GNUNET_PQ_QueryStatus ret;
+  enum GNUNET_DB_QueryStatus ret;
 
   GNUNET_CRYPTO_hash (data,
                       size,
@@ -510,7 +510,7 @@ postgres_plugin_get_key (void *cls,
     GNUNET_PQ_query_param_end
   };
   struct ProcessResultContext prc;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   if (random)
   {
@@ -564,7 +564,7 @@ postgres_plugin_get_zero_anonymity (void *cls,
     GNUNET_PQ_query_param_end
   };
   struct ProcessResultContext prc;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   prc.plugin = plugin;
   prc.proc = proc;
@@ -644,7 +644,7 @@ repl_proc (void *cls,
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end
   };
-  enum GNUNET_PQ_QueryStatus qret;
+  enum GNUNET_DB_QueryStatus qret;
 
   ret = rc->proc (rc->proc_cls,
                   key,
@@ -689,7 +689,7 @@ postgres_plugin_get_replication (void *cls,
   };
   struct ReplCtx rc;
   struct ProcessResultContext prc;
-  enum GNUNET_PQ_QueryStatus res;
+  enum GNUNET_DB_QueryStatus res;
 
   rc.plugin = plugin;
   rc.proc = proc;
@@ -872,7 +872,7 @@ postgres_plugin_remove_key (void *cls,
                             void *cont_cls)
 {
   struct Plugin *plugin = cls;
-  enum GNUNET_PQ_QueryStatus ret;
+  enum GNUNET_DB_QueryStatus ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (key),
     GNUNET_PQ_query_param_fixed_size (data, size),
@@ -891,7 +891,7 @@ postgres_plugin_remove_key (void *cls,
           _("Postgress exec failure"));
     return;
   }
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS == ret)
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == ret)
   {
     cont (cont_cls,
           key,

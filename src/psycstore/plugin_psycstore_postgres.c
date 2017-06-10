@@ -391,7 +391,7 @@ exec_channel (struct Plugin *plugin, const char *stmt,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
 
@@ -409,7 +409,7 @@ transaction_begin (struct Plugin *plugin, enum Transactions transaction)
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_begin", params))
     return GNUNET_SYSERR;
 
@@ -428,7 +428,7 @@ transaction_commit (struct Plugin *plugin)
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_commit", params))
     return GNUNET_SYSERR;
 
@@ -447,7 +447,7 @@ transaction_rollback (struct Plugin *plugin)
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_rollback", params))
     return GNUNET_SYSERR;
 
@@ -465,7 +465,7 @@ channel_key_store (struct Plugin *plugin,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_channel_key", params))
     return GNUNET_SYSERR;
 
@@ -482,7 +482,7 @@ slave_key_store (struct Plugin *plugin,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_slave_key", params))
     return GNUNET_SYSERR;
 
@@ -535,7 +535,7 @@ postgres_membership_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_membership", params))
     return GNUNET_SYSERR;
 
@@ -572,7 +572,7 @@ membership_test (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
       GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, "select_membership", 
                                                 params_select, results_select))
      return GNUNET_SYSERR;
@@ -635,7 +635,7 @@ fragment_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_fragment", params_insert))
     return GNUNET_SYSERR;
 
@@ -664,7 +664,7 @@ message_add_flags (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "update_message_flags", params_update))
     return GNUNET_SYSERR;
 
@@ -994,7 +994,7 @@ counters_message_get (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
       GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
                                                 params_select, results_select))
      return GNUNET_SYSERR;
@@ -1028,7 +1028,7 @@ counters_state_get (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
       GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
                                                 params_select, results_select))
      return GNUNET_SYSERR;
@@ -1054,7 +1054,7 @@ state_assign (struct Plugin *plugin, const char *stmt,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
 
@@ -1074,7 +1074,7 @@ update_message_id (struct Plugin *plugin,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
 
@@ -1305,7 +1305,7 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_PQ_STATUS_SUCCESS_ONE_RESULT !=
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
       GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
                                                 params_select, results_select))
      return GNUNET_SYSERR;
