@@ -25,7 +25,7 @@
 /**
  * Status code returned from functions running database commands.
  * Can be combined with a function that returns the number
- * of results, so non-negative values indicate success.
+ * of results, so all non-negative values indicate success.
  */
 enum GNUNET_DB_QueryStatus
 {
@@ -36,11 +36,15 @@ enum GNUNET_DB_QueryStatus
 
   /**
    * A soft error occurred, retrying the transaction may succeed.
+   * Includes DEADLOCKS and SERIALIZATION errors.
    */
   GNUNET_DB_STATUS_SOFT_ERROR = -1,
 
   /**
    * The transaction succeeded, but yielded zero results.
+   * May include the case where an INSERT failed with UNIQUE
+   * violation (i.e. row already exists) or where DELETE
+   * failed to remove anything (i.e. nothing matched).
    */
   GNUNET_DB_STATUS_SUCCESS_NO_RESULTS = 0,
 
@@ -48,6 +52,9 @@ enum GNUNET_DB_QueryStatus
    * The transaction succeeded, and yielded one result.
    */
   GNUNET_DB_STATUS_SUCCESS_ONE_RESULT = 1
+
+  /* Larger values may be returned for SELECT statements
+     that returned more than one result. */
 
 };
 
