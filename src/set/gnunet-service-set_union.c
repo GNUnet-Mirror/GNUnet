@@ -1375,7 +1375,7 @@ send_client_element (struct Operation *op,
  * @param cls operation to destroy
  */
 static void
-send_done_and_destroy (void *cls)
+send_client_done (void *cls)
 {
   struct Operation *op = cls;
   struct GNUNET_MQ_Envelope *ev;
@@ -1391,6 +1391,19 @@ send_done_and_destroy (void *cls)
   rm->current_size = GNUNET_htonll (GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element));
   GNUNET_MQ_send (op->set->cs->mq,
                   ev);
+}
+
+/**
+ * Signal to the client that the operation has finished and
+ * destroy the operation.
+ *
+ * @param cls operation to destroy
+ */
+static void
+send_client_done_and_destroy (void *cls)
+{
+  struct Operation *op = cls;
+  send_client_done (cls);
   /* Will also call the union-specific cancel function. */
   _GSS_operation_destroy (op,
                           GNUNET_YES);
@@ -1422,7 +1435,7 @@ maybe_finish (struct Operation *op)
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE);
       GNUNET_MQ_send (op->mq,
                       ev);
-      /* We now wait until the other peer closes the channel
+      /* We now wait until the other peer sends P2P_OVER
        * after it got all elements from us. */
     }
   }
@@ -1433,8 +1446,15 @@ maybe_finish (struct Operation *op)
          num_demanded);
     if (0 == num_demanded)
     {
+      struct GNUNET_MQ_Envelope *ev;
+
       op->state->phase = PHASE_DONE;
-      send_done_and_destroy (op);
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
+      GNUNET_MQ_notify_sent (ev,
+                             &send_client_done,
+                             op);
+      GNUNET_MQ_send (op->mq,
+                      ev);
     }
   }
 }
@@ -1850,7 +1870,7 @@ handle_union_p2p_full_done (void *cls,
 
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE);
       GNUNET_MQ_notify_sent (ev,
-                             &send_done_and_destroy,
+                             &send_client_done,
                              op);
       GNUNET_MQ_send (op->mq,
                       ev);
@@ -1865,7 +1885,7 @@ handle_union_p2p_full_done (void *cls,
       /* We sent the full set, and got the response for that.  We're done. */
       op->state->phase = PHASE_DONE;
       GNUNET_CADET_receive_done (op->channel);
-      send_done_and_destroy (op);
+      send_client_done_and_destroy (op);
       return;
     }
     break;
@@ -2142,6 +2162,19 @@ handle_union_p2p_done (void *cls,
     fail_union_operation (op);
     return;
   }
+}
+
+/**
+ * Handle a over message from a remote peer
+ *
+ * @param cls the union operation
+ * @param mh the message
+ */
+void
+handle_union_p2p_over (void *cls,
+                       const struct GNUNET_MessageHeader *mh)
+{
+  send_client_done (cls);
 }
 
 

@@ -235,5 +235,15 @@ void
 handle_union_p2p_done (void *cls,
                        const struct GNUNET_MessageHeader *mh);
 
+/**
+ * Handle an over message from a remote peer
+ *
+ * @param cls the union operation
+ * @param mh the message
+ */
+void
+handle_union_p2p_over (void *cls,
+                       const struct GNUNET_MessageHeader *mh);
+
 
 #endif

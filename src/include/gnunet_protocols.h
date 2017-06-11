@@ -1814,6 +1814,13 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_ELEMENT 598
 
+/**
+ * Request all missing elements from the other peer,
+ * based on their sets and the elements we previously sent
+ * with #GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER 599
+
 
 /*******************************************************************************
  * TESTBED LOGGER message types
