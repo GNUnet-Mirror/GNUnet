@@ -92,6 +92,11 @@ struct ServerRequest
    */
   int connected;
 
+  /**
+   * Currently suspended
+   */
+  bool suspended;
+
 };
 
 
@@ -501,7 +506,9 @@ server_wake_up (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p: Waking up PUT handle\n",
        s);
+  GNUNET_assert (s->server_recv->suspended);
   MHD_resume_connection (s->server_recv->mhd_conn);
+  s->server_recv->suspended = false;
 }
 
 
@@ -541,7 +548,11 @@ server_delete_session (struct GNUNET_ATS_Session *s)
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
     s->recv_wakeup_task = NULL;
     if (NULL != s->server_recv)
+    {
+      GNUNET_assert (s->server_recv->suspended);
       MHD_resume_connection (s->server_recv->mhd_conn);
+      s->server_recv->suspended = false;
+    }
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
@@ -760,9 +771,16 @@ http_server_plugin_send (void *cls,
   GNUNET_free (stat_txt);
 
   if (NULL != session->server_send)
+  {
+    if (session->server_send->suspended)
+    {
+      MHD_resume_connection (session->server_send->mhd_conn);
+      session->server_send->suspended = false;
+    }
     server_reschedule (session->plugin,
                        session->server_send->mhd_daemon,
                        GNUNET_YES);
+  }
   return bytes_sent;
 }
 
@@ -1613,6 +1631,12 @@ server_send_callback (void *cls,
          s);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
+  else
+  {
+    MHD_suspend_connection (s->server_send->mhd_conn);
+    s->server_send->suspended = true;
+    return 0;
+  }
   return bytes_read;
 }
 
@@ -1868,6 +1892,7 @@ server_access_cb (void *cls,
 							    GNUNET_YES));
         GNUNET_assert(s->server_recv->mhd_conn == mhd_connection);
         MHD_suspend_connection (s->server_recv->mhd_conn);
+        s->server_recv->suspended = true;
         if (NULL == s->recv_wakeup_task)
           s->recv_wakeup_task
 	    = GNUNET_SCHEDULER_add_delayed (delay,
