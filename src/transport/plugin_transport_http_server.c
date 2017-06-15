@@ -550,8 +550,8 @@ server_delete_session (struct GNUNET_ATS_Session *s)
     if (NULL != s->server_recv)
     {
       GNUNET_assert (s->server_recv->suspended);
-      MHD_resume_connection (s->server_recv->mhd_conn);
       s->server_recv->suspended = false;
+      MHD_resume_connection (s->server_recv->mhd_conn);
     }
   }
   GNUNET_assert (GNUNET_OK ==
@@ -589,6 +589,11 @@ server_delete_session (struct GNUNET_ATS_Session *s)
     MHD_set_connection_option (s->server_send->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1 /* 0 = no timeout, so this is MIN */);
+    if (s->server_recv->suspended)
+    {
+      s->server_recv->suspended = false;
+      MHD_resume_connection (s->server_recv->mhd_conn);
+    }
     server_reschedule (plugin,
 		       s->server_send->mhd_daemon,
 		       GNUNET_YES);
