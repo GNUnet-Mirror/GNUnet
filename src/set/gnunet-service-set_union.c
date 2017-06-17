@@ -1869,23 +1869,27 @@ handle_union_p2p_full_done (void *cls,
                                                op);
 
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_FULL_DONE);
-      GNUNET_MQ_notify_sent (ev,
-                             &send_client_done,
-                             op);
       GNUNET_MQ_send (op->mq,
                       ev);
       op->state->phase = PHASE_DONE;
-      /* we now wait until the other peer shuts the tunnel down*/
+      /* we now wait until the other peer sends us the OVER message*/
     }
     break;
   case PHASE_FULL_SENDING:
     {
+      struct GNUNET_MQ_Envelope *ev;
+
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "got FULL DONE, finishing\n");
       /* We sent the full set, and got the response for that.  We're done. */
       op->state->phase = PHASE_DONE;
       GNUNET_CADET_receive_done (op->channel);
-      send_client_done_and_destroy (op);
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
+      GNUNET_MQ_notify_sent (ev,
+                             &send_client_done,
+                             op);
+      GNUNET_MQ_send (op->mq,
+                      ev);
       return;
     }
     break;
