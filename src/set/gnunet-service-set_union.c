@@ -769,7 +769,7 @@ send_full_element_iterator (void *cls,
   struct GNUNET_SET_Element *el = &ee->element;
   struct GNUNET_MQ_Envelope *ev;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending element %s\n",
        GNUNET_h2s (key));
   ev = GNUNET_MQ_msg_extra (emsg,
@@ -796,7 +796,7 @@ send_full_set (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
 
   op->state->phase = PHASE_FULL_SENDING;
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Dedicing to transmit the full set\n");
   /* FIXME: use a more memory-friendly way of doing this with an
      iterator, just as we do in the non-full case! */
@@ -924,7 +924,7 @@ handle_union_p2p_strata_estimator (void *cls,
        (diff > op->state->initial_size / 4) ||
        (0 == other_size) )
   {
-    LOG (GNUNET_ERROR_TYPE_INFO,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Deciding to go for full set transmission (diff=%d, own set=%u)\n",
          diff,
          op->state->initial_size);
@@ -941,7 +941,7 @@ handle_union_p2p_strata_estimator (void *cls,
     {
       struct GNUNET_MQ_Envelope *ev;
 
-      LOG (GNUNET_ERROR_TYPE_INFO,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Telling other peer that we expect its full set\n");
       op->state->phase = PHASE_EXPECT_IBF;
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_REQUEST_FULL);
@@ -1299,7 +1299,7 @@ handle_union_p2p_ibf (void *cls,
   else
   {
     GNUNET_assert (op->state->phase == PHASE_EXPECT_IBF_CONT);
-    LOG (GNUNET_ERROR_TYPE_INFO,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received more of IBF\n");
   }
   GNUNET_assert (NULL != op->state->remote_ibf);
@@ -1761,7 +1761,7 @@ handle_union_p2p_inquiry (void *cls,
   const struct IBF_Key *ibf_key;
   unsigned int num_keys;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received union inquiry\n");
   num_keys = (ntohs (msg->header.size) - sizeof (struct InquiryMessage))
     / sizeof (struct IBF_Key);
@@ -1829,7 +1829,7 @@ handle_union_p2p_request_full (void *cls,
 {
   struct Operation *op = cls;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received request for full set transmission\n");
   if (GNUNET_SET_OPERATION_UNION != op->set->operation)
   {
@@ -1910,7 +1910,7 @@ handle_union_p2p_full_done (void *cls,
     }
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Handle full done phase is %u\n",
                 (unsigned) op->state->phase);
     GNUNET_break_op (0);
