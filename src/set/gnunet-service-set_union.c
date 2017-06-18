@@ -1381,6 +1381,24 @@ send_client_done (void *cls)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
+  if (GNUNET_YES == op->state->client_done_sent) {
+    return;
+  }
+
+  if (PHASE_DONE != op->state->phase) {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "union operation failed\n");
+    ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
+    rm->result_status = htons (GNUNET_SET_STATUS_FAILURE);
+    rm->request_id = htonl (op->client_request_id);
+    rm->element_type = htons (0);
+    GNUNET_MQ_send (op->set->cs->mq,
+                    ev);
+    return;
+  }
+
+  op->state->client_done_sent = GNUNET_YES;
+
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Signalling client that union operation is done\n");
   ev = GNUNET_MQ_msg (rm,
@@ -1391,22 +1409,6 @@ send_client_done (void *cls)
   rm->current_size = GNUNET_htonll (GNUNET_CONTAINER_multihashmap32_size (op->state->key_to_element));
   GNUNET_MQ_send (op->set->cs->mq,
                   ev);
-}
-
-/**
- * Signal to the client that the operation has finished and
- * destroy the operation.
- *
- * @param cls operation to destroy
- */
-static void
-send_client_done_and_destroy (void *cls)
-{
-  struct Operation *op = cls;
-  send_client_done (cls);
-  /* Will also call the union-specific cancel function. */
-  _GSS_operation_destroy (op,
-                          GNUNET_YES);
 }
 
 
@@ -1449,6 +1451,13 @@ maybe_finish (struct Operation *op)
       struct GNUNET_MQ_Envelope *ev;
 
       op->state->phase = PHASE_DONE;
+      /* FIXME:  temporary hack, send message twice and add notification to second message,
+       * so we can be pretty sure that the other party gets at least one of these
+       * (since tunnel end handler is currently broken).
+       */
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
+      GNUNET_MQ_send (op->mq,
+                      ev);
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
       GNUNET_MQ_notify_sent (ev,
                              &send_client_done,
@@ -1884,6 +1893,13 @@ handle_union_p2p_full_done (void *cls,
       /* We sent the full set, and got the response for that.  We're done. */
       op->state->phase = PHASE_DONE;
       GNUNET_CADET_receive_done (op->channel);
+      /* FIXME:  temporary hack, send message twice and add notification to second message,
+       * so we can be pretty sure that the other party gets at least one of these
+       * (since tunnel end handler is currently broken).
+       */
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
+      GNUNET_MQ_send (op->mq,
+                      ev);
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OVER);
       GNUNET_MQ_notify_sent (ev,
                              &send_client_done,
@@ -2409,6 +2425,7 @@ union_copy_state (struct SetState *state)
 static void
 union_channel_death (struct Operation *op)
 {
+  send_client_done (op);
   _GSS_operation_destroy (op,
                           GNUNET_YES);
 }

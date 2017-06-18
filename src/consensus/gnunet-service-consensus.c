@@ -1133,8 +1133,11 @@ set_result_cb (void *cls,
       // XXX: check first if any changes to the underlying
       // set are still pending
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Finishing setop in Task {%s}\n",
-                  debug_str_task_key (&task->key));
+                  "P%u: Finishing setop in Task {%s} (%u/%u)\n",
+                  session->local_peer_idx,
+                  debug_str_task_key (&task->key),
+                  (unsigned int) task->step->finished_tasks,
+                  (unsigned int) task->step->tasks_len);
       if (NULL != output_rfn)
       {
         rfn_commit (output_rfn, task_other_peer (task));
@@ -1470,6 +1473,7 @@ commit_set (struct ConsensusSession *session,
        peers to wait. */
     GNUNET_SET_operation_cancel (setop->op);
     setop->op = NULL;
+    finish_task (task);
   }
 #endif
 }
@@ -2377,6 +2381,13 @@ finish_task (struct TaskEntry *task)
   task->is_finished = GNUNET_YES;
 
   task->step->finished_tasks++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Finishing setop in Task {%s} (now %u/%u tasks finished in step)\n",
+              task->step->session->local_peer_idx,
+              debug_str_task_key (&task->key),
+              (unsigned int) task->step->finished_tasks,
+              (unsigned int) task->step->tasks_len);
 
   if (task->step->finished_tasks == task->step->tasks_len)
     finish_step (task->step);
