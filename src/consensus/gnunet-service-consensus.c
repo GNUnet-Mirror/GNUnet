@@ -2383,7 +2383,7 @@ finish_task (struct TaskEntry *task)
   task->step->finished_tasks++;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "P%u: Finishing setop in Task {%s} (now %u/%u tasks finished in step)\n",
+              "P%u: Finishing Task {%s} (now %u/%u tasks finished in step)\n",
               task->step->session->local_peer_idx,
               debug_str_task_key (&task->key),
               (unsigned int) task->step->finished_tasks,
