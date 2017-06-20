@@ -1369,6 +1369,25 @@ send_client_element (struct Operation *op,
 
 
 /**
+ * Destroy remote channel.
+ *
+ * @param op operation
+ */
+void destroy_channel (struct Operation *op)
+{
+  struct GNUNET_CADET_Channel *channel;
+
+  if (NULL != (channel = op->channel))
+  {
+    /* This will free op; called conditionally as this helper function
+       is also called from within the channel disconnect handler. */
+    op->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+  }
+}
+
+
+/**
  * Signal to the client that the operation has finished and
  * destroy the operation.
  *
@@ -1448,10 +1467,11 @@ maybe_finish (struct Operation *op)
          num_demanded);
     if (0 == num_demanded)
     {
+      struct GNUNET_MQ_Envelope *ev;
+
       op->state->phase = PHASE_DONE;
       send_client_done (op);
-      _GSS_operation_destroy (op,
-                              GNUNET_YES);
+      destroy_channel (op);
     }
   }
 }
@@ -1869,18 +1889,21 @@ handle_union_p2p_full_done (void *cls,
       GNUNET_MQ_send (op->mq,
                       ev);
       op->state->phase = PHASE_DONE;
-      /* we now wait until the other peer disconnects */
+      /* we now wait until the other peer sends us the OVER message*/
     }
     break;
   case PHASE_FULL_SENDING:
     {
+      struct GNUNET_MQ_Envelope *ev;
+
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "got FULL DONE, finishing\n");
       /* We sent the full set, and got the response for that.  We're done. */
       op->state->phase = PHASE_DONE;
+      GNUNET_CADET_receive_done (op->channel);
       send_client_done (op);
-      _GSS_operation_destroy (op,
-                              GNUNET_YES);
+      destroy_channel (op);
+      return;
     }
     break;
   default:
@@ -2117,7 +2140,6 @@ handle_union_p2p_done (void *cls,
     fail_union_operation (op);
     return;
   }
-
   switch (op->state->phase)
   {
   case PHASE_INVENTORY_PASSIVE:
@@ -2135,8 +2157,9 @@ handle_union_p2p_done (void *cls,
      * all our demands are satisfied, so that the active
      * peer can quit if we gave him everything.
      */
+    GNUNET_CADET_receive_done (op->channel);
     maybe_finish (op);
-    break;
+    return;
   case PHASE_INVENTORY_ACTIVE:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "got DONE (as active partner), waiting to finish\n");
@@ -2148,15 +2171,14 @@ handle_union_p2p_done (void *cls,
      * to the other peer once our demands are met.
      */
     op->state->phase = PHASE_FINISH_CLOSING;
+    GNUNET_CADET_receive_done (op->channel);
     maybe_finish (op);
-    break;
+    return;
   default:
     GNUNET_break_op (0);
     fail_union_operation (op);
     return;
   }
-  GNUNET_CADET_receive_done (op->channel);
-
 }
 
 /**
@@ -2400,7 +2422,6 @@ union_copy_state (struct SetState *state)
 static void
 union_channel_death (struct Operation *op)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "channel died, sending result to client\n");
   send_client_done (op);
   _GSS_operation_destroy (op,
                           GNUNET_YES);
