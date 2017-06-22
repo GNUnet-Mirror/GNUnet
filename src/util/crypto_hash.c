@@ -440,8 +440,8 @@ GNUNET_CRYPTO_hash_context_start ()
  */
 void
 GNUNET_CRYPTO_hash_context_read (struct GNUNET_HashContext *hc,
-                         const void *buf,
-                         size_t size)
+				 const void *buf,
+				 size_t size)
 {
   gcry_md_write (hc->hd, buf, size);
 }
