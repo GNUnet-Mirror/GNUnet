@@ -51,7 +51,7 @@ gnunet_service_multicast_LDADD = \
   $(GN_LIBINTL)
 
 check_PROGRAMS = \
-  test_multicast_multipeer
+  test_multicast_multipeer 
 #  test_multicast 
 #  test_multicast_2peers
 

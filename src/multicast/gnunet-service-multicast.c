@@ -1504,13 +1504,12 @@ handle_client_member_join (void *cls,
   cl->client = client;
   GNUNET_CONTAINER_DLL_insert (grp->clients_head, grp->clients_tail, cl);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client connected to group %s..\n",
-              mem, GNUNET_h2s (&grp->pub_key_hash));
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&mem->pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p ..as member %s (%s).\n",
-              mem, GNUNET_h2s (&mem->pub_key_hash), str);
+              "Client connected to group %s as member %s (%s).\n",
+              GNUNET_h2s (&grp->pub_key_hash),
+              GNUNET_h2s (&mem->pub_key_hash), 
+              str);
   GNUNET_free (str);
 
   if (NULL != mem->join_dcsn)

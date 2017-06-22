@@ -33,14 +33,15 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_multicast_service.h"
 
-#define NUM_PEERS 3
+#define NUM_PEERS 2
 
 struct multicast_peer
 {
   int peer; /* peer number */
+  const struct GNUNET_PeerIdentity *id;
   struct GNUNET_TESTBED_Operation *op; /* not yet in use */
   struct GNUNET_TESTBED_Operation *pi_op; /* not yet in use */
-  uint8_t test_ok;
+  int test_ok;
 };
 
 static void service_connect (void *cls,
@@ -54,7 +55,6 @@ static struct GNUNET_TESTBED_Peer **peers;
 // FIXME: refactor
 static struct GNUNET_TESTBED_Operation *op[NUM_PEERS];
 static struct GNUNET_TESTBED_Operation *pi_op[NUM_PEERS];
-static const struct GNUNET_PeerIdentity *peer_id[NUM_PEERS];
 
 static struct GNUNET_MULTICAST_Origin *origin;
 static struct GNUNET_MULTICAST_Member *member[NUM_PEERS]; /* first element always empty */
@@ -80,16 +80,6 @@ static int result;
 static void
 shutdown_task (void *cls)
 {
-  if (NULL != mc_peers)
-  {
-    for (int i=0; i < NUM_PEERS; i++)
-    {
-      GNUNET_free (mc_peers[i]);
-      mc_peers[i] = NULL;
-    }
-    GNUNET_free (mc_peers);
-  }
-
   for (int i=0;i<NUM_PEERS;i++)
   {
     if (NULL != op[i])
@@ -102,6 +92,16 @@ shutdown_task (void *cls)
       GNUNET_TESTBED_operation_done (pi_op[i]);
       pi_op[i] = NULL;
     }
+  }
+
+  if (NULL != mc_peers)
+  {
+    for (int i=0; i < NUM_PEERS; i++)
+    {
+      GNUNET_free (mc_peers[i]);
+      mc_peers[i] = NULL;
+    }
+    GNUNET_free (mc_peers);
   }
 
   if (NULL != timeout_tid)
@@ -130,8 +130,9 @@ member_join_request (void *cls,
 {
   struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer #%u sent a join request.\n", mc_peer->peer);
-
+              "Peer #%u (%s) sent a join request.\n", 
+              mc_peer->peer, 
+              GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 }
 
 
@@ -165,7 +166,10 @@ member_join_decision (void *cls,
   struct GNUNET_MULTICAST_MemberTransmitHandle *req;
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Peer #%u received a decision from origin: %s\n", mc_peer->peer, (GNUNET_YES == is_admitted)?"accepted":"rejected");
+              "Peer #%u (%s) received a decision from origin: %s\n", 
+              mc_peer->peer, 
+              GNUNET_i2s (mc_peers[mc_peer->peer]->id),
+              (GNUNET_YES == is_admitted)?"accepted":"rejected");
   
   if (GNUNET_YES == is_admitted)
   {
@@ -203,29 +207,30 @@ member_message (void *cls,
   if (0 != strncmp ("pong", (char *)&msg[1], 4)) 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "peer #%i did not receive pong\n", 
-                mc_peer->peer);
+                "peer #%i (%s) did not receive pong\n", 
+                mc_peer->peer,
+                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "peer #%i receives: %s\n", 
+              "peer #%i (%s) receives: %s\n", 
               mc_peer->peer,
+              GNUNET_i2s (mc_peers[mc_peer->peer]->id),
               (char *)&msg[1]);
 
   mc_peer->test_ok = GNUNET_OK;
 
   // FIXME: ugly test function
-  /*
+  // (we start with 1 because 0 is origin)
   for (int i=1; i<NUM_PEERS; i++)
-    if (!mc_peers[i]->test_ok)
+    if (GNUNET_NO == mc_peers[i]->test_ok)
       return;
 
   result = GNUNET_YES;
   GNUNET_SCHEDULER_shutdown();
-  */
 }
 
 
@@ -345,7 +350,9 @@ multicast_da (void *cls,
   else 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "peer #%u parting from multicast group\n", mc_peer->peer);
+                "peer #%u (%s) parting from multicast group\n",
+                mc_peer->peer,
+                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 
     GNUNET_MULTICAST_member_part (member[mc_peer->peer], NULL, cls);
   }
@@ -381,9 +388,12 @@ multicast_ca (void *cls,
     // Get members keys
     member_pub_key[mc_peer->peer] = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
     member_key[mc_peer->peer] = GNUNET_CRYPTO_ecdsa_key_create ();
-    GNUNET_CRYPTO_ecdsa_key_get_public (member_key[mc_peer->peer], member_pub_key[mc_peer->peer]);
+    GNUNET_CRYPTO_ecdsa_key_get_public (member_key[mc_peer->peer], 
+                                        member_pub_key[mc_peer->peer]);
     
-    sprintf(data, "Hi, I am peer #%u. Can I enter?", mc_peer->peer);
+    sprintf(data, "Hi, I am peer #%u (%s). Can I enter?", 
+            mc_peer->peer,
+            GNUNET_i2s (mc_peers[mc_peer->peer]->id));
     uint8_t data_size = strlen (data) + 1;
     join_msg = GNUNET_malloc (sizeof (join_msg) + data_size);
     join_msg->size = htons (sizeof (join_msg) + data_size);
@@ -391,12 +401,14 @@ multicast_ca (void *cls,
     GNUNET_memcpy (&join_msg[1], data, data_size);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peer #%u tries to join multicast group\n", mc_peer->peer);
+                "Peer #%u (%s) tries to join multicast group\n", 
+                mc_peer->peer,
+                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 
     return GNUNET_MULTICAST_member_join (cfg,
                                          group_pub_key,
                                          member_key[mc_peer->peer],
-                                         peer_id[0],
+                                         mc_peers[0]->id,
                                          0,
                                          NULL,
                                          join_msg, /* join message */
@@ -424,13 +436,17 @@ peer_information_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
   }
 
-  peer_id[mc_peer->peer] = pinfo->result.id;
+  mc_peers[mc_peer->peer]->id = pinfo->result.id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Got peer information of %s (%s)\n", (0==mc_peer->peer)?"origin":"member" ,GNUNET_i2s(pinfo->result.id));
+              "Got peer information of %s (%s)\n", 
+              (0 == mc_peer->peer)? "origin" : "member", 
+              GNUNET_i2s (pinfo->result.id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Create peer #%u\n", mc_peer->peer);
+              "Create peer #%u (%s)\n", 
+              mc_peer->peer,
+              GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 
   if (0 != mc_peer->peer)
   {
@@ -461,13 +477,18 @@ service_connect (void *cls,
   if (NULL == ca_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-                "Connection adapter not created for peer #%u\n", mc_peer->peer);
+                "Connection adapter not created for peer #%u (%s)\n", 
+                mc_peer->peer,
+                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
+
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown();
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Connected to multicast service of peer #%u\n", mc_peer->peer);
+              "Connected to multicast service of peer #%u (%s)\n", 
+              mc_peer->peer,
+              GNUNET_i2s (mc_peers[mc_peer->peer]->id));
 
   if (0 == mc_peer->peer)
   {
@@ -525,9 +546,6 @@ testbed_master (void *cls,
 
   peers = p;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Create origin peer\n");
-
   mc_peers = GNUNET_new_array (NUM_PEERS, struct multicast_peer*);
 
   // Create test contexts for members
@@ -537,6 +555,9 @@ testbed_master (void *cls,
     mc_peers[i]->peer = i;
     mc_peers[i]->test_ok = GNUNET_NO;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Create origin peer\n");
 
   op[0] = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
                                           peers[0],                /* The peer whose service to connect to */
@@ -553,7 +574,7 @@ testbed_master (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
 
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 80),
+  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 400),
 					      &timeout_task, NULL);
 }
 
