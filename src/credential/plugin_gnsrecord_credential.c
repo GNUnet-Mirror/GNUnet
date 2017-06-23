@@ -127,7 +127,7 @@ credential_value_to_string (void *cls,
    }
    case GNUNET_GNSRECORD_TYPE_POLICY:
    {
-     return GNUNET_strdup (data);
+     return GNUNET_strndup (data,data_size);
    }
    default:
    return NULL;
