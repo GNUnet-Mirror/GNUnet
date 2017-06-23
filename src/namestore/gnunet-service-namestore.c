@@ -414,9 +414,12 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   struct GNUNET_GNSRECORD_Data *nick;
   int res;
 
-  res = GSN_database->lookup_records (GSN_database->cls, zone,
+  nick = NULL;
+  res = GSN_database->lookup_records (GSN_database->cls,
+				      zone,
                                       GNUNET_GNS_MASTERZONE_STR,
-                                      &lookup_nick_it, &nick);
+                                      &lookup_nick_it,
+				      &nick);
   if ( (GNUNET_OK != res) ||
        (NULL == nick) )
   {

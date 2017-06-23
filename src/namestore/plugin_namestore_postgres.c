@@ -229,7 +229,7 @@ namestore_postgres_store_records (void *cls,
     res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
                                               "store_records",
                                               params);
-    if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS != res)
+    if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT != res)
       return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -372,7 +372,7 @@ namestore_postgres_lookup_records (void *cls,
                                               params,
                                               &parse_result_call_iterator,
                                               &pc);
-  if (res < 0)
+  if (res <= 0)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }

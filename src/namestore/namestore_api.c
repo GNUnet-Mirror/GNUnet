@@ -1303,11 +1303,14 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending ZONE_ITERATION_STOP message\n");
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP);
-  msg->gns_header.r_id = htonl (it->op_id);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  if (NULL != h->mq)
+  {
+    env = GNUNET_MQ_msg (msg,
+			 GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP);
+    msg->gns_header.r_id = htonl (it->op_id);
+    GNUNET_MQ_send (h->mq,
+		    env);
+  }
   free_ze (it);
 }
 
