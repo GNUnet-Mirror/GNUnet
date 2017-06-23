@@ -48,10 +48,6 @@ gnunet-identity -C sks-zone $options
 
 #### Integrate those with the respective subsystems ####
 
-# Zone for shortening by gns-proxy,
-# (remove this entry to disable shortening)
-gnunet-identity -e short-zone -s gns-short $options
-
 # Default zone for 'gnunet-gns' lookups
 gnunet-identity -e master-zone -s gns-master $options
 
@@ -76,22 +72,15 @@ gnunet-identity -e sks-zone -s fs-sks $options
 
 # Get the public keys as strings (so we can create PKEY records)
 MASTER=`gnunet-identity -d $options | grep master-zone | awk '{print $3}'`
-SHORT=`gnunet-identity -d $options | grep short-zone | awk '{print $3}'`
 PRIVATE=`gnunet-identity -d $options | grep private-zone | awk '{print $3}'`
 PIN=DWJASSPE33MRN8T6Q0PENRNBTQY0E6ZYGTRCDP5DGPBF2CRJMJEG
 
-# Link short and private zones into master zone
+# Link private zone into master zone
 if (gnunet-namestore -z master-zone -D -n private -t PKEY | grep "PKEY: $PRIVATE" 1>/dev/null)
 then
   echo "Private zone link exists, skipping"
 else
   gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE $options
-fi
-if (gnunet-namestore -z master-zone -D -n short -t PKEY | grep "PKEY: $SHORT" 1>/dev/null)
-then
-  echo "Shorten zone link exists, skipping"
-else
-  gnunet-namestore -z master-zone -a -e never -n short -p -t PKEY -V $SHORT $options
 fi
 
 # Link GNUnet's FCFS zone into master zone under label "pin"

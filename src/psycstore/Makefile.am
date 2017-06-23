@@ -88,7 +88,6 @@ libgnunet_plugin_psycstore_postgres_la_SOURCES = \
   plugin_psycstore_postgres.c
 libgnunet_plugin_psycstore_postgres_la_LIBADD = \
   libgnunetpsycstore.la  \
-  $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/pq/libgnunetpq.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \

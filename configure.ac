@@ -71,7 +71,7 @@ case "$host_os" in
      AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
-     AC_MSG_WARN([The VPN application cannot be compiled on your OS])
+     AC_MSG_WARN([WARNING: The VPN application cannot be compiled on your OS])
      build_target="darwin"
      DEFAULT_INTERFACE="\"en0\""
      LIBPREFIX=
@@ -522,7 +522,7 @@ then
 	AM_CONDITIONAL(HAVE_LIBCURL, false)
 if test "$gnurl" = 0
 then
-	AC_MSG_WARN([GNUnet requires libcurl-gnutls or gnurl >= 7.34])
+	AC_MSG_WARN([ERROR: GNUnet requires libcurl-gnutls or gnurl >= 7.34])
 fi
 else
 	AM_CONDITIONAL(HAVE_LIBCURL, true)
@@ -542,19 +542,18 @@ AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
 if test x$gplk = xfalse
 then
 	AM_CONDITIONAL(HAVE_LIBGLPK, false)
-	AC_MSG_WARN([GNUnet requires GLPK  >= 4.32])
+	AC_MSG_WARN([ERROR: GNUnet requires GLPK  >= 4.32])
 else
 	AM_CONDITIONAL(HAVE_LIBGLPK, true)
 	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
 fi
 
 
-
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
 if test x$nss = xfalse
 then
 	AM_CONDITIONAL(HAVE_GLIBCNSS, false)
-	AC_MSG_WARN([No GNU libc nss header, will not build NSS plugin])
+	AC_MSG_WARN([ERROR: No GNU libc nss header, will not build NSS plugin])
 else
 	AM_CONDITIONAL(HAVE_GLIBCNSS, true)
 fi
@@ -1138,16 +1137,20 @@ AC_ARG_WITH(nssdir,
    esac
   ],
   [
-   if test "x$SUDO_BINARY" != "x" -o -w /
-   then
+# This test is inappropriate when installation with DESTDIR is
+# run much later and uid will be root when needed. Enabling this
+# code breaks the gnunet.ebuild for gentoo.
+#
+#  if test "x$SUDO_BINARY" != "x" -o -w /
+#  then
      NSS_DIR="/lib"
      install_nss=1
      AC_MSG_RESULT([yes, to /lib])
-   else
-     NSS_DIR=
-     install_nss=0
-     AC_MSG_RESULT([no])
-   fi
+#  else
+#    NSS_DIR=
+#    install_nss=0
+#    AC_MSG_RESULT([no])
+#  fi
   ])
 AC_SUBST(NSS_DIR)
 AM_CONDITIONAL([INSTALL_NSS], [test "x$install_nss" != "x0"])
@@ -1612,7 +1615,6 @@ src/peerinfo-tool/Makefile
 src/peerstore/Makefile
 src/peerstore/peerstore.conf
 src/pq/Makefile
-src/postgres/Makefile
 src/psycutil/Makefile
 src/psyc/Makefile
 src/psyc/psyc.conf
@@ -1683,7 +1685,6 @@ pkgconfig/gnunetnat.pc
 pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
 pkgconfig/gnunetpq.pc
-pkgconfig/gnunetpostgres.pc
 pkgconfig/gnunetpsyc.pc
 pkgconfig/gnunetpsycstore.pc
 pkgconfig/gnunetregex.pc
@@ -1708,7 +1709,7 @@ AC_OUTPUT
 # warn user if mysql found but not used due to version
 if test "$mysqlfail" = "true"
 then
-  AC_MSG_NOTICE([NOTICE: MySQL found, but too old. MySQL support will not be compiled.])
+  AC_MSG_NOTICE([WARNING: MySQL found, but too old. MySQL support will not be compiled.])
 fi
 
 # sqlite
@@ -1722,7 +1723,7 @@ if test "$gnurl" = "0"
 then
   if test "x$curl" = "xfalse"
   then
-    AC_MSG_NOTICE([NOTICE: libgnurl not found.  http client support will not be compiled.])
+    AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
     AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
   else
     AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])
@@ -1733,36 +1734,36 @@ fi
 # bluetooth
 if test "x$bluetooth" = "x0"
 then
-  AC_MSG_NOTICE([NOTICE: bluetooth library not found.  bluetooth support will not be compiled.])
+  AC_MSG_NOTICE([WARNING: bluetooth library not found.  bluetooth support will not be compiled.])
 fi
 
 # jansson
 if test "x$jansson" = "x0"
 then
-  AC_MSG_NOTICE([NOTICE: jansson library not found.  json support will not be compiled.])
+  AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
 fi
 
 #gnutls
 if test x$gnutls != xtrue
 then
-  AC_MSG_NOTICE([NOTICE: GnuTLS not found, gnunet-gns-proxy will not be built])
+  AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])
 else
 if test "x$gnutls_dane" != "x1"
 then
-  AC_MSG_NOTICE([NOTICE: GnuTLS has no DANE support, DANE validation will not be possible])
+  AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])
 fi
 fi
 
 # java ports
 if test "x$enable_java_ports" = "xyes"
 then
-  AC_MSG_NOTICE([NOTICE: opening ports for gnunet-java bindings by default.])
+  AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])
 fi
 
 # MHD
 if test "x$lmhd" != "x1"
 then
- AC_MSG_NOTICE([NOTICE: libmicrohttpd not found, http transport will not be installed.])
+ AC_MSG_NOTICE([WARNING: libmicrohttpd not found, http transport will not be installed.])
 fi
 
 # conversation
@@ -1770,35 +1771,35 @@ if test "x$conversation_backend" = "xnone"
 then
   if test "x$pulse" != "x1"
   then
-    AC_MSG_NOTICE([NOTICE: libpulse(audio) not found, conversation will not be built.])
+    AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])
   fi
   if test "x$opus" != "x1"
   then
-   AC_MSG_NOTICE([NOTICE: libopus not found, conversation will not be built.])
+   AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])
   fi
   if test "x$gst" != "x1"
   then
-   AC_MSG_NOTICE([NOTICE: GStreamer not found, conversation will not be built.])
+   AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])
   fi
 fi
 
 if test "$extractor" != 1
 then
- AC_MSG_WARN([NOTICE: libextractor not found, but various file-sharing functions require it])
+ AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])
 fi
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 
 if test "$enable_framework_build" = "yes"
 then
-  AC_MSG_NOTICE([NOTICE: Mac OS X framework build enabled.])
+  AC_MSG_NOTICE([Mac OS X framework build enabled.])
 fi
 
 if test "x$install_nss" = "x0"
 then
-  AC_MSG_NOTICE([NOTICE: --with-sudo not specified and not running as 'root', will not install GNS NSS library])
+  AC_MSG_NOTICE([WARNING: Will not install GNS NSS library])
 else
-  AC_MSG_NOTICE([NOTICE: Will to install GNS NSS library to $NSS_DIR])
+  AC_MSG_NOTICE([NOTICE: Will install GNS NSS library to $NSS_DIR])
 fi
 
 

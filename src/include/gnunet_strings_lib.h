@@ -281,7 +281,7 @@ GNUNET_STRINGS_get_short_name (const char *filename);
 
 
 /**
- * Convert binary data to ASCII encoding using Base32Hex (RFC 4648).
+ * Convert binary data to ASCII encoding using CrockfordBase32.
  * Does not append 0-terminator, but returns a pointer to the place where
  * it should be placed, if needed.
  *
@@ -315,7 +315,7 @@ GNUNET_STRINGS_data_to_string_alloc (const void *buf,
 
 
 /**
- * Convert Base32hex encoding back to data.
+ * Convert CrockfordBase32 encoding back to data.
  * @a out_size must match exactly the size of the data before it was encoded.
  *
  * @param enc the encoding

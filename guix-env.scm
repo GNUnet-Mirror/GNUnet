@@ -35,7 +35,8 @@
 ;; guix build -f guix-env.scm
 ;;
 ;; We'd like to provide advanced functions such as guix environment specific
-;; gnunet-svn package, but this is subject to tests right now.
+;; gnunet-git package and usage of gnunet-gtk-git, but this is subject
+;; to tests right now.
 ;;
 ;; Further versions of GNUnet for Guix can currently be found in
 ;; https://git.pragmatique.xyz/ng0-packages/log.html, mirrored at
@@ -49,6 +50,7 @@
  (guix build-system gnu)
  (guix gexp)
  ((guix build utils) #:select (with-directory-excursion))
+ (guix git-download)
  (gnu packages)
  (gnu packages aidc)
  (gnu packages autotools)
@@ -94,7 +96,8 @@
     (version (string-append "0.10.1-" "dev"))
     (source
      (local-file %source-dir
-                 #:recursive? #t))
+                 #:recursive? #t
+                 #:select? (git-predicate %source-dir)))
     (build-system gnu-build-system)
     (inputs
      `(("glpk" ,glpk)
@@ -138,7 +141,6 @@
     (arguments
      `(#:configure-flags
        (list (string-append "--with-nssdir=" %output "/lib")
-             ;; These appear to be "broken" on Guix, needs debugging.
              "--enable-gcc-hardening"
              "--enable-linker-hardening"
 

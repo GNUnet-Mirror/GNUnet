@@ -1283,15 +1283,14 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
       slc->sh = sh;
       slc->listen_socket = open_listen_socket (addrs[i],
 					       addrlens[i]);
+      GNUNET_free (addrs[i]);
       if (NULL == slc->listen_socket)
       {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                              "bind");
-        GNUNET_free (addrs[i++]);
         GNUNET_free (slc);
         continue;
       }
-      GNUNET_free (addrs[i++]);
       GNUNET_CONTAINER_DLL_insert (sh->slc_head,
 				   sh->slc_tail,
 				   slc);

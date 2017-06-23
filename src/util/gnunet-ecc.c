@@ -49,6 +49,11 @@ static unsigned int list_keys_count;
 static int print_public_key;
 
 /**
+ * Flag for printing public key in hex.
+ */
+static int print_public_key_hex;
+
+/**
  * Flag for printing the output of random example operations.
  */
 static int print_examples_flag;
@@ -195,12 +200,10 @@ print_hex (const char *msg,
            const void *buf,
            size_t size)
 {
-  size_t i;
-
   printf ("%s: ", msg);
-  for (i = 0; i < size; i++)
+  for (size_t i = 0; i < size; i++)
   {
-    printf ("%02hhx", ((const char *)buf)[i]);
+    printf ("%02hhx", ((const uint8_t *)buf)[i]);
   }
   printf ("\n");
 }
@@ -374,7 +377,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     create_keys (args[0], args[1]);
     return;
   }
-  if (print_public_key)
+  if (print_public_key || print_public_key_hex)
   {
     char *str;
     struct GNUNET_DISK_FileHandle *keyfile;
@@ -388,9 +391,16 @@ run (void *cls, char *const *args, const char *cfgfile,
     while (sizeof (pk) == GNUNET_DISK_file_read (keyfile, &pk, sizeof (pk)))
     {
       GNUNET_CRYPTO_eddsa_key_get_public (&pk, &pub);
-      str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
-      FPRINTF (stdout, "%s\n", str);
-      GNUNET_free (str);
+      if (print_public_key_hex)
+      {
+        print_hex ("HEX:", &pub, sizeof (pub));
+      }
+      else
+      {
+        str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+        FPRINTF (stdout, "%s\n", str);
+        GNUNET_free (str);
+      }
     }
     GNUNET_DISK_file_close (keyfile);
   }
@@ -409,34 +419,38 @@ int
 main (int argc,
       char *const *argv)
 {
-  list_keys_count = UINT32_MAX;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_flag ('i',
-                                  "iterate",
-                                  gettext_noop ("list keys included in a file (for testing)"),
-                                  &list_keys),
+                               "iterate",
+                               gettext_noop ("list keys included in a file (for testing)"),
+                               &list_keys),
     GNUNET_GETOPT_option_uint ('e',
-                                   "end=",
-                                   "COUNT",
-                                   gettext_noop ("number of keys to list included in a file (for testing)"),
-                                   &list_keys_count),
+                               "end=",
+                               "COUNT",
+                               gettext_noop ("number of keys to list included in a file (for testing)"),
+                               &list_keys_count),
     GNUNET_GETOPT_option_uint ('g',
-                                   "generate-keys",
-                                   "COUNT",
-                                   gettext_noop ("create COUNT public-private key pairs (for testing)"),
-                                   &make_keys),
+                               "generate-keys",
+                               "COUNT",
+                               gettext_noop ("create COUNT public-private key pairs (for testing)"),
+                               &make_keys),
     GNUNET_GETOPT_option_flag ('p',
-                                  "print-public-key",
-                                  gettext_noop ("print the public key in ASCII format"),
-                                  &print_public_key),
+                               "print-public-key",
+                               gettext_noop ("print the public key in ASCII format"),
+                               &print_public_key),
+    GNUNET_GETOPT_option_flag ('x',
+                               "print-hex",
+                               gettext_noop ("print the public key in HEX format"),
+                               &print_public_key_hex),
     GNUNET_GETOPT_option_flag ('E',
-                                  "examples",
-                                  gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
-                                  &print_examples_flag),
+                               "examples",
+                               gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
+                               &print_examples_flag),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
+  list_keys_count = UINT32_MAX;
   if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv,
                                     &argc, &argv))

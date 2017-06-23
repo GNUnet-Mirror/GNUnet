@@ -693,7 +693,7 @@ send_to_client_iter (void *cls,
     GNUNET_assert (GNUNET_BLOCK_TYPE_CONSENSUS_ELEMENT == element->element_type);
     ce = element->data;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "marker is %u\n", (unsigned) ce->marker);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "marker is %u\n", (unsigned) ce->marker);
 
     if (0 != ce->marker)
       return GNUNET_YES;
@@ -988,7 +988,7 @@ set_result_cb (void *cls,
 
   if ( (NULL != consensus_element) && (0 != consensus_element->marker) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%u: got some marker\n",
                   session->local_peer_idx);
     if ( (GNUNET_YES == setop->transceive_contested) &&
@@ -1002,7 +1002,7 @@ set_result_cb (void *cls,
     if (CONSENSUS_MARKER_SIZE == consensus_element->marker)
     {
 
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "P%u: got size marker\n",
                   session->local_peer_idx);
 
@@ -1018,7 +1018,7 @@ set_result_cb (void *cls,
         uint64_t *copy = GNUNET_memdup (session->first_sizes_received, sizeof (uint64_t) * session->num_peers);
         qsort (copy, session->num_peers, sizeof (uint64_t), cmp_uint64_t);
         session->lower_bound = copy[session->num_peers / 3 + 1];
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: lower bound %llu\n",
                     session->local_peer_idx,
                     (long long) session->lower_bound);
@@ -1045,7 +1045,7 @@ set_result_cb (void *cls,
                                 NULL,
                                 NULL);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: adding element %s into set {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1057,7 +1057,7 @@ set_result_cb (void *cls,
       {
         diff_insert (output_diff, 1, element);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: adding element %s into diff {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1069,7 +1069,7 @@ set_result_cb (void *cls,
       {
         rfn_vote (output_rfn, task_other_peer (task), VOTE_ADD, element);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: adding element %s into rfn {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1096,7 +1096,7 @@ set_result_cb (void *cls,
                                    NULL,
                                    NULL);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: removing element %s from set {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1108,7 +1108,7 @@ set_result_cb (void *cls,
       {
         diff_insert (output_diff, -1, element);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: removing element %s from diff {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1120,7 +1120,7 @@ set_result_cb (void *cls,
       {
         rfn_vote (output_rfn, task_other_peer (task), VOTE_REMOVE, element);
 #ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: removing element %s from rfn {%s} of task {%s}\n",
                     session->local_peer_idx,
                     debug_str_element (element),
@@ -1133,8 +1133,11 @@ set_result_cb (void *cls,
       // XXX: check first if any changes to the underlying
       // set are still pending
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Finishing setop in Task {%s}\n",
-                  debug_str_task_key (&task->key));
+                  "P%u: Finishing setop in Task {%s} (%u/%u)\n",
+                  session->local_peer_idx,
+                  debug_str_task_key (&task->key),
+                  (unsigned int) task->step->finished_tasks,
+                  (unsigned int) task->step->tasks_len);
       if (NULL != output_rfn)
       {
         rfn_commit (output_rfn, task_other_peer (task));
@@ -1345,7 +1348,7 @@ commit_set (struct ConsensusSession *session,
       .size = 0,
       .sender_index = 0
     };
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "inserting size marker\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "inserting size marker\n");
     cse.ce.marker = CONSENSUS_MARKER_SIZE;
     cse.size = GNUNET_htonll (session->first_size);
     cse.sender_index = session->local_peer_idx;
@@ -1421,7 +1424,7 @@ commit_set (struct ConsensusSession *session,
           }
           GNUNET_SET_add_element (set->h, &element, NULL, NULL);
 #ifdef GNUNET_EXTRA_LOGGING
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "P%u: evil peer: cramming element %s into set {%s} of task {%s}\n",
                       session->local_peer_idx,
                       debug_str_element (&element),
@@ -1436,7 +1439,7 @@ commit_set (struct ConsensusSession *session,
         GNUNET_SET_commit (setop->op, set->h);
         break;
       case EVILNESS_SLACK:
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: evil peer: slacking\n",
                     (unsigned int) session->local_peer_idx);
         /* Do nothing. */
@@ -1470,6 +1473,7 @@ commit_set (struct ConsensusSession *session,
        peers to wait. */
     GNUNET_SET_operation_cancel (setop->op);
     setop->op = NULL;
+    finish_task (task);
   }
 #endif
 }
@@ -1891,7 +1895,7 @@ task_start_apply_round (struct TaskEntry *task)
                                                ri->element,
                                                &set_mutation_done,
                                                progress_cls));
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: apply round: adding element %s with %u-majority.\n",
                     session->local_peer_idx,
                     debug_str_element (ri->element), majority_num);
@@ -1903,13 +1907,13 @@ task_start_apply_round (struct TaskEntry *task)
                                                   ri->element,
                                                   &set_mutation_done,
                                                   progress_cls));
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: apply round: deleting element %s with %u-majority.\n",
                     session->local_peer_idx,
                     debug_str_element (ri->element), majority_num);
         break;
       case VOTE_STAY:
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "P%u: apply round: keeping element %s with %u-majority.\n",
                     session->local_peer_idx,
                     debug_str_element (ri->element), majority_num);
@@ -2377,6 +2381,13 @@ finish_task (struct TaskEntry *task)
   task->is_finished = GNUNET_YES;
 
   task->step->finished_tasks++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "P%u: Finishing Task {%s} (now %u/%u tasks finished in step)\n",
+              task->step->session->local_peer_idx,
+              debug_str_task_key (&task->key),
+              (unsigned int) task->step->finished_tasks,
+              (unsigned int) task->step->tasks_len);
 
   if (task->step->finished_tasks == task->step->tasks_len)
     finish_step (task->step);

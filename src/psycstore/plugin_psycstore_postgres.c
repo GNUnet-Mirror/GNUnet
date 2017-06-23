@@ -25,6 +25,7 @@
  * @author Gabor X Toth
  * @author Christian Grothoff
  * @author Christophe Genevey
+ * @author Jeffrey Burdges
  */
 
 #include "platform.h"
@@ -34,7 +35,6 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "psycstore.h"
-#include "gnunet_postgres_lib.h"
 #include "gnunet_pq_lib.h"
 
 /**
@@ -84,342 +84,276 @@ struct Plugin
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
 {
+  struct GNUNET_PQ_ExecuteStatement es[] = {
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS channels (\n"
+                            " id SERIAL,\n"
+                            " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
+                            " max_state_message_id BIGINT,\n"
+                            " state_hash_message_id BIGINT,\n"
+                            " PRIMARY KEY(id)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE UNIQUE INDEX IF NOT EXISTS channel_pub_key_idx \n"
+                            " ON channels (pub_key)"),
+    GNUNET_PQ_make_execute ("CREATE OR REPLACE FUNCTION get_chan_id(BYTEA) RETURNS INTEGER AS \n"
+                            " 'SELECT id FROM channels WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
+                            "RETURNS NULL ON NULL INPUT"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS slaves (\n"
+                            " id SERIAL,\n"
+                            " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
+                            " PRIMARY KEY(id)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE UNIQUE INDEX IF NOT EXISTS slaves_pub_key_idx \n"
+                            " ON slaves (pub_key)"),
+    GNUNET_PQ_make_execute ("CREATE OR REPLACE FUNCTION get_slave_id(BYTEA) RETURNS INTEGER AS \n"
+                            " 'SELECT id FROM slaves WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
+                            "RETURNS NULL ON NULL INPUT"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS membership (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  slave_id BIGINT NOT NULL REFERENCES slaves(id),\n"
+                            "  did_join INT NOT NULL,\n"
+                            "  announced_at BIGINT NOT NULL,\n"
+                            "  effective_since BIGINT NOT NULL,\n"
+                            "  group_generation BIGINT NOT NULL\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
+                            "ON membership (channel_id, slave_id)"),
+    /** @todo messages table: add method_name column */
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS messages (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  hop_counter INT NOT NULL,\n"
+                            "  signature BYTEA CHECK (LENGTH(signature)=64),\n"
+                            "  purpose BYTEA CHECK (LENGTH(purpose)=8),\n"
+                            "  fragment_id BIGINT NOT NULL,\n"
+                            "  fragment_offset BIGINT NOT NULL,\n"
+                            "  message_id BIGINT NOT NULL,\n"
+                            "  group_generation BIGINT NOT NULL,\n"
+                            "  multicast_flags INT NOT NULL,\n"
+                            "  psycstore_flags INT NOT NULL,\n"
+                            "  data BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, fragment_id),\n"
+                            "  UNIQUE (channel_id, message_id, fragment_offset)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS state (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  name TEXT NOT NULL,\n"
+                            "  value_current BYTEA,\n"
+                            "  value_signed BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, name)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS state_sync (\n"
+                            "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
+                            "  name TEXT NOT NULL,\n"
+                            "  value BYTEA,\n"
+                            "  PRIMARY KEY (channel_id, name)\n"
+                            ")"
+                            "WITH OIDS"),
+    GNUNET_PQ_EXECUTE_STATEMENT_END
+  };
+
   /* Open database and precompile statements */
-  plugin->dbh = GNUNET_POSTGRES_connect (plugin->cfg,
-                                         "psycstore-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                            "psycstore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-
-  /* Create tables */
-  if ((GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS channels (\n"
-                              " id SERIAL,\n"
-                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
-                              " max_state_message_id BIGINT,\n"
-                              " state_hash_message_id BIGINT,\n"
-                              " PRIMARY KEY(id)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE UNIQUE INDEX IF NOT EXISTS channel_pub_key_idx \n"
-                              " ON channels (pub_key)")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE OR REPLACE FUNCTION get_chan_id(BYTEA) RETURNS INTEGER AS \n"
-                              " 'SELECT id FROM channels WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
-                              "RETURNS NULL ON NULL INPUT")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS slaves (\n"
-                              " id SERIAL,\n"
-                              " pub_key BYTEA NOT NULL CHECK (LENGTH(pub_key)=32),\n"
-                              " PRIMARY KEY(id)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE UNIQUE INDEX IF NOT EXISTS slaves_pub_key_idx \n"
-                              " ON slaves (pub_key)")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE OR REPLACE FUNCTION get_slave_id(BYTEA) RETURNS INTEGER AS \n"
-                              " 'SELECT id FROM slaves WHERE pub_key=$1;' LANGUAGE SQL STABLE \n"
-                              "RETURNS NULL ON NULL INPUT")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS membership (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  slave_id BIGINT NOT NULL REFERENCES slaves(id),\n"
-                              "  did_join INT NOT NULL,\n"
-                              "  announced_at BIGINT NOT NULL,\n"
-                              "  effective_since BIGINT NOT NULL,\n"
-                              "  group_generation BIGINT NOT NULL\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
-                              "ON membership (channel_id, slave_id)")) ||
-
-  /** @todo messages table: add method_name column */
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS messages (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  hop_counter INT NOT NULL,\n"
-                              "  signature BYTEA CHECK (LENGTH(signature)=64),\n"
-                              "  purpose BYTEA CHECK (LENGTH(purpose)=8),\n"
-                              "  fragment_id BIGINT NOT NULL,\n"
-                              "  fragment_offset BIGINT NOT NULL,\n"
-                              "  message_id BIGINT NOT NULL,\n"
-                              "  group_generation BIGINT NOT NULL,\n"
-                              "  multicast_flags INT NOT NULL,\n"
-                              "  psycstore_flags INT NOT NULL,\n"
-                              "  data BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, fragment_id),\n"
-                              "  UNIQUE (channel_id, message_id, fragment_offset)\n"
-                              ")" "WITH OIDS")) ||
-
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS state (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value_current BYTEA,\n"
-                              "  value_signed BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
-                              ")" "WITH OIDS")) ||
-      (GNUNET_OK !=
-         GNUNET_POSTGRES_exec(plugin->dbh,
-                              "CREATE TABLE IF NOT EXISTS state_sync (\n"
-                              "  channel_id BIGINT NOT NULL REFERENCES channels(id),\n"
-                              "  name TEXT NOT NULL,\n"
-                              "  value BYTEA,\n"
-                              "  PRIMARY KEY (channel_id, name)\n"
-                              ")" "WITH OIDS")))
+  if (GNUNET_OK !=
+      GNUNET_PQ_exec_statements (plugin->dbh,
+                                 es))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
 
-
   /* Prepare statements */
-  if ((GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "transaction_begin",
-                           "BEGIN", 0)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "transaction_commit",
-                           "COMMIT", 0)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "transaction_rollback",
-                           "ROLLBACK", 0)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_channel_key",
-                           "INSERT INTO channels (pub_key) VALUES ($1)"
-                           " ON CONFLICT DO NOTHING", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_slave_key",
-                           "INSERT INTO slaves (pub_key) VALUES ($1)"
-                           " ON CONFLICT DO NOTHING", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_membership",
-                           "INSERT INTO membership\n"
-                           " (channel_id, slave_id, did_join, announced_at,\n"
-                           "  effective_since, group_generation)\n"
-                           "VALUES (get_chan_id($1),\n"
-                           "        get_slave_id($2),\n"
-                           "        $3, $4, $5, $6)", 6)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_membership",
-                           "SELECT did_join FROM membership\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "      AND slave_id = get_slave_id($2)\n"
-                           "      AND effective_since <= $3 AND did_join = 1\n"
-                           "ORDER BY announced_at DESC LIMIT 1", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_fragment",
-                           "INSERT INTO messages\n"
-                           " (channel_id, hop_counter, signature, purpose,\n"
-                           "  fragment_id, fragment_offset, message_id,\n"
-                           "  group_generation, multicast_flags, psycstore_flags, data)\n"
-                           "VALUES (get_chan_id($1),\n"
-                           "        $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-                           "ON CONFLICT DO NOTHING", 11)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "update_message_flags",
-                           "UPDATE messages\n"
-                           "SET psycstore_flags = psycstore_flags | $1\n"
-                           "WHERE channel_id = get_chan_id($2) \n"
-                           "      AND message_id = $3 AND fragment_offset = 0", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_fragments",
-                           "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                           "       fragment_offset, message_id, group_generation,\n"
-                           "       multicast_flags, psycstore_flags, data\n"
-                           "FROM messages\n"
-                           "WHERE channel_id = get_chan_id($1) \n"
-                           "      AND $2 <= fragment_id AND fragment_id <= $3", 3)) ||
-
-      /** @todo select_messages: add method_prefix filter */
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_messages",
-                           "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                           "       fragment_offset, message_id, group_generation,\n"
-                           "       multicast_flags, psycstore_flags, data\n"
-                           "FROM messages\n"
-                           "WHERE channel_id = get_chan_id($1) \n"
-                           "      AND $2 <= message_id AND message_id <= $3\n"
-                           "LIMIT $4;", 4)) ||
-
-      /** @todo select_latest_messages: add method_prefix filter */
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_latest_fragments",
-                           "SELECT  rev.hop_counter AS hop_counter,\n"
-                           "        rev.signature AS signature,\n"
-                           "        rev.purpose AS purpose,\n"
-                           "        rev.fragment_id AS fragment_id,\n"
-                           "        rev.fragment_offset AS fragment_offset,\n"
-                           "        rev.message_id AS message_id,\n"
-                           "        rev.group_generation AS group_generation,\n"
-                           "        rev.multicast_flags AS multicast_flags,\n"
-                           "        rev.psycstore_flags AS psycstore_flags,\n"
-                           "        rev.data AS data\n"
-                           " FROM\n"
-                           " (SELECT hop_counter, signature, purpose, fragment_id,\n"
-                           "        fragment_offset, message_id, group_generation,\n"
-                           "        multicast_flags, psycstore_flags, data \n"
-                           "  FROM messages\n"
-                           "  WHERE channel_id = get_chan_id($1) \n"
-                           "  ORDER BY fragment_id DESC\n"
-                           "  LIMIT $2) AS rev\n"
-                           " ORDER BY rev.fragment_id;", 2)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_latest_messages",
-                           "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                           "       fragment_offset, message_id, group_generation,\n"
-                           "        multicast_flags, psycstore_flags, data\n"
-                           "FROM messages\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "      AND message_id IN\n"
-                           "      (SELECT message_id\n"
-                           "       FROM messages\n"
-                           "       WHERE channel_id = get_chan_id($2) \n"
-                           "       GROUP BY message_id\n"
-                           "       ORDER BY message_id\n"
-                           "       DESC LIMIT $3)\n"
-                           "ORDER BY fragment_id", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_message_fragment",
-                           "SELECT hop_counter, signature, purpose, fragment_id,\n"
-                           "       fragment_offset, message_id, group_generation,\n"
-                           "       multicast_flags, psycstore_flags, data\n"
-                           "FROM messages\n"
-                           "WHERE channel_id = get_chan_id($1) \n"
-                           "      AND message_id = $2 AND fragment_offset = $3", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_counters_message",
-                           "SELECT fragment_id, message_id, group_generation\n"
-                           "FROM messages\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "ORDER BY fragment_id DESC LIMIT 1", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_counters_state",
-                           "SELECT max_state_message_id\n"
-                           "FROM channels\n"
-                           "WHERE pub_key = $1 AND max_state_message_id IS NOT NULL", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "update_max_state_message_id",
-                           "UPDATE channels\n"
-                           "SET max_state_message_id = $1\n"
-                           "WHERE pub_key = $2", 2)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "update_state_hash_message_id",
-                           "UPDATE channels\n"
-                           "SET state_hash_message_id = $1\n"
-                           "WHERE pub_key = $2", 2)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_state_current",
-                           "INSERT INTO state\n"
-                           "  (channel_id, name, value_current, value_signed)\n"
-                           "SELECT new.channel_id, new.name,\n"
-                           "       new.value_current, old.value_signed\n"
-                           "FROM (SELECT get_chan_id($1) AS channel_id,\n"
-                           "             $2::TEXT AS name, $3::BYTEA AS value_current) AS new\n"
-                           "LEFT JOIN (SELECT channel_id, name, value_signed\n"
-                           "           FROM state) AS old\n"
-                           "ON new.channel_id = old.channel_id AND new.name = old.name\n"
-                           "ON CONFLICT (channel_id, name)\n"
-                           "   DO UPDATE SET value_current = EXCLUDED.value_current,\n"
-                           "                 value_signed = EXCLUDED.value_signed", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "delete_state_empty",
-                           "DELETE FROM state\n"
-                           "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = $1)\n"
-                           "      AND (value_current IS NULL OR length(value_current) = 0)\n"
-                           "      AND (value_signed IS NULL OR length(value_signed) = 0)", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "update_state_signed",
-                           "UPDATE state\n"
-                           "SET value_signed = value_current\n"
-                           "WHERE channel_id = get_chan_id($1) ", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "delete_state",
-                           "DELETE FROM state\n"
-                           "WHERE channel_id = get_chan_id($1) ", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_state_sync",
-                           "INSERT INTO state_sync (channel_id, name, value)\n"
-                           "VALUES (get_chan_id($1), $2, $3)", 3)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "insert_state_from_sync",
-                           "INSERT INTO state\n"
-                           " (channel_id, name, value_current, value_signed)\n"
-                           "SELECT channel_id, name, value, value\n"
-                           "FROM state_sync\n"
-                           "WHERE channel_id = get_chan_id($1)", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "delete_state_sync",
-                           "DELETE FROM state_sync\n"
-                           "WHERE channel_id = get_chan_id($1)", 1)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_state_one",
-                           "SELECT value_current\n"
-                           "FROM state\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "      AND name = $2", 2)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_state_prefix",
-                           "SELECT name, value_current\n"
-                           "FROM state\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "      AND (name = $2 OR substr(name, 1, $3) = $4)", 4)) ||
-
-      (GNUNET_OK != GNUNET_POSTGRES_prepare (plugin->dbh,
-                           "select_state_signed",
-                           "SELECT name, value_signed\n"
-                           "FROM state\n"
-                           "WHERE channel_id = get_chan_id($1)\n"
-                           "      AND value_signed IS NOT NULL", 1)))
   {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
+    struct GNUNET_PQ_PreparedStatement ps[] = {
+      GNUNET_PQ_make_prepare ("transaction_begin",
+                              "BEGIN", 0),
+      GNUNET_PQ_make_prepare ("transaction_commit",
+                              "COMMIT", 0),
+      GNUNET_PQ_make_prepare ("transaction_rollback",
+                              "ROLLBACK", 0),
+      GNUNET_PQ_make_prepare ("insert_channel_key",
+                              "INSERT INTO channels (pub_key) VALUES ($1)"
+                              " ON CONFLICT DO NOTHING", 1),
+      GNUNET_PQ_make_prepare ("insert_slave_key",
+                              "INSERT INTO slaves (pub_key) VALUES ($1)"
+                              " ON CONFLICT DO NOTHING", 1),
+      GNUNET_PQ_make_prepare ("insert_membership",
+                              "INSERT INTO membership\n"
+                              " (channel_id, slave_id, did_join, announced_at,\n"
+                              "  effective_since, group_generation)\n"
+                              "VALUES (get_chan_id($1),\n"
+                              "        get_slave_id($2),\n"
+                              "        $3, $4, $5, $6)", 6),
+      GNUNET_PQ_make_prepare ("select_membership",
+                              "SELECT did_join FROM membership\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "      AND slave_id = get_slave_id($2)\n"
+                              "      AND effective_since <= $3 AND did_join = 1\n"
+                              "ORDER BY announced_at DESC LIMIT 1", 3),
+      GNUNET_PQ_make_prepare ("insert_fragment",
+                              "INSERT INTO messages\n"
+                              " (channel_id, hop_counter, signature, purpose,\n"
+                              "  fragment_id, fragment_offset, message_id,\n"
+                              "  group_generation, multicast_flags, psycstore_flags, data)\n"
+                              "VALUES (get_chan_id($1),\n"
+                              "        $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+                              "ON CONFLICT DO NOTHING", 11),
+      GNUNET_PQ_make_prepare ("update_message_flags",
+                              "UPDATE messages\n"
+                              "SET psycstore_flags = psycstore_flags | $1\n"
+                              "WHERE channel_id = get_chan_id($2) \n"
+                              "      AND message_id = $3 AND fragment_offset = 0", 3),
+      GNUNET_PQ_make_prepare ("select_fragments",
+                              "SELECT hop_counter, signature, purpose, fragment_id,\n"
+                              "       fragment_offset, message_id, group_generation,\n"
+                              "       multicast_flags, psycstore_flags, data\n"
+                              "FROM messages\n"
+                              "WHERE channel_id = get_chan_id($1) \n"
+                              "      AND $2 <= fragment_id AND fragment_id <= $3", 3),
+      /** @todo select_messages: add method_prefix filter */
+      GNUNET_PQ_make_prepare ("select_messages",
+                              "SELECT hop_counter, signature, purpose, fragment_id,\n"
+                              "       fragment_offset, message_id, group_generation,\n"
+                              "       multicast_flags, psycstore_flags, data\n"
+                              "FROM messages\n"
+                              "WHERE channel_id = get_chan_id($1) \n"
+                              "      AND $2 <= message_id AND message_id <= $3\n"
+                              "LIMIT $4;", 4),
+      /** @todo select_latest_messages: add method_prefix filter */
+      GNUNET_PQ_make_prepare ("select_latest_fragments",
+                              "SELECT  rev.hop_counter AS hop_counter,\n"
+                              "        rev.signature AS signature,\n"
+                              "        rev.purpose AS purpose,\n"
+                              "        rev.fragment_id AS fragment_id,\n"
+                              "        rev.fragment_offset AS fragment_offset,\n"
+                              "        rev.message_id AS message_id,\n"
+                              "        rev.group_generation AS group_generation,\n"
+                              "        rev.multicast_flags AS multicast_flags,\n"
+                              "        rev.psycstore_flags AS psycstore_flags,\n"
+                              "        rev.data AS data\n"
+                              " FROM\n"
+                              " (SELECT hop_counter, signature, purpose, fragment_id,\n"
+                              "        fragment_offset, message_id, group_generation,\n"
+                              "        multicast_flags, psycstore_flags, data \n"
+                              "  FROM messages\n"
+                              "  WHERE channel_id = get_chan_id($1) \n"
+                              "  ORDER BY fragment_id DESC\n"
+                              "  LIMIT $2) AS rev\n"
+                              " ORDER BY rev.fragment_id;", 2),
+      GNUNET_PQ_make_prepare ("select_latest_messages",
+                              "SELECT hop_counter, signature, purpose, fragment_id,\n"
+                              "       fragment_offset, message_id, group_generation,\n"
+                              "        multicast_flags, psycstore_flags, data\n"
+                              "FROM messages\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "      AND message_id IN\n"
+                              "      (SELECT message_id\n"
+                              "       FROM messages\n"
+                              "       WHERE channel_id = get_chan_id($2) \n"
+                              "       GROUP BY message_id\n"
+                              "       ORDER BY message_id\n"
+                              "       DESC LIMIT $3)\n"
+                              "ORDER BY fragment_id", 3),
+      GNUNET_PQ_make_prepare ("select_message_fragment",
+                              "SELECT hop_counter, signature, purpose, fragment_id,\n"
+                              "       fragment_offset, message_id, group_generation,\n"
+                              "       multicast_flags, psycstore_flags, data\n"
+                              "FROM messages\n"
+                              "WHERE channel_id = get_chan_id($1) \n"
+                              "      AND message_id = $2 AND fragment_offset = $3", 3),
+      GNUNET_PQ_make_prepare ("select_counters_message",
+                              "SELECT fragment_id, message_id, group_generation\n"
+                              "FROM messages\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "ORDER BY fragment_id DESC LIMIT 1", 1),
+      GNUNET_PQ_make_prepare ("select_counters_state",
+                              "SELECT max_state_message_id\n"
+                              "FROM channels\n"
+                              "WHERE pub_key = $1 AND max_state_message_id IS NOT NULL", 1),
+      GNUNET_PQ_make_prepare ("update_max_state_message_id",
+                              "UPDATE channels\n"
+                              "SET max_state_message_id = $1\n"
+                              "WHERE pub_key = $2", 2),
+
+      GNUNET_PQ_make_prepare ("update_state_hash_message_id",
+                              "UPDATE channels\n"
+                              "SET state_hash_message_id = $1\n"
+                              "WHERE pub_key = $2", 2),
+      GNUNET_PQ_make_prepare ("insert_state_current",
+                              "INSERT INTO state\n"
+                              "  (channel_id, name, value_current, value_signed)\n"
+                              "SELECT new.channel_id, new.name,\n"
+                              "       new.value_current, old.value_signed\n"
+                              "FROM (SELECT get_chan_id($1) AS channel_id,\n"
+                              "             $2::TEXT AS name, $3::BYTEA AS value_current) AS new\n"
+                              "LEFT JOIN (SELECT channel_id, name, value_signed\n"
+                              "           FROM state) AS old\n"
+                              "ON new.channel_id = old.channel_id AND new.name = old.name\n"
+                              "ON CONFLICT (channel_id, name)\n"
+                              "   DO UPDATE SET value_current = EXCLUDED.value_current,\n"
+                              "                 value_signed = EXCLUDED.value_signed", 3),
+      GNUNET_PQ_make_prepare ("delete_state_empty",
+                              "DELETE FROM state\n"
+                              "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = $1)\n"
+                              "      AND (value_current IS NULL OR length(value_current) = 0)\n"
+                              "      AND (value_signed IS NULL OR length(value_signed) = 0)", 1),
+      GNUNET_PQ_make_prepare ("update_state_signed",
+                              "UPDATE state\n"
+                              "SET value_signed = value_current\n"
+                              "WHERE channel_id = get_chan_id($1) ", 1),
+      GNUNET_PQ_make_prepare ("delete_state",
+                              "DELETE FROM state\n"
+                              "WHERE channel_id = get_chan_id($1) ", 1),
+      GNUNET_PQ_make_prepare ("insert_state_sync",
+                              "INSERT INTO state_sync (channel_id, name, value)\n"
+                              "VALUES (get_chan_id($1), $2, $3)", 3),
+      GNUNET_PQ_make_prepare ("insert_state_from_sync",
+                              "INSERT INTO state\n"
+                              " (channel_id, name, value_current, value_signed)\n"
+                              "SELECT channel_id, name, value, value\n"
+                              "FROM state_sync\n"
+                              "WHERE channel_id = get_chan_id($1)", 1),
+      GNUNET_PQ_make_prepare ("delete_state_sync",
+                              "DELETE FROM state_sync\n"
+                              "WHERE channel_id = get_chan_id($1)", 1),
+      GNUNET_PQ_make_prepare ("select_state_one",
+                              "SELECT value_current\n"
+                              "FROM state\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "      AND name = $2", 2),
+      GNUNET_PQ_make_prepare ("select_state_prefix",
+                              "SELECT name, value_current\n"
+                              "FROM state\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "      AND (name = $2 OR substr(name, 1, $3) = $4)", 4),
+      GNUNET_PQ_make_prepare ("select_state_signed",
+                              "SELECT name, value_signed\n"
+                              "FROM state\n"
+                              "WHERE channel_id = get_chan_id($1)\n"
+                              "      AND value_signed IS NOT NULL", 1),
+      GNUNET_PQ_PREPARED_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_prepare_statements (plugin->dbh,
+                                      ps))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
   }
 
   return GNUNET_OK;
@@ -452,21 +386,14 @@ static int
 exec_channel (struct Plugin *plugin, const char *stmt,
               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key)
 {
-  PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", stmt))
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-
-  PQclear (ret);
 
   return GNUNET_OK;
 }
@@ -478,23 +405,15 @@ exec_channel (struct Plugin *plugin, const char *stmt,
 static int
 transaction_begin (struct Plugin *plugin, enum Transactions transaction)
 {
-  PGresult *ret;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_begin", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_begin"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_begin", params))
     return GNUNET_SYSERR;
-  }
 
   plugin->transaction = transaction;
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -505,23 +424,14 @@ transaction_begin (struct Plugin *plugin, enum Transactions transaction)
 static int
 transaction_commit (struct Plugin *plugin)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_commit", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_commit"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_commit", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   plugin->transaction = TRANSACTION_NONE;
   return GNUNET_OK;
 }
@@ -533,23 +443,14 @@ transaction_commit (struct Plugin *plugin)
 static int
 transaction_rollback (struct Plugin *plugin)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "transaction_rollback", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "transaction_rollback"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "transaction_rollback", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   plugin->transaction = TRANSACTION_NONE;
   return GNUNET_OK;
 }
@@ -559,24 +460,15 @@ static int
 channel_key_store (struct Plugin *plugin,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_channel_key", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_channel_key"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_channel_key", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -585,24 +477,15 @@ static int
 slave_key_store (struct Plugin *plugin,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key)
 {
-  PGresult *ret;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (slave_key),
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_slave_key", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_slave_key"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_slave_key", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -624,7 +507,6 @@ postgres_membership_store (void *cls,
                            uint64_t effective_since,
                            uint64_t group_generation)
 {
-  PGresult *ret;
   struct Plugin *plugin = cls;
 
   uint32_t idid_join = (uint32_t)did_join;
@@ -653,17 +535,10 @@ postgres_membership_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  ret = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_membership", params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    ret,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_membership"))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_membership", params))
     return GNUNET_SYSERR;
-  }
 
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -681,12 +556,9 @@ membership_test (void *cls,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                  uint64_t message_id)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   uint32_t did_join = 0;
-
-  int ret = GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
@@ -695,35 +567,17 @@ membership_test (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "select_membership", params_select);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared", "select_membership"))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint32 ("did_join", &did_join),
     GNUNET_PQ_result_spec_end
   };
 
-  switch (GNUNET_PQ_extract_result (res, results_select, 0))
-  {
-    case GNUNET_OK:
-      ret = GNUNET_YES;
-      break;
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, "select_membership", 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-    default:
-      ret = GNUNET_NO;
-      break;
-  }
-
-  PQclear (res);
-
-  return ret;
+  return GNUNET_OK;
 }
 
 /**
@@ -739,7 +593,6 @@ fragment_store (void *cls,
                 const struct GNUNET_MULTICAST_MessageHeader *msg,
                 uint32_t psycstore_flags)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
@@ -782,15 +635,10 @@ fragment_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "insert_fragment", params_insert);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared", "insert_fragment"))
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_fragment", params_insert))
     return GNUNET_SYSERR;
 
-  PQclear (res);
   return GNUNET_OK;
 }
 
@@ -807,7 +655,6 @@ message_add_flags (void *cls,
                    uint64_t message_id,
                    uint32_t psycstore_flags)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   struct GNUNET_PQ_QueryParam params_update[] = {
@@ -817,74 +664,80 @@ message_add_flags (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, "update_message_flags", params_update);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared","update_message_flags"))
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "update_message_flags", params_update))
     return GNUNET_SYSERR;
 
-  PQclear (res);
   return GNUNET_OK;
 }
 
 
-static int
-fragment_row (struct Plugin *plugin,
-              const char *stmt,
-              PGresult *res,
-              GNUNET_PSYCSTORE_FragmentCallback cb,
-              void *cb_cls,
-              uint64_t *returned_fragments)
+/**
+ * Closure for #fragment_rows.
+ */
+struct FragmentRowsContext {
+  GNUNET_PSYCSTORE_FragmentCallback cb;
+  void *cb_cls;
+
+  uint64_t *returned_fragments;
+
+  /* I preserved this but I do not see the point since
+   * it cannot stop the loop early and gets overwritten ?? */
+  int ret;
+};
+
+
+/**
+ * Callback that retrieves the results of a SELECT statement
+ * reading form the messages table.
+ *
+ * Only passed to GNUNET_PQ_eval_prepared_multi_select and
+ * has type GNUNET_PQ_PostgresResultHandler.
+ *
+ * @param cls closure
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+void fragment_rows (void *cls,
+                    PGresult *res,
+                    unsigned int num_results)
 {
-  uint32_t hop_counter;
-  void *signature = NULL;
-  void *purpose = NULL;
-  size_t signature_size;
-  size_t purpose_size;
+  struct FragmentRowsContext *c = cls;
 
-  uint64_t fragment_id;
-  uint64_t fragment_offset;
-  uint64_t message_id;
-  uint64_t group_generation;
-  uint32_t flags;
-  void *buf;
-  size_t buf_size;
-  int ret = GNUNET_SYSERR;
-  struct GNUNET_MULTICAST_MessageHeader *mp;
-
-  uint32_t msg_flags;
-
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_uint32 ("hop_counter", &hop_counter),
-    GNUNET_PQ_result_spec_variable_size ("signature", &signature, &signature_size),
-    GNUNET_PQ_result_spec_variable_size ("purpose", &purpose, &purpose_size),
-    GNUNET_PQ_result_spec_uint64 ("fragment_id", &fragment_id),
-    GNUNET_PQ_result_spec_uint64 ("fragment_offset", &fragment_offset),
-    GNUNET_PQ_result_spec_uint64 ("message_id", &message_id),
-    GNUNET_PQ_result_spec_uint64 ("group_generation", &group_generation),
-    GNUNET_PQ_result_spec_uint32 ("multicast_flags", &msg_flags),
-    GNUNET_PQ_result_spec_uint32 ("psycstore_flags", &flags),
-    GNUNET_PQ_result_spec_variable_size ("data", &buf, &buf_size),
-    GNUNET_PQ_result_spec_end
-  };
-
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-                                    stmt))
+  for (unsigned int i=0;i<num_results;i++)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failing fragment lookup (postgres error)\n");
-    return GNUNET_SYSERR;
-  }
+    uint32_t hop_counter;
+    void *signature = NULL;
+    void *purpose = NULL;
+    size_t signature_size;
+    size_t purpose_size;
+    uint64_t fragment_id;
+    uint64_t fragment_offset;
+    uint64_t message_id;
+    uint64_t group_generation;
+    uint32_t flags;
+    void *buf;
+    size_t buf_size;
+    uint32_t msg_flags;
+    struct GNUNET_PQ_ResultSpec results[] = {
+      GNUNET_PQ_result_spec_uint32 ("hop_counter", &hop_counter),
+      GNUNET_PQ_result_spec_variable_size ("signature", &signature, &signature_size),
+      GNUNET_PQ_result_spec_variable_size ("purpose", &purpose, &purpose_size),
+      GNUNET_PQ_result_spec_uint64 ("fragment_id", &fragment_id),
+      GNUNET_PQ_result_spec_uint64 ("fragment_offset", &fragment_offset),
+      GNUNET_PQ_result_spec_uint64 ("message_id", &message_id),
+      GNUNET_PQ_result_spec_uint64 ("group_generation", &group_generation),
+      GNUNET_PQ_result_spec_uint32 ("multicast_flags", &msg_flags),
+      GNUNET_PQ_result_spec_uint32 ("psycstore_flags", &flags),
+      GNUNET_PQ_result_spec_variable_size ("data", &buf, &buf_size),
+      GNUNET_PQ_result_spec_end
+    };
+    struct GNUNET_MULTICAST_MessageHeader *mp;
 
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
+    if (GNUNET_YES != GNUNET_PQ_extract_result (res, results, i))
     {
-      break;
+      GNUNET_PQ_cleanup_result(results);  /* missing previously, a memory leak?? */
+      break;  /* nothing more?? */
     }
 
     mp = GNUNET_malloc (sizeof (*mp) + buf_size);
@@ -893,11 +746,9 @@ fragment_row (struct Plugin *plugin,
     mp->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
     mp->hop_counter = htonl (hop_counter);
     GNUNET_memcpy (&mp->signature,
-                   signature,
-                   signature_size);
+                   signature, signature_size);
     GNUNET_memcpy (&mp->purpose,
-                   purpose,
-                   purpose_size);
+                   purpose, purpose_size);
     mp->fragment_id = GNUNET_htonll (fragment_id);
     mp->fragment_offset = GNUNET_htonll (fragment_offset);
     mp->message_id = GNUNET_htonll (message_id);
@@ -905,15 +756,12 @@ fragment_row (struct Plugin *plugin,
     mp->flags = htonl(msg_flags);
 
     GNUNET_memcpy (&mp[1],
-                   buf,
-                   buf_size);
+                   buf, buf_size);
     GNUNET_PQ_cleanup_result(results);
-    ret = cb (cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
-    if (NULL != returned_fragments)
-      (*returned_fragments)++;
+    c->ret = c->cb (c->cb_cls, mp, (enum GNUNET_PSYCSTORE_MessageFlags) flags);
+    if (NULL != c->returned_fragments)
+      (*c->returned_fragments)++;
   }
-
-  return ret;
 }
 
 
@@ -925,26 +773,19 @@ fragment_select (struct Plugin *plugin,
                  GNUNET_PSYCSTORE_FragmentCallback cb,
                  void *cb_cls)
 {
-  PGresult *res;
-  int ret = GNUNET_SYSERR;
+  /* Stack based closure */
+  struct FragmentRowsContext frc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .returned_fragments = returned_fragments,
+    .ret = GNUNET_SYSERR
+  };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_YES ==
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_TUPLES_OK,
-                                    "PQexecPrepared", stmt))
-  {
-    if (PQntuples (res) == 0)
-      ret = GNUNET_NO;
-    else
-    {
-      ret = fragment_row (plugin, stmt, res, cb, cb_cls, returned_fragments);
-    }
-    PQclear (res);
-  }
-
-  return ret;
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params,
+                                                &fragment_rows, &frc))
+    return GNUNET_SYSERR;
+  return frc.ret;  /* GNUNET_OK ?? */
 }
 
 /**
@@ -964,8 +805,6 @@ fragment_get (void *cls,
               void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_uint64 (&first_fragment_id),
@@ -973,7 +812,12 @@ fragment_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_fragments", params_select, returned_fragments, cb, cb_cls);
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_fragments",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1002,7 +846,11 @@ fragment_get_latest (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_latest_fragments", params_select, returned_fragments, cb, cb_cls);
+  return fragment_select (plugin,
+                          "select_latest_fragments",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1024,11 +872,6 @@ message_get (void *cls,
              void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
-  if (0 == fragment_limit)
-    fragment_limit = INT64_MAX;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_uint64 (&first_message_id),
@@ -1037,7 +880,14 @@ message_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_messages", params_select, returned_fragments, cb, cb_cls);
+  if (0 == fragment_limit)
+    fragment_limit = INT64_MAX;
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_messages",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1057,8 +907,6 @@ message_get_latest (void *cls,
                     void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  *returned_fragments = 0;
-
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_auto_from_type (channel_key),
@@ -1066,7 +914,12 @@ message_get_latest (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  return fragment_select (plugin, "select_latest_messages", params_select, returned_fragments, cb, cb_cls);
+  *returned_fragments = 0;
+  return fragment_select (plugin,
+                          "select_latest_messages",
+                          params_select,
+                          returned_fragments,
+                          cb, cb_cls);
 }
 
 
@@ -1086,9 +939,7 @@ message_get_fragment (void *cls,
                       GNUNET_PSYCSTORE_FragmentCallback cb,
                       void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_SYSERR;
   const char *stmt = "select_message_fragment";
 
   struct GNUNET_PQ_QueryParam params_select[] = {
@@ -1098,21 +949,19 @@ message_get_fragment (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK == GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    if (PQntuples (res) == 0)
-      ret = GNUNET_NO;
-    else
-      ret = fragment_row (plugin, stmt, res, cb, cb_cls, NULL);
+  /* Stack based closure */
+  struct FragmentRowsContext frc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .returned_fragments = NULL,
+    .ret = GNUNET_SYSERR
+  };
 
-    PQclear (res);
-  }
-
-  return ret;
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &fragment_rows, &frc))
+    return GNUNET_SYSERR;
+  return frc.ret;  /* GNUNET_OK ?? */
 }
 
 /**
@@ -1129,7 +978,6 @@ counters_message_get (void *cls,
                       uint64_t *max_message_id,
                       uint64_t *max_group_generation)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   const char *stmt = "select_counters_message";
@@ -1139,15 +987,6 @@ counters_message_get (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint64 ("fragment_id", max_fragment_id),
     GNUNET_PQ_result_spec_uint64 ("message_id", max_message_id),
@@ -1155,14 +994,10 @@ counters_message_get (void *cls,
     GNUNET_PQ_result_spec_end
   };
 
-  if (GNUNET_OK != GNUNET_PQ_extract_result (res, results_select, 0))
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_PQ_cleanup_result(results_select);
-  PQclear (res);
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
   return GNUNET_OK;
 }
@@ -1179,44 +1014,26 @@ counters_state_get (void *cls,
                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                     uint64_t *max_state_message_id)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
 
   const char *stmt = "select_counters_state";
-
-  int ret = GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params_select[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
-
   struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_uint64 ("max_state_message_id", max_state_message_id),
     GNUNET_PQ_result_spec_end
   };
 
-  ret = GNUNET_PQ_extract_result (res, results_select, 0);
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != ret)
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_PQ_cleanup_result(results_select);
-  PQclear (res);
-
-  return ret;
+  return GNUNET_OK;
 }
 
 
@@ -1230,8 +1047,6 @@ state_assign (struct Plugin *plugin, const char *stmt,
               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
               const char *name, const void *value, size_t value_size)
 {
-  PGresult *res;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_string (name),
@@ -1239,44 +1054,29 @@ state_assign (struct Plugin *plugin, const char *stmt,
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-  }
-
-  PQclear (res);
 
   return GNUNET_OK;
 }
 
 
 static int
-update_message_id (struct Plugin *plugin, const char *stmt,
+update_message_id (struct Plugin *plugin,
+                   const char *stmt,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t message_id)
 {
-  PGresult *res;
-
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint64 (&message_id),
     GNUNET_PQ_query_param_auto_from_type (channel_key),
     GNUNET_PQ_query_param_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_COMMAND_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, stmt, params))
     return GNUNET_SYSERR;
-  }
-
-  PQclear (res);
 
   return GNUNET_OK;
 }
@@ -1487,10 +1287,7 @@ static int
 state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
            const char *name, GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
-  PGresult *res;
-
   struct Plugin *plugin = cls;
-  int ret = GNUNET_SYSERR;
 
   const char *stmt = "select_state_one";
 
@@ -1503,43 +1300,79 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
   void *value_current = NULL;
   size_t value_size = 0;
 
-  struct GNUNET_PQ_ResultSpec results[] = {
+  struct GNUNET_PQ_ResultSpec results_select[] = {
     GNUNET_PQ_result_spec_variable_size ("value_current", &value_current, &value_size),
     GNUNET_PQ_result_spec_end
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
-    return GNUNET_SYSERR;
-  }
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh, stmt, 
+                                                params_select, results_select))
+     return GNUNET_SYSERR;
 
-  if (PQntuples (res) == 0)
-  {
-    PQclear (res);
-    ret = GNUNET_NO;
-  }
-
-  ret = GNUNET_PQ_extract_result (res, results, 0);
-
-  if (GNUNET_OK != ret)
-  {
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
-
-  ret = cb (cb_cls, name, value_current,
+  return cb (cb_cls, name, value_current,
             value_size);
-
-  GNUNET_PQ_cleanup_result(results);
-  PQclear (res);
-
-  return ret;
 }
 
+
+
+/**
+ * Closure for #get_state_cb.
+ */
+struct GetStateContext {
+  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key;
+  // const char *name,
+  GNUNET_PSYCSTORE_StateCallback cb;
+  void *cb_cls;
+
+  const char *value_id;
+
+  /* I preserved this but I do not see the point since
+   * it cannot stop the loop early and gets overwritten ?? */
+  int ret;
+};
+
+
+/**
+ * Callback that retrieves the results of a SELECT statement
+ * reading form the state table.
+ *
+ * Only passed to GNUNET_PQ_eval_prepared_multi_select and
+ * has type GNUNET_PQ_PostgresResultHandler.
+ *
+ * @param cls closure
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+static void 
+get_state_cb (void *cls,
+                PGresult *res,
+                unsigned int num_results)
+{
+  struct GetStateContext *c = cls;
+
+  for (unsigned int i=0;i<num_results;i++)
+  {
+    char *name = "";
+    void *value = NULL;
+    size_t value_size = 0;
+
+    struct GNUNET_PQ_ResultSpec results[] = {
+      GNUNET_PQ_result_spec_string ("name", &name),
+      GNUNET_PQ_result_spec_variable_size (c->value_id, &value, &value_size),
+      GNUNET_PQ_result_spec_end
+    };
+
+    if (GNUNET_YES != GNUNET_PQ_extract_result (res, results, i))
+    {
+      GNUNET_PQ_cleanup_result(results);  /* previously invoked via PQclear?? */
+      break;  /* nothing more?? */
+    }
+
+    c->ret = c->cb (c->cb_cls, (const char *) name, value, value_size);
+    GNUNET_PQ_cleanup_result(results);
+  }
+}
 
 /**
  * Retrieve all state variables for a channel with the given prefix.
@@ -1553,9 +1386,7 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
                   const char *name, GNUNET_PSYCSTORE_StateCallback cb,
                   void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_NO;
 
   const char *stmt = "select_state_prefix";
 
@@ -1569,42 +1400,18 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     GNUNET_PQ_query_param_end
   };
 
-  char *name2 = "";
-  void *value_current = NULL;
-  size_t value_size = 0;
-
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_string ("name", &name2),
-    GNUNET_PQ_result_spec_variable_size ("value_current", &value_current, &value_size),
-    GNUNET_PQ_result_spec_end
+  struct GetStateContext gsc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .value_id = "value_current",
+    .ret = GNUNET_NO
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &get_state_cb, &gsc))
     return GNUNET_SYSERR;
-  }
-
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
-    {
-      break;
-    }
-
-    ret = cb (cb_cls, (const char *) name2,
-              value_current,
-              value_size);
-    GNUNET_PQ_cleanup_result(results);
-  }
-
-  PQclear (res);
-
-  return ret;
+  return gsc.ret;  /* GNUNET_OK ?? */
 }
 
 
@@ -1620,9 +1427,7 @@ state_get_signed (void *cls,
                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                   GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
-  PGresult *res;
   struct Plugin *plugin = cls;
-  int ret = GNUNET_NO;
 
   const char *stmt = "select_state_signed";
 
@@ -1631,43 +1436,18 @@ state_get_signed (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  char *name = "";
-  void *value_signed = NULL;
-  size_t value_size = 0;
-
-  struct GNUNET_PQ_ResultSpec results[] = {
-    GNUNET_PQ_result_spec_string ("name", &name),
-    GNUNET_PQ_result_spec_variable_size ("value_signed", &value_signed, &value_size),
-    GNUNET_PQ_result_spec_end
+  struct GetStateContext gsc = {
+    .cb = cb,
+    .cb_cls = cb_cls,
+    .value_id = "value_signed",
+    .ret = GNUNET_NO
   };
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh, stmt, params_select);
-  if (GNUNET_OK != GNUNET_POSTGRES_check_result (plugin->dbh,
-                                                 res,
-                                                 PGRES_TUPLES_OK,
-                                                 "PQexecPrepared", stmt))
-  {
+  if (0 > GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
+                                                stmt, params_select,
+                                                &get_state_cb, &gsc))
     return GNUNET_SYSERR;
-  }
-
-  int nrows = PQntuples (res);
-  for (int row = 0; row < nrows; row++)
-  {
-    if (GNUNET_OK != GNUNET_PQ_extract_result (res, results, row))
-    {
-      break;
-    }
-
-    ret = cb (cb_cls, (const char *) name,
-              value_signed,
-              value_size);
-
-    GNUNET_PQ_cleanup_result (results);
-  }
-
-  PQclear (res);
-
-  return ret;
+  return gsc.ret;  /* GNUNET_OK ?? */
 }
 
 

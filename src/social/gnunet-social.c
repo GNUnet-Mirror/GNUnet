@@ -718,7 +718,7 @@ guest_recv_local_enter (void *cls, int result,
 
 
 /**
- * Create entry requset message.
+ * Create entry request message.
  */
 static struct GNUNET_PSYC_Message *
 guest_enter_msg_create ()
@@ -1221,11 +1221,6 @@ main (int argc, char *const *argv)
                                   "guest-leave",
                                   gettext_noop ("say good-bye and leave somebody else's place"),
                                   &op_guest_leave),
-
-    GNUNET_GETOPT_option_flag ('C',
-                                  "host-enter",
-                                  gettext_noop ("create a place"),
-                                  &op_host_enter),
 
     GNUNET_GETOPT_option_flag ('C',
                                   "host-enter",

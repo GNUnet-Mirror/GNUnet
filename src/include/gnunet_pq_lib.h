@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2016 GNUnet e.V.
+  Copyright (C) 2016, 2017 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -23,6 +23,9 @@
 
 #include <libpq-fe.h>
 #include "gnunet_util_lib.h"
+#include "gnunet_db_lib.h"
+
+/* ************************* pq_query_helper.c functions ************************ */
 
 
 /**
@@ -186,6 +189,9 @@ GNUNET_PQ_query_param_uint32 (const uint32_t *x);
  */
 struct GNUNET_PQ_QueryParam
 GNUNET_PQ_query_param_uint64 (const uint64_t *x);
+
+
+/* ************************* pq_result_helper.c functions ************************ */
 
 
 /**
@@ -412,6 +418,8 @@ GNUNET_PQ_result_spec_uint64 (const char *name,
 			      uint64_t *u64);
 
 
+/* ************************* pq.c functions ************************ */
+
 /**
  * Execute a prepared statement.
  *
@@ -419,6 +427,7 @@ GNUNET_PQ_result_spec_uint64 (const char *name,
  * @param name name of the prepared statement
  * @param params parameters to the statement
  * @return postgres result
+ * @deprecated (should become an internal API)
  */
 PGresult *
 GNUNET_PQ_exec_prepared (PGconn *db_conn,
@@ -435,6 +444,7 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
  * @return
  *   #GNUNET_YES if all results could be extracted
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
+ * @deprecated (should become an internal API)
  */
 int
 GNUNET_PQ_extract_result (PGresult *result,
@@ -450,6 +460,262 @@ GNUNET_PQ_extract_result (PGresult *result,
  */
 void
 GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
+
+
+/* ******************** pq_eval.c functions ************** */
+
+
+/**
+ * Check the @a result's error code to see what happened.
+ * Also logs errors.
+ *
+ * @param connection connection to execute the statement in
+ * @param statement_name name of the statement that created @a result
+ * @param result result to check
+ * @return status code from the result, mapping PQ status
+ *         codes to `enum GNUNET_DB_QueryStatus`.  Never
+ *         returns positive values as this function does
+ *         not look at the result set.
+ * @deprecated (low level, let's see if we can do with just the high-level functions)
+ */
+enum GNUNET_DB_QueryStatus
+GNUNET_PQ_eval_result (PGconn *connection,
+                       const char *statement_name,
+                       PGresult *result);
+
+
+/**
+ * Execute a named prepared @a statement that is NOT a SELECT
+ * statement in @a connnection using the given @a params.  Returns the
+ * resulting session state.
+ *
+ * @param connection connection to execute the statement in
+ * @param statement_name name of the statement
+ * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
+ * @return status code from the result, mapping PQ status
+ *         codes to `enum GNUNET_DB_QueryStatus`.   If the
+ *         statement was a DELETE or UPDATE statement, the
+ *         number of affected rows is returned; if the
+ *         statment was an INSERT statement, and no row
+ *         was added due to a UNIQUE violation, we return
+ *         zero; if INSERT was successful, we return one.
+ */
+enum GNUNET_DB_QueryStatus
+GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
+                                    const char *statement_name,
+                                    const struct GNUNET_PQ_QueryParam *params);
+
+
+/**
+ * Function to be called with the results of a SELECT statement
+ * that has returned @a num_results results.
+ *
+ * @param cls closure
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+typedef void
+(*GNUNET_PQ_PostgresResultHandler)(void *cls,
+                                   PGresult *result,
+                                   unsigned int num_results);
+
+
+/**
+ * Execute a named prepared @a statement that is a SELECT statement
+ * which may return multiple results in @a connection using the given
+ * @a params.  Call @a rh with the results.  Returns the query
+ * status including the number of results given to @a rh (possibly zero).
+ * @a rh will not have been called if the return value is negative.
+ *
+ * @param connection connection to execute the statement in
+ * @param statement_name name of the statement
+ * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
+ * @param rh function to call with the result set, NULL to ignore
+ * @param rh_cls closure to pass to @a rh
+ * @return status code from the result, mapping PQ status
+ *         codes to `enum GNUNET_DB_QueryStatus`.
+ */
+enum GNUNET_DB_QueryStatus
+GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
+                                      const char *statement_name,
+                                      const struct GNUNET_PQ_QueryParam *params,
+                                      GNUNET_PQ_PostgresResultHandler rh,
+                                      void *rh_cls);
+
+
+/**
+ * Execute a named prepared @a statement that is a SELECT statement
+ * which must return a single result in @a connection using the given
+ * @a params.  Stores the result (if any) in @a rs, which the caller
+ * must then clean up using #GNUNET_PQ_cleanup_result() if the return
+ * value was #GNUNET_DB_STATUS_SUCCESS_ONE_RESULT.  Returns the
+ * resulting session status.
+ *
+ * @param connection connection to execute the statement in
+ * @param statement_name name of the statement
+ * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
+ * @param[in,out] rs result specification to use for storing the result of the query
+ * @return status code from the result, mapping PQ status
+ *         codes to `enum GNUNET_DB_QueryStatus`.
+ */
+enum GNUNET_DB_QueryStatus
+GNUNET_PQ_eval_prepared_singleton_select (PGconn *connection,
+                                          const char *statement_name,
+                                          const struct GNUNET_PQ_QueryParam *params,
+                                          struct GNUNET_PQ_ResultSpec *rs);
+
+
+/* ******************** pq_prepare.c functions ************** */
+
+
+/**
+ * Information needed to prepare a list of SQL statements using
+ * #GNUNET_PQ_prepare_statements().
+ */
+struct GNUNET_PQ_PreparedStatement {
+
+  /**
+   * Name of the statement.
+   */
+  const char *name;
+
+  /**
+   * Actual SQL statement.
+   */
+  const char *sql;
+
+  /**
+   * Number of arguments included in @e sql.
+   */
+  unsigned int num_arguments;
+
+};
+
+
+/**
+ * Terminator for prepared statement list.
+ */
+#define GNUNET_PQ_PREPARED_STATEMENT_END { NULL, NULL, 0 }
+
+
+/**
+ * Create a `struct GNUNET_PQ_PreparedStatement`.
+ *
+ * @param name name of the statement
+ * @param sql actual SQL statement
+ * @param num_args number of arguments in the statement
+ * @return initialized struct
+ */
+struct GNUNET_PQ_PreparedStatement
+GNUNET_PQ_make_prepare (const char *name,
+                        const char *sql,
+                        unsigned int num_args);
+
+
+/**
+ * Request creation of prepared statements @a ps from Postgres.
+ *
+ * @param connection connection to prepare the statements for
+ * @param ps #GNUNET_PQ_PREPARED_STATEMENT_END-terminated array of prepared
+ *            statements.
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error
+ */
+int
+GNUNET_PQ_prepare_statements (PGconn *connection,
+                              const struct GNUNET_PQ_PreparedStatement *ps);
+
+
+/* ******************** pq_exec.c functions ************** */
+
+
+/**
+ * Information needed to run a list of SQL statements using
+ * #GNUNET_PQ_exec_statements().
+ */
+struct GNUNET_PQ_ExecuteStatement {
+
+  /**
+   * Actual SQL statement.
+   */
+  const char *sql;
+
+  /**
+   * Should we ignore errors?
+   */
+  int ignore_errors;
+
+};
+
+
+/**
+ * Terminator for executable statement list.
+ */
+#define GNUNET_PQ_EXECUTE_STATEMENT_END { NULL, GNUNET_SYSERR }
+
+
+/**
+ * Create a `struct GNUNET_PQ_ExecuteStatement` where errors are fatal.
+ *
+ * @param sql actual SQL statement
+ * @return initialized struct
+ */
+struct GNUNET_PQ_ExecuteStatement
+GNUNET_PQ_make_execute (const char *sql);
+
+
+/**
+ * Create a `struct GNUNET_PQ_ExecuteStatement` where errors should
+ * be tolerated.
+ *
+ * @param sql actual SQL statement
+ * @return initialized struct
+ */
+struct GNUNET_PQ_ExecuteStatement
+GNUNET_PQ_make_try_execute (const char *sql);
+
+
+/**
+ * Request execution of an array of statements @a es from Postgres.
+ *
+ * @param connection connection to execute the statements over
+ * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated array of prepared
+ *            statements.
+ * @return #GNUNET_OK on success (modulo statements where errors can be ignored)
+ *         #GNUNET_SYSERR on error
+ */
+int
+GNUNET_PQ_exec_statements (PGconn *connection,
+                           const struct GNUNET_PQ_ExecuteStatement *es);
+
+
+/* ******************** pq_connect.c functions ************** */
+
+
+/**
+ * Create a connection to the Postgres database using @a config_str
+ * for the configuration.  Initialize logging via GNUnet's log
+ * routines and disable Postgres's logger.
+ *
+ * @param config_str configuration to use
+ * @return NULL on error
+ */
+PGconn *
+GNUNET_PQ_connect (const char *config_str);
+
+
+/**
+ * Connect to a postgres database using the configuration
+ * option "CONFIG" in @a section.
+ *
+ * @param cfg configuration
+ * @param section configuration section to use to get Postgres configuration options
+ * @return the postgres handle, NULL on error
+ */
+PGconn *
+GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const char *section);
+
 
 
 #endif  /* GNUNET_PQ_LIB_H_ */

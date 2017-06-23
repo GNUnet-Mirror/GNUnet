@@ -27,7 +27,6 @@ pcfiles = \
        gnunetnat.pc \
        gnunetnse.pc \
        gnunetpeerinfo.pc \
-       gnunetpostgres.pc \
        gnunetpsyc.pc \
        gnunetpsycstore.pc \
        gnunetregex.pc \

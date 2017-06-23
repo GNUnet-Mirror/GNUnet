@@ -1,6 +1,6 @@
  /*
   * This file is part of GNUnet
-  * Copyright (C) 2009-2013, 2016 GNUnet e.V.
+  * Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
   *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
@@ -27,30 +27,9 @@
 #include "gnunet_namecache_plugin.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_gnsrecord_lib.h"
-#include "gnunet_postgres_lib.h"
 #include "gnunet_pq_lib.h"
 #include "namecache.h"
 
-
-/**
- * After how many ms "busy" should a DB operation fail for good?
- * A low value makes sure that we are more responsive to requests
- * (especially PUTs).  A high value guarantees a higher success
- * rate (SELECTs in iterate can take several seconds despite LIMIT=1).
- *
- * The default value of 1s should ensure that users do not experience
- * huge latencies while at the same time allowing operations to succeed
- * with reasonable probability.
- */
-#define BUSY_TIMEOUT_MS 1000
-
-
-/**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' on file 'filename'
- * with the message given by strerror(errno).
- */
-#define LOG_POSTGRES(db, level, cmd) do { GNUNET_log_from (level, "namecache-postgres", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
 
 #define LOG(kind,...) GNUNET_log_from (kind, "namecache-postgres", __VA_ARGS__)
 
@@ -72,40 +51,34 @@ struct Plugin
 
 
 /**
- * Create our database indices.
- *
- * @param dbh handle to the database
- */
-static void
-create_indices (PGconn * dbh)
-{
-  /* create indices */
-  if ( (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)")) ||
-       (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)")) )
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Failed to create indices\n"));
-}
-
-
-/**
  * Initialize the database connections and associated
  * data structures (create tables and indices
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
 {
-  PGresult *res;
+  struct GNUNET_PQ_ExecuteStatement es_temporary =
+    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS ns096blocks ("
+                            " query BYTEA NOT NULL DEFAULT '',"
+                            " block BYTEA NOT NULL DEFAULT '',"
+                            " expiration_time BIGINT NOT NULL DEFAULT 0"
+                            ")"
+                            "WITH OIDS");
+  struct GNUNET_PQ_ExecuteStatement es_default =
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns096blocks ("
+                            " query BYTEA NOT NULL DEFAULT '',"
+                            " block BYTEA NOT NULL DEFAULT '',"
+                            " expiration_time BIGINT NOT NULL DEFAULT 0"
+                            ")"
+                            "WITH OIDS");
+  const struct GNUNET_PQ_ExecuteStatement *cr;
 
-  plugin->dbh = GNUNET_POSTGRES_connect (plugin->cfg,
-					 "namecache-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                            "namecache-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
   if (GNUNET_YES ==
@@ -113,65 +86,56 @@ database_setup (struct Plugin *plugin)
 					    "namecache-postgres",
 					    "TEMPORARY_TABLE"))
   {
-    res =
-      PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE ns096blocks ("
-	      " query BYTEA NOT NULL DEFAULT '',"
-	      " block BYTEA NOT NULL DEFAULT '',"
-	      " expiration_time BIGINT NOT NULL DEFAULT 0"
-	      ")" "WITH OIDS");
+    cr = &es_temporary;
   }
   else
   {
-    res =
-      PQexec (plugin->dbh,
-              "CREATE TABLE ns096blocks ("
-	      " query BYTEA NOT NULL DEFAULT '',"
-	      " block BYTEA NOT NULL DEFAULT '',"
-	      " expiration_time BIGINT NOT NULL DEFAULT 0"
-	      ")" "WITH OIDS");
+    cr = &es_default;
   }
-  if ( (NULL == res) ||
-       ((PQresultStatus (res) != PGRES_COMMAND_OK) &&
-        (0 != strcmp ("42P07",    /* duplicate table */
-                      PQresultErrorField
-                      (res,
-                       PG_DIAG_SQLSTATE)))))
-  {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, res,
-                                         PGRES_COMMAND_OK, "CREATE TABLE",
-					 "ns096blocks");
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-  if (PQresultStatus (res) == PGRES_COMMAND_OK)
-    create_indices (plugin->dbh);
-  PQclear (res);
 
-  if ((GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"cache_block",
-				"INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
- 				"($1, $2, $3)", 3)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"expire_blocks",
-				"DELETE FROM ns096blocks WHERE expiration_time<$1", 1)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"delete_block",
-				"DELETE FROM ns096blocks WHERE query=$1 AND expiration_time<=$2", 2)) ||
-      (GNUNET_OK !=
-       GNUNET_POSTGRES_prepare (plugin->dbh,
-				"lookup_block",
-				"SELECT block FROM ns096blocks WHERE query=$1"
-				" ORDER BY expiration_time DESC LIMIT 1", 1)))
   {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
+    struct GNUNET_PQ_ExecuteStatement es[] = {
+      *cr,
+      GNUNET_PQ_make_try_execute ("CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)"),
+      GNUNET_PQ_make_try_execute ("CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)"),
+      GNUNET_PQ_EXECUTE_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_exec_statements (plugin->dbh,
+                                   es))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
   }
+
+  {
+    struct GNUNET_PQ_PreparedStatement ps[] = {
+      GNUNET_PQ_make_prepare ("cache_block",
+                              "INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
+                              "($1, $2, $3)", 3),
+      GNUNET_PQ_make_prepare ("expire_blocks",
+                              "DELETE FROM ns096blocks WHERE expiration_time<$1", 1),
+      GNUNET_PQ_make_prepare ("delete_block",
+                              "DELETE FROM ns096blocks WHERE query=$1 AND expiration_time<=$2", 2),
+      GNUNET_PQ_make_prepare ("lookup_block",
+                              "SELECT block FROM ns096blocks WHERE query=$1"
+                              " ORDER BY expiration_time DESC LIMIT 1", 1),
+      GNUNET_PQ_PREPARED_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_prepare_statements (plugin->dbh,
+                                      ps))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
+  }
+
   return GNUNET_OK;
 }
 
@@ -185,23 +149,16 @@ static void
 namecache_postgres_expire_blocks (struct Plugin *plugin)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_absolute_time (&now),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "expire_blocks",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "expire_blocks"))
-    return;
-  PQclear (res);
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "expire_blocks",
+                                            params);
+  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -217,24 +174,17 @@ delete_old_block (struct Plugin *plugin,
                   const struct GNUNET_HashCode *query,
                   struct GNUNET_TIME_AbsoluteNBO expiration_time)
 {
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (query),
     GNUNET_PQ_query_param_absolute_time_nbo (&expiration_time),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "delete_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "delete_block"))
-    return;
-  PQclear (res);
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "delete_block",
+                                            params);
+  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -254,13 +204,13 @@ namecache_postgres_cache_block (void *cls,
   size_t block_size = ntohl (block->purpose.size) +
     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
     sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (&query),
     GNUNET_PQ_query_param_fixed_size (block, block_size),
     GNUNET_PQ_query_param_absolute_time_nbo (&block->expiration_time),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
+  enum GNUNET_DB_QueryStatus res;
 
   namecache_postgres_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key,
@@ -271,19 +221,15 @@ namecache_postgres_cache_block (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  delete_old_block (plugin, &query, block->expiration_time);
+  delete_old_block (plugin,
+                    &query,
+                    block->expiration_time);
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "cache_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh,
-                                    res,
-                                    PGRES_COMMAND_OK,
-                                    "PQexecPrepared",
-                                    "cache_block"))
+  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                            "cache_block",
+                                            params);
+  if (0 > res)
     return GNUNET_SYSERR;
-  PQclear (res);
   return GNUNET_OK;
 }
 
@@ -301,42 +247,41 @@ namecache_postgres_cache_block (void *cls,
 static int
 namecache_postgres_lookup_block (void *cls,
                                  const struct GNUNET_HashCode *query,
-                                 GNUNET_NAMECACHE_BlockCallback iter, void *iter_cls)
+                                 GNUNET_NAMECACHE_BlockCallback iter,
+                                 void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  struct GNUNET_PQ_QueryParam params[] = { 
+  size_t bsize;
+  struct GNUNET_GNSRECORD_Block *block;
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (query),
     GNUNET_PQ_query_param_end
   };
-  PGresult *res;
-  unsigned int cnt;
-  size_t bsize;
-  const struct GNUNET_GNSRECORD_Block *block;
+  struct GNUNET_PQ_ResultSpec rs[] = {
+    GNUNET_PQ_result_spec_variable_size ("block",
+                                         (void **) &block,
+                                         &bsize),
+    GNUNET_PQ_result_spec_end
+  };
+  enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_exec_prepared (plugin->dbh,
-				 "lookup_block",
-				 params);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
-                                    "PQexecPrepared",
-				    "lookup_block"))
+  res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
+                                                  "lookup_block",
+                                                  params,
+                                                  rs);
+  if (0 > res)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Failing lookup (postgres error)\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Failing lookup block in namecache (postgres error)\n");
     return GNUNET_SYSERR;
   }
-  if (0 == (cnt = PQntuples (res)))
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
-    PQclear (res);
     return GNUNET_NO;
   }
-  GNUNET_assert (1 == cnt);
-  GNUNET_assert (1 != PQnfields (res));
-  bsize = PQgetlength (res, 0, 0);
-  block = (const struct GNUNET_GNSRECORD_Block *) PQgetvalue (res, 0, 0);
   if ( (bsize < sizeof (*block)) ||
        (bsize != ntohl (block->purpose.size) +
         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
@@ -345,11 +290,12 @@ namecache_postgres_lookup_block (void *cls,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Failing lookup (corrupt block)\n");
-    PQclear (res);
+    GNUNET_PQ_cleanup_result (rs);
     return GNUNET_SYSERR;
   }
-  iter (iter_cls, block);
-  PQclear (res);
+  iter (iter_cls,
+        block);
+  GNUNET_PQ_cleanup_result (rs);
   return GNUNET_OK;
 }
 
@@ -395,7 +341,7 @@ libgnunet_plugin_namecache_postgres_init (void *cls)
   api->cache_block = &namecache_postgres_cache_block;
   api->lookup_block = &namecache_postgres_lookup_block;
   LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Postgres database running\n"));
+       "Postgres namecache plugin running\n");
   return api;
 }
 
@@ -416,7 +362,7 @@ libgnunet_plugin_namecache_postgres_done (void *cls)
   plugin->cfg = NULL;
   GNUNET_free (api);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "postgres plugin is finished\n");
+       "Postgres namecache plugin is finished\n");
   return NULL;
 }
 

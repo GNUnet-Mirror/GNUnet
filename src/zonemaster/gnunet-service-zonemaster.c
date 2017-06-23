@@ -648,7 +648,8 @@ handle_monitor_event (void *cls,
 static void
 monitor_sync_event (void *cls)
 {
-  GNUNET_assert (NULL == zone_publish_task);
+  if ( (NULL == zone_publish_task) &&
+       (NULL == namestore_iter) )
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
                                                 NULL);
 }

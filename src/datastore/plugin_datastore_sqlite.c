@@ -186,31 +186,19 @@ create_indices (sqlite3 * dbh)
 {
   /* create indices */
   if ((SQLITE_OK !=
-       sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)",
+       sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn091 (hash)",
                      NULL, NULL, NULL)) ||
       (SQLITE_OK !=
        sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_expire_repl ON gn090 (expire ASC,repl DESC)",
+                     "CREATE INDEX IF NOT EXISTS idx_anon_type ON gn091 (anonLevel ASC,type)",
                      NULL, NULL, NULL)) ||
       (SQLITE_OK !=
        sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
+                     "CREATE INDEX IF NOT EXISTS idx_expire ON gn091 (expire ASC)",
                      NULL, NULL, NULL)) ||
       (SQLITE_OK !=
        sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_anon_type_hash ON gn090 (anonLevel ASC,type,hash)",
-                     NULL, NULL, NULL)) ||
-      (SQLITE_OK !=
-       sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire ASC)",
-                     NULL, NULL, NULL)) ||
-      (SQLITE_OK !=
-       sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)",
-                     NULL, NULL, NULL)) ||
-      (SQLITE_OK !=
-       sqlite3_exec (dbh,
-                     "CREATE INDEX IF NOT EXISTS idx_repl ON gn090 (repl DESC)",
+                     "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn091 (repl,rvalue)",
                      NULL, NULL, NULL)))
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "sqlite",
                      "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
@@ -305,7 +293,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        ENULL));
   CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh,
-                       "PRAGMA page_size=4092", NULL, NULL,
+                       "PRAGMA page_size=4096", NULL, NULL,
                        ENULL));
 
   CHECK (SQLITE_OK ==
@@ -315,7 +303,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* We have to do it here, because otherwise precompiling SQL might fail */
   CHECK (SQLITE_OK ==
          sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'gn090'",
+                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'gn091'",
                      &stmt));
 
   /* FIXME: SQLite does not have unsigned integers! This is ok for the type column because
@@ -327,7 +315,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
         sqlite3_step (stmt)) &&
        (SQLITE_OK !=
         sqlite3_exec (plugin->dbh,
-                      "CREATE TABLE gn090 ("
+                      "CREATE TABLE gn091 ("
                       "  repl INT4 NOT NULL DEFAULT 0,"
                       "  type INT4 NOT NULL DEFAULT 0,"
                       "  prio INT4 NOT NULL DEFAULT 0,"
@@ -353,7 +341,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, _ROWID_"
   if ( (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "UPDATE gn090 "
+                    "UPDATE gn091 "
                     "SET prio = prio + ?, "
                     "repl = repl + ?, "
                     "expire = MAX(expire, ?) "
@@ -361,16 +349,16 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     &plugin->update)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "UPDATE gn090 " "SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
+                    "UPDATE gn091 " "SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                     &plugin->updRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
 #if SQLITE_VERSION_NUMBER >= 3007000
                     "INDEXED BY idx_repl_rvalue "
 #endif
                     "WHERE repl=?2 AND " " (rvalue>=?1 OR "
-                    "  NOT EXISTS (SELECT 1 FROM gn090 "
+                    "  NOT EXISTS (SELECT 1 FROM gn091 "
 #if SQLITE_VERSION_NUMBER >= 3007000
                     "INDEXED BY idx_repl_rvalue "
 #endif
@@ -379,7 +367,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     &plugin->selRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT MAX(repl) FROM gn090"
+                    "SELECT MAX(repl) FROM gn091"
 #if SQLITE_VERSION_NUMBER >= 3007000
                     " INDEXED BY idx_repl_rvalue"
 #endif
@@ -387,18 +375,18 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     &plugin->maxRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
 #if SQLITE_VERSION_NUMBER >= 3007000
                     "INDEXED BY idx_expire "
 #endif
-                    "WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
+                    "WHERE NOT EXISTS (SELECT 1 FROM gn091 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
                     "ORDER BY expire ASC LIMIT 1",
                     &plugin->selExpi)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
 #if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_anon_type_hash "
+                    "INDEXED BY idx_anon_type "
 #endif
                     "WHERE _ROWID_ >= ? AND "
                     "anonLevel = 0 AND "
@@ -407,12 +395,12 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     &plugin->selZeroAnon)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
+                    "INSERT INTO gn091 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     &plugin->insertContent)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT " RESULT_COLUMNS " FROM gn090 "
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
                     "WHERE _ROWID_ >= ? AND "
                     "(rvalue >= ? OR 0 = ?) AND "
                     "(hash = ? OR 0 = ?) AND "
@@ -421,11 +409,11 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     &plugin->get)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "DELETE FROM gn090 WHERE _ROWID_ = ?",
+                    "DELETE FROM gn091 WHERE _ROWID_ = ?",
                     &plugin->delRow)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "DELETE FROM gn090 "
+                    "DELETE FROM gn091 "
                     "WHERE hash = ? AND "
                     "value = ? ",
                     &plugin->remove)) ||
@@ -1137,7 +1125,7 @@ sqlite_plugin_get_keys (void *cls,
   GNUNET_assert (NULL != proc);
   if (SQLITE_OK !=
       sq_prepare (plugin->dbh,
-                  "SELECT hash FROM gn090",
+                  "SELECT hash FROM gn091",
                   &stmt))
   {
     LOG_SQLITE (plugin,

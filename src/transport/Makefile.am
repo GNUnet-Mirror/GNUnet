@@ -10,7 +10,6 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   transport.conf
 
-
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
@@ -79,6 +78,7 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
+if HAVE_EXPERIMENTAL
 if LINUX
  WLAN_BIN = gnunet-helper-transport-wlan
  WLAN_BIN_DUMMY = gnunet-helper-transport-wlan-dummy
@@ -121,6 +121,8 @@ if MINGW
 endif
 endif
 
+# end of HAVE_EXPERIMENTAL
+endif
 
 
 if !MINGW

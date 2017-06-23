@@ -11,9 +11,9 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
-  dv \
   rps
 endif
+#  dv (FTBFS)
 
 if HAVE_JSON
 if HAVE_MHD
@@ -49,7 +49,7 @@ if HAVE_MYSQL
 endif
 
 if HAVE_POSTGRESQL
- POSTGRES_DIR = pq postgres
+ POSTGRES_DIR = pq
 endif
 
 if HAVE_MHD

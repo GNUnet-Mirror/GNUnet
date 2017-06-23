@@ -1,4 +1,4 @@
-.TH GNUNET\-ECC 1 "Mar 15, 2012" "GNUnet"
+.TH GNUNET\-ECC 1 "Jun 5, 2017" "GNUnet"
 
 .SH NAME
 gnunet\-ecc \- manipulate GNUnet ECC key files
@@ -19,6 +19,9 @@ Create COUNT public-private key pairs and write them to FILENAME.  Used for crea
 .IP "\-p, \-\-print-public-key"
 Print the corresponding public key to stdout.  This is the value used for PKEY records in GNS.
 .B
+.IP "\-p, \-\-print-hex"
+Print the corresponding public key to stdout in HEX format.  Useful for comparing to Ed25519 keys in X.509 tools.
+.B
 .IP "\-P, \-\-print-peer-identity"
 Print the corresponding peer identity (hash of the public key) to stdout.  This hash is used for the name of peers.
 .B
@@ -37,4 +40,3 @@ Print GNUnet version number.
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-
