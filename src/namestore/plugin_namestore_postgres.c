@@ -432,6 +432,10 @@ namestore_postgres_iterate_records (void *cls,
   }
   if (res < 0)
     return GNUNET_SYSERR;
+
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
+    return GNUNET_NO;
+
   return GNUNET_OK;
 }
 
