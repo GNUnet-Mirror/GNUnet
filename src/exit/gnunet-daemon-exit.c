@@ -3852,7 +3852,8 @@ run (void *cls,
 
   /* Cadet handle acquired, now open ports and announce regular
      expressions matching our exit */
-  if ( (GNUNET_YES == ipv4_enabled) && (GNUNET_YES == ipv4_exit) )
+  if ( (GNUNET_YES == ipv4_enabled) &&
+       (GNUNET_YES == ipv4_exit) )
   {
     GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_IPV4_GATEWAY,
                         strlen (GNUNET_APPLICATION_PORT_IPV4_GATEWAY),
@@ -3931,7 +3932,7 @@ run (void *cls,
       GNUNET_free (prefixed_regex);
     }
   }
-  if ((ipv4_exit) || (ipv6_exit))
+  if ((ipv4_enabled) || (ipv6_enabled))
     helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 					 "gnunet-helper-exit",
 					 exit_argv,
