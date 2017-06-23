@@ -60,11 +60,6 @@ static char *master_zone_pkey;
 static struct GNUNET_CRYPTO_EcdsaPrivateKey master_pk;
 
 /**
- * String version of PKEY for short-zone.
- */
-static char *short_zone_pkey;
-
-/**
  * String version of PKEY for private-zone.
  */
 static char *private_zone_pkey;
@@ -78,11 +73,6 @@ static char *pin_zone_pkey = "72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRK
  * Set to GNUNET_YES if private record was found;
  */
 static int found_private_rec = GNUNET_NO;
-
-/**
- * Set to GNUNET_YES if short record was found;
- */
-static int found_short_rec = GNUNET_NO;
 
 /**
  * Set to GNUNET_YES if pin record was found;
@@ -219,8 +209,6 @@ zone_iterator (void *cls,
   {
     if (0 == strcmp (rname, "private"))
       check_pkey (rd_len, rd, private_zone_pkey, &found_private_rec);
-    else if (0 == strcmp (rname, "short"))
-      check_pkey (rd_len, rd, short_zone_pkey, &found_short_rec);
     else if (0 == strcmp (rname, "pin"))
       check_pkey (rd_len, rd, pin_zone_pkey, &found_pin_rec);
   }
@@ -239,16 +227,6 @@ zone_iteration_error (void *cls)
         "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "private", "-p", "-t", "PKEY", "-V", private_zone_pkey, NULL))
     {
       ret = 8;
-      return;
-    }
-  }
-  if (!found_short_rec)
-  {
-    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-        "gnunet-namestore",
-        "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "short", "-p", "-t", "PKEY", "-V", short_zone_pkey, NULL))
-    {
-      ret = 9;
       return;
     }
   }
@@ -274,7 +252,7 @@ zone_iteration_finished (void *cls)
 
 
 /**
- * Get master-zone, short-zone and private-zone keys.
+ * Get master-zone and private-zone keys.
  *
  * This function is initially called for all egos and then again
  * whenever a ego's identifier changes or if it is deleted.  At the
@@ -316,7 +294,6 @@ get_ego (void *cls,
   if (NULL == ego)
   {
     if (NULL == master_zone_pkey ||
-        NULL == short_zone_pkey ||
         NULL == private_zone_pkey)
     {
       ret = 11;
@@ -340,8 +317,6 @@ get_ego (void *cls,
       master_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
       master_pk = *GNUNET_IDENTITY_ego_get_private_key (ego);
     }
-    else if (NULL == short_zone_pkey && 0 == strcmp ("short-zone", identifier))
-      short_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
     else if (NULL == private_zone_pkey && 0 == strcmp ("private-zone", identifier))
       private_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
   }
@@ -357,8 +332,6 @@ shutdown_task (void *cls)
 {
   GNUNET_free_non_null (master_zone_pkey);
   master_zone_pkey = NULL;
-  GNUNET_free_non_null (short_zone_pkey);
-  short_zone_pkey = NULL;
   GNUNET_free_non_null (private_zone_pkey);
   private_zone_pkey = NULL;
   if (NULL != list_it)
@@ -411,22 +384,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
       "gnunet-identity",
-      "gnunet-identity", "-C", "short-zone", NULL))
-    return;
-
-  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-      "gnunet-identity",
       "gnunet-identity", "-C", "private-zone", NULL))
     return;
 
   if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
       "gnunet-identity",
       "gnunet-identity", "-C", "sks-zone", NULL))
-    return;
-
-  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-      "gnunet-identity",
-      "gnunet-identity", "-e", "short-zone", "-s", "gns-short", NULL))
     return;
 
   if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
