@@ -3932,12 +3932,12 @@ run (void *cls,
       GNUNET_free (prefixed_regex);
     }
   }
-  if ((ipv4_enabled) || (ipv6_enabled))
-    helper_handle = GNUNET_HELPER_start (GNUNET_NO,
-					 "gnunet-helper-exit",
-					 exit_argv,
-					 &message_token,
-					 NULL, NULL);
+  helper_handle = GNUNET_HELPER_start (GNUNET_NO,
+				       "gnunet-helper-exit",
+				       exit_argv,
+				       &message_token,
+				       NULL,
+				       NULL);
 }
 
 
