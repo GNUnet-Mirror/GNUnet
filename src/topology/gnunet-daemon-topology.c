@@ -1183,8 +1183,8 @@ run (void *cls,
               "Topology would like %u connections with at least %u friends\n",
               target_connection_count,
               minimum_friend_count);
-  if ( (friend_count < minimum_friend_count) &&
-       (NULL == blacklist))
+  if ( (GNUNET_YES == friends_only) ||
+       (minimum_friend_count > 0))
     blacklist = GNUNET_TRANSPORT_blacklist (cfg,
                                             &blacklist_check,
                                             NULL);
