@@ -84,8 +84,8 @@ extract_varsize_blob (void *cls,
 		   row,
 		   fnum))
   {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
+    /* Let's allow this for varsize */
+    return GNUNET_OK;
   }
   /* if a field is null, continue but
    * remember that we now return a different result */

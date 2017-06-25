@@ -514,16 +514,18 @@ postgres_membership_store (void *cls,
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
 
-  if (announced_at > INT64_MAX ||
-      effective_since > INT64_MAX ||
-      group_generation > INT64_MAX)
+  if ( (announced_at > INT64_MAX) ||
+       (effective_since > INT64_MAX) ||
+       (group_generation > INT64_MAX) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  if (GNUNET_OK != channel_key_store (plugin, channel_key)
-      || GNUNET_OK != slave_key_store (plugin, slave_key))
+  if ( (GNUNET_OK !=
+	channel_key_store (plugin, channel_key)) ||
+       (GNUNET_OK !=
+	slave_key_store (plugin, slave_key)) )
     return GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params[] = {
