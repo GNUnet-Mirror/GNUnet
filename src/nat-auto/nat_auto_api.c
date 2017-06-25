@@ -155,7 +155,7 @@ handle_auto_result (void *cls,
       GNUNET_CONFIGURATION_deserialize (cfg,
 					(const char *) &res[1],
 					left,
-					GNUNET_NO))
+					NULL))
   {
     GNUNET_break (0);
     ah->arc (ah->arc_cls,

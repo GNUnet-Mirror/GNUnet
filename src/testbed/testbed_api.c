@@ -2158,9 +2158,10 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
   }
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_deserialize (cfg, (const char *) data,
+      GNUNET_CONFIGURATION_deserialize (cfg,
+					(const char *) data,
                                         (size_t) data_len,
-                                        GNUNET_NO))
+                                        NULL))
   {
     GNUNET_free (data);
     GNUNET_break_op (0);        /* De-serialization failure */

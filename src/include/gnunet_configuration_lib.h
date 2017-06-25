@@ -132,8 +132,8 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cfg configuration to update
  * @param mem the memory block of serialized configuration
  * @param size the size of the memory block
- * @param allow_inline set to #GNUNET_YES if we recursively load configuration
- *          from inlined configurations; #GNUNET_NO if not and raise warnings
+ * @param allow_inline set to the base directory if we recursively load configuration
+ *          from inlined configurations; NULL if not and raise warnings
  *          when we come across them
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
@@ -141,7 +141,7 @@ int
 GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 				  const char *mem,
 				  size_t size,
-				  int allow_inline);
+				  const char *basedir);
 
 
 /**

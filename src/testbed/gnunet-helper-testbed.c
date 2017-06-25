@@ -358,7 +358,10 @@ tokenizer_cb (void *cls,
   }
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_deserialize (cfg, config, ul_config_size, GNUNET_NO))
+      GNUNET_CONFIGURATION_deserialize (cfg,
+					config, 
+					ul_config_size,
+					NULL))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unable to deserialize config -- exiting\n");

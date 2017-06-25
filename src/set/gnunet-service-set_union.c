@@ -1467,8 +1467,6 @@ maybe_finish (struct Operation *op)
          num_demanded);
     if (0 == num_demanded)
     {
-      struct GNUNET_MQ_Envelope *ev;
-
       op->state->phase = PHASE_DONE;
       send_client_done (op);
       destroy_channel (op);
@@ -1894,8 +1892,6 @@ handle_union_p2p_full_done (void *cls,
     break;
   case PHASE_FULL_SENDING:
     {
-      struct GNUNET_MQ_Envelope *ev;
-
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "got FULL DONE, finishing\n");
       /* We sent the full set, and got the response for that.  We're done. */
