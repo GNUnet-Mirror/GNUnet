@@ -413,7 +413,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
   else
     p->cb_cls = p;
   p->start_cb = start_cb;
-  p->start_cb_cls = start_cb_cls;
+  if (NULL != start_cb_cls)
+    p->start_cb_cls = start_cb_cls;
+  else
+    p->start_cb_cls = p;
   GNUNET_CONTAINER_DLL_insert (tth->p_head,
                                tth->p_tail,
                                p);
