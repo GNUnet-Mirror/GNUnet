@@ -1977,6 +1977,37 @@ server_disconnect_cb (void *cls,
 
 
 /**
+ * Callback from MHD when a connection starts/stops
+ *
+ * @param cls closure with the `struct HTTP_Server_Plugin *`
+ * @param connection connection handle
+ * @param socket_context socket-specific pointer
+ * @param toe reason for connection notification
+ * @see #MHD_OPTION_NOTIFY_CONNECTION
+ */
+static void
+server_connection_cb (void *cls,
+                      struct MHD_Connection *connection,
+                      void **socket_context,
+                      enum MHD_ConnectionNotificationCode toe)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+  const union MHD_ConnectionInfo *info;
+
+  if (MHD_CONNECTION_NOTIFY_STARTED == toe)
+    return;
+
+  /* Reschedule to remove closed socket from our select set */
+  info = MHD_get_connection_info (connection,
+                                  MHD_CONNECTION_INFO_DAEMON);
+  GNUNET_assert (NULL != info);
+  server_reschedule (plugin,
+                     info->daemon,
+                     GNUNET_YES);
+}
+
+
+/**
  * Check if incoming connection is accepted.
  *
  * @param cls plugin as closure
@@ -2257,6 +2288,8 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
                                        GNUNET_MAX_MESSAGE_SIZE),
                              MHD_OPTION_NOTIFY_COMPLETED,
                              &server_disconnect_cb, plugin,
+                             MHD_OPTION_NOTIFY_CONNECTION,
+                             &server_connection_cb, plugin,
                              MHD_OPTION_EXTERNAL_LOGGER,
                              &server_log, NULL,
                              MHD_OPTION_END);
