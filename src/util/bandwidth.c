@@ -327,7 +327,6 @@ static void
 update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
 {
   struct GNUNET_TIME_Absolute now;
-  struct GNUNET_TIME_Relative delta;
   uint64_t delta_time;
   uint64_t delta_avail;
   uint64_t left_bytes;
@@ -354,14 +353,20 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
     else
       av->consumption_since_last_update__ = - max_carry;
   }
-  delta.rel_value_us = delta_time;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tracker %p updated, consumption at %lld at %u Bps, last update was %s ago\n",
-       av,
-       (long long) av->consumption_since_last_update__,
-       (unsigned int) av->available_bytes_per_s__,
-       GNUNET_STRINGS_relative_time_to_string (delta,
-					       GNUNET_YES));
+#if !defined(GNUNET_CULL_LOGGING)
+  {
+    struct GNUNET_TIME_Relative delta;
+
+    delta.rel_value_us = delta_time;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Tracker %p updated, consumption at %lld at %u Bps, last update was %s ago\n",
+	 av,
+	 (long long) av->consumption_since_last_update__,
+	 (unsigned int) av->available_bytes_per_s__,
+	 GNUNET_STRINGS_relative_time_to_string (delta,
+						 GNUNET_YES));
+  }
+#endif
 }
 
 

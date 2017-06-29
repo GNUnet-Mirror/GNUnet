@@ -119,7 +119,8 @@ GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename)
       {
         ec = errno;
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not acquire lock on file `%s': %s...\n"), filename,
+             _("Could not acquire lock on file `%s': %s...\n"),
+	     filename,
              STRERROR (ec));
       }
     }
@@ -313,7 +314,8 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
       {
         ec = errno;
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not acquire lock on file `%s': %s...\n"), filename,
+             _("Could not acquire lock on file `%s': %s...\n"),
+	     filename,
              STRERROR (ec));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
