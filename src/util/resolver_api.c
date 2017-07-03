@@ -821,6 +821,7 @@ handle_lookup_timeout (void *cls)
   }
   else
   {
+#if !defined(GNUNET_CULL_LOGGING)
     char buf[INET6_ADDRSTRLEN];
 
     LOG (GNUNET_ERROR_TYPE_INFO,
@@ -829,6 +830,7 @@ handle_lookup_timeout (void *cls)
                     (const void *) &rh[1],
                     buf,
                     sizeof(buf)));
+#endif
     if (GNUNET_NO == rh->received_response)
     {
       char *nret;

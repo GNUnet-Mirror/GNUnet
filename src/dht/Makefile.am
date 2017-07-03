@@ -50,13 +50,13 @@ libgnunet_plugin_block_dht_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-dht
 
-noinst_PROGRAMS = \
+bin_PROGRAMS = \
  gnunet-dht-monitor \
  gnunet-dht-get \
  gnunet-dht-put
 
 if HAVE_TESTING
-noinst_PROGRAMS += \
+noinst_PROGRAMS = \
  gnunet-dht-profiler
 endif
 

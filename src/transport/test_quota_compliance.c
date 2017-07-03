@@ -305,11 +305,11 @@ main (int argc,
   }
   for (unsigned int i=0;i<2;i++)
   {
-    if ( (NULL != gen_cfgs[0]) &&
-         (GNUNET_YES == GNUNET_DISK_file_test (gen_cfgs[0])) )
+    if ( (NULL != gen_cfgs[i]) &&
+         (GNUNET_YES == GNUNET_DISK_file_test (gen_cfgs[i])) )
     {
-      GNUNET_DISK_directory_remove (gen_cfgs[0]);
-      GNUNET_free (gen_cfgs[0]);
+      GNUNET_DISK_directory_remove (gen_cfgs[i]);
+      GNUNET_free (gen_cfgs[i]);
     }
   }
   return 0;

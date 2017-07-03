@@ -203,6 +203,8 @@ struct LogDef
   int force;
 };
 
+
+#if !defined(GNUNET_CULL_LOGGING)
 /**
  * Dynamic array of logging definitions
  */
@@ -219,19 +221,20 @@ static int logdefs_size;
 static int logdefs_len;
 
 /**
- * GNUNET_YES if GNUNET_LOG environment variable is already parsed.
+ * #GNUNET_YES if GNUNET_LOG environment variable is already parsed.
  */
 static int gnunet_log_parsed;
 
 /**
- * GNUNET_YES if GNUNET_FORCE_LOG environment variable is already parsed.
+ * #GNUNET_YES if GNUNET_FORCE_LOG environment variable is already parsed.
  */
 static int gnunet_force_log_parsed;
 
 /**
- * GNUNET_YES if at least one definition with forced == 1 is available.
+ * #GNUNET_YES if at least one definition with forced == 1 is available.
  */
 static int gnunet_force_log_present;
+#endif
 
 #ifdef WINDOWS
 /**
@@ -269,18 +272,6 @@ get_type (const char *log)
 }
 
 
-#if !defined(GNUNET_CULL_LOGGING)
-/**
- * Utility function - reallocates logdefs array to be twice as large.
- */
-static void
-resize_logdefs ()
-{
-  logdefs_size = (logdefs_size + 1) * 2;
-  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));
-}
-
-
 /**
  * Abort the process, generate a core dump if possible.
  */
@@ -291,6 +282,18 @@ GNUNET_abort_ ()
   DebugBreak ();
 #endif
   abort ();
+}
+
+
+#if !defined(GNUNET_CULL_LOGGING)
+/**
+ * Utility function - reallocates logdefs array to be twice as large.
+ */
+static void
+resize_logdefs ()
+{
+  logdefs_size = (logdefs_size + 1) * 2;
+  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof (struct LogDef));
 }
 
 
@@ -715,7 +718,7 @@ GNUNET_log_setup (const char *comp,
   log_file_name = GNUNET_STRINGS_filename_expand (logfile);
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
-#if TALER_WALLET_ONLY
+#if TALER_WALLET_ONLY || defined(GNUNET_CULL_LOGGING)
   /* log file option not allowed for wallet logic */
   GNUNET_assert (NULL == logfile);
   return GNUNET_OK;
@@ -1030,7 +1033,7 @@ mylog (enum GNUNET_ErrorType kind,
     }
 #endif
     VSNPRINTF (buf, size, message, va);
-#if ! TALER_WALLET_ONLY
+#if ! (defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
 #endif

@@ -465,8 +465,10 @@ channel_key_store (struct Plugin *plugin,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
-      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_channel_key", params))
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+					  "insert_channel_key",
+					  params))
     return GNUNET_SYSERR;
 
   return GNUNET_OK;
@@ -482,7 +484,7 @@ slave_key_store (struct Plugin *plugin,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
       GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_slave_key", params))
     return GNUNET_SYSERR;
 
@@ -508,21 +510,22 @@ postgres_membership_store (void *cls,
                            uint64_t group_generation)
 {
   struct Plugin *plugin = cls;
-
-  uint32_t idid_join = (uint32_t)did_join;
+  uint32_t idid_join = (uint32_t) did_join;
 
   GNUNET_assert (TRANSACTION_NONE == plugin->transaction);
 
-  if (announced_at > INT64_MAX ||
-      effective_since > INT64_MAX ||
-      group_generation > INT64_MAX)
+  if ( (announced_at > INT64_MAX) ||
+       (effective_since > INT64_MAX) ||
+       (group_generation > INT64_MAX) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  if (GNUNET_OK != channel_key_store (plugin, channel_key)
-      || GNUNET_OK != slave_key_store (plugin, slave_key))
+  if ( (GNUNET_OK !=
+	channel_key_store (plugin, channel_key)) ||
+       (GNUNET_OK !=
+	slave_key_store (plugin, slave_key)) )
     return GNUNET_SYSERR;
 
   struct GNUNET_PQ_QueryParam params[] = {
@@ -535,8 +538,10 @@ postgres_membership_store (void *cls,
     GNUNET_PQ_query_param_end
   };
 
-  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS !=
-      GNUNET_PQ_eval_prepared_non_select (plugin->dbh, "insert_membership", params))
+  if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT !=
+      GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+					  "insert_membership",
+					  params))
     return GNUNET_SYSERR;
 
   return GNUNET_OK;

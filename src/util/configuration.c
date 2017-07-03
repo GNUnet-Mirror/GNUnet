@@ -145,8 +145,8 @@ GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cfg configuration to update
  * @param mem the memory block of serialized configuration
  * @param size the size of the memory block
- * @param allow_inline set to #GNUNET_YES if we recursively load configuration
- *          from inlined configurations; #GNUNET_NO if not and raise warnings
+ * @param basedir set to path from which we recursively load configuration
+ *          from inlined configurations; NULL if not and raise warnings
  *          when we come across them
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
@@ -154,7 +154,7 @@ int
 GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 				  const char *mem,
 				  size_t size,
-				  int allow_inline)
+				  const char *basedir)
 {
   char *line;
   char *line_orig;
@@ -228,13 +228,23 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       /* @INLINE@ value */
       value = &line[strlen ("@INLINE@ ")];
-      if (GNUNET_YES == allow_inline)
+      if (NULL != basedir)
       {
-	if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
+	char *fn;
+
+	GNUNET_asprintf (&fn,
+			 "%s/%s",
+			 basedir,
+			 value);	
+	if (GNUNET_OK !=
+	    GNUNET_CONFIGURATION_parse (cfg,
+					fn))
 	{
+	  GNUNET_free (fn);
 	  ret = GNUNET_SYSERR;    /* failed to parse included config */
 	  break;
 	}
+	GNUNET_free (fn);
       }
       else
       {
@@ -311,6 +321,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t fs;
   char *fn;
   char *mem;
+  char *endsep;
   int dirty;
   int ret;
 
@@ -350,8 +361,14 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Deserializing contents of file `%s'\n",
        fn);
+  endsep = strrchr (fn, (int) '/');
+  if (NULL != endsep)
+    *endsep = '\0';
+  ret = GNUNET_CONFIGURATION_deserialize (cfg,
+					  mem,
+					  fs,
+					  fn);
   GNUNET_free (fn);
-  ret = GNUNET_CONFIGURATION_deserialize (cfg, mem, fs, GNUNET_YES);
   GNUNET_free (mem);
   /* restore dirty flag - anything we set in the meantime
    * came from disk */

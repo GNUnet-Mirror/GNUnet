@@ -1066,6 +1066,7 @@ void
 GCC_debug (struct CadetConnection *cc,
            enum GNUNET_ErrorType level)
 {
+#if !defined(GNUNET_CULL_LOGGING)
   int do_log;
 
   do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
@@ -1086,6 +1087,7 @@ GCC_debug (struct CadetConnection *cc,
         GCPP_2s (cc->path),
         cc->state,
         (GNUNET_YES == cc->mqm_ready) ? "ready" : "busy");
+#endif
 }
 
-/* end of gnunet-service-cadet-new_connection.c */
+/* end of gnunet-service-cadet_connection.c */

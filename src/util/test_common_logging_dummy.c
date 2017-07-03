@@ -47,11 +47,15 @@ my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
   fflush (stdout);
 }
 
+
+#if !defined(GNUNET_CULL_LOGGING)
 static int
 expensive_func ()
 {
   return GNUNET_NETWORK_socket_select (NULL, NULL, NULL, OUTPUT_DELAY);
 }
+#endif
+
 
 #define pr(kind,lvl) {\
   struct GNUNET_TIME_Absolute t1, t2;\

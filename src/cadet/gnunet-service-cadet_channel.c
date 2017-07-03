@@ -2049,6 +2049,7 @@ void
 GCCH_debug (struct CadetChannel *ch,
             enum GNUNET_ErrorType level)
 {
+#if !defined(GNUNET_CULL_LOGGING)
   int do_log;
 
   do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
@@ -2088,6 +2089,7 @@ GCCH_debug (struct CadetChannel *ch,
         ntohl (ch->mid_recv.mid),
         (unsigned long long) ch->mid_futures,
         ntohl (ch->mid_send.mid));
+#endif
 }
 
 

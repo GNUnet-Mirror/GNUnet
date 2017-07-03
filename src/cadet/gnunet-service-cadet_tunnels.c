@@ -3404,6 +3404,7 @@ void
 GCT_debug (const struct CadetTunnel *t,
            enum GNUNET_ErrorType level)
 {
+#if !defined(GNUNET_CULL_LOGGING)
   struct CadetTConnection *iter_c;
   int do_log;
 
@@ -3435,7 +3436,8 @@ GCT_debug (const struct CadetTunnel *t,
 
   LOG2 (level,
         "TTT TUNNEL END\n");
+#endif
 }
 
 
-/* end of gnunet-service-cadet-new_tunnels.c */
+/* end of gnunet-service-cadet_tunnels.c */

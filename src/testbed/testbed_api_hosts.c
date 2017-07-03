@@ -983,7 +983,10 @@ helper_mst (void *cls,
   GNUNET_CONFIGURATION_destroy (cp->host->cfg);
   cp->host->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_CONFIGURATION_deserialize
-                 (cp->host->cfg, config, config_size, GNUNET_NO));
+                 (cp->host->cfg,
+		  config,
+		  config_size,
+		  NULL));
   GNUNET_free (config);
   if (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host)))
     hostname = "localhost";

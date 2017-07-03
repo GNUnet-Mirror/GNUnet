@@ -36,18 +36,16 @@ else:
   put = './gnunet-dht-put'
   arm = 'gnunet-arm'
 
-tf, tempcfg = tempfile.mkstemp (prefix='test_dht_api_peer1.')
-os.close (tf)
-
-run_get = [get, '-c', tempcfg]
-run_put = [put, '-c', tempcfg]
-run_arm = [arm, '-c', tempcfg]
+cfgfile = 'test_dht_api_peer1.conf'
+  
+run_get = [get, '-c', cfgfile]
+run_put = [put, '-c', cfgfile]
+run_arm = [arm, '-c', cfgfile]
 debug = os.getenv ('DEBUG')
 if debug:
   run_arm += [debug.split (' ')]
 
 def cleanup (exitcode):
-  os.remove (tempcfg)
   sys.exit (exitcode)
 
 def sub_run (args, want_stdo = True, want_stde = False, nofail = False):
@@ -104,7 +102,6 @@ def print_only_failer (command, rc, stdo, stde, normal):
       print ("FAIL: expected error while running {}\nCommand output was:\n{}\n{}".format (command, stdo, stde))
       cleanup (1)
 
-shutil.copyfile ('test_dht_api_peer1.conf', tempcfg)
 
 print ("TEST: Starting ARM...", end='')
 r_arm (['-s'], failer = end_arm_failer, want_stdo = False, want_stde = False)

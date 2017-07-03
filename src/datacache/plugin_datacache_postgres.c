@@ -68,11 +68,11 @@ init_connection (struct Plugin *plugin)
 {
   struct GNUNET_PQ_ExecuteStatement es[] = {
     GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS gn090dc ("
-                            "  type INTEGER NOT NULL DEFAULT 0,"
-                            "  discard_time BIGINT NOT NULL DEFAULT 0,"
-                            "  key BYTEA NOT NULL DEFAULT '',"
-                            "  value BYTEA NOT NULL DEFAULT '',"
-                            "  path BYTEA DEFAULT '')"
+                            "  type INTEGER NOT NULL,"
+                            "  discard_time BIGINT NOT NULL,"
+                            "  key BYTEA NOT NULL,"
+                            "  value BYTEA NOT NULL,"
+                            "  path BYTEA DEFAULT NULL)"
                             "WITH OIDS"),
     GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_key ON gn090dc (key)"),
     GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_dt ON gn090dc (discard_time)"),

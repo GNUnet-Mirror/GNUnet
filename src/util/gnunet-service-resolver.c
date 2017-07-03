@@ -666,6 +666,8 @@ handle_get (void *cls,
     return;
   }
   ip = &msg[1];
+  
+#if !defined(GNUNET_CULL_LOGGING)
   {
     char buf[INET6_ADDRSTRLEN];
 
@@ -676,6 +678,7 @@ handle_get (void *cls,
 			   buf,
 			   sizeof (buf)));
   }
+#endif
   get_ip_as_string (client,
 		    af,
 		    ip);

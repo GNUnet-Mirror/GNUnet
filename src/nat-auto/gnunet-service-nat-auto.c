@@ -310,7 +310,7 @@ handle_autoconfig_request (void *cls,
       GNUNET_CONFIGURATION_deserialize (ac->c,
 					(const char *) &message[1],
 					left,
-					GNUNET_NO))
+					NULL))
   {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (ch->client);

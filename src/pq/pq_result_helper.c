@@ -83,8 +83,10 @@ extract_varsize_blob (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
-    return GNUNET_SYSERR;
-
+  {
+    /* Let's allow this for varsize */
+    return GNUNET_OK;
+  }
   /* if a field is null, continue but
    * remember that we now return a different result */
   len = PQgetlength (result,
@@ -160,7 +162,10 @@ extract_fixed_blob (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  } 
 
   /* if a field is null, continue but
    * remember that we now return a different result */
@@ -241,8 +246,10 @@ extract_rsa_public_key (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
-
+  }
   /* if a field is null, continue but
    * remember that we now return a different result */
   len = PQgetlength (result,
@@ -340,8 +347,10 @@ extract_rsa_signature (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
-
+  }
   /* if a field is null, continue but
    * remember that we now return a different result */
   len = PQgetlength (result,
@@ -439,8 +448,10 @@ extract_string (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
-
+  }
   /* if a field is null, continue but
    * remember that we now return a different result */
   len = PQgetlength (result,
@@ -569,7 +580,10 @@ extract_uint16 (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  { 
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   GNUNET_assert (NULL != dst);
   if (sizeof (uint16_t) != *dst_size)
   {
@@ -639,7 +653,10 @@ extract_uint32 (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   GNUNET_assert (NULL != dst);
   if (sizeof (uint32_t) != *dst_size)
   {
@@ -709,7 +726,10 @@ extract_uint64 (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   GNUNET_assert (NULL != dst);
   if (sizeof (uint64_t) != *dst_size)
   {

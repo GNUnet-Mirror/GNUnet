@@ -151,10 +151,9 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
 {
-  unsigned int i;
   struct Plugin *plugin;
 
-  for (i = 0; i < ctx->num_plugins; i++)
+  for (unsigned int i = 0; i < ctx->num_plugins; i++)
   {
     plugin = ctx->plugins[i];
     GNUNET_break (NULL ==
@@ -301,6 +300,8 @@ GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
 
   plugin = find_plugin (ctx,
                         type);
+  if (NULL == plugin)
+    return NULL;
   if (NULL == plugin->create_group)
     return NULL;
   va_start (ap,

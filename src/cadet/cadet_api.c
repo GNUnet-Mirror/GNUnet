@@ -326,7 +326,7 @@ destroy_channel (struct GNUNET_CADET_Channel *ch)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying channel %X of %p\n",
-       ch->ccn,
+       htonl (ch->ccn.channel_of_client),
        h);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (h->channels,
