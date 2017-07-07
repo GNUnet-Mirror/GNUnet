@@ -497,7 +497,8 @@ set_operation_destroy (struct GNUNET_SET_OperationHandle *oh)
                                  oh);
     h_assoc = GNUNET_MQ_assoc_remove (set->mq,
                                       oh->request_id);
-    GNUNET_assert ((NULL == h_assoc) || (h_assoc == oh));
+    GNUNET_assert ( (NULL == h_assoc) ||
+		    (h_assoc == oh) );
   }
   GNUNET_free (oh);
 }
@@ -556,7 +557,8 @@ handle_client_set_error (void *cls,
        error);
   while (NULL != set->ops_head)
   {
-    if (NULL != set->ops_head->result_cb)
+    if ( (NULL != set->ops_head->result_cb) &&
+	 (GNUNET_NO == set->destroy_requested) )
       set->ops_head->result_cb (set->ops_head->result_cls,
                                 NULL,
                                 0,
