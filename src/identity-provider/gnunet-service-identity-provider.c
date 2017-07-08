@@ -514,7 +514,7 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
   ssize_t enc_size;
   
   size = GNUNET_CRYPTO_cpabe_serialize_key (rp_key,
-                                            &serialized_key);
+                                            (void**)&serialized_key);
   buf = GNUNET_malloc (strlen (handle->scopes) + 1 + size);
   GNUNET_memcpy (buf,
                  handle->scopes,
@@ -523,6 +523,7 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
                  serialized_key,
                  size);
   // ECDH keypair E = eG
+  ecdh_pubkey = NULL;
   *ecdh_privkey = GNUNET_CRYPTO_ecdhe_key_create();
   GNUNET_CRYPTO_ecdhe_key_get_public (*ecdh_privkey,
                                       ecdh_pubkey);
