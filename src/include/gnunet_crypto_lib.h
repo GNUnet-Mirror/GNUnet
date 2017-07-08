@@ -2186,7 +2186,7 @@ GNUNET_CRYPTO_cpabe_decrypt (const void *block,
                              void **result);
 
 ssize_t
-GNUNET_CRYPTO_cpabe_serialize_key (struct GNUNET_CRYPTO_AbeKey *key,
+GNUNET_CRYPTO_cpabe_serialize_key (const struct GNUNET_CRYPTO_AbeKey *key,
                                    void **result);
 
 struct GNUNET_CRYPTO_AbeKey*
@@ -2194,7 +2194,7 @@ GNUNET_CRYPTO_cpabe_deserialize_key (void *data,
                                      size_t len);
 
 ssize_t
-GNUNET_CRYPTO_cpabe_serialize_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
+GNUNET_CRYPTO_cpabe_serialize_master_key (const struct GNUNET_CRYPTO_AbeMasterKey *key,
                                           void **result);
 
 struct GNUNET_CRYPTO_AbeMasterKey*
