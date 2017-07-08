@@ -87,6 +87,7 @@ libgnunetutil_la_SOURCES = \
   crypto_paillier.c \
   crypto_random.c \
   crypto_rsa.c \
+  crypto_abe.c \
   disk.c \
   disk.h \
   getopt.c \
@@ -117,12 +118,20 @@ libgnunetutil_la_LIBADD = \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
+	$(ABE_LIBADD) \
+	-lbswabe \
+	-lssl \
+	-lpbc \
+	-lglib-2.0 \
   -lltdl $(Z_LIBS) -lunistring $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
+	$(ABE_LDADD) \
   -version-info 13:0:0
 
+libgnunetutil_la_CFLAGS = \
+  $(ABE_CFLAGS)
 
 libgnunetutil_taler_wallet_la_SOURCES = \
   common_allocation.c \
@@ -274,6 +283,7 @@ check_PROGRAMS = \
  test_container_multipeermap \
  test_container_heap \
  test_crypto_symmetric \
+ test_crypto_abe \
  test_crypto_crc \
  test_crypto_ecdsa \
  test_crypto_eddsa \
@@ -404,6 +414,11 @@ test_container_heap_LDADD = \
 test_crypto_symmetric_SOURCES = \
  test_crypto_symmetric.c
 test_crypto_symmetric_LDADD = \
+ libgnunetutil.la
+
+test_crypto_abe_SOURCES = \
+ test_crypto_abe.c
+test_crypto_abe_LDADD = \
  libgnunetutil.la
 
 test_crypto_crc_SOURCES = \
