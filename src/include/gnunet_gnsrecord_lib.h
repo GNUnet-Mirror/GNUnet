@@ -123,6 +123,10 @@ extern "C"
  */
 #define GNUNET_GNSRECORD_TYPE_ATTRIBUTE 65549
 
+/**
+ * Record type for ABE records
+ */
+#define GNUNET_GNSRECORD_TYPE_ABE_KEY 65550
 
 /**
  * Flags that can be set for a record.
