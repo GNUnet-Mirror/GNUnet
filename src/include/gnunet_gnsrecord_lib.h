@@ -129,6 +129,11 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_ABE_KEY 65550
 
 /**
+ * Record type for ABE master keys
+ */
+#define GNUNET_GNSRECORD_TYPE_ABE_MASTER 65551
+
+/**
  * Flags that can be set for a record.
  */
 enum GNUNET_GNSRECORD_Flags
