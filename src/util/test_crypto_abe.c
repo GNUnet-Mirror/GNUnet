@@ -1,0 +1,86 @@
+/*
+     This file is part of GNUnet.
+     Copyright (C) 2002, 2003, 2004, 2006 GNUnet e.V.
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     Boston, MA 02110-1301, USA.
+
+*/
+/**
+ * @author Martin Schanzenbach
+ * @file util/test_crypto_abe.c
+ * @brief test for ABE ciphers
+ */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+
+#define TESTSTRING "Hello World!"
+
+static int
+testAbecipher ()
+{
+  struct GNUNET_CRYPTO_AbeMasterKey *msk;
+  struct GNUNET_CRYPTO_AbeKey *key;
+  char *result;
+  char **attrs;
+  int size;
+  char *res;
+  msk = GNUNET_CRYPTO_cpabe_create_master_key ();
+  size = GNUNET_CRYPTO_cpabe_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
+                                      "testattr", //Policy
+                                      msk,
+                                      (void*)&result);
+  GNUNET_assert (-1 != size);
+  attrs = GNUNET_malloc (2 * sizeof (char*));
+  attrs[0] = "testattr";
+  attrs[1] = NULL;
+  key = GNUNET_CRYPTO_cpabe_create_key (msk,
+                                        attrs);
+
+  size = GNUNET_CRYPTO_cpabe_decrypt (result, size,
+                                      key,
+                                      (void*)&res);
+  if (strlen (TESTSTRING) + 1 != size)
+  {
+    printf ("abeciphertest failed: decryptBlock returned %d\n", size);
+    return 1;
+  }
+  if (0 != strcmp (res, TESTSTRING))
+  {
+    printf ("abeciphertest failed: %s != %s\n", res, TESTSTRING);
+    return 1;
+  }
+  else
+    return 0;
+}
+
+
+int
+main (int argc, char *argv[])
+{
+  int failureCount = 0;
+
+  GNUNET_log_setup ("test-crypto-abe", "WARNING", NULL);
+  failureCount += testAbecipher ();
+
+  if (failureCount != 0)
+  {
+    printf ("%d TESTS FAILED!\n", failureCount);
+    return -1;
+  }
+  return 0;
+}
+
+/* end of test_crypto_aes.c */

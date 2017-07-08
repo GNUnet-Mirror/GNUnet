@@ -440,6 +440,18 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
         AM_CONDITIONAL(HAVE_OGG, false)
         ogg=0)
 
+PKG_CHECK_MODULES([ABE], [glib-2.0])
+# check for pbc library
+pbc=0
+AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
+AM_CONDITIONAL(HAVE_PBC, [test "$pbc" = 1])
+if test "x$pbc" = x1
+then
+  AC_DEFINE([HAVE_PBC],[1],[Have pbc library])
+else
+  AC_DEFINE([HAVE_PBC],[0],[Lacking pbc library])
+fi
+
 
 
 gst=0
