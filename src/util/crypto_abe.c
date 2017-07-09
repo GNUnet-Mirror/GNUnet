@@ -148,6 +148,14 @@ GNUNET_CRYPTO_cpabe_create_master_key (void)
   return key;
 }
 
+void
+GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key)
+{
+  g_byte_array_unref (key->msk);
+  g_byte_array_unref (key->pub);
+  GNUNET_free (key);
+}
+
 struct GNUNET_CRYPTO_AbeKey*
 GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
                              char **attrs)
@@ -156,7 +164,6 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   bswabe_pub_t* pub;
   bswabe_msk_t* msk;
   bswabe_prv_t* prv;
-  gchar* pub_data;
   gsize len;
 
   pub = bswabe_pub_unserialize(key->pub, 0);
@@ -164,73 +171,69 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   prv = bswabe_keygen(pub, msk, attrs);
   prv_key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
   prv_key->prv = bswabe_prv_serialize(prv);
-  pub_data = g_strndup ((gchar*)key->pub->data,
-                        key->pub->len);
+  
   len = key->pub->len;
-  prv_key->pub = g_byte_array_new_take ((guint8*)pub_data, len);
+  printf ("Keylen %lu\n", len);
+  prv_key->pub = bswabe_pub_serialize (pub);
   GNUNET_assert (NULL != prv_key->prv);
   return prv_key;
 }
 
+void
+GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key)
+{
+  g_byte_array_unref (key->prv);
+  g_byte_array_unref (key->pub);
+  GNUNET_free (key);
+}
+
 ssize_t
 write_cpabe (void **result, GByteArray* cph_buf,
-             int file_len, GByteArray* aes_buf)
+             uint32_t file_len, GByteArray* aes_buf)
 {
   char *ptr;
-  int i;
-  ssize_t size;
-  size = aes_buf->len + cph_buf->len + 12;
-  *result = GNUNET_malloc (size);
+  uint32_t *len;
+  
+  *result = GNUNET_malloc (12 + cph_buf->len + aes_buf->len);
   ptr = *result;
-  for(i=3; i >= 0; i--) {
-    *ptr = (file_len & 0xff<<(i*8))>>(i*8);
-    ptr++;
-  }
-  for(i=3; i >= 0; i--) {
-    *ptr = (aes_buf->len & 0xff<<(i*8))>>(i*8);
-    ptr++;
-  }
+  len = (uint32_t*) ptr;
+  *len = htonl (file_len);
+  ptr += 4;
+  len = (uint32_t*) ptr;
+  *len = htonl (aes_buf->len);
+  ptr += 4;
   memcpy (ptr, aes_buf->data, aes_buf->len);
   ptr += aes_buf->len;
-  for(i=3; i >= 0; i--) {
-    *ptr = (cph_buf->len & 0xff<<(i*8))>>(i*8);
-    ptr++;
-  }
+  len = (uint32_t*) ptr;
+  *len = htonl (cph_buf->len);
+  ptr += 4;
   memcpy (ptr, cph_buf->data, cph_buf->len);
-  return size;
+  return 12 + cph_buf->len + aes_buf->len;
 }
 
 ssize_t
 read_cpabe (const void *data, GByteArray** cph_buf, GByteArray** aes_buf)
 {
-  int i;
-  ssize_t buf_len;
-  ssize_t tmp_len;
+  int buf_len;
+  int tmp_len;
   char *ptr;
+  uint32_t *len;
 
   *cph_buf = g_byte_array_new();
   *aes_buf = g_byte_array_new();
   ptr = (char*)data;
-
-  buf_len = 0;
-  for(i=3; i >= 0; i--) {
-    buf_len |= *ptr<<(i*8);
-    ptr++;
-  }
-
-  tmp_len = 0;
-  for(i=3; i >= 0; i--) {
-    tmp_len |= *ptr<<(i*8);
-    ptr++;
-  }
+  len = (uint32_t*)ptr;
+  buf_len = ntohl (*len);
+  ptr += 4;
+  len = (uint32_t*)ptr;
+  tmp_len = ntohl (*len);
+  ptr += 4;
   g_byte_array_set_size(*aes_buf, tmp_len);
   memcpy((*aes_buf)->data, ptr, tmp_len);
   ptr += tmp_len;
-  tmp_len = 0;
-  for(i=3; i >= 0; i--) {
-    tmp_len |= *ptr<<(i*8);
-    ptr++;
-  }
+  len = (uint32_t*)ptr;
+  tmp_len = ntohl (*len);
+  ptr += 4;
   g_byte_array_set_size(*cph_buf, tmp_len);
   memcpy((*cph_buf)->data, ptr, tmp_len);
 
