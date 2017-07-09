@@ -25,7 +25,8 @@ plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_provider.la
 
 bin_PROGRAMS = \
- gnunet-identity-token
+ gnunet-identity-token \
+ gnunet-idp
 
 libexec_PROGRAMS = \
  gnunet-service-identity-provider
@@ -67,6 +68,14 @@ libgnunet_plugin_rest_identity_provider_la_LIBADD = \
 libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+
+gnunet_idp_SOURCES = \
+ gnunet-idp.c
+gnunet_idp_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+  $(GN_LIBINTL)
 
 gnunet_identity_token_SOURCES = \
  gnunet-identity-token.c
