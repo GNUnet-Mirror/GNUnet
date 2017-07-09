@@ -527,7 +527,7 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
   char *enc_keyinfo;
   char *serialized_key;
   char *buf;
-  struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_pubkey;
+  struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
   ssize_t size;
   
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
@@ -545,11 +545,10 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
                  serialized_key,
                  size);
   // ECDH keypair E = eG
-  ecdh_pubkey = NULL;
   *ecdh_privkey = GNUNET_CRYPTO_ecdhe_key_create();
   GNUNET_CRYPTO_ecdhe_key_get_public (*ecdh_privkey,
-                                      ecdh_pubkey);
-  enc_keyinfo = GNUNET_malloc (size);
+                                      &ecdh_pubkey);
+  enc_keyinfo = GNUNET_malloc (size + strlen (handle->scopes) + 1);
   // Derived key K = H(eB)
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdh_ecdsa (*ecdh_privkey,
                                                         &handle->aud_key,
@@ -562,7 +561,7 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
   *result = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)+
                            enc_size);
   GNUNET_memcpy (*result,
-                 ecdh_pubkey,
+                 &ecdh_pubkey,
                  sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   GNUNET_memcpy (*result + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
                  enc_keyinfo,
@@ -1276,7 +1275,7 @@ handle_issue_message (void *cls,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   GNUNET_free (scopes_tmp);
-  scopes_tmp = GNUNET_strdup (v_attrs);
+  /*scopes_tmp = GNUNET_strdup (v_attrs);
 
   for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
   {
@@ -1286,7 +1285,7 @@ handle_issue_message (void *cls,
                                  issue_handle->v_attr_tail,
                                  vattr_entry);
   }
-  GNUNET_free (scopes_tmp);
+  GNUNET_free (scopes_tmp);*/
 
 
 
