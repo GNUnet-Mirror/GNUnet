@@ -166,19 +166,14 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   bswabe_pub_t* pub;
   bswabe_msk_t* msk;
   bswabe_prv_t* prv;
-  gsize len;
 
   pub = bswabe_pub_unserialize(key->pub, 0);
   msk = bswabe_msk_unserialize(pub, key->msk, 0);
   prv = bswabe_keygen(pub, msk, attrs);
   prv_key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
   prv_key->prv = bswabe_prv_serialize(prv);
-  len = key->pub->len;
-  printf ("Keylen %lu\n", len);
   prv_key->pub = bswabe_pub_serialize (pub);
   GNUNET_assert (NULL != prv_key->prv);
-  bswabe_prv_free (prv);
-  bswabe_pub_free (pub);
   bswabe_msk_free (msk);
   return prv_key;
 }
