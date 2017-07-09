@@ -31,6 +31,11 @@
 #include "gnunet_signatures.h"
 
 /**
+ * Init flag
+ */
+static int init;
+
+/**
  * List attribute flag
  */
 static int list;
@@ -93,6 +98,7 @@ do_cleanup(void *cls)
 static void
 ns_error_cb (void *cls)
 {
+  ns_qe = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Failed.");
   do_cleanup(NULL);
@@ -104,6 +110,7 @@ store_attr_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
+  ns_qe = NULL;
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -120,6 +127,7 @@ store_abe_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
+  ns_qe = NULL;
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -133,6 +141,7 @@ store_abe_cont (void *cls,
 static void
 iter_error (void *cls)
 {
+  ns_iterator = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -141,6 +150,7 @@ iter_error (void *cls)
 static void
 iter_finished (void *cls)
 {
+  ns_iterator = NULL;
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
@@ -151,16 +161,22 @@ iter_cb (void *cls,
             unsigned int rd_count,
             const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct GNUNET_CRYPTO_AbeKey *key;
   int i;
   char *attr_value;
-
+  char* attrs[2];
   for (i=0;i<rd_count;i++) {
     if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd[i].record_type)
       continue;
-    GNUNET_CRYPTO_cpabe_decrypt_master (rd[i].data,
-                                        rd[i].data_size,
-                                        abe_key,
-                                        &attr_value);
+    attrs[0] = (char*)label;
+    attrs[1] = 0;
+    key = GNUNET_CRYPTO_cpabe_create_key (abe_key,
+                                          attrs);
+    GNUNET_CRYPTO_cpabe_decrypt (rd[i].data,
+                                 rd[i].data_size,
+                                 key,
+                                 (void**)&attr_value);
+    GNUNET_free (key);
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%s: %s\n", label, attr_value);
   }
@@ -178,7 +194,7 @@ abe_lookup_cb (void *cls,
   struct GNUNET_CRYPTO_AbeMasterKey *new_key;
   int i;
   ssize_t size;
-
+  ns_qe = NULL;
   for (i=0;i<rd_count;i++) {
     if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
       continue;
@@ -200,6 +216,10 @@ abe_lookup_cb (void *cls,
                                             &new_record,
                                             &store_abe_cont,
                                             NULL);
+    return;
+  }
+  if (init) {
+    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
 
@@ -241,6 +261,8 @@ ego_cb (void *cls,
         const char *name)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
+  if (NULL == name)
+    return;
   if (0 != strcmp (name, ego_name))
     return;
   pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -267,11 +289,11 @@ run (void *cls,
     return;
   } 
 
-  if ((NULL == attr_name) && !list)
+  if ((NULL == attr_name) && !list && !init)
   {
     return;
   }
-  if ((NULL == attr_value) && !list)
+  if ((NULL == attr_value) && !list && !init)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Value is required\n"));
@@ -309,11 +331,14 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Ego"),
                                  &ego_name),
-    GNUNET_GETOPT_option_flag ('l',
-                               "list",
+    GNUNET_GETOPT_option_flag ('D',
+                               "dump",
                                gettext_noop ("List attributes for Ego"),
                                &list),
-
+    GNUNET_GETOPT_option_flag ('i',
+                               "init",
+                               gettext_noop ("Initialize attribute store"),
+                               &init),
     GNUNET_GETOPT_OPTION_END
   };
   return GNUNET_PROGRAM_run (argc, argv, "ct",
