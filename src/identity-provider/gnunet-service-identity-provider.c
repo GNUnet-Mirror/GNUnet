@@ -206,6 +206,8 @@ struct ParallelLookup
   struct GNUNET_GNS_LookupRequest *lookup_request;
 
   struct ExchangeHandle *handle;
+
+  char *label;
 };
 
 struct IssueHandle
@@ -567,7 +569,7 @@ serialize_abe_keyinfo (const struct IssueHandle *handle,
                  enc_keyinfo,
                  enc_size);
   GNUNET_free (enc_keyinfo);
-  return GNUNET_OK;
+  return sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)+enc_size;
 }
 
 static void
@@ -901,8 +903,8 @@ static void
 process_parallel_lookup (void *cls, uint32_t rd_count,
                          const struct GNUNET_GNSRECORD_Data *rd)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Parallel lookup finished\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Parallel lookup finished (count=%u)\n", rd_count);
   struct ParallelLookup *parallel_lookup = cls;
   struct ExchangeHandle *handle = parallel_lookup->handle;
   char *data;
@@ -920,9 +922,9 @@ process_parallel_lookup (void *cls, uint32_t rd_count,
                                    rd->data_size,
                                    handle->key,
                                    (void**)&data);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Adding value: %s\n", data);
       token_add_attr (handle->token,
-                      label,
+                      parallel_lookup->label,
                       data);
       GNUNET_free (data);
     }
@@ -930,13 +932,13 @@ process_parallel_lookup (void *cls, uint32_t rd_count,
     i = 0;
     for (; i < rd_count; i++)
     {
-      if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+      if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
       {
         data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
                                                  rd[i].data,
                                                  rd[i].data_size);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-        token_add_attr (handle->token, label, data);
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Adding value: %s\n", data);
+        token_add_attr (handle->token, parallel_lookup->label, data);
         GNUNET_free (data);
       }
     }
@@ -958,6 +960,7 @@ abort_parallel_lookups (void *cls)
   for (lu = handle->parallel_lookups_head;
        NULL != lu;) {
     GNUNET_GNS_lookup_cancel (lu->lookup_request);
+    GNUNET_free (lu->label);
     tmp = lu->next;
     GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
                                  handle->parallel_lookups_tail,
@@ -1019,7 +1022,8 @@ process_lookup_result (void *cls, uint32_t rd_count,
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
 
   scopes = GNUNET_strdup (buf);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Scopes %s\n", scopes);
   handle->key = GNUNET_CRYPTO_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
                                          rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
                                          - strlen (scopes) - 1);
@@ -1027,15 +1031,17 @@ process_lookup_result (void *cls, uint32_t rd_count,
   for (scope = strtok (scopes, ","); NULL != scope; scope = strtok (NULL, ","))
   {
     GNUNET_asprintf (&lookup_query,
-                     "%s.%s.gnu",
-                     scope,
-                     GNUNET_CRYPTO_ecdsa_public_key_to_string (&handle->ticket->payload->identity_key));
+                     "%s.gnu",
+                     scope);
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Looking up %s\n", lookup_query);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
+    parallel_lookup->label = GNUNET_strdup (scope);
     parallel_lookup->lookup_request
       = GNUNET_GNS_lookup (gns_handle,
                            lookup_query,
-                           &handle->ticket->aud_key,
+                           &handle->ticket->payload->identity_key,
                            GNUNET_GNSRECORD_TYPE_ID_ATTR,
                            GNUNET_GNS_LO_LOCAL_MASTER,
                            &process_parallel_lookup,

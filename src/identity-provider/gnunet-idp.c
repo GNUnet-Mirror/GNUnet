@@ -207,8 +207,8 @@ abe_lookup_cb (void *cls,
                                                      (void**)&new_record.data);
     new_record.data_size = size;
     new_record.record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-    new_record.expiration_time = GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us;
-    new_record.flags = GNUNET_GNSRECORD_RF_PRIVATE;
+    new_record.expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
+    new_record.flags = GNUNET_GNSRECORD_RF_PRIVATE | GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
     ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
                                             zone,
                                             "+",
@@ -243,7 +243,7 @@ abe_lookup_cb (void *cls,
   new_record.data_size = size;
   new_record.record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
   new_record.expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
-  new_record.flags = GNUNET_GNSRECORD_RF_NONE;
+  new_record.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 
   ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
                                           zone,
