@@ -176,7 +176,7 @@ iter_cb (void *cls,
                                  rd[i].data_size,
                                  key,
                                  (void**)&attr_value);
-    GNUNET_free (key);
+    GNUNET_CRYPTO_cpabe_delete_key (key);
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%s: %s\n", label, attr_value);
   }
