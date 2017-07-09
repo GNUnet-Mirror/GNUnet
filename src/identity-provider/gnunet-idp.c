@@ -31,6 +31,11 @@
 #include "gnunet_signatures.h"
 
 /**
+ * List attribute flag
+ */
+static int list;
+
+/**
  * The attribute
  */
 static char* attr_name;
@@ -56,6 +61,11 @@ static struct GNUNET_IDENTITY_Handle *identity_handle;
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
+ * Namestore iterator
+ */
+static struct GNUNET_NAMESTORE_ZoneIterator *ns_iterator;
+
+/**
  * Namestore queue
  */
 static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
@@ -70,6 +80,8 @@ do_cleanup(void *cls)
 {
   if (NULL != ns_qe)
     GNUNET_NAMESTORE_cancel (ns_qe);
+  if (NULL != ns_iterator)
+    GNUNET_NAMESTORE_zone_iteration_stop (ns_iterator);
   if (NULL != namestore_handle)
     GNUNET_NAMESTORE_disconnect (namestore_handle);
   if (NULL != identity_handle)
@@ -104,6 +116,58 @@ store_attr_cont (void *cls,
 }
 
 static void
+store_abe_cont (void *cls,
+                 int32_t success,
+                 const char*emsg)
+{
+  if (GNUNET_SYSERR == success) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%s\n", emsg);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Bootstrapped ABE master key. Please run command again.\n");
+  }
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
+iter_error (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Failed to iterate over attributes\n");
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
+iter_finished (void *cls)
+{
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
+iter_cb (void *cls,
+            const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+            const char *label,
+            unsigned int rd_count,
+            const struct GNUNET_GNSRECORD_Data *rd)
+{
+  int i;
+  char *attr_value;
+
+  for (i=0;i<rd_count;i++) {
+    if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd[i].record_type)
+      continue;
+    GNUNET_CRYPTO_cpabe_decrypt_master (rd[i].data,
+                                        rd[i].data_size,
+                                        abe_key,
+                                        &attr_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "%s: %s\n", label, attr_value);
+  }
+  GNUNET_NAMESTORE_zone_iterator_next (ns_iterator);
+}
+
+static void
 abe_lookup_cb (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                const char *label,
@@ -111,6 +175,7 @@ abe_lookup_cb (void *cls,
                const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_GNSRECORD_Data new_record;
+  struct GNUNET_CRYPTO_AbeMasterKey *new_key;
   int i;
   ssize_t size;
 
@@ -121,7 +186,32 @@ abe_lookup_cb (void *cls,
                                                           rd[i].data_size);
   }
   if (NULL == abe_key) {
-    GNUNET_SCHEDULER_add_now (do_error, NULL);
+    new_key = GNUNET_CRYPTO_cpabe_create_master_key ();
+    size = GNUNET_CRYPTO_cpabe_serialize_master_key (new_key,
+                                                     (void**)&new_record.data);
+    new_record.data_size = size;
+    new_record.record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
+    new_record.expiration_time = GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us;
+    new_record.flags = GNUNET_GNSRECORD_RF_PRIVATE;
+    ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
+                                            zone,
+                                            "+",
+                                            1,
+                                            &new_record,
+                                            &store_abe_cont,
+                                            NULL);
+    return;
+  }
+
+  if (list) {
+    ns_iterator = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
+                                                         zone,
+                                                         &iter_error,
+                                                         NULL,
+                                                         &iter_cb,
+                                                         NULL,
+                                                         &iter_finished,
+                                                         NULL);
     return;
   }
 
@@ -129,10 +219,10 @@ abe_lookup_cb (void *cls,
                                       strlen (attr_value) + 1,
                                       attr_name,
                                       abe_key,
-                                      new_record.data);
+                                      (void**)&new_record.data);
   new_record.data_size = size;
-  new_record.record_type = GNUNET_GNSRECORD_TYPE_ABE_ID_ATTR;
-  new_record.expiration_time = GNUNET_TIME_UNIT_HOURS;
+  new_record.record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
+  new_record.expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
   new_record.flags = GNUNET_GNSRECORD_RF_NONE;
 
   ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
@@ -150,7 +240,7 @@ ego_cb (void *cls,
         void **ctx,
         const char *name)
 {
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
   if (0 != strcmp (name, ego_name))
     return;
   pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -170,27 +260,29 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
-  if (NULL == attr_name)
-  {
-    return;
-  }
   if (NULL == ego_name)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Ego is required\n"));
     return;
+  } 
+
+  if ((NULL == attr_name) && !list)
+  {
+    return;
   }
-  if (NULL == attr_value)
+  if ((NULL == attr_value) && !list)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Value is required\n"));
     return;
   }
-  namestore_handle = GNUNET_NAMESTORE_connect (cfgfile);
+
+  namestore_handle = GNUNET_NAMESTORE_connect (c);
   //Get Ego
-  identity_handle = GNUNE_IDENTITY_connect (cfgfile,
-                                            &ego_cb,
-                                            NULL);
+  identity_handle = GNUNET_IDENTITY_connect (c,
+                                             &ego_cb,
+                                             NULL);
 
 
 }
@@ -207,10 +299,20 @@ main(int argc, char *const argv[])
                                  gettext_noop ("Add attribute"),
                                  &attr_name),
 
-    GNUNET_GETOPT_option_flag ('V',
-                               "value",
-                               gettext_noop ("Attribute value"),
-                               &attr_value),
+    GNUNET_GETOPT_option_string ('V',
+                                 "value",
+                                 NULL,
+                                 gettext_noop ("Attribute value"),
+                                 &attr_value),
+    GNUNET_GETOPT_option_string ('e',
+                                 "ego",
+                                 NULL,
+                                 gettext_noop ("Ego"),
+                                 &ego_name),
+    GNUNET_GETOPT_option_flag ('l',
+                               "list",
+                               gettext_noop ("List attributes for Ego"),
+                               &list),
 
     GNUNET_GETOPT_OPTION_END
   };
