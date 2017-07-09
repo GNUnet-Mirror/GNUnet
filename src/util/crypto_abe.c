@@ -148,6 +148,14 @@ GNUNET_CRYPTO_cpabe_create_master_key (void)
   return key;
 }
 
+void
+GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key)
+{
+  g_byte_array_unref (key->msk);
+  g_byte_array_unref (key->pub);
+  GNUNET_free (key);
+}
+
 struct GNUNET_CRYPTO_AbeKey*
 GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
                              char **attrs)
@@ -171,13 +179,21 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   return prv_key;
 }
 
+void
+GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key)
+{
+  g_byte_array_unref (key->prv);
+  g_byte_array_unref (key->pub);
+  GNUNET_free (key);
+}
+
 ssize_t
 write_cpabe (void **result, GByteArray* cph_buf,
              uint32_t file_len, GByteArray* aes_buf)
 {
   char *ptr;
   uint32_t *len;
-  int i;
+  
   *result = GNUNET_malloc (12 + cph_buf->len + aes_buf->len);
   ptr = *result;
   len = (uint32_t*) ptr;
@@ -198,7 +214,6 @@ write_cpabe (void **result, GByteArray* cph_buf,
 ssize_t
 read_cpabe (const void *data, GByteArray** cph_buf, GByteArray** aes_buf)
 {
-  int i;
   int buf_len;
   int tmp_len;
   char *ptr;

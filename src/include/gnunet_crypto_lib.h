@@ -2138,6 +2138,8 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
  */
 struct GNUNET_CRYPTO_AbeMasterKey *
 GNUNET_CRYPTO_cpabe_create_master_key (void);
+void
+GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key);
 
 /**
  * @ingroup crypto
@@ -2148,6 +2150,8 @@ GNUNET_CRYPTO_cpabe_create_master_key (void);
 struct GNUNET_CRYPTO_AbeKey *
 GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *msk,
                                 char **attrs);
+void
+GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key);
 
 
 /**
