@@ -25,17 +25,7 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_ATTR="test"
 gnunet-arm -s -c test_idp.conf
 gnunet-identity -C testego -c test_idp.conf
-$DO_TIMEOUT valgrind gnunet-idp -e testego --init -c test_idp.conf
-$DO_TIMEOUT valgrind gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf
-STATUS=$?
-gnunet-namestore -z testego -D -c test_idp.conf
-$DO_TIMEOUT valgrind --leak-check=full gnunet-idp -e testego -D -c test_idp.conf
-
-if test $? != 0
-then
-  echo "Error issuing..."
-  exit 1
-fi
-#Try import
-gnunet-arm -e -c test_idp_lookup.conf
-exit $RES
+gnunet-idp -e testego --init -c test_idp.conf
+gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf
+gnunet-idp -e testego -D -c test_idp.conf
+gnunet-arm -e -c test_idp.conf

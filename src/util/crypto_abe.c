@@ -145,7 +145,6 @@ GNUNET_CRYPTO_cpabe_create_master_key (void)
   key->msk = bswabe_msk_serialize(msk);
   GNUNET_assert (NULL != key->pub);
   GNUNET_assert (NULL != key->msk);
-  bswabe_pub_free (pub);
   bswabe_msk_free (msk);
   return key;
 }
@@ -174,6 +173,8 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   prv_key->prv = bswabe_prv_serialize(prv);
   prv_key->pub = bswabe_pub_serialize (pub);
   GNUNET_assert (NULL != prv_key->prv);
+  //Memory management in bswabe is buggy
+  //bswabe_prv_free (prv);
   bswabe_msk_free (msk);
   return prv_key;
 }
@@ -296,6 +297,7 @@ GNUNET_CRYPTO_cpabe_decrypt (const void *block,
   if( !bswabe_dec(pub, prv, cph, m) ) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", bswabe_error());
+    bswabe_cph_free(cph);
     return GNUNET_SYSERR;
   }
   bswabe_cph_free(cph);
@@ -304,7 +306,8 @@ GNUNET_CRYPTO_cpabe_decrypt (const void *block,
   g_byte_array_free(aes_buf, 1);
   *result = GNUNET_malloc (plt->len);
   GNUNET_memcpy (*result, plt->data, plt->len);
-  bswabe_prv_free (prv);
+  //freeing is buggy in bswabe
+  //bswabe_prv_free (prv);
   bswabe_pub_free (pub);
   return pt_size;
 }
