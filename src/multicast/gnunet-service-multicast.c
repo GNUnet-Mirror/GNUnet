@@ -1489,7 +1489,7 @@ handle_client_member_join (void *cls,
     if (NULL == grp_mem)
     {
       grp_mem = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-      ret = GNUNET_CONTAINER_multihashmap_put (group_members, &grp->pub_key_hash, grp_mem,
+      GNUNET_CONTAINER_multihashmap_put (group_members, &grp->pub_key_hash, grp_mem,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
     GNUNET_CONTAINER_multihashmap_put (grp_mem, &mem->pub_key_hash, mem,
