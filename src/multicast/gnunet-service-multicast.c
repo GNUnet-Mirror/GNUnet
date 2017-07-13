@@ -767,10 +767,11 @@ cadet_send_join_decision_cb (void *cls,
     {
       chn->join_status = JOIN_REFUSED;
     }
-
     cadet_send_channel (chn, &hdcsn->header);
-    return GNUNET_NO;
+    return GNUNET_YES;
   }
+
+  // return GNUNET_YES to continue the multihashmap_get iteration
   return GNUNET_YES;
 }
 
@@ -845,13 +846,13 @@ cadet_notify_connect (void *cls,
                       struct GNUNET_CADET_Channel *channel,
                       const struct GNUNET_PeerIdentity *source)
 {
-  struct Channel *chn = GNUNET_malloc (sizeof *chn);
+  struct Channel *chn = GNUNET_malloc (sizeof (struct Channel));
   chn->group = cls;
   chn->channel = channel;
   chn->direction = DIR_INCOMING;
   chn->join_status = JOIN_NOT_ASKED;
-
-  GNUNET_CONTAINER_multihashmap_put (channels_in, &chn->group_pub_hash, chn,
+      
+  GNUNET_CONTAINER_multihashmap_put (channels_in, &chn->group->pub_key_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return chn;
 }
@@ -1395,7 +1396,7 @@ handle_client_origin_start (void *cls,
     orig->cadet_port = GNUNET_CADET_open_port (cadet,
                                                &grp->cadet_port_hash,
                                                cadet_notify_connect,
-                                               NULL,
+                                               grp,
                                                cadet_notify_window_change,
                                                cadet_notify_disconnect,
                                                cadet_handlers);
@@ -1458,7 +1459,7 @@ handle_client_member_join (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (&msg->member_key, &mem_pub_key);
   GNUNET_CRYPTO_hash (&mem_pub_key, sizeof (mem_pub_key), &mem_pub_key_hash);
   GNUNET_CRYPTO_hash (&msg->group_pub_key, sizeof (msg->group_pub_key), &pub_key_hash);
-
+  
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members, &pub_key_hash);
   struct Member *mem = NULL;
@@ -1468,6 +1469,7 @@ handle_client_member_join (void *cls,
   {
     mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &mem_pub_key_hash);
   }
+  
   if (NULL == mem)
   {
     mem = GNUNET_new (struct Member);
@@ -1483,15 +1485,16 @@ handle_client_member_join (void *cls,
     grp->pub_key = msg->group_pub_key;
     grp->pub_key_hash = pub_key_hash;
     group_set_cadet_port_hash (grp);
-
+  
     if (NULL == grp_mem)
     {
       grp_mem = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-      GNUNET_CONTAINER_multihashmap_put (group_members, &grp->pub_key_hash, grp_mem,
+      ret = GNUNET_CONTAINER_multihashmap_put (group_members, &grp->pub_key_hash, grp_mem,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
     GNUNET_CONTAINER_multihashmap_put (grp_mem, &mem->pub_key_hash, mem,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
     GNUNET_CONTAINER_multihashmap_put (members, &grp->pub_key_hash, mem,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
@@ -1508,7 +1511,7 @@ handle_client_member_join (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client connected to group %s as member %s (%s).\n",
               GNUNET_h2s (&grp->pub_key_hash),
-              GNUNET_h2s (&mem->pub_key_hash), 
+              GNUNET_h2s2 (&mem->pub_key_hash),
               str);
   GNUNET_free (str);
 
@@ -1636,7 +1639,8 @@ handle_client_join_decision (void *cls,
                 "%p ..and member %s: %p\n",
                 grp, GNUNET_h2s (&member_key_hash), mem);
   }
-  if (NULL != mem)
+  
+  if (NULL != mem) 
   { /* Found local member */
     client_send_join_decision (mem, hdcsn);
   }
