@@ -27,133 +27,139 @@
 
 
 #include "platform.h"
-#include <glib.h>
-#include <openssl/aes.h>
-#include <openssl/sha.h>
 #include <pbc/pbc.h>
-#include <bswabe.h>
+#include <gabe.h>
 
 #include "gnunet_crypto_lib.h"
 
 struct GNUNET_CRYPTO_AbeMasterKey
 {
-  GByteArray* pub;
-
-  GByteArray* msk;
+  gabe_pub_t* pub;
+  gabe_msk_t* msk;
 };
 
 struct GNUNET_CRYPTO_AbeKey
 {
-  GByteArray* pub;
-  GByteArray* prv;
+  gabe_pub_t* pub;
+  gabe_prv_t* prv;
 };
 
-static void
-init_aes( element_t k, int enc, AES_KEY* key, unsigned char* iv )
+static int
+init_aes( element_t k, int enc,
+          gcry_cipher_hd_t* handle,
+          struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+          unsigned char* iv)
 {
+  int rc;
   int key_len;
   unsigned char* key_buf;
-
-  key_len = element_length_in_bytes(k) < 17 ? 17 : element_length_in_bytes(k);
+  
+  key_len = element_length_in_bytes(k) < 33 ? 3 : element_length_in_bytes(k);
   key_buf = (unsigned char*) malloc(key_len);
   element_to_bytes(key_buf, k);
 
-  if( enc )
-    AES_set_encrypt_key(key_buf + 1, 128, key);
-  else
-    AES_set_decrypt_key(key_buf + 1, 128, key);
-  free(key_buf);
+  memcpy (key->aes_key, key_buf, GNUNET_CRYPTO_AES_KEY_LENGTH); 
+  GNUNET_assert (0 ==
+                 gcry_cipher_open (handle, GCRY_CIPHER_AES256,
+                                   GCRY_CIPHER_MODE_CFB, 0));
+  rc = gcry_cipher_setkey (*handle,
+                           key->aes_key,
+                           sizeof (key->aes_key));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  memset (iv, 0, 16); //TODO make reasonable
+  rc = gcry_cipher_setiv (*handle,
+                          iv,
+                          16);
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
 
-  memset(iv, 0, 16);
+  free(key_buf);
+  return rc;
 }
 
-static GByteArray*
-aes_128_cbc_encrypt( GByteArray* pt, element_t k )
+static int
+aes_128_cbc_encrypt( char* pt,
+                     int size,
+                     element_t k,
+                     char **ct )
 {
-  AES_KEY key;
+  gcry_cipher_hd_t handle;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   unsigned char iv[16];
-  GByteArray* ct;
-  guint8 len[4];
-  guint8 zero;
-
-  init_aes(k, 1, &key, iv);
+  char* buf;
+  int padding;
+  int buf_size;
+  uint8_t len[4];
+  init_aes(k, 1, &handle, &skey, iv);
 
   /* TODO make less crufty */
 
   /* stuff in real length (big endian) before padding */
-  len[0] = (pt->len & 0xff000000)>>24;
-  len[1] = (pt->len & 0xff0000)>>16;
-  len[2] = (pt->len & 0xff00)>>8;
-  len[3] = (pt->len & 0xff)>>0;
-  g_byte_array_prepend(pt, len, 4);
+  len[0] = (size & 0xff000000)>>24;
+  len[1] = (size & 0xff0000)>>16;
+  len[2] = (size & 0xff00)>>8;
+  len[3] = (size & 0xff)>>0;
+  padding = 16 - ((4+size) % 16);
+  buf_size = 4 + size + padding;
+  buf = GNUNET_malloc (buf_size);
+  GNUNET_memcpy (buf, len, 4);
+  GNUNET_memcpy (buf+4, pt, size);
+  *ct = GNUNET_malloc (buf_size);
 
-  /* pad out to multiple of 128 bit (16 byte) blocks */
-  zero = 0;
-  while( pt->len % 16 )
-    g_byte_array_append(pt, &zero, 1);
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, *ct, buf_size, buf, buf_size));
+  gcry_cipher_close (handle);
+  //AES_cbc_encrypt(pt->data, ct->data, pt->len, &key, iv, AES_ENCRYPT);
 
-  ct = g_byte_array_new();
-  g_byte_array_set_size(ct, pt->len);
-
-  AES_cbc_encrypt(pt->data, ct->data, pt->len, &key, iv, AES_ENCRYPT);
-
-  return ct;
+  return buf_size;
 }
 
-static GByteArray*
-aes_128_cbc_decrypt( GByteArray* ct, element_t k )
+static int
+aes_128_cbc_decrypt( char* ct,
+                     int size,
+                     element_t k,
+                     char **pt )
 {
-  AES_KEY key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
+  gcry_cipher_hd_t handle;
   unsigned char iv[16];
-  GByteArray* pt;
-  unsigned int len;
+  char* tmp;
+  uint32_t len;
+  
+  init_aes(k, 1, &handle, &skey, iv);
 
-  init_aes(k, 0, &key, iv);
+  tmp = GNUNET_malloc (size);
 
-  pt = g_byte_array_new();
-  g_byte_array_set_size(pt, ct->len);
-
-  AES_cbc_encrypt(ct->data, pt->data, ct->len, &key, iv, AES_DECRYPT);
-
+  //AES_cbc_encrypt(ct->data, pt->data, ct->len, &key, iv, AES_DECRYPT);
+  GNUNET_assert (0 == gcry_cipher_decrypt (handle, tmp, size, ct, size)); 
+  gcry_cipher_close (handle);
   /* TODO make less crufty */
   
   /* get real length */
   len = 0;
   len = len
-    | ((pt->data[0])<<24) | ((pt->data[1])<<16)
-    | ((pt->data[2])<<8)  | ((pt->data[3])<<0);
-  g_byte_array_remove_index(pt, 0);
-  g_byte_array_remove_index(pt, 0);
-  g_byte_array_remove_index(pt, 0);
-  g_byte_array_remove_index(pt, 0);
-
+    | ((tmp[0])<<24) | ((tmp[1])<<16)
+    | ((tmp[2])<<8)  | ((tmp[3])<<0);
   /* truncate any garbage from the padding */
-  g_byte_array_set_size(pt, len);
-
-  return pt;
+  *pt = GNUNET_malloc (len);
+  GNUNET_memcpy (*pt, tmp+4, len);
+  GNUNET_free (tmp);
+  return len;
 }
 
 struct GNUNET_CRYPTO_AbeMasterKey*
 GNUNET_CRYPTO_cpabe_create_master_key (void)
 {
   struct GNUNET_CRYPTO_AbeMasterKey* key;
-  bswabe_msk_t* msk;
-  bswabe_pub_t* pub;
-  bswabe_setup(&pub, &msk);
   key = GNUNET_new (struct GNUNET_CRYPTO_AbeMasterKey);
-  key->pub = bswabe_pub_serialize(pub);
-  key->msk = bswabe_msk_serialize(msk);
+  gabe_setup(&key->pub, &key->msk);
   GNUNET_assert (NULL != key->pub);
   GNUNET_assert (NULL != key->msk);
-  bswabe_msk_free (msk);
   return key;
 }
 
 void
 GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key)
 {
-  g_byte_array_unref (key->msk);
-  g_byte_array_unref (key->pub);
+  gabe_msk_free (key->msk); //For some reason free of pub implicit?
   GNUNET_free (key);
 }
 
@@ -162,80 +168,80 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
                              char **attrs)
 {
   struct GNUNET_CRYPTO_AbeKey *prv_key;
-  bswabe_pub_t* pub;
-  bswabe_msk_t* msk;
-  bswabe_prv_t* prv;
-
-  pub = bswabe_pub_unserialize(key->pub, 0);
-  msk = bswabe_msk_unserialize(pub, key->msk, 0);
-  prv = bswabe_keygen(pub, msk, attrs);
   prv_key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
-  prv_key->prv = bswabe_prv_serialize(prv);
-  prv_key->pub = bswabe_pub_serialize (pub);
+  int size;
+  char *tmp;
+  
+  prv_key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
+  prv_key->prv = gabe_keygen(key->pub, key->msk, attrs);
+  size = gabe_pub_serialize(key->pub, &tmp);
+  prv_key->pub = gabe_pub_unserialize(tmp, size);
   GNUNET_assert (NULL != prv_key->prv);
-  //Memory management in bswabe is buggy
-  //bswabe_prv_free (prv);
-  bswabe_msk_free (msk);
   return prv_key;
 }
 
 void
 GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key)
 {
-  g_byte_array_unref (key->prv);
-  g_byte_array_unref (key->pub);
+  //Memory management in gabe is buggy
+  //gabe_prv_free (prv);
   GNUNET_free (key);
 }
 
 ssize_t
-write_cpabe (void **result, GByteArray* cph_buf,
-             uint32_t file_len, GByteArray* aes_buf)
+write_cpabe (void **result,
+             uint32_t file_len,
+             char* cph_buf,
+             int cph_buf_len,
+             char* aes_buf,
+             int aes_buf_len)
 {
   char *ptr;
   uint32_t *len;
   
-  *result = GNUNET_malloc (12 + cph_buf->len + aes_buf->len);
+  *result = GNUNET_malloc (12 + cph_buf_len + aes_buf_len);
   ptr = *result;
   len = (uint32_t*) ptr;
   *len = htonl (file_len);
   ptr += 4;
   len = (uint32_t*) ptr;
-  *len = htonl (aes_buf->len);
+  *len = htonl (aes_buf_len);
   ptr += 4;
-  memcpy (ptr, aes_buf->data, aes_buf->len);
-  ptr += aes_buf->len;
+  memcpy (ptr, aes_buf, aes_buf_len);
+  ptr += aes_buf_len;
   len = (uint32_t*) ptr;
-  *len = htonl (cph_buf->len);
+  *len = htonl (cph_buf_len);
   ptr += 4;
-  memcpy (ptr, cph_buf->data, cph_buf->len);
-  return 12 + cph_buf->len + aes_buf->len;
+  memcpy (ptr, cph_buf, cph_buf_len);
+  return 12 + cph_buf_len + aes_buf_len;
 }
 
 ssize_t
-read_cpabe (const void *data, GByteArray** cph_buf, GByteArray** aes_buf)
+read_cpabe (const void *data,
+            char** cph_buf,
+            int *cph_buf_len,
+            char** aes_buf,
+            int *aes_buf_len)
 {
   int buf_len;
-  int tmp_len;
   char *ptr;
   uint32_t *len;
 
-  *cph_buf = g_byte_array_new();
-  *aes_buf = g_byte_array_new();
   ptr = (char*)data;
   len = (uint32_t*)ptr;
   buf_len = ntohl (*len);
   ptr += 4;
   len = (uint32_t*)ptr;
-  tmp_len = ntohl (*len);
+  *aes_buf_len = ntohl (*len);
   ptr += 4;
-  g_byte_array_set_size(*aes_buf, tmp_len);
-  memcpy((*aes_buf)->data, ptr, tmp_len);
-  ptr += tmp_len;
+  *aes_buf = GNUNET_malloc (*aes_buf_len);
+  memcpy(*aes_buf, ptr, *aes_buf_len);
+  ptr += *aes_buf_len;
   len = (uint32_t*)ptr;
-  tmp_len = ntohl (*len);
+  *cph_buf_len = ntohl (*len);
   ptr += 4;
-  g_byte_array_set_size(*cph_buf, tmp_len);
-  memcpy((*cph_buf)->data, ptr, tmp_len);
+  *cph_buf = GNUNET_malloc (*cph_buf_len);
+  memcpy(*cph_buf, ptr, *cph_buf_len);
 
   return buf_len;
 }
@@ -247,69 +253,58 @@ GNUNET_CRYPTO_cpabe_encrypt (const void *block,
                              const struct GNUNET_CRYPTO_AbeMasterKey *key,
                              void **result)
 {
-  bswabe_pub_t* pub;
-  bswabe_cph_t* cph;
-  GByteArray* plt;
-  GByteArray* cph_buf;
-  GByteArray* aes_buf;
-  guint8 *data;
+  gabe_cph_t* cph;
+  char* plt;
+  char* cph_buf;
+  char* aes_buf;
   element_t m;
-  size_t payload_len;
+  int cph_buf_len;
+  int aes_buf_len;
   ssize_t result_len;
 
-  pub = bswabe_pub_unserialize(key->pub, 0);
-  if( !(cph = bswabe_enc(pub, m, policy)) )
+  if( !(cph = gabe_enc(key->pub, m, policy)) )
     return GNUNET_SYSERR;
-  cph_buf = bswabe_cph_serialize(cph);
-  bswabe_cph_free(cph);
-  data = g_memdup (block, size);
-  plt = g_byte_array_new_take (data, size);
-  payload_len = plt->len;
-  aes_buf = aes_128_cbc_encrypt(plt, m);
-  g_byte_array_free(plt, 1);
+  cph_buf_len = gabe_cph_serialize(cph,
+                                &cph_buf);
+  gabe_cph_free(cph);
+  plt = GNUNET_memdup (block, size);
+  aes_buf_len = aes_128_cbc_encrypt(plt, size, m, &aes_buf);
+  GNUNET_free (plt);
   element_clear(m);
-  result_len = write_cpabe(result, cph_buf, payload_len, aes_buf);
-  g_byte_array_free(cph_buf, 1);
-  g_byte_array_free(aes_buf, 1);
-  bswabe_pub_free (pub);
+  result_len = write_cpabe(result, size, cph_buf, cph_buf_len, aes_buf, aes_buf_len);
+  GNUNET_free(cph_buf);
+  GNUNET_free(aes_buf);
   return result_len;
 }
 
 ssize_t
 GNUNET_CRYPTO_cpabe_decrypt (const void *block,
-                       size_t size,
-                       const struct GNUNET_CRYPTO_AbeKey *key,
-                       void **result)
+                             size_t size,
+                             const struct GNUNET_CRYPTO_AbeKey *key,
+                             void **result)
 {
-  bswabe_pub_t* pub;
-  bswabe_prv_t* prv;
-  GByteArray* aes_buf;
-  GByteArray* plt;
-  GByteArray* cph_buf;
-  bswabe_cph_t* cph;
+  char* aes_buf;
+  char* cph_buf;
+  gabe_cph_t* cph;
   element_t m;
-  ssize_t pt_size;
+  int cph_buf_size;
+  int aes_buf_size;
+  int plt_len;
 
-  pub = bswabe_pub_unserialize(key->pub, 0);
-  prv = bswabe_prv_unserialize(pub, key->prv, 0);
-  pt_size = read_cpabe(block, &cph_buf, &aes_buf);
-  cph = bswabe_cph_unserialize(pub, cph_buf, 0);
-  if( !bswabe_dec(pub, prv, cph, m) ) {
+  read_cpabe(block, &cph_buf, &cph_buf_size, &aes_buf, &aes_buf_size);
+  cph = gabe_cph_unserialize(key->pub, cph_buf, cph_buf_size);
+  if( !gabe_dec(key->pub, key->prv, cph, m) ) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s\n", bswabe_error());
-    bswabe_cph_free(cph);
+                "%s\n", gabe_error());
+    gabe_cph_free(cph);
     return GNUNET_SYSERR;
   }
-  bswabe_cph_free(cph);
-  plt = aes_128_cbc_decrypt(aes_buf, m);
-  g_byte_array_set_size(plt, size);
-  g_byte_array_free(aes_buf, 1);
-  *result = GNUNET_malloc (plt->len);
-  GNUNET_memcpy (*result, plt->data, plt->len);
-  //freeing is buggy in bswabe
-  //bswabe_prv_free (prv);
-  bswabe_pub_free (pub);
-  return pt_size;
+  gabe_cph_free(cph);
+  plt_len = aes_128_cbc_decrypt(aes_buf, aes_buf_size, m, (char**)result);
+  //freeing is buggy in gabe
+  //gabe_prv_free (prv);
+  //gabe_pub_free (pub);
+  return plt_len;
 }
 
 ssize_t
@@ -317,9 +312,19 @@ GNUNET_CRYPTO_cpabe_serialize_key (const struct GNUNET_CRYPTO_AbeKey *key,
                                    void **result)
 {
   ssize_t len;
+  char *pub;
+  char *prv;
+  int pub_len;
+  int prv_len;
 
-  len = key->pub->len + key->prv->len + 12;
-  write_cpabe (result, key->pub, len, key->prv);
+  pub_len = gabe_pub_serialize (key->pub, &pub);
+  prv_len = gabe_prv_serialize (key->prv, &prv);
+
+  len = pub_len + prv_len + 12;
+  write_cpabe (result, len, pub, pub_len, prv, prv_len);
+
+  GNUNET_free (pub);
+  GNUNET_free (prv);
 
   return len;
 }
@@ -329,10 +334,22 @@ GNUNET_CRYPTO_cpabe_deserialize_key (const void *data,
                                      size_t len)
 {
   struct GNUNET_CRYPTO_AbeKey *key;
+  char *pub;
+  char *prv;
+  int prv_len;
+  int pub_len;
 
   key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
-  read_cpabe (data, &key->pub, &key->prv);
-
+  read_cpabe (data,
+              &pub,
+              &pub_len,
+              &prv,
+              &prv_len);
+  key->pub = gabe_pub_unserialize (pub, pub_len);
+  key->prv = gabe_prv_unserialize (key->pub, prv, prv_len);
+  
+  GNUNET_free (pub);
+  GNUNET_free (prv);
   return key;
 }
 
@@ -341,9 +358,19 @@ GNUNET_CRYPTO_cpabe_serialize_master_key (const struct GNUNET_CRYPTO_AbeMasterKe
                                           void **result)
 {
   ssize_t len;
+  char *pub;
+  char *msk;
+  int pub_len;
+  int msk_len;
 
-  len = key->pub->len + key->msk->len + 12;
-  write_cpabe (result, key->pub, len, key->msk);
+  pub_len = gabe_pub_serialize (key->pub, &pub);
+  msk_len = gabe_msk_serialize (key->msk, &msk);
+
+  len = pub_len + msk_len + 12;
+  write_cpabe (result, len, pub, pub_len, msk, msk_len);
+
+  GNUNET_free (pub);
+  GNUNET_free (msk);
 
   return len;
 }
@@ -353,9 +380,22 @@ GNUNET_CRYPTO_cpabe_deserialize_master_key (const void *data,
                                             size_t len)
 {
   struct GNUNET_CRYPTO_AbeMasterKey *key;
+  char *msk;
+  char *pub;
+  int msk_len;
+  int pub_len;
 
   key = GNUNET_new (struct GNUNET_CRYPTO_AbeMasterKey);
-  read_cpabe (data, &key->pub, &key->msk);
+  read_cpabe (data,
+              &pub,
+              &pub_len,
+              &msk,
+              &msk_len);
+  key->pub = gabe_pub_unserialize (pub, pub_len);
+  key->msk = gabe_msk_unserialize (key->pub, msk, msk_len);
+  
+  GNUNET_free (pub);
+  GNUNET_free (msk);
 
   return key;
 }

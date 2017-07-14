@@ -76,9 +76,12 @@ src/core/gnunet-service-core_kx.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
 src/credential/credential_api.c
+src/credential/credential_misc.c
+src/credential/credential_serialization.c
 src/credential/gnunet-credential.c
 src/credential/gnunet-service-credential.c
 src/credential/plugin_gnsrecord_credential.c
+src/credential/plugin_rest_credential.c
 src/curl/curl.c
 src/curl/curl_reschedule.c
 src/datacache/datacache.c
@@ -200,6 +203,7 @@ src/identity/identity_api_lookup.c
 src/identity/plugin_gnsrecord_identity.c
 src/identity/plugin_rest_identity.c
 src/identity-provider/gnunet-identity-token.c
+src/identity-provider/gnunet-idp.c
 src/identity-provider/gnunet-service-identity-provider.c
 src/identity-provider/identity_provider_api.c
 src/identity-provider/identity_token.c
@@ -443,6 +447,7 @@ src/util/container_multihashmap32.c
 src/util/container_multihashmap.c
 src/util/container_multipeermap.c
 src/util/container_multishortmap.c
+src/util/crypto_abe.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
 src/util/crypto_ecc_dlog.c
