@@ -1116,45 +1116,6 @@ AC_SUBST(SUDO_BINARY)
 AM_CONDITIONAL([HAVE_SUDO], [test "x$SUDO_BINARY" != "x" -o -w /])
 
 
-# test for nssdir
-AC_MSG_CHECKING(with nssdir)
-AC_ARG_WITH(nssdir,
-  [  --with-nssdir=PATH       where to install NSS plugins],
-  [AC_MSG_RESULT("$with_nssdir")
-   case $with_nssdir in
-   no)
-     NSS_DIR=
-     install_nss=0
-     ;;
-   yes)
-     NSS_DIR="/lib"
-     install_nss=1
-     ;;
-   *)
-     NSS_DIR=$with_nssdir
-     install_nss=1
-    ;;
-   esac
-  ],
-  [
-# This test is inappropriate when installation with DESTDIR is
-# run much later and uid will be root when needed. Enabling this
-# code breaks the gnunet.ebuild for gentoo.
-#
-#  if test "x$SUDO_BINARY" != "x" -o -w /
-#  then
-     NSS_DIR="/lib"
-     install_nss=1
-     AC_MSG_RESULT([yes, to /lib])
-#  else
-#    NSS_DIR=
-#    install_nss=0
-#    AC_MSG_RESULT([no])
-#  fi
-  ])
-AC_SUBST(NSS_DIR)
-AM_CONDITIONAL([INSTALL_NSS], [test "x$install_nss" != "x0"])
-
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns
 AC_MSG_CHECKING(for gnunetdns group name)
@@ -1792,14 +1753,6 @@ if test "$enable_framework_build" = "yes"
 then
   AC_MSG_NOTICE([Mac OS X framework build enabled.])
 fi
-
-if test "x$install_nss" = "x0"
-then
-  AC_MSG_NOTICE([WARNING: Will not install GNS NSS library])
-else
-  AC_MSG_NOTICE([NOTICE: Will install GNS NSS library to $NSS_DIR])
-fi
-
 
 AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'
