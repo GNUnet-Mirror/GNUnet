@@ -585,6 +585,21 @@ GNUNET_h2s (const struct GNUNET_HashCode * hc);
 /**
  * @ingroup logging
  * Convert a hash value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant! Identical to #GNUNET_h2s(), except that another
+ * buffer is used so both #GNUNET_h2s() and #GNUNET_h2s2() can be
+ * used within the same log statement.
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_h2s2 (const struct GNUNET_HashCode * hc);
+
+
+/**
+ * @ingroup logging
+ * Convert a hash value to a string (for printing debug messages).
  * This prints all 104 characters of a hashcode!
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
