@@ -164,7 +164,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                        info->value.search.specifics.result.meta,
                                        NULL);
     uri = GNUNET_FS_uri_to_string (info->value.search.specifics.result.uri);
-    printf ("#%u:\n", cnt++);
+    printf ("#%u:\n", ++cnt);
     filename =
         GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.
                                                 specifics.result.meta,
