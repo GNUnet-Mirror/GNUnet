@@ -1055,23 +1055,67 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
  * @param task id of the task to cancel
  * @return original closure of the task
  */
-void initFdInfo(struct GNUNET_SCHEDULER_FdInfo *fdi, struct GNUNET_SCHEDULER_Task *task)
+void
+initFdInfo(struct GNUNET_SCHEDULER_Task *task,
+           struct GNUNET_NETWORK_Handle *read_nh,
+           struct GNUNET_NETWORK_Handle *write_nh,
+           struct GNUNET_DISK_FileHandle *read_fh,
+           struct GNUNET_DISK_FileHandle *write_fh)
 {
-  if  (-1 != task->read_fd)
+  // either only network handles or only file handles are allowed
+  GNUNET_assert (!((NULL != read_nh || NULL != write_nh) && (NULL != read_fh || NULL != write_fh)));
+
+  if (NULL != read_nh && NULL != write_nh)
   {
-    fdi->sock=task->read_fd;
+    t->fds_len = 2;
+    t->fds =
+      GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+    struct GNUNET_SCHEDULER_FdInfo *read_fdi = t->fds;
+    struct GNUENT_SCHEDULER_FdInfo *write_fdi = t->fds + 1;
+    read_fdi->fd = read_nh;
+    read_fdi->et = GNUNET_SCHEDULER_ET_IN;
+    read_fdi->sock = GNUNET_NETWORK_get_fd (read_nh);
+    write_fdi->fd = write_nh;
+    write_fdi->et = GNUNET_SCHEDULER_ET_OUT;
+    write_fdi->sock = GNUNET_NETWORK_get_fd (write_nh);
   }
-  else if (-1 != task->write_fd)
+  else if (NULL != read_fh && NULL != write_fh)
   {
-    fdi->sock=task->write_fd;
+    t->fds_len = 2;
+    t->fds =
+      GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+    struct GNUNET_SCHEDULER_FdInfo *read_fdi = t->fds;
+    struct GNUENT_SCHEDULER_FdInfo *write_fdi = t->fds + 1;
+    read_fdi->fh = read_fh;
+    read_fdi->et = GNUNET_SCHEDULER_ET_IN;
+    write_fdi->fh = write_fh;
+    write_fdi->et = GNUNET_SCHEDULER_ET_OUT;
   }
-  else if (NULL != task->read_set)
+  else if (NULL != read_nh)
   {
-    fdi->fd=task->read_set;
+    struct GNUNET_SCHEDULER_FdInfo *read_fdi = &t->fdx;
+    read_fdi->fd = read_nh;
+    read_fdi->et = GNUNET_SCHEDULER_ET_IN;
+    read_fdi->sock = GNUNET_NETWORK_get_fd (read_nh);
   }
-  else if (NULL != task->write_set)
+  else if (NULL != write_nh)
   {
-    fdi->fd=task->write_set;
+    struct GNUNET_SCHEDULER_FdInfo *write_fdi = &t->fdx;
+    write_fdi->fd = write_nh;
+    write_fdi->et = GNUNET_SCHEDULER_ET_OUT;
+    write_fdi->sock = GNUNET_NETWORK_get_fd (write_nh);
+  }
+  else if (NULL != read_fh)
+  {
+    struct GNUNET_SCHEDULER_FdInfo *read_fdi = &t->fdx;
+    read_fdi->fh = read_fh;
+    read_fdi->et = GNUNET_SCHEDULER_ET_IN;
+  }
+  else if (NULL != write_fh)
+  {
+    struct GNUNET_SCHEDULER_FdInfo *write_fdi = &t->fdx;
+    write_fdi->fh = write_fh;
+    write_fdi->et = GNUNET_SCHEDULER_ET_OUT;
   }
 }
 
@@ -1080,7 +1124,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
 {
   enum GNUNET_SCHEDULER_Priority p;
   void *ret;
-  GNUNET_SCHEDULER_FdInfo *fdi;
+  struct GNUNET_SCHEDULER_FdInfo *fdi;
 
   GNUNET_assert ( (NULL != active_task) ||
       (GNUNET_NO == task->lifeness) );
@@ -1480,9 +1524,13 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
 #ifndef MINGW
 static struct GNUNET_SCHEDULER_Task *
 add_without_sets (struct GNUNET_TIME_Relative delay,
-      enum GNUNET_SCHEDULER_Priority priority,
-      int rfd,
-                  int wfd,
+                  enum GNUNET_SCHEDULER_Priority priority,
+                  struct GNUNET_NETWORK_Handle *read_nh,
+                  struct GNUNET_NETWORK_Handle *write_nh,
+                  struct GNUNET_DISK_FileHandle *read_fh,
+                  struct GNUNET_DISK_FileHandle *write_fh,
+                  //int rfd,
+                  //int wfd,
                   GNUNET_SCHEDULER_TaskCallback task,
                   void *task_cls)
 {
@@ -1530,12 +1578,17 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority = check_priority ((priority == GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority : priority);
   t->lifeness = current_lifeness;
-  /*GNUNET_CONTAINER_DLL_insert (pending_head,
-                               pending_tail,
-                               t);*/
-  fdi = GNUNET_new (struct GNUNET_SCHEDULER_FdInfo);
-  initFdInfo(fdi, t);
+  //GNUNET_CONTAINER_DLL_insert (pending_head,
+  //                             pending_tail,
+  //                             t);
+  //fdi = GNUNET_new (struct GNUNET_SCHEDULER_FdInfo);
+  //initFdInfo(fdi, t);
+  //scheduler_driver->add(scheduler_driver->cls, t , fdi);
+  //initFdInfo (&t->fdx, read_nh, write_nh, read_fh, write_fh)
+  initFdInfo (t, read_nh, write_nh, read_fh, write_fh);
+  // FIXME: call add for each fdi if t->fds is a list
   scheduler_driver->add(scheduler_driver->cls, t , fdi);
+  
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1673,10 +1726,13 @@ GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_destroy (s);
   return ret;
 #else
+  GNUNET_assert (on_read || on_write);
   GNUNET_assert (GNUNET_NETWORK_get_fd (fd) >= 0);
   return add_without_sets (delay, priority,
-                           on_read  ? GNUNET_NETWORK_get_fd (fd) : -1,
-                           on_write ? GNUNET_NETWORK_get_fd (fd) : -1,
+                           on_read  ? fd : NULL,
+                           on_write ? fd : NULL,
+                           NULL,
+                           NULL,
                            task, task_cls);
 #endif
 }
@@ -1773,15 +1829,14 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_destroy (s);
   return ret;
 #else
-  int real_fd;
-
-  GNUNET_DISK_internal_file_handle_ (fd, &real_fd, sizeof (int));
-  GNUNET_assert (real_fd >= 0);
-  return add_without_sets (
-      delay, priority,
-      on_read  ? real_fd : -1,
-      on_write ? real_fd : -1,
-      task, task_cls);
+  GNUNET_assert (on_read || on_write);
+  GNUNET_assert(fd->fd >= 0);
+  return add_without_sets (delay, priority,
+                           NULL,
+                           NULL,
+                           on_read ? fd : NULL,
+                           on_write ? fd : NULL,
+                           task, task_cls);
 #endif
 }
 
