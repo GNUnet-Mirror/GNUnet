@@ -234,7 +234,7 @@ struct GNUNET_SCHEDULER_Task
  * #GNUNET_SCHEDULER_add_select(), #add_without_sets() and
  * #GNUNET_SCHEDULER_cancel().
  */
-GNUNET_SCHEDULER_Driver *scheduler_driver;
+static struct GNUNET_SCHEDULER_Driver *scheduler_driver;
 
 /**
  * Head of list of tasks waiting for an event.
@@ -1055,16 +1055,22 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
  * @param task id of the task to cancel
  * @return original closure of the task
  */
-void initFdINfo(GNUNET_SCHEDULER_FdInfo *fdi, struct GNUNET_SCHEDULER_Task *task)
+void initFdInfo(struct GNUNET_SCHEDULER_FdInfo *fdi, struct GNUNET_SCHEDULER_Task *task)
 {
   if  (-1 != task->read_fd)
   {
     fdi->sock=task->read_fd;
-  }else if (-1 != task->write_fd){
+  }
+  else if (-1 != task->write_fd)
+  {
     fdi->sock=task->write_fd;
-  } else if (NULL != task->read_set){
+  }
+  else if (NULL != task->read_set)
+  {
     fdi->fd=task->read_set;
-  }else if (NULL != task->write_set){
+  }
+  else if (NULL != task->write_set)
+  {
     fdi->fd=task->write_set;
   }
 }
@@ -1102,7 +1108,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
                                    pending_tail,
                                    task);*/
       fdi = GNUNET_new (struct GNUNET_SCHEDULER_FdInfo);
-      initFdINfo(fdi, task);
+      initFdInfo(fdi, task);
       scheduler_driver->del(scheduler_driver->cls, task, fdi);
     }
   }
@@ -1528,8 +1534,8 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
                                pending_tail,
                                t);*/
   fdi = GNUNET_new (struct GNUNET_SCHEDULER_FdInfo);
-  initFdINfo(fdi, task);
-  scheduler_driver->add(scheduler_driver, t , fdi);
+  initFdInfo(fdi, t);
+  scheduler_driver->add(scheduler_driver->cls, t , fdi);
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1851,8 +1857,8 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                                pending_tail,
                                t);*/
   fdi = GNUNET_new (struct GNUNET_SCHEDULER_FdInfo);
-  initFdINfo(fdi, task);
-  scheduler_driver->add(scheduler_driver, t , fdi);
+  initFdInfo(fdi, t);
+  scheduler_driver->add(scheduler_driver->cls, t , fdi);
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
