@@ -24,6 +24,11 @@ import subprocess
 import re
 import shutil
 
+# Force encoding to utf-8, as this test otherwise fails
+# on some systems (see #5094).
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
 if gnunet_pyexpect_dir not in sys.path:
