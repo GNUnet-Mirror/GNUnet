@@ -33,7 +33,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_multicast_service.h"
 
-#define NUM_PEERS 10
+#define PEERS_REQUESTED 12
 
 struct multicast_peer
 {
@@ -65,11 +65,11 @@ static struct multicast_peer **mc_peers;
 static struct GNUNET_TESTBED_Peer **peers;
 
 // FIXME: refactor
-static struct GNUNET_TESTBED_Operation *op[NUM_PEERS];
-static struct GNUNET_TESTBED_Operation *pi_op[NUM_PEERS];
+static struct GNUNET_TESTBED_Operation *op[PEERS_REQUESTED];
+static struct GNUNET_TESTBED_Operation *pi_op[PEERS_REQUESTED];
 
 static struct GNUNET_MULTICAST_Origin *origin;
-static struct GNUNET_MULTICAST_Member *member[NUM_PEERS]; /* first element always empty */
+static struct GNUNET_MULTICAST_Member *member[PEERS_REQUESTED]; /* first element always empty */
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
@@ -77,8 +77,8 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey group_key;
 static struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 static struct GNUNET_HashCode group_pub_key_hash;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key[NUM_PEERS];
-static struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key[NUM_PEERS];
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key[PEERS_REQUESTED];
+static struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key[PEERS_REQUESTED];
 
 
 /**
@@ -93,7 +93,7 @@ static int result;
 static void
 shutdown_task (void *cls)
 {
-  for (int i=0;i<NUM_PEERS;i++)
+  for (int i=0;i<PEERS_REQUESTED;i++)
   {
     if (NULL != op[i])
     {
@@ -109,7 +109,7 @@ shutdown_task (void *cls)
 
   if (NULL != mc_peers)
   {
-    for (int i=0; i < NUM_PEERS; i++)
+    for (int i=0; i < PEERS_REQUESTED; i++)
     {
       GNUNET_free (mc_peers[i]);
       mc_peers[i] = NULL;
@@ -232,7 +232,7 @@ member_message (void *cls,
   }
 
   // Test for completeness of received PONGs
-  for (int i=1; i<NUM_PEERS; i++)
+  for (int i=1; i<PEERS_REQUESTED; i++)
     if (GNUNET_NO == mc_peers[i]->test_ok)
       return;
 
@@ -313,7 +313,7 @@ origin_notify (void *cls,
   *data_size = sizeof (struct pingpong_msg);
   memcpy(data, pp_msg, *data_size); 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends pong (to all)\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends pong\n");
 
   return GNUNET_YES; 
 }
@@ -520,7 +520,7 @@ service_connect (void *cls,
   if (0 == mc_peer->peer)
   {
     // Get GNUnet identity of members 
-    for (int i = 0; i<NUM_PEERS; i++) 
+    for (int i = 0; i<PEERS_REQUESTED; i++) 
     {
       pi_op[i] = GNUNET_TESTBED_peer_get_information (peers[i],
                                                       GNUNET_TESTBED_PIT_IDENTITY,
@@ -544,7 +544,7 @@ service_connect (void *cls,
  * @param cls closure
  * @param h the run handle
  * @param peers started peers for the test
- * @param num_peers size of the 'peers' array
+ * @param PEERS_REQUESTED size of the 'peers' array
  * @param links_succeeded number of links between peers that were created
  * @param links_failed number of links testbed was unable to establish
  */ static void
@@ -563,10 +563,10 @@ testbed_master (void *cls,
 
   peers = p;
 
-  mc_peers = GNUNET_new_array (NUM_PEERS, struct multicast_peer*);
+  mc_peers = GNUNET_new_array (PEERS_REQUESTED, struct multicast_peer*);
 
   // Create test contexts for members
-  for (int i = 0; i<NUM_PEERS; i++) 
+  for (int i = 0; i<PEERS_REQUESTED; i++) 
   {
     mc_peers[i] = GNUNET_new (struct multicast_peer);
     mc_peers[i]->peer = i;
@@ -600,12 +600,26 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+  char const *config_file;
+
+  if (strstr (argv[0], "_line") != NULL) 
+  {
+    config_file = "test_multicast_line.conf";
+  }
+  else if (strstr(argv[0], "_star") != NULL)
+  {
+    config_file = "test_multicast_star.conf";
+  }
+  else 
+  {
+    config_file = "test_multicast_star.conf";
+  }
 
   result = GNUNET_SYSERR;
   ret = GNUNET_TESTBED_test_run
       ("test-multicast-multipeer",  /* test case name */
-       "test_multicast.conf", /* template configuration */
-       NUM_PEERS,       /* number of peers to start */
+       config_file, /* template configuration */
+       PEERS_REQUESTED,       /* number of peers to start */
        0LL, /* Event mask - set to 0 for no event notifications */
        NULL, /* Controller event callback */
        NULL, /* Closure for controller event callback */
