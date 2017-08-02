@@ -152,14 +152,14 @@ struct GNUNET_SCHEDULER_FdInfo
    * NULL if this is about a file handle or if no network
    * handle was given to the scheduler originally.
    */
-  struct GNUNET_NETWORK_Handle *fd;
+  const struct GNUNET_NETWORK_Handle *fd;
 
   /**
    * GNUnet file handle the event is about, matches @a sock,
    * NULL if this is about a network socket or if no network
    * handle was given to the scheduler originally.
    */
-  struct GNUNET_DISK_FileHandle *fh;
+  const struct GNUNET_DISK_FileHandle *fh;
 
   /**
    * Type of the event that was generated related to @e sock.
@@ -280,7 +280,7 @@ struct GNUNET_SCHEDULER_Driver
   int
   (*add)(void *cls,
 	 struct GNUNET_SCHEDULER_Task *task,
-	 struct GNUNET_SCHEDULER_FdInfo *fdi);
+   const struct GNUNET_SCHEDULER_FdInfo *fdi);
 
   /**
    * Delete a @a task from the set of tasks to be run.
