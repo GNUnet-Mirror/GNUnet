@@ -539,6 +539,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
     GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
                                  pending_timeout_tail,
                                  pos);
+    scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
@@ -1131,6 +1132,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
   GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
              pending_timeout_tail,
              task);
+      scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
       if (task == pending_timeout_last)
         pending_timeout_last = NULL;
     }
@@ -1259,6 +1261,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
     GNUNET_CONTAINER_DLL_insert (pending_timeout_head,
                                  pending_timeout_tail,
                                  t);
+    scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
   }
   else
   {
@@ -1981,6 +1984,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
                                  pending_timeout_tail,
                                  pos);
+    scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
