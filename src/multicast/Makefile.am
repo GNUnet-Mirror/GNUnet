@@ -50,13 +50,13 @@ gnunet_service_multicast_LDADD = \
   $(GN_LIBINTL)
 
 check_PROGRAMS = \
-  test_multicast_multipeer 
-#  test_multicast 
+  test_multicast \
+  test_multicast_multipeer_star \
+  test_multicast_multipeer_line
 #  test_multicast_2peers
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@}; export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH; unset XDG_DATA_HOME; unset XDG_CONFIG_HOME;
-#AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@}; export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH; unset XDG_DATA_HOME; unset XDG_CONFIG_HOME; export GNUNET_FORCE_LOG=';;;;INFO';
 TESTS = $(check_PROGRAMS)
 endif
 
@@ -66,10 +66,15 @@ test_multicast_LDADD = \
   libgnunetmulticast.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
-
-test_multicast_multipeer_SOURCES = \
+test_multicast_multipeer_star_SOURCES = \
   test_multicast_multipeer.c
-test_multicast_multipeer_LDADD = \
+test_multicast_multipeer_star_LDADD = \
+  libgnunetmulticast.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+test_multicast_multipeer_line_SOURCES = \
+  test_multicast_multipeer.c
+test_multicast_multipeer_line_LDADD = \
   libgnunetmulticast.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la
