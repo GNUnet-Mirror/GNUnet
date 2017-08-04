@@ -928,81 +928,9 @@ void
 GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
                       void *task_cls)
 {
-  struct GNUNET_NETWORK_FDSet *rs;
-  struct GNUNET_NETWORK_FDSet *ws;
 
+  GNUNET_SCHEDULER_run_with_driver(GNUNET_SCHEDULER_driver_select, task, task_cls);
 
-  struct GNUNET_SIGNAL_Context *shc_int;
-  struct GNUNET_SIGNAL_Context *shc_term;
-#if (SIGTERM != GNUNET_TERM_SIG)
-  struct GNUNET_SIGNAL_Context *shc_gterm;
-#endif
-
-#ifndef MINGW
-  struct GNUNET_SIGNAL_Context *shc_quit;
-  struct GNUNET_SIGNAL_Context *shc_hup;
-  struct GNUNET_SIGNAL_Context *shc_pipe;
-#endif
-
-
-
-  GNUNET_assert (NULL == active_task);
-  rs = GNUNET_NETWORK_fdset_create ();
-  ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_assert (NULL == shutdown_pipe_handle);
-  shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO,
-                                           GNUNET_NO,
-                                           GNUNET_NO,
-                                           GNUNET_NO);
-  GNUNET_assert (NULL != shutdown_pipe_handle);
-
-  my_pid = getpid ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Registering signal handlers\n");
-  shc_int = GNUNET_SIGNAL_handler_install (SIGINT,
-             &sighandler_shutdown);
-  shc_term = GNUNET_SIGNAL_handler_install (SIGTERM,
-              &sighandler_shutdown);
-#if (SIGTERM != GNUNET_TERM_SIG)
-  shc_gterm = GNUNET_SIGNAL_handler_install (GNUNET_TERM_SIG,
-               &sighandler_shutdown);
-#endif
-#ifndef MINGW
-  shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE,
-              &sighandler_pipe);
-  shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT,
-              &sighandler_shutdown);
-  shc_hup = GNUNET_SIGNAL_handler_install (SIGHUP,
-             &sighandler_shutdown);
-#endif
-  current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
-  current_lifeness = GNUNET_YES;
-  GNUNET_SCHEDULER_add_with_reason_and_priority (task,
-                                                 task_cls,
-                                                 GNUNET_SCHEDULER_REASON_STARTUP,
-                                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT);
-  active_task = (void *) (long) -1;     /* force passing of sanity check */
-  GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
-                                          &GNUNET_OS_install_parent_control_handler,
-                                          NULL);
-  active_task = NULL;
-
-
-  while_live(rs, ws);
-  GNUNET_SIGNAL_handler_uninstall (shc_int);
-  GNUNET_SIGNAL_handler_uninstall (shc_term);
-#if (SIGTERM != GNUNET_TERM_SIG)
-  GNUNET_SIGNAL_handler_uninstall (shc_gterm);
-#endif
-#ifndef MINGW
-  GNUNET_SIGNAL_handler_uninstall (shc_pipe);
-  GNUNET_SIGNAL_handler_uninstall (shc_quit);
-  GNUNET_SIGNAL_handler_uninstall (shc_hup);
-#endif
-  GNUNET_DISK_pipe_close (shutdown_pipe_handle);
-  shutdown_pipe_handle = NULL;
-  GNUNET_NETWORK_fdset_destroy (rs);
-  GNUNET_NETWORK_fdset_destroy (ws);
 }
 
 
