@@ -536,10 +536,11 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
       pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
     if (0 == pos->reason)
       break;
+    scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                  pending_timeout_head->timeout);
     GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
                                  pending_timeout_tail,
                                  pos);
-    scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
@@ -1065,14 +1066,20 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
          (NULL == task->write_set) )
     {
       if (GNUNET_YES == task->on_shutdown)
-  GNUNET_CONTAINER_DLL_remove (shutdown_head,
-             shutdown_tail,
-             task);
+        GNUNET_CONTAINER_DLL_remove (shutdown_head,
+                                     shutdown_tail,
+                                     task);
       else
-  GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
-             pending_timeout_tail,
-             task);
-      scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
+      {
+        GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
+                                     pending_timeout_tail,
+                                     task);
+        if (pending_timeout_last == task)
+          pending_timeout_last = NULL;
+        else
+          scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                        pending_timeout_head->timeout);
+      }
       if (task == pending_timeout_last)
         pending_timeout_last = NULL;
     }
@@ -2082,7 +2089,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   GNUNET_NETWORK_fdset_handle_set (sh.rs, pr);
   sh.driver = driver;
   ret = driver->loop (driver->cls,
-          &sh);
+                      &sh);
   GNUNET_NETWORK_fdset_destroy (sh.rs);
   GNUNET_NETWORK_fdset_destroy (sh.ws);
 
@@ -2128,7 +2135,7 @@ select_loop(void *cls,
 }
 
 
-static void
+void
 select_set_wakeup(void *cls,
                   struct GNUNET_TIME_Absolute dt)
 {
