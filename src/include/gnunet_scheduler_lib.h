@@ -280,7 +280,7 @@ struct GNUNET_SCHEDULER_Driver
   int
   (*add)(void *cls,
 	 struct GNUNET_SCHEDULER_Task *task,
-   const struct GNUNET_SCHEDULER_FdInfo *fdi);
+         struct GNUNET_SCHEDULER_FdInfo *fdi);
 
   /**
    * Delete a @a task from the set of tasks to be run.
@@ -294,7 +294,7 @@ struct GNUNET_SCHEDULER_Driver
   int
   (*del)(void *cls,
 	 struct GNUNET_SCHEDULER_Task *task,
-	 const struct GNUNET_SCHEDULER_FdInfo *fdi);
+	 struct GNUNET_SCHEDULER_FdInfo *fdi);
 
   /**
    * Set time at which we definitively want to get a wakeup call.
