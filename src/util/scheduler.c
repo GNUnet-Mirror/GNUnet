@@ -1829,9 +1829,10 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                        GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority :
                       prio);
   t->lifeness = current_lifeness;
-
+  GNUNET_CONTAINER_DLL_insert (pending_head,
+                               pending_tail,
+                               t);
   scheduler_multi_function_call(t, scheduler_driver->add);
-
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
