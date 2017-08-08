@@ -359,7 +359,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
  *
  * @return NULL on error
  */
-const struct GNUNET_SCHEDULER_Driver *
+struct GNUNET_SCHEDULER_Driver *
 GNUNET_SCHEDULER_driver_select (void);
 
 
