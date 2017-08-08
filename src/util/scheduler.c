@@ -810,6 +810,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
           scheduler_driver->set_wakeup (scheduler_driver->cls,
                                         get_timeout ());
       }
+      //TODO check if this is redundant
       if (task == pending_timeout_last)
         pending_timeout_last = NULL;
     }
@@ -1665,6 +1666,9 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
                                  pos);
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
+    else
+      scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
+
     queue_ready_task (pos);
   }
 
