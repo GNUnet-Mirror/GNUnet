@@ -684,57 +684,62 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
 
 
 void
-initFdInfo(struct GNUNET_SCHEDULER_Task *t,
-           const struct GNUNET_NETWORK_Handle *read_nh,
-           const struct GNUNET_NETWORK_Handle *write_nh,
-           const struct GNUNET_DISK_FileHandle *read_fh,
-           const struct GNUNET_DISK_FileHandle *write_fh)
+init_fd_info (struct GNUNET_SCHEDULER_Task *t,
+              const struct GNUNET_NETWORK_Handle *read_nh,
+              const struct GNUNET_NETWORK_Handle *write_nh,
+              const struct GNUNET_DISK_FileHandle *read_fh,
+              const struct GNUNET_DISK_FileHandle *write_fh)
 {
   // either only network handles or only file handles are allowed
   GNUNET_assert (!((NULL != read_nh || NULL != write_nh) && (NULL != read_fh || NULL != write_fh)));
 
   if (NULL != read_nh && NULL != write_nh)
   {
+    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = GNUNET_NETWORK_get_fd (read_nh)};
+    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
+    fds[0] = read_fdi;
+    fds[1] = write_fdi;
+    t->fds = fds;
     t->fds_len = 2;
-    t->fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
-    const struct GNUNET_SCHEDULER_FdInfo read_fdi = { .fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = GNUNET_NETWORK_get_fd (read_nh)};
-    const struct GNUNET_SCHEDULER_FdInfo write_fdi = { .fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
-
-    const struct GNUNET_SCHEDULER_FdInfo array[2] = {read_fdi, write_fdi};
-    t->fds = array;
   }
   else if (NULL != read_fh && NULL != write_fh)
   {
+    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fh->fd};
+    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fh->fd};
+    fds[0] = read_fdi;
+    fds[1] = write_fdi;
+    t->fds = fds;
     t->fds_len = 2;
-    t->fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
-    const struct GNUNET_SCHEDULER_FdInfo read_fdi = { .fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN};
-    const struct GNUNET_SCHEDULER_FdInfo write_fdi = { .fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
-    const struct GNUNET_SCHEDULER_FdInfo array[2] = {read_fdi, write_fdi};
-    t->fds = array;
   }
   else if (NULL != read_nh)
   {
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = { .fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = GNUNET_NETWORK_get_fd (read_nh)};
+    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = GNUNET_NETWORK_get_fd (read_nh)};
     t->fdx = read_fdi;
     t->fds = &t->fdx;
+    t->read_fd = t->fdx.sock;
   }
   else if (NULL != write_nh)
   {
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = { .fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
+    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
     t->fdx = write_fdi;
     t->fds = &t->fdx;
+    t->write_fd = t->fdx.sock;
   }
   else if (NULL != read_fh)
   {
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = { .fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fh->fd};
+    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fh->fd};
     t->fdx = read_fdi;
     t->fds = &t->fdx;
+    t->read_fd = t->fdx.sock;
   }
   else if (NULL != write_fh)
   {
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = { .fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fh->fd};
+    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fh->fd};
     t->fdx = write_fdi;
     t->fds = &t->fdx;
+    t->write_fd = t->fdx.sock;
   }
 }
 
@@ -1207,7 +1212,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
-  initFdInfo (t, read_nh, write_nh, read_fh, write_fh);
+  init_fd_info (t, read_nh, write_nh, read_fh, write_fh);
   t->callback = task;
   t->callback_cls = task_cls;
 #if DEBUG_FDS
