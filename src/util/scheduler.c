@@ -583,29 +583,29 @@ sighandler_shutdown ()
  * @return #GNUNET_OK to continue the main loop,
  *         #GNUNET_NO to exit
  */
-//static int
-//check_lifeness ()
-//{
-//  struct GNUNET_SCHEDULER_Task *t;
-//
-//  if (ready_count > 0)
-//    return GNUNET_OK;
-//  for (t = pending_head; NULL != t; t = t->next)
-//    if (t->lifeness == GNUNET_YES)
-//      return GNUNET_OK;
-//  for (t = shutdown_head; NULL != t; t = t->next)
-//    if (t->lifeness == GNUNET_YES)
-//      return GNUNET_OK;
-//  for (t = pending_timeout_head; NULL != t; t = t->next)
-//    if (t->lifeness == GNUNET_YES)
-//      return GNUNET_OK;
-//  if (NULL != shutdown_head)
-//  {
-//    GNUNET_SCHEDULER_shutdown ();
-//    return GNUNET_OK;
-//  }
-//  return GNUNET_NO;
-//}
+static int
+check_lifeness ()
+{
+  struct GNUNET_SCHEDULER_Task *t;
+
+  if (ready_count > 0)
+    return GNUNET_OK;
+  for (t = pending_head; NULL != t; t = t->next)
+    if (t->lifeness == GNUNET_YES)
+      return GNUNET_OK;
+  for (t = shutdown_head; NULL != t; t = t->next)
+    if (t->lifeness == GNUNET_YES)
+      return GNUNET_OK;
+  for (t = pending_timeout_head; NULL != t; t = t->next)
+    if (t->lifeness == GNUNET_YES)
+      return GNUNET_OK;
+  if (NULL != shutdown_head)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_OK;
+  }
+  return GNUNET_NO;
+}
 
 
 /**
@@ -1652,7 +1652,6 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 {
-  // FIXME: we have to check lifeness here!
   enum GNUNET_SCHEDULER_Priority p;
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_TIME_Absolute now;
@@ -1735,10 +1734,29 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     destroy_task (pos);
     tasks_run++;
   }
-  scheduler_driver->set_wakeup (scheduler_driver->cls,
-                                get_timeout ());
+  if (GNUNET_NO == check_lifeness ())
+  {
+    /* cancel fd tasks without lifeness */
+    pos = pending_head;
+    while (NULL != pos)
+    {
+      struct GNUNET_SCHEDULER_Task *tsk = pos;
+      pos = pos->next;
+      if (GNUNET_NO == tsk->lifeness)
+      {
+        GNUNET_SCHEDULER_cancel (tsk);
+      }
+    }
+    //sighandler_shutdown();
+  }
   if (0 == ready_count)
+  {
+    scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                  get_timeout ());
     return GNUNET_NO;
+  }
+  scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                GNUNET_TIME_absolute_get ()); 
   return GNUNET_OK;
 }
 
@@ -1812,23 +1830,40 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
 #endif
 
   /* Setup initial tasks */
+  //current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
+  //current_lifeness = GNUNET_YES;
+  //memset (&tsk,
+  //        0,
+  //        sizeof (tsk));
+  //active_task = &tsk;
+  //GNUNET_SCHEDULER_add_with_reason_and_priority (task,
+  //                                               task_cls,
+  //                                               GNUNET_SCHEDULER_REASON_STARTUP,
+  //                                               GNUNET_SCHEDULER_PRIORITY_DEFAULT);
+  //GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
+  //                                        &GNUNET_OS_install_parent_control_handler,
+  //                                        NULL);
+  //GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+  //                                pr,
+  //                                &shutdown_task,
+  //                                NULL);
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
-  current_lifeness = GNUNET_YES;
+  current_lifeness = GNUNET_NO;
   memset (&tsk,
     0,
     sizeof (tsk));
   active_task = &tsk;
-  GNUNET_SCHEDULER_add_with_reason_and_priority (task,
-                                                 task_cls,
-                                                 GNUNET_SCHEDULER_REASON_STARTUP,
-                                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT);
-  GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
-                                          &GNUNET_OS_install_parent_control_handler,
-                                          NULL);
+  GNUNET_SCHEDULER_add_now (&GNUNET_OS_install_parent_control_handler,
+                            NULL);
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   pr,
                                   &shutdown_task,
                                   NULL);
+  current_lifeness = GNUNET_YES;
+  GNUNET_SCHEDULER_add_with_reason_and_priority (task,
+                                                 task_cls,
+                                                 GNUNET_SCHEDULER_REASON_STARTUP,
+                                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT);
   active_task = NULL;
   /* begin main event loop */
   sh.rs = GNUNET_NETWORK_fdset_create ();
@@ -1837,7 +1872,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   ret = driver->loop (driver->cls,
                       &sh);
   LOG (GNUNET_ERROR_TYPE_WARNING,
-       "loop finished!");
+       "loop finished!\n");
   GNUNET_NETWORK_fdset_destroy (sh.rs);
   GNUNET_NETWORK_fdset_destroy (sh.ws);
 
@@ -1912,6 +1947,7 @@ select_del (void *cls,
 
   int ret = GNUNET_SYSERR;
   struct Scheduled *pos;
+  // FIXME: are multiple ORed event types allowed?
   switch (fdi->et)
   {
   case GNUNET_SCHEDULER_ET_IN:
@@ -1952,13 +1988,6 @@ select_del (void *cls,
 }
 
 
-//int
-//select_loop_condition (const struct DriverContext *context)
-//{
-//  struct GNUNET_TIME_absolute_
-//}
-
-
 int
 select_loop (void *cls,
              struct GNUNET_SCHEDULER_Handle *sh)
@@ -1976,8 +2005,7 @@ select_loop (void *cls,
   ws = GNUNET_NETWORK_fdset_create ();
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((NULL != context->scheduled_in_head) ||
-         (NULL != context->scheduled_out_head))
+  while ((NULL != context->scheduled_in_head) || (NULL != context->scheduled_out_head))
   {
     GNUNET_NETWORK_fdset_zero (rs);
     GNUNET_NETWORK_fdset_zero (ws);
@@ -1989,11 +2017,6 @@ select_loop (void *cls,
     for (pos = context->scheduled_out_head; NULL != pos; pos = pos->next)
     {
       GNUNET_NETWORK_fdset_set_native (ws, pos->fdi->sock);
-    }
-    if (ready_count > 0)
-    {
-      /* no blocking, more work already ready! */
-      context->timeout = GNUNET_TIME_UNIT_ZERO;
     }
     if (NULL == scheduler_select)
     {
@@ -2071,20 +2094,20 @@ select_loop (void *cls,
     {
       if (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
       {
-        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_IN);
         GNUNET_CONTAINER_DLL_remove (context->scheduled_in_head,
                                      context->scheduled_in_tail,
                                      pos);
+        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_IN);
       }
     }
     for (pos = context->scheduled_out_head; NULL != pos; pos = pos->next)
     {
       if (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
       {
-        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_OUT);
         GNUNET_CONTAINER_DLL_remove (context->scheduled_out_head,
                                      context->scheduled_out_tail,
                                      pos);
+        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_OUT);
       }
     }
     GNUNET_SCHEDULER_run_from_driver (sh);
@@ -2098,6 +2121,10 @@ select_loop (void *cls,
       last_tr = tasks_run;
       busy_wait_warning = 0;
     }
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "scheduled_in_head = %p, scheduled_out_head = %p\n",
+         context->scheduled_in_head,
+         context->scheduled_out_head);
   }
   return GNUNET_OK; 
 }
