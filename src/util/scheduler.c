@@ -577,11 +577,15 @@ sighandler_shutdown ()
 
 
 /**
- * Check if the system is still alive. Trigger shutdown if we
- * have tasks, but none of them give us lifeness.
+ * Check if the system has initiated shutdown. This means no tasks
+ * that prevent shutdown were present and all tasks added with 
+ * #GNUNET_SCHEDULER_add_shutdown were run already.
  *
- * @return #GNUNET_OK to continue the main loop,
- *         #GNUNET_NO to exit
+ * Can be used by external event loop implementations to decide
+ * whether to keep running or not.
+ *
+ * @return #GNUNET_YES if tasks which prevent shutdown exist
+ *         #GNUNET_NO if the system has initiated shutdown
  */
 int
 GNUNET_SCHEDULER_check_lifeness ()
@@ -589,20 +593,20 @@ GNUNET_SCHEDULER_check_lifeness ()
   struct GNUNET_SCHEDULER_Task *t;
 
   if (ready_count > 0)
-    return GNUNET_OK;
+    return GNUNET_YES;
   for (t = pending_head; NULL != t; t = t->next)
     if (t->lifeness == GNUNET_YES)
-      return GNUNET_OK;
+      return GNUNET_YES;
   for (t = shutdown_head; NULL != t; t = t->next)
     if (t->lifeness == GNUNET_YES)
-      return GNUNET_OK;
+      return GNUNET_YES;
   for (t = pending_timeout_head; NULL != t; t = t->next)
     if (t->lifeness == GNUNET_YES)
-      return GNUNET_OK;
+      return GNUNET_YES;
   if (NULL != shutdown_head)
   {
     GNUNET_SCHEDULER_shutdown ();
-    return GNUNET_OK;
+    return GNUNET_YES;
   }
   return GNUNET_NO;
 }
